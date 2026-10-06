@@ -1221,6 +1221,80 @@ Selective and Lean never reach prestige 70 or the top 25.
   - Idle weeks are unchanged. This removes stops, not weeks.
   - Tests for the setting.
 
+**As implemented.**
+
+- **The letters.** `eventSystem.ts` files the celebration and the report
+  as a `NewsLetter` in `s.events.news` (oldest first, kept a year) instead
+  of raising the stop; `inbox.ts` lists each as a `news` item in the
+  letter tier ("A celebration" or "Research", its headline, a first line),
+  unread until opened (`READ_NEWS`). The reading pane shows the card the
+  stop showed (`MilestoneCelebrationView`, `ResearchReportView`, now
+  exported), under a Letter tag and its date, without Continue. The slip
+  is a letter's. The specialization, the summer, the opening letters and
+  every `decide` matter are unchanged.
+- **The week stays claimed.** A filed letter returns `true` as the stop
+  did, so the cadence below it in `tickEvents` stands down that week. The
+  demand runs after the events and read only `pendingInterrupt`, so
+  `announceDemand` also waits on a letter filed that week. Without it one
+  goal run (revenue, seed 777) moved from year 43: a demand arrived a
+  week early. With it, a full-state hash of that run is identical every
+  week for 50 years between the old stop and the new letter.
+- **Pause for news** (`settings.ts`, off by default and for a browser
+  without the key) sits under *Pause when a matter arrives*.
+  `unseen.ts` pauses the clock for a new `news` item while it is on
+  (reason `'news'`), whatever the other setting says, and never under a
+  stop or on a load; the slip then waits with the clock.
+- **The Review** (`yearInReview.ts`'s `events()`): the year's matters the
+  clock answered, from their log lines, as one `reviewGroup` — "3 matters
+  left unanswered" over "Title (the answer it took)", or one line in full.
+- **Saves.** A save holding a celebration or a report as a stop shows it
+  once, as before (the stop's handlers and `defaultAnswers` stay), then
+  the new rule holds. The news needs a place in the save: version 95,
+  `noNewsYet` (fixture `save-v94.json`, the year-8 scenario).
+- **Measured** with `npm run review:goals` (seven goals, seeds 12345, 4242
+  and 777, Blackmoor, 50 years), stops a run before → after, medians:
+
+  | Goal | Stops | celebrations | research reports | Idle weeks | Answer-only weeks |
+  |---|---|---|---|---|---|
+  | prestige | 299 → 126 | 89 → 0 | 82 → 0 | 1,466 → 1,507 | 108 → 74 |
+  | big-then-good | 277 → 134 | 93 → 0 | 45 → 0 | 1,403 → 1,454 | 117 → 70 |
+  | assets | 262 → 142 | 92 → 0 | 27 → 0 | 1,315 → 1,340 | 88 → 62 |
+  | good-then-big | 234 → 123 | 87 → 0 | 19 → 0 | 1,578 → 1,617 | 104 → 67 |
+  | championships | 206 → 133 | 72 → 0 | 0 → 0 | 1,722 → 1,749 | 107 → 80 |
+  | satisfaction | 156 → 108 | 47 → 0 | 0 → 0 | 2,091 → 2,129 | 122 → 85 |
+  | revenue | 153 → 79 | 11 → 0 | 61 → 0 | 2,150 → 2,159 | 74 → 60 |
+
+  Every run: 127–308 stops before, 77–151 after. Every goal player's
+  decisions are identical, week for week, before and after.
+- **The sim** reads the same as `sim/baseline.json` (no change in any
+  row).
+- **Tests:** `unseen.test.ts` (the setting's default and normalising, the
+  news pausing only with it on, not twice, not under a stop or on a
+  load, a ladder milestone not news), `inbox.test.ts` (a celebration
+  filed by a `TICK` as a letter, its slip, read, gone after a year),
+  `research-completion.test.ts` (reports filed one a week, read, an old
+  stop still answers), `demand-note.test.ts` (a demand waits out the
+  letter's week), `year-in-review.test.ts` (the unanswered, one and two).
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/`:
+  `95t-research-letter.jpg`, `95t-celebration-letter.jpg` (the inbox at
+  the Completionist's year 12, the clock running) and
+  `95t-pause-for-news.jpg`.
+- **Deviations.**
+  - *Idle weeks are not unchanged by the review's measure* (a week with
+    nothing done and nothing asked): a week that only answered a
+    celebration now asks nothing, so 9–51 more weeks a run read idle. The
+    weeks the players act in are unchanged (their decisions are
+    identical); only the stop is gone, as the spec meant.
+  - *Stored, not derived.* The celebration had no letter of its own (the
+    ladder's milestone letters are a different set), and a report is
+    not kept anywhere after it fires, so the letters are kept in the save
+    (`s.events.news`), with a save version.
+  - *Reading a letter no longer reads the next.* The pane fell back to the
+    newest unread letter whenever nothing was picked, so opening the
+    inbox read every unread letter in a cascade. The pane now holds
+    whatever it showed. This was there before for the ladder's letters;
+    the news made it plain.
+
 ### PR 95U — The Final Report reads the path (B4-7)
 
 - **Access** (`reportData.ts:73`): "never opened its doors very wide" becomes
