@@ -661,7 +661,7 @@ export type Specialization = 'none' | Pillar;
 export type FestivalScale = 'weekend' | 'fair' | 'concert' | 'gala';
 export interface FestivalYear {
   year: number;
-  // The week it was decided (the map lights the district from it).
+  // The week it was decided (the map dresses the district from it).
   week?: number;
   scale: FestivalScale | 'none';
 }

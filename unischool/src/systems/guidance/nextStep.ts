@@ -1,4 +1,5 @@
-import type { GameState, SatisfactionAttributes } from '../../state/types';
+import type { Buildable, GameState, SatisfactionAttributes } from '../../state/types';
+import { standsOnCampus } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
 import { claimedHalls, claimedSchool, hallDisplayName, schoolHall } from '../techtree/schools';
@@ -13,7 +14,7 @@ import { eventById, eventText, fill } from '../events/catalogue';
 import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
-import { satisfactionFigure } from '../../format';
+import { satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
 import { PARK_WORDS, parkStands } from '../../data/researchParkData';
 import { specializationOf } from '../prestige/specialization';
@@ -34,7 +35,8 @@ export interface NextStep {
   // A tab to open, the build menu, or back to the campus; absent when it is
   // only something to know.
   // 'hall' opens a hall's panel on the map (`hallId`), where programs are
-  // founded.
+  // founded; any placed building's panel the same way (Plan 95O: a
+  // building going up).
   go?: TabId | 'build' | 'campus' | 'hall';
   hallId?: string;
   // With 'hall': a program housed there whose tile opens with the panel, its
@@ -210,7 +212,38 @@ function nearlyEstablished(s: GameState): NextStep | null {
   return null;
 }
 
-// The worst satisfaction attribute under the shortfall line.
+// Whether a building serves a need once it opens: its beds for housing,
+// otherwise the need it is built for. A residence hall's shop feeds a few
+// (facilitiesData.ts's isRetailFood) but is not what the line means by
+// dining.
+function servesNeed(t: Buildable, key: keyof SatisfactionAttributes): boolean {
+  if (key === 'housing') return (t.effects?.capacityBonus ?? 0) > 0;
+  return t.kind !== 'dorm' && t.effects?.satisfactionAttribute === key;
+}
+
+// What is going up for a need (Plan 95O, the second review's B3-3): a
+// building under construction, or a story being added to a standing
+// one, and the weeks until it opens. The first to open, if several.
+export function comingFor(s: GameState, key: keyof SatisfactionAttributes): { building: Buildable; weeks: number; story: boolean } | null {
+  let first: { building: Buildable; weeks: number; story: boolean } | null = null;
+  for (const t of s.tech) {
+    // A building develops only once sited, so no reading of the map is needed.
+    if (t.kind === 'course' || !servesNeed(t, key)) continue;
+    const building = t.status === 'developing' && t.renovatingFrom === undefined ? s.developing[t.id] : undefined;
+    const story = standsOnCampus(t) && (t.extensionWeeks ?? 0) > 0 ? t.extensionWeeks : undefined;
+    const weeks = building ?? story;
+    if (weeks === undefined || weeks <= 0) continue;
+    if (!first || weeks < first.weeks) first = { building: t, weeks, story: building === undefined };
+  }
+  return first;
+}
+
+// The worst satisfaction attribute under the shortfall line. When something
+// that serves it is going up, the line names it and when it opens, and opens
+// its site on the map, not the build menu: a player who trusted the line
+// built the same hall twice (B3-3). It is then a wait, so the guided player
+// does not build twice either; once the building opens, the line reads the
+// need afresh.
 function shortfall(s: GameState): NextStep | null {
   let worst: { key: keyof SatisfactionAttributes; score: number } | null = null;
   for (const key of Object.keys(ATTRIBUTE_LABEL) as Array<keyof SatisfactionAttributes>) {
@@ -218,7 +251,13 @@ function shortfall(s: GameState): NextStep | null {
     if (score < ATTRIBUTE_SHORTFALL && (!worst || score < worst.score)) worst = { key, score };
   }
   if (!worst) return null;
-  return { text: `${ATTRIBUTE_LABEL[worst.key]} is at ${satisfactionFigure(worst.score)}: ${ATTRIBUTE_BUILD[worst.key]}`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
+  const need = `${ATTRIBUTE_LABEL[worst.key]} is at ${satisfactionFigure(worst.score)}`;
+  const coming = comingFor(s, worst.key);
+  if (coming) {
+    const name = coming.story ? `${coming.building.name}'s new story` : coming.building.name;
+    return { text: `${need} — ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, intent: { kind: 'wait' } };
+  }
+  return { text: `${need}: ${ATTRIBUTE_BUILD[worst.key]}`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
 }
 
 // A program gone dark with an unstaffed course (Plan 59), when the payroll
@@ -288,5 +327,9 @@ export function nextStep(s: GameState): NextStep | null {
   if (dark) return dark;
   const letter = letterAsk(s);
   if (letter && letter.intent?.kind !== 'wait') return letter;
-  return seating(s) ?? idleCash(s) ?? establishSchool(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? shortfall(s) ?? idleLab(s) ?? letter;
+  // A shortfall with its building going up is only something to know, so a
+  // lab to set working speaks first (Plan 95O).
+  const short = shortfall(s);
+  const waiting = short?.intent?.kind === 'wait';
+  return seating(s) ?? idleCash(s) ?? establishSchool(s) ?? freeSlot(s) ?? nearlyEstablished(s) ?? (waiting ? null : short) ?? idleLab(s) ?? short ?? letter;
 }

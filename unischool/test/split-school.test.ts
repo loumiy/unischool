@@ -4,9 +4,9 @@
 // hall stands empty. The sorting suggestions only brought strays home, so
 // nothing ever freed a hall. Now the smaller hall's programs are suggested
 // into the larger (systems/techtree/schools.ts's schoolToMerge: the hall
-// panel's suggestion, and the harness's); since Plan 80D the next-step line
-// names only the school to establish, and its way there brings the
-// smaller hall's programs into the larger.
+// panel's suggestion, and the harness's); the next-step line names the
+// school to establish (Plan 80D) and the move toward it (Plan 95O), which
+// brings the smaller hall's programs into the larger.
 //
 // And the trap the October review met in play (its trace 7, Plan 78D): the
 // first school in its hall, Founders Hall full of others, and nothing of
@@ -84,7 +84,8 @@ function trapped(second = 2, first = 4): GameState {
   const move = suggestedMove(s, oakPrograms[0]);
   assert(move?.hallId === 'HALL-01' && move.slot === 4, `and the first is suggested into Elm Hall's first free slot (${JSON.stringify(move)})`);
   const step = nextStep(s);
-  assert(step?.text === `Establish a school: six programs of ${SPLIT} in one hall (4 of 6)`, `the next-step line names the school, not the move ("${step?.text}")`);
+  assert(!!step?.text.startsWith(`Establish ${SPLIT} (4 of 6): move `) && !!step?.text.endsWith(' into Elm Hall'), `the next-step line names the school and the move ("${step?.text}")`);
+  assert(step?.go === 'hall' && step.hallId === 'HALL-02' && step.programId === (step.intent?.kind === 'move' ? step.intent.programId : undefined), 'and opens the program\'s tile in the hall it moves from');
   assert(step?.intent?.kind === 'move' && oakPrograms.includes(step.intent.programId) && step.intent.hallId === 'HALL-01', 'and its way there brings Oak Hall\'s into Elm Hall');
 
   // Both moved: Oak Hall stands empty, and nothing is left to merge.
