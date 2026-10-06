@@ -528,6 +528,75 @@ the before and after counts in their **As implemented** note.
   review's 1,858 and 2,252; the Review at year 30, the review's 618).
   Screenshots.
 
+**As implemented.**
+
+- **Athletics.** Every program card starts folded to its one line
+  (`AthleticsTab.tsx`'s `TeamCard`): the arrow, its place in the order, the
+  name, the band's tag (or the flagship's gold corner, which stays), a
+  small scoreboard with the rank and last season's result (`SportScore`,
+  in 90F's navy and gold, the neighbours in its tooltip), its quality and
+  its next action (`NextAction`: the first open chair as "Hire a head
+  coach →" to the market, else the venue it waits on or its postseason
+  ban, else nothing). The arrow opens the full card in place. The fold is
+  76B's own: its `useCollapse` moved out of `CurriculumTab.tsx` into
+  `components/useCollapse.ts`, and both tabs use it, keys namespaced
+  (`team:`), the override kept for the session.
+- **The summer Review.** `state/yearInReview.ts`'s `reviewGroup` makes
+  every list: one like line is said in full as before; two or more become
+  one head ("4 professors appointed") over their short forms (the
+  professor and field, the program's name, the building's name, the
+  school's count). Courses, programs founded, milestones, buildings,
+  appointments, departures and prizes all go through it. `ReviewLine`
+  gains `items`; `InterruptModal.tsx`'s `ReviewLineView` shows the first
+  `REVIEW_LIST_CAP` (five) and "and N more", which opens the rest in place.
+  T's "matters left unanswered" is one more `reviewGroup` call in
+  `events()`.
+- **Counts** (`npm run review:gallery`, desktop, against `main` before and
+  this branch after; the review's own figures in brackets):
+
+  | Screen | Before | After |
+  |---|---:|---:|
+  | Athletics, `year-25-rich` (year 26) | 2,095 w / 196 c (1,858 / 107) | 1,524 / 167 |
+  | Athletics, `summer30` (year 30) | 2,204 / 181 (2,167 / 123) | 1,551 / 149 |
+  | Athletics, `year-40-done` (year 41) | 1,539 / 86 (2,252 / 156) | 354 / 28 |
+  | The Review, `summer30` | 518 / 2 (618) | 493 / 2 |
+
+  What is left on Athletics at years 26 and 30 is mostly the market below
+  the programs (a candidate per open chair, each with its Hire buttons), at
+  colleges with most chairs empty; at year 41, every chair filled, the tab
+  is the department and twenty lines. The year-30 Review had no list past
+  five that year, so the cap shows at year 10 (Completionist): 16 courses
+  in six schools and six programs founded, each "and 1 more".
+- **Tests.** `test/year-in-review.test.ts`: the schools are the courses'
+  members; seven appointments are one line with all seven kept, a
+  professor still on the faculty named with the field, one gone keeping
+  the log's line; a group of one is its sentence and of none no line;
+  three buildings are one line. No test pinned the Athletics cards.
+- **Checks.** `npm run check` passes. No sim: nothing the simulation or
+  the harness runs reads `yearInReview.ts` or the tab.
+- Screenshots in `docs/reviews/2026-10-review-ii-fixes/`: `95i-athletics-*`
+  (years 26 and 41, folded, one open, a phone) and `95i-review-*` (year
+  10, capped, and one list opened).
+
+**Deviations.**
+
+- **Measured with `review:gallery`, not `review:sweep`.** The sweep is the
+  bug sweep (saves and invariants); the words and controls are the
+  gallery's, as the review took them. The baselines moved since the
+  review (the Review is 518 words at year 30 on `main`, not 618), so both
+  columns above are taken now.
+- **Quality for "grade".** A program has no letter grade; its figure is
+  its quality, and the folded line shows that.
+- **One card to a row.** The cards were an auto-fill grid (290 px tracks);
+  a folded line needs the row's width, so the list is one column, as the
+  Curriculum's programs are. An opened card takes the row.
+- **More lists than named.** Milestones, departures and prizes group too,
+  through the same function, so no list in the Review runs long. A group
+  of one keeps the full sentence; the courses' per-school lines became
+  the group's members, and so are capped.
+- **"Hire an assistant coach".** The open seat's screen-reader label read
+  "a assistant coach"; it takes the new line's article.
+
 ### PR 95J — The glossary's last mile, and the 101s (B2-5, B2-6)
 
 - **The words**, with `2c` and `2d`'s wording:
