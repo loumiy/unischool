@@ -48,12 +48,14 @@ const nodes: Buildable[] = [...initialTech(), ...initialDorms(), ...initialFacil
 const byId = new Map(nodes.map((n) => [n.id, n]));
 
 // Course tier, read back off the course number the same way techData.ts's
-// NUMS/TIERS assign it. Graduate courses (5xx/7xx) sit above tier 3.
+// NUMS/TIERS assign it. The capstone (310) is tier 4 (Plan 95M); graduate
+// courses (5xx/7xx) sit above it.
 function tierOf(t: Buildable): number | null {
   if (t.kind !== 'course') return null;
   const num = Number(t.id.replace(/^[A-Z]+/, ''));
   if (!Number.isFinite(num)) return null;
-  if (num >= 500) return 4;
+  if (num >= 500) return 5;
+  if (num >= 300) return 4;
   if (num >= 200) return 3;
   if (num >= 110) return 2;
   return 1;
@@ -199,6 +201,24 @@ function tierOf(t: Buildable): number | null {
     }
   }
   assert(hidden.length === 0, `no bridge names a course with a lab or a school gate in its closure (hidden: ${hidden.join('; ')})`);
+}
+
+// =====================================================================
+// 5b. The capstone (Plan 95M): every major ends in a 310 that requires its
+// four tier-3 courses and nothing else, and no bridge names one or starts
+// from one.
+// =====================================================================
+{
+  const capstones = nodes.filter((n) => n.kind === 'course' && /^[A-Z]+310$/.test(n.id));
+  assert(capstones.length === 42, `every one of the 42 majors has a capstone (${capstones.length})`);
+  const wrong = capstones.filter((n) => {
+    const prefix = n.id.replace(/310$/, '');
+    const quartet = [210, 220, 230, 240].map((num) => `${prefix}${num}`);
+    return n.prereqs.length !== 4 || !quartet.every((id) => n.prereqs.includes(id));
+  });
+  assert(wrong.length === 0, `a capstone requires its four tier-3 courses alone (wrong: ${wrong.map((n) => n.id).join(', ')})`);
+  const bridged = Object.entries(CROSS_MAJOR_BRIDGES).filter(([id, bridges]) => /310$/.test(id) || bridges.some((b) => /310$/.test(b)));
+  assert(bridged.length === 0, `no bridge touches a capstone (${bridged.map(([id]) => id).join(', ')})`);
 }
 
 // =====================================================================

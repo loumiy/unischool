@@ -183,7 +183,7 @@ function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; on
           {t.effects?.researchRateBonus !== undefined
             ? `${signedPct(t.effects.researchRateBonus)} research output`
             : 'Specialized lab space.'}
-          {' — no capacity figure; this program\'s capstone courses require it instead.'}
+          {' — no capacity figure; this program\'s advanced courses require it instead.'}
         </p>
         <LabResearch t={t} s={s} onOpenResearch={onOpenResearch} />
       </>
@@ -205,7 +205,7 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
 
 // ---------------------------------------------------------------------
 // The program tile: a filled slot showing the program's name in its school's
-// color, courses done of nine, and aggregate grade. Clicking opens its
+// color, courses done of ten, and aggregate grade. Clicking opens its
 // summary and one door, "Open in Curriculum". Relocation sits behind a
 // "Move…" disclosure since it happens a few times a run; a program away from
 // its school's hall also gets its suggested move (schools.ts), one click,

@@ -53,13 +53,13 @@ console.log('committee tests');
 // ---- 1. course lengths ----
 {
   // The unvaried weeks, as techData.ts states them: by an undergraduate
-  // course's number (101 the entry, 1xx the tier-2 core, 2xx the capstones)
-  // and by a graduate program's kind.
+  // course's number (101 the entry, 1xx the tier-2 core, 2xx the advanced
+  // courses, 310 the capstone, Plan 95M) and by a graduate program's kind.
   const gradType = new Map(graduatePrograms().map((p) => [p.id, p.type]));
   const baseOf = (id: string, graduateProgram?: string): number => {
     if (graduateProgram !== undefined) return gradType.get(graduateProgram) === 'professional' ? 40 : 32;
     const num = Number(/(\d+)$/.exec(id)![1]);
-    return num === 101 ? 4 : num < 200 ? 12 : 24;
+    return num === 101 ? 4 : num < 200 ? 12 : num < 300 ? 24 : 28;
   };
   const courses = initialTech().filter((t) => t.kind === 'course');
   assert(courses.length > 400, `every course is seeded (${courses.length})`);

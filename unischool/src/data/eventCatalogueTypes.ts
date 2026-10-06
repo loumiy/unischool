@@ -89,13 +89,14 @@ export interface CatalogueEvent {
   // Hall; a 'reunion' class is five, ten or more years out, a 'veteran'
   // one twenty or more. And which professor (Plan 79D): 'researcher' the
   // strongest researcher, 'teacher' the strongest teacher, 'longest' the
-  // longest-serving. Unnamed, {faculty} is anyone on the roster. An event
-  // whose answer acts on the professor ('departs') leaves them unnamed:
-  // naming would change who leaves, and so the run.
+  // longest-serving; and (Plan 95AD) 'tenure-track' the shortest-serving
+  // in the tenure window, 'recent' the latest hire with a year here.
+  // Unnamed, {faculty} is anyone on the roster. A professor kind that finds
+  // nobody keeps the event from firing that week.
   names?: {
     building?: 'derelict' | 'worst' | 'listable' | 'founders';
     class?: 'reunion' | 'veteran';
-    faculty?: 'researcher' | 'teacher' | 'longest';
+    faculty?: 'researcher' | 'teacher' | 'longest' | 'tenure-track' | 'recent';
   };
   timeoutWeeks: number;
   choices: CatalogueChoice[];

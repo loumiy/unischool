@@ -158,7 +158,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         return {
           key,
           headline: `${major.name} is now an established program`,
-          detail: `Every upper-level course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its capstone courses are open.`,
+          detail: `Every upper-level course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its advanced courses are open.`,
           unlocks: major.tier3Ids.map((id) => nameOf(s, id)),
         };
       }
@@ -166,7 +166,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         return {
           key,
           headline: `${major.name} is now a distinguished program`,
-          detail: `All nine courses in ${major.name} (${school.schoolName}) are done. Distinguishing a program is a further, separate share of curriculum breadth on top of establishing it.`,
+          detail: `All ten courses in ${major.name} (${school.schoolName}), the capstone among them, are done. Distinguishing a program is a further, separate share of curriculum breadth on top of establishing it.`,
           unlocks: [],
         };
       }

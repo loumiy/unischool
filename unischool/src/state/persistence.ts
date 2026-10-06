@@ -67,7 +67,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 98; // Plan 95X: what money bought for the specialization
+export const SAVE_VERSION = 99; // Plan 95X: what money bought for the specialization
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -343,7 +343,7 @@ function noCutsYet(state: GameState): void {
   if (state.orgs) state.orgs.cutPrograms = [];
 }
 
-// 97 -> 98, Plan 95X (the second review's B4-10): money buys a
+// 98 -> 99, Plan 95X (the second review's B4-10): money buys a
 // specialization's share sooner. No save has bought anything.
 function nothingBoughtYet(state: GameState): void {
   state.bought = emptyBought();
@@ -375,6 +375,121 @@ function sanitizeCutPrograms(state: GameState): void {
     typeof c === 'object' && c !== null && typeof c.sport === 'string' && KNOWN_SPORT_IDS.has(c.sport)
       && Number.isInteger(c.year) && c.year >= 1 && c.year <= state.clock.year
   )).map((c) => ({ sport: c.sport, year: c.year }));
+}
+
+// 97 -> 98, Plan 95M (the second review's B2-6): the catalog's shape. Each
+// major gains a 310 capstone, and some courses move to another id, go, or
+// arrive (docs/reviews/2026-10-review-ii-fixes/catalog-shape.md, section 4).
+// Old id -> new id, null for a course that goes; an id not listed keeps its
+// id. Three pairs swap, so the map is applied in one pass from a copy.
+export const COURSE_ID_MAP_95M: Readonly<Record<string, string | null>> = {
+  FINA130: 'FINA210', FINA210: 'FINA130',
+  ACCT140: 'ACCT240', ACCT240: 'ACCT140',
+  MGMT140: 'MGMT310',
+  SOCY130: 'SOCY230', SOCY230: null,
+  POLS140: 'POLS220', POLS220: null,
+  ANTH240: null, PHIL230: null, HIST220: null,
+  NURS210: null, NURS230: null, NURS240: 'NURS310',
+  MED550: 'MED600', MED600: 'MED550',
+  LAWS540: 'LAWS570', LAWS570: null,
+};
+function courseIdAfter95M(id: string): string | null {
+  return id in COURSE_ID_MAP_95M ? COURSE_ID_MAP_95M[id] : id;
+}
+
+// The rules (catalog-shape.md, section 5):
+//   - every course is rebuilt from the new catalog by its new id (its
+//     prereqs too, which refreshAuthoredText leaves as saved); the save keeps
+//     only what the player made: the status, and the price and weeks of a
+//     course under way or taught;
+//   - a moved course carries its status, weeks left, teacher, career lines
+//     and seen flag to its new id;
+//   - an available course whose new prereqs are not all done goes back to
+//     locked (nothing was spent on it); one under way or taught stays;
+//   - a course that goes is dropped from all of these, without a refund,
+//     and its teacher is freed;
+//   - a new course arrives locked, after the course before it in the
+//     catalog; the next tick opens it if its prereqs are met;
+//   - milestones and housed graduate programs are never revoked.
+function catalogShape(state: GameState): void {
+  if (!Array.isArray(state.tech)) return;
+  const remap = <T>(record: Record<string, T> | undefined): Record<string, T> => {
+    const out: Record<string, T> = {};
+    for (const [id, value] of Object.entries(record ?? {})) {
+      const to = courseIdAfter95M(id);
+      if (to !== null) out[to] = value;
+    }
+    return out;
+  };
+
+  const catalog = initialTech().filter((t) => t.kind === 'course');
+  const catalogIds = new Set(catalog.map((t) => t.id));
+  const isCourse = (t: Buildable) => t.kind === 'course' && (catalogIds.has(t.id) || t.id in COURSE_ID_MAP_95M);
+  // From a copy: the old record each new id takes its state from.
+  const oldById = new Map(state.tech.filter(isCourse).map((t) => [t.id, t]));
+  const sourceOf = new Map<string, Buildable>();
+  for (const [oldId, old] of oldById) {
+    const to = courseIdAfter95M(oldId);
+    if (to !== null) sourceOf.set(to, old);
+  }
+  const rebuilt = new Map(catalog.map((fresh) => {
+    const course: Buildable = { ...fresh, prereqs: [...fresh.prereqs], effects: fresh.effects && { ...fresh.effects } };
+    const old = sourceOf.get(fresh.id);
+    if (old) {
+      course.status = old.status;
+      if (old.status === 'developing' || old.status === 'done') {
+        course.cost = old.cost;
+        course.duration = old.duration;
+      }
+    }
+    return [fresh.id, course];
+  }));
+
+  // Each id the save held is rebuilt in its place (every id the save held is
+  // still in the catalog, its content perhaps another's); a new id follows
+  // the catalog course before it.
+  const tech: Buildable[] = [];
+  const placed = new Set<string>();
+  for (const t of state.tech) {
+    if (!isCourse(t)) { tech.push(t); continue; }
+    const course = rebuilt.get(t.id);
+    if (course && !placed.has(t.id)) { tech.push(course); placed.add(t.id); }
+  }
+  catalog.forEach((fresh, i) => {
+    if (placed.has(fresh.id)) return;
+    const after = i > 0 ? tech.findIndex((t) => t.id === catalog[i - 1].id) : -1;
+    tech.splice(after >= 0 ? after + 1 : tech.length, 0, rebuilt.get(fresh.id)!);
+    placed.add(fresh.id);
+  });
+  const done = new Set(tech.filter((t) => t.status === 'done').map((t) => t.id));
+  for (const t of tech) {
+    if (t.kind === 'course' && t.status === 'available' && !t.prereqs.every((id) => done.has(id))) t.status = 'locked';
+  }
+  state.tech = tech;
+
+  state.developing = remap(state.developing);
+  // Weeks left belong to a course still under way (a building's stay).
+  for (const id of Object.keys(state.developing)) {
+    const course = rebuilt.get(id);
+    if (course && course.status !== 'developing') delete state.developing[id];
+  }
+  state.courseFaculty = remap(state.courseFaculty);
+  if (state.seen && typeof state.seen === 'object') state.seen.courseIds = remap(state.seen.courseIds);
+  for (const f of Array.isArray(state.faculty) ? state.faculty : []) {
+    const courses = f.career?.courses;
+    if (!Array.isArray(courses)) continue;
+    f.career!.courses = courses.flatMap((span) => {
+      if (typeof span?.courseId !== 'string') return [span];
+      const to = courseIdAfter95M(span.courseId);
+      return to === null ? [] : [{ ...span, courseId: to }];
+    });
+  }
+  for (const line of Array.isArray(state.log) ? state.log : []) {
+    if (typeof line?.subject !== 'string' || !(line.subject in COURSE_ID_MAP_95M)) continue;
+    const to = COURSE_ID_MAP_95M[line.subject];
+    if (to === null) delete line.subject;
+    else line.subject = to;
+  }
 }
 
 // The downtown (Plan 85H), on every load: growth 0 to 1, goodwill 0 to 100,
@@ -487,7 +602,8 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   94: boardLetterWeeks,
   95: noNewsYet,
   96: noCutsYet,
-  97: nothingBoughtYet,
+  97: catalogShape,
+  98: nothingBoughtYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -1295,7 +1411,8 @@ function looksLikeGameState(value: unknown): value is GameState {
 
 // A save keeps each Buildable's text, so a correction to the catalog would
 // otherwise reach new runs only. Descriptions are always the catalog's; a
-// name is the catalog's for a course (nothing renames a course), while a
+// name is the catalog's for a course (a course renamed in the catalog is
+// renamed in the save; Plan 95M's moves went through its migration), while a
 // building's may be a donor's (eventData.ts's naming rights) and is kept.
 let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project' | 'duration' | 'effects'>> | null = null;
 function refreshAuthoredText(state: GameState): void {

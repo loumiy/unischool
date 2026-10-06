@@ -90,7 +90,7 @@ function courseDemandByField(s: GameState): Map<string, DemandByMajor> {
   };
 
   for (const school of discoverySchools()) {
-    for (const major of school.majors) take(major.name, [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids]);
+    for (const major of school.majors) take(major.name, [major.tier1Id, ...major.tier2Ids, ...major.tier3Ids, major.capstoneId]);
     for (const program of school.graduate) take(program.name, program.courseIds);
   }
 
