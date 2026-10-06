@@ -11,9 +11,8 @@ inspired by the long-term building and management loops of Cities: Skylines,
 RollerCoaster Tycoon, Civilization and Football Manager, with a particular
 focus on the feeling of watching an institution grow. A run is **fifty
 years**: the fiftieth summer files a final report — six graded axes and a name
-for what the school became — and seals it as the record, and the game goes on
-as a sandbox after it. There is no score; there is a legacy, and more than one
-way to earn a good one.
+for what the school became — and seals it as the record. There is no score;
+there is a legacy, and more than one way to earn a good one.
 
 **Status:** in active development ·
 **Stack:** React + TypeScript + Vite ·
@@ -34,12 +33,16 @@ way to earn a good one.
   living with the class those two decisions draw.
 - 🏛️ **Develop student life** through clubs, Greek life, varsity athletics and
   the facilities they need.
-- 📈 **Build prestige** over decades through academic breadth, teaching
-  quality, student quality, research, campus life and financial resources —
-  and hold it, once the elite of the field start closing on the leader.
+- 📈 **Build prestige** over decades across four pillars — academics,
+  research, student life and athletics — and choose, once and for good, the
+  one the college will be the very best at.
 - 🏛️ **Leave a legacy**: twenty ambitions to reach along the way, and at fifty
   years a final report that grades the run on six axes and names what the
   school became.
+- ⏩ **Play on after the Final Report**: the college keeps running into the
+  Epilogue, and every tenth summer adds a decade to the record.
+- 🧪 **Sandbox mode**, from the title screen: unlimited funds and instant
+  building, every building open, to lay out a campus without waiting.
 - ⚖️ **Deal with the unexpected** — donor offers, faculty departures, facility
   failures, chapter scandals and student demands.
 
@@ -77,12 +80,25 @@ school's standing. A cash shortfall stalls expansion; it never ends the run.
 <p align="center"><em>The summer decision: set a price blind, see the pool it
 drew, then choose how much of it to admit.</em></p>
 
+## Four pillars, one specialization
+
+Prestige is a blend of four pillars: academics, research, student life and
+athletics. A school can be excellent at all four, but it can be the very best
+at only one. The first summer the college stands in the guide's top 30 — or,
+from Year 20, in the top 10 of any one pillar — the board offers it a single
+specialization: the faculty training program, the research park, the downtown
+and its festival, or the athletic performance complex. Each brings a building
+and a way of working only it has, and fills the share of its pillar that only
+it can fill: without one, no pillar reaches the top. The choice is kept for
+good, and the rivals make theirs too.
+
 ## Current state
 
 UniSchool is a playable, systems-first prototype. The core simulation is
 implemented: curriculum development and the milestone chain, campus
 construction on a tile map, faculty hiring and course assignment, annual
-admissions, finances, student life and athletics, research, prestige and
+admissions, finances, student life and athletics, research, prestige (its four
+pillars and the specialization) and
 rankings, decision events, graduate programs, and save/load.
 
 The current focus is presentation and player experience — the campus map,
@@ -112,12 +128,12 @@ different pair of school colours.
 
 | | |
 |---|---|
-| ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: payroll, the market, and each department's roster against its catalogue](docs/images/tab-faculty.png) |
-| **Curriculum** — the catalogue by school and program, each with who teaches it and the grade they earn; a finished school folds away. | **Faculty** — the roster and the market, department by department, against what the catalogue needs. |
+| ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: a figure row of course slots, then the faculty as a grid of faces, each with a grade for teaching and research, a quirk and the courses they carry](docs/images/tab-faculty.png) |
+| **Curriculum** — the catalogue by school and program, each with who teaches it and the grade they earn; a finished school folds away. | **Faculty** — the people: a grid of faces, each with a career, quirks and the courses they carry, under one row of figures; the market and the departments a switch away. |
 | ![The Research tab: every lab with its initiative, team, depth and progress](docs/images/tab-research.png) | ![The Students tab: what the guidebooks say, satisfaction by attribute, clubs and Greek chapters](docs/images/tab-students.png) |
 | **Research** — each lab's running initiative: the topic, the team, the depth and what it has produced. | **Students** — satisfaction by attribute and what serves it, the clubs, the chapters and the demands. |
-| ![The Athletics tab: the department at the side, and every varsity program as a card with its standing, its money and its staff](docs/images/tab-athletics.png) | ![The History tab: the three standings and every input that grades them](docs/images/tab-history.png) |
-| **Athletics** — the director, the subsidy and the gate at the side; every program a card with its rank in its sport and its staff. | **History** — the three standings with every input that grades them, and the legacy once sealed. |
+| ![The Athletics tab: the department at the side, and every varsity program folded to one line with its rank, its last season and its quality](docs/images/tab-athletics.png) | ![The History tab on its Prestige view: the four pillars, each on its own scale, and every input that grades prestige](docs/images/tab-history.png) |
+| **Athletics** — the director, the subsidy and the gate at the side; every program one line, its rank in its sport and its last season, opening to its staff and money. | **History** — three views: prestige with its four pillars and every input that grades them, the record and the legacy once sealed, and the guide. |
 | ![The Treasury tab: the weekly income statement, advancement and the balance](docs/images/tab-treasury.png) | |
 | **Treasury** — the weekly income statement, the endowment campaign and the balance sheet, reached through the funds figure. | |
 
