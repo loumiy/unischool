@@ -22,6 +22,21 @@ is answered, and the work is sequenced in [Plan 95](docs/plans/95-second-review-
 What the owner left out of Plan 95 and kept for later is below, under
 each entry it continues.*
 
+## Awaiting the owner: the second playthrough
+
+*The owner's notes from a run after Plan 95, sorted and read against the
+code in [`docs/reviews/2026-10-owners-playthrough-ii.md`](docs/reviews/2026-10-owners-playthrough-ii.md):
+ten bugs whose cause is known, UI and text changes the owner has decided,
+balance (the first three years, the faculty's 55% start), performance late
+in a run, and four questions only the owner can answer (its §6). Not yet a
+plan.*
+
+- **Targets against actuals** (the owner, kept here at their request).
+  Satisfaction shows *target* beside *today*, and prestige shows
+  "current → target" and "Drifting toward…". The owner likes the idea but
+  suspects it confuses a new player. Decide whether to keep both, keep one,
+  or show only the actual with a direction arrow.
+
 ## Awaiting the owner: the October 2026 review's area 6
 
 *Areas 1, 2, 3 and 7 of the October review

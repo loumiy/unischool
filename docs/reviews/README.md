@@ -22,6 +22,7 @@ each one.
 | [Consistency review](2026-09-consistency-review.md) (images in [`2026-09-consistency-review/`](2026-09-consistency-review/)) | the game except its balance | Plans 43, 44, 46–49 |
 | [A full review of the game](2026-10-game-review/README.md) (Plan 73), and [its status after Plan 85](2026-10-game-review/STATUS.md) | `58fa3fd`, after Plan 72 | Plans 74–80, 85 |
 | [A second full review](2026-10-game-review-ii/README.md) (Plan 86) | `4062bfb`, after Plan 85 | — (awaiting the owner's triage) |
+| [The owner's second playthrough](2026-10-owners-playthrough-ii.md) | `60bac7e`, after Plan 95 | — (awaiting the owner's decisions) |
 
 ## Harness reports
 
