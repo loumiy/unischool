@@ -44,7 +44,7 @@ const STAT_CHIP_SECTIONS: Partial<Record<StatChip, ChipSection>> = {
 export interface ChipDoor {
   tab: TabId;
   section: TabSection;
-  // The button's accessible name: "Prestige 51.5 — open History, Prestige".
+  // The button's accessible name: "Prestige 42.0 — open History, Prestige".
   name: string;
 }
 

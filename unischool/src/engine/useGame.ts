@@ -5,7 +5,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import { reducer } from './reducer';
 import { createPreStartState } from '../state/actions';
 import type { Action } from '../state/actions';
-import { claimSave, claimTaken, clearSave, loadGame, requestResume, saveIsNewer, takeResume, trySave } from '../state/persistence';
+import { claimSave, claimTaken, clearSave, loadGame, requestResume, saveBeforeLosing, saveIsNewer, takeResume, trySave } from '../state/persistence';
 import { startRunLog, type RunLog } from './actionLog';
 import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 import { openingHoldsClock } from '../state/opening';
@@ -67,8 +67,14 @@ export function useGame() {
   const setSpeed = useCallback((next: Speed) => {
     if (next === 'paused' || !elsewhereRef.current) setSpeedRaw(next);
   }, []);
+  // A tab that has played on since its last save writes it before it stops
+  // (Plan 95AA, the second review's H7-3), so its weeks are not lost.
   useEffect(() => {
-    const onStorage = (e: StorageEvent) => { if (claimed.current && claimTaken(e.key, e.newValue)) lose(); };
+    const onStorage = (e: StorageEvent) => {
+      if (!claimed.current || !claimTaken(e.key, e.newValue)) return;
+      if (stateRef.current.started) saveBeforeLosing(stateRef.current);
+      lose();
+    };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, [lose]);

@@ -10,7 +10,7 @@
 import { createInitialState } from '../src/state/actions';
 import {
   adoptSave, CLAIM_KEY, claimHolder, claimSave, claimTaken, clearSave, loadGame, SAVE_KEY, SAVE_VERSION, saveGame,
-  saveIsNewer, takeResume, thisTab, trySave,
+  saveBeforeLosing, saveIsNewer, takeResume, thisTab, trySave,
 } from '../src/state/persistence';
 
 // In-memory storage so the persistence module works under Node, as
@@ -132,6 +132,38 @@ function testClaim(): void {
   assert(claimSave() && claimHolder() === me, 'once it has loaded the newer save, it can');
 }
 
+// ---- Losing the claim keeps this tab's weeks (Plan 95AA, H7-3) ----
+// Side by side: this tab played on without saving, and the other tab
+// continued from the save this tab last wrote.
+function testSaveBeforeLosing(): void {
+  clearSave();
+  const mine = createInitialState('Here');
+  mine.started = true;
+  assert(trySave(mine) === 'saved', 'this tab saves its game');
+  const at = storedSavedAt();
+  const week = (s: { clock: { year: number; week: number } }) => (s.clock.year - 1) * 52 + s.clock.week;
+  assert(!saveBeforeLosing(mine), 'a game no further on than its save is not written again');
+
+  // It plays on six weeks, unsaved; the other tab takes the claim.
+  const on = structuredClone(mine);
+  on.clock.week += 6;
+  store.set(CLAIM_KEY, 'other-tab');
+  assert(saveBeforeLosing(on), 'losing the claim, a tab that has played on writes its game');
+  const stored = JSON.parse(store.get(SAVE_KEY)!) as { savedAt: number; state: { clock: { year: number; week: number } } };
+  assert(week(stored.state) === week(on), 'and the stored save is at its week');
+  assert(stored.savedAt >= at, 'stamped at the time of writing');
+
+  // The other tab saved first: the guard stands, nothing is written over it.
+  otherTabSaves('There', storedSavedAt() + 60_000);
+  on.clock.week += 1;
+  assert(!saveBeforeLosing(on), 'a tab does not write over a save made since its own');
+  assert(storedName() === 'There', 'and the newer game is still stored');
+
+  // A tab that loaded the save and has not played on writes nothing.
+  loadGame();
+  assert(!saveBeforeLosing(createInitialState('There')) && storedName() === 'There', 'a tab at the week it loaded writes nothing');
+}
+
 // ---- "Open it here" comes back into the game once ----
 function testResume(): void {
   session.set('unischool.resume', '1');
@@ -144,6 +176,7 @@ console.log('two tabs on one save');
 testGuard();
 testBaselines();
 testClaim();
+testSaveBeforeLosing();
 testResume();
 
 if (failures === 0) {

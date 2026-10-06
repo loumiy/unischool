@@ -128,7 +128,7 @@ prestige opens History › Prestige (its breakdown and nothing else), rank
 opens History › the guide (the guide's table, the top fifty and, below them,
 the college's own row with its neighbors; Plan 80C), satisfaction opens
 Students › the satisfaction breakdown, each a button named with its figure
-("Prestige 51.5 — open History, Prestige"). The map is `data/statChips.ts`'s
+("Prestige 42.0 — open History, Prestige"). The map is `data/statChips.ts`'s
 `chipDoor`; enrolled is a figure only. The right zone puts the clock beside two rows (Plan 90S): the clock is a desk
 calendar's page, the term (Fall or Spring, the two 26-week halves of the year)
 on its header in the school's second color and the week of the year large,

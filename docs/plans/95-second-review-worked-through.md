@@ -603,6 +603,69 @@ the sim was not run (the one file under `systems/` touched,
   - The choice's word count before and after (the review's 681).
   - Screenshots at desktop and at 390×844 at the largest text.
 
+**As implemented.** Words and a read-only projection; no rule the
+simulation reads changed. `npm run sim` was run all the same (a hook was
+added beside the share's reading in `specializationData.ts`) and reads as
+the baseline.
+
+- **The figure.** Each card heads with "Up to 9.8 points of prestige"
+  (7.0, 8.5, 5.1), from `prestigeWords.ts`'s `specializationShareWorth`.
+  The pillar points moved into the card's detail ("28 of the pillar's 150
+  points", `opensLine`). The board's notice drops its four "which opens 28
+  points of it": `pillarShareRule()` in the same letter already gives each
+  share in points of prestige, so the list names the four and no figure
+  (`specializationNotice(milestone, rule)` lost its `weights` argument).
+- **Three lines a card**, new fields on `SPECIALIZATION_CARDS`: `what`
+  ("The Research Park, home of the Landmark Programs."), `adds` ("While the
+  park stands, every lab's output is 15% higher.") and `fillsShort` ("The
+  share fills with the festivals, full at 10 points of them in 10
+  years."), each built from the mechanic's constants. Behind More (the
+  faculty card's disclosure button): the long fill rule in pillar points,
+  athletics' lift, the mechanics, a standing park's note (85F), the
+  college's place in the pillar and its rivals.
+- **The comparison line**, `milestone.ts`'s `shareFullProjection`: "Full
+  today: prestige 94.7 → 104.5, #19 → #5." The target is
+  `computePrestigeTarget` on a copy with that share read full
+  (`specializationData.ts`'s `withShareFull`, which marks a copy in a
+  `WeakMap` that `specializationTerm` reads); prestige moves by what that
+  adds to today's target, so the teaching standard's limit holds as it
+  would; the rank is `playerRank` on a copy at that prestige, against
+  today's rivals.
+- **The strongest pillar, first** (`strongestStanding`): "The college's
+  strongest pillar is student life (#7). Of the rivals, 35 specialize in
+  academics, 23 in research, 19 in student life and 22 in athletics."
+- **The intro**: two sentences, the second `pillarShareRule()`.
+- **Measured** (`npm run review:gallery`, the `specialization` scenario,
+  Year 36): the choice's top layer **709 → 378 words**, 5 → 9 controls
+  (the four More buttons); 709 is this save's count of the review's 681.
+  At 390×844 and the largest text each card is 406–472 px tall, half a
+  screen. Screenshots: `docs/reviews/2026-10-review-ii-fixes/95f-choice-*.jpg`.
+- **Tests** (`test/specialization-choice.test.ts`): each "up to" figure is
+  the pillar's weight times the share's points, and the card prints it;
+  the comparison's prestige is `computePrestigeTarget` on the filled copy
+  (and equals the share's worth unless the teaching standard holds it);
+  the rank is `playerRank`'s; the state itself is untouched; the strongest
+  pillar is the best-ranked; the intro is two sentences.
+- **Deviations.**
+  - "A copy of the state with that share full" is a shallow copy marked
+    full, not a `structuredClone` with the mechanic's records set: a full
+    share is a different record per pillar (trained professors, Landmark
+    years, festivals with the downtown grown and goodwill high, deep
+    runs), and writing those would move other terms too (the downtown's
+    growth meets students' needs, a deep run is a title). The mark moves
+    the share alone, and nothing writes to the copy.
+  - The comparison's "before" is today's prestige (the stock the guide
+    ranks), and "after" adds the full share's lift to it, rather than
+    printing the target itself, which differs from today's prestige by
+    the year's drift.
+  - The strongest pillar is the best *rank* in the standings (the higher
+    value on a tie), as the review's example reads ("student life (#4)");
+    the harness's rule (`strongestOf`, by value) is unchanged.
+  - The line lists the rivals in all four pillars, not the two the
+    example names.
+  - "Still to come" is gone from the card: since Plan 85H every mechanic
+    is ready, so it never showed.
+
 ### PR 95G — Faculty, lighter (B2-1)
 
 - **The card's face** keeps More and its chips. **Train** and **Dismiss**
@@ -1061,6 +1124,40 @@ The owner's answer: open near the first years' grade, with no words added.
 - **Text that names the opening:** the stat chip's accessible-name comment
   (`statChips.ts:47`), the design docs, and any tutorial or letter that
   states 51.5. Grep for it.
+
+**As implemented.**
+- `FOUNDING_PRESET.startingReputation` is 40.5, so with Founders Hall's
+  1.5 the college opens at 42.0.
+- The founding admit rate is seeded from `FOUNDING_ADMIT_PRESTIGE` (51.5,
+  `actions.ts`), so the first class does not shrink.
+- The faculty market's founding anchor stays at 50 (`facultyData.ts`). A
+  college at or below it draws the founding pool, as before; only the
+  comment changed.
+- **Deviation: the figure is the owner's 42, not the harness's Year 2
+  grade.** Measured over three seeds, the Year 2 grade is 45.4–47.3 (mean
+  46.0). But no opening makes the first summer hold: Year 1 grades 29–37,
+  because a new college has no beds until week 25. At 46 the first summer
+  would fall about 5. At 42 it falls about 2.5, and from Year 2 prestige
+  rises every summer (the after-table is in
+  `docs/reviews/2026-10-game-review-ii/data/b3-opening-prestige.md`).
+- **The sim moved** (re-baselined, three seeds, medians):
+
+  | Player | Y10 prestige | Y25 rank | Y50 rank | Y50 prestige | Top 20 |
+  |---|---|---|---|---|---|
+  | Guided | 47.4 (−0.2) | 31 (−4) | 1 | 118.8 (+2.8) | Y31 (was Y34–35) |
+  | Guided, unspecialized | 47.4 | 31 | 2 (−4) | 111.1 (+1.8) | Y31 |
+  | Completionist | 47.1 (−2.4) | 39 (+3) | 6 (+5) | 108.5 (−6.6) | Y40–43 |
+  | Selective | 42.6 (+0.3) | 61 (+4) | 63 (−1) | 52.2 (+0.6) | never |
+  | Lean | 37.3 (−1.4) | 67 (+1) | 73 (+4) | 42.2 (−0.4) | never |
+
+  Guided reaches the top 20 three or four years sooner, because a college
+  that never falls keeps climbing. The Completionist, which spends its
+  first decade building, ends lower.
+- **For W and X:** Guided-research's Y50 cash rose from $565M to $5.5B. The
+  earlier specialization (Y30–32) gives the park's labs more years.
+- `sim/report.ts` gains `--from-runs`, which saves a baseline from the last
+  run's rows without playing again. A full run took 80 minutes here on a
+  shared machine.
 
 ### PR 95O — NEXT: the building going up, and the step toward a school (B3-3, B3-4)
 
@@ -1631,6 +1728,45 @@ scenario, which the review itself fixed (H7-8a).
   - a two-tabs test that the first tab's weeks are kept;
   - a test that an opened matter in its final week does not pause after a
     reload.
+
+**As implemented.**
+
+- **H7-1.** `researchParkGate` counts each absolute week first, caps the
+  week at `LANDMARKS_COUNTED`, then sums by year under the yearly cap. The
+  recruiting fixture (eight Landmark Programs, Year 21, week 2) now reads
+  back Year 21 at 3 weeks, not 16, and holds every rule after a year of
+  the guided player (it ended Year 21 at 159 with the per-week cap alone).
+  `test/save-migrations.test.ts`'s `testLandmarkWeeks` checks both, and
+  that the fixture runs more than three. Saves already migrated keep their
+  overcount: it leaves the ten-year window, and the invariant is not run
+  against old years. No `SAVE_VERSION` bump.
+- **H7-3.** `persistence.ts` keeps the week of the save a tab last loaded
+  or wrote; `saveBeforeLosing` writes the tab's game when it is further on
+  and no tab has saved since (the guard stands). `useGame.ts`'s `storage`
+  handler calls it, then `lose()`. `test/two-tabs.test.ts` covers it.
+  `twoTabs.mjs` case 4, on `save-v93.json`: A played Year 9, week 2 → 7
+  unsaved, B continued at week 2; the save then read week 7, B showed the
+  banner once it went to write, and a fresh tab continued at week 7. All
+  four cases pass.
+- **H7-4.** `unseen.ts` gains `readOpened`, `keepOpened` and
+  `forgetOpened` over `sessionStorage` (each in try/catch); `App.tsx`
+  reads the set on load, keeps it on each change, and forgets it on a new
+  game. `test/unseen.test.ts`: a matter opened before a reload does not
+  pause in its final week; read back empty, it does.
+- **Checks:** `check` and `test:slow` pass. No sim run: nothing a new run
+  reads changed (the migration runs only on a version-90 save, and the
+  rest is the browser's shell).
+- **Deviations.**
+  - The migration's `now` was a week late too: the clock's week is the one
+    about to be played, so the weeks a program has run end at the week
+    before it. With the per-week cap alone the fixture still broke the
+    invariant (159 of 156); with both it holds.
+  - The game has no run id. The opened set is kept under the college's
+    name, as `App.tsx` already tells runs apart for the unseen memory, and
+    forgotten on a new game.
+  - `twoTabs.mjs` read the date off the page's text, which the toolbar no
+    longer draws in one piece (it is the calendar's label); it now reads
+    the label, and case 4 expects A's week.
 
 ### PR 95AB — The map and the money (H7-2, H7-6, H7-8c)
 

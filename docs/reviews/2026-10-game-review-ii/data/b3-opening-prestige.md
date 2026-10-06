@@ -22,3 +22,18 @@ Prestige at the first week of the year after N:
 | Natural | 46 | 46 | 45 | 46 | 48 | 49 | 53 |
 
 Plan 85D's own table puts Guided at prestige 50.0 at year 10, 9.4 lower than before the pillars (59.4), and rank 56. Area 4's goal players read the same flat first decade (prestige 43–45, rank 58–61).
+
+## After Plan 95N (the college opens at 42)
+
+Prestige after each summer, Years 1–10, the harness's Guided and Natural players, three seeds (`foundGame` and `playWeek`, as the table above):
+
+| Player | Seed | Y1 | Y2 | Y3 | Y4 | Y5 | Y6 | Y7 | Y8 | Y9 | Y10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Guided | 12345 | 39.5 | 40.8 | 41.9 | 42.6 | 41.5 | 43.4 | 44.5 | 46.0 | 47.4 | 49.3 |
+| Guided | 4242 | 39.4 | 40.6 | 41.8 | 42.3 | 41.3 | 43.1 | 44.7 | 46.2 | 47.5 | 49.7 |
+| Guided | 777 | 39.4 | 40.5 | 41.6 | 42.1 | 40.0 | 41.6 | 43.4 | 45.6 | 47.3 | 49.2 |
+| Natural | 12345 | 40.1 | 41.6 | 42.8 | 43.7 | 45.3 | 46.8 | 47.9 | 48.9 | 49.8 | 49.2 |
+| Natural | 4242 | 39.8 | 41.1 | 42.2 | 43.1 | 44.2 | 45.4 | 46.6 | 47.7 | 48.4 | 49.0 |
+| Natural | 777 | 39.9 | 41.2 | 42.2 | 43.1 | 43.5 | 45.3 | 46.8 | 47.8 | 49.2 | 50.6 |
+
+The first summer still falls, by about 2.5 (it fell 6.6 from 51.5): Year 1 grades 29–37, since the college has no beds until week 25. From Year 2 prestige rises every summer but Guided's fifth.
