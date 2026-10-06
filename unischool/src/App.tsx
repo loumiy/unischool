@@ -407,6 +407,7 @@ export default function App() {
         {frontScreen ?? (
           <StartupScreen
             sandbox={foundSandbox}
+            onBack={() => setFront('title')}
             onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: !foundSandbox, seed: freshSeed(), sandbox: foundSandbox || undefined })}
           />
         )}

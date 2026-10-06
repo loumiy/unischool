@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useHotkeys } from './hotkeys';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, FOUNDERS_GEORGIAN_COLOURS, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
@@ -595,8 +596,11 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
   );
 }
 
-export default function StartupScreen({ onStart, sandbox = false }: {
+export default function StartupScreen({ onStart, onBack, sandbox = false }: {
   onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void;
+  // Back to the title screen, founding nothing (Escape too, outside the
+  // name field).
+  onBack: () => void;
   // A sandbox founding (systems/sandbox): says so, and every architecture is open.
   sandbox?: boolean;
 }) {
@@ -616,6 +620,8 @@ export default function StartupScreen({ onStart, sandbox = false }: {
   // it changes (App.tsx writes it again once the run exists).
   useEffect(() => { applySchoolColors(colors); }, [colors.primary, colors.secondary]);
 
+  useHotkeys((e) => { if (e.key === 'Escape') onBack(); });
+
   return (
     // Over the title art, as the title screen is: the mark in the sky, the
     // founding on a frosted card.
@@ -625,6 +631,7 @@ export default function StartupScreen({ onStart, sandbox = false }: {
         <span>UniSchool</span>
       </div>
       <div className="startup-card">
+        <button type="button" className="startup-back" onClick={onBack}>← Title screen</button>
         {/* What the game is, in one line. */}
         <div className="dateline">{sandbox ? 'Sandbox: unlimited funds, and nothing to wait for.' : 'Fifty years to build a university.'}</div>
         <h1>Name your college</h1>

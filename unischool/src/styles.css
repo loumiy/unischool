@@ -3072,6 +3072,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 22px;
   padding: var(--space-32); max-width: 480px; width: 100%; box-sizing: border-box; color: var(--ink); box-shadow: var(--title-shadow); }
 .startup-card h1 { margin: var(--space-6) 0 var(--space-24); }
+/* Back to the title: a quiet link above the dateline. */
+.startup-back { display: inline-block; margin: calc(-1 * var(--space-12)) 0 var(--space-12) calc(-1 * var(--space-8));
+  padding: var(--space-4) var(--space-8); border: 0; border-radius: 999px; background: transparent; color: var(--title-sky-deep);
+  font-family: var(--sans); font-weight: 700; font-size: var(--text-sm); cursor: pointer; }
+.startup-back:hover { background: var(--title-sky-wash); }
 /* The name field; the fixed half of the name is carved into the facade. */
 .startup-name { width: 100%; box-sizing: border-box; font-size: var(--text-xl); padding: 10px var(--space-16); border-radius: 12px;
   border: 1px solid var(--title-hairline); background: #fff; color: var(--ink); font-family: var(--display);
