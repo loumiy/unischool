@@ -699,7 +699,7 @@ export function initialFacilities(): Buildable[] {
       kind: 'facility',
       facilityType: 'artGallery',
       name: 'Art Gallery',
-      description: `A rotating-exhibit gallery for ${count(ART_GALLERY_SERVES)} students, and the venue Studio Art's capstone courses exhibit in.`,
+      description: `A rotating-exhibit gallery for ${count(ART_GALLERY_SERVES)} students, and the venue Studio Art's advanced courses and its senior exhibition show in.`,
       cost: ART_GALLERY_COST,
       duration: ART_GALLERY_WEEKS,
       prereqs: [...STUDIO_ART_TIER2_IDS],

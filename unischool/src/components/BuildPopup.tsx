@@ -321,11 +321,11 @@ function builtDetail(t: Buildable): string | undefined {
 
 // A lab's lines lead with research (Plan 95Q, the second review's B3-7):
 // the first lab "starts research", the rest lift it, at the pillar's weight
-// read from PILLAR_WEIGHTS (prestigeWords.ts), never typed; the capstones
-// second. Short, to fit the tile.
+// read from PILLAR_WEIGHTS (prestigeWords.ts), never typed; the advanced
+// courses second. Short, to fit the tile.
 function labLines(s: GameState, t: Buildable): string[] {
   const first = t.status !== 'done' && !s.tech.some((o) => o.facilityType === 'lab' && (o.status === 'done' || o.status === 'developing'));
-  return [`${first ? 'starts' : 'lifts'} ${pillarWorthWords('research')}`, 'required for capstone courses'];
+  return [`${first ? 'starts' : 'lifts'} ${pillarWorthWords('research')}`, 'required for advanced courses'];
 }
 
 // The Library's lines (Plan 95Q, B3-10): what it serves, and when it costs

@@ -113,7 +113,7 @@ console.log('course quality tests');
 // --- the other terms are unchanged ------------------------------------
 {
   assert(tierPenalty(1) === 0, 'intro material asks nothing extra of the teacher');
-  assert(tierPenalty(3) > tierPenalty(2) && tierPenalty('graduate') > tierPenalty(3), 'harder material asks more');
+  assert(tierPenalty(3) > tierPenalty(2) && tierPenalty(4) > tierPenalty(3) && tierPenalty('graduate') > tierPenalty(4), 'harder material asks more');
   assert(acclaimBonus(0) === 0, 'an unprized professor gets no nod');
   assert(acclaimBonus(1) === 3 && acclaimBonus(5) === 6, 'and a prized one gets a small, capped one');
 
@@ -125,7 +125,8 @@ console.log('course quality tests');
   const { factors } = qualityOf({ teaching: VETERAN, acclaim: 2, load: 3, slots: 3, tier: 3 });
   assert(factors.some((f) => f.label === 'Instructor teaching' && f.value === VETERAN), 'the base is itemized');
   assert(factors.some((f) => f.label.startsWith('Teaching load') && f.value === -7), 'the load cost is itemized, and signed');
-  assert(factors.some((f) => f.label === 'Capstone course'), 'so is the tier');
+  assert(factors.some((f) => f.label === 'Advanced course'), 'so is the tier');
+  assert(qualityOf({ teaching: VETERAN, acclaim: 0, load: 1, slots: 3, tier: 4 }).factors.some((f) => f.label === 'Capstone course'), 'and the capstone is named as one');
   assert(factors.some((f) => f.label === 'Prize-winning faculty'), 'and so is the prize');
 }
 

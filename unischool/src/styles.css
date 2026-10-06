@@ -1681,8 +1681,10 @@ button.build-tile { font-family: inherit; }
 .dean-plan ul { margin: 0; padding-left: 18px; font-size: var(--text-xs); }
 /* Nine cells with the tier rules as their own tracks (1 | 4 | 4), so a rule
    never narrows the cell beside it. */
+/* Entry, the tier-2 quartet, the tier-3 quartet and the capstone (Plan
+   95M), with a rule track before each band after the first. */
 .program-row-cells { display: grid; gap: 4px; align-items: stretch;
-  grid-template-columns: minmax(0, 1fr) 1px repeat(4, minmax(0, 1fr)) 1px repeat(4, minmax(0, 1fr)); }
+  grid-template-columns: minmax(0, 1fr) 1px repeat(4, minmax(0, 1fr)) 1px repeat(4, minmax(0, 1fr)) 1px minmax(0, 1fr); }
 .program-row-cells.graduate { grid-template-columns: repeat(9, minmax(0, 1fr)); }
 .tier-rule { align-self: stretch; margin: 4px 0; border-left: 2px dotted var(--outline); }
 .program-row-cells .course-cell { min-height: 54px; padding: 5px 6px; }

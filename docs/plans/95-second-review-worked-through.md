@@ -1300,6 +1300,68 @@ Where it departs from the text above, and why:
     assignment.
   - `npm run review:strings` is clean over the new sentences.
 
+**As implemented.** L's table, in code. The sim and the re-baseline wait
+their turn: balance PRs run one at a time.
+
+- **The fourth tier.** `NUMS` gains 310 and `TIERS` 4: 28 weeks, $3.0M,
+  $2,400 a week, tier penalty 6, requiring the four tier-3 courses alone.
+  `MilestoneMajor` and `DiscoveryMajor` carry a `capstoneId`; distinguished
+  needs the quartet and the capstone; `TIER_RANK` puts the capstone between
+  tier 3 and graduate. 420 undergraduate courses, 53 graduate, 473 in all.
+- **The catalog.** Forty-two capstones with L's titles and sentences (PR J's
+  101s kept). Every swap, move, removal and new course of L's section 3,
+  the two new bridges (FINA210 to ACCT110, COMP120 to MATH130), the moved
+  bridges (ACCT140, POLS220), the JD's clinic last at 570, MED550 ↔ MED600.
+  Player text calls tier 3 "advanced" and the 310 "the capstone"
+  (BuildPopup, the hall panel, the milestone letters, the gallery, the lab
+  line, the course drawer's tier factor).
+- **The migration, 97 → 98** (`catalogShape`, `COURSE_ID_MAP_95M` in
+  `persistence.ts`), applied in one pass from a copy. Every course is
+  rebuilt from `initialTech()` by its new id, prereqs included; a moved
+  course carries its status, price and weeks (under way or taught), weeks
+  left, teacher, career spans and seen flag; an available course whose new
+  prereqs are unmet goes back to locked; a removed course is dropped
+  everywhere, its teacher freed and its spans gone; a log line naming one
+  loses its subject. New courses arrive locked, each after the catalog
+  course before it, so a migrated save's `tech` keeps the new run's order.
+  `programProgress` reads an awarded milestone as reached (L's rule 7).
+- **The fixture** `save-v97.json` is a Guided run to Year 31 written at
+  version 97 on main (after 95V's 96 → 97): Strategic Management, Clinical
+  Practicum II and the swapped Finance and Accounting courses all taught. `save-migrations`
+  loads every fixture and finds no course id the catalog does not hold, and
+  every catalog course; the year-30 save moves each course with its
+  teacher, frees the removed courses' teachers, drops their spans, keeps a
+  building's weeks, and played a year on has no orphaned assignment.
+- **The Curriculum.** A program row is ten cells with a third rule before
+  the capstone (the grid's tracks, `tierBands`); on a phone the capstone
+  takes a row of its own. Screenshots:
+  [Business](../reviews/2026-10-review-ii-fixes/95m-curriculum-business-ten-courses.jpg),
+  [Sociology and Political Science](../reviews/2026-10-review-ii-fixes/95m-curriculum-sociology-politics.jpg),
+  [a phone](../reviews/2026-10-review-ii-fixes/95m-curriculum-phone-management.jpg).
+- **Checks.** `check` and `slow` pass; `review:strings` is clean. Tests
+  gained: the capstone's prereqs and no bridge touching one
+  (`curriculum-graph`), the capstone's unlock (`invariants`), its tier
+  factor (`course-quality`), its weeks (`committee`).
+
+Where it departs from the text above and from L's table, and why:
+
+- **LAWS530 is "American Constitutional Law"**, not "Constitutional Law".
+  L wrote that no test requires unique titles; `curriculum-graph`'s check 6
+  does (Plan 20 renamed Cybersecurity's Risk Management for it), and POLS210
+  is already "Constitutional Law".
+- **Rule 3 (back to locked) applies to every available course**, not only
+  the moved ones: COMP120 and Financial Modeling gained a bridge, and an
+  available course behind an unmet prereq is the same state either way.
+- **`split-school` waits three years for the second school, not two.** The
+  replayed version-79 save reaches it in Year 6 from Year 3, a year later,
+  with no stall; the new catalog reshuffles the run's random stream and
+  money. The bound moves with the balance.
+- **Not yet done here:** `npm run sim` and the re-baseline, by the
+  coordinator's order. One thing for the owner: the catalogue's growth
+  prices a capstone at a full catalogue near $9.6M (a Year-31 Guided run),
+  above a professional course's flat $9M, and that run had 32 capstones
+  available and only 3 taught.
+
 ### What area 2 does not do
 
 - No new screens. Every change moves, folds or rewords what is there.

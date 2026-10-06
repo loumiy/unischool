@@ -14,9 +14,10 @@
 //   npm test -- save-migrations
 // ---------------------------------------------------------------------
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, SAVE_VERSION } from '../src/state/persistence';
+import { COURSE_ID_MAP_95M, exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, SAVE_VERSION } from '../src/state/persistence';
+import { initialTech } from '../src/data/techData';
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
@@ -198,8 +199,99 @@ function testNoCutsYet(): void {
   assert(state.orgs.teams.length === parsed.state.orgs.teams.length, `and every program still fielded (${state.orgs.teams.length})`);
 }
 
+// ---- 97 -> 98 (Plan 95M): the catalog's shape ----
+// Every fixture loads holding no course id the catalog does not, and every
+// catalog course; the year-30 fixture's moved courses keep their state and
+// teachers at their new ids, its removed courses free theirs, and played a
+// year on it leaves no orphaned assignment.
+const catalogCourses = new Set(initialTech().filter((t) => t.kind === 'course').map((t) => t.id));
+function strayCourseIds(state: GameState): string[] {
+  const courseLike = (id: string) => /^[A-Z]{3,4}\d{3}$/.test(id);
+  const ids = [
+    ...state.tech.filter((t) => t.kind === 'course').map((t) => t.id),
+    ...Object.keys(state.developing).filter(courseLike),
+    ...Object.keys(state.courseFaculty),
+    ...Object.keys(state.seen.courseIds),
+    ...state.faculty.flatMap((f) => (f.career?.courses ?? []).map((span) => span.courseId)),
+    ...state.log.map((line) => line.subject ?? '').filter(courseLike),
+  ];
+  return [...new Set(ids.filter((id) => !catalogCourses.has(id)))];
+}
+function orphanedAssignments(state: GameState): string[] {
+  const byId = new Map(state.tech.map((t) => [t.id, t]));
+  const staff = new Set(state.faculty.map((f) => f.id));
+  return Object.entries(state.courseFaculty)
+    .filter(([courseId, facultyId]) => {
+      const t = byId.get(courseId);
+      return !t || (t.status !== 'developing' && t.status !== 'done') || !staff.has(facultyId);
+    })
+    .map(([courseId, facultyId]) => `${courseId} -> ${facultyId}`);
+}
+function testCatalogShape(): void {
+  for (const name of readdirSync(FIXTURES).filter((f) => f.endsWith('.json'))) {
+    const read = readSave(fixture(name));
+    if ('refused' in read) { assert(false, `${name} loads`); continue; }
+    const stray = strayCourseIds(read.state);
+    assert(stray.length === 0, `${name} holds no course id the catalog does not (${stray.join(', ')})`);
+    const held = new Set(read.state.tech.filter((t) => t.kind === 'course').map((t) => t.id));
+    const missing = [...catalogCourses].filter((id) => !held.has(id));
+    assert(missing.length === 0, `${name} holds every catalog course (missing: ${missing.slice(0, 6).join(', ')})`);
+  }
+
+  const raw = fixture('save-v97.json');
+  const before = JSON.parse(raw) as { version: number; state: GameState };
+  assert(before.version === 97 && before.state.clock.year >= 30, `the version-97 fixture is a year-30 run (year ${before.state.clock.year})`);
+  const state = loads(raw, 'the version-97 fixture');
+  if (!state) return;
+  const old = before.state;
+  const status = (s: GameState, id: string) => s.tech.find((t) => t.id === id)?.status;
+  for (const [from, to] of Object.entries(COURSE_ID_MAP_95M)) {
+    if (to === null) {
+      // Gone: its teacher is freed (a new course at its id starts unstaffed).
+      const teacher = old.courseFaculty[from];
+      const taken = Object.values(COURSE_ID_MAP_95M).includes(from);
+      if (teacher && !taken) assert(!(from in state.courseFaculty), `${from} is gone and its teacher is freed`);
+      continue;
+    }
+    const was = status(old, from);
+    const now = status(state, to);
+    if (was === 'done' || was === 'developing') assert(now === was, `${from} moves to ${to} ${was} (${now})`);
+    if (old.courseFaculty[from]) assert(state.courseFaculty[to] === old.courseFaculty[from], `${from}'s teacher follows it to ${to}`);
+  }
+  for (const id of ['MGMT140', 'SOCY130', 'POLS140', 'ANTH240', 'PHIL230', 'HIST220', 'NURS210', 'NURS230', 'NURS240', 'LAWS540']) {
+    const s0 = status(state, id);
+    assert(s0 === 'locked' || s0 === 'available', `the new ${id} arrives unresearched (${s0})`);
+    assert(!(id in state.courseFaculty) && !(id in state.developing), `and with no teacher or weeks`);
+  }
+  const kept = Object.keys(old.developing).filter((id) => !(id in COURSE_ID_MAP_95M));
+  assert(kept.length > 0 && kept.every((id) => state.developing[id] === old.developing[id]), `every other course and building under way keeps its weeks (${kept.join(', ')})`);
+  const capstones = state.tech.filter((t) => /^[A-Z]{4}310$/.test(t.id));
+  assert(capstones.length === 42, `every major has its capstone (${capstones.length})`);
+  // Spans of a removed course are dropped, not left on another's id.
+  const spansBefore = old.faculty.reduce((n, f) => n + (f.career?.courses.filter((x) => COURSE_ID_MAP_95M[x.courseId] === null).length ?? 0), 0);
+  const spansKept = old.faculty.reduce((n, f) => n + (f.career?.courses.filter((x) => COURSE_ID_MAP_95M[x.courseId] !== null).length ?? 0), 0);
+  const spansAfter = state.faculty.reduce((n, f) => n + (f.career?.courses.length ?? 0), 0);
+  assert(spansBefore > 0 && spansAfter === spansKept, `the removed courses' career spans are dropped (${spansBefore} of ${spansBefore + spansKept})`);
+  assert(orphanedAssignments(state).length === 0, `no orphaned assignment on loading (${orphanedAssignments(state).join(', ')})`);
+
+  const g = foundGame({ from: state, seed: 12345 });
+  let error: unknown = null;
+  try {
+    playYears(g, createGuidedPlayer(), 1);
+  } catch (e) {
+    error = e;
+  }
+  assert(error === null, `the migrated year-30 save plays a year on${error ? `: ${String(error)}` : ''}`);
+  const orphans = orphanedAssignments(g.s);
+  assert(orphans.length === 0, `and leaves no orphaned assignment (${orphans.join(', ')})`);
+  const broken = brokenRules(g.s);
+  assert(broken.length === 0, `and holds every rule after it${broken.length ? `: ${broken.join('; ')}` : ''}`);
+  assert(strayCourseIds(g.s).length === 0, `and holds no course id the catalog does not (${strayCourseIds(g.s).join(', ')})`);
+}
+
 testLaunchFixture();
 testChain();
+testCatalogShape();
 testLandmarkWeeks();
 testMilestoneWeeks();
 testBoardLetterWeeks();

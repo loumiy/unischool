@@ -7,14 +7,15 @@ import { hashUnit } from './rivalData';
 
 /*
   The curriculum as seed data, expanded into Buildable[]: 42 majors across
-  7 schools (9 courses each), plus Founders Hall, the academic hall chain
+  7 schools (10 courses each), plus Founders Hall, the academic hall chain
   and the graduate programs. See docs/design/curriculum.md.
 
   A program is founded by taking a hall slot (types.ts's HallSlot,
   systems/techtree/programOffers.ts); six programs of one school in one hall
   found the school. Per major: tier 1 (101) has no prereqs, tier 2
   (110-140) requires tier 1, tier 3 (210-240) requires all four tier-2
-  courses, and every course also waits on the program being housed
+  courses, the capstone (310, Plan 95M) requires all four tier-3 courses,
+  and every course also waits on the program being housed
   (techSystem.ts's meetsUnlockGates). CROSS_MAJOR_BRIDGES adds a curated
   set of cross-discipline prereqs on top.
 
@@ -26,12 +27,15 @@ import { hashUnit } from './rivalData';
   Buildable. Courses grant no reputation on completion (prestigeSystem.ts).
 */
 
-const NUMS = [101, 110, 120, 130, 140, 210, 220, 230, 240];
-const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3] as const;
+// The 310 is each major's capstone (Plan 95M, the second review's B2-6): a
+// fourth tier of one course, a year's project after the advanced quartet.
+const NUMS = [101, 110, 120, 130, 140, 210, 220, 230, 240, 310];
+const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3, 4] as const;
 
 // Weeks to develop a course, by tier: an entry course takes a few weeks, a
-// tier-3 capstone is a multi-month commitment.
-const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24 };
+// tier-3 course is a multi-month commitment, and the capstone longer still,
+// though short of a doctoral course.
+const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24, 4: 28 };
 
 // Each course's weeks are its tier's (or its graduate kind's), varied up to
 // COURSE_LENGTH_SPREAD either way, fixed for that course by a hash of its id
@@ -46,13 +50,13 @@ export function courseWeeks(id: string, baseWeeks: number): number {
 
 // Development cost by tier (docs/design/economy.md). Tier 1 is priced so the
 // tier-1 build-out visibly tightens the surplus.
-const TIER_COURSE_COST: Record<number, number> = { 1: 300_000, 2: 900_000, 3: 2_200_000 };
+const TIER_COURSE_COST: Record<number, number> = { 1: 300_000, 2: 900_000, 3: 2_200_000, 4: 3_000_000 };
 
 // Weekly running cost of a finished course. Opening a tier raises opex at
 // once while the prestige it earns drifts in over years (the cost-leads-
 // revenue lag). financeSystem.ts sums effects.upkeepPerWeek live off every
 // 'done' Buildable.
-const COURSE_UPKEEP_PER_WEEK: Record<number, number> = { 1: 300, 2: 800, 3: 1_800 };
+const COURSE_UPKEEP_PER_WEEK: Record<number, number> = { 1: 300, 2: 800, 3: 1_800, 4: 2_400 };
 
 // Founders Hall is an ordinary six-slot academic hall, seeded 'done' and
 // pre-placed, so its cost is only shown in the build tray, never paid.
@@ -117,7 +121,7 @@ interface MajorSeed {
   prefix: string;   // course code prefix, e.g. "FINA"
   name: string;     // major name
   field: string;    // Faculty.field every course in this major requires (see requiresFaculty note above)
-  courses: string[]; // exactly 9 titles, in tier order (101,110,120,130,140,210,220,230,240)
+  courses: string[]; // exactly 10 titles, in tier order (101,110,120,130,140,210,220,230,240,310); the last is the capstone
 }
 interface SchoolSeed {
   name: string;
@@ -134,34 +138,34 @@ const SCHOOLS: SchoolSeed[] = [
   {
     name: 'Business',
     majors: [
-      { prefix: 'FINA', name: 'Finance', field: 'Accounting & Finance', courses: ['Principles of Finance', 'Corporate Finance', 'Investment Analysis', 'Financial Modeling', 'International Finance', 'Real Estate Finance', 'Fintech & Blockchain', 'Risk Management', 'Behavioral Finance'] },
-      { prefix: 'ACCT', name: 'Accounting', field: 'Accounting & Finance', courses: ['Introduction to Accounting', 'Financial Accounting', 'Managerial Accounting', 'Tax Fundamentals', 'Auditing Principles', 'Forensic Accounting', 'Intermediate Financial Reporting', 'Cost Accounting', 'Accounting Information Systems'] },
-      { prefix: 'MRKT', name: 'Marketing', field: 'Marketing', courses: ['Fundamentals of Marketing', 'Consumer Behavior', 'Market Research', 'Digital Marketing Strategy', 'Brand Management', 'Sports Marketing', 'Advertising & Promotion', 'Sales Management', 'Global Marketing'] },
-      { prefix: 'ECON', name: 'Economics', field: 'Economics', courses: ['Microeconomics', 'Macroeconomics', 'Econometrics', 'Intermediate Microeconomics', 'Economic History', 'Behavioral Economics', 'Public Finance', 'Game Theory', 'Environmental Economics'] },
-      { prefix: 'MGMT', name: 'Management', field: 'Management', courses: ['Organizational Leadership', 'Human Resources Management', 'Operations Management', 'Business Ethics', 'Strategic Management', 'Project Management', 'Entrepreneurship', 'Conflict Resolution', 'Negotiations'] },
-      { prefix: 'SPCO', name: 'Supply Chain & Operations', field: 'Operations Research', courses: ['Introduction to Supply Chain', 'Logistics & Distribution', 'Procurement & Sourcing', 'Quality Management', 'Demand Planning', 'Global Supply Chains', 'Inventory Control Systems', 'Data Analytics for Operations', 'Transportation Management'] },
+      { prefix: 'FINA', name: 'Finance', field: 'Accounting & Finance', courses: ['Principles of Finance', 'Corporate Finance', 'Investment Analysis', 'Real Estate Finance', 'International Finance', 'Financial Modeling', 'Fintech & Blockchain', 'Risk Management', 'Behavioral Finance', 'Senior Seminar in Finance'] },
+      { prefix: 'ACCT', name: 'Accounting', field: 'Accounting & Finance', courses: ['Introduction to Accounting', 'Financial Accounting', 'Managerial Accounting', 'Tax Fundamentals', 'Accounting Information Systems', 'Forensic Accounting', 'Intermediate Financial Reporting', 'Cost Accounting', 'Auditing Principles', 'Senior Seminar in Accounting'] },
+      { prefix: 'MRKT', name: 'Marketing', field: 'Marketing', courses: ['Fundamentals of Marketing', 'Consumer Behavior', 'Market Research', 'Digital Marketing Strategy', 'Brand Management', 'Sports Marketing', 'Advertising & Promotion', 'Sales Management', 'Global Marketing', 'Capstone: Marketing Strategy'] },
+      { prefix: 'ECON', name: 'Economics', field: 'Economics', courses: ['Microeconomics', 'Macroeconomics', 'Econometrics', 'Intermediate Microeconomics', 'Economic History', 'Behavioral Economics', 'Public Finance', 'Game Theory', 'Environmental Economics', 'Senior Seminar in Economics'] },
+      { prefix: 'MGMT', name: 'Management', field: 'Management', courses: ['Organizational Leadership', 'Human Resources Management', 'Operations Management', 'Business Ethics', 'Organizational Behavior', 'Project Management', 'Entrepreneurship', 'Conflict Resolution', 'Negotiations', 'Strategic Management'] },
+      { prefix: 'SPCO', name: 'Supply Chain & Operations', field: 'Operations Research', courses: ['Introduction to Supply Chain', 'Logistics & Distribution', 'Procurement & Sourcing', 'Quality Management', 'Demand Planning', 'Global Supply Chains', 'Inventory Control Systems', 'Data Analytics for Operations', 'Transportation Management', 'Capstone: Supply Chain Design'] },
     ],
   },
   {
     name: 'Engineering',
     majors: [
-      { prefix: 'MECH', name: 'Mechanical Engineering', field: 'Mechanical Engineering', courses: ['Introduction to Mechanical Design', 'Statics & Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Materials Science', 'Robotics', 'HVAC Systems', 'Internal Combustion Engines', 'Finite Element Analysis'] },
-      { prefix: 'ELEC', name: 'Electrical Engineering', field: 'Electrical Engineering', courses: ['Circuits', 'Digital Logic Design', 'Signals & Systems', 'Electromagnetics', 'Microelectronics', 'Power Systems Analysis', 'Wireless Communications', 'Control Systems', 'VLSI Design'] },
-      { prefix: 'CHEN', name: 'Chemical Engineering', field: 'Chemistry', courses: ['Principles of Chemical Engineering', 'Chemical Thermodynamics', 'Fluid Transport', 'Material & Energy Balances', 'Chemical Reaction Engineering', 'Process Safety', 'Biochemical Engineering', 'Polymer Science', 'Sustainable Energy Technology'] },
-      { prefix: 'CIVE', name: 'Civil Engineering', field: 'Civil Engineering', courses: ['Statics', 'Structural Analysis', 'Soil Mechanics', 'Mechanics of Materials', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning'] },
-      { prefix: 'INDE', name: 'Industrial Engineering', field: 'Operations Research', courses: ['Introduction to Industrial Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering'] },
-      { prefix: 'AERO', name: 'Aerospace Engineering', field: 'Physics', courses: ['Introduction to Aerospace Engineering', 'Aerodynamics', 'Aircraft Performance', 'Spacecraft Propulsion', 'Aerospace Structures', 'Astrodynamics', 'Rocketry', 'Aircraft Design', 'Unmanned Aerial Systems'] },
+      { prefix: 'MECH', name: 'Mechanical Engineering', field: 'Mechanical Engineering', courses: ['Introduction to Mechanical Design', 'Statics & Dynamics', 'Thermodynamics', 'Fluid Mechanics', 'Materials Science', 'Robotics', 'HVAC Systems', 'Internal Combustion Engines', 'Finite Element Analysis', 'Mechanical Engineering Senior Design'] },
+      { prefix: 'ELEC', name: 'Electrical Engineering', field: 'Electrical Engineering', courses: ['Circuits', 'Digital Logic Design', 'Signals & Systems', 'Electromagnetics', 'Microelectronics', 'Power Systems Analysis', 'Wireless Communications', 'Control Systems', 'VLSI Design', 'Electrical Engineering Senior Design'] },
+      { prefix: 'CHEN', name: 'Chemical Engineering', field: 'Chemistry', courses: ['Principles of Chemical Engineering', 'Chemical Thermodynamics', 'Fluid Transport', 'Material & Energy Balances', 'Chemical Reaction Engineering', 'Process Safety', 'Biochemical Engineering', 'Polymer Science', 'Sustainable Energy Technology', 'Chemical Process Design'] },
+      { prefix: 'CIVE', name: 'Civil Engineering', field: 'Civil Engineering', courses: ['Statics', 'Structural Analysis', 'Soil Mechanics', 'Mechanics of Materials', 'Transportation Engineering', 'Bridge Design', 'Environmental Impact Assessment', 'Construction Management', 'Urban Planning', 'Civil Engineering Senior Design'] },
+      { prefix: 'INDE', name: 'Industrial Engineering', field: 'Operations Research', courses: ['Introduction to Industrial Systems', 'Production Planning', 'Ergonomics & Safety', 'Quality Control', 'Facilities Design', 'Simulation Modeling', 'Supply Chain Analytics', 'Lean Manufacturing', 'Reliability Engineering', 'Industrial Engineering Senior Design'] },
+      { prefix: 'AERO', name: 'Aerospace Engineering', field: 'Physics', courses: ['Introduction to Aerospace Engineering', 'Aerodynamics', 'Aircraft Performance', 'Spacecraft Propulsion', 'Aerospace Structures', 'Astrodynamics', 'Rocketry', 'Aircraft Design', 'Unmanned Aerial Systems', 'Aerospace Senior Design'] },
     ],
   },
   {
     name: 'Arts & Media',
     majors: [
-      { prefix: 'MDIA', name: 'Media Studies', field: 'Communication', courses: ['Mass Communication', 'Media Theory', 'Global Media Systems', 'Digital Culture', 'Media Ethics', 'Film Industry', 'Social Media Analytics', 'Photojournalism', 'Public Relations'] },
-      { prefix: 'GRDS', name: 'Graphic Design', field: 'Art & Design', courses: ['Visual Communication', 'Typography', 'Digital Imaging', 'Layout Design', 'Branding & Identity', 'Web Design', 'Motion Graphics', 'Illustration', 'Publication Design'] },
-      { prefix: 'CRWR', name: 'Creative Writing', field: 'English', courses: ['Introduction to Creative Writing', 'Fiction Workshop', 'Poetry Workshop', 'Nonfiction Workshop', 'Literary Editing', 'Screenwriting', 'Playwriting', 'Novel Writing', 'Creative Writing Seminar'] },
-      { prefix: 'MUSC', name: 'Music', field: 'Music', courses: ['Music Theory I', 'Music Theory II', 'Music History Survey', 'Composition I', 'Applied Instrument/Voice', 'Jazz Improvisation', 'World Music', 'Music Technology', 'Composition II'] },
-      { prefix: 'FILM', name: 'Film', field: 'Communication', courses: ['Introduction to Film Analysis', 'Cinematography', 'Screenwriting Workshop', 'Film Production', 'Directing Fundamentals', 'Documentary Filmmaking', 'History of World Cinema', 'Sound Design', 'Post-Production'] },
-      { prefix: 'SART', name: 'Studio Art', field: 'Art & Design', courses: ['Fundamentals of 2D Design', 'Drawing', 'Painting', 'Sculpture', 'Art History Survey', 'Printmaking', 'Ceramics', 'Photography', 'Digital Art'] },
+      { prefix: 'MDIA', name: 'Media Studies', field: 'Communication', courses: ['Mass Communication', 'Media Theory', 'Global Media Systems', 'Digital Culture', 'Media Ethics', 'Film Industry', 'Social Media Analytics', 'Photojournalism', 'Public Relations', 'Senior Seminar in Media Studies'] },
+      { prefix: 'GRDS', name: 'Graphic Design', field: 'Art & Design', courses: ['Visual Communication', 'Typography', 'Digital Imaging', 'Layout Design', 'Branding & Identity', 'Web Design', 'Motion Graphics', 'Illustration', 'Publication Design', 'Senior Portfolio'] },
+      { prefix: 'CRWR', name: 'Creative Writing', field: 'English', courses: ['Introduction to Creative Writing', 'Fiction Workshop', 'Poetry Workshop', 'Nonfiction Workshop', 'Literary Editing', 'Screenwriting', 'Playwriting', 'Novel Writing', 'Creative Writing Seminar', 'Senior Thesis in Creative Writing'] },
+      { prefix: 'MUSC', name: 'Music', field: 'Music', courses: ['Music Theory I', 'Music Theory II', 'Music History Survey', 'Composition I', 'Applied Instrument/Voice', 'Jazz Improvisation', 'World Music', 'Music Technology', 'Composition II', 'Senior Recital'] },
+      { prefix: 'FILM', name: 'Film', field: 'Communication', courses: ['Introduction to Film Analysis', 'Cinematography', 'Screenwriting Workshop', 'Film Production', 'Directing Fundamentals', 'Documentary Filmmaking', 'History of World Cinema', 'Sound Design', 'Post-Production', 'Thesis Film'] },
+      { prefix: 'SART', name: 'Studio Art', field: 'Art & Design', courses: ['Fundamentals of 2D Design', 'Drawing', 'Painting', 'Sculpture', 'Art History Survey', 'Printmaking', 'Ceramics', 'Photography', 'Digital Art', 'Senior Exhibition'] },
     ],
   },
   {
@@ -170,12 +174,12 @@ const SCHOOLS: SchoolSeed[] = [
     // founds it first (Plan 80D).
     name: 'Social Sciences & Humanities',
     majors: [
-      { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Rhetoric & Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing'] },
-      { prefix: 'SOCY', name: 'Sociology', field: 'Sociology', courses: ['Introduction to Sociology', 'Social Stratification', 'Sociological Theory', 'Race & Ethnicity', 'Qualitative Research Methods', 'Criminology', 'Sociology of the Family', 'Urban Sociology', 'Sex & Gender'] },
-      { prefix: 'ANTH', name: 'Anthropology', field: 'Sociology', courses: ['Introduction to Anthropology', 'Cultural Anthropology', 'Biological Anthropology', 'Archaeological Methods', 'Linguistic Anthropology', 'Ethnographic Field Methods', 'Medical Anthropology', 'Anthropology of Religion', 'Museum & Heritage Studies'] },
-      { prefix: 'POLS', name: 'Political Science', field: 'Political Science', courses: ['Introduction to Political Science', 'Comparative Politics', 'International Relations', 'American Government', 'Public Policy Analysis', 'Constitutional Law', 'Political Campaigns', 'Theories of Justice', 'Security Studies'] },
-      { prefix: 'HIST', name: 'History', field: 'History', courses: ['World History', 'Research & Historiography', 'US History', 'European History', 'Ancient Civilizations', 'World War I & II', 'Historical Archaeology', 'Historical Anthropology', 'History of Science & Technology'] },
-      { prefix: 'PHIL', name: 'Philosophy', field: 'Philosophy', courses: ['Introduction to Logic & Reasoning', 'Ethics', 'Metaphysics', 'Epistemology', 'Ancient Greek Philosophy', 'Existentialism', 'Philosophy of Mind', 'Aesthetics', 'Symbolic Logic'] },
+      { prefix: 'ENGL', name: 'English', field: 'English', courses: ['Introduction to Literary Studies', 'British Literature Survey', 'American Literature Survey', 'Critical Theory', 'Rhetoric & Composition', 'Shakespeare', 'Restoration & 18th Century Literature', 'Postcolonial Literature', 'Technical Writing', 'Senior Seminar in English'] },
+      { prefix: 'SOCY', name: 'Sociology', field: 'Sociology', courses: ['Introduction to Sociology', 'Social Stratification', 'Sociological Theory', 'Social Statistics', 'Qualitative Research Methods', 'Criminology', 'Sociology of the Family', 'Race & Ethnicity', 'Sex & Gender', 'Senior Thesis in Sociology'] },
+      { prefix: 'ANTH', name: 'Anthropology', field: 'Sociology', courses: ['Introduction to Anthropology', 'Cultural Anthropology', 'Biological Anthropology', 'Archaeological Methods', 'Linguistic Anthropology', 'Ethnographic Field Methods', 'Medical Anthropology', 'Anthropology of Religion', 'History of Anthropological Theory', 'Senior Seminar in Anthropology'] },
+      { prefix: 'POLS', name: 'Political Science', field: 'Political Science', courses: ['Introduction to Political Science', 'Comparative Politics', 'International Relations', 'American Government', 'Research Methods in Political Science', 'Constitutional Law', 'Public Policy Analysis', 'Theories of Justice', 'Security Studies', 'Senior Seminar in Political Science'] },
+      { prefix: 'HIST', name: 'History', field: 'History', courses: ['World History', 'Research & Historiography', 'US History', 'European History', 'Ancient Civilizations', 'World War I & II', 'Modern East Asia', 'Historical Anthropology', 'History of Science & Technology', 'Senior Thesis in History'] },
+      { prefix: 'PHIL', name: 'Philosophy', field: 'Philosophy', courses: ['Introduction to Logic & Reasoning', 'Ethics', 'Metaphysics', 'Epistemology', 'Ancient Greek Philosophy', 'Existentialism', 'Philosophy of Mind', 'Early Modern Philosophy', 'Symbolic Logic', 'Senior Seminar in Philosophy'] },
     ],
   },
   {
@@ -185,12 +189,12 @@ const SCHOOLS: SchoolSeed[] = [
     majors: [
       // Mathematics is one of the majors the founding offer is rigged toward
       // (programOffers.ts).
-      { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods'] },
-      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Principles of Biology', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology'] },
-      { prefix: 'CHEM', name: 'Chemistry', field: 'Chemistry', courses: ['General Chemistry', 'Inorganic Chemistry', 'Organic Chemistry', 'Analytical Chemistry', 'Physical Chemistry', 'Biochemistry', 'Spectroscopy & Structure Determination', 'Medicinal Chemistry', 'Computational Chemistry'] },
-      { prefix: 'PHYS', name: 'Physics', field: 'Physics', courses: ['Classical Mechanics', 'Electricity & Magnetism', 'Waves & Optics', 'Modern Physics', 'Thermal & Statistical Physics', 'Quantum Mechanics', 'Solid State Physics', 'Astrophysics & Cosmology', 'Particle Physics'] },
-      { prefix: 'ENVS', name: 'Environmental Science', field: 'Biology', courses: ['Introduction to Environmental Science', 'Earth Systems & Climate', 'Ecosystem Ecology', 'Environmental Chemistry', 'Geographic Information Systems', 'Conservation Biology', 'Hydrology & Water Resources', 'Atmospheric Science', 'Environmental Policy & Restoration'] },
-      { prefix: 'PSYC', name: 'Psychology', field: 'Psychology', courses: ['General Psychology', 'Developmental Psychology', 'Cognitive Psychology', 'Abnormal Psychology', 'Research Methods in Psychology', 'Social Psychology', 'Biopsychology', 'Organizational Psychology', 'Health Psychology'] },
+      { prefix: 'MATH', name: 'Mathematics', field: 'Mathematics', courses: ['Calculus', 'Linear Algebra', 'Probability & Statistics', 'Discrete Mathematics', 'Differential Equations', 'Real Analysis', 'Abstract Algebra', 'Topology', 'Numerical Methods', 'Senior Seminar in Mathematics'] },
+      { prefix: 'BIOL', name: 'Biology', field: 'Biology', courses: ['Principles of Biology', 'Cell Biology', 'Genetics', 'Ecology', 'Evolution', 'Microbiology', 'Marine Biology', 'Plant Physiology', 'Immunology', 'Senior Research in Biology'] },
+      { prefix: 'CHEM', name: 'Chemistry', field: 'Chemistry', courses: ['General Chemistry', 'Inorganic Chemistry', 'Organic Chemistry', 'Analytical Chemistry', 'Physical Chemistry', 'Biochemistry', 'Spectroscopy & Structure Determination', 'Medicinal Chemistry', 'Computational Chemistry', 'Senior Research in Chemistry'] },
+      { prefix: 'PHYS', name: 'Physics', field: 'Physics', courses: ['Classical Mechanics', 'Electricity & Magnetism', 'Waves & Optics', 'Modern Physics', 'Thermal & Statistical Physics', 'Quantum Mechanics', 'Solid State Physics', 'Astrophysics & Cosmology', 'Particle Physics', 'Senior Thesis in Physics'] },
+      { prefix: 'ENVS', name: 'Environmental Science', field: 'Biology', courses: ['Introduction to Environmental Science', 'Earth Systems & Climate', 'Ecosystem Ecology', 'Environmental Chemistry', 'Geographic Information Systems', 'Conservation Biology', 'Hydrology & Water Resources', 'Atmospheric Science', 'Environmental Policy & Restoration', 'Environmental Science Capstone'] },
+      { prefix: 'PSYC', name: 'Psychology', field: 'Psychology', courses: ['General Psychology', 'Developmental Psychology', 'Cognitive Psychology', 'Abnormal Psychology', 'Research Methods in Psychology', 'Social Psychology', 'Biopsychology', 'Organizational Psychology', 'Health Psychology', 'Senior Thesis in Psychology'] },
     ],
   },
   {
@@ -198,23 +202,23 @@ const SCHOOLS: SchoolSeed[] = [
     // a research school (see LAB_GATED_MAJOR_PREFIXES).
     name: 'Health Science',
     majors: [
-      { prefix: 'PHLT', name: 'Public Health', field: 'Public Health', courses: ['Introduction to Public Health', 'Epidemiology', 'Biostatistics', 'Health Policy & Management', 'Environmental Health', 'Global Health', 'Health Promotion', 'Community Health Assessment', 'Maternal & Child Health'] },
-      { prefix: 'NURS', name: 'Nursing', field: 'Clinical Health', courses: ['Introduction to Professional Nursing', 'Anatomy & Physiology', 'Pharmacology', 'Health Assessment', 'Clinical Practicum I', 'Critical Care Nursing', 'Pediatric Nursing', 'Gerontological Nursing', 'Clinical Practicum II'] },
-      { prefix: 'NUTR', name: 'Nutrition', field: 'Public Health', courses: ['Fundamentals of Nutrition', 'Macronutrients & Metabolism', 'Lifecycle Nutrition', 'Applied Dietetics', 'Food Science', 'Sports Nutrition', 'Public Health Nutrition', 'Advanced Medical Nutrition Therapy', 'Nutrition Assessment & Counseling'] },
-      { prefix: 'PHRM', name: 'Pharmacy', field: 'Clinical Health', courses: ['Introduction to Pharmaceutical Sciences', 'Human Physiology for Pharmacy', 'Pharmaceutical Chemistry', 'Pharmacology I', 'Pharmaceutics & Drug Delivery', 'Pharmacology II', 'Pharmacotherapeutics', 'Clinical Pharmacy Practicum', 'Pharmacoepidemiology & Drug Safety'] },
-      { prefix: 'KINE', name: 'Kinesiology', field: 'Kinesiology', courses: ['Foundations of Kinesiology', 'Functional Anatomy', 'Exercise Physiology', 'Biomechanics', 'Motor Learning & Control', 'Strength & Conditioning', 'Athletic Injury & Rehabilitation', 'Exercise Testing & Prescription', 'Adapted Physical Activity'] },
-      { prefix: 'NEUR', name: 'Neuroscience', field: 'Neuroscience', courses: ['Foundations of Neuroscience', 'Neuroanatomy', 'Cellular & Molecular Neuroscience', 'Cognitive Neuroscience', 'Neurophysiology', 'Neuropharmacology', 'Developmental Neurobiology', 'Computational Neuroscience', 'Clinical Neuroscience & Disorders'] },
+      { prefix: 'PHLT', name: 'Public Health', field: 'Public Health', courses: ['Introduction to Public Health', 'Epidemiology', 'Biostatistics', 'Health Policy & Management', 'Environmental Health', 'Global Health', 'Health Promotion', 'Community Health Assessment', 'Maternal & Child Health', 'Public Health Practicum'] },
+      { prefix: 'NURS', name: 'Nursing', field: 'Clinical Health', courses: ['Introduction to Professional Nursing', 'Anatomy & Physiology', 'Pharmacology', 'Health Assessment', 'Clinical Practicum I', 'Medical-Surgical Nursing', 'Pediatric Nursing', 'Maternal & Newborn Nursing', 'Psychiatric & Mental Health Nursing', 'Capstone Clinical Practicum'] },
+      { prefix: 'NUTR', name: 'Nutrition', field: 'Public Health', courses: ['Fundamentals of Nutrition', 'Macronutrients & Metabolism', 'Lifecycle Nutrition', 'Applied Dietetics', 'Food Science', 'Sports Nutrition', 'Public Health Nutrition', 'Advanced Medical Nutrition Therapy', 'Nutrition Assessment & Counseling', 'Supervised Practice in Dietetics'] },
+      { prefix: 'PHRM', name: 'Pharmacy', field: 'Clinical Health', courses: ['Introduction to Pharmaceutical Sciences', 'Human Physiology for Pharmacy', 'Pharmaceutical Chemistry', 'Pharmacology I', 'Pharmaceutics & Drug Delivery', 'Pharmacology II', 'Pharmacotherapeutics', 'Clinical Pharmacy Practicum', 'Pharmacoepidemiology & Drug Safety', 'Senior Research in Pharmaceutical Sciences'] },
+      { prefix: 'KINE', name: 'Kinesiology', field: 'Kinesiology', courses: ['Foundations of Kinesiology', 'Functional Anatomy', 'Exercise Physiology', 'Biomechanics', 'Motor Learning & Control', 'Strength & Conditioning', 'Athletic Injury & Rehabilitation', 'Exercise Testing & Prescription', 'Adapted Physical Activity', 'Kinesiology Internship'] },
+      { prefix: 'NEUR', name: 'Neuroscience', field: 'Neuroscience', courses: ['Foundations of Neuroscience', 'Neuroanatomy', 'Cellular & Molecular Neuroscience', 'Cognitive Neuroscience', 'Neurophysiology', 'Neuropharmacology', 'Developmental Neurobiology', 'Computational Neuroscience', 'Clinical Neuroscience & Disorders', 'Senior Thesis in Neuroscience'] },
     ],
   },
   {
     name: 'Computer Science',
     majors: [
-      { prefix: 'COMP', name: 'Computer Science', field: 'Computer Science', courses: ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Architecture', 'Compiler Design', 'Game Development', 'Parallel Computing', 'Web Development'] },
-      { prefix: 'DATA', name: 'Data Science', field: 'Mathematics', courses: ['Fundamentals of Data Science', 'Statistical Modeling', 'Machine Learning', 'Data Visualization', 'Data Mining', 'Big Data Systems', 'Time Series Analysis', 'Natural Language Processing', 'Bayesian Statistics'] },
-      { prefix: 'CYBR', name: 'Cybersecurity', field: 'Information Systems', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Security Risk Management', 'Software Security Testing'] },
-      { prefix: 'SOFT', name: 'Software Engineering', field: 'Computer Science', courses: ['Introduction to Software Development', 'Software Requirements', 'Software Testing & QA', 'Database Systems', 'Object-Oriented Design', 'Agile Methodologies', 'Mobile Application Development', 'UI/UX', 'DevOps'] },
-      { prefix: 'ARTF', name: 'Artificial Intelligence', field: 'Artificial Intelligence', courses: ['Introduction to Artificial Intelligence', 'AI Programming', 'Knowledge Representation', 'Neural Networks', 'Statistical Learning', 'Deep Learning', 'Robotics & Perception', 'Computer Vision', 'AI Ethics & Society'] },
-      { prefix: 'INFO', name: 'Information Systems', field: 'Information Systems', courses: ['Introduction to Information Systems', 'Systems Analysis & Design', 'Database Management', 'Enterprise Resource Planning', 'IT Infrastructure', 'Business Process Modeling', 'E-commerce Strategy', 'Information Security Management', 'Data Warehousing'] },
+      { prefix: 'COMP', name: 'Computer Science', field: 'Computer Science', courses: ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Architecture', 'Compiler Design', 'Game Development', 'Parallel Computing', 'Web Development', 'Senior Thesis in Computer Science'] },
+      { prefix: 'DATA', name: 'Data Science', field: 'Mathematics', courses: ['Fundamentals of Data Science', 'Statistical Modeling', 'Machine Learning', 'Data Visualization', 'Data Mining', 'Big Data Systems', 'Time Series Analysis', 'Natural Language Processing', 'Bayesian Statistics', 'Data Science Capstone'] },
+      { prefix: 'CYBR', name: 'Cybersecurity', field: 'Information Systems', courses: ['Introduction to Cybersecurity', 'Network Security', 'Cryptography', 'Ethical Hacking', 'Security Operations', 'Cloud Security', 'Digital Forensics', 'Security Risk Management', 'Software Security Testing', 'Cyber Defense Capstone'] },
+      { prefix: 'SOFT', name: 'Software Engineering', field: 'Computer Science', courses: ['Introduction to Software Development', 'Software Requirements', 'Software Testing & QA', 'Database Systems', 'Object-Oriented Design', 'Agile Methodologies', 'Mobile Application Development', 'UI/UX', 'DevOps', 'Software Engineering Capstone'] },
+      { prefix: 'ARTF', name: 'Artificial Intelligence', field: 'Artificial Intelligence', courses: ['Introduction to Artificial Intelligence', 'AI Programming', 'Knowledge Representation', 'Neural Networks', 'Statistical Learning', 'Deep Learning', 'Robotics & Perception', 'Computer Vision', 'AI Ethics & Society', 'Artificial Intelligence Capstone'] },
+      { prefix: 'INFO', name: 'Information Systems', field: 'Information Systems', courses: ['Introduction to Information Systems', 'Systems Analysis & Design', 'Database Management', 'Enterprise Resource Planning', 'IT Infrastructure', 'Business Process Modeling', 'E-commerce Strategy', 'Information Security Management', 'Data Warehousing', 'Information Systems Capstone'] },
     ],
   },
 ];
@@ -292,9 +296,10 @@ export function programOfCourse(courseId: string): string | undefined {
 //
 // Rules, checked by test/curriculum-graph.test.ts:
 //   1. Never point up the tier climb. A tier-2 course may not require a
-//      tier-3 capstone, or a major's establishment (its tier-2 quartet, which
+//      tier-3 course, or a major's establishment (its tier-2 quartet, which
 //      `program-established:` and the professional-school gates read) would
-//      wait on another school's endgame. Capstone-to-capstone is fine.
+//      wait on another school's endgame. Tier 3 to tier 3 is fine. No bridge
+//      names a capstone (a 310), and no capstone carries a bridge.
 //   2. Never repeat the backbone: a tier-3 course already requires its
 //      major's tier-2 quartet and, through it, the tier-1 course.
 //   3. Never name a course whose prereq closure contains a `facilityType:
@@ -306,8 +311,9 @@ export function programOfCourse(courseId: string): string | undefined {
 export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   // --- Business ---
   FINA140: ['ECON110'],           // International Finance needs macroeconomics
+  FINA210: ['ACCT110'],           // Financial Modeling's three-statement models need financial accounting
   FINA220: ['COMP110'],           // Fintech & Blockchain needs data structures — a distributed ledger is a data structure before it is a financial product
-  ACCT240: ['INFO101'],           // Accounting Information Systems needs the information-systems fundamentals it is an application of
+  ACCT140: ['INFO101'],           // Accounting Information Systems needs the information-systems fundamentals it is an application of
   ECON120: ['MATH120'],           // Econometrics needs probability & statistics
   ECON140: ['HIST101'],           // Economic History needs world history
   ECON240: ['ENVS101'],           // Environmental Economics needs the environmental science it prices
@@ -323,9 +329,9 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   AERO210: ['MATH101'],           // Astrodynamics needs calculus
   AERO220: ['MECH120'],           // Rocketry needs thermodynamics
   ELEC130: ['PHYS110'],           // Electromagnetics needs undergraduate electricity & magnetism
-  CHEN220: ['CHEM120'],           // Biochemical Engineering needs organic chemistry. Not CHEM210: a capstone in a lab-gated major would make Engineering require the School of Science and its lab (rule 3 above)
+  CHEN220: ['CHEM120'],           // Biochemical Engineering needs organic chemistry. Not CHEM210: a tier-3 course in a lab-gated major would make Engineering require the School of Science and its lab (rule 3 above)
   CHEN230: ['CHEM120'],           // Polymer Science needs organic chemistry: the tier-3 climb already requires the tier-2 chemistry (rule 2 above), so the bridge goes one step deeper, into the Chemistry major
-  CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 capstone: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a capstone would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, an entry course gating on nothing, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
+  CIVE140: ['SPCO101'],           // Transportation Engineering needs the supply-chain fundamentals it moves goods for. NOT SPCO240 ("Transportation Management"), which is a tier-3 course: this is a tier-2 course, and rule 1 above is why — bridging a tier-2 course to a tier-3 course would hold Civil Engineering's ESTABLISHMENT behind most of a Business major. SPCO101 is also the lightest honest stand-in available, an entry course gating on nothing, so Civil Engineering doesn't quietly acquire a Business Hall dependency either
   CIVE220: ['ENVS101'],           // Environmental Impact Assessment needs environmental science
   CIVE230: ['MGMT120'],           // Construction Management needs operations management. Not MGMT210, which requires Management's whole tier-2 quartet and would pull in most of a Business major
   CIVE240: ['SOCY101'],           // Urban Planning needs the sociology of the people being planned for
@@ -342,7 +348,7 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
   // --- Social Sciences & Humanities ---
   ANTH110: ['SOCY101'],           // Cultural Anthropology and Sociology share a department and a starting point
   HIST230: ['ANTH101'],           // Historical Anthropology needs introduction to anthropology
-  POLS140: ['ECON110'],           // Public Policy Analysis needs macroeconomics
+  POLS220: ['ECON110'],           // Public Policy Analysis needs macroeconomics
 
   // --- Science ---
   CHEM210: ['BIOL101'],           // Biochemistry needs biology I
@@ -360,6 +366,7 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 
   // --- Computer Science ---
   DATA120: ['COMP101'],           // Machine Learning needs programming fundamentals
+  COMP120: ['MATH130'],           // Algorithms' proofs need discrete mathematics
   DATA240: ['MATH120'],           // Bayesian Statistics needs probability & statistics
   ARTF130: ['DATA120'],           // Neural Networks builds on Machine Learning
   CYBR130: ['COMP110'],           // Ethical Hacking needs real programming chops
@@ -369,8 +376,8 @@ export const CROSS_MAJOR_BRIDGES: Record<string, string[]> = {
 // of its tier-3 courses, with a flat upkeep since it serves one major. A lab
 // is also the research gate (docs/design/research.md): every school has at
 // least one, and labEquippedFields equips every field a school teaches once
-// any of its facilities stands. Nursing's clinical capstones gate on the
-// clinic instead (CLINICAL_PRACTICUM_GATE). Facilities differ only in name.
+// any of its facilities stands. Nursing's advanced clinical courses gate on
+// the clinic instead (CLINICAL_PRACTICUM_GATE). Facilities differ only in name.
 const LAB_GATED_MAJOR_PREFIXES = [
   // Lab sciences and engineering.
   'CHEN', 'CHEM', 'BIOL', 'PHYS', 'MECH', 'ELEC', 'CIVE', 'AERO', 'NEUR',
@@ -404,8 +411,8 @@ function labId(prefix: string): string {
   return `LAB-${prefix}`;
 }
 
-// Studio Art's capstones gate on the Art Gallery (facilitiesData.ts), the
-// same facility-gates-capstone mechanism as the labs. The gallery unlocks on
+// Studio Art's advanced courses gate on the Art Gallery (facilitiesData.ts),
+// the same facility-gates-tier-3 mechanism as the labs. The gallery unlocks on
 // Studio Art's tier-2 quartet, so this cannot be circular. Music's gated on
 // the Performing Arts Center until Plan 51 retired it for the Arts Center,
 // which is earned by the whole Arts & Media curriculum and so cannot gate
@@ -416,14 +423,14 @@ const ARTS_CAPSTONE_GATE: Partial<Record<string, string>> = {
 
 // Clinical coursework gates on a health-chain facility. Keyed by course, not
 // major, because only the genuinely clinical courses need it: all four of
-// Nursing's capstones but only one of Pharmacy's. The MD's clerkship needs
-// the hospital. The health chain's prereqs never include a course, so this
-// cannot be circular.
+// Nursing's advanced courses but only one of Pharmacy's. The MD's clerkship
+// needs the hospital. The health chain's prereqs never include a course, so
+// this cannot be circular. A capstone inherits the gate through its prereqs.
 const CLINICAL_PRACTICUM_GATE: Partial<Record<string, string>> = {
-  NURS210: HEALTH_CENTER_TIER2_ID, // Critical Care Nursing
+  NURS210: HEALTH_CENTER_TIER2_ID, // Medical-Surgical Nursing
   NURS220: HEALTH_CENTER_TIER2_ID, // Pediatric Nursing
-  NURS230: HEALTH_CENTER_TIER2_ID, // Gerontological Nursing
-  NURS240: HEALTH_CENTER_TIER2_ID, // Clinical Practicum II
+  NURS230: HEALTH_CENTER_TIER2_ID, // Maternal & Newborn Nursing
+  NURS240: HEALTH_CENTER_TIER2_ID, // Psychiatric & Mental Health Nursing
   PHRM230: HEALTH_CENTER_TIER2_ID, // Clinical Pharmacy Practicum
   MED610: HEALTH_CENTER_TIER3_ID,  // Advanced Clinical Practicum — the MD's clerkship year
 };
@@ -488,7 +495,7 @@ export interface GraduateProgramSeed {
 }
 
 // Ten programs, 53 courses: each a handful of high-tier courses that
-// complete into a milestone, not a second nine-course major.
+// complete into a milestone, not a second ten-course major.
 const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   {
     id: 'MED', name: 'School of Medicine', degree: 'MD', type: 'professional',
@@ -501,12 +508,12 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
       { num: 520, title: 'Pathophysiology & Pharmacotherapy', field: 'Clinical Health' },
       { num: 530, title: 'Clinical Neurology', field: 'Neuroscience' },
       { num: 540, title: 'Evidence-Based Practice & Population Medicine', field: 'Public Health' },
-      { num: 550, title: 'Clerkship & Residency Preparation', field: 'Clinical Health' },
+      { num: 550, title: 'Global & Public Health Systems', field: 'Public Health' },
       { num: 560, title: 'Immunology & Infectious Disease', field: 'Biology' },
       { num: 570, title: 'Medical Genetics & Genomics', field: 'Biology' },
       { num: 580, title: 'Psychiatry & Behavioral Medicine', field: 'Neuroscience' },
       { num: 590, title: 'Surgical Principles & Perioperative Care', field: 'Clinical Health' },
-      { num: 600, title: 'Global & Public Health Systems', field: 'Public Health' },
+      { num: 600, title: 'Transition to Clerkships', field: 'Clinical Health' },
       { num: 610, title: 'Advanced Clinical Practicum', field: 'Clinical Health' },
     ],
   },
@@ -519,11 +526,12 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
       { num: 501, title: 'Foundations of American Law', field: 'Law' },
       { num: 510, title: 'Contracts & Torts', field: 'Law' },
       { num: 520, title: 'Civil Procedure & Evidence', field: 'Law' },
-      { num: 530, title: 'Constitutional Law Seminar', field: 'Law' },
-      { num: 540, title: 'Legal Clinic & Advocacy', field: 'Law' },
+      { num: 530, title: 'American Constitutional Law', field: 'Law' },
+      { num: 540, title: 'Professional Responsibility', field: 'Law' },
       { num: 550, title: 'Property & Real Estate Law', field: 'Law' },
       { num: 560, title: 'Criminal Law & Procedure', field: 'Law' },
-      { num: 570, title: 'Comparative & International Law', field: 'Law' },
+      // The clinic is last (Plan 95M): it requires every course before it.
+      { num: 570, title: 'Legal Clinic & Advocacy', field: 'Law' },
     ],
   },
   {
@@ -715,7 +723,7 @@ function nodeId(prefix: string, num: number): string {
 }
 
 // Expand the seed data into the flat Buildable[] the engine consumes:
-// 378 course Buildables, Founders Hall, the hall chain and the graduate
+// 420 course Buildables, Founders Hall, the hall chain and the graduate
 // catalog.
 // The deeper the catalogue, the costlier each addition (Plan 71): every
 // undergraduate course on offer raises the price of every one not yet
@@ -742,6 +750,7 @@ export function initialTech(): Buildable[] {
     for (const major of school.majors) {
       const t1Id = nodeId(major.prefix, NUMS[0]);
       const t2Ids = [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i]));
+      const t3Ids = [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i]));
       const needsLab = LAB_GATED_MAJOR_PREFIXES.includes(major.prefix);
 
       if (needsLab) {
@@ -750,7 +759,7 @@ export function initialTech(): Buildable[] {
           kind: 'facility',
           facilityType: 'lab',
           name: researchFacilityName(labId(major.prefix))!,
-          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — required for the ${major.name} program's capstone courses, and lets the college produce research.`,
+          description: `${RESEARCH_FACILITY_BLURBS[major.prefix] ?? 'Specialized lab space'} — required for the ${major.name} program's advanced courses, and lets the college produce research.`,
           cost: LAB_COST,
           duration: LAB_WEEKS,
           // Buildable once the entry course is done and the school is
@@ -782,6 +791,10 @@ export function initialTech(): Buildable[] {
             ...(needsLab ? [labId(major.prefix)] : []),
             ...(artsGate ? [artsGate] : []),
           ];
+        } else if (tier === 4) {
+          // The capstone requires the advanced quartet alone, and inherits
+          // its lab, gallery and clinic gates through it.
+          prereqs = t3Ids;
         }
         prereqs = [...prereqs, ...(CROSS_MAJOR_BRIDGES[id] ?? [])];
         const clinicalGate = CLINICAL_PRACTICUM_GATE[id];
@@ -894,13 +907,14 @@ export function initialTech(): Buildable[] {
   return nodes;
 }
 
-// Milestone metadata (school -> each major's tier-2 and tier-3 ids) for
+// Milestone metadata (school -> each major's tier-2, tier-3 and capstone ids) for
 // techSystem.ts's checkMilestones(), kept out of the Buildable model.
 export interface MilestoneMajor {
   name: string;
   prefix: string;
   tier2Ids: string[]; // exactly 4
   tier3Ids: string[]; // exactly 4
+  capstoneId: string;
 }
 export interface MilestoneSchool {
   schoolName: string;
@@ -915,6 +929,7 @@ export function milestoneSchools(): MilestoneSchool[] {
       prefix: major.prefix,
       tier2Ids: [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i])),
       tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
+      capstoneId: nodeId(major.prefix, NUMS[9]),
     })),
   }));
 }
@@ -996,6 +1011,7 @@ export interface DiscoveryMajor {
   tier1Id: string;
   tier2Ids: string[]; // exactly 4
   tier3Ids: string[]; // exactly 4
+  capstoneId: string;
 }
 // A graduate program as the Curriculum tab needs it.
 export interface DiscoveryGraduateProgram {
@@ -1023,6 +1039,7 @@ export function discoverySchools(): DiscoverySchool[] {
       tier1Id: nodeId(major.prefix, NUMS[0]),
       tier2Ids: [1, 2, 3, 4].map((i) => nodeId(major.prefix, NUMS[i])),
       tier3Ids: [5, 6, 7, 8].map((i) => nodeId(major.prefix, NUMS[i])),
+      capstoneId: nodeId(major.prefix, NUMS[9]),
     })),
     graduate: GRADUATE_PROGRAMS
       .filter((program) => program.homeSchool === school.name)

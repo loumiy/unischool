@@ -96,12 +96,14 @@ export function loadPenalty(load: number, slots: number): number {
 
 // --- Tier: harder material needs a stronger teacher. ---
 // Makes assignment a matching problem: a star belongs on the capstone.
-export type CourseTier = 1 | 2 | 3 | 'graduate';
+// Tier 3 is the advanced quartet, tier 4 the capstone (Plan 95M).
+export type CourseTier = 1 | 2 | 3 | 4 | 'graduate';
 
 const TIER_PENALTY: Record<string, number> = {
   1: 0,
   2: 2,
   3: 5,
+  4: 6,
   graduate: 8,
 };
 
@@ -121,6 +123,7 @@ function courseTiers(): Map<string, CourseTier> {
       map.set(major.tier1Id, 1);
       for (const id of major.tier2Ids) map.set(id, 2);
       for (const id of major.tier3Ids) map.set(id, 3);
+      map.set(major.capstoneId, 4);
     }
   }
   for (const program of graduatePrograms()) {
@@ -169,7 +172,7 @@ export function qualityOf(
 
   const tierCost = tierPenalty(tier);
   if (tierCost > 0) {
-    const what = tier === 'graduate' ? 'Graduate coursework' : tier === 3 ? 'Capstone course' : 'Upper-level course';
+    const what = tier === 'graduate' ? 'Graduate coursework' : tier === 4 ? 'Capstone course' : tier === 3 ? 'Advanced course' : 'Upper-level course';
     factors.push({ label: what, value: -tierCost });
   }
 
