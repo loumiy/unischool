@@ -117,15 +117,24 @@ export const UNSPECIALIZED_MAXIMA: Readonly<Record<Pillar, number>> = {
 // second review's B4-1) moved it from 20 to 30, so the choice comes around
 // years 25-35, and opened a second route beside it (below).
 export const SPECIALIZATION_MILESTONE_RANK = 30;
-// The second route (Plan 95R, the second review's B4-2): the offer also
-// comes at the first summer the college stands this high in any one
-// pillar's standing, so a college strong in one pillar is asked though its
-// blend lags. All four choices stay open whichever route brought it.
+// The second route (Plan 95R, the second review's B4-2): from Year
+// SPECIALIZATION_PILLAR_YEAR, the offer also comes at the first summer the
+// college stands this high in any one pillar's standing, so a college
+// strong in one pillar is asked though its blend lags. All four choices
+// stay open whichever route brought it. The year holds it to the plan's
+// window (about years 20-35): a young college stands about tenth in
+// student life within its first decade, so without it the goal players
+// were offered the choice in years 6-20; the top 5 alone instead lost the
+// championships player its offer (Plan 95R's As implemented).
 export const SPECIALIZATION_PILLAR_RANK = 10;
+export const SPECIALIZATION_PILLAR_YEAR = 20;
 // The board's notice comes when the college first stands within this many
 // places of the milestone, overall or in a pillar: two to four years ahead
-// of it for a college climbing as the strong players do.
+// of it for a college climbing as the strong players do. On the pillar's
+// route it comes no sooner than this many years before
+// SPECIALIZATION_PILLAR_YEAR.
 export const SPECIALIZATION_NOTICE_PLACES = 4;
+export const SPECIALIZATION_NOTICE_YEARS = 2;
 
 // Each pillar's terms, weighted among themselves. The weights are the terms'
 // old weights where they had one: academics and student life keep their

@@ -1366,7 +1366,7 @@ export function writeReport(runs: RunRecord[], out: string): void {
   lines.push('');
 
   // The specializations (Plan 85D).
-  lines.push('## The specializations', '', 'The summer each goal was offered the choice (the top 30, or a pillar\'s top 10: Plan 95R), the pillar it chose and when; the four pillars\' values at Year 50 (academics / research / student life / athletics, median), and the college\'s place in the research, campus-life and athletic standings.', '');
+  lines.push('## The specializations', '', 'The summer each goal was offered the choice (the top 30, or from Year 20 a pillar\'s top 10: Plan 95R), the pillar it chose and when; the four pillars\' values at Year 50 (academics / research / student life / athletics, median), and the college\'s place in the research, campus-life and athletic standings.', '');
   lines.push('| Goal | Offered (median, range) | Chose (runs) | Year (median, range) | Never offered | Pillars Y50 | Research / life / athletic rank Y50 | Trained professors Y50 |');
   lines.push('|---|---|---|---|---|---|---|---|');
   for (const goal of goals) {

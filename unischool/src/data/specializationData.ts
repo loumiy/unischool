@@ -356,12 +356,12 @@ export const SPECIALIZATION_NOTICE_ID = 'specialization-notice';
 // `rule` is prestigeWords.ts's pillarShareRule (Plan 95E), which gives each
 // share in points of prestige; the list no longer repeats them in the
 // pillar's points (Plan 95F). The notice names both routes (Plan 95R).
-export function specializationNotice(milestone: number, pillarRank: number, rule: string): { title: string; text: string } {
+export function specializationNotice(milestone: number, pillarRank: number, pillarYear: number, rule: string): { title: string; text: string } {
   const each = (['academics', 'research', 'studentLife', 'athletics'] as const)
     .map((p) => `${PILLAR_WORDS[p]}, ${SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ')}`)
     .join('; ');
   return {
     title: 'Within reach of a specialization',
-    text: `The college has come within reach of the guide's top ${milestone}, or of the top ${pillarRank} in one of the four pillars' standings. At the close of the first summer it stands in either, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
+    text: `The college has come within reach of the guide's top ${milestone}, or, from Year ${pillarYear}, of the top ${pillarRank} in one of the four pillars' standings. At the close of the first summer it stands in either, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
   };
 }

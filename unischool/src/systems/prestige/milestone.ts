@@ -1,5 +1,5 @@
 import type { GameState, Pillar } from '../../state/types';
-import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget } from './prestigeSystem';
+import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget } from './prestigeSystem';
 import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
 import { postBoardLetter } from '../finance/distress';
@@ -9,8 +9,8 @@ import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializ
 // ---------------------------------------------------------------------
 // The milestone and the choice (Plan 85D). A college that climbs into the
 // guide's top SPECIALIZATION_MILESTONE_RANK, or into the top
-// SPECIALIZATION_PILLAR_RANK of any one pillar's standing (Plan 95R, the
-// second review's B4-2), is asked to choose a specialization: one pillar,
+// SPECIALIZATION_PILLAR_RANK of any one pillar's standing from Year
+// SPECIALIZATION_PILLAR_YEAR (Plan 95R, the second review's B4-2), is asked to choose a specialization: one pillar,
 // for good (specialization.ts). Either route is "the milestone" below.
 // Three beats:
 //
@@ -46,12 +46,14 @@ export function tickSpecialization(s: GameState): void {
   if (!noticeDue && !offerDue) return;
   const rank = playerRank(s);
   const best = bestPillarStanding(s);
-  const within = (places: number) => rank <= SPECIALIZATION_MILESTONE_RANK + places || best.rank <= SPECIALIZATION_PILLAR_RANK + places;
-  if (noticeDue && within(SPECIALIZATION_NOTICE_PLACES)) {
+  // Places ahead of the milestone, and years ahead of the pillar's route.
+  const within = (places: number, years: number) => rank <= SPECIALIZATION_MILESTONE_RANK + places
+    || (s.clock.year >= SPECIALIZATION_PILLAR_YEAR - years && best.rank <= SPECIALIZATION_PILLAR_RANK + places);
+  if (noticeDue && within(SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS)) {
     s.specializationNotice = s.clock.year;
     postBoardLetter(s, SPECIALIZATION_NOTICE_ID);
   }
-  if (offerDue && within(0)) {
+  if (offerDue && within(0, 0)) {
     s.specializationOffered = s.clock.year;
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,

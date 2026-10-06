@@ -36,7 +36,7 @@ import { exportSave, readSave, SAVE_VERSION } from '../src/state/persistence';
 import { reduceInPlace } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
-  PILLARS, PILLAR_WEIGHTS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_TERM_WEIGHTS,
+  PILLARS, PILLAR_WEIGHTS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS,
   computePrestigeTarget, pillarBreakdown, pillarValue, prestigeBreakdown, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
 import {
@@ -136,7 +136,7 @@ function closeSummer(s: GameState): GameState {
   const item = inboxItems(s).find((i) => i.ref === SPECIALIZATION_NOTICE_ID);
   assert(item !== undefined && item.from === 'From the board' && item.tier === 'letter', 'the inbox files it as the board\'s letter');
   const letter = BOARD_LETTERS[SPECIALIZATION_NOTICE_ID];
-  assert(letter.text.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && letter.text.includes(`top ${SPECIALIZATION_PILLAR_RANK} in one of the four pillars`), `it names both routes ("${letter.text.slice(0, 160)}")`);
+  assert(letter.text.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && letter.text.includes(`from Year ${SPECIALIZATION_PILLAR_YEAR}, of the top ${SPECIALIZATION_PILLAR_RANK} in one of the four pillars`), `it names both routes ("${letter.text.slice(0, 160)}")`);
   for (const p of PILLARS) {
     const name = SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ');
     // What each opens, in points of prestige (Plan 95F), never the pillar's.
@@ -173,10 +173,23 @@ function closeSummer(s: GameState): GameState {
   assert(t.specializationOffered === undefined && t.specializationNotice === t.clock.year, 'first in the guide mid-year: the notice, but the offer waits for the summer');
 }
 
-// ---- The second route: a pillar's top SPECIALIZATION_PILLAR_RANK (Plan 95R) ----
+// ---- The second route: a pillar's top SPECIALIZATION_PILLAR_RANK, from Year SPECIALIZATION_PILLAR_YEAR (Plan 95R) ----
 {
+  // Too early: first in research, and neither notice nor offer.
+  const early = launch();
+  early.clock.year = SPECIALIZATION_PILLAR_YEAR - SPECIALIZATION_NOTICE_YEARS - 1;
+  early.clock.week = 52;
+  early.pendingInterrupt = { type: 'summer', payload: { beat: 0, tuition: early.finance.listedTuition, admitRate: early.students.admitRate } };
+  researchAt(early, 1);
+  tickSpecialization(early);
+  assert(early.specializationNotice === undefined && early.specializationOffered === undefined, `#1 in research in Year ${early.clock.year}: no notice and no offer yet`);
+  early.clock.year = SPECIALIZATION_PILLAR_YEAR - 1;
+  tickSpecialization(early);
+  assert(early.specializationNotice === early.clock.year && early.specializationOffered === undefined, `in Year ${early.clock.year}, the notice and still no offer`);
+
   // The notice, by the pillar alone.
   let s = launch();
+  s.clock.year = SPECIALIZATION_PILLAR_YEAR - SPECIALIZATION_NOTICE_YEARS;
   s.clock.week = 10;
   researchAt(s, SPECIALIZATION_PILLAR_RANK + SPECIALIZATION_NOTICE_PLACES + 3);
   s = act(s, { type: 'TICK' });
@@ -190,6 +203,7 @@ function closeSummer(s: GameState): GameState {
 
   // The offer, by the pillar alone, on the summer's week.
   const t = launch();
+  t.clock.year = SPECIALIZATION_PILLAR_YEAR;
   t.clock.week = 52;
   t.pendingInterrupt = { type: 'summer', payload: { beat: 0, tuition: t.finance.listedTuition, admitRate: t.students.admitRate } };
   researchAt(t, SPECIALIZATION_PILLAR_RANK + 1);
@@ -205,6 +219,7 @@ function closeSummer(s: GameState): GameState {
   // A save mid-year already in a pillar's top 10: offered at its next
   // summer, not at once.
   let u = launch();
+  u.clock.year = SPECIALIZATION_PILLAR_YEAR;
   u.clock.week = 30;
   researchAt(u, 3);
   const read = readSave(exportSave(u).text);
@@ -227,7 +242,7 @@ function closeSummer(s: GameState): GameState {
 {
   const s = launch();
   const rule = specializationOfferRule();
-  assert(rule.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && rule.includes(`top ${SPECIALIZATION_PILLAR_RANK} of any one pillar`), `the rule names both routes ("${rule}")`);
+  assert(rule.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && rule.includes(`from Year ${SPECIALIZATION_PILLAR_YEAR}, in the top ${SPECIALIZATION_PILLAR_RANK} of any one pillar`), `the rule names both routes ("${rule}")`);
   assert(collegeSpecialization(s).endsWith(rule), 'the status line says it');
 }
 

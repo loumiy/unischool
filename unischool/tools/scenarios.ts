@@ -174,7 +174,7 @@ export const SCENARIOS: Scenario[] = [
   {
     // The specialization (Plan 85D): the choice at the close of the first
     // summer in the guide's top SPECIALIZATION_MILESTONE_RANK (or a pillar's
-    // top SPECIALIZATION_PILLAR_RANK, Plan 95R), left
+    // top SPECIALIZATION_PILLAR_RANK from SPECIALIZATION_PILLAR_YEAR, Plan 95R), left
     // standing (scenario.ts sets the player to wait on it).
     name: 'specialization',
     what: 'the choice of a specialization at the milestone, unanswered',
