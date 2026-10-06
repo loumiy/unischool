@@ -841,6 +841,73 @@ Deviations:
   and 3,296), per view. Every chart still has a home, and a test lists
   them. Screenshots of each view.
 
+**As implemented.** Words and layout; nothing the simulation reads
+changed. Two files under `src/` outside the tabs moved: the teaching
+standard's sentence (`prestigeSystem.ts`'s `teachingCeiling`) and a new
+words function beside the grade points (`courseQuality.ts`). `npm run sim` was run all the same and reads as
+the baseline.
+
+- **Three views** on the sliding switch, at the head of the tab
+  (`HistoryTab.tsx`'s `HistoryView`):
+  - **Prestige**: the breakdown (the four pillars, the endowment, the two
+    penalties, the teaching standard, the readings), then "By year", the
+    Prestige and "Place in the guide" charts;
+  - **The record**: the Final Report's draft, the promises, the
+    chronicle, "Institutional history" (Enrolled, Operating funds and
+    Catalog), the alumni and the year-by-year table;
+  - **The guide**: the guide's table and the standings.
+  It opens on Prestige. The view is held in `App.tsx` beside Faculty's
+  (`historyView`) and cleared by New Game. A link's section opens its
+  view before the first paint (the Prestige chip Prestige, the Rank chip
+  the guide; `history.record` now has an anchor too).
+- **Prestige's head** says `pillarRule()` once, as a line under the
+  heading; the help hint no longer carries the weights or the share rule,
+  and the Prestige chart's note, now on the same view, drops the weights.
+- **One scale per pillar row** (`StandingBreakdown.tsx`): "Academics
+  113.0 of 150 → 28.4 of 41.3 points of prestige". The line under it is
+  "It counts for 35% of prestige.", then the specialization's sentence,
+  then "Last summer graded it 28.3." only when last summer's grade differs
+  from today's. On the other rows (the endowment, the penalties) last
+  summer's "+a → " shows only when it differs: the arrow goes when the two
+  agree. On a phone the figure wraps under the label, to the right.
+- **The teaching standard**: "courses average a B+: standing can reach
+  139. A campus of B's reaches 128; only A's everywhere reach 150."
+  (`meanGradeLetter`: the mean grade points to the nearest third-step
+  letter, B, B+, A−, A, as a transcript reads them; "no course is graded
+  yet" with none).
+- **Measured** (`npm run review:gallery --sizes desktop`, whole page; the
+  gallery now steps History's views as it does Faculty's):
+
+  | Save | One page (before) | Prestige | The record | The guide |
+  |---|---|---|---|---|
+  | `year-8-balanced` (year 9) | 2,117 w / 9 c | 393 / 5 | 693 / 9 | 1,081 / 6 |
+  | `year-40-done` (year 41) | 3,320 / 11 | 391 / 5 | 1,926 / 11 | 1,057 / 6 |
+
+  The review's 2,054 and 3,296 are these saves' 2,117 and 3,320 on
+  `main` before this PR. The phone's counts are the same.
+- **Tests** (`test/history-views.test.ts`): each view draws exactly the
+  charts its list names, thirteen in all, as the one page drew; the tab
+  opens on Prestige, a held view is drawn, a section opens its view; the
+  rule is said once, in Prestige's head; each pillar row reads its
+  standing then its points of prestige; the teaching standard names the
+  mean grade, and `meanGradeLetter` reads whole grades and thirds.
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/95h-*.jpg`:
+  Prestige at year 8 (the whole view, with its charts) and year 40, the
+  record and the guide at year 40, and Prestige on a phone at year 40.
+- **Deviations.**
+  - **The standings** (the seven rankings and their rank charts) are in
+    the guide's view, not the record's "other charts": they are rankings,
+    and the guide's help already sends the reader to them.
+  - **The one-scale row's arrow** joins the pillar's two scales, as the
+    spec's example reads; the arrow the review asked to drop (last
+    summer's grade → today's) is gone from the pillar rows, its figure
+    said in the line under the row when it differs, and kept on the other
+    rows only when it differs.
+  - **The teaching standard's letter** is the nearest third-step, so the
+    review's 127 reads "a B" (mean 0.63 points, nearest B at 0.65), not
+    the example's "B−" (0.55).
+  - **The measure** is `review:gallery`, not `review:sweep`, as in 95G.
+
 ### PR 95I — Athletics folded, and the summer Review capped (B2-1)
 
 - **Athletics.** Each program folds to one line: its scoreboard (Plan
