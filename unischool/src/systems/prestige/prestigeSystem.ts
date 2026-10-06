@@ -9,7 +9,7 @@ import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facul
 import { GRADE_POINTS, meanGradeLetter, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
 import { athleticProgramStrength, departmentPot, sportEconomics, studentLifeSocialRaw, teamQuality, STUDENT_LIFE_PRESTIGE_FULL } from '../../data/studentLifeData';
-import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../../data/facilitiesData';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE, healthPhaseIn } from '../../data/facilitiesData';
 import { TARGET_RATIO, attributeCoverage } from '../satisfaction/satisfactionSystem';
 import { trailingYearSatisfaction } from '../admissions/admissionsSystem';
 import { isSchoolFounded } from '../techtree/schools';
@@ -727,7 +727,11 @@ export function crowdingCoverages(s: GameState): CoverageReading[] {
   const out: CoverageReading[] = [];
   for (const attribute of CROWDED_NEEDS) {
     const dormant = attribute === 'health' && enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE;
-    out.push({ label: COVERAGE_LABELS[attribute], coverage: dormant ? 1 : attributeCoverage(s, attribute), attribute });
+    // Health's shortfall phases in past the gate (healthPhaseIn, Plan 96I).
+    const coverage = dormant ? 1
+      : attribute === 'health' ? 1 - healthPhaseIn(enrolled) * (1 - attributeCoverage(s, attribute))
+        : attributeCoverage(s, attribute);
+    out.push({ label: COVERAGE_LABELS[attribute], coverage, attribute });
   }
   out.push({ label: 'instruction', coverage: instructionCoverage(s) });
   return out.sort((a, b) => a.coverage - b.coverage);

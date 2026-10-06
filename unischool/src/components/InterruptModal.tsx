@@ -297,6 +297,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           disabled={tuitionLocked}
           onChange={(e) => setTuition(Number(e.target.value))} />
         <PriceTierTag tier={priceTierNow} ratio={tolerance > 0 ? tuition / tolerance : 1} />
+        {/* What families will pay at this prestige, beside the tier (Plan
+            96I; the backlog's "the price is set blind"): above it, the
+            pool shrinks faster and the strongest applicants go elsewhere. */}
+        <span className="price-tolerance" title={FIGURE_HINTS.priceTolerance}>Families expect about {money(Math.round(tolerance / 100) * 100)}</span>
       </label>
       {floor > 0 && (
         <p className="admissions-prompt">The board holds tuition where it is: it may rise, not fall.</p>

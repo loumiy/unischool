@@ -139,7 +139,10 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
   return {
     beauty: campusBeauty(s),
     tagPool: tagPoolFactor(s),
-    crowding: crowdingScore(s),
+    // The founding year's crowding is not held against the first summer's
+    // pool (Plan 96I): the college opened with a class and no beds, and
+    // the opening report found that alone cut year 1's pool to two fifths.
+    crowding: s.clock.year <= 1 ? 0 : crowdingScore(s),
     applicantLift: s.students.applicantLift,
     careerServices: officeStrength(s, 'career-services'),
     financialAid: officeStrength(s, 'financial-aid'),

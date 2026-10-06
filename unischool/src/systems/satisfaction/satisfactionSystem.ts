@@ -2,7 +2,7 @@ import { tagTeeth } from '../identity/teeth';
 import { QUIRK_MORALE_CAP, QUIRK_MORALE_PER_POINT, quirkById } from '../../data/quirkData';
 import { pairingBumps } from '../estate/pairing';
 import type { Buildable, GameState, SatisfactionAttributes } from '../../state/types';
-import { HEALTH_CENTER_TIER1_POPULATION_GATE, isRetailFood, RETAIL_FOOD_SHARE } from '../../data/facilitiesData';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE, healthPhaseIn, isRetailFood, RETAIL_FOOD_SHARE } from '../../data/facilitiesData';
 import {
   athleticsSocialBonus, CHAPTER_HOUSE_CAPACITY_BONUS, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
 } from '../../data/studentLifeData';
@@ -249,10 +249,12 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   const affordability = affordabilityBonus(s);
   const basicNeeds = clamp(basicNeedsRatio + affordability, ATTRIBUTE_SCORE_FLOOR, 100);
 
-  // Health scores full (dormant) below the health center's population gate.
+  // Health scores full (dormant) below the health center's population gate,
+  // and becomes a need over the students past it (healthPhaseIn, Plan 96I).
+  const phase = healthPhaseIn(enrolled);
   const health = enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE
     ? 100
-    : ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1);
+    : 100 - phase * (100 - ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1));
 
   // Housing: bed capacity (dorms plus housed Greek chapters, and the
   // downtown's, Plan 85H) over enrolled.

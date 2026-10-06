@@ -12,6 +12,7 @@ import { liveFlashes } from '../src/components/CommitteeLamps';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { DOMAIN_LABEL } from '../src/systems/inbox/inbox';
 import { crowdingSentence } from '../src/components/InterruptModal';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE, HEALTH_PHASE_IN, healthPhaseIn } from '../src/data/facilitiesData';
 
 let checks = 0;
 let failures = 0;
@@ -42,6 +43,13 @@ assert(EVENT_CATALOGUE.find((e) => e.id === 'the-insurance-renewal')?.from === '
 
 // The summer's crowding line.
 assert(crowdingSentence('dining', 0.51, 9.94) === 'Dining feeds only 51% of this class: prestige target −9.9', `the crowding line reads plainly (${crowdingSentence('dining', 0.51, 9.94)})`);
+
+// Health phases in past its gate (96I), so the class that crosses 1,500
+// is not met by a need the college could not yet build for.
+const gate = HEALTH_CENTER_TIER1_POPULATION_GATE;
+assert(healthPhaseIn(gate - 1) === 0 && healthPhaseIn(gate) === 0, 'health is no need below its gate');
+assert(Math.abs(healthPhaseIn(gate + HEALTH_PHASE_IN / 10) - 0.1) < 1e-9, 'a tenth of the way in, a tenth of a need');
+assert(healthPhaseIn(gate + HEALTH_PHASE_IN) === 1 && healthPhaseIn(1e6) === 1, 'a whole need past the phase-in');
 
 console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);
 if (failures > 0) process.exit(1);
