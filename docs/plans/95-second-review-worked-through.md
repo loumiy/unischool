@@ -1734,92 +1734,112 @@ Selective and Lean never reach prestige 70 or the top 25.
     is offered at its next summer, not at once.
 
 **As implemented.**
-- `SPECIALIZATION_MILESTONE_RANK` is 30 and `SPECIALIZATION_PILLAR_RANK`
-  is 10 (`prestigeSystem.ts`). `tickSpecialization` reads the overall rank
-  and the best of the four pillar ranks (`milestone.ts`'s
-  `bestPillarStanding`: the standings' own `rankBy`, ranks only, since the
-  watch runs weekly until the notice). Notice and offer use one test,
-  `within(places)`, on either route. The offer's log line names the route:
-  "#30 in the guide", or "#10 in research in the standings" when only the
-  pillar brought it. The choice stays open to all four.
+- **The rule.** Two routes to the offer (`prestigeSystem.ts`):
+  - `SPECIALIZATION_MILESTONE_RANK` is 30 (was 20): the overall route.
+  - From Year 20 (`SPECIALIZATION_PILLAR_YEAR`), the top 10 of any one
+    pillar's standing (`SPECIALIZATION_PILLAR_RANK`): the pillar route.
+
+  `tickSpecialization` reads the overall rank and the best of the four
+  pillar ranks (`milestone.ts`'s `bestPillarStanding`: the standings' own
+  `rankBy`). The notice comes 4 places ahead on either route. On the
+  pillar route it comes no sooner than Year 18
+  (`SPECIALIZATION_NOTICE_YEARS = 2`). The offer's log line names the
+  route: "#30 in the guide", or "#10 in research in the standings" when
+  only the pillar brought it. All four choices stay open whichever route
+  brought the offer.
+- **Why Year 20 (the deviation from the PR section).** The plain top 10
+  was too early. A young college stands about #10–13 in student life
+  within its first decade, so the goal players were offered the choice at
+  Y9–21 and the Completionist at Y6–10. The top 5 lost the championships
+  player its offer and still offered assets at Y11. With Year 20 as the
+  pillar route's start, every goal but satisfaction gets the offer in
+  Y20–43. Of the coordinator's two options (Year 20, or from the overall
+  top 50) the year is the simpler for a player to read. It also keeps
+  revenue's offer: that player stands about #55 overall all run, so the
+  top 50 would have lost it.
 - **Words.** `prestigeWords.ts` gains `specializationOfferWhen` and
-  `specializationOfferRule` ("The board offers the choice of a
+  `specializationOfferRule`: "The board offers the choice of a
   specialization at the first summer the college stands in the guide's top
-  30 or in the top 10 of any one pillar's standing."). The status line
-  (History, the standings), the closed-building line in the build menu, the
-  Research Park and complex lines, and History › Prestige's help all use
-  it. The notice is now titled "Within reach of a specialization" and names
-  both routes. The choice's intro names the route: the guide's rank if the
-  college is in the top 30, else its pillar ("#6 in athletics, in the top
-  10 of a pillar's standing"). `test/pillar-rule.test.ts` now also fails if
-  any file but `prestigeWords.ts` types the offer's rank into a string.
-- **Tests** (`specialization-choice.test.ts`): the notice and the offer by
-  the pillar alone, with the college at #60 overall; one place short in
-  the pillar gives the notice and no offer; a save written mid-year in
-  research's top 10 gets the notice at once, no offer until that year's
-  summer, then the choice at its close, and may choose athletics.
-- **The goal players** (`review:goals`, three seeds, one name; the goal
-  report gains an *Offered* column):
+  30 or, from Year 20, in the top 10 of any one pillar's standing."
+  - The status line (History, the standings), the closed-building line in
+    the build menu, and the Research Park and complex lines all use it.
+    After the merge with 95H, History › Prestige's help no longer states
+    the rule (95H moved it to its own line); the status line under it does.
+  - The notice is now titled "Within reach of a specialization" and names
+    both routes.
+  - The choice's intro names the route: the guide's rank if the college
+    is in the top 30, else its pillar ("#6 in athletics, in the top 10 of
+    a pillar's standing").
+  - `test/pillar-rule.test.ts` now fails if any file but `prestigeWords.ts`
+    types the offer's rank into a string.
+- **Tests** (`specialization-choice.test.ts`):
+  - first in research in Year 17: no notice and no offer; in Year 19: the
+    notice and no offer;
+  - the notice and the offer through the pillar alone, with the college at
+    #60 overall; one place short in the pillar gives the notice and no
+    offer;
+  - a save written mid-year in research's top 10 gets the notice at once,
+    no offer until that year's summer, then the choice at its close, and
+    may choose athletics.
+- **The goal players** (`review:goals`, seeds 12345, 4242 and 777, name
+  Blackmoor; the goal report gains an *Offered* column):
 
-  | Goal | Offered (review) | Offered now | Takes | Titles a run |
+  | Goal | Offered: review → plain top 10 → **Year 20** | Takes | Titles a run | Y50 rank |
   |---|---|---|---|---|
-  | revenue | never | Y19 (19–21) | research ×3 | 0 |
-  | prestige | Y41 (34–47) | Y19 (17–20) | academics ×3 | 0 |
-  | satisfaction | never | **never** | — | 0 |
-  | assets | Y39 (30–41) | **Y9** (9–9) | research ×3 | 1 |
-  | championships | never | Y12 (10–30) | athletics ×3 | **48** (review 0, ten in all) |
-  | good-then-big | Y47 (6 of 10) | Y41 (30–43) | academics ×3 | 0 |
-  | big-then-good | Y43 | Y14 (11–23) | student life ×3 | 1 |
+  | revenue | never → Y19 → **Y20** (20–21) | research ×3 | 0 | 55 |
+  | prestige | Y41 → Y19 → **Y20** (20–20) | academics ×3 | 0 | 2 |
+  | satisfaction | never → never → **never** | — | 0 | 60 |
+  | assets | Y39 → Y9 → **Y20** (20–20) | research ×3 | 1 | 2 |
+  | championships | never → Y12 → **Y20** (20–30) | athletics ×3 | **57** (review: 0, ten in all) | 42 |
+  | good-then-big | Y47 → Y41 → **Y41** (30–43) | academics ×3 | 0 | 10 |
+  | big-then-good | Y43 → Y14 → **Y20** (20–23) | student life ×3 | 1 | 1 |
 
-  At Year 50: championships ranks 43 (review 50) at prestige 81 (72);
-  assets ranks 2, big-then-good 2, prestige 3 (review 3, 5, 11). The
-  satisfaction goal is still never offered: its student life stands #26
-  at Year 50, and its best overall rank is about 55.
-- **The sim moved** (re-baselined; three seeds, medians; change from the
-  95N baseline in brackets):
+  The top 5 alone (measured, then dropped) gave revenue Y20, prestige Y20,
+  assets Y11, big-then-good Y28, good-then-big Y43, and **never** for
+  championships or satisfaction. Satisfaction is still never offered: its
+  student life stands about #26 and it is about #55 overall. Each goal
+  takes its offer in the year it comes.
+- **The sim moved.** Re-baselined; three seeds, medians; change from
+  main's baseline (95N) in brackets:
 
   | Player | Y10 prestige | Y25 rank / prestige | Y50 rank / prestige | Offered and chosen | Top 20 |
   |---|---|---|---|---|---|
-  | Guided | 47.4 | 30 (−1) / 81.0 (+1.8) | 1 / 119.5 (+0.7) | Y12, Y26, Y12 (was Y30–32) | Y30, Y32, Y30 |
-  | Guided, academics | 47.4 | 31 / 81.2 (+1.9) | 1 / 119.4 (−1.9) | Y12, Y26, Y12 | Y30, Y32, Y30 |
-  | Guided, research | 47.4 | 31 / 81.2 (+1.9) | 1 / 120.1 (+1.2) | Y12, Y26, Y12 | Y31, Y32, Y29 |
-  | Guided, student life | 47.4 | 30 (−1) / 81.0 (+1.8) | 1 / 119.2 (+0.3) | Y12, Y26, Y12 | Y30, Y32, Y30 |
-  | Guided, athletics | 47.4 | 30 (−1) / 80.8 (+1.5) | 1 / 118.1 (−1.9) | Y12, Y26, Y12 | Y28, Y32, Y29 |
-  | Guided, unspecialized | 47.4 | 31 / 80.1 (+0.9) | 5 (+3) / 111.5 (+0.4) | (offered as Guided) | Y33, Y33, Y31 |
-  | Completionist | 48.1 (+1.0) | 30 (−9) / 82.2 (+8.3) | 3 (−3) / 111.9 (+3.4) | Y6, Y10, Y6 (was Y40–43) | Y29, Y29, Y27 |
+  | Guided | 47.4 | 31 / 79.4 (+0.2) | 1 / 119.8 (+1.0) | research Y25, Y26, Y20 (was Y30–32) | Y30, Y32, Y30 |
+  | Guided, academics | 47.4 | 31 / 79.5 (+0.3) | 1 / 120.3 (−1.0) | Y25, Y26, Y20 | Y29, Y32, Y31 |
+  | Guided, research | 47.4 | 31 / 79.4 (+0.2) | 1 / 119.8 (+1.0) | Y25, Y26, Y20 | Y30, Y32, Y30 |
+  | Guided, student life | 47.4 | 31 / 79.5 (+0.2) | 1 / 117.9 (−0.9) | Y25, Y26, Y20 | Y31, Y32, Y29 |
+  | Guided, athletics | 47.4 | 31 / 79.5 (+0.2) | 1 / 120.8 (+0.8) | Y25, Y26, Y20 | Y30, Y32, Y30 |
+  | Guided, unspecialized | 47.4 | 31 / 79.4 (+0.1) | 3 (+1) / 111.6 (+0.5) | offered with Guided | Y30, Y33, Y30 |
+  | Completionist | 47.1 | 35 (−4) / 76.4 (+2.5) | 3 (−3) / 112.3 (+3.8) | student life Y20 ×3 (was Y40–43) | Y31, Y37, Y33 (was Y40–43) |
   | Selective, Lean, Idle | unchanged | unchanged | unchanged | never | never |
 
-  Guided's choice is taken in its offer year: Guided picks student life
-  twice and research once. No run goes into the red; the Completionist's
-  weeks in the red fall from 1 to 0. Guided still reaches #1 on every seed,
-  from Y43–49.
-- **Plan 85I's targets** (Plan 85D's table, as 85I restated it): each
-  specialist is first by Year 50 on every seed (met). Its pillar is first
-  by 5 or more for academics (8.2–8.5), research (9.9) and athletics
-  (11.6–12.6); student life misses on two seeds of three (+1.9, #3 at
-  −2.9, +6.6; before: 3.9, 7.0, 5.7). Unspecialized play is top 10 and
-  never first (5th; best 4, 5, 6): met. The owner's 25–40 for the
-  milestone is now missed early: Y12 for Guided on two seeds.
+  No player collapses. Guided is first on every seed from Y41–43. The
+  Completionist reaches first on one seed (Y48). Its one week in the red is
+  as before; no other run goes into the red.
+- **Plan 85I's targets** (Plan 85D's table, as 85I restated it):
+  - Each specialist is first by Year 50 on every seed: met.
+  - Its pillar is first by 5 or more for academics (8.2–8.6), research
+    (9.8–9.9) and athletics (12.6–13.0): met. Student life misses on all
+    three seeds (+4.7, #3 at −2.9, +0.3; before: 3.9, 7.0, 5.7).
+  - Unspecialized play is in the top 10 and never first (3rd; best 2, 5,
+    3): met.
+  - The milestone falls in the owner's 25–40 for Guided on two seeds of
+    three (Y25, Y26), and at Y20 on 777.
 - **The rivals** are untouched: each is dealt its pillar off its id
-  (`rivalData.ts`), 35 academics, 23 research, 19 student life and 22
-  athletics of 99. "35-odd per pillar" holds only for academics; it did
-  before this PR too.
-- **Deviation: the choice comes sooner than the plan's Y25–35.** The
-  pillar route mostly fires on **student life**. A founding college stands
-  about #10–13 in student life within its first decade, because its
-  welfare fills it while most rivals' unspecialized student life is held
-  low. So most goals and the Completionist are offered at Y6–20, not
-  Y25–35. The figures are the plan's (30 and 10). I did not retune them:
-  each sim takes 80 minutes here, and the timing is the owner's call. If
-  the owner wants Y25–35, there are three ways: a stricter pillar rank
-  (top 5); the pillar route only from a year or a prestige floor; or
-  counting only research and athletics on that route.
-- **Deviation: three seeds and one name for the goal players**, not ten
-  seeds (the brief allowed three). Each run took 5–15 minutes on a shared
-  machine.
-- The sim was run before merging origin/main (95C, 95D, 95K, 95O, 95Q),
-  which did not change `sim/baseline.json`. The baseline was saved from
-  that run's rows (`--from-runs --save`).
+  (`rivalData.ts`): 35 academics, 23 research, 19 student life and 22
+  athletics of 99. "35-odd per pillar" holds only for academics, as it did
+  before this PR.
+- **Deviations:**
+  - The pillar route starts in Year 20 (see "Why Year 20" above).
+  - The notice on the pillar route waits until Year 18, so the board does
+    not write a decade ahead.
+  - The goal players ran on three seeds and one name, not ten seeds (the
+    brief allowed three); each run takes 5–15 minutes on a shared machine.
+  - Most goals are offered at exactly Y20, the low edge of the plan's
+    Y25–35 window.
+  - Satisfaction still never gets an offer.
+  - Championships wins about 57 titles a run with athletics from Y20. That
+    is far above the review's one; 95U and 95V should read against it.
 
 ### PR 95S — Teaching: the line that opens *Below A*, and the Provost's policy (B4-5)
 
