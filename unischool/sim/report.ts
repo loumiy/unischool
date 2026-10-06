@@ -151,7 +151,7 @@ function guidedAsArchetype(name: string, specialization?: SpecializationRule): P
       if (s.clock.year !== lastYear) {
         lastYear = s.clock.year;
         record.years.push({
-          year: s.clock.year, cash: s.finance.cash, net: weeklyNet(s), enrolled: totalEnrolled(s.students),
+          year: s.clock.year, cash: s.finance.cash, net: weeklyNet(s), endowment: s.finance.endowment, enrolled: totalEnrolled(s.students),
           prestige: s.self.reputation, rank: playerRank(s), satisfaction: s.students.satisfaction,
           schools: Object.keys(guided.record.schools).length, programs: 0,
           courses: s.tech.filter((t) => t.kind === 'course' && t.status === 'done').length,
