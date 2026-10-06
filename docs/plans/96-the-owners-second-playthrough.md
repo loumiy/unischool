@@ -347,6 +347,53 @@ The review's §3, §1.8 and §4.4, then the same rule applied further (2).
   - the "#/# served" and President-to-President tests;
   - the screenshots.
 
+**As implemented:**
+
+- **The Students tab**
+  ([shot](../reviews/2026-10-playthrough-fixes/96e-students-tab.jpg)):
+  - **the need cards:** only housing keeps its coverage line ("29,430 beds,
+    4,229 wanted"). The other four show their dial alone, and their drawer
+    totals no longer carry a "/needed";
+  - **"Dining"** names the need in `NEED_LABELS`, `NEED_WORD` and the
+    summer's tightest-need figure, which read "Dining & health", though
+    health is a need of its own;
+  - **the teaching line** reads "Average course grade (B+)", from
+    `meanGradeLetter`. `aShareForFullMarks` is removed;
+  - **"Green space"**;
+  - **the student body** loses its subtitle, its † footnote and its marks
+    (`hasNoCohortSignal` and `.body-row-mark` go).
+- **The crowding line** reads "Dining feeds only 51% of this class: prestige
+  target −9.9" (`crowdingSentence` in `InterruptModal.tsx`; housing
+  "houses", the rest "covers"). Its hint now says where the 25 points come
+  from.
+- **Letters.** `DOMAIN_LABEL.board` is "The board". The insurance renewal,
+  the heating bill and the roofing contract come from "Buildings and
+  grounds". `test/plan96-fixes.test.ts` fails any catalogue letter whose
+  sender is the President.
+- **The rule, applied further.** Cut, or moved into a hint:
+  1. the demand panel's footnote ("Missing the deadline costs
+     goodwill…"). Its one rule not shown elsewhere, the satisfaction
+     floor, moves into a hint on *If the deadline passes*;
+  2. the Treasury's paragraph under the net, from 105 words to 27. The ways
+     to pay and the distress ladder move into a hint beside it;
+  3. the satisfaction breakdown's hint, from 96 words to 41;
+  4. the five funnel notes, from 135 words to 50 (for example "Admitting
+     deeper buys a bigger class with weaker students");
+  5. the summer review's opening line ("The year is over. Before the
+     summer's decisions, what it produced.");
+  6. the Students beat's line ("What the students organized this year…").
+
+  `review:strings` counts 56,995 words against 57,288 before E (the
+  glossary check finds nothing).
+- **Found while shooting the summer** (the year 4 Guided summer,
+  [shot](../reviews/2026-10-playthrough-fixes/96e-summer-crowding.jpg)):
+  "Health covers only 0% of this class: prestige target −25.0".
+  - Health counts as fully covered below 1,500 students
+    (`HEALTH_CENTER_TIER1_POPULATION_GATE`) and as nothing above it, so a
+    class that crosses 1,500 with no health building takes the whole
+    crowding penalty at once.
+  - That is B's year-4 cliff. It is taken to I.
+
 ## PR 96F — The Recreation Center's climbing wall
 
 §1.10. `RecCenterShed` (`buildingMotifs.tsx:4101`) draws the climb on

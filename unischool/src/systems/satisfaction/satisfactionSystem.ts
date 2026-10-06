@@ -9,7 +9,7 @@ import {
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { extensionGain } from '../estate/estate';
 import { campusCourseScores } from '../faculty/facultyAssignment';
-import { GRADE_POINTS, meanGradePoints } from '../../data/courseQuality';
+import { GRADE_POINTS, meanGradeLetter, meanGradePoints } from '../../data/courseQuality';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
@@ -130,11 +130,6 @@ export function teachingAgainstStandard(s: GameState): number {
   if (scores.length === 0) return 0;
   const floor = GRADE_POINTS.C;
   return clamp((meanGradePoints(scores) - floor) / (expectedGradePoints(s) - floor), 0, 1);
-}
-// The share of courses at A, the rest at B, that earns the teaching's full
-// points: how the Students tab says what these students expect.
-export function aShareForFullMarks(s: GameState): number {
-  return clamp((expectedGradePoints(s) - GRADE_POINTS.B) / (GRADE_POINTS.A - GRADE_POINTS.B), 0, 1);
 }
 
 // Satisfaction's one consequence is word of mouth on the next admissions
@@ -320,10 +315,13 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
 
   const bonuses: AttributeContributor[] = [];
   const flat = flatBonusFor(s, attribute);
-  if (flat > 0) bonuses.push({ label: 'Quads and the like, at any size', value: flat });
+  if (flat > 0) bonuses.push({ label: 'Green space', value: flat });
   if (attribute === 'academic') {
     const teaching = teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS;
-    bonuses.push({ label: `Teaching, against what these students expect (A's in ${pct(aShareForFullMarks(s))} of courses, B's in the rest)`, value: teaching });
+    // The grade the courses average, and what it earns (Plan 96E). What
+    // these students expect (expectedGradePoints) stays unsaid: it shows
+    // in what an average earns as the college rises.
+    bonuses.push({ label: `Average course grade (${meanGradeLetter(meanGradePoints(campusCourseScores(s)))})`, value: teaching });
     bonuses.push({ label: 'Library seats', value: libraryPoints(s) });
   }
   if (attribute === 'social') {

@@ -2505,7 +2505,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .body-row-head { display: flex; justify-content: space-between; align-items: baseline;
   gap: 8px; margin-bottom: 4px; }
 .body-row-label { font-family: var(--display); font-size: var(--text-base); color: var(--ink); font-weight: 800; }
-.body-row-mark { color: var(--ink-muted); font-weight: 400; margin-left: 3px; }
 .body-row-total { font-size: var(--text-sm); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 
 /* Segments flex-grow by their counts; a 1px gap separates similar ones. */
@@ -3027,7 +3026,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .demand-progress { display: flex; align-items: center; margin: 0 0 12px; }
 .demand-deadline { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--ink-muted); white-space: nowrap; }
 .demand-deadline.urgent { color: var(--danger-ink); }
-.demand-footnote { margin-top: 10px; }
 
 /* ---------- Startup screen ---------- */
 .startup { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }

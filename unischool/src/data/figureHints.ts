@@ -13,7 +13,7 @@ export type Sentence = `${string}.`;
 export const NEED_LABELS: Record<keyof SatisfactionAttributes, string> = {
   academic: 'Academic',
   social: 'Social',
-  basicNeeds: 'Basic needs',
+  basicNeeds: 'Dining', // the need is fed: dining halls, the grocery, the towers' food halls (Plan 96E)
   health: 'Health',
   housing: 'Housing',
 };
@@ -58,7 +58,7 @@ export const FIGURE_HINTS = {
   projectedNet: 'The week\'s net once this class and the three above it pay their locked prices, against today\'s.',
   projectedSatisfaction: 'The satisfaction target with this many students on the campus, against today\'s.',
   tightestNeed: 'Beds or dining, whichever will be more stretched, as a share of what the students will need, now and with this class.',
-  projectedCrowding: 'What crowding would take from prestige\'s grade once this class enrols: the worst-covered of beds, dining, health and class seats, read against 85%.',
+  projectedCrowding: 'Once this class enrols, the worst-covered of beds, dining, health and class seats, against 85%: below it, the prestige target falls, up to 25 points at none.',
   notReturning: 'Students who leave before graduating: the share rises as the year\'s average satisfaction falls, and the reasons are the needs the campus covers worst.',
   nextThousand: 'What a thousand more students would pay each at this price, against what teaching, serving and administering them would cost at this size; past the break, growing loses money.',
   tuitionLocked: 'The price this class pays every year until it graduates; a later rise or cut in the listed price does not reach it.',

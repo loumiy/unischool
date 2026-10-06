@@ -150,8 +150,11 @@ export const BULLETIN_WEEKS = WEEKS_PER_YEAR / 2;
 // (Plan 80D).
 export const LETTER_WEEKS = WEEKS_PER_YEAR;
 
+// A catalogue letter's sender when the event names none (its `from:`). The
+// board's matters come from the board: they are written to the President,
+// so "The President" read "From the President to the President" (Plan 96E).
 export const DOMAIN_LABEL: Record<CatalogueEvent['domain'], string> = {
-  board: 'The President',
+  board: 'The board',
   academic: 'Academic affairs',
   students: 'Student life',
   estate: 'Buildings and grounds',

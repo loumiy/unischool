@@ -1,6 +1,6 @@
 import type { CohortCounts, GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
-import { COHORTS, baseShareCohortCounts } from '../systems/admissions/cohorts';
+import { COHORTS } from '../systems/admissions/cohorts';
 import { count, pct, satisfactionFigure } from '../format';
 import { COHORT_COLOR } from '../components/cohortColors';
 
@@ -20,14 +20,6 @@ const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]
   ['junior', 'Juniors'],
   ['senior', 'Seniors'],
 ];
-
-// A class whose mix is exactly the base shares: no cohort pull from anything
-// built. Both the founding classes and a class admitted with nothing built
-// produce it, so the note says "no cohort signal" rather than guessing.
-function hasNoCohortSignal(counts: CohortCounts, total: number): boolean {
-  const prior = baseShareCohortCounts(total);
-  return COHORTS.every((c) => counts[c.id] === prior[c.id]);
-}
 
 // One funnel figure with its drivers underneath, in the same shape as
 // TreasuryTab's StatementLine. The value is preformatted: the figures are in
@@ -49,17 +41,16 @@ function FunnelLine({ label, note, value, net }: {
   );
 }
 
-function ClassBar({ label, total, counts, unsignalled, widest }: {
+function ClassBar({ label, total, counts, widest }: {
   label: string;
   total: number;
   counts: CohortCounts;
-  unsignalled: boolean;
   widest: number;
 }) {
   return (
     <div className="body-row">
       <div className="body-row-head">
-        <span className="body-row-label">{label}{unsignalled && <span className="body-row-mark" aria-hidden="true">†</span>}</span>
+        <span className="body-row-label">{label}</span>
         <span className="body-row-total">{count(total)}</span>
       </div>
       {/* Bar length is the class's size against the largest class, not a
@@ -99,19 +90,12 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
     count: CLASS_ROWS.reduce((t, [k]) => t + cohortsByClass[k][c.id], 0),
   }));
 
-  const unsignalled = CLASS_ROWS.filter(([k]) => classes[k] > 0 && hasNoCohortSignal(cohortsByClass[k], classes[k]));
   const widest = Math.max(...CLASS_ROWS.map(([k]) => classes[k]));
 
   return (
     <div className="tab-content">
       <section className="panel">
         <div className="panel-head"><h2>The student body</h2></div>
-        <p className="history-summary">
-          {count(enrolled)} students across four classes. Each was admitted
-          under the college as it stood that summer, and keeps that composition until it
-          graduates — so the bars differ by exactly as much as the college has changed.
-        </p>
-
         <div className="body-legend">
           {bodyTotals.map((c) => (
             <span
@@ -133,20 +117,10 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
               label={label}
               total={classes[k]}
               counts={cohortsByClass[k]}
-              unsignalled={classes[k] > 0 && hasNoCohortSignal(cohortsByClass[k], classes[k])}
               widest={widest}
             />
           ))}
         </div>
-
-        {unsignalled.length > 0 && (
-          <p className="empty-note demand-note">
-            † {unsignalled.length === 4 ? 'Every class carries' : `${unsignalled.map(([, l]) => l).join(', ')} carry`}{' '}
-            no particular pull: admitted when the college had built nothing for any particular
-            audience, so they are an even mix of every kind of student rather than the pull of a choice the college made. Each is
-            replaced by a class admitted since as it graduates out.
-          </p>
-        )}
       </section>
 
       {funnel && <section className="panel">
@@ -154,27 +128,27 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
         <div className="funnel-lines">
           <FunnelLine
             label="Applicant pool"
-            note="What the college drew. Prestige and price set its size; beds, word of mouth and what the college has built for each audience scale it; sticker shock then takes a cut, hitting the quality bands unevenly."
+            note="Prestige and price set its size; beds, word of mouth and what the college built scale it."
             value={count(s.students.applicantPool)}
           />
           <FunnelLine
             label="Admit rate"
-            note="The college's decision, not a reading. Admitting deeper reaches further down the quality distribution, so it buys class size with incoming quality."
+            note="Admitting deeper buys a bigger class with weaker students."
             value={pct(s.students.admitRate)}
           />
           <FunnelLine
             label="Incoming quality"
-            note="The weighted average of the class that enrolled — everyone admitted enrolls. Feeds prestige, which is what makes admitting deep cost something."
+            note="The class that enrolled, on average. It feeds prestige."
             value={`${count(s.students.incomingQuality)}/100`}
           />
           <FunnelLine
             label="Satisfaction"
-            note="Next summer's word of mouth: the trailing-year average scales the applicant pool above. The five needs behind this number are in the Satisfaction breakdown, above."
+            note="The year's average scales next summer's pool."
             value={satisfactionFigure(s.students.satisfaction)}
           />
           <FunnelLine
             label="Enrolled"
-            note="The four classes summed. Set once a year at the summer decision, and held until the next. The one hard limit is the catalog's places: the freshman class cannot exceed what the courses now taught have room for."
+            note="The four classes. A freshman class can be no larger than the catalog's places."
             value={count(enrolled)}
             net
           />

@@ -126,7 +126,8 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
           <span className="statement-line-amount">{money(flow.net)}</span>
         </div>
         <p className="empty-note">
-          {money(annualNet)} a year at this rate. Nothing starts until it is paid for: a building or a course is paid for in full, up front, when it starts. Cash pays for most of it; a building can also be paid for by a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment — so cash sets how fast the college grows. An operating deficit, or a matter left unanswered, can push cash negative. A deficit never closes the college: it walks the college down the board's scale (tight, deficit, a construction freeze, austerity and, at the bottom, an interim CFO), a term at a time, and back up as the books recover.
+          {money(annualNet)} a year at this rate. A building or a course is paid for in full when it starts, so cash sets how fast the college grows.
+          <HelpHint align="end" text="A building can also be paid from a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment. A deficit never closes the college: it walks down the board's scale (tight, deficit, a construction freeze, austerity, an interim CFO) a term at a time, and back up as the books recover." />
         </p>
       </section>
 
