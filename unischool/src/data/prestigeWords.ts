@@ -37,6 +37,12 @@ export function pillarWeightsWords(): string {
   return listed(PILLARS.map((p) => `${pillarWord(p)} ${pct(PILLAR_WEIGHTS[p])}`));
 }
 
+// One pillar at its weight, "research, N% of prestige" (Plan 95Q: the
+// lab's build tile).
+export function pillarWorthWords(pillar: Pillar): string {
+  return `${pillarWord(pillar)}, ${pct(PILLAR_WEIGHTS[pillar])} of prestige`;
+}
+
 // The specialization half of the rule, a sentence.
 export function pillarShareRule(): string {
   const worth = PILLARS.map((p, i) => `${decimal(specializationShareWorth(p), 1)}${i === 0 ? ' points of prestige' : ''} in ${pillarWord(p)}`);

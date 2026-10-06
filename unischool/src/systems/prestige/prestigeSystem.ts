@@ -830,7 +830,9 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
-      `${equipped} of the ${fields} fields the college could research in ${equipped === 1 ? 'has' : 'have'} a lab.`,
+      // With none, the row names where a lab comes from (Plan 95Q, the
+      // second review's B3-7).
+      `${equipped} of the ${fields} fields the college could research in ${equipped === 1 ? 'has' : 'have'} a lab.${equipped === 0 ? ' A school\'s founding opens its lab.' : ''}`,
     ),
   ], projectInput(s, 'research'));
 }

@@ -13,7 +13,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { pct } from '../src/format';
 import { PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, SPECIALIZATION_TERM_WEIGHTS } from '../src/systems/prestige/prestigeSystem';
-import { pillarRule, pillarShareRule, pillarWeightsWords, specializationShareWorth } from '../src/data/prestigeWords';
+import { pillarRule, pillarShareRule, pillarWeightsWords, pillarWorthWords, specializationShareWorth } from '../src/data/prestigeWords';
 import { specializationStatus } from '../src/data/specializationData';
 import { FIGURE_HINTS } from '../src/data/figureHints';
 
@@ -40,6 +40,8 @@ console.log('pillar rule tests');
   assert(/^Each pillar holds a share only its own specialization fills/.test(share) && share.endsWith('.'), `the share rule is one sentence ("${share}")`);
   assert(!/\bterm\b/.test(share) && !/\bterm\b/.test(pillarRule()), 'and says "share", never "term"');
   assert(pillarRule().includes(words) && pillarRule().includes(share), 'the whole rule is the blend and the shares');
+  // One pillar at its weight, for the lab's build tile (Plan 95Q, B3-7).
+  assert(pillarWorthWords('research') === `research, ${pct(PILLAR_WEIGHTS.research)} of prestige`, `one pillar reads its weight ("${pillarWorthWords('research')}")`);
 }
 
 // ---- The hints say what the guide ranks by (B2-2) ----
