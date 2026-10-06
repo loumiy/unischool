@@ -3127,6 +3127,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .startup-color-swatch > span:last-child { flex: 0 0 38%; }
 .startup-color-name { margin: 8px 0 20px; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--school-primary); }
 
+/* The run the doors would erase (founding over one in progress). */
+.startup-replacing { margin: 0 0 var(--space-12); font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); text-align: center; }
 .startup-begin-btn { width: 100%; padding: 14px var(--space-12); font-size: var(--text-lg); }
 /* The doors open in the sky's blue, the title's primary. */
 .startup .startup-begin-btn { border-color: transparent; background: var(--title-sky); color: #fff; box-shadow: 0 8px 20px rgba(21, 92, 166, 0.35); }

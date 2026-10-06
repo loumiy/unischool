@@ -170,13 +170,14 @@ export function useGame() {
   }, [lose]);
 
   // Save at founding, since the autosave is a year away, which is also when
-  // a tab takes up a new college. Only on the false -> true transition, so
-  // loading a started save does not rewrite it.
-  const wasStarted = useRef(state.started);
+  // a tab takes up a new college. On START_GAME itself rather than on
+  // `started` turning true: a college founded over one still running (its
+  // erasure waits for Open the doors) never passes through false. Loading a
+  // started save does not found, so does not rewrite it.
+  const [foundings, setFoundings] = useState(0);
   useEffect(() => {
-    if (state.started && !wasStarted.current && claim()) save(stateRef.current);
-    wasStarted.current = state.started;
-  }, [state.started]);
+    if (foundings > 0 && stateRef.current.started && claim()) save(stateRef.current);
+  }, [foundings]);
 
   // Also at the turn of each term, and whenever the page is hidden or
   // closed (Plan 35: a closed tab lost up to a year).
@@ -225,6 +226,7 @@ export function useGame() {
     if (a.type === 'RESOLVE_ADMISSIONS') pendingSave.current = 'autosave';
     // Abandoning the run deletes the save too.
     if (a.type === 'RESET') clearSave();
+    if (a.type === 'START_GAME') setFoundings((n) => n + 1);
     dispatch(a);
   }, []);
 

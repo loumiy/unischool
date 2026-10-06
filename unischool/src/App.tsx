@@ -72,7 +72,9 @@ const TAB_HOTKEYS: Record<string, TabId> = {
   i: 'inbox',
 };
 
-type Front = 'title' | 'hall' | 'settings' | 'credits';
+// 'found': the startup screen, founding a college (the run in progress, if
+// any, is kept until its doors open).
+type Front = 'title' | 'hall' | 'settings' | 'credits' | 'found';
 
 const LADDER_TABS: ReadonlySet<TabId> = new Set(MILESTONES.flatMap((m) => m.tabs));
 
@@ -144,7 +146,7 @@ export default function App() {
 
   // Sound (Plan 34): the director hears the run, not the title screen; M
   // mutes wherever the player is.
-  useAudioDirector(s.started && front !== 'title' ? s : null);
+  useAudioDirector(s.started && front !== 'title' && front !== 'found' ? s : null);
   useHotkeys((e) => { if (e.key.toLowerCase() === 'm') audio.toggleMute(); });
 
   // A front screen covers the whole game, so nothing behind it answers a
@@ -215,8 +217,10 @@ export default function App() {
   // The school's colors are the theme (see theme.ts), applied once the run
   // exists. The startup screen applies its own live pick before this.
   useEffect(() => {
-    if (s.started) applySchoolColors(s.self.colors);
-  }, [s.started, s.self.colors]);
+    // Not while founding, which previews its own pick; backing out of it
+    // puts the run's colors back.
+    if (s.started && front !== 'found') applySchoolColors(s.self.colors);
+  }, [s.started, s.self.colors, front]);
 
   // The map's keys answer only while the player is looking at the map. The
   // build popup has no backdrop and is where the map's tools live, so it
@@ -383,7 +387,10 @@ export default function App() {
   // The title screen's Sandbox founds one the same way, as a sandbox run
   // (systems/sandbox), without the walkthrough.
   const [foundSandbox, setFoundSandbox] = useState(false);
-  const newCollege = (sandbox = false) => { if (s.started) act({ type: 'RESET' }); setFoundSandbox(sandbox); setFrontState(null); };
+  // The run in progress is not erased here but when the new one's doors
+  // open (START_GAME replaces it), so backing out of the startup screen
+  // loses nothing.
+  const newCollege = (sandbox = false) => { setFoundSandbox(sandbox); setFront('found'); };
 
   const frontScreen = front === 'title' ? (
     <TitleScreen
@@ -400,15 +407,19 @@ export default function App() {
       : front === 'credits' ? <Credits onClose={closeFront} />
         : null;
 
-  if (!s.started) {
+  if (!s.started || front === 'found') {
     // On this screen the debug panel offers Load alone (see DebugPanel.tsx).
     return (
       <>
-        {frontScreen ?? (
+        {front !== 'found' && frontScreen ? frontScreen : (
           <StartupScreen
             sandbox={foundSandbox}
+            replacing={s.started ? institutionName(s.self) : undefined}
             onBack={() => setFront('title')}
-            onStart={(name, vernacular, colors) => act({ type: 'START_GAME', name, vernacular, colors, guided: !foundSandbox, seed: freshSeed(), sandbox: foundSandbox || undefined })}
+            onStart={(name, vernacular, colors) => {
+              act({ type: 'START_GAME', name, vernacular, colors, guided: !foundSandbox, seed: freshSeed(), sandbox: foundSandbox || undefined });
+              setFrontState(null);
+            }}
           />
         )}
         {DebugPanel && <Suspense fallback={null}><DebugPanel s={s} act={act} exportRun={exportRun} /></Suspense>}
@@ -442,7 +453,7 @@ export default function App() {
           onInspectedChange={setInspectedId}
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
-        <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+        <MainMenu s={s} act={act} onNewCollege={() => newCollege()} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
         {/* The week's small news (Plan 70H), a school's banner, and what
             arrives in the inbox (Plan 77), each with a way to open it. */}
         <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />

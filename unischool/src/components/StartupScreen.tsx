@@ -596,11 +596,14 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
   );
 }
 
-export default function StartupScreen({ onStart, onBack, sandbox = false }: {
+export default function StartupScreen({ onStart, onBack, replacing, sandbox = false }: {
   onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void;
   // Back to the title screen, founding nothing (Escape too, outside the
   // name field).
   onBack: () => void;
+  // The college in progress, which founding this one erases (and backing
+  // out keeps).
+  replacing?: string;
   // A sandbox founding (systems/sandbox): says so, and every architecture is open.
   sandbox?: boolean;
 }) {
@@ -701,6 +704,7 @@ export default function StartupScreen({ onStart, onBack, sandbox = false }: {
           ))}
         </div>
         <div className="startup-color-name">{choice.name}</div>
+        {replacing && <p className="startup-replacing" role="note">Opening the doors erases {replacing}. Go back to the title screen to keep it.</p>}
         <button
           className="startup-begin-btn"
           disabled={bareSchoolName(name).length === 0 || locked}
