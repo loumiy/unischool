@@ -2428,10 +2428,13 @@ The owner's pick: specialization shares bought faster with money.
   The price shows short (`moneyShort`). Pictures:
   `docs/reviews/2026-10-review-ii-fixes/95x-downtown.jpg` (and `-phone`),
   `95x-complex.jpg`.
-- **The save.** `nothingBoughtYet`; `sanitizeBought` on every load (whole
-  years, once each, none later than the save's). Written before 95M merged,
-  it stands as 97 → 98 on the branch; it becomes 98 → 99 behind 95M's
-  catalog migration, with a `save-v98.json` fixture.
+- **The save.** `SAVE_VERSION` 99, `MIGRATIONS[98]` (`nothingBoughtYet`),
+  after 95M's 97 → 98; `sanitizeBought` on every load (whole years, once
+  each, none later than the save's). The fixture `save-v98.json` is the
+  `research-park` scenario written on main at version 98 (Guided,
+  specialized in research in Year 35, the park standing, Year 40): it loads
+  with nothing bought, three Landmark Programs counted, and the wing on
+  sale.
 - **The harness** (`sim/harness/speedUps.ts`, `Player.buys`). Every player
   buys its specialization's purchases while the share is short of full,
   once the price leaves a quarter's expenses (13 weeks) in cash; a full share
@@ -2441,25 +2444,46 @@ The owner's pick: specialization shares bought faster with money.
   with them; the wing fills a year of five Landmark Programs at 5/3 the rate;
   the autumn festival adds its point and the step its sixth; the phase counts
   a season's deep runs at 1.5. Each still reads full at 1.
-- **Measured** (`npm run natural`, seed 12345; the same run before and after
-  on this branch). Natural specializes in research in Year 20. Its share
-  filled in Year 28; with the wing, bought in Year 25, it fills in Year 27.
-  Its cash:
+- **Measured**, against main with 95M (`6b3a245e`).
+  - **`npm run sim`** moves only where a purchase was bought. Guided
+    specialized in research ends Y50 with $1.15B cash (−$791M), its wing
+    bought. Guided specialized in student life gains Y50 satisfaction
+    89.7 (+3.6) and cash $404M (+$68M); its prestige is 117.8 (−0.1) and
+    its ranks move a place or two. Every other row, the plain Guided
+    player's included, reads as before. Nothing collapses. The baseline
+    was saved again (`--from-runs --save`).
+  - **Natural's cash** (`npm run natural -- --pacing`, the same seeds on
+    main and on this branch):
 
-  | | Y28 | Y30 | Y40 | Y50 |
-  |---|---|---|---|---|
-  | Before | $880M | $1.25B | $7.85B | $20.61B |
-  | After | $721M | $1.06B | $7.42B | $19.75B |
+    | Natural | Y30 | Y40 | Y50 |
+    |---|---|---|---|
+    | Seed 12345, main | $0.77B | $5.02B | $16.65B |
+    | Seed 12345, X | $0.63B | $4.88B | $15.69B |
+    | Median of three, main | | $5.0B | |
+    | Median of three, X | | $4.9B | |
 
-  (W's $10.07B at Y40 was measured before 95N and 95R.) **"Money: natural
-  Y40 cash ≤ $1B" still fails**, by about seven times. The reason is the
-  design, not the prices: each purchase only speeds a share's fill, and
-  Natural's share is full twelve years before Y40, while its cash is still
-  under $1B. From then on the money has nothing it may buy. A price ten
-  times higher would only delay the wing. To spend the late billions, the
-  money needs a use that does not end when the share is full. B4-10's
-  other two fixes are still open for that: rivals that bid for the
-  college's stars, or a reinvestment rule above a reserve.
+    W measured $10.07B at Y40. 95N, 95R and 95M brought that to $5.0B
+    before X.
+  - **The pacing card** meets 75 of 115. Main meets 76, and 95W counted 85
+    before the PRs since. The row X loses is "Net $/wk: half its growth"
+    (Y33 → Y34): the money the wing takes comes out of the same years.
+  - **"Money: natural Y40 cash ≤ $1B" still fails**, at $4.9B. The reason
+    is the design the owner chose, not the prices. Each purchase only
+    speeds a share's fill, and Natural specializes in research in Year 20.
+    Its share is full by about Year 27, more than a decade before Y40,
+    while its cash is still under $1B. From then on the money has nothing
+    it may buy. A price ten times higher would only delay the wing. X ships
+    as specified, with no ongoing sink. Spending the late billions needs a
+    use that does not end when the share is full, and B4-10 names two:
+    rivals that bid for the college's stars, or a rule to reinvest cash
+    above a reserve. Either is the owner's decision.
+- **Deviations.**
+  - Student life's festival: there is no roll in the festival (the player
+    picks its size each spring), so "a headline festival every year
+    regardless of the roll" is a second festival bought each year, in the
+    autumn, with a headline act.
+  - The wing and the second phase are bought outright and work at once,
+    not built on the map with a construction time.
 
 ### What area 4 does not do
 
