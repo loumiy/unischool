@@ -24,6 +24,7 @@ import type { ScholarshipLevel, SeasonResult } from '../state/types';
 import { count, decimal, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
 import { switchStyle } from '../components/segmentedSwitch';
+import { useCollapse } from '../components/useCollapse';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -55,6 +56,9 @@ type Role = 'head' | 'assistant' | 'trainer';
 const ROLE_SEAT: Record<Role, string> = { head: 'Head coach', assistant: 'Assistant', trainer: 'Trainer' };
 const ROLE_ORDER: readonly Role[] = ['head', 'assistant', 'trainer'];
 
+// A chair with its article: "a head coach", "an assistant coach".
+const aChair = (role: Role): string => `${role === 'assistant' ? 'an' : 'a'} ${CHAIR_LABEL[role]}`;
+
 function coachInSlot(team: VarsityTeam, role: Role): Coach | null {
   return role === 'head' ? team.headCoach : role === 'assistant' ? team.assistantCoach : team.trainer;
 }
@@ -81,7 +85,7 @@ function StaffSeat({ act, team, role }: { act: (a: Action) => void; team: Varsit
         <span className="staff-seat-role">{ROLE_SEAT[role]}</span>
         <span className="staff-seat-face" aria-hidden="true" />
         <span className="staff-seat-name">Open</span>
-        <button type="button" className="staff-seat-hire" aria-label={`Hire a ${CHAIR_LABEL[role]}: see the market`} onClick={goToMarket}>
+        <button type="button" className="staff-seat-hire" aria-label={`Hire ${aChair(role)}: see the market`} onClick={goToMarket}>
           Hire <span aria-hidden="true">→</span>
         </button>
       </div>
@@ -352,6 +356,16 @@ function ComplexSection({ s }: { s: GameState }) {
   );
 }
 
+// The colleges either side of a rank, for its tooltip.
+function neighboursOf(list: ReturnType<typeof sportRankedList>, place: number): string {
+  const above = list[place - 2];
+  const below = list[place];
+  return [
+    above ? `↑ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
+    below ? `↓ ${below.name} ${below.mascot}` : '',
+  ].filter(Boolean).join('\n');
+}
+
 // A sport's standing, on its program card, as a small navy scoreboard (Plan
 // 89): the rank (the colleges just above and below in its tooltip) in one
 // cell; the all-time series against the sport's rival, last season and this
@@ -362,15 +376,10 @@ function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
   const place = sportRank(s, team.sport);
   if (place === null) return null;
   const last = s.orgs.lastSeason[team.sport];
-  const above = list[place - 2];
-  const below = list[place];
   const record = seasonRecordFor(s, team.sport);
   const rival = rivalFor(s, team.sport);
   const rivalry = s.orgs.rivalries[team.sport];
-  const neighbours = [
-    above ? `↑ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
-    below ? `↓ ${below.name} ${below.mascot}` : '',
-  ].filter(Boolean).join('\n');
+  const neighbours = neighboursOf(list, place);
   // The series is kept the college's wins first, so who leads it is known.
   const lead = rivalry ? Math.sign(rivalry.wins - rivalry.losses) : 0;
   return (
@@ -400,6 +409,46 @@ function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
       </div>
     </div>
   );
+}
+
+// The scoreboard as the folded line carries it (Plan 95I): the rank and
+// last season's result, in the same navy and gold.
+function SportScore({ s, team }: { s: GameState; team: VarsityTeam }) {
+  const list = sportRankedList(s, team.sport);
+  const place = sportRank(s, team.sport);
+  if (place === null) return null;
+  const last = s.orgs.lastSeason[team.sport];
+  return (
+    <span className="team-card-standing scoreboard compact">
+      <span className="scoreboard-digits" title={neighboursOf(list, place)}>
+        {place}<small aria-hidden="true">/{list.length}</small><span className="visually-hidden"> of {list.length}</span>
+      </span>
+      <span className="scoreboard-status">
+        {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}
+      </span>
+    </span>
+  );
+}
+
+// A program's next action, for its folded line (Plan 95I): the open chair
+// to fill, the head coach's first; otherwise what holds it back (a venue
+// to wait on, a postseason ban); otherwise nothing.
+function NextAction({ s, team }: { s: GameState; team: VarsityTeam }) {
+  if (team.status !== 'active') {
+    return <span className="team-card-next">waiting on {venueForCategory(s, team.venueCategory)?.name ?? 'a venue'}</span>;
+  }
+  const open = ROLE_ORDER.find((role) => !coachInSlot(team, role));
+  if (open) {
+    return (
+      <button type="button" className="staff-seat-hire team-card-next" onClick={goToMarket}>
+        Hire {aChair(open)} <span aria-hidden="true">→</span>
+      </button>
+    );
+  }
+  if (team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear) {
+    return <span className="team-card-next">postseason ban through {team.postseasonBanThroughYear}</span>;
+  }
+  return null;
 }
 
 // The trophy case: every title as an object with a year and sport, newest first.
@@ -479,8 +528,11 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
   );
 }
 
-// A program as a card in the grid: the name and band, how it stands in its
+// A program as a card in the list: the name and band, how it stands in its
 // sport, what it costs and draws, its recruiting and its three chairs.
+// Every program starts folded to its one line (Plan 95I, as Plan 76B
+// folded the Curriculum's): the scoreboard, its quality, its band and its
+// next action. It opens in place for the rest.
 function TeamCard({ s, act, team, funding, rank }: {
   s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding; rank?: number;
 }) {
@@ -495,9 +547,11 @@ function TeamCard({ s, act, team, funding, rank }: {
 
   // A flagship wears a gold corner in place of its tag (Plan 90).
   const flagship = team.status === 'active' && funding?.band === 'flagship';
+  const [collapsed, toggle] = useCollapse(`team:${team.id}`, true);
+  const name = team.name.replace(/ Team$/, '');
 
   return (
-    <div className={`team-card${flagship ? ' is-flagship' : ''}`}>
+    <div className={`team-card${flagship ? ' is-flagship' : ''}${collapsed ? ' collapsed' : ''}`}>
       {flagship && (
         <span className="team-card-corner" title="Flagship">
           <span aria-hidden="true">★</span>
@@ -505,39 +559,51 @@ function TeamCard({ s, act, team, funding, rank }: {
         </span>
       )}
       <div className="team-card-head">
+        <button type="button" className="collapse-toggle" aria-expanded={!collapsed} aria-label={`${collapsed ? 'Show' : 'Hide'} ${name}`} onClick={toggle}>
+          {collapsed ? '▸' : '▾'}
+        </button>
         {rank !== undefined && <span className="priority-rank" title="Drag to reorder">{rank}</span>}
-        <span className="team-card-name">{team.name.replace(/ Team$/, '')}</span>
+        <span className="team-card-name">{name}</span>
         {!flagship && (
           <span className={`org-tag${funding ? ` band-${funding.band}` : ''}`}>
             {team.status !== 'active' ? 'awaiting venue' : funding ? BAND_LABEL[funding.band] : 'varsity'}
           </span>
         )}
-      </div>
-      {banned && <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>}
-      {team.status === 'active' && <SportLine s={s} team={team} />}
-      <div className="team-card-meta">
-        <span>quality <strong>{quality}</strong>
-          {/* The slowdown above the knee (Plan 85D's review), said where the number is. */}
-          {team.status === 'active' && teamQualityEarned(team, s) > quality && (
-            <span className="team-held" title={teamSlowed(TEAM_QUALITY_KNEE, teamQualityEarned(team, s), quality, specializationOf(s))}> slowed</span>
-          )}
-        </span>
-        <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
-        <span>{moneyShort(weeklyCost)}/wk</span>
-        {funding && (
-          <span title={`Takes ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
-            takes {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${pct(funding.funded)})` : ''}
+        {collapsed && (
+          <span className="team-card-line">
+            {team.status === 'active' && <SportScore s={s} team={team} />}
+            <span className="team-card-quality">quality <strong>{quality}</strong></span>
+            <NextAction s={s} team={team} />
           </span>
         )}
-        {team.status === 'active' && attendance > 0 && (
-          <span title={`${money(gate)}/yr at the gate`}>{count(attendance)} a game · {moneyShort(gate)}/yr gate</span>
-        )}
       </div>
-      {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
-      {/* Three seats side by side, an open one dashed (Plan 90). */}
-      <div className="team-card-staff" role="group" aria-label="Staff">
-        {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
-      </div>
+      {!collapsed && <>
+        {banned && <span className="org-tag banned">postseason ban through {team.postseasonBanThroughYear}</span>}
+        {team.status === 'active' && <SportLine s={s} team={team} />}
+        <div className="team-card-meta">
+          <span>quality <strong>{quality}</strong>
+            {/* The slowdown above the knee (Plan 85D's review), said where the number is. */}
+            {team.status === 'active' && teamQualityEarned(team, s) > quality && (
+              <span className="team-held" title={teamSlowed(TEAM_QUALITY_KNEE, teamQualityEarned(team, s), quality, specializationOf(s))}> slowed</span>
+            )}
+          </span>
+          <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
+          <span>{moneyShort(weeklyCost)}/wk</span>
+          {funding && (
+            <span title={`Takes ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
+              takes {moneyShort(funding.drawn)} of {moneyShort(funding.cost)}{funding.funded < 0.999 && funding.funded > 0 ? ` (${pct(funding.funded)})` : ''}
+            </span>
+          )}
+          {team.status === 'active' && attendance > 0 && (
+            <span title={`${money(gate)}/yr at the gate`}>{count(attendance)} a game · {moneyShort(gate)}/yr gate</span>
+          )}
+        </div>
+        {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
+        {/* Three seats side by side, an open one dashed (Plan 90). */}
+        <div className="team-card-staff" role="group" aria-label="Staff">
+          {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
+        </div>
+      </>}
     </div>
   );
 }

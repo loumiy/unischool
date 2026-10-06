@@ -555,6 +555,70 @@ the sim was not run (the one file under `systems/` touched,
   training and dismissal drive the person page. Screenshots at desktop
   and phone.
 
+**As implemented.**
+
+- **The face.** `FacultyTile.tsx` draws the face twice over: in the grid
+  without Train and Dismiss, and opened (in place on a wide screen, in the
+  sheet on a phone) with them, from a new `FacultyActions`. Both keep
+  their ask-first, Train's outcome as its tooltip, its refusal ("this
+  year", "no picks") and no Train for an A. A candidate's Appoint stays on
+  the face. The ID card is unchanged.
+- **The summary** is `FacultyFigures`: "738 course slots · 431 on
+  offer · the whole catalog covered" at year 40; where courses wait and
+  the catalog outruns the faculty it reads "· 12 open · 61 short of the
+  catalog". Each figure's old sentence is its tooltip. The market's
+  standing is one sentence: "A typical candidate's potential
+  now: about 66 for teaching, 69 for research." The two paragraphs' rest
+  is in the tab's help (`FACULTY_HELP`), which also says that More opens
+  Train and Dismiss.
+- **The view, sort and filters** are held in `App.tsx`
+  (`FacultyViewMemory`), cleared by New Game. They were already kept for
+  the session in module state, which also outlived New Game.
+- **Phone.** At the largest text the first screen now reaches the
+  figure row and the first faces at year 40 and at the training college.
+  The figures alone were not enough, so on a phone (≤520px) the filter bar
+  folds behind "Sort and filter · 85", the "On the faculty" heading goes
+  (the view switch names the view), and the training bar's note moves
+  behind a '?'. Desktop is unchanged by these.
+- **Counts**, desktop, the gallery's top layer, before → after:
+
+  | Save | Grid | Person open |
+  |---|---|---|
+  | y8 (year 9) | 1,107 w / 135 c → 973 / 102 | 1,301 / 136 → 1,168 / 104 |
+  | summer30 (year 30) | 1,946 / 282 → 1,771 / 208 | 2,147 / 283 → 1,973 / 210 |
+  | y40 (year 41) | 2,027 / 313 → 1,867 / 228 | 2,319 / 314 → 2,160 / 230 |
+  | training (year 38) | 2,317 / 353 → 2,129 / 240 | 2,514 / 354 → 2,327 / 242 |
+
+  The year-40 grid loses 85 Dismiss buttons; the training college's, 91
+  Dismiss and 22 Train. The market and the departments lose the
+  summary's 75–100 words.
+- **Tests:** `test/faculty-tile.test.ts` renders every face of the launch
+  college (no Train, no Dismiss, More kept), the person page's actions
+  (Train, Dismiss, the refusal with the picks spent, no Train for an A or
+  without the institute), a candidate's Appoint, and the figure row.
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/95g-*.jpg`:
+  desktop before and after at the training college, a person opened with
+  Train and Dismiss, and the phone at the largest text before and after
+  at year 40, at the training college, and a person's sheet.
+- **Balance:** UI only; no sim run.
+
+Deviations:
+
+- **The measure** is `npm run review:gallery` (`--sizes desktop
+  --no-shots`), not `review:sweep`: the sweep is the bug sweep and
+  counts nothing. The saves are the review's (`year-8-balanced`,
+  Completionist's year-30 summer, `year-40-done`) plus `training`.
+- **The figure row** says "on offer", not "taught": the slots are taken
+  by every course offered, staffed or not, so "taught" would be a new
+  false claim (B2-2). It keeps "open" when courses wait to be developed.
+- **The phone needed more than the figure row** (above): the filter fold,
+  the heading and the training note. `tools/shoot.mjs` gained
+  `--settings=<json>` to shoot at the largest text.
+- **Train's school-coloured outline** (B2-5's fifth role) is kept, on the
+  person page only, as the plan says; it is no longer on the grid.
+- The "before" desktop screenshot is at 1600×1000, the "after" at
+  1440×900.
+
 ### PR 95H — History in three views (B2-1, with B2-3 and B2-4)
 
 - **Three views** on the sliding switch (`segmentedSwitch.ts`), as Faculty
@@ -587,6 +651,75 @@ the sim was not run (the one file under `systems/` touched,
 - **Checks:** the sweep's counts (Athletics at years 25 and 40, the
   review's 1,858 and 2,252; the Review at year 30, the review's 618).
   Screenshots.
+
+**As implemented.**
+
+- **Athletics.** Every program card starts folded to its one line
+  (`AthleticsTab.tsx`'s `TeamCard`): the arrow, its place in the order, the
+  name, the band's tag (or the flagship's gold corner, which stays), a
+  small scoreboard with the rank and last season's result (`SportScore`,
+  in 90F's navy and gold, the neighbours in its tooltip), its quality and
+  its next action (`NextAction`: the first open chair as "Hire a head
+  coach →" to the market, else the venue it waits on or its postseason
+  ban, else nothing). The arrow opens the full card in place. The fold is
+  76B's own: its `useCollapse` moved out of `CurriculumTab.tsx` into
+  `components/useCollapse.ts`, and both tabs use it, keys namespaced
+  (`team:`), the override kept for the session.
+- **The summer Review.** `state/yearInReview.ts`'s `reviewGroup` makes
+  every list: one like line is said in full as before; two or more become
+  one head ("4 professors appointed") over their short forms (the
+  professor and field, the program's name, the building's name, the
+  school's count). Courses, programs founded, milestones, buildings,
+  appointments, departures and prizes all go through it. `ReviewLine`
+  gains `items`; `InterruptModal.tsx`'s `ReviewLineView` shows the first
+  `REVIEW_LIST_CAP` (five) and "and N more", which opens the rest in place.
+  T's "matters left unanswered" is one more `reviewGroup` call in
+  `events()`.
+- **Counts** (`npm run review:gallery`, desktop, against `main` before and
+  this branch after; the review's own figures in brackets):
+
+  | Screen | Before | After |
+  |---|---:|---:|
+  | Athletics, `year-25-rich` (year 26) | 2,095 w / 196 c (1,858 / 107) | 1,524 / 167 |
+  | Athletics, `summer30` (year 30) | 2,204 / 181 (2,167 / 123) | 1,551 / 149 |
+  | Athletics, `year-40-done` (year 41) | 1,539 / 86 (2,252 / 156) | 354 / 28 |
+  | The Review, `summer30` | 518 / 2 (618) | 493 / 2 |
+
+  What is left on Athletics at years 26 and 30 is mostly the market below
+  the programs (a candidate per open chair, each with its Hire buttons), at
+  colleges with most chairs empty; at year 41, every chair filled, the tab
+  is the department and twenty lines. The year-30 Review had no list past
+  five that year, so the cap shows at year 10 (Completionist): 16 courses
+  in six schools and six programs founded, each "and 1 more".
+- **Tests.** `test/year-in-review.test.ts`: the schools are the courses'
+  members; seven appointments are one line with all seven kept, a
+  professor still on the faculty named with the field, one gone keeping
+  the log's line; a group of one is its sentence and of none no line;
+  three buildings are one line. No test pinned the Athletics cards.
+- **Checks.** `npm run check` passes. No sim: nothing the simulation or
+  the harness runs reads `yearInReview.ts` or the tab.
+- Screenshots in `docs/reviews/2026-10-review-ii-fixes/`: `95i-athletics-*`
+  (years 26 and 41, folded, one open, a phone) and `95i-review-*` (year
+  10, capped, and one list opened).
+
+**Deviations.**
+
+- **Measured with `review:gallery`, not `review:sweep`.** The sweep is the
+  bug sweep (saves and invariants); the words and controls are the
+  gallery's, as the review took them. The baselines moved since the
+  review (the Review is 518 words at year 30 on `main`, not 618), so both
+  columns above are taken now.
+- **Quality for "grade".** A program has no letter grade; its figure is
+  its quality, and the folded line shows that.
+- **One card to a row.** The cards were an auto-fill grid (290 px tracks);
+  a folded line needs the row's width, so the list is one column, as the
+  Curriculum's programs are. An opened card takes the row.
+- **More lists than named.** Milestones, departures and prizes group too,
+  through the same function, so no list in the Review runs long. A group
+  of one keeps the full sentence; the courses' per-school lines became
+  the group's members, and so are capped.
+- **"Hire an assistant coach".** The open seat's screen-reader label read
+  "a assistant coach"; it takes the new line's article.
 
 ### PR 95J — The glossary's last mile, and the 101s (B2-5, B2-6)
 
@@ -636,7 +769,7 @@ the sim was not run (the one file under `systems/` touched,
   pane at 1600 px and on a 390 px phone
   (`docs/reviews/2026-10-review-ii-fixes/95j-inbox-dates*.jpg`,
   `95j-faculty-course-slots.jpg`).
-- **Second person.** 20 help hints, notes, tooltips and two decision
+- **Second person.** 19 help hints, notes, tooltips and two decision
   answers say "the college" or "the President" (the scanner's "you" count
   40 → 21). What is left is letters to the President, the events, the
   crash screen and the credits, which the rule allows.
@@ -661,9 +794,9 @@ Deviations:
 - **NUTR101** reads "…line by line: the calories and protein first, then
   the vitamins…": `2a`'s "from … to …" put Health Science at 13 of the
   test's 12.
-- `FacultyTab.tsx`'s summary line ("fewer if the college keeps them") is
-  one phrase in a paragraph PR G may fold; take G's text on a conflict
-  and keep the phrase.
+- `FacultyTab.tsx`'s summary line ("fewer if you keep them") was
+  rewritten here, then PR G's merge took the paragraph out; G's figure
+  row stands.
 
 ### PR 95K — The inbox and the phone (B2-7)
 
@@ -1331,6 +1464,48 @@ scenario, which the review itself fixed (H7-8a).
   map's probe reports nothing it cannot draw.
 - **Checks:** a console free of the passive-listener error over a map
   session; the probe's miss count at zero over the review's saves.
+
+**As implemented.**
+- **The wheel.** `CampusMap.tsx`'s zoom-to-cursor handler moved into an
+  effect that adds it to the map's `<svg>` with `{ passive: false }` and
+  removes it on unmount; `onWheel={onWheel}` is gone. The one `<svg>` sits
+  over both maps and takes their pointer, so one listener serves the
+  canvas and the SVG fallback. The zoom itself is unchanged.
+- **The short form.** `moneyShort` walks a small table of units. It rounds
+  at the unit's grain (tenths of a million or billion under ten, whole
+  units otherwise, in whole tenths so 9,950,000 is a hundred of them) and
+  steps up a unit when the rounded figure reaches 1,000. The same applies
+  below a thousand: 999.5 reads "$1k", not "$1,000".
+  `test/number-format.test.ts` checks each boundary, either side:
+  $999 / $1k, $999k / $1.0M, $9.9M / $10M, $999M / $1.0B (at 999,500,000
+  and 999,950,000), $9.9B / $10B, and a negative.
+- **The scaffold.** Why the canvas missed it: `mapCanvas.ts` records the
+  scene's entries before the ground, and only the ground carries
+  `<defs><ScaffoldPattern/></defs>`. So the first frame's sites resolved
+  `url(#campus-scaffold)` to nothing, and kept that until their signature
+  changed. `Recorder.declare(node)` now takes in defs ahead of any
+  recording. The scene has a `defs` field, which `canvasSceneOf` fills with
+  one module-level `<ScaffoldPattern />` (one element, so the pattern's
+  tile is kept). `MapCanvas` declares it whenever it changes, before it
+  records anything. `test/canvas-scene.test.ts` records the sites before
+  the ground both ways. Without the defs the hatch is missed, and with
+  them nothing is.
+- **Measured** (Chromium, dev build, 1440×900; a Completionist year-8 save
+  with eight more buildings set under way at stages from excavation to
+  shell, alongside its own three sites). The session dragged, turned
+  (Q, E), tilted (Z, X), and zoomed by wheel with and without Ctrl, then
+  zoomed in on six sites. On both maps, every wheel event arrived
+  cancelable and was default-prevented (Ctrl included), the page's zoom
+  stayed 1, and the console held no error or warning. The canvas probe's
+  `unsupported` was `{}`. The same six sites on both maps:
+  `docs/reviews/2026-10-review-ii-fixes/95ab-scaffold-canvas-vs-svg.jpg`.
+  The hatching matches at each stage.
+- **Deviations.** The visual check is one save, in one vernacular
+  (georgian), from the opening camera, not every review save. The hatch
+  is the same pattern in every vernacular and is drawn in screen space.
+  The probe was read over that one session. The fix is the order of
+  recording, which the unit test holds for any save. Balance: no
+  simulation code touched, so no sim run.
 
 ### PR 95AC — Names (H7-7, H7-8b)
 

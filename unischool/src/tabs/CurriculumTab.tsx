@@ -1,6 +1,7 @@
 import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { useCallback, useEffect, useState } from 'react';
+import { useCollapse } from '../components/useCollapse';
 import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
@@ -943,16 +944,9 @@ function ProgramRowView(
   );
 }
 
-// Collapsing (Plan 60): a school starts open while incomplete and folded
-// once complete, and a program always starts folded to its one line (Plan
-// 76B); a click overrides that, and the override is remembered for the
-// session (module state, so it survives a tab switch).
-const collapseOverrides = new Map<string, boolean>();
-function useCollapse(key: string, completeByDefault: boolean): [boolean, () => void] {
-  const [, bump] = useState(0);
-  const collapsed = collapseOverrides.get(key) ?? completeByDefault;
-  return [collapsed, () => { collapseOverrides.set(key, !collapsed); bump((n) => n + 1); }];
-}
+// Collapsing (Plan 60, components/useCollapse.ts): a school starts open
+// while incomplete and folded once complete, and a program always starts
+// folded to its one line (Plan 76B).
 
 // A school's group: heading (name once founded, color and mark before; see
 // data/schoolPalette.ts), grade and rows.

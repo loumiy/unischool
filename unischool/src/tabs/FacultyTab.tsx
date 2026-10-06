@@ -1,5 +1,5 @@
 import AdministrationPanel from './AdministrationPanel';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
 import { facultyQualityTier, marketCenters, marketStandingOf, FACULTY_FIELD_GROUPS } from '../data/facultyData';
@@ -7,7 +7,7 @@ import { candidateListingWeeks } from '../systems/administration/effects';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
 import { hasFreeSlot, unstaffedCourses } from '../systems/techtree/techSystem';
-import { facultyCapacity, hiresFor, type FieldCapacity } from '../systems/faculty/facultyCapacity';
+import { facultyCapacity, hiresFor, type FacultyCapacity, type FieldCapacity } from '../systems/faculty/facultyCapacity';
 import { facultyLoads, type FacultyLoads } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
 import { DisclosureIcon } from '../components/icons';
@@ -24,7 +24,7 @@ import FacultyTile, { waitingCount, type Commitment, type FieldWaiting } from '.
 import { TRAINING_INSTITUTE_ID, TRAINING_WORDS, instituteStands, trainedCount } from '../data/trainingData';
 import { picksLeft, trainingPicks, whyNotTrain } from '../systems/faculty/training';
 import { specializationOf } from '../systems/prestige/specialization';
-import { money, moneyShort, pct, surnameOf, weeksShort } from '../format';
+import { count, money, moneyShort, pct, surnameOf, weeksShort } from '../format';
 import { switchStyle } from '../components/segmentedSwitch';
 
 // The Faculty tab (Plan 84D): the faculty as a grid of tiles (FacultyTile.tsx)
@@ -423,23 +423,54 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
   );
 }
 
-// The view, sort and filters (Plans 72F and 84D), kept for the session:
-// closing the tab unmounts it, and the choice should be there when it
-// opens again.
 type View = 'faculty' | 'market' | 'departments';
 
-// What the market sends follows the college's standing (Plan 84B): said
-// plainly, with the typical candidate's potentials at the standing now
-// (facultyData.ts's marketCenters, before a quirk moves them).
+// What the market sends follows the college's standing (Plan 84B): the
+// typical candidate's potentials at the standing now (facultyData.ts's
+// marketCenters, before a quirk moves them), in one line (Plan 95G). Why
+// they move is in the tab's help.
 function FacultyMarketNote({ s }: { s: GameState }) {
   const center = marketCenters(marketStandingOf(s));
   return (
     <p className="faculty-market-standing">
-      The candidates the college attracts improve with its standing: their teaching potential rises with its
-      prestige, and their research potential with its research standing, and a little with prestige. At its
-      standing now, a typical candidate's potential is about <strong>{Math.round(center.teaching)}</strong> for
-      teaching and <strong>{Math.round(center.research)}</strong> for research, with a wide spread and now and then
-      a standout well above it. Everyone arrives below their potential and grows toward it over the years they stay.
+      A typical candidate's potential now: about <strong>{Math.round(center.teaching)}</strong> for teaching,
+      {' '}<strong>{Math.round(center.research)}</strong> for research.
+    </p>
+  );
+}
+
+// The course-slot sums as one row of figures (Plan 95G, the second review's
+// B2-1), where two paragraphs were: each figure's sentence is its tooltip,
+// and the rule is in the tab's help. Summed department by department
+// (facultyCapacity.ts's total.shortfall): school-wide totals would count
+// one department's surplus against another's gap.
+export function FacultyFigures({ cap }: { cap: FacultyCapacity }) {
+  const t = cap.total;
+  return (
+    <p className="faculty-figures">
+      <span title="Course slots the faculty supplies">
+        <strong>{count(t.supply)}</strong> course slots
+      </span>
+      {' · '}
+      <span title="Course slots taken by the courses on offer, whether or not somebody is teaching them">
+        <strong>{count(t.offered)}</strong> on offer
+      </span>
+      {t.available > 0 && (
+        <>
+          {' · '}
+          <span title="Courses open and not yet developed, each waiting for a course slot">
+            <strong>{count(t.available)}</strong> open
+          </span>
+        </>
+      )}
+      {' · '}
+      {t.shortfall > 0 ? (
+        <span title={`Teaching the whole catalog takes ${count(t.catalogue)} course slots in the departments that hold them: about ${hiresFor(t.shortfall)} more appointments, fewer if they stay long enough to grow`}>
+          <strong>{count(t.shortfall)}</strong> short of the catalog
+        </span>
+      ) : (
+        <span title="Every department can already teach its whole catalog">the whole catalog covered</span>
+      )}
     </p>
   );
 }
@@ -450,9 +481,21 @@ const VIEWS: Array<{ id: View; label: string; title: string }> = [
   { id: 'departments', label: 'Departments', title: 'Departments' },
 ];
 
-const session: { view: View; sort: FacultySort; grid: GridFilter; board: FacultyFilter } = {
+// The view, sort and filters (Plans 72F and 84D), kept for the session:
+// closing the tab unmounts it, and the choice should be there when it
+// opens again. Held by the tab's parent (App.tsx), not the save, and
+// cleared by New Game (Plan 95G).
+export interface FacultyViewMemory { view: View; sort: FacultySort; grid: GridFilter; board: FacultyFilter }
+export const FACULTY_VIEW_START: FacultyViewMemory = {
   view: 'faculty', sort: 'teaching', grid: NO_GRID_FILTER, board: { field: null, shortOnly: false },
 };
+
+// The tab's help (Plan 95G): what the summary paragraphs said, behind the
+// '?', with the figures in a row under it.
+const FACULTY_HELP = 'Every professor and every candidate as a tile: teaching and research as letters on the scale courses are graded on, with the letter each is growing toward. More opens a person: their career, and Train and Dismiss. Sort and filter the grid, or open the Departments view for each department\'s course slots against what its courses take. '
+  + 'The figures under the heading: the course slots the faculty supplies; those taken by the courses on offer, since a course holds its slot for as long as it is offered, whether or not somebody is teaching it; the courses open and not yet developed; and how many more course slots teaching the whole catalog would take. A scholar on a research project supplies two fewer, as a professor at the Faculty Training Institute supplies one fewer for a term. '
+  + 'The candidates the college attracts improve with its standing: their teaching potential rises with its prestige, and their research potential with its research standing, and a little with prestige. Around the typical candidate there is a wide spread, and now and then a standout well above it. Everyone arrives below their potential and grows toward it over the years they stay. '
+  + 'Appointing is immediate and costs nothing up front; what costs is the salary.';
 
 // A target the tab can open on: a department on the board (the Curriculum's
 // doors), or the market in a field (a retirement's notice).
@@ -485,11 +528,15 @@ function TrainingBar({ s }: { s: GameState }) {
   }
   const of = trainingPicks(s);
   const left = picksLeft(s);
+  const note = `${W.picksNote(s.clock.year)} ${W.trainedShare(trainedCount(s), s.faculty.length)}`;
+  // On a phone the note folds behind a '?' (Plan 95G), so the first faces
+  // stay on the first screen.
   return (
     <div className={`training-bar${left === 0 ? ' spent' : ''}`}>
       <strong className="training-bar-title">{W.barTitle}</strong>
       <span className="training-bar-count" aria-live="polite">{W.picksLeft(left, of)}</span>
-      <p className="training-bar-note">{W.picksNote(s.clock.year)} {W.trainedShare(trainedCount(s), s.faculty.length)}</p>
+      <span className="training-bar-hint"><HelpHint text={note} /></span>
+      <p className="training-bar-note">{note}</p>
     </div>
   );
 }
@@ -506,8 +553,15 @@ function GridTools({ sort, setSort, filter, setFilter, fields, market, training,
   const inUse = new Set(fields.filter((c) => c.offered > 0 || c.available > 0 || c.hired > 0 || c.listed > 0).map((c) => c.field));
   const short = fields.filter((c) => c.state === 'short' || c.state === 'over');
   const narrowed = filter.scope !== null || filter.retiring || filter.canTake || (training && filter.trainable) || filter.query !== '';
+  // On a phone the bar folds behind one button (Plan 95G, the second
+  // review's B2-7), so the first screen reaches the first faces.
+  const [open, setOpen] = useState(false);
   return (
-    <div className="faculty-grid-tools">
+    <div className={`faculty-grid-tools${open ? ' open' : ''}`}>
+      <button type="button" className="faculty-tools-toggle" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <DisclosureIcon open={open} /> Sort and filter
+        <span className="dept-tool-count">{narrowed ? `${shown} of ${total}` : `${total}`}</span>
+      </button>
       <div className="dept-tools">
         <label className="dept-tool">
           Sort by
@@ -581,7 +635,7 @@ function GridTools({ sort, setSort, filter, setFilter, fields, market, training,
   );
 }
 
-export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCurriculum }: {
+export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCurriculum, memory, onRemember }: {
   s: GameState; act: (a: Action) => void;
   // A department to open on the board (from the Curriculum tab's wall or a
   // drawer's dead end), or MARKET_TARGET and a field (a retirement's
@@ -591,6 +645,10 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   // To the Curriculum tab: "field:<name>" for courses waiting on a
   // department, "unstaffed" for courses nobody holds.
   onOpenCurriculum?: (target: string) => void;
+  // The view, sort and filters last used, held by the parent; without
+  // them, the tab holds its own.
+  memory?: FacultyViewMemory;
+  onRemember?: Dispatch<SetStateAction<FacultyViewMemory>>;
 }) {
   const cap = useMemo(() => facultyCapacity(s), [s.faculty, s.candidates, s.tech, s.research.initiatives]);
   const commitments = useMemo(() => commitmentsByFaculty(s), [s.research.initiatives, s.tech]);
@@ -598,14 +656,13 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   const waiting = useMemo(() => waitingByField(s), [s.tech, s.courseFaculty, s.programOffers, s.faculty, s.candidates]);
   const loads = useMemo(() => facultyLoads(s), [s.tech, s.courseFaculty]);
 
-  const [view, setViewState] = useState<View>(session.view);
-  const [sort, setSortState] = useState<FacultySort>(session.sort);
-  const [grid, setGridState] = useState<GridFilter>(session.grid);
-  const [board, setBoardState] = useState<FacultyFilter>(session.board);
-  const setView = (next: View) => { session.view = next; setViewState(next); };
-  const setSort = (next: FacultySort) => { session.sort = next; setSortState(next); };
-  const setGrid = (next: GridFilter) => { session.grid = next; setGridState(next); };
-  const setBoard = (next: FacultyFilter) => { session.board = next; setBoardState(next); };
+  const [own, setOwn] = useState<FacultyViewMemory>(FACULTY_VIEW_START);
+  const { view, sort, grid, board } = memory ?? own;
+  const remember = (part: Partial<FacultyViewMemory>) => (onRemember ?? setOwn)((cur) => ({ ...cur, ...part }));
+  const setView = (next: View) => remember({ view: next });
+  const setSort = (next: FacultySort) => remember({ sort: next });
+  const setGrid = (next: GridFilter) => remember({ grid: next });
+  const setBoard = (next: FacultyFilter) => remember({ board: next });
   const openMarket = (field: string) => {
     setView('market');
     setGrid({ ...NO_GRID_FILTER, scope: field });
@@ -668,9 +725,6 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   }, [target]);
 
   const committedCount = commitments.size;
-  // Summed department by department (facultyCapacity.ts's total.shortfall):
-  // school-wide totals would count one department's surplus against another's gap.
-  const toFinish = cap.total.shortfall;
   // The field the market is narrowed to, if it is one field.
   const scopedField = grid.scope !== null && !grid.scope.startsWith(GROUP_SCOPE) ? cap.byField.get(grid.scope) : undefined;
 
@@ -680,7 +734,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text="Every professor and every candidate as a tile: teaching and research as letters on the scale courses are graded on, with the letter each is growing toward. Sort and filter the grid, or open the Departments view for each department's course slots against what its courses take. A course holds its slot for as long as it is offered, whether or not somebody is teaching it, and a scholar on a research project supplies two fewer, as a professor at the Faculty Training Institute supplies one fewer for a term. Appointing is immediate and costs nothing up front; what costs is the salary." />
+            <HelpHint text={FACULTY_HELP} />
           </span>
           <span className="stat">{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
@@ -688,14 +742,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         </div>
         {/* The one school-wide figure, in people rather than slots. */}
         <FacultyNextUp s={s} act={act} fields={cap.fields} onOpenCurriculum={onOpenCurriculum} onOpenMarket={openMarket} />
-        <p className="faculty-horizon">
-          <strong>{cap.total.supply}</strong> course slots supplied,
-          {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
-          {' '}<strong>{cap.total.available}</strong> more open and waiting.
-          {toFinish > 0
-            ? ` Teaching the whole catalog takes ${cap.total.catalogue} course slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the course slots a new hire brings, fewer if the college keeps them long enough to grow.`
-            : ' Every department can already teach its whole catalog.'}
-        </p>
+        <FacultyFigures cap={cap} />
         <FacultyMarketNote s={s} />
       </section>
 
