@@ -410,6 +410,26 @@ walls.
     vernacular;
   - the canvas and the SVG fallback.
 
+**As implemented:**
+
+- The climb is drawn only on whichever of the two far walls are the
+  tower's inner walls (`opposite(corner.colWall)`,
+  `opposite(corner.rowWall)`). An inner wall that is a near wall, seen
+  above the hall's roof, is now solid with its cornice, not glazed.
+- **Where the climb shows.** One correction to the plan: the climb is
+  visible only from the camera that faces both glass walls (the opening
+  view).
+  - From a side camera, the one glass wall in view looks across to the
+    tower's other glass wall, not to a climbing wall. In iso, a near wall
+    shows the far wall opposite the *other* near wall. So it shows the
+    floor and the dark interior, which is what the owner's note asked for:
+    glass that is glass.
+  - From behind, both near walls are the inner ones, and solid.
+- Checked from all four cameras in Georgian, at 45° in Gothic and at 135°
+  in Modern, through `npm run sheet`'s SVG cells
+  ([shot](../reviews/2026-10-playthrough-fixes/96f-rec-center-cameras.jpg)).
+  The canvas draws the same art.
+
 ## PR 96G — A full campus, faster
 
 §5. Profile first, then the two cheap fixes. The structural one stays in
