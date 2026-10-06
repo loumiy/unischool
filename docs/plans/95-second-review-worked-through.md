@@ -2379,6 +2379,37 @@ Drafts for the owner to edit. Nothing is published.
     picture each wants, from `docs/images`.
 - **Checks:** none in code. The owner reads both drafts.
 
+**As implemented.** Docs only: no code, no sim.
+- `docs/store/ai-disclosure.md`: the facts it rests on, Steam's
+  pre-generated and live-generated answers, itch.io's part by part, a short
+  form, and what to keep out of any copy. The game makes no runtime AI or
+  network calls: `unischool/src` holds no `fetch`, `XMLHttpRequest`,
+  `WebSocket` or `sendBeacon`, and its runtime dependencies are React and
+  three font packages. The live-generated answer says so.
+- `README.md` gains one section, *How UniSchool is made*, after
+  *Development*, with the short form and a link to the full text. No other
+  section is touched, for 95Y.
+- `docs/store/steam-page.md`: a short description (220 of Steam's 300
+  characters), the long one, twelve features with *Sandbox mode* and *Play
+  on after the Final Report* among them, and the five screenshots as
+  captions. The specialization's offer reads "once the college stands high
+  enough, overall or in one pillar", since R's rule is still being tuned.
+
+Deviations:
+- **The review's suggested Steam text says the text was "edited by the
+  developer".** The draft leaves that out until the human edit (the owner's,
+  in the backlog) is done, and marks where it goes back in. Likewise the
+  line naming a human artist waits for the commissions.
+- **Only one of the five screenshots is in `docs/images` as it should be**
+  (the Faculty grid). The campus was taken in week 2, before the trees
+  turn; the admissions card is cropped to portrait; the specialization
+  choice and the Final Report have no picture there. The table says which
+  to retake and points at the 85D shots of the frames wanted. All need
+  retaking at 16:9 for Steam in any case: `docs/images` is 16:10.
+- **itch.io's graphics answer is left to the owner**, with *yes, with the
+  note* recommended: no image generator, but the drawing code was written
+  with the assistant.
+
 ### What area 6 does not do
 
 - B6-1's title screen: it stays a card with no campus behind it.
