@@ -276,7 +276,7 @@ export const CHOICE_WORDS = {
   rivals: (count: number) => (count === 0 ? 'No rival is specialized in it.' : `${count} rival${count === 1 ? ' is' : 's are'} specialized in it`),
   strongest: (name: string, value: number) => `; the strongest, ${name}, stands at ${value.toFixed(0)}.`,
   choose: (name: string) => `Choose ${name.replace(/^The /, 'the ')}`,
-  confirm: 'Confirm: this is for good',
+  confirm: 'Confirm — the other three shares stay empty for good',
   warning: (pillar: Pillar) => `The college will be specialized in ${PILLAR_WORDS[pillar]} for good. It cannot be changed or undone.`,
   later: 'Not this year',
   laterNote: 'The offer stands: it comes back at the close of every summer until a specialization is chosen.',

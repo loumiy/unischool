@@ -1142,10 +1142,10 @@ export interface YearSnapshot {
   // by its close.
   worstRung?: number;
   schoolsFounded?: number;
-  // The year's rank on each of the six standings (Plan 31), by axis
+  // The year's rank on each of the seven standings (Plan 31), by axis
   // (systems/rivals/rivalsSystem.ts's STANDINGS). Absent before it.
   standings?: Record<string, number>;
-  // The college's own value on each of the six (Plan 33), on the 0–150
+  // The college's own value on each of the seven (Plan 33), on the 0–150
   // scale, so the Final Report can average a decade. Absent before it.
   standingValues?: Record<string, number>;
   // The endowment at the close (Plan 33), for the chronicle's money line.

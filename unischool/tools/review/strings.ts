@@ -18,7 +18,8 @@
 //
 // Writes strings.json (every row), strings.csv, and strings.md (the
 // summary: per screen, per file, the longest, the repeated, the spellings
-// and marks the house style rules out, and the jargon).
+// and marks the house style rules out, the glossary's words, and the
+// jargon).
 //
 // Not part of the game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
@@ -26,6 +27,7 @@
 import ts from 'typescript';
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { glossaryHits } from './glossaryChecks';
 
 export interface StringRow {
   file: string;
@@ -383,6 +385,18 @@ const JARGON = [
   'pillar', 'specialization', 'potential', 'training pick',
 ];
 
+// One line per glossary hit, the debug panel left out (it is not read).
+function glossaryReport(rows: StringRow[]): string[] {
+  const out: string[] = [];
+  for (const r of rows) {
+    if (r.screen.startsWith('Debug')) continue;
+    for (const { rule, match } of glossaryHits(r.text)) {
+      out.push(`- “${match}”, ${rule.word} (${rule.says}) — ${r.screen}, \`${r.file}:${r.line}\`: ${r.text.slice(0, 140)}${r.text.length > 140 ? '…' : ''}`);
+    }
+  }
+  return out;
+}
+
 function csvCell(v: string | number): string {
   const s = String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -504,6 +518,12 @@ export function summarize(rows: StringRow[]): string {
     lines.push('');
   }
 
+  // The glossary's words (Plan 95J): each hit is a defect, so the section
+  // reads "None found." on a clean table.
+  lines.push('## The glossary\'s words', '', 'Words Plan 47\'s glossary names one way: no bare "slots", no "default" for a matter left unanswered, and "Spring term" in lower case (`tools/review/glossaryChecks.ts`).', '');
+  const glossary = glossaryReport(rows);
+  lines.push(glossary.length === 0 ? 'None found.' : `${glossary.length} found:`, '', ...glossary, '');
+
   // Jargon.
   lines.push('## Jargon', '', 'How often each term a new player may not know appears, and on how many screens. A term used on many screens before it is explained anywhere is the thing to check.', '');
   lines.push('| Term | Strings | Screens |', '|---|---|---|');
@@ -524,4 +544,6 @@ if (process.argv[1]?.includes('strings')) {
   writeFileSync(join(OUT, 'strings.csv'), ['file,line,kind,context,screen,words,text', ...rows.map((r) => [r.file, r.line, r.kind, r.context, r.screen, r.words, r.text].map(csvCell).join(','))].join('\n'));
   writeFileSync(join(OUT, 'strings.md'), summarize(rows));
   console.log(`${rows.length} strings, ${rows.reduce((t, r) => t + r.words, 0)} words → ${OUT}/strings.{json,csv,md}`);
+  const glossary = glossaryReport(rows);
+  console.log(glossary.length === 0 ? 'The glossary\'s words: none found.' : `The glossary's words: ${glossary.length} found.\n${glossary.join('\n')}`);
 }

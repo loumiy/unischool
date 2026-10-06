@@ -57,12 +57,15 @@ export const CAREER_WORDS = {
     `${papers} ${papers === 1 ? 'paper' : 'papers'}, ${breakthroughs} ${breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'}`,
   woundUp: 'wound up early',
 
-  // Recognition (Plan 84 §2): prizes, a distinguished program, long service.
+  // Recognition (Plan 84 §2): prizes, a program taught in to its last
+  // course, long service. On a person page "distinguished" is the
+  // professor's rank alone, so the program's stage is said as what it
+  // means, every course complete (Plan 95J, the second review's 2c D11).
   prize: (name: string, year: number, topic: string) => `${name.charAt(0).toUpperCase()}${name.slice(1)}, Year ${year}, for "${topic}".`,
   distinguished: (program: string, year: number | undefined) =>
-    `Taught in ${program}, a distinguished program${year !== undefined ? ` since Year ${year}` : ''}.`,
+    (year !== undefined ? `Taught in ${program}, a program complete since Year ${year}.` : `Taught in ${program}, a program with every course complete.`),
   longService: (years: number, year: number) => `${years} years of service, reached in Year ${year}.`,
-  noRecognition: 'Nothing yet. Prizes, a distinguished program and 25 years of service are what count.',
+  noRecognition: 'Nothing yet. Prizes, a program taught in to its last course and 25 years of service are what count.',
 
   // Training at the Faculty Training Institute (Plan 85E).
   trained: (year: number, from: number, to: number, gradeFrom: string, gradeTo: string) =>

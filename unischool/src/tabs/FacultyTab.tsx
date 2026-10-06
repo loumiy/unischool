@@ -262,7 +262,7 @@ function DepartmentRow(
             {demandCount > 0 && onOpenCurriculum && (
               <>
                 {' '}
-                <button type="button" className="dept-demand-door" onClick={() => onOpenCurriculum(`field:${c.field}`)} title={`Open the Curriculum on the ${c.field} courses still ahead of you`}>
+                <button type="button" className="dept-demand-door" onClick={() => onOpenCurriculum(`field:${c.field}`)} title={`Open the Curriculum on the ${c.field} courses not yet developed`}>
                   {openCourses.length === 0
                     ? 'Open in Curriculum →'
                     : c.state === 'short' || c.state === 'over'

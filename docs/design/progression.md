@@ -639,7 +639,7 @@ published* is the event.
   Standing beat until Plan 33 dropped it (V1-1); the year's standing is read
   in the summer's Review, whose Standing section grades the year and names
   who passed the school (see [admissions.md](admissions.md)'s "The summer"),
-  and in History's standings, which show the six rankings, who leads each and
+  and in History's standings, which show the seven rankings, who leads each and
   each rank over the run.
 - **The guide's table is always one click away** (Plan 80C): the Rank chip
   opens History › the guide, the table the entry reveal prints

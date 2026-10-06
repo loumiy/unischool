@@ -101,7 +101,7 @@ export const TRAINING_WORDS = {
 
   // On a professor's tile.
   train: 'Train',
-  trainArmed: (course: string) => `Confirm: ${course} moves`,
+  trainArmed: (course: string) => `Confirm — ${course} loses its teacher for a term`,
   trainGain: (from: string, to: string) => `Teaching ${from} to ${to}`,
   trainTitle: (from: number, to: number, gradeFrom: string, gradeTo: string, until: string) =>
     `Train at the Faculty Training Institute: teaching ${from} (${gradeFrom}) to ${to} (${gradeTo}), and the potential by as much. One course fewer until ${until}.`,

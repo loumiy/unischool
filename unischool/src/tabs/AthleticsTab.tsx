@@ -170,7 +170,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2 tabIndex={-1}>On the market</h2>
         <HelpHint
-          text="One pool for the whole department, not a separate list per post. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport you field with a post open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open post always has somebody listed, but the good ones are rare. A card shows a coach's potential as a range, not a number: a prospect is cheap and low now with a potential you cannot quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not you hire."
+          text="One pool for the whole department, not a separate list per post. A head or assistant coach is qualified for exactly one sport, so their listing can only answer that sport's team; a trainer's discipline is strength &amp; conditioning, so one trainer can answer any team's vacancy. Candidates whose sport the college fields with a post open are listed first and tagged with the team that wants them — the rest are on the market too, and are shown by the toggle. Every open post always has somebody listed, but the good ones are rare. A card shows a coach's potential as a range, not a number: a prospect is cheap and low now with a potential nobody can quite see, a veteran is good now and expensive with little left to grow and a retirement coming; a better Athletic Director scouts a narrower range. Listings withdraw after a few months whether or not the college hires."
         />
       </div>
 
@@ -180,7 +180,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <>
           {wanted.length === 0 && !showAll && (
             <p className="empty-note">
-              Nobody on the market coaches a sport you field with a post open.
+              Nobody on the market coaches a sport the college fields with a post open.
               {rest.length > 0 && ' There are others listed — see below.'}
             </p>
           )}
@@ -197,7 +197,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                     {weeksShort(Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed))} left
                   </span>
                 </div>
-                <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a potential you cannot quite see'}>
+                <span className="stat" title={coachProfile(c).veteran ? 'A veteran: high now, little growth left, a short horizon' : 'A prospect: low now, a potential nobody can quite see'}>
                   quality {c.quality} · {ceilingLabel(c)} · age {coachProfile(c).age} · {moneyShort(c.salary)}/yr
                 </span>
                 <span className="coach-candidate-hire">
@@ -223,7 +223,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
           </ul>
           {rest.length > 0 && (
             <button type="button" className="panel-action coach-market-toggle" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
-              {showAll ? 'Show only who you need' : `Show the rest of the market (${rest.length})`}
+              {showAll ? 'Show only who the open posts need' : `Show the rest of the market (${rest.length})`}
             </button>
           )}
         </>
@@ -635,7 +635,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
     <section className="panel">
       <div className="panel-head">
         <h2>{ordered.length === 1 ? 'One program' : `${ordered.length} programs`}</h2>
-        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships ${pot.cap > pot.baseCap ? `the ${s.orgs.athleticsBudget} subsidy and the Athletic Performance Complex allow` : `the ${s.orgs.athleticsBudget} subsidy allows`} — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and yours is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(TEAM_QUALITY_KNEE, specializationOf(s))} Hover the rank for the colleges either side.`} />
+        <HelpHint text={`Drag a program up or down. The first ${pot.cap} are the flagships ${pot.cap > pot.baseCap ? `the ${s.orgs.athleticsBudget} subsidy and the Athletic Performance Complex allow` : `the ${s.orgs.athleticsBudget} subsidy allows`} — the line shows where they end. A flagship takes its sport's whole cost to compete from the department's fund and may carry a scholarship budget: some or full scholarships recruit a class a year, and over ${RECRUITING_CLASSES} years full ones build up to +${RECRUITING_FULL_LIFT}. Below the line a program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in this order until the fund runs out: competitive while the money reaches it, developmental once it does not, which runs at a discount, not a zero. Dragging a flagship below the line is a real demotion: its head coach may resign rather than take the cut, and its recruiting falls away. Teams waiting on a venue sit out of the order and take nothing. A card's rank is its place in its sport, nationally: every college is reliably stronger at some sports than others, and the college's is the team's quality — its coaches, its funding, its recruiting, the college's pull and the Athletic Director — so hiring a coach moves it. ${teamLimitHelp(TEAM_QUALITY_KNEE, specializationOf(s))} Hover the rank for the colleges either side.`} />
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">

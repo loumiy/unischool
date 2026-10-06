@@ -30,7 +30,7 @@ export default function StandingsPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text={`Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, the same for the college and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others; how a specialization lifts the college's own is in ${PILLAR_RULE_HOME}. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige.`} />
+          <HelpHint text={`Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, the same for the college and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others; how a specialization lifts the college's own is in ${PILLAR_RULE_HOME}. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige. The Final Report grades the six beside prestige, and reads prestige once, as the guide's last word.`} />
         </span>
         <span className="stat">of {field}</span>
       </div>

@@ -282,7 +282,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
             <div className="relocate-suggested">
               <ConfirmButton
                 className="building-info-jump"
-                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, slot ${move.slot + 1}: closed for ${relocationWeeks(s, program.id)} weeks`}
+                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, program slot ${move.slot + 1}: closed for ${relocationWeeks(s, program.id)} weeks`}
                 label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${weeksShort(relocationWeeks(s, program.id))}`}
                 armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
                 onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}

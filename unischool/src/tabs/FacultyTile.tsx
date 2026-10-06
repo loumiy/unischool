@@ -292,7 +292,7 @@ export default function FacultyTile(
               className={held >= slots ? 'faculty-card-load full' : 'faculty-card-load'}
               title={`Teaching ${held} of the ${slots} course slots they supply${commitment ? ' while committed to a project' : ''}`}
             >
-              {held}/{slots} slots
+              {held}/{slots} course slots
             </span>
           )}
           {projected && firstWaiting && (
