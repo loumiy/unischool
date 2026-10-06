@@ -46,7 +46,7 @@ export const FIGURE_HINTS = {
   clubs: 'Points the clubs add to the satisfaction target right now, as of this week\'s figures.',
   greek: 'Points the Greek chapters add to the satisfaction target right now, as of this week\'s figures.',
   varsity: 'Points varsity teams add to the satisfaction target right now, as of this week\'s figures.',
-  satisfactionTarget: 'Where satisfaction is heading: the target without student life, then with it.',
+  satisfactionTarget: 'Where satisfaction is heading: the five needs below, weighted, as the campus stands this week.',
   satisfactionToday: 'Satisfaction this week; it moves toward the target over the coming weeks.',
   orgCost: 'What student organizations cost each week, and over a year, in upkeep and athletic staff.',
 

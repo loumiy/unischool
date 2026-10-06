@@ -11,7 +11,7 @@ import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/tec
 import { awaitsSite, isPlaceableKind } from '../state/campusMap';
 import BuildThumb from './BuildThumb';
 import { foundersHallUnsited } from '../state/opening';
-import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
+import { BEYOND_NEED_FROM, BEYOND_NEED_UPKEEP, FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
@@ -25,8 +25,9 @@ import {
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, DisclosureIcon,
 } from './icons';
-import { count, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
-import { LOAN_RATE, LOAN_YEARS, financingFor, giftFunds, loanFor } from '../systems/finance/treasury';
+import { count, countWord, decimal, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
+import { LOAN_RATE, LOAN_YEARS, borrowingRoom, financingFor, giftFunds, loanBar, loanFor } from '../systems/finance/treasury';
+import { pillarWorthWords } from '../data/prestigeWords';
 import { constructionFrozen } from '../systems/finance/distress';
 import { offCampusPlaces } from '../systems/satisfaction/satisfactionSystem';
 import { DOWNTOWN_WORDS } from '../data/downtownData';
@@ -305,7 +306,6 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
 
 // What one finished instance is worth (beds, seats, slots).
 function builtDetail(t: Buildable): string | undefined {
-  if (t.facilityType === 'lab') return 'required for capstone courses';
   if (t.kind === 'dorm') return `${count(t.effects?.capacityBonus ?? 0)} beds`;
   if (isAcademicHall(t)) return `${t.slots} program slots`;
   // Carries no `effects`: its beds were applied directly to capacity when
@@ -318,6 +318,36 @@ function builtDetail(t: Buildable): string | undefined {
   const need = t.effects?.satisfactionAttribute;
   if (serves) return `serves ${count(serves)}${need ? ` · ${NEED_WORD[need]}` : ''}`;
   return undefined;
+}
+
+// A lab's lines lead with research (Plan 95Q, the second review's B3-7):
+// the first lab "starts research", the rest lift it, at the pillar's weight
+// read from PILLAR_WEIGHTS (prestigeWords.ts), never typed; the capstones
+// second. Short, to fit the tile.
+function labLines(s: GameState, t: Buildable): string[] {
+  const first = t.status !== 'done' && !s.tech.some((o) => o.facilityType === 'lab' && (o.status === 'done' || o.status === 'developing'));
+  return [`${first ? 'starts' : 'lifts'} ${pillarWorthWords('research')}`, 'required for capstone courses'];
+}
+
+// The Library's lines (Plan 95Q, B3-10): what it serves, and when it costs
+// more to keep, every figure from the upkeep rule (facilitiesData.ts's
+// BEYOND_NEED_FROM and BEYOND_NEED_UPKEEP; estate/beyondNeed.ts).
+function libraryLines(t: Buildable): string[] {
+  const times = Number.isInteger(BEYOND_NEED_UPKEEP) ? countWord(BEYOND_NEED_UPKEEP) : decimal(BEYOND_NEED_UPKEEP, 1);
+  return [`serves ${count(t.effects?.servesPopulation ?? 0)}`, `past ${pct(BEYOND_NEED_FROM)} of need, ${times} times the upkeep`];
+}
+
+// A tile's lines under its name: builtDetail's, or the lab's and the
+// Library's own.
+function tileLines(s: GameState, t: Buildable): string[] {
+  if (t.facilityType === 'lab') return labLines(s, t);
+  if (t.facilityType === 'library') return libraryLines(t);
+  const detail = builtDetail(t);
+  return detail ? [detail] : [];
+}
+
+function TileLines({ lines }: { lines: string[] }) {
+  return <>{lines.map((line) => <span key={line} className="build-tile-sub">{line}</span>)}</>;
 }
 
 // The same figure summed across a collapsed group, so collapsing hides nothing.
@@ -381,6 +411,28 @@ function LevelPips({ s, t }: { s: GameState; t: Buildable }) {
   );
 }
 
+// Which of loanFor's conditions stopped a loan for a building the cash
+// cannot cover (finance/treasury.ts's loanBar), in words; nothing when a
+// loan is offered or none is needed.
+function noLoanReason(s: GameState, cost: number): string | undefined {
+  const bar = loanBar(s, cost);
+  if (bar === null) return undefined;
+  if (bar !== 'room') return BUILD_WORDS.noLoan[bar];
+  const room = borrowingRoom(s);
+  return room > 0 ? BUILD_WORDS.noLoan.room.replace('{room}', moneyShort(room)) : BUILD_WORDS.noLoan.noRoom;
+}
+
+// A greyed tile's reason, short, for its face: "$2.1M short · the college
+// can borrow up to $1.4M", or the board's freeze.
+function greyedReason(s: GameState, cost: number): string | undefined {
+  if (constructionFrozen(s)) return BUILD_WORDS.constructionFrozen;
+  const shortfall = cost - s.finance.cash;
+  if (shortfall <= 0) return undefined;
+  const short = BUILD_WORDS.short.replace('{short}', moneyShort(Math.ceil(shortfall)));
+  const why = noLoanReason(s, cost);
+  return why ? `${short} · ${why}` : short;
+}
+
 // One building as a tile: a button for anything the player can act on (arm a
 // pickup, by click or by dragging onto the map), a plain div once done and
 // placed. `act` is used only for in-place work on a done building: the
@@ -398,7 +450,7 @@ function BuildTile({
   // Done and placed: a static tile, unless the tier-1 library has a floor
   // left or a venue has an expansion left, which get an in-place offer.
   if (t.status === 'done' && t.id in s.placements) {
-    const detail = builtDetail(t);
+    const lines = tileLines(s, t);
     // A venue rung: the same in-place offer, up to its expansions cap.
     const rung = t.athleticsVenueReveal ? nextVenueExpansion(t) : null;
     if (rung) {
@@ -417,17 +469,22 @@ function BuildTile({
           <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
           <span className="build-tile-name">{t.name}</span>
           <LevelPips s={s} t={t} />
-          {detail && <span className="build-tile-sub">{detail}</span>}
+          <TileLines lines={lines} />
           <span className="build-tile-foot">expand · {moneyShort(rung.cost)} · {weeksShort(rung.weeks)}</span>
+          {(frozen || shortfall > 0) && (
+            <span className="build-tile-note">
+              {frozen ? BUILD_WORDS.constructionFrozen : BUILD_WORDS.short.replace('{short}', moneyShort(Math.ceil(shortfall)))}
+            </span>
+          )}
         </button>
       );
     }
     return (
-      <div className="build-tile done" title={detail ? `${t.name} · ${detail}` : t.name}>
+      <div className="build-tile done" title={[t.name, ...lines].join(' · ')}>
         <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
-        {detail && <span className="build-tile-sub">{detail}</span>}
+        <TileLines lines={lines} />
       </div>
     );
   }
@@ -437,7 +494,7 @@ function BuildTile({
   // walkthrough's first step, or while a skipped walk holds the clock for it
   // (see state/opening.ts).
   if (t.status === 'done') {
-    const detail = builtDetail(t);
+    const lines = tileLines(s, t);
     const armed = placingId === t.id;
     const sitable = awaitsSite(s, t);
     const ringed = t.id === FOUNDERS_HALL_ID && sitable && (s.events.opening.stage === 'site-hall' || s.events.opening.stage === 'play') && !armed;
@@ -460,7 +517,7 @@ function BuildTile({
         <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <LevelPips s={s} t={t} />
-        {detail && <span className="build-tile-sub">{detail}</span>}
+        <TileLines lines={lines} />
         <span className="build-tile-foot">{armed ? 'placing…' : 'site · no charge'}</span>
       </button>
     );
@@ -502,13 +559,17 @@ function BuildTile({
     : constructionFrozen(s)
       ? 'The board has frozen construction.'
       : shortfall > 0
-        ? `${money(Math.ceil(shortfall))} short.`
+        ? `${money(Math.ceil(shortfall))} short${noLoanReason(s, t.cost) ? `; ${noLoanReason(s, t.cost)}` : ''}.`
         : missingFaculty
           ? `Needs ${t.requiresFaculty} faculty.`
           : undefined;
   const startable = financing !== null;
   const armed = placingId === t.id;
-  const detail = builtDetail(t);
+  const lines = tileLines(s, t);
+  // A greyed tile says why on its face, as a loan line does (Plan 95Q, the
+  // second review's B3-10): the shortfall, and which of loanFor's conditions
+  // stopped a loan. A missing professor has its own "needs" line below.
+  const greyedNote = startable ? undefined : greyedReason(s, t.cost);
   return (
     <button
       type="button"
@@ -526,7 +587,7 @@ function BuildTile({
       <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
       <span className="build-tile-name">{t.name}</span>
       <LevelPips s={s} t={t} />
-      {detail && <span className="build-tile-sub">{detail}</span>}
+      <TileLines lines={lines} />
       <span className="build-tile-foot">
         {armed
           ? 'placing…'
@@ -538,6 +599,7 @@ function BuildTile({
       </span>
       {loan > 0 && !armed && <span className="build-tile-note">borrow {moneyShort(loan)}</span>}
       {financing === 'gift' && !armed && t.cost > 0 && <span className="build-tile-note">from gifts</span>}
+      {greyedNote && <span className="build-tile-note">{greyedNote}</span>}
       {t.requiresFaculty && <span className="build-tile-note">needs {t.requiresFaculty}</span>}
     </button>
   );
@@ -776,7 +838,7 @@ export default function BuildPopup({
 
   // A building in hand (Plan 34, from v2's): the menu folds to a strip along
   // the toolbar, so the ghost and the ground it is going on are never under
-  // it. Escape puts it down (App.tsx's ladder), before it closes the menu.
+  // it. Escape cancels it (App.tsx's ladder), before it closes the menu.
   const held = placingId ? s.tech.find((t) => t.id === placingId) : undefined;
   if (held) {
     const financing = held.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, held, undefined, f));

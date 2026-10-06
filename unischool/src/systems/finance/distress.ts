@@ -1,4 +1,5 @@
 import type { Distress, DistressRung, GameState } from '../../state/types';
+import { WEEKS_PER_YEAR } from '../../state/types';
 
 // THE DISTRESS LADDER (Plan 27D, from v2's distress.ts). There is no
 // bankruptcy. Running out of money is a ladder of five rungs, each
@@ -50,8 +51,37 @@ export function foundingDistress(): Distress {
   return {
     rung: RUNG_SOUND, termsAtRung: 0,
     termNet: 0, surplusRun: 0, deficitRun: 0, receivershipTermsLeft: 0,
-    letters: [], scars: [],
+    letters: [], letterWeeks: [], scars: [],
   };
+}
+
+// The board's letter queue keeps the week each letter came beside it, so a
+// letter reads as written when it was and not this week (Plan 95K, the
+// second review's B2-7 and H7-5). Every change to the queue goes through
+// these four.
+export function postBoardLetter(s: GameState, id: string): void {
+  const d = s.finance.distress ??= foundingDistress();
+  d.letters.push(id);
+  d.letterWeeks.push((s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week);
+}
+
+// "Noted" puts the oldest away.
+export function shiftBoardLetter(d: Distress): void {
+  d.letters.shift();
+  d.letterWeeks.shift();
+}
+
+// Puts away every letter `drop` picks, with its week.
+export function dropBoardLetters(d: Distress, drop: (id: string) => boolean): void {
+  const keep = d.letters.map((id, i) => [id, d.letterWeeks[i]] as const).filter(([id]) => !drop(id));
+  d.letters = keep.map(([id]) => id);
+  d.letterWeeks = keep.flatMap(([, week]) => (week === undefined ? [] : [week]));
+}
+
+// Clears the queue (the tools' photographs).
+export function clearBoardLetters(d: Distress): void {
+  d.letters = [];
+  d.letterWeeks = [];
 }
 
 // The ladder as it stands. A save from before it is Sound.
@@ -184,7 +214,7 @@ export function closeTerm(s: GameState): void {
     d.termsAtRung = 0;
     applyBoardBudget(s, d, to);
     const letter = letterFor(from, to);
-    if (letter) d.letters.push(letter);
+    if (letter) postBoardLetter(s, letter);
   }
   d.rung = to;
   d.termNet = 0;

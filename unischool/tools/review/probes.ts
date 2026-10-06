@@ -7,6 +7,8 @@
 //       footprint area, open ground left out), and which looks repeat: the
 //       same motif, wall, school signature, lab feature, residence form and
 //       footprint drawn for different buildings. Area 1, A1-1 and A1-2.
+//       Then, in each set but Modern and Art Deco, how much still wears the
+//       render wall, and which buildings (Plan 95D, B1-3).
 //   npm run review:probe -- weather <save.json>...
 //       How many placed buildings stand in each weathering band (0 sound …
 //       4 derelict, ageMarks.tsx). Area 1, A1-6.
@@ -22,13 +24,13 @@
 // ---------------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import { campusLayout } from '../../src/components/campusLayout';
-import { RESIDENCE_FORMS, VERNACULAR_CHOICES, entrancePartOf, labFeatureOf, materialOf, motifOf, signatureOf, signifierOf, surfaceFollowsVernacular, variesByVernacular } from '../../src/components/buildingSpec';
+import { BONUS_VERNACULAR_CHOICES, RESIDENCE_FORMS, VERNACULAR_CHOICES, entrancePartOf, labFeatureOf, materialOf, materialsFor, motifOf, signatureOf, signifierOf, surfaceFollowsVernacular, variesByVernacular } from '../../src/components/buildingSpec';
 import { initialTech } from '../../src/data/techData';
 import { initialDorms } from '../../src/data/campusData';
 import { initialFacilities } from '../../src/data/facilitiesData';
 import { conditionOf } from '../../src/systems/estate/estate';
 import { isPlaceableKind } from '../../src/state/campusMap';
-import type { GameState } from '../../src/state/types';
+import type { GameState, Vernacular } from '../../src/state/types';
 import { foundGame, playWeek, type Player } from '../../sim/harness/game';
 import { createArchetype } from '../../sim/harness/archetypes';
 import { createNaturalPlayer } from '../../sim/harness/natural';
@@ -70,8 +72,25 @@ function vernacular(): void {
     for (const [look, ids] of [...looks].filter(([, ids]) => ids.length > 1).sort((a, b) => b[1].length - a[1].length)) {
       console.log(`  ${ids.length}× ${look}: ${ids.join(' ')}`);
     }
+    // The same campus in every set where render is foreign (Plan 95D, the
+    // second review's B1-3): how much of it still wears the buff render wall.
+    console.log('render wall, by set (Modern and Art Deco left out):');
+    for (const v of RENDER_FOREIGN) {
+      const render = materialsFor(v).render.wall;
+      let k = 0; let areaR = 0;
+      const ids = new Map<string, number>();
+      for (const e of L.placed) {
+        if (motifOf(e.t) === 'grounds' || materialOf(e.t, v).wall !== render) continue;
+        k += 1; areaR += e.p.w * e.p.h;
+        ids.set(e.t.id, (ids.get(e.t.id) ?? 0) + 1);
+      }
+      const list = [...ids].map(([id, c]) => (c > 1 ? `${id}×${c}` : id)).join(' ');
+      console.log(`  ${v}: ${k} of ${n} (${Math.round((100 * k) / Math.max(1, n))}%), ${Math.round((100 * areaR) / Math.max(1, area))}% of area${list ? `: ${list}` : ''}`);
+    }
   }
 }
+const RENDER_FOREIGN: Vernacular[] = [...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES]
+  .map((c) => c.id).filter((v) => v !== 'modern' && v !== 'artDeco');
 
 function weather(): void {
   for (const path of files) {

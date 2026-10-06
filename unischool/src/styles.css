@@ -140,10 +140,10 @@
   --frame-plaque-ink: #2a1d0c;
 
   /* Fonts (self-hosted, main.tsx). Three faces: the display face for titles,
-     figures, chips and buttons; the sans for prose; and the mono for the
-     dock's funds counter, so its digits hold their columns as it ticks, and
-     for figures read as a posted record: a card's salary, a scoreboard, a
-     stamp, a tally (Plan 90). */
+     figures, chips and buttons (the dock's funds counter among them, in
+     tabular figures: Plan 95K); the sans for prose; and the mono for the
+     dock's weekly net and for figures read as a posted record: a card's
+     salary, a scoreboard, a stamp, a tally (Plan 90). */
   --display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
   --sans: 'Archivo', system-ui, sans-serif;
   --mono: 'Azeret Mono Variable', 'Azeret Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -399,9 +399,10 @@ button, input, select, textarea { font-size: inherit; }
    the word is hidden and the glyph stands in for it (Phones, below). */
 .stat-label { font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; line-height: 1; color: var(--ink-muted); }
 .stat-value { font-family: var(--display); font-size: var(--text-md); font-weight: 800; color: var(--ink); line-height: 1; }
-/* The funds counter: the mono's one use, so its digits hold their columns
-   as it ticks. */
-.toolbar-funds-btn .stat-value { font-family: var(--mono); font-size: var(--text-2xl); letter-spacing: -0.01em; color: var(--ink-hi); }
+/* The funds counter: the display face's tabular figures hold their columns
+   as it ticks, and its commas sit close, as the mono's did not ("$41 , 657",
+   Plan 95K, the second review's B2-7). */
+.toolbar-funds-btn .stat-value { font-size: var(--text-2xl); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; color: var(--ink-hi); }
 .stat-value.money { color: var(--ink-hi); }
 .stat-value.money-negative { color: var(--bad-on-dark); }
 /* A stat chip is cream, so its warning takes the paper red, not the band's. */
@@ -486,7 +487,7 @@ button, input, select, textarea { font-size: inherit; }
 .log-ticker-toggle svg { width: 14px; height: 14px; display: block; }
 .log-ticker-toggle:hover, .log-ticker-toggle[aria-expanded="true"] { color: var(--ink); background: var(--cream-lo); }
 .log-ticker > span { overflow: hidden; text-overflow: ellipsis; }
-.log-ticker .ts { color: var(--school-primary); font-family: var(--display); font-weight: 800; margin-right: 6px; }
+.log-ticker .ts { flex: none; overflow: visible; margin-right: -2px; color: var(--school-primary); font-family: var(--display); font-weight: 800; }
 .log-ticker .good { color: var(--ok-on-light); }
 .log-ticker .bad { color: var(--bad-on-light); }
 .log-ticker-empty { color: var(--ink-muted); font-style: italic; }
@@ -655,8 +656,10 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
 .toolbar-popup-body { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
 /* Build popup: full width, capped short so most of the map stays visible;
-   32px taller since the tiles draw their buildings (Plan 94). */
-.build-popup { left: 16px; right: 16px; max-height: 372px; }
+   32px taller since the tiles draw their buildings (Plan 94), and 60px more
+   since a lab, the Library and a greyed tile say why on their faces (Plan
+   95Q). A tab of short tiles stays as short as they are. */
+.build-popup { left: 16px; right: 16px; max-height: 432px; }
 
 /* Log popup: the body scrolls, so .log's max-height is lifted. */
 .log-popup { left: 16px; width: min(420px, calc(100vw - 32px)); max-height: 42vh; }
@@ -1992,6 +1995,8 @@ button.build-tile { font-family: inherit; }
 /* ---------- Satisfaction cards (StudentLifeTab.tsx) ----------
    auto-fit so the cards reflow from five across to one column without a
    breakpoint. `dense` backfills the gap an open card leaves. */
+/* The target and today's figure over the needs (Plan 95Q). */
+.panel dl.satisfaction-target { margin: 0 0 var(--space-12); }
 .satisfaction-cards { display: grid; gap: 10px; grid-auto-flow: row dense;
   grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); }
 .satisfaction-card { border: 2px solid var(--outline); border-radius: var(--radius-lg);
@@ -3361,8 +3366,10 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .modal.modal-inbox { width: 100%; max-width: 820px; max-height: none; overflow: visible; margin: 0;
   box-shadow: var(--shadow-2); animation: none; }
 .modal.modal-inbox.modal-page { max-width: none; }
-.tab-overlay-held { padding: 6px 14px; border: 2px dashed var(--outline); border-radius: var(--radius-pill);
-  color: var(--ink); font-family: var(--display); font-weight: 700; font-size: var(--text-sm); }
+/* Where the Close button stands while a stop waits: a note, set flat, so it
+   does not read as a button that does nothing (Plan 95K, the second
+   review's B2-7). */
+.tab-overlay-held { margin: 0; color: var(--ink-muted); font-size: var(--text-sm); font-style: italic; }
 .toolbar-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .toolbar-icon-btn:disabled:not(.toolbar-build-btn):hover { border-color: transparent; }
 

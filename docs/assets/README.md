@@ -2,7 +2,7 @@
 
 Every buildable asset in all nine vernaculars (the five founding sets, then the four a run unlocks), drawn by the game itself from the opening camera (azimuth 45°). Vernaculars run down each image and assets across it. Written by `npm run gallery:assets` (unischool/tools/assetGallery.mjs, Plan 75C); run it again after any change to how a building is drawn.
 
-111 assets in 27 images.
+112 assets in 27 images.
 
 ## Academic halls and the school signature halls
 
@@ -18,6 +18,7 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 
 - **Chestnut Hall**: HALL-05 · 7x5
 - **Sycamore Hall**: HALL-06 · 7x5
+- **Walnut Hall**: HALL-07 · 7x5
 - **The Faculty Training Institute**: PROJ-TRAINING · 11x7
 - **Social Sciences & Humanities hall**: a hall given over to one school · 7x5
 

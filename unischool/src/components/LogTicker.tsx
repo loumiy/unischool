@@ -59,12 +59,17 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
         >
           <LogIcon />
         </button>
+        {/* The date stands beside the line, not in it, so a narrow strip
+            cuts the message and keeps the year ("Y31", not "Y.": Plan 95K,
+            the second review's B2-7). */}
         {latest ? (
-          <span className={latest.kind}>
+          <>
             <span className="ts">Y{latest.year}W{latest.week}</span>
-            {latest.message}
-            {leaving && onOpenMarket && <> <SuccessorDoor f={leaving} onOpenMarket={onOpenMarket} /></>}
-          </span>
+            <span className={latest.kind}>
+              {latest.message}
+              {leaving && onOpenMarket && <> <SuccessorDoor f={leaving} onOpenMarket={onOpenMarket} /></>}
+            </span>
+          </>
         ) : (
           <span className="log-ticker-empty">No activity yet.</span>
         )}

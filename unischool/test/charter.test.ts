@@ -118,7 +118,7 @@ const weeksOn = (s: GameState, n: number) => {
   const kept = reducer(start, { type: 'RESOLVE_CATALOGUE_EVENT', instanceId: CHARTER_INSTANCE, choiceId: 'college' });
   assert(institutionName(kept.self) === name && kept.self.name === start.self.name && kept.self.suffix === 'College', `keeping the name leaves it, and the pennant, alone (${institutionName(kept.self)})`);
   assert(waiting(kept) === undefined && kept.self.universityCharterOffered, 'the matter is settled and the charter granted');
-  assert(kept.log.some((l) => l.message === `With research under way, the board has granted a university charter, and ${name} keeps its name.`), 'the log says so');
+  assert(kept.log.some((l) => l.message === `With its first laboratory open, the board has granted a university charter, and ${name} keeps its name.`), 'the log says so');
   assert(answered(kept)[0]?.message === `The charter — Answered: Keep the name ${start.self.name} College.`, `the Answered list keeps the choice: "${answered(kept)[0]?.message}"`);
   const later = structuredClone(kept);
   tickEvents(later);
