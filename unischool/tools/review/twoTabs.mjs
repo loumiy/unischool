@@ -15,9 +15,10 @@
 //   3. A stale Continue. B sits on the title screen, loaded before A saved.
 //      Its Continue should open A's newer game, not the one it loaded.
 //   4. Side by side. A plays on without being hidden, so nothing is saved;
-//      B continues from the save. B holds the college from the week it
-//      loaded, and A's unsaved weeks go (the plan's "last tab to take up
-//      the college keeps it"). Reported, not judged.
+//      B continues from the save. A, losing the claim, saves its weeks
+//      first (Plan 95AA, the second review's H7-3); B meets that newer
+//      save at its next write and stops. A fresh tab continues at A's
+//      week.
 //
 //   node tools/review/twoTabs.mjs save.json     # CAMPUS_URL, default the dev server
 // Exits non-zero if a case ends at a week it did not expect.
@@ -37,7 +38,9 @@ const weekOf = (text) => {
   return m ? (Number(m[1]) - 1) * 52 + Number(m[2]) : null;
 };
 const label = (w) => (w === null ? 'nowhere' : `Year ${Math.floor((w - 1) / 52) + 1}, week ${((w - 1) % 52) + 1}`);
-const clock = async (p) => weekOf(await p.locator('body').innerText());
+// The toolbar's calendar carries the whole date in its label (the drawn
+// year and week sit apart).
+const clock = async (p) => weekOf(await p.locator('.toolbar-calendar').first().getAttribute('aria-label', { timeout: 1500 }).catch(() => null));
 const saved = (p) => p.evaluate(() => { const s = JSON.parse(localStorage.getItem('unischool.save')); return (s.state.clock.year - 1) * 52 + s.state.clock.week; });
 const banner = (p) => p.locator('.elsewhere-banner').isVisible();
 const hide = (p) => p.evaluate(() => {
@@ -143,11 +146,12 @@ const verdict = (name, got, want, note = '') => {
   const aWeek = await clock(A);
   const B = await context.newPage();
   await title(B); await cont(B);
-  console.log(`4. side by side: A played ${label(start)} → ${label(aWeek)} unsaved; B continued at ${label(await clock(B))}; A's banner: ${await banner(A)}`);
+  console.log(`4. side by side: A played ${label(start)} → ${label(aWeek)} unsaved; B continued at ${label(await clock(B))}; A's banner: ${await banner(A)}; the save reads ${label(await saved(A))}`);
   await close(A); await close(B);
+  console.log(`   both closed; B's banner: ${await banner(B)}; the save reads ${label(await saved(B))}`);
   const C = await context.newPage();
   await title(C);
-  verdict('4. side by side', await continueWeek(C), start, `A's ${aWeek - start} unsaved weeks are not kept, by design`);
+  verdict('4. side by side', await continueWeek(C), aWeek, `A's ${aWeek - start} unsaved weeks kept`);
   await context.close();
 }
 

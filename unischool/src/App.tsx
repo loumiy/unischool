@@ -27,7 +27,7 @@ import Toolbar from './components/Toolbar';
 import LogTicker from './components/LogTicker';
 import InboxTab from './components/InboxTab';
 import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
-import { unseenPause, type UnseenMemory } from './systems/inbox/unseen';
+import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -123,9 +123,11 @@ export default function App() {
   const [foundingRead, setFoundingRead] = useState<ReadonlySet<string>>(new Set());
   const inbox = inboxItems(s, { read: foundingRead });
   // The matters the player has opened this session: shown in the inbox's
-  // reading pane, or reached by an arrival's Open (Plan 78E). Not saved: a
-  // reload forgets them, and at worst a matter's final week pauses once more.
-  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
+  // reading pane, or reached by an arrival's Open (Plan 78E). Not saved, but
+  // kept for the page's session under the run, so a reload reads them back
+  // (Plan 95AA, the second review's H7-4; unseen.ts's keepOpened).
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => (s.started ? readOpened(s.self.name) : new Set()));
+  useEffect(() => { if (s.started) keepOpened(s.self.name, opened); }, [opened]);
   const markOpened = (id: string) => setOpened((cur) => (cur.has(id) ? cur : new Set([...cur, id])));
   // What the last snapshot held, for telling what arrived (see below).
   const unseen = useRef<{ run: GameState; memory: UnseenMemory } | null>(null);
@@ -190,6 +192,7 @@ export default function App() {
     setLadderOpen(false);
     setFoundingRead(new Set());
     setOpened(new Set());
+    forgetOpened();
     unseen.current = null;
     reportedGates.current = null;
     actedStage.current = null;
