@@ -211,6 +211,38 @@ gets a test where the logic is testable.
   - the screenshots in Rules;
   - a demolish of a fountain from a click, in the review harness.
 
+**As implemented:**
+
+- **The day lights.** `litDaysAt(progress)` in `DayTicker.tsx`
+  (`min(7, floor(p × 7) + 1)`, at least 1).
+- **The lamps.** Each flash carries its own end (`LampFlash.until`). One
+  timer wakes at the earliest end and keeps only the live ones
+  (`liveFlashes`).
+- **One panel at a time.** Done without lifting `inspectedId`. `App`'s
+  `onInspectedChange` closes the build menu whenever the map reports a
+  panel opened. The map takes a `buildOpen` prop and closes its panel when
+  the menu opens. Neither change loops: closing the menu reports nothing
+  back.
+- **The switch.** The bulk buttons now come before the switch in the head,
+  keeping their `margin-left: auto`. The switch stays at the right edge in
+  every view ([faculty](../reviews/2026-10-playthrough-fixes/96c-switch-faculty.jpg),
+  [departments](../reviews/2026-10-playthrough-fixes/96c-switch-departments.jpg)).
+- **Amenities.** Every venue's ground prop is drawn inside a
+  `<g data-building={owner}>` with a click to its venue. On the canvas that
+  makes its hits owned; on the SVG it opens the panel. Dressing (lamps,
+  benches, racks) has no owner and is unchanged.
+  - A browser probe on a year-14 `--build-all` save clicks the fountain
+    and the statue on both maps. Before the change it found no building;
+    after it, the panel opens with *Demolish*
+    ([fountain, canvas](../reviews/2026-10-playthrough-fixes/96c-fountain-canvas.jpg),
+    [statue, SVG](../reviews/2026-10-playthrough-fixes/96c-statue-svg.jpg)).
+  - The probe is not committed. The review harness has no click-and-check
+    tool to add it to, and it needs the dev server.
+- **Tests.** `test/plan96-fixes.test.ts` (the day count, the flash
+  expiry).
+- **The Students tab** is shot with D and E's changes, which rework the
+  same panels.
+
 ## PR 96D — Screens
 
 The review's §2 and the owner's decisions 1 and 2.

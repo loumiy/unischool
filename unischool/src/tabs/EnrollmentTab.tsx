@@ -105,7 +105,7 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
   return (
     <div className="tab-content">
       <section className="panel">
-        <h2>The student body</h2>
+        <div className="panel-head"><h2>The student body</h2></div>
         <p className="history-summary">
           {count(enrolled)} students across four classes. Each was admitted
           under the college as it stood that summer, and keeps that composition until it
@@ -150,7 +150,7 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
       </section>
 
       {funnel && <section className="panel">
-        <h2>Last summer's funnel</h2>
+        <div className="panel-head"><h2>Last summer's funnel</h2></div>
         <div className="funnel-lines">
           <FunnelLine
             label="Applicant pool"

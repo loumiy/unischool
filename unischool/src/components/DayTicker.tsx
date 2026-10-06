@@ -16,6 +16,13 @@ const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
 // It polls rather than subscribes because the accumulator is a ref, so a
 // decorative square never re-renders the app. 150ms is well under the
 // ~360ms between square changes; the poll stops while the clock is frozen.
+// The cells lit at a point in the week (0..1): the day under way counts, so
+// Monday lights as the week opens and Sunday for its last seventh. A frozen
+// clock at the very start of a week shows Monday lit.
+export function litDaysAt(progress: number): number {
+  return Math.max(1, Math.min(DAYS_PER_WEEK, Math.floor(progress * DAYS_PER_WEEK) + 1));
+}
+
 export default function DayTicker({ s, speed, weekProgress }: {
   s: GameState;
   speed: Speed;
@@ -29,7 +36,7 @@ export default function DayTicker({ s, speed, weekProgress }: {
   useEffect(() => {
     // Read once up front so a frozen clock still shows where the week
     // stopped, rather than whatever the last poll happened to catch.
-    const read = () => setLitDays(Math.min(DAYS_PER_WEEK, Math.floor(weekProgress() * DAYS_PER_WEEK)));
+    const read = () => setLitDays(litDaysAt(weekProgress()));
     read();
     if (!ticking) return;
     const id = setInterval(read, DAY_TICKER_POLL_MS);

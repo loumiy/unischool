@@ -12,28 +12,42 @@ import { committeeLamps } from '../systems/techtree/techSystem';
 // (Toolbar.tsx); the lamps are drawn only, each titled for a hover.
 const FLASH_MS = 1_200;
 
+// A course just done, and when its flash ends.
+export interface LampFlash { id: string; until: number }
+// The flashes still lit at `now`.
+export function liveFlashes(flashes: readonly LampFlash[], now: number): LampFlash[] {
+  return flashes.filter((f) => f.until > now);
+}
+
 export default function CommitteeLamps({ s, ready }: { s: GameState; ready: boolean }) {
   const lamps = committeeLamps(s);
   const writingIds = lamps.flatMap((l) => (l.course ? [l.course.id] : []));
   const key = writingIds.join(',');
 
   // Courses that left the committee done since the last render, for a flash.
+  // Each flash carries its own end, and one timer wakes for the earliest, so
+  // a second course starting or finishing inside a flash cannot cancel the
+  // first one's end (Plan 96C: a cancelled end left a seat lit white).
   const last = useRef<string[] | null>(null);
-  const [flashing, setFlashing] = useState<string[]>([]);
+  const [flashes, setFlashes] = useState<LampFlash[]>([]);
   useEffect(() => {
     const was = last.current;
     last.current = writingIds;
     if (was === null) return;
     const finished = was.filter((id) => !writingIds.includes(id) && s.tech.find((t) => t.id === id)?.status === 'done');
     if (finished.length === 0) return;
-    setFlashing((f) => [...f, ...finished]);
-    const timer = window.setTimeout(() => setFlashing((f) => f.filter((id) => !finished.includes(id))), FLASH_MS);
-    return () => window.clearTimeout(timer);
+    const until = Date.now() + FLASH_MS;
+    setFlashes((f) => [...f, ...finished.map((id) => ({ id, until }))]);
     // `key` stands for writingIds; s.tech is read only when it changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-
-  let flashesLeft = flashing.length;
+  useEffect(() => {
+    if (flashes.length === 0) return;
+    const next = Math.min(...flashes.map((f) => f.until));
+    const timer = window.setTimeout(() => setFlashes((f) => liveFlashes(f, Date.now())), Math.max(0, next - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [flashes]);
+  let flashesLeft = flashes.length;
   return (
     <span className="committee-lamps" aria-hidden="true">
       {lamps.map((l, i) => {

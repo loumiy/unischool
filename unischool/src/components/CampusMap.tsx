@@ -797,7 +797,17 @@ function sceneParts(
     entry: (entry: SceneEntry) => {
       if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} camera={camera} />;
       if (entry.kind === 'prop') {
-        return <VenueContext.Provider key={entry.key} value={entry.owner ?? null}><g>{entry.node}</g></VenueContext.Provider>;
+        // A venue's prop (the fountain, the statue, a pitch's goals) is its
+        // venue's to click, on the canvas through data-building and on the
+        // SVG through the click, as the venue's plate is (Plan 96C: a click
+        // on the fountain fell through to the ground, so its panel, and
+        // Take down, could not be reached).
+        const owner = entry.owner ?? null;
+        return (
+          <VenueContext.Provider key={entry.key} value={owner}>
+            {owner ? <g data-building={owner} onClick={() => onInspect(owner)}>{entry.node}</g> : <g>{entry.node}</g>}
+          </VenueContext.Provider>
+        );
       }
       const e = byId.get(entry.id);
       return e ? <VenueContext.Provider key={entry.key} value={e.t.id}><g>{building(e)}</g></VenueContext.Provider> : null;
@@ -1118,7 +1128,7 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
 
 export default function CampusMap({
   s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, gait,
+  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -1150,6 +1160,8 @@ export default function CampusMap({
   onInspectTargetConsumed?: () => void;
   // Reports which building's panel is open (the opening walkthrough reads it).
   onInspectedChange?: (id: string | null) => void;
+  // The build menu is open: the map closes its building panel (Plan 96C).
+  buildOpen?: boolean;
   // The clock's pace as a multiple of Play, 0 while it is stopped: how fast
   // the walkers walk.
   gait: number;
@@ -1169,6 +1181,9 @@ export default function CampusMap({
     onInspectedChange?.(inspectedId);
     if (focus && inspectedId !== focus.hallId) setFocus(null);
   }, [inspectedId]);
+  useEffect(() => {
+    if (buildOpen) setInspectedId(null);
+  }, [buildOpen]);
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
   // React state, unlike pan and zoom, because a turn changes every polygon.
   // Set on the projection here at the top of the render so everything below

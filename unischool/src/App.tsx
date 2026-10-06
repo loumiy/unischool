@@ -438,7 +438,11 @@ export default function App() {
           inspectTarget={inspectTarget}
           inspectProgram={inspectProgram}
           onInspectTargetConsumed={() => { setInspectTarget(null); setInspectProgram(null); }}
-          onInspectedChange={setInspectedId}
+          // A building's panel and the build menu are one at a time (Plan
+          // 96C): opening a panel closes the menu, and the map closes its
+          // panel when the menu opens.
+          onInspectedChange={(id) => { setInspectedId(id); if (id !== null) closeBuild(); }}
+          buildOpen={buildOpen}
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
         <MainMenu s={s} act={act} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />

@@ -29,7 +29,7 @@ export default function StudentsTab({ s, act, target, onTargetConsumed }: {
       {classes.length >= 2 && (
         <div className="tab-content">
           <section className="panel">
-            <h2>The classes over the years</h2>
+            <div className="panel-head"><h2>The classes over the years</h2></div>
             <div className="history-charts">
               <MultiChart
                 title="Each class as it graduated"
