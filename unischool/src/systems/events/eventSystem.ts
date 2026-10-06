@@ -63,9 +63,11 @@ function fireResearchReport(s: GameState): boolean {
 
 // The celebration and the report are news, not questions (Plan 95T, the
 // second review's B4-6): each is filed as a letter (inbox.ts) and the clock
-// runs on. Each still takes the week it lands, as its stop did, so the
-// weeks after it read the same and the run's random stream does not move.
-// Letters older than the inbox keeps go.
+// runs on. Each still takes the week it lands, as its stop did: the
+// systems after it stand down (tickEvents returns, and a demand waits,
+// demandSystem.ts's announceDemand), so the weeks after it read the same
+// and the run's random stream does not move. Letters older than the inbox
+// keeps go.
 function fileNews(s: GameState, letter: NewsLetter): void {
   s.events.news = [...(s.events.news ?? []).filter((n) => letter.week - n.week < WEEKS_PER_YEAR), letter];
 }
