@@ -141,10 +141,10 @@ export function specializationStatus(
   chosen: Pillar | null, year: number | undefined, offered: boolean, milestone: number, max: number,
 ): string {
   if (chosen) {
-    return `The college is specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? `, chosen in Year ${year}` : ''}: ${PILLAR_WORDS[chosen]} may rise to the full ${max}, and the other three pillars' specialization terms stay empty.`;
+    return `The college is specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? `, chosen in Year ${year}` : ''}: ${PILLAR_WORDS[chosen]} may rise to the full ${max}, and the other three pillars' specialization shares stay empty.`;
   }
-  if (offered) return 'The college has not chosen a specialization, so each pillar\'s specialization term is empty. The board\'s offer stands, and comes back at the close of every summer until one is chosen.';
-  return `The college has no specialization, so each pillar's specialization term is empty. The board offers the choice at the first summer the college stands in the guide's top ${milestone}.`;
+  if (offered) return 'The college has not chosen a specialization, so each pillar\'s specialization share is empty. The board\'s offer stands, and comes back at the close of every summer until one is chosen.';
+  return `The college has no specialization, so each pillar's specialization share is empty. The board offers the choice at the first summer the college stands in the guide's top ${milestone}.`;
 }
 
 // A specialization's own building in the build menu, closed to a college
@@ -266,7 +266,9 @@ export function opensLine(pillar: Pillar, weight: number): string {
 export const CHOICE_WORDS = {
   title: 'A specialization',
   from: 'The board',
-  intro: (rank: number, milestone: number) => `The college stands #${rank} in the guide, in the top ${milestone}. The board asks the administration to choose the one pillar the college means to be the very best at. The choice is made once and kept: each pillar holds a share only its own specialization fills, and the chosen pillar's opens; the other three stay empty.`,
+  // `rule` is prestigeWords.ts's pillarShareRule (Plan 95E: the rule is
+  // said in one place).
+  intro: (rank: number, milestone: number, rule: string) => `The college stands #${rank} in the guide, in the top ${milestone}. The board asks the administration to choose the one pillar the college means to be the very best at. The choice is made once and kept. ${rule} The chosen pillar's share opens; the other three stay empty.`,
   now: 'Now',
   coming: 'Still to come',
   comingNote: 'Arrives in a later update.',
@@ -285,12 +287,13 @@ export const CHOICE_WORDS = {
 // stops the clock.
 export const SPECIALIZATION_NOTICE_ID = 'specialization-notice';
 
-export function specializationNotice(milestone: number, weights: Readonly<Record<Pillar, number>>): { title: string; text: string } {
+// `rule` is prestigeWords.ts's pillarShareRule (Plan 95E).
+export function specializationNotice(milestone: number, weights: Readonly<Record<Pillar, number>>, rule: string): { title: string; text: string } {
   const each = (['academics', 'research', 'studentLife', 'athletics'] as const)
     .map((p) => `${PILLAR_WORDS[p]}, ${SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ')}, which opens ${weights[p]} points of it`)
     .join('; ');
   return {
     title: `Within reach of the top ${milestone}`,
-    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. Each pillar holds a share that only its own specialization fills, so without one no pillar reaches the top. There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
+    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
   };
 }

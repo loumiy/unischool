@@ -184,7 +184,7 @@ function college(specialization: GameState['specialization'], status: 'locked' |
   s.orgs.complexRuns = [{ year: y - COMPLEX_WINDOW_YEARS, sport: 'soccer-m', finish: 'champion' }, { year: y - COMPLEX_WINDOW_YEARS + 1, sport: 'soccer-m', finish: 'champion' }];
   assert(complexPoints(s) === 1, 'a title older than the window counts for nothing');
   s.orgs.complexRuns = Array.from({ length: COMPLEX_POINTS_FOR_FULL }, (_, i) => ({ year: y - (i % COMPLEX_WINDOW_YEARS), sport: `s${i}`, finish: 'champion' as const }));
-  assert(term(s).score === 1 && /The term is full/.test(term(s).detail), `${COMPLEX_POINTS_FOR_FULL} titles in ten years fill it ("${term(s).detail}")`);
+  assert(term(s).score === 1 && /The share is full/.test(term(s).detail), `${COMPLEX_POINTS_FOR_FULL} titles in ten years fill it ("${term(s).detail}")`);
   // Nothing without the complex, and the row says why.
   complex(s).status = 'locked';
   assert(complexReading(s) === 0 && term(s).score === 0 && /no Athletic Performance Complex stands/.test(term(s).detail), `without the complex it is empty ("${term(s).detail}")`);

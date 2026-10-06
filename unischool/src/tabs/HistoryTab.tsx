@@ -23,6 +23,7 @@ import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
 import { collegeSpecialization } from '../systems/prestige/milestone';
 import { Standing, StandingFigure } from './StandingBreakdown';
 import RankingsPanel from './RankingsPanel';
+import { pillarShareRule, pillarWeightsWords } from '../data/prestigeWords';
 
 // Institutional History: the one screen that shows the decades. It reads
 // s.history (state/history.ts) and live readings, and stores nothing of its
@@ -46,7 +47,7 @@ function PrestigePanel({ s }: { s: GameState }) {
         </div>
         <HelpHint
           align="end"
-          text="Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, academics 35%, research 25%, student life 25% and athletics 15%, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings. Each pillar holds a share only its own specialization fills, so without one no pillar reaches the top; the college's specialization, once chosen, opens its own."
+          text={`Prestige is the college's overall standing, the number the guide ranks: the blend of four pillars, ${pillarWeightsWords()}, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings. ${pillarShareRule()} The college's specialization, once chosen, opens its own.`}
         />
       </div>
       <p className="stat specialization-status">{collegeSpecialization(s)}</p>
@@ -233,7 +234,7 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
             years={years}
             values={history.map((h) => h.prestige)}
             format={prestigeFigure}
-            note="Slow to move: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade reads the curriculum, the teaching, the students, research, satisfaction, campus life, the buildings and grounds, and the endowment."
+            note={`Slow to move: graded each summer and stepped toward the grade, with a little drift toward it between summers. The grade is the blend of four pillars, ${pillarWeightsWords()}, with the endowment added and neglect and crowding taken off.`}
           />
           <MultiChart
             title="Place in the guide, by year"
@@ -241,7 +242,7 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
             yMin={1}
             yMax={s.rivals.length + 1}
             series={[{ name: 'Rank', points: history.map((h) => ({ x: h.year, y: h.rank })), format: (v) => `#${Math.round(v)}` }]}
-            note={`Of ${s.rivals.length + 1} colleges, in the guide's academic ranking; #1 is the top.`}
+            note={`Of ${s.rivals.length + 1} colleges, by prestige; #1 is the top.`}
           />
           <HistoryChart
             label="Enrolled"
@@ -265,7 +266,7 @@ export default function HistoryTab({ s, act, target, onTargetConsumed }: {
             years={years}
             values={history.map((h) => h.coursesDone)}
             format={(v) => fraction(v, totalCourses)}
-            note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established. Breadth is what lifts the prestige limit — the decades-long half of the climb.`}
+            note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established. Breadth counts toward prestige as one part of the academics pillar, Curriculum breadth.`}
           />
         </div>
       </section>

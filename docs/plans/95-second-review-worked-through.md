@@ -444,6 +444,66 @@ the before and after counts in their **As implemented** note.
 - **Checks:** `npm run review:strings` is clean. The tests that pin these
   strings are updated.
 
+**As implemented.** Words only; nothing the simulation reads changed, so
+the sim was not run (the one file under `systems/` touched,
+`finance/distress.ts`, changed a comment).
+
+- **The rule's home** is `src/data/prestigeWords.ts`, a small words
+  module: `pillarWeightsWords()` ("academics 35%, research 25%, student
+  life 25% and athletics 15%", from `PILLAR_WEIGHTS`), `pillarShareRule()`
+  ("Each pillar holds a share only its own specialization fills, worth up
+  to 9.8 points of prestige in academics, 7.0 in research, 8.5 in student
+  life and 5.1 in athletics, so without one no pillar reaches the top."),
+  `pillarRule()` (the two together), `specializationShareWorth(pillar)`
+  (`SPECIALIZATION_TERM_WEIGHTS` × `PILLAR_WEIGHTS`, the share in points
+  of prestige, B2-3's figures) and `PILLAR_RULE_HOME` ("History ›
+  Prestige"). `test/pillar-rule.test.ts` scans every `.ts`/`.tsx` in
+  `src/` but `prestigeSystem.ts` for a pillar typed beside its weight or
+  the four weights in a row, and checks that each pattern catches its
+  sample, so the scan cannot go quiet.
+- **What it rewrote** (the habit, applied to itself: grepped for "only its
+  own specialization", "35%", "academic ranking", "prudent", "the term"):
+  - History's help (`HistoryTab.tsx`): the weights and the share rule
+    from the functions. The Prestige chart's note: the four pillars at
+    their weights, the endowment added, neglect and crowding taken off.
+    The guide chart's note: "Of {n} colleges, by prestige; #1 is the top."
+    The Catalog note: "Breadth counts toward prestige as one part of the
+    academics pillar, Curriculum breadth."
+  - The standings' help: the weights and the rule dropped for a pointer
+    to History › Prestige; the readings note under the four pillars takes
+    `pillarWeightsWords()`.
+  - The guide's help (`RankingsPanel.tsx`): the weights from the
+    function, the rule as a pointer.
+  - The choice's intro and the board's notice: `pillarShareRule()`,
+    passed in as an argument (`CHOICE_WORDS.intro`'s `rule`,
+    `specializationNotice`'s third), so `specializationData.ts`, which
+    `prestigeSystem.ts` imports, does not import back.
+  - The status line (`specializationStatus`): "specialization share".
+  - "Share" for "term" in the four programs' rows (training, the park,
+    the complex, the downtown: "The share is full from 12.", "fills the
+    share", "half the share") and on the Faculty training bar.
+  - The Rank hint: "Of {n} colleges, by prestige; #1 is the top; the rank
+    follows prestige, …" (one sentence, as `test/figures.test.ts` asks).
+  - The endowment: the board's worry gone. The help says "Above 5.0% the
+    draw takes most of the return: the fund grows little or shrinks, and
+    next year's draw with it"; the Grows line adds "so next year's draw
+    grows as little" (or "and next year's draw shrinks with it").
+    `DRAW_RATE_PRUDENT` still marks the line; its comment says so.
+  - `docs/plans/README.md`: the habit, as a third rule.
+- **Deviations.**
+  - The Prestige *figure* hint (`figureHints.ts`'s `prestige`) carried the
+    same false list as the chart's note (no athletics); it now takes
+    `pillarWeightsWords()` too. Not in the section; the same claim.
+  - The spec names three programs' lines; there are four (student life's
+    downtown says "term" too), and all four say "share".
+  - The share rule gives each share in points of prestige (9.8, 7.0, 8.5,
+    5.1), since it is built from both weights. The choice's cards and the
+    notice's list still say the pillar points ("worth 28 points"): F's to
+    change, and F can read `specializationShareWorth`.
+  - The status line keeps its own sentence (with "share"), not a pointer:
+    it sits in History › Prestige itself, and in the standings under it.
+  - The README's heading reads "Three rules" now that it holds three.
+
 ### PR 95F — The specialization choice, in prestige points (B2-3)
 
 - **The figure.** Each card says its share in points of prestige: "up to

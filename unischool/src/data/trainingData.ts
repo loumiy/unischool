@@ -81,9 +81,9 @@ export const GRADE_GAIN_WORDS = `a full grade, the width of their grade on the c
 export const TRAINING_WORDS = {
   // The academics pillar's specialization term, as its row reads.
   termNoInstitute: (year: string) =>
-    `The college is specialized in academics${year}, but no Faculty Training Institute stands, so this stays empty. Build one from the capital projects, then train professors there each year: the term fills as the share of the faculty trained rises, full at ${pct(TRAINED_SHARE_FOR_FULL)}.`,
+    `The college is specialized in academics${year}, but no Faculty Training Institute stands, so this stays empty. Build one from the capital projects, then train professors there each year: the share fills as more of the faculty is trained, full at ${pct(TRAINED_SHARE_FOR_FULL)}.`,
   termReading: (year: string, trained: number, faculty: number, full: boolean) =>
-    `The college is specialized in academics${year}: ${trained} of ${faculty} professors (${faculty > 0 ? pct(trained / faculty) : '0%'}) have been trained at the Faculty Training Institute. ${full ? `The term is full from ${pct(TRAINED_SHARE_FOR_FULL)}.` : `It fills as that share rises, full at ${pct(TRAINED_SHARE_FOR_FULL)}.`}`,
+    `The college is specialized in academics${year}: ${trained} of ${faculty} professors (${faculty > 0 ? pct(trained / faculty) : '0%'}) have been trained at the Faculty Training Institute. ${full ? `The share is full from ${pct(TRAINED_SHARE_FOR_FULL)}.` : `It fills as that rises, full at ${pct(TRAINED_SHARE_FOR_FULL)}.`}`,
 
   // The choice's card (specializationData.ts's SPECIALIZATION_CARDS).
   fills: `filling as professors are trained at the institute, full once ${pct(TRAINED_SHARE_FOR_FULL)} of the faculty has been trained`,
@@ -94,7 +94,7 @@ export const TRAINING_WORDS = {
   picksNote: (year: number) =>
     `One pick for every ${FACULTY_PER_TRAINING_PICK} professors, at least ${MIN_TRAINING_PICKS}. A pick raises a professor's teaching by ${GRADE_GAIN_WORDS}, and their potential by as much, so the gain lasts; for a term they teach one course fewer. Picks not used by the end of Year ${year} lapse.`,
   trainedShare: (trained: number, faculty: number) =>
-    `${trained} of ${faculty} professors trained so far (${faculty > 0 ? pct(trained / faculty) : '0%'}); the academics pillar's specialization term is full at ${pct(TRAINED_SHARE_FOR_FULL)}.`,
+    `${trained} of ${faculty} professors trained so far (${faculty > 0 ? pct(trained / faculty) : '0%'}); the academics pillar's specialization share is full at ${pct(TRAINED_SHARE_FOR_FULL)}.`,
   building: 'The Faculty Training Institute is under construction. Training begins once it opens.',
   noInstitute: 'The college is specialized in academics. Build the Faculty Training Institute from the capital projects in the build menu to train professors: each year it takes some for a term, and they come back a full grade better in the classroom.',
   filterTrainable: 'Can be trained',

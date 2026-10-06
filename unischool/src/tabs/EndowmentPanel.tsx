@@ -33,7 +33,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
     <section className="panel endowment-panel">
       <div className="panel-head">
         <h2>The endowment</h2>
-        <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into income every week. Draw less and it grows faster; draw more and income rises now at the cost of later. Above ${rate(DRAW_RATE_PRUDENT)} the board starts to worry. Cash moved in stays in: it pays out only at the draw rate, or to pay half a capital project. A building the cash cannot cover can be borrowed for, against up to ${pct(BORROWING_SHARE)} of the endowment, repaid weekly over ${LOAN_YEARS} years at ${rate(LOAN_RATE)}.`} />
+        <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into income every week. Draw less and it grows faster; draw more and income rises now at the cost of later. Above ${rate(DRAW_RATE_PRUDENT)} the draw takes most of the return: the fund grows little or shrinks, and next year's draw with it. Cash moved in stays in: it pays out only at the draw rate, or to pay half a capital project. A building the cash cannot cover can be borrowed for, against up to ${pct(BORROWING_SHARE)} of the endowment, repaid weekly over ${LOAN_YEARS} years at ${rate(LOAN_RATE)}.`} />
       </div>
       <div className="treasury-dial">
         <span>Draw rate</span>
@@ -52,7 +52,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
         <dt>Grows</dt>
         <dd>
           {growth >= 0 ? `${rate(growth)} a year, before gifts` : `shrinks ${rate(-growth)} a year`}
-          {draw > DRAW_RATE_PRUDENT && <span className="stat"> — more than the board thinks prudent</span>}
+          {draw > DRAW_RATE_PRUDENT && <span className="stat"> — {growth >= 0 ? 'so next year\'s draw grows as little' : 'and next year\'s draw shrinks with it'}</span>}
         </dd>
       </dl>
       <div className="treasury-transfer">
