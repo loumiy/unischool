@@ -58,6 +58,24 @@ export function meanGradePoints(scores: readonly number[]): number {
   return scores.reduce((sum, score) => sum + GRADE_POINTS[gradeFor(score)], 0) / scores.length;
 }
 
+// Mean grade points as a letter (Plan 95H, the second review's B2-3), so
+// the teaching standard is named by its own measure: between two grades
+// sit two steps a third apart, as a transcript reads them (B, B+, A−, A),
+// and the letter is the nearest step. F has no plus.
+const GRADE_LADDER: readonly Grade[] = ['F', 'D', 'C', 'B', 'A'];
+const GRADE_STEPS: ReadonlyArray<readonly [string, number]> = GRADE_LADDER.flatMap((g, i) => {
+  const next = GRADE_LADDER[i + 1];
+  if (!next) return [[g, GRADE_POINTS[g]] as const];
+  const lo = GRADE_POINTS[g];
+  const third = (GRADE_POINTS[next] - lo) / 3;
+  return [[g, lo] as const, ...(g === 'F' ? [] : [[`${g}+`, lo + third] as const]), [`${next}−`, lo + 2 * third] as const];
+});
+export function meanGradeLetter(points: number): string {
+  let best = GRADE_STEPS[0];
+  for (const step of GRADE_STEPS) if (Math.abs(step[1] - points) < Math.abs(best[1] - points)) best = step;
+  return best[0];
+}
+
 // --- Load: what a full plate costs the courses on it. ---
 // Scales with how close the instructor is to their own slot ceiling
 // (exceeding it is impossible in play): one course is taught at full
