@@ -1611,6 +1611,94 @@ Selective and Lean never reach prestige 70 or the top 25.
   - a save mid-run where the college already stands in a pillar's top 10
     is offered at its next summer, not at once.
 
+**As implemented.**
+- `SPECIALIZATION_MILESTONE_RANK` is 30 and `SPECIALIZATION_PILLAR_RANK`
+  is 10 (`prestigeSystem.ts`). `tickSpecialization` reads the overall rank
+  and the best of the four pillar ranks (`milestone.ts`'s
+  `bestPillarStanding`: the standings' own `rankBy`, ranks only, since the
+  watch runs weekly until the notice). Notice and offer use one test,
+  `within(places)`, on either route. The offer's log line names the route:
+  "#30 in the guide", or "#10 in research in the standings" when only the
+  pillar brought it. The choice stays open to all four.
+- **Words.** `prestigeWords.ts` gains `specializationOfferWhen` and
+  `specializationOfferRule` ("The board offers the choice of a
+  specialization at the first summer the college stands in the guide's top
+  30 or in the top 10 of any one pillar's standing."). The status line
+  (History, the standings), the closed-building line in the build menu, the
+  Research Park and complex lines, and History › Prestige's help all use
+  it. The notice is now titled "Within reach of a specialization" and names
+  both routes. The choice's intro names the route: the guide's rank if the
+  college is in the top 30, else its pillar ("#6 in athletics, in the top
+  10 of a pillar's standing"). `test/pillar-rule.test.ts` now also fails if
+  any file but `prestigeWords.ts` types the offer's rank into a string.
+- **Tests** (`specialization-choice.test.ts`): the notice and the offer by
+  the pillar alone, with the college at #60 overall; one place short in
+  the pillar gives the notice and no offer; a save written mid-year in
+  research's top 10 gets the notice at once, no offer until that year's
+  summer, then the choice at its close, and may choose athletics.
+- **The goal players** (`review:goals`, three seeds, one name; the goal
+  report gains an *Offered* column):
+
+  | Goal | Offered (review) | Offered now | Takes | Titles a run |
+  |---|---|---|---|---|
+  | revenue | never | Y19 (19–21) | research ×3 | 0 |
+  | prestige | Y41 (34–47) | Y19 (17–20) | academics ×3 | 0 |
+  | satisfaction | never | **never** | — | 0 |
+  | assets | Y39 (30–41) | **Y9** (9–9) | research ×3 | 1 |
+  | championships | never | Y12 (10–30) | athletics ×3 | **48** (review 0, ten in all) |
+  | good-then-big | Y47 (6 of 10) | Y41 (30–43) | academics ×3 | 0 |
+  | big-then-good | Y43 | Y14 (11–23) | student life ×3 | 1 |
+
+  At Year 50: championships ranks 43 (review 50) at prestige 81 (72);
+  assets ranks 2, big-then-good 2, prestige 3 (review 3, 5, 11). The
+  satisfaction goal is still never offered: its student life stands #26
+  at Year 50, and its best overall rank is about 55.
+- **The sim moved** (re-baselined; three seeds, medians; change from the
+  95N baseline in brackets):
+
+  | Player | Y10 prestige | Y25 rank / prestige | Y50 rank / prestige | Offered and chosen | Top 20 |
+  |---|---|---|---|---|---|
+  | Guided | 47.4 | 30 (−1) / 81.0 (+1.8) | 1 / 119.5 (+0.7) | Y12, Y26, Y12 (was Y30–32) | Y30, Y32, Y30 |
+  | Guided, academics | 47.4 | 31 / 81.2 (+1.9) | 1 / 119.4 (−1.9) | Y12, Y26, Y12 | Y30, Y32, Y30 |
+  | Guided, research | 47.4 | 31 / 81.2 (+1.9) | 1 / 120.1 (+1.2) | Y12, Y26, Y12 | Y31, Y32, Y29 |
+  | Guided, student life | 47.4 | 30 (−1) / 81.0 (+1.8) | 1 / 119.2 (+0.3) | Y12, Y26, Y12 | Y30, Y32, Y30 |
+  | Guided, athletics | 47.4 | 30 (−1) / 80.8 (+1.5) | 1 / 118.1 (−1.9) | Y12, Y26, Y12 | Y28, Y32, Y29 |
+  | Guided, unspecialized | 47.4 | 31 / 80.1 (+0.9) | 5 (+3) / 111.5 (+0.4) | (offered as Guided) | Y33, Y33, Y31 |
+  | Completionist | 48.1 (+1.0) | 30 (−9) / 82.2 (+8.3) | 3 (−3) / 111.9 (+3.4) | Y6, Y10, Y6 (was Y40–43) | Y29, Y29, Y27 |
+  | Selective, Lean, Idle | unchanged | unchanged | unchanged | never | never |
+
+  Guided's choice is taken in its offer year: Guided picks student life
+  twice and research once. No run goes into the red; the Completionist's
+  weeks in the red fall from 1 to 0. Guided still reaches #1 on every seed,
+  from Y43–49.
+- **Plan 85I's targets** (Plan 85D's table, as 85I restated it): each
+  specialist is first by Year 50 on every seed (met). Its pillar is first
+  by 5 or more for academics (8.2–8.5), research (9.9) and athletics
+  (11.6–12.6); student life misses on two seeds of three (+1.9, #3 at
+  −2.9, +6.6; before: 3.9, 7.0, 5.7). Unspecialized play is top 10 and
+  never first (5th; best 4, 5, 6): met. The owner's 25–40 for the
+  milestone is now missed early: Y12 for Guided on two seeds.
+- **The rivals** are untouched: each is dealt its pillar off its id
+  (`rivalData.ts`), 35 academics, 23 research, 19 student life and 22
+  athletics of 99. "35-odd per pillar" holds only for academics; it did
+  before this PR too.
+- **Deviation: the choice comes sooner than the plan's Y25–35.** The
+  pillar route mostly fires on **student life**. A founding college stands
+  about #10–13 in student life within its first decade, because its
+  welfare fills it while most rivals' unspecialized student life is held
+  low. So most goals and the Completionist are offered at Y6–20, not
+  Y25–35. The figures are the plan's (30 and 10). I did not retune them:
+  each sim takes 80 minutes here, and the timing is the owner's call. If
+  the owner wants Y25–35, there are three ways: a stricter pillar rank
+  (top 5); the pillar route only from a year or a prestige floor; or
+  counting only research and athletics on that route.
+- **Deviation: three seeds and one name for the goal players**, not ten
+  seeds (the brief allowed three). Each run took 5–15 minutes on a shared
+  machine.
+- The sim was run before merging origin/main (95C, 95D, 95K, 95O, 95Q),
+  which did not change `sim/baseline.json`. The baseline was saved from
+  that run's rows (`--from-runs --save`).
+
 ### PR 95S — Teaching: the line that opens *Below A*, and the Provost's policy (B4-5)
 
 - **The link.** History › Prestige's teaching line ("11% of courses graded
