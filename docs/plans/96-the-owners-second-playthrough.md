@@ -647,8 +647,8 @@ before and after, and the scorecard's later targets still pass.
   3. **The tolerance on the slider**: "Families expect about $19,900"
      under the tier
      ([shot](../reviews/2026-10-playthrough-fixes/96i-tuition-tolerance.jpg)).
-     The backlog's *The price is set blind* is answered for every college,
-     not only one with an Admissions Office.
+     It answers half of the backlog's *The price is set blind* for every
+     college; last year's response beside it is still to do.
 
   The other two candidates, a cheaper first tier of courses and an early
   fifth seat, were left alone: with the pool larger, year 2's net per week
@@ -686,8 +686,8 @@ before and after, and the scorecard's later targets still pass.
 ## 4. The backlog
 
 - The *Awaiting the owner: the second playthrough* entry points here.
-- *The price is set blind* comes off: I shows the families' tolerance on
-  every college's slider.
+- *The price is set blind* stays, amended: I shows what families expect,
+  but not last year's response, which the entry asks for.
 - *Targets against actuals* stays there, undecided (decision 6).
 - If G finds the reducer's clone is still most of a late tick, its numbers
   go into *The sim on a worker thread*.

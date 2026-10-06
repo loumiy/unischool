@@ -121,6 +121,12 @@ a sequence of PRs.*
 - **Size levers** (A4-5). Declining an offer (78D) and recruiting (80G)
   exist; a target enrolment, or *stay small on purpose*, in the summer's
   admissions beat does not.
+- **The price is set blind** (A4-6). The summer's tuition slider shows a
+  tier, and since Plan 96I what families expect at the college's prestige,
+  but not how last year's price moved the pool
+  (`components/InterruptModal.tsx`). Show last year's response beside it.
+  Plan 89's Admissions Office answers it for a college that opens the
+  office; this entry stays for the rest.
 - **Small leftovers of the Final Report and the worklist** (A4-2, A4-4):
   - the access weakness still reads "never opened its doors very wide"
     (`data/reportData.ts`), which goes to the largest colleges; the
