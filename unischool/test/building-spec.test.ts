@@ -28,7 +28,7 @@ import {
   partsFor, entrancePartOf, rooflineEndPartOf, apexPartOf, hasRoofForm,
   VERNACULAR_CHOICES, BONUS_VERNACULAR_CHOICES, RESIDENCE_FORMS, hasBalconies,
   IMPLEMENTED_ENTRANCE_PARTS, IMPLEMENTED_ROOFLINE_END_PARTS, IMPLEMENTED_APEX_PARTS, IMPLEMENTED_CREST_PARTS,
-  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, VERNACULAR_WALL_LABS, crestOf, signifierOf, labFeatureOf, signatureOf, gothicCivicOf,
+  SURFACE_FOLLOWS_MOTIFS, surfaceFollowsVernacular, VERNACULAR_WALL_LABS, RENDER_VERNACULARS, crestOf, signifierOf, labFeatureOf, signatureOf, gothicCivicOf,
   hasClockTower as carriesClockTower,
   VERNACULARS, motifOf, rankSills, ridgeOf, CHAPELS, chapelPlan,
   storeysOf, wallHeightOf, wallShadeOf,
@@ -936,13 +936,27 @@ console.log('campus scale and building spec');
       }
       continue;
     }
-    const base = materialOf(t, 'georgian');
+    // Measured against Modern: the render forms wear the set's academic
+    // wall everywhere but Modern and Art Deco (Plan 95D); open ground keeps
+    // render.
+    const base = materialOf(t, 'modern');
+    const rendered = base.wall === materialsFor('modern').render.wall && motifOf(t) !== 'grounds';
     for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
       const here = materialOf(t, vname);
+      if (rendered && !RENDER_VERNACULARS.includes(vname)) {
+        assert(here.wall === materialsFor(vname).brickRed.wall, `${t.id} (${motifOf(t)}) wears '${vname}''s academic wall, not render`);
+        continue;
+      }
       assert(here.wall === base.wall && here.roof === base.roof,
-        `${t.id} (${motifOf(t)}) is the same material in '${vname}' as in 'georgian' `
+        `${t.id} (${motifOf(t)}) is the same material in '${vname}' as in 'modern' `
         + `(got ${here.wall}/${here.roof}, expected ${base.wall}/${base.roof})`);
     }
+  }
+  // No building outside Modern and Art Deco wears render (Plan 95D, B1-3).
+  for (const vname of Object.keys(VERNACULARS) as Vernacular[]) {
+    if (RENDER_VERNACULARS.includes(vname)) continue;
+    const rendered = CATALOGUE.filter((t) => motifOf(t) !== 'grounds' && materialOf(t, vname).wall === materialsFor(vname).render.wall);
+    assert(rendered.length === 0, `nothing in '${vname}' wears the render wall (got ${rendered.map((t) => t.id).join(', ')})`);
   }
   // And the exempt labs do follow the set (Plan 87I): the academic wall.
   for (const id of VERNACULAR_WALL_LABS) {
