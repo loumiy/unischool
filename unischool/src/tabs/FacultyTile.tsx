@@ -34,11 +34,13 @@ import { gradeFor } from '../data/courseQuality';
 // teaching and research as meters with their letters on the course-grade
 // bands and where each is heading, and badges for a quirk, prizes and a
 // retirement within the year. The foot carries pay, load or the listing's
-// time left, and the action.
+// time left, More, and on the market Appoint.
 //
 // Opened (Plan 84E), the tile becomes the person (FacultyPerson.tsx): in
 // place, across the grid's whole row, on a wide screen; full screen on a
-// phone, where a row is too narrow to read a career in.
+// phone, where a row is too narrow to read a career in. The opened face
+// carries Train and Dismiss (Plan 95G): what loses or spends something is
+// done from the page that says what the person is.
 // ---------------------------------------------------------------------
 
 // What somebody is committed to, flattened from the running initiatives.
@@ -100,6 +102,76 @@ function usePhone(): boolean {
   return phone;
 }
 
+// Train and Dismiss (Plan 95G, the second review's B2-1): on the person
+// page that More opens, not on the face, so a year-40 grid is not a wall
+// of about 80 Dismiss buttons. Both keep their ask-first and their reasons.
+export function FacultyActions(
+  { s, act, f, commitment, load }:
+  { s: GameState; act: (a: Action) => void; f: Faculty; commitment?: Commitment; load?: number },
+) {
+  const taught = coursesTaughtBy(s, f);
+  const slots = effectiveCourseSlots(s, f);
+  const held = load ?? taught.length;
+  // The faculty training program (Plan 85E): where the institute stands, a
+  // professor below an A can be sent for a term. A pick that would move one
+  // of their courses asks first and names where it goes.
+  const institute = instituteStands(s);
+  const trainRefusal = institute ? whyNotTrain(s, f) : null;
+  const outcome = institute && trainRefusal === null ? trainingOutcome(s, f) : null;
+  // Planned only when a course would have to move: the plan reads every
+  // colleague's load.
+  const trainCoverage = outcome && held > Math.max(0, slots - TRAINING_SLOTS) ? planTrainingCoverage(s, f.id) : null;
+  return (
+    <>
+      {institute && trainRefusal !== 'top-grade' && (
+        outcome ? (
+          <ConfirmButton
+            className="btn-train"
+            label={TRAINING_WORDS.train}
+            title={TRAINING_WORDS.trainTitle(outcome.from, outcome.to, gradeFor(outcome.from), gradeFor(outcome.to), trainingUntil(outcome.untilWeek))}
+            armedLabel={TRAINING_WORDS.trainArmed(trainCoverage?.shed[0]?.name.split(' · ')[0] ?? '')}
+            warning={trainCoverage?.shed[0] && TRAINING_WORDS.trainWarning(
+              f.name, trainCoverage.shed[0].name.split(' · ')[0],
+              trainCoverage.covered[0]?.instructor.name ?? null, trainingUntil(outcome.untilWeek),
+            )}
+            needsConfirm={(trainCoverage?.shed.length ?? 0) > 0}
+            onConfirm={() => act({ type: 'TRAIN_FACULTY', facultyId: f.id })}
+          />
+        ) : (
+          <button
+            type="button"
+            className="btn-train"
+            disabled
+            title={trainRefusal === 'this-year' ? TRAINING_WORDS.whyNot.thisYear : TRAINING_WORDS.whyNot.noPicks(s.clock.year)}
+          >
+            {TRAINING_WORDS.train}
+          </button>
+        )
+      )}
+      {/* Dismissing someone orphans their courses (the reducer's
+          FIRE_FACULTY) and leaves any research team one short, so it asks
+          first and names the loss. Someone teaching nothing and on no
+          project is dismissed on the first click. */}
+      <ConfirmButton
+        className="btn-danger"
+        label="Dismiss"
+        armedLabel={taught.length > 0
+          ? `Confirm — ${taught.length} ${taught.length === 1 ? 'course' : 'courses'} left unstaffed`
+          : `Confirm — the ${commitment?.topic ?? 'research'} team one short`}
+        warning={<>
+          {taught.length > 0 && <>
+            {f.name} teaches {taught.map((c) => c.name.split(' · ')[0]).join(', ')}, which will be left without an instructor.
+          </>}
+          {taught.length > 0 && commitment && ' '}
+          {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
+        </>}
+        needsConfirm={taught.length > 0 || !!commitment}
+        onConfirm={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}
+      />
+    </>
+  );
+}
+
 export default function FacultyTile(
   { s, act, f, isCandidate, commitment, waiting, load, onOpenCurriculum }:
   {
@@ -139,15 +211,6 @@ export default function FacultyTile(
   // candidate always could, a professor only with a course slot free.
   const waits = isCandidate || held < slots ? waitingCount(waiting) : 0;
 
-  // The faculty training program (Plan 85E): where the institute stands, a
-  // professor below an A can be sent for a term. A pick that would move one
-  // of their courses asks first and names where it goes.
-  const institute = !isCandidate && instituteStands(s);
-  const trainRefusal = institute ? whyNotTrain(s, f) : null;
-  const outcome = institute && trainRefusal === null ? trainingOutcome(s, f) : null;
-  // Planned only when a course would have to move: the plan reads every
-  // colleague's load, too much for every tile on every render.
-  const trainCoverage = outcome && held > Math.max(0, slots - TRAINING_SLOTS) ? planTrainingCoverage(s, f.id) : null;
   const atInstitute = !isCandidate && trainingSlotsOff(s, f) > 0;
   const timesTrained = f.career?.training?.length ?? (f.training ? 1 : 0);
 
@@ -155,8 +218,8 @@ export default function FacultyTile(
   // The staff ID card (Plan 90): a band in the school's colour with the
   // field and the courses waiting in it, the portrait mounted upright, the
   // rank stamped, the stats as meters, and the pay, load and actions in a
-  // strip at the foot.
-  const face = (
+  // strip at the foot. Train and Dismiss only when opened (Plan 95G).
+  const faceOf = (withActions: boolean) => (
     <>
       <div className="faculty-tile-band">
         <span className="faculty-tile-field">{f.field}</span>
@@ -247,60 +310,20 @@ export default function FacultyTile(
           >
             <DisclosureIcon open={open} /> {open ? 'Less' : 'More'}
           </button>
-          {institute && trainRefusal !== 'top-grade' && (
-            outcome ? (
-              <ConfirmButton
-                className="btn-train"
-                label={TRAINING_WORDS.train}
-                title={TRAINING_WORDS.trainTitle(outcome.from, outcome.to, gradeFor(outcome.from), gradeFor(outcome.to), trainingUntil(outcome.untilWeek))}
-                armedLabel={TRAINING_WORDS.trainArmed(trainCoverage?.shed[0]?.name.split(' · ')[0] ?? '')}
-                warning={trainCoverage?.shed[0] && TRAINING_WORDS.trainWarning(
-                  f.name, trainCoverage.shed[0].name.split(' · ')[0],
-                  trainCoverage.covered[0]?.instructor.name ?? null, trainingUntil(outcome.untilWeek),
-                )}
-                needsConfirm={(trainCoverage?.shed.length ?? 0) > 0}
-                onConfirm={() => act({ type: 'TRAIN_FACULTY', facultyId: f.id })}
-              />
-            ) : (
-              <button
-                type="button"
-                className="btn-train"
-                disabled
-                title={trainRefusal === 'this-year' ? TRAINING_WORDS.whyNot.thisYear : TRAINING_WORDS.whyNot.noPicks(s.clock.year)}
-              >
-                {TRAINING_WORDS.train}
-              </button>
-            )
-          )}
-          {isCandidate ? (
-            <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
-          ) : (
-            // Dismissing someone orphans their courses (the reducer's
-            // FIRE_FACULTY) and leaves any research team one short, so it
-            // asks first and names the loss. Someone teaching nothing and
-            // on no project is dismissed on the first click.
-            <ConfirmButton
-              className="btn-danger"
-              label="Dismiss"
-              armedLabel={taught.length > 0
-                ? `Confirm — ${taught.length} ${taught.length === 1 ? 'course' : 'courses'} left unstaffed`
-                : `Confirm — the ${commitment?.topic ?? 'research'} team one short`}
-              warning={<>
-                {taught.length > 0 && <>
-                  {f.name} teaches {taught.map((c) => c.name.split(' · ')[0]).join(', ')}, which will be left without an instructor.
-                </>}
-                {taught.length > 0 && commitment && ' '}
-                {commitment && <>{taught.length > 0 ? 'The' : `${f.name} is on a research project; the`} team on {commitment.topic} carries on one short.</>}
-              </>}
-              needsConfirm={taught.length > 0 || !!commitment}
-              onConfirm={() => act({ type: 'FIRE_FACULTY', facultyId: f.id })}
-            />
-          )}
+          {/* Train and Dismiss are on the person page, not the face (Plan
+              95G, the second review's B2-1). Appoint stays: the market is
+              where a candidate is compared and taken. */}
+          {isCandidate
+            ? <button className="appoint" onClick={() => act({ type: 'HIRE_FACULTY', facultyId: f.id })}>Appoint</button>
+            : withActions && <FacultyActions s={s} act={act} f={f} commitment={commitment} load={load} />}
         </div>
       </div>
 
     </>
   );
+
+  const face = faceOf(false);
+  const opened = faceOf(true);
 
   const className = `faculty-card faculty-tile${isCandidate ? ' listed' : ''}${commitment ? ' committed' : ''}`;
   const person = <FacultyPerson s={s} f={f} isCandidate={isCandidate} commitment={commitment} onOpenCurriculum={onOpenCurriculum} />;
@@ -321,7 +344,7 @@ export default function FacultyTile(
               <button type="button" className="tab-overlay-close faculty-sheet-close" onClick={() => setOpen(false)} autoFocus>{CAREER_WORDS.close}</button>
             </div>
             <div className={`${className} faculty-sheet-body`}>
-              {face}
+              {opened}
               {person}
             </div>
           </div>,
@@ -335,7 +358,7 @@ export default function FacultyTile(
     <li ref={tileRef} className={`${className}${open ? ' expanded' : ''}`} data-faculty={f.id}>
       {open ? (
         <>
-          <div className="faculty-tile-face">{face}</div>
+          <div className="faculty-tile-face">{opened}</div>
           {person}
         </>
       ) : face}

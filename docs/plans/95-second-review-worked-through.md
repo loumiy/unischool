@@ -495,6 +495,70 @@ the before and after counts in their **As implemented** note.
   training and dismissal drive the person page. Screenshots at desktop
   and phone.
 
+**As implemented.**
+
+- **The face.** `FacultyTile.tsx` draws the face twice over: in the grid
+  without Train and Dismiss, and opened (in place on a wide screen, in the
+  sheet on a phone) with them, from a new `FacultyActions`. Both keep
+  their ask-first, Train's outcome as its tooltip, its refusal ("this
+  year", "no picks") and no Train for an A. A candidate's Appoint stays on
+  the face. The ID card is unchanged.
+- **The summary** is `FacultyFigures`: "738 course slots · 431 on
+  offer · the whole catalog covered" at year 40; where courses wait and
+  the catalog outruns the faculty it reads "· 12 open · 61 short of the
+  catalog". Each figure's old sentence is its tooltip. The market's
+  standing is one sentence: "A typical candidate's potential
+  now: about 66 for teaching, 69 for research." The two paragraphs' rest
+  is in the tab's help (`FACULTY_HELP`), which also says that More opens
+  Train and Dismiss.
+- **The view, sort and filters** are held in `App.tsx`
+  (`FacultyViewMemory`), cleared by New Game. They were already kept for
+  the session in module state, which also outlived New Game.
+- **Phone.** At the largest text the first screen now reaches the
+  figure row and the first faces at year 40 and at the training college.
+  The figures alone were not enough, so on a phone (≤520px) the filter bar
+  folds behind "Sort and filter · 85", the "On the faculty" heading goes
+  (the view switch names the view), and the training bar's note moves
+  behind a '?'. Desktop is unchanged by these.
+- **Counts**, desktop, the gallery's top layer, before → after:
+
+  | Save | Grid | Person open |
+  |---|---|---|
+  | y8 (year 9) | 1,107 w / 135 c → 973 / 102 | 1,301 / 136 → 1,168 / 104 |
+  | summer30 (year 30) | 1,946 / 282 → 1,771 / 208 | 2,147 / 283 → 1,973 / 210 |
+  | y40 (year 41) | 2,027 / 313 → 1,867 / 228 | 2,319 / 314 → 2,160 / 230 |
+  | training (year 38) | 2,317 / 353 → 2,129 / 240 | 2,514 / 354 → 2,327 / 242 |
+
+  The year-40 grid loses 85 Dismiss buttons; the training college's, 91
+  Dismiss and 22 Train. The market and the departments lose the
+  summary's 75–100 words.
+- **Tests:** `test/faculty-tile.test.ts` renders every face of the launch
+  college (no Train, no Dismiss, More kept), the person page's actions
+  (Train, Dismiss, the refusal with the picks spent, no Train for an A or
+  without the institute), a candidate's Appoint, and the figure row.
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/95g-*.jpg`:
+  desktop before and after at the training college, a person opened with
+  Train and Dismiss, and the phone at the largest text before and after
+  at year 40, at the training college, and a person's sheet.
+- **Balance:** UI only; no sim run.
+
+Deviations:
+
+- **The measure** is `npm run review:gallery` (`--sizes desktop
+  --no-shots`), not `review:sweep`: the sweep is the bug sweep and
+  counts nothing. The saves are the review's (`year-8-balanced`,
+  Completionist's year-30 summer, `year-40-done`) plus `training`.
+- **The figure row** says "on offer", not "taught": the slots are taken
+  by every course offered, staffed or not, so "taught" would be a new
+  false claim (B2-2). It keeps "open" when courses wait to be developed.
+- **The phone needed more than the figure row** (above): the filter fold,
+  the heading and the training note. `tools/shoot.mjs` gained
+  `--settings=<json>` to shoot at the largest text.
+- **Train's school-coloured outline** (B2-5's fifth role) is kept, on the
+  person page only, as the plan says; it is no longer on the grid.
+- The "before" desktop screenshot is at 1600×1000, the "after" at
+  1440×900.
+
 ### PR 95H — History in three views (B2-1, with B2-3 and B2-4)
 
 - **Three views** on the sliding switch (`segmentedSwitch.ts`), as Faculty
