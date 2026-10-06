@@ -5,6 +5,7 @@ import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
 import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, UNIVERSITY_CAPTION, prefixedCaption } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
+import { LogoMark } from './Logo';
 import type { SchoolColors, Vernacular } from '../state/types';
 import { COLLEGE_NAME_MAX, bareSchoolName, typedPrefixed, typedUniversity } from '../state/types';
 
@@ -616,7 +617,13 @@ export default function StartupScreen({ onStart, sandbox = false }: {
   useEffect(() => { applySchoolColors(colors); }, [colors.primary, colors.secondary]);
 
   return (
+    // Over the title art, as the title screen is: the mark in the sky, the
+    // founding on a frosted card.
     <div className="startup">
+      <div className="startup-brand" aria-hidden="true">
+        <LogoMark className="startup-brand-mark" />
+        <span>UniSchool</span>
+      </div>
       <div className="startup-card">
         {/* What the game is, in one line. */}
         <div className="dateline">{sandbox ? 'Sandbox: unlimited funds, and nothing to wait for.' : 'Fifty years to build a university.'}</div>
