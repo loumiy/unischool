@@ -729,6 +729,13 @@ export function crowdingScore(s: GameState): number {
     : crowdingShortfallNow(s);
 }
 
+// What the crowding term takes from prestige's grade, in points: the
+// admissions decision's projection reads it (Plan 95P, the second review's
+// B3-5).
+export function crowdingPoints(s: GameState): number {
+  return CROWDING_PENALTY * crowdingScore(s);
+}
+
 function reading(
   key: string, label: string, score: number, detail: string,
   weight?: number, penalty?: boolean,

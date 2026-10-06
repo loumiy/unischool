@@ -3644,6 +3644,8 @@ body:has(.building-info-panel) .pennant { display: none; }
 /* ---------- The cost of being large (Plan 36) ---------- */
 .next-thousand { font-size: var(--text-base); }
 .next-thousand.bad { color: var(--bad-on-light); }
+/* What crowding costs prestige (Plan 95P). */
+.crowding-cost { font-size: var(--text-base); color: var(--bad-on-light); }
 /* ---------- Which tree the plant tool plants (Plan 37, BuildPopup.tsx) ---------- */
 .sound-mute { align-self: flex-start; padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 .species-chips { flex: 0 0 132px; display: flex; flex-direction: column; justify-content: center; gap: 5px; }

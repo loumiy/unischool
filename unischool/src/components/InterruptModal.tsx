@@ -440,6 +440,15 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 hint={FIGURE_HINTS.tightestNeed}
                 value={<CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} />}
               />
+              {/* What the body costs prestige (Plan 95P, the second review's
+                  B3-5): nothing while every need is 85% covered or better. */}
+              {consequence.crowding > 0 && (
+                <Figure
+                  label="Crowding"
+                  hint={FIGURE_HINTS.projectedCrowding}
+                  value={<span className="crowding-cost">{signed(-consequence.crowding, 1)} of prestige's grade ({consequence.crowdingWorst.label} {pct(consequence.crowdingWorst.coverage)})</span>}
+                />
+              )}
               {consequence.totalEnrolled > SCALE_FREE_BELOW && (() => {
                 // The break (Plan 36): what the next thousand would pay at this
                 // price against what they would cost at this size.
