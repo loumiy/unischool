@@ -13,7 +13,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { pct } from '../src/format';
 import { PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, SPECIALIZATION_TERM_WEIGHTS } from '../src/systems/prestige/prestigeSystem';
-import { pillarRule, pillarShareRule, pillarWeightsWords, pillarWorthWords, specializationShareWorth } from '../src/data/prestigeWords';
+import { pillarRule, pillarShareRule, pillarWeightsWords, pillarWorthWords, specializationOfferRule, specializationShareWorth } from '../src/data/prestigeWords';
 import { specializationStatus } from '../src/data/specializationData';
 import { FIGURE_HINTS } from '../src/data/figureHints';
 
@@ -54,9 +54,9 @@ console.log('pillar rule tests');
 // ---- The status line says "share" ----
 {
   const lines = [
-    specializationStatus('academics', 30, false, 20, 150),
-    specializationStatus(null, undefined, true, 20, 150),
-    specializationStatus(null, undefined, false, 20, 150),
+    specializationStatus('academics', 30, false, specializationOfferRule(), 150),
+    specializationStatus(null, undefined, true, specializationOfferRule(), 150),
+    specializationStatus(null, undefined, false, specializationOfferRule(), 150),
   ];
   for (const line of lines) assert(!/\bterm\b/.test(line), `the status line says "share" ("${line}")`);
 }
@@ -96,6 +96,10 @@ const RULES: RegExp[] = [
     });
   }
   assert(typedByHand.length === 0, `no file types the pillar weights by hand; build them with prestigeWords.ts:\n    ${typedByHand.join('\n    ')}`);
+  // When the choice is offered (Plan 95R): the two routes are said in
+  // prestigeWords.ts alone, so no string keeps one route's old figure.
+  const offerByHand = files.filter((f) => relative(SRC, f) !== 'data/prestigeWords.ts' && /stands in the guide's top \$\{/.test(readFileSync(f, 'utf8')));
+  assert(offerByHand.length === 0, `no file says when the choice is offered by hand; use specializationOfferRule: ${offerByHand.map((f) => relative(SRC, f)).join(', ')}`);
 }
 
 if (failures === 0) {

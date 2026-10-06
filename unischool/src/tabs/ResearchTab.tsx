@@ -21,7 +21,7 @@ import { standsOnCampus } from '../state/types';
 import { PARK_WORDS, landmarkYears, landmarksRunning, parkReading } from '../data/researchParkData';
 import { PILLAR_WORDS } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/specialization';
-import { SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
+import { specializationOfferRule } from '../data/prestigeWords';
 
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
@@ -355,7 +355,7 @@ function ResearchParkProgress({ s }: { s: GameState }) {
         <p className="research-park-line">Going up: {weeksShort(weeksLeft)} left. Landmark Programs open when it stands.</p>
       ) : (
         <>
-          {chosen === null && <p className="research-park-line">{PARK_WORDS.gatedUnchosen(SPECIALIZATION_MILESTONE_RANK)}</p>}
+          {chosen === null && <p className="research-park-line">{PARK_WORDS.gatedUnchosen(specializationOfferRule())}</p>}
           <p className="research-park-line">
             {projectOpens(park.project)}
             {projectOpen(s, park) && ' It is open: build it from the capital projects in the build menu.'}
