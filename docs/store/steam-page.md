@@ -30,8 +30,9 @@ is 220:
 >
 > **Choose once.** Prestige is a blend of four pillars: academics,
 > research, student life and athletics. A school can be excellent at all
-> four. But once it stands high enough, overall or in one pillar, the board
-> offers a single specialization — the faculty training program, the
+> four. But the first summer it stands in the guide's top 30, or from Year
+> 20 in the top 10 of any one pillar, the board offers a single
+> specialization — the faculty training program, the
 > research park, the downtown and its festival, or the athletic performance
 > complex — and that choice is kept for good. Your rivals specialize too.
 >
@@ -61,8 +62,9 @@ is 220:
 ## Features
 
 - **Four pillars, one specialization.** Academics, research, student life
-  and athletics, and one permanent choice of the very best, offered once
-  the college stands high enough, overall or in one pillar.
+  and athletics, and one permanent choice of the very best, offered the
+  first summer the college stands in the guide's top 30, or from Year 20
+  in the top 10 of any one pillar.
 - **The summer decision.** Set the price, see the pool it drew, choose the
   class.
 - **More than 400 real courses** in 42 majors and seven schools, each
@@ -96,7 +98,7 @@ review gives:
 | 2 | Set the price before you see who applies. | The summer's Admissions card over the map, with the pool split by the kinds of student it draws and the class it makes. | [`summer-admissions.png`](../images/summer-admissions.png) is the card cropped to portrait. Take the full screen instead. |
 | 3 | Excellent at all four. The very best at one. | The specialization letter with its four cards side by side. | None. [`85d-choice.jpg`](../reviews/2026-10-pillars/85d-choice.jpg) shows the frame wanted, on an older build (its cards still read "Arrives in a later update"). Take it new. |
 | 4 | Every professor, a person. | The Faculty grid of faces, careers and quirks, late in a run. | [`tab-faculty.png`](../images/tab-faculty.png) at year 51 fits as it is. |
-| 5 | Fifty years, graded, and a name for what you built. | The Final Report: the six axes, the grade and the school's title. | None. [`tab-history.png`](../images/tab-history.png) shows only the report's heading, below the prestige; [`85d-final-report.jpg`](../reviews/2026-10-pillars/85d-final-report.jpg) shows the frame, on an older build. Take it new. |
+| 5 | Fifty years, graded, and a name for what you built. | The Final Report: the six axes, the grade and the school's title. | None. [`tab-history.png`](../images/tab-history.png) shows History's Prestige view; the report is on its *The record* view; [`85d-final-report.jpg`](../reviews/2026-10-pillars/85d-final-report.jpg) shows the frame, on an older build. Take it new. |
 
 Left out, as the review advises: the inbox and the Curriculum. They are the
 game's working screens, not its pictures. The Sandbox has no shot of its

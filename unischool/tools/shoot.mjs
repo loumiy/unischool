@@ -13,12 +13,17 @@
 //     --clear-modal /tmp/gothic.json
 //   npm run shot -- /tmp/gothic.json /tmp/gothic.png --zoom=-2 --pan=-430,320
 //
-// Flags: --zoom=N (+ in, - out), --pan=DX,DY (screen px, drag), --clip=x,y,w,h,
+// Flags: --zoom=N (+ in, - out), --tilt=N (- flatter), --pan=DX,DY (screen px, drag), --clip=x,y,w,h,
 //        --size=W,H (viewport, default 1600,1000), --scale=N (device pixels per
 //        CSS pixel: 2 for a print-sharp PNG at the same framing)
 //
 // --settings=<json> sets the player's settings first ('{"textScale":1.3}'
 // is the largest text).
+//
+// --bare hides the game's chrome (the pennant, the menu, the map tools, the
+// ticker and the dock) as the time-lapse does, for a picture of the campus
+// alone; an out path ending .jpg writes a JPEG (--quality=N, default 88).
+// That is how the share image is taken (Plan 95Y; tools/shareImage.mjs).
 //
 // Not only the map: --tab=<id> opens one of the full-screen views over it
 // (a TabNav id: curriculum, faculty, research, students, athletics,
@@ -104,6 +109,14 @@ if (await cont.count()) { await cont.first().click(); }
 await page.waitForSelector('svg', { timeout: 20_000 });
 await page.waitForTimeout(2_500);
 
+// --tilt=N: the view's tilt, as Z and X press it (negative flatter, Plan
+// 95Y), before the zoom, so the zoom's limits are the tilted view's.
+const tilt = Number(flag('tilt', 0));
+for (let i = 0; i < Math.abs(tilt); i++) {
+  await page.keyboard.press(tilt < 0 ? 'z' : 'x');
+  await page.waitForTimeout(300);
+}
+
 const zoom = Number(flag('zoom', 0));
 // The zoom buttons sit behind the map's tools button (Plan 70G).
 if (zoom !== 0) await page.click('.map-tools-toggle');
@@ -167,17 +180,33 @@ for (const selector of flagAll('press')) {
 await page.mouse.move(0, 0);
 await page.waitForTimeout(300);
 // The map shows its view in full (the canvas has made its drawings).
-await waitForMap(page);
+const renderer = await waitForMap(page);
+
+// Everything that is the game's interface rather than the campus
+// (timelapseShoot.mjs's list, with the map tools' own button).
+if (flags.includes('--bare')) {
+  await page.addStyleTag({ content: `
+    .pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
+    .toast, .tooltip, [role="tooltip"] { display: none !important; }
+    :root { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
+  ` });
+  await page.waitForTimeout(800);
+  await waitForMap(page);
+}
 
 const clip = nums(flag('clip', null));
+const jpeg = /\.jpe?g$/i.test(outPath)
+  ? { type: 'jpeg', quality: Number(flag('quality', 88)) }
+  : {};
 const element = flag('element', null);
 if (element) {
-  await page.locator(element).first().screenshot({ path: outPath });
+  await page.locator(element).first().screenshot({ path: outPath, ...jpeg });
 } else {
   await page.screenshot({
     path: outPath,
+    ...jpeg,
     ...(clip ? { clip: { x: clip[0], y: clip[1], width: clip[2], height: clip[3] } } : {}),
   });
 }
 await browser.close();
-console.log(`wrote ${outPath}`);
+console.log(`wrote ${outPath} (the ${renderer} map)`);

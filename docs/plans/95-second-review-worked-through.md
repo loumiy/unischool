@@ -2359,6 +2359,55 @@ was not.
 - **Checks:** the share image at the declared size; the README's links and
   images resolve.
 
+**As implemented.** Pictures, words and tools; nothing under `src/`
+changed, so no sim.
+- **The share image**, 1200×630 as `index.html` declares, 132 KB: the
+  Completionist's campus in week 14 of Year 32, laid out, on `vite
+  preview` (the canvas map, as the shot reports), the chrome hidden, the
+  view two steps flatter so the farmland, the road and its town, the hills
+  and the haze ring the campus, and the trees in their autumn colours. The
+  `og:image:alt` says so now ("dormitory towers" and "a stadium" were not in
+  it).
+- **One command:** `CAMPUS_URL=… npm run share-image`
+  (`tools/shareImage.mjs`: scenario, layout, shot). Its recipe is in the
+  tools README beside the others'. The tools gained what it needed:
+  `scenario --week N` (stop in week N of the year asked), and `shot`'s
+  `--bare` (the time-lapse's chrome list), `--tilt=N`, JPEG out by
+  extension (`--quality`), and the map that drew named in its last line.
+  Drawn in a 1600×840 viewport at scale 0.75, so the campus is sharper than
+  a 1200-wide viewport draws it.
+- **The README:** the one clause at :15 is gone; *What you do* gains
+  **Play on after the Final Report** (into the Epilogue, a decade added each
+  tenth summer) and **Sandbox mode** (title screen: unlimited funds, instant
+  building, every building open). The prestige bullet names the four
+  pillars and the one choice, not the old six inputs. A new section, *Four
+  pillars, one specialization*, after the summer card, in the README's
+  register ("excellent at all four, … the very best at only one"), with
+  R's rule as `specializationOfferWhen()` says it: the guide's top 30, or
+  from Year 20 the top 10 of any one pillar. *Current state* lists the
+  pillars and the specialization.
+- **Captions:** Faculty, Athletics and History changed after the 4 October
+  pictures (95G, 95I, 95H), so those three pictures are taken again with
+  the tools README's own recipe (year-50 `--build-all` run, each tab in its
+  colours), and their captions and alt text describe them: Faculty's grid
+  of faces under its figure row, Athletics' one-line programs, History's
+  three views on Prestige. Curriculum, Research, Students and Treasury
+  still match their pictures (95M has not landed) and are unchanged.
+- **The store page:** the specialization's offer reads R's exact rule in
+  the long description and the features, and screenshot 5's note no longer
+  says `tab-history.png` shows the report's heading.
+- **Checks:** the share image is 1200×630 JPEG; every link and image in
+  the README resolves; `npm run check` passes.
+
+Deviations:
+- **Three README pictures retaken**, not only their captions checked: a
+  caption fitted to the 4 October pictures would describe screens the
+  game no longer has. Their toolbar now wears the new icons, so they differ
+  from the four untouched tabs' in that strip. They are quantized to 256
+  colours with Pillow (`pngquant` is not on this machine), 170–220 KB.
+- **Week 14, not 12:** both are in the window; at 14 the leaves have turned
+  further (`seasons.ts`: 0.8 against 0.6) and none are down.
+
 ### PR 95Z — The AI disclosure and the store page, drafted (B6-3, B6-5)
 
 Drafts for the owner to edit. Nothing is published.

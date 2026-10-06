@@ -153,6 +153,28 @@ npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png 
   --element=.modal --scale=2
 ```
 
+### The share image
+
+`public/og-image.jpg` is the picture a link to the game unfurls with, at the
+1200 by 630 that `index.html`'s `og:image` tags declare (Plan 95Y). It is one
+command, against the production build, since that is what a visitor loads:
+
+```sh
+npm run build && npx vite preview --port 4173 --strictPort   # in one shell
+CAMPUS_URL=http://localhost:4173/ npm run share-image       # writes public/og-image.jpg
+CAMPUS_URL=http://localhost:4173/ npm run share-image -- /tmp/og.jpg   # a look first
+```
+
+`shareImage.mjs` runs three of the tools above: `scenario` plays the
+Completionist to week 14 of year 32 (`--week`: the fall, the leaves turned
+and not yet down), `layout` re-sites its campus, and `shot` takes it with
+`--bare` (the chrome hidden, as the time-lapse does), `--tilt=-2` (two steps
+flatter, so the ring of land, the hills and the haze are in the frame) and
+`--zoom=-2`, in a 1600 by 840 viewport at `--scale=0.75`, which writes
+1200 by 630 with the campus drawn sharper than a 1200-wide viewport would.
+An out path ending `.jpg` writes a JPEG. The shot names the map that drew
+it; keep the picture only if it says the canvas.
+
 ### Phones and tablets
 
 `--phone` and `--tablet` give the driver a 390x844 or 820x1180 touch
