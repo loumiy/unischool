@@ -1099,6 +1099,13 @@ export function typedUniversity(typed: string): boolean {
   return /\suniversity$/i.test(typed.trim()) && bareSchoolName(typed) !== '';
 }
 
+// Whether a typed name opens with "University of" or "College of" (the
+// second review's H7-7): the suffix still follows it, so the founding form
+// says how it will read rather than changing the rule.
+export function typedPrefixed(typed: string): boolean {
+  return /^(university|college)\s+of\s+\S/i.test(typed.trim());
+}
+
 // The full display name; handles an empty suffix without a stray space.
 export function institutionName(u: University): string {
   return u.suffix ? `${u.name} ${u.suffix}` : u.name;

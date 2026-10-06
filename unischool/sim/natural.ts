@@ -31,8 +31,8 @@ const arg = (flag: string) => {
   return i >= 0 ? process.argv[i + 1] : undefined;
 };
 const seed = Number(arg('--seed') ?? DEFAULT_SEED);
-// A plain name: the harness's default reads "Test University University"
-// in the Final Report's title.
+// A name of its own for the Final Report's title, in place of the
+// harness's "Test".
 const name = arg('--name') ?? 'Blackmoor';
 const out = arg('--out');
 const YEARS = 50;

@@ -24,7 +24,7 @@ import { answered, inboxItems } from '../src/systems/inbox/inbox';
 import { readSave, SAVE_VERSION } from '../src/state/persistence';
 import { createInitialState } from '../src/state/actions';
 import { recordUnlocks } from '../src/state/unlocks';
-import { institutionName, typedUniversity, WEEKS_PER_YEAR, type GameState } from '../src/state/types';
+import { institutionName, typedPrefixed, typedUniversity, WEEKS_PER_YEAR, type GameState } from '../src/state/types';
 
 bindScriptStream(7273);
 const store = new Map<string, string>();
@@ -187,6 +187,8 @@ const weeksOn = (s: GameState, n: number) => {
 {
   assert(typedUniversity('Harwick University') && typedUniversity('  harwick university '), 'a typed "University" gets the caption');
   assert(!typedUniversity('Harwick') && !typedUniversity('Harwick College') && !typedUniversity('University') && !typedUniversity('Universityville'), 'nothing else does');
+  assert(typedPrefixed('University of Ashford') && typedPrefixed(' college of the Holy Cross'), 'a name opening "University of" or "College of" gets its own caption');
+  assert(!typedPrefixed('Ashford') && !typedPrefixed('University of') && !typedPrefixed('Ashford University'), 'nothing else does');
 }
 
 if (failures === 0) {
