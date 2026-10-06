@@ -1,8 +1,9 @@
 import type { GameState, Pillar } from '../state/types';
-import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
-import { PARK_WORDS, landmarkYears, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
-import { COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
-import { DOWNTOWN_WORDS, downtownReading, festivalPoints } from './downtownData';
+import { decimal, pct } from '../format';
+import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINED_SHARE_FOR_FULL, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
+import { LANDMARK_WINDOW_YEARS, LANDMARK_YEARS_FOR_FULL, PARK_RESEARCH_BOOST, PARK_WORDS, landmarkYears, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
+import { COMPLEX_POINTS_FOR_FULL, COMPLEX_WINDOW_YEARS, COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
+import { DOWNTOWN_WORDS, FESTIVAL_POINTS_FOR_FULL, FESTIVAL_WINDOW_YEARS, OFF_CAMPUS_SHARE, downtownReading, festivalPoints } from './downtownData';
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -93,8 +94,22 @@ const SPECIALIZATION_ASIDES: Partial<Readonly<Record<Pillar, (s: GameState, chos
   research: (s, chosen) => (parkStands(s) ? (chosen ? PARK_WORDS.asideElsewhere : PARK_WORDS.asideUnchosen) : null),
 };
 
+// A copy of the state with one pillar's share read as full, for the choice's
+// comparison line (Plan 95F, the second review's B2-3): what the college
+// would be if that share were full today. The copy is only marked, never
+// written, so nothing else in it differs from the state it was taken from;
+// a fresh object, so the mark cannot reach the game's own state. Nothing in
+// the simulation makes one.
+const SHARE_FULL = new WeakMap<GameState, Pillar>();
+export function withShareFull(s: GameState, pillar: Pillar): GameState {
+  const copy = { ...s };
+  SHARE_FULL.set(copy, pillar);
+  return copy;
+}
+
 // The term as its row reads: how full, and why.
 export function specializationTerm(s: GameState, pillar: Pillar): { score: number; detail: string } {
+  if (SHARE_FULL.get(s) === pillar) return { score: 1, detail: `As if full, for the choice's comparison.` };
   const chosen = s.specialization === 'none' ? null : s.specialization;
   if (chosen !== pillar) {
     const aside = SPECIALIZATION_ASIDES[pillar]?.(s, chosen);
@@ -192,8 +207,14 @@ export interface SpecializationCard {
   // What the choice gives besides its term, now (athletics' teams).
   alsoNow?: string;
   // How its term fills, as its mechanic reads it (Plans 85E-H): the end of
-  // the card's "Opens …" line.
+  // the card's "Opens …" line, in its detail.
   fills: string;
+  // The card's face, three lines (Plan 95F, the second review's B2-3): what
+  // it is, in a clause; what it adds now; how its share fills, cut to its
+  // measure. The rest is behind More.
+  what: string;
+  adds: string;
+  fillsShort: string;
   mechanics: readonly SpecializationMechanic[];
 }
 
@@ -204,6 +225,9 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     summary: 'A college known first for its teaching.',
     known: 'a college known first for its teaching',
     fills: TRAINING_WORDS.fills,
+    what: 'The Faculty Training Institute, where picked professors train.',
+    adds: `Each year it trains one professor for every ${FACULTY_PER_TRAINING_PICK} on the faculty, each a full grade better at teaching, for good.`,
+    fillsShort: `The share fills as professors are trained, full once ${pct(TRAINED_SHARE_FOR_FULL)} of the faculty is.`,
     mechanics: [
       { text: 'The Faculty Training Institute on the map, a capital project only this specialization may build.', ready: true },
       { text: `Each year the institute takes professors picked for training, one for every ${FACULTY_PER_TRAINING_PICK} on the faculty and at least ${MIN_TRAINING_PICKS}. Each rises a full grade in teaching (the width of their grade on the course scale) and keeps it, and teaches one course fewer for a term.`, ready: true },
@@ -215,6 +239,9 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     summary: 'A college known first for what its laboratories find.',
     known: 'a college known first for what its laboratories find',
     fills: PARK_WORDS.fills,
+    what: 'The Research Park, home of the Landmark Programs.',
+    adds: `While the park stands, every lab's output is ${pct(PARK_RESEARCH_BOOST)} higher.`,
+    fillsShort: `The share fills as Landmark Programs run, full at ${LANDMARK_YEARS_FOR_FULL} years of their work in ${LANDMARK_WINDOW_YEARS}.`,
     mechanics: [
       { text: PARK_WORDS.cardPark, ready: true },
       { text: PARK_WORDS.cardBoost, ready: true },
@@ -226,6 +253,9 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     summary: 'A college known first as the place to be a student.',
     known: 'a college known first as the place to be a student',
     fills: DOWNTOWN_WORDS.fills,
+    what: 'A downtown district beside the campus, and a festival each spring.',
+    adds: `The downtown meets up to ${pct(OFF_CAMPUS_SHARE)} of the students' social, dining and housing needs as it grows.`,
+    fillsShort: `The share fills with the festivals, full at ${FESTIVAL_POINTS_FOR_FULL} points of them in ${FESTIVAL_WINDOW_YEARS} years.`,
     mechanics: [
       { text: DOWNTOWN_WORDS.cardDistrict, ready: true },
       { text: DOWNTOWN_WORDS.cardFestival, ready: true },
@@ -239,6 +269,9 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     known: 'a college known first for its teams',
     alsoNow: 'A program\'s quality no longer slows above 80, so a team may play to 100, and the established powers keep only a quarter of their edge in the postseason.',
     fills: COMPLEX_WORDS.fills,
+    what: 'The Athletic Performance Complex, where the varsity programs train.',
+    adds: 'A team may play to 100, and the established powers keep a quarter of their postseason edge.',
+    fillsShort: `The share fills with deep postseason runs, full at ${COMPLEX_POINTS_FOR_FULL} points of them in ${COMPLEX_WINDOW_YEARS} years.`,
     mechanics: [
       { text: COMPLEX_WORDS.cardComplex, ready: true },
       { text: COMPLEX_WORDS.cardMechanics, ready: true },
@@ -257,24 +290,42 @@ export function choiceParkNote(s: GameState, pillar: Pillar): string | null {
   return pillar === 'research' ? PARK_WORDS.cardParkStands(goingUp) : PARK_WORDS.cardParkElsewhere(goingUp);
 }
 
-// What opens, said on each card: it works from the moment of the choice.
+// A pillar's top (prestigeSystem.ts's PRESTIGE_MAX, not imported: that
+// module imports this one).
+const PILLAR_MAX = 150;
+
+// What opens, in the card's detail: the share in the pillar's own points
+// (Plan 95F: the card's face gives it in points of prestige).
 export function opensLine(pillar: Pillar, weight: number): string {
   const card = SPECIALIZATION_CARDS[pillar];
-  return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, worth ${weight} points, ${card.fills}.`;
+  return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, ${weight} of the pillar's ${PILLAR_MAX} points, ${card.fills}.`;
 }
 
 export const CHOICE_WORDS = {
   title: 'A specialization',
   from: 'The board',
-  // `rule` is prestigeWords.ts's pillarShareRule (Plan 95E: the rule is
-  // said in one place).
-  intro: (rank: number, milestone: number, rule: string) => `The college stands #${rank} in the guide, in the top ${milestone}. The board asks the administration to choose the one pillar the college means to be the very best at. The choice is made once and kept. ${rule} The chosen pillar's share opens; the other three stay empty.`,
-  now: 'Now',
-  coming: 'Still to come',
-  comingNote: 'Arrives in a later update.',
+  // Two sentences (Plan 95F); `rule` is prestigeWords.ts's pillarShareRule
+  // (Plan 95E: the rule is said in one place).
+  intro: (rank: number, milestone: number, rule: string) => `The college stands #${rank} in the guide, in the top ${milestone}, and the board asks it to choose, once and for good, the one pillar it means to be the very best at. ${rule}`,
+  // The college's strongest pillar, and where the rivals have gone (Plan
+  // 95F, the second review's B3-6): one line above the cards.
+  strongest: (pillar: Pillar, rank: number, rivals: Readonly<Record<Pillar, number>>) => {
+    const each = (['academics', 'research', 'studentLife', 'athletics'] as const)
+      .map((p, i) => `${rivals[p]}${i === 0 ? ` specialize${rivals[p] === 1 ? 's' : ''}` : ''} in ${PILLAR_WORDS[p]}`);
+    return `The college's strongest pillar is ${PILLAR_WORDS[pillar]} (#${rank}). Of the rivals, ${each.slice(0, -1).join(', ')} and ${each[each.length - 1]}.`;
+  },
+  // The share, in points of prestige (Plan 95F: "worth 34 points" was the
+  // pillar's, and read largest where it is worth least).
+  worth: (points: number) => `Up to ${decimal(points, 1)} points of prestige`,
+  // The comparison: the college as it would be with the share full today.
+  compare: (before: number, after: number, rankBefore: number, rankAfter: number) =>
+    `Full today: prestige ${decimal(before, 1)} → ${decimal(after, 1)}, ${rankAfter === rankBefore ? `still #${rankBefore}` : `#${rankBefore} → #${rankAfter}`}.`,
+  more: 'More',
+  less: 'Less',
+  moreLabel: (name: string, open: boolean) => `${open ? 'Show less about' : 'Show more about'} ${name.replace(/^The /, 'the ')}`,
   yours: (value: number, rank: number) => `The college stands at ${value.toFixed(0)}, #${rank} in the pillar.`,
   rivals: (count: number) => (count === 0 ? 'No rival is specialized in it.' : `${count} rival${count === 1 ? ' is' : 's are'} specialized in it`),
-  strongest: (name: string, value: number) => `; the strongest, ${name}, stands at ${value.toFixed(0)}.`,
+  strongestRival: (name: string, value: number) => `; the strongest, ${name}, stands at ${value.toFixed(0)}.`,
   choose: (name: string) => `Choose ${name.replace(/^The /, 'the ')}`,
   confirm: 'Confirm — the other three shares stay empty for good',
   warning: (pillar: Pillar) => `The college will be specialized in ${PILLAR_WORDS[pillar]} for good. It cannot be changed or undone.`,
@@ -287,10 +338,12 @@ export const CHOICE_WORDS = {
 // stops the clock.
 export const SPECIALIZATION_NOTICE_ID = 'specialization-notice';
 
-// `rule` is prestigeWords.ts's pillarShareRule (Plan 95E).
-export function specializationNotice(milestone: number, weights: Readonly<Record<Pillar, number>>, rule: string): { title: string; text: string } {
+// `rule` is prestigeWords.ts's pillarShareRule (Plan 95E), which gives each
+// share in points of prestige; the list no longer repeats them in the
+// pillar's points (Plan 95F).
+export function specializationNotice(milestone: number, rule: string): { title: string; text: string } {
   const each = (['academics', 'research', 'studentLife', 'athletics'] as const)
-    .map((p) => `${PILLAR_WORDS[p]}, ${SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ')}, which opens ${weights[p]} points of it`)
+    .map((p) => `${PILLAR_WORDS[p]}, ${SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ')}`)
     .join('; ');
   return {
     title: `Within reach of the top ${milestone}`,

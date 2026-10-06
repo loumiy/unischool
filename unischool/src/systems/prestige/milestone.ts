@@ -1,9 +1,9 @@
 import type { GameState, Pillar } from '../../state/types';
-import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS } from './prestigeSystem';
+import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget } from './prestigeSystem';
 import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
 import { foundingDistress } from '../finance/distress';
-import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationStatus } from '../../data/specializationData';
+import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationStatus, withShareFull } from '../../data/specializationData';
 
 // ---------------------------------------------------------------------
 // The milestone and the choice (Plan 85D). A college that climbs into the
@@ -128,4 +128,36 @@ export function specializationOptions(s: GameState): SpecializationOption[] {
       strongest: specialists[0] ?? null,
     };
   });
+}
+
+// The choice's comparison line (Plan 95F, the second review's B2-3): the
+// college's prestige and rank if the pillar's share were full today. The
+// target is prestigeSystem.ts's own, on a copy with that share read full
+// (specializationData.ts's withShareFull), so the teaching standard's limit
+// holds as it would; prestige moves by what that adds to today's target,
+// and the rank is the guide's own (playerRank) against today's rivals.
+// Reads, never writes: the game's state is not touched.
+export interface ShareFullProjection {
+  before: number;
+  after: number;
+  rankBefore: number;
+  rankAfter: number;
+}
+
+export function shareFullProjection(s: GameState, pillar: Pillar): ShareFullProjection {
+  const lift = computePrestigeTarget(withShareFull(s, pillar)) - computePrestigeTarget(s);
+  const before = s.self.reputation;
+  const after = Math.min(PRESTIGE_MAX, before + lift);
+  const moved: GameState = { ...s, self: { ...s.self, reputation: after } };
+  return { before, after, rankBefore: playerRank(s), rankAfter: playerRank(moved) };
+}
+
+// The line above the cards (Plan 95F, the second review's B3-6): the
+// college's strongest pillar, by its rank in the standings (on a tie, the
+// higher value), and how many rivals are specialized in each pillar.
+export function strongestStanding(s: GameState): { pillar: Pillar; rank: number; rivals: Record<Pillar, number> } {
+  const options = specializationOptions(s);
+  const best = [...options].sort((a, b) => a.rank - b.rank || b.value - a.value)[0];
+  const rivals = Object.fromEntries(options.map((o) => [o.pillar, o.rivals])) as Record<Pillar, number>;
+  return { pillar: best.pillar, rank: best.rank, rivals };
 }

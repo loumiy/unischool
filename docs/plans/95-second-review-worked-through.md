@@ -603,6 +603,69 @@ the sim was not run (the one file under `systems/` touched,
   - The choice's word count before and after (the review's 681).
   - Screenshots at desktop and at 390×844 at the largest text.
 
+**As implemented.** Words and a read-only projection; no rule the
+simulation reads changed. `npm run sim` was run all the same (a hook was
+added beside the share's reading in `specializationData.ts`) and reads as
+the baseline.
+
+- **The figure.** Each card heads with "Up to 9.8 points of prestige"
+  (7.0, 8.5, 5.1), from `prestigeWords.ts`'s `specializationShareWorth`.
+  The pillar points moved into the card's detail ("28 of the pillar's 150
+  points", `opensLine`). The board's notice drops its four "which opens 28
+  points of it": `pillarShareRule()` in the same letter already gives each
+  share in points of prestige, so the list names the four and no figure
+  (`specializationNotice(milestone, rule)` lost its `weights` argument).
+- **Three lines a card**, new fields on `SPECIALIZATION_CARDS`: `what`
+  ("The Research Park, home of the Landmark Programs."), `adds` ("While the
+  park stands, every lab's output is 15% higher.") and `fillsShort` ("The
+  share fills with the festivals, full at 10 points of them in 10
+  years."), each built from the mechanic's constants. Behind More (the
+  faculty card's disclosure button): the long fill rule in pillar points,
+  athletics' lift, the mechanics, a standing park's note (85F), the
+  college's place in the pillar and its rivals.
+- **The comparison line**, `milestone.ts`'s `shareFullProjection`: "Full
+  today: prestige 94.7 → 104.5, #19 → #5." The target is
+  `computePrestigeTarget` on a copy with that share read full
+  (`specializationData.ts`'s `withShareFull`, which marks a copy in a
+  `WeakMap` that `specializationTerm` reads); prestige moves by what that
+  adds to today's target, so the teaching standard's limit holds as it
+  would; the rank is `playerRank` on a copy at that prestige, against
+  today's rivals.
+- **The strongest pillar, first** (`strongestStanding`): "The college's
+  strongest pillar is student life (#7). Of the rivals, 35 specialize in
+  academics, 23 in research, 19 in student life and 22 in athletics."
+- **The intro**: two sentences, the second `pillarShareRule()`.
+- **Measured** (`npm run review:gallery`, the `specialization` scenario,
+  Year 36): the choice's top layer **709 → 378 words**, 5 → 9 controls
+  (the four More buttons); 709 is this save's count of the review's 681.
+  At 390×844 and the largest text each card is 406–472 px tall, half a
+  screen. Screenshots: `docs/reviews/2026-10-review-ii-fixes/95f-choice-*.jpg`.
+- **Tests** (`test/specialization-choice.test.ts`): each "up to" figure is
+  the pillar's weight times the share's points, and the card prints it;
+  the comparison's prestige is `computePrestigeTarget` on the filled copy
+  (and equals the share's worth unless the teaching standard holds it);
+  the rank is `playerRank`'s; the state itself is untouched; the strongest
+  pillar is the best-ranked; the intro is two sentences.
+- **Deviations.**
+  - "A copy of the state with that share full" is a shallow copy marked
+    full, not a `structuredClone` with the mechanic's records set: a full
+    share is a different record per pillar (trained professors, Landmark
+    years, festivals with the downtown grown and goodwill high, deep
+    runs), and writing those would move other terms too (the downtown's
+    growth meets students' needs, a deep run is a title). The mark moves
+    the share alone, and nothing writes to the copy.
+  - The comparison's "before" is today's prestige (the stock the guide
+    ranks), and "after" adds the full share's lift to it, rather than
+    printing the target itself, which differs from today's prestige by
+    the year's drift.
+  - The strongest pillar is the best *rank* in the standings (the higher
+    value on a tie), as the review's example reads ("student life (#4)");
+    the harness's rule (`strongestOf`, by value) is unchanged.
+  - The line lists the rivals in all four pillars, not the two the
+    example names.
+  - "Still to come" is gone from the card: since Plan 85H every mechanic
+    is ready, so it never showed.
+
 ### PR 95G — Faculty, lighter (B2-1)
 
 - **The card's face** keeps More and its chips. **Train** and **Dismiss**

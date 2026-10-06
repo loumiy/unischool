@@ -16,6 +16,11 @@
 //     no second choice, and it is never raised again;
 //   - a save round trip keeps it, mid-choice too; the version-88 fixture
 //     migrates to none; the chronicle marks the year;
+//   - the choice in prestige points (Plan 95F): each card's "up to" figure
+//     is the pillar's weight times the share's points; its comparison line
+//     is prestigeSystem's target on a copy with that share full, ranked by
+//     the guide's own function; the strongest pillar is the best-ranked;
+//     the intro is two sentences;
 //   - the harness's rule: the strongest pillar (value, then rank on a
 //     tie), or a fixed pick.
 //
@@ -31,10 +36,14 @@ import { exportSave, readSave, SAVE_VERSION } from '../src/state/persistence';
 import { reduceInPlace } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
-  PILLARS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS,
-  pillarBreakdown, prestigeBreakdown, specializationOf,
+  PILLARS, PILLAR_WEIGHTS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS,
+  computePrestigeTarget, pillarBreakdown, prestigeBreakdown, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
-import { specializationOptions, tickSpecialization, type SpecializationPayload } from '../src/systems/prestige/milestone';
+import {
+  shareFullProjection, specializationOptions, strongestStanding, tickSpecialization, type SpecializationPayload,
+} from '../src/systems/prestige/milestone';
+import { decimal } from '../src/format';
+import { pillarShareRule, specializationShareWorth } from '../src/data/prestigeWords';
 import { playerRank, rankedList } from '../src/systems/rivals/rivalsSystem';
 import { teamQualityCurve } from '../src/data/studentLifeData';
 import { finalReport } from '../src/state/finalReport';
@@ -43,7 +52,7 @@ import { athleticsLifted } from '../src/systems/prestige/specialization';
 import { SPECIALIZED_STAGE_SHARE, STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
 import { inboxItems } from '../src/systems/inbox/inbox';
 import { BOARD_LETTERS } from '../src/data/boardData';
-import { SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID } from '../src/data/specializationData';
+import { CHOICE_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, opensLine, withShareFull } from '../src/data/specializationData';
 import { chronicleOf } from '../src/systems/chronicle/chronicle';
 import { answerAll, foundGame, type Player } from '../sim/harness/game';
 import { chooseSpecialization, strongestOf, strongestPillar } from '../sim/harness/specialization';
@@ -119,8 +128,10 @@ function closeSummer(s: GameState): GameState {
   assert(letter.title.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`), `its title names the milestone ("${letter.title}")`);
   for (const p of PILLARS) {
     const name = SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ');
-    assert(letter.text.includes(name) && letter.text.includes(`opens ${SPECIALIZATION_TERM_WEIGHTS[p]} points`), `it names ${name} and what it opens`);
+    // What each opens, in points of prestige (Plan 95F), never the pillar's.
+    assert(letter.text.includes(name) && letter.text.includes(decimal(specializationShareWorth(p), 1)), `it names ${name} and what it opens`);
   }
+  assert(!/opens \d+ points/.test(letter.text), 'no share in the pillar\'s own points');
   assert(!/archetype|ceiling|limit/i.test(letter.text), 'in the glossary\'s words, and no limit it no longer has');
   // Once only.
   const letters = s.finance.distress!.letters.filter((l) => l === SPECIALIZATION_NOTICE_ID).length;
@@ -286,6 +297,51 @@ function closeSummer(s: GameState): GameState {
   const yearless = { ...parsed, version: SAVE_VERSION, state: { ...parsed.state, specialization: 'research', specializationOffered: 7 } };
   const yl = readSave(JSON.stringify(yearless));
   assert(!('refused' in yl) && yl.state.specialization === 'research' && yl.state.specializationYear === 7, 'a choice with no year takes the offer\'s');
+}
+
+// ---- The choice in prestige points (Plan 95F, the second review's B2-3, B3-6) ----
+{
+  const s = launch();
+  standAt(s, SPECIALIZATION_MILESTONE_RANK - 4);
+  const reputation = s.self.reputation;
+  for (const p of PILLARS) {
+    // The "up to" figure: the pillar's weight times the share's points.
+    const worth = PILLAR_WEIGHTS[p] * SPECIALIZATION_TERM_WEIGHTS[p];
+    assert(Math.abs(specializationShareWorth(p) - worth) < 1e-12, `${p}'s share is worth its weight times its points (${specializationShareWorth(p)})`);
+    assert(CHOICE_WORDS.worth(specializationShareWorth(p)) === `Up to ${decimal(worth, 1)} points of prestige`, `${p}'s card says "${CHOICE_WORDS.worth(specializationShareWorth(p))}"`);
+    // The pillar's own points stay, in the detail.
+    assert(opensLine(p, SPECIALIZATION_TERM_WEIGHTS[p]).includes(`${SPECIALIZATION_TERM_WEIGHTS[p]} of the pillar's 150 points`), `${p}'s detail keeps the pillar's points`);
+
+    // The comparison line: prestigeSystem on the copy with that share full.
+    const filled = withShareFull(s, p);
+    const share = pillarBreakdown(filled, p).inputs.find((i) => i.key === 'specialization')!;
+    assert(share.contribution === share.weight, `on the copy, ${p}'s share is full`);
+    for (const q of PILLARS.filter((x) => x !== p)) {
+      assert(pillarBreakdown(filled, q).inputs.find((i) => i.key === 'specialization')!.contribution === 0, `and ${q}'s stays empty`);
+    }
+    const lift = computePrestigeTarget(filled) - computePrestigeTarget(s);
+    const full = shareFullProjection(s, p);
+    assert(Math.abs(full.after - full.before - lift) < 1e-9 && full.before === reputation, `${p}: prestige ${full.before.toFixed(1)} → ${full.after.toFixed(1)} is prestigeSystem's target on the filled copy (+${lift.toFixed(2)})`);
+    assert(lift <= worth + 1e-9 && (prestigeBreakdown(filled).held || Math.abs(lift - worth) < 1e-6), `${p}: the lift is the share's worth, or less under the teaching standard`);
+    assert(full.rankBefore === playerRank(s) && full.rankAfter === playerRank({ ...s, self: { ...s.self, reputation: full.after } }), `${p}: the rank is the guide's (#${full.rankBefore} → #${full.rankAfter})`);
+    assert(full.rankAfter <= full.rankBefore, `${p}: a full share never drops the rank`);
+    assert(/^Full today: prestige [\d.]+ → [\d.]+, (#\d+ → #\d+|still #\d+)\.$/.test(CHOICE_WORDS.compare(full.before, full.after, full.rankBefore, full.rankAfter)), 'the line reads as the plan wrote it');
+  }
+  // Nothing touched the game's own state.
+  assert(s.self.reputation === reputation && PILLARS.every((p) => pillarBreakdown(s, p).inputs.find((i) => i.key === 'specialization')!.contribution === 0), 'the state itself is untouched');
+
+  // The strongest pillar, above the cards (B3-6): the best rank, and the
+  // rivals in each.
+  const options = specializationOptions(s);
+  const strongest = strongestStanding(s);
+  assert(strongest.rank === Math.min(...options.map((o) => o.rank)), `the strongest pillar is the best-ranked (${strongest.pillar}, #${strongest.rank})`);
+  assert(PILLARS.reduce((n, p) => n + strongest.rivals[p], 0) === s.rivals.filter((r) => PILLARS.includes(r.specialization)).length, 'and every specialized rival is counted once');
+  const line = CHOICE_WORDS.strongest(strongest.pillar, strongest.rank, strongest.rivals);
+  assert(line.includes(`(#${strongest.rank})`) && PILLARS.every((p) => line.includes(`${strongest.rivals[p]}`)), `the line names it ("${line}")`);
+
+  // The intro: two sentences, the second the rule's own.
+  const intro = CHOICE_WORDS.intro(12, SPECIALIZATION_MILESTONE_RANK, pillarShareRule());
+  assert(intro.split(/(?<=\.)\s+/).length === 2 && intro.endsWith(pillarShareRule()), `the intro is two sentences ("${intro}")`);
 }
 
 // ---- The harness's rule ----
