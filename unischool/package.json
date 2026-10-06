@@ -27,6 +27,7 @@
     "gallery:assets": "node tools/assetGallery.mjs",
     "profile": "node tools/profile.mjs",
     "newplayer": "node tools/newPlayer.mjs",
+    "share-image": "node tools/shareImage.mjs",
     "review:goals": "rolldown tools/review/goalPlayers.ts -o node_modules/.tmp/goalPlayers.mjs -f esm -p node && node node_modules/.tmp/goalPlayers.mjs",
     "review:strings": "rolldown tools/review/strings.ts -o node_modules/.tmp/strings.mjs -f esm -p node --external typescript && node node_modules/.tmp/strings.mjs",
     "review:arrangements": "rolldown tools/review/arrangements.ts -o node_modules/.tmp/arrangements.mjs -f esm -p node && node node_modules/.tmp/arrangements.mjs",

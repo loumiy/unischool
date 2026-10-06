@@ -153,13 +153,20 @@ export const SPECIALIZED_TAG = 'Specialized';
 // Where the college stands on the choice, in History › Prestige and the
 // standings (Plan 85D).
 export function specializationStatus(
-  chosen: Pillar | null, year: number | undefined, offered: boolean, milestone: number, max: number,
+  chosen: Pillar | null, year: number | undefined, offered: boolean, offer: string, max: number,
 ): string {
   if (chosen) {
     return `The college is specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? `, chosen in Year ${year}` : ''}: ${PILLAR_WORDS[chosen]} may rise to the full ${max}, and the other three pillars' specialization shares stay empty.`;
   }
   if (offered) return 'The college has not chosen a specialization, so each pillar\'s specialization share is empty. The board\'s offer stands, and comes back at the close of every summer until one is chosen.';
-  return `The college has no specialization, so each pillar's specialization share is empty. The board offers the choice at the first summer the college stands in the guide's top ${milestone}.`;
+  return `The college has no specialization, so each pillar's specialization share is empty. ${offer}`;
+}
+
+// The log's line on the summer the offer is made (Plan 95R): by the
+// overall ranking, or, when only a pillar brought it, by that pillar.
+export function specializationOfferLine(pillar: { pillar: Pillar; rank: number } | null, rank: number): string {
+  const where = pillar ? `#${pillar.rank} in ${PILLAR_WORDS[pillar.pillar]} in the standings` : `#${rank} in the guide`;
+  return `The college stands ${where}. At the summer's close the board will ask it to choose a specialization.`;
 }
 
 // A specialization's own building in the build menu, closed to a college
@@ -167,10 +174,10 @@ export function specializationStatus(
 export const CLOSED_BUILD_WORDS = {
   sub: (pillar: Pillar) => `specialized in ${PILLAR_WORDS[pillar]} only`,
   foot: 'closed',
-  why: (name: string, pillar: Pillar, chosen: Pillar | null, milestone: number) =>
+  why: (name: string, pillar: Pillar, chosen: Pillar | null, offer: string) =>
     `Only a college specialized in ${PILLAR_WORDS[pillar]} may build ${name.replace(/^The /, 'the ')}. ${chosen
       ? `The college is specialized in ${PILLAR_WORDS[chosen]}, for good.`
-      : `The board offers the choice of a specialization at the first summer the college stands in the guide's top ${milestone}.`}`,
+      : offer}`,
 };
 
 // A rival leading a pillar, on its standings card.
@@ -306,7 +313,15 @@ export const CHOICE_WORDS = {
   from: 'The board',
   // Two sentences (Plan 95F); `rule` is prestigeWords.ts's pillarShareRule
   // (Plan 95E: the rule is said in one place).
-  intro: (rank: number, milestone: number, rule: string) => `The college stands #${rank} in the guide, in the top ${milestone}, and the board asks it to choose, once and for good, the one pillar it means to be the very best at. ${rule}`,
+  // Plan 95R: by the route that brought it, the overall ranking first; a
+  // college that has slipped from both since the offer is asked again all
+  // the same.
+  intro: (rank: number, milestone: number, best: { pillar: Pillar; rank: number }, pillarRank: number, rule: string) => {
+    const where = rank <= milestone ? `stands #${rank} in the guide, in the top ${milestone},`
+      : best.rank <= pillarRank ? `stands #${best.rank} in ${PILLAR_WORDS[best.pillar]}, in the top ${pillarRank} of a pillar's standing,`
+        : `has stood in the guide's top ${milestone} or a pillar's top ${pillarRank},`;
+    return `The college ${where} and the board asks it to choose, once and for good, the one pillar it means to be the very best at. ${rule}`;
+  },
   // The college's strongest pillar, and where the rivals have gone (Plan
   // 95F, the second review's B3-6): one line above the cards.
   strongest: (pillar: Pillar, rank: number, rivals: Readonly<Record<Pillar, number>>) => {
@@ -340,13 +355,13 @@ export const SPECIALIZATION_NOTICE_ID = 'specialization-notice';
 
 // `rule` is prestigeWords.ts's pillarShareRule (Plan 95E), which gives each
 // share in points of prestige; the list no longer repeats them in the
-// pillar's points (Plan 95F).
-export function specializationNotice(milestone: number, rule: string): { title: string; text: string } {
+// pillar's points (Plan 95F). The notice names both routes (Plan 95R).
+export function specializationNotice(milestone: number, pillarRank: number, pillarYear: number, rule: string): { title: string; text: string } {
   const each = (['academics', 'research', 'studentLife', 'athletics'] as const)
     .map((p) => `${PILLAR_WORDS[p]}, ${SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ')}`)
     .join('; ');
   return {
-    title: `Within reach of the top ${milestone}`,
-    text: `The college has come within reach of the guide's top ${milestone}. At the close of the first summer it stands there, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
+    title: 'Within reach of a specialization',
+    text: `The college has come within reach of the guide's top ${milestone}, or, from Year ${pillarYear}, of the top ${pillarRank} in one of the four pillars' standings. At the close of the first summer it stands in either, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
   };
 }

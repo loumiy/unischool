@@ -3,7 +3,7 @@ import type { GameState, Pillar } from '../state/types';
 import ConfirmButton from './ConfirmButton';
 import { DisclosureIcon } from './icons';
 import { playerRank } from '../systems/rivals/rivalsSystem';
-import { PILLAR_LABELS, SPECIALIZATION_MILESTONE_RANK } from '../systems/prestige/prestigeSystem';
+import { PILLAR_LABELS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK } from '../systems/prestige/prestigeSystem';
 import { shareFullProjection, specializationOptions, strongestStanding, type SpecializationOption } from '../systems/prestige/milestone';
 import { pillarShareRule, specializationShareWorth } from '../data/prestigeWords';
 import { CHOICE_WORDS, SPECIALIZATION_CARDS, choiceParkNote, opensLine } from '../data/specializationData';
@@ -29,7 +29,7 @@ export default function SpecializationChoice({ s, onResolve }: { s: GameState; o
   return (
     <>
       <h2>{W.title}</h2>
-      <p>{W.intro(playerRank(s), SPECIALIZATION_MILESTONE_RANK, pillarShareRule())}</p>
+      <p>{W.intro(playerRank(s), SPECIALIZATION_MILESTONE_RANK, strongest, SPECIALIZATION_PILLAR_RANK, pillarShareRule())}</p>
       <p className="spec-strongest">{W.strongest(strongest.pillar, strongest.rank, strongest.rivals)}</p>
       <div className="spec-cards">
         {specializationOptions(s).map((o) => (

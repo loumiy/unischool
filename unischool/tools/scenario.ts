@@ -16,6 +16,8 @@
 // Flags: --player <name> (or --strategy) --year N --modal <interrupt type>
 //        --from-year N (the stopping point counts from that year on)
 //        --seed N --vernacular <v> --colors <pair id> --name <school>
+//        --week N (stop in week N of year --year rather than at its end:
+//        the share image wants the fall, Plan 95Y)
 //        --clear-modal --build-all --list
 //
 // The output is a real save at the current SAVE_VERSION, built through the
@@ -35,7 +37,7 @@ import { CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
 import { clearBoardLetters } from '../src/systems/finance/distress';
 
 // `--k v` and `--k=v` both work; other arguments are positional.
-const VALUE_FLAGS = ['player', 'strategy', 'year', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
+const VALUE_FLAGS = ['player', 'strategy', 'year', 'week', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
 const BOOL_FLAGS = ['list', 'clear-modal', 'build-all', 'help'];
 
 function parseArgs(argv: string[]): { flags: Record<string, string>; positional: string[] } {
@@ -112,7 +114,13 @@ const game = foundGame({ seed });
 // modal that recurs (the summer) can be caught late in a run (Plan 73).
 const fromYear = Number(flags['from-year'] ?? 0);
 const stop = recipe.stopWhen;
-playUntil(game, player, recipe.year, stop ? (st) => st.clock.year >= fromYear && stop(st) : () => false);
+// --week N: stop in week N of the year asked for, not at its end (Plan
+// 95Y: the share image is taken in the fall, when the leaves have turned).
+const week = flags.week ? Number(flags.week) : null;
+if (week !== null && (stop || !(week >= 1 && week <= 52))) throw new Error('--week takes 1 to 52, and no --modal');
+playUntil(game, player, recipe.year, stop
+  ? (st) => st.clock.year >= fromYear && stop(st)
+  : week !== null ? (st) => st.clock.year >= recipe.year && st.clock.week >= week : () => false);
 const state: GameState = game.s;
 // A recipe that breaks the school after the run (see Scenario.mutate).
 named?.mutate?.(state);

@@ -209,6 +209,8 @@ export interface RunRecord {
   // The specialization chosen at the milestone (Plan 85D), and when.
   specialization?: string;
   specializationYear?: number;
+  // The summer the choice was first offered (Plan 95R).
+  specializationOffered?: number;
   // Instructor swaps a year (Plan 95S): the player's own
   // (REASSIGN_COURSE_FACULTY), and the Provost's on Staff for the A.
   playerSwaps?: Record<string, number>;
@@ -1325,6 +1327,7 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, 
   } catch (e) {
     j.rec.error = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
   }
+  j.rec.specializationOffered = g.s.specializationOffered;
   if (g.s.specialization !== 'none') {
     j.rec.specialization = g.s.specialization;
     j.rec.specializationYear = g.s.specializationYear;
@@ -1395,17 +1398,18 @@ export function writeReport(runs: RunRecord[], out: string): void {
   lines.push('');
 
   // The specializations (Plan 85D).
-  lines.push('## The specializations', '', 'The pillar each goal chose at the milestone (the top 20) and when; the four pillars\' values at Year 50 (academics / research / student life / athletics, median), and the college\'s place in the research, campus-life and athletic standings.', '');
-  lines.push('| Goal | Chose (runs) | Year (median, range) | Never offered | Pillars Y50 | Research / life / athletic rank Y50 | Trained professors Y50 |');
-  lines.push('|---|---|---|---|---|---|---|');
+  lines.push('## The specializations', '', 'The summer each goal was offered the choice (the top 30, or from Year 20 a pillar\'s top 10: Plan 95R), the pillar it chose and when; the four pillars\' values at Year 50 (academics / research / student life / athletics, median), and the college\'s place in the research, campus-life and athletic standings.', '');
+  lines.push('| Goal | Offered (median, range) | Chose (runs) | Year (median, range) | Never offered | Pillars Y50 | Research / life / athletic rank Y50 | Trained professors Y50 |');
+  lines.push('|---|---|---|---|---|---|---|---|');
   for (const goal of goals) {
     const rs = runs.filter((r) => r.goal === goal && !r.error);
+    const offers = rs.map((r) => r.specializationOffered).filter((y): y is number => y !== undefined);
     const picks = new Map<string, number>();
     for (const r of rs) if (r.specialization) picks.set(r.specialization, (picks.get(r.specialization) ?? 0) + 1);
     const yrs = rs.map((r) => r.specializationYear).filter((y): y is number => y !== undefined);
     const at = rs.map((r) => rowAt(r, 51) ?? r.years[r.years.length - 1]).filter((x): x is Row => !!x && !!x.pillars);
     const pill = [0, 1, 2, 3].map((i) => fmt(median(at.map((x) => x.pillars[i])))).join(' / ');
-    lines.push(`| ${goal} | ${[...picks.entries()].map(([p, n]) => `${p} ×${n}`).join(', ') || '—'} | ${yrs.length ? `${median(yrs)} (${Math.min(...yrs)}–${Math.max(...yrs)})` : '—'} | ${rs.length - yrs.length}/${rs.length} | ${pill} | ${fmt(median(at.map((x) => x.researchRank)))} / ${fmt(median(at.map((x) => x.lifeRank)))} / ${fmt(median(at.map((x) => x.athleticRank)))} | ${fmt(median(at.map((x) => x.trained)))} |`);
+    lines.push(`| ${goal} | ${offers.length ? `${median(offers)} (${Math.min(...offers)}–${Math.max(...offers)})` : '—'} | ${[...picks.entries()].map(([p, n]) => `${p} ×${n}`).join(', ') || '—'} | ${yrs.length ? `${median(yrs)} (${Math.min(...yrs)}–${Math.max(...yrs)})` : '—'} | ${rs.length - offers.length}/${rs.length} | ${pill} | ${fmt(median(at.map((x) => x.researchRank)))} / ${fmt(median(at.map((x) => x.lifeRank)))} / ${fmt(median(at.map((x) => x.athleticRank)))} | ${fmt(median(at.map((x) => x.trained)))} |`);
   }
   lines.push('');
 

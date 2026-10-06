@@ -3,7 +3,8 @@
 // reaches the milestone the harness's players run its department as they
 // always have (the Guided player builds the venues its teams wait on and
 // nothing more; the championships goal player runs its own). Once one
-// reaches it (offered the choice of a specialization: the overall top 20),
+// reaches it (offered the choice of a specialization: the overall top 30, or
+// from Year 20 a pillar's top 10, Plan 95R),
 // every player, unless it says otherwise (Player.athletics), runs the
 // department as a strong college runs every pillar's, whatever it chooses,
 // at the top of each week (game.ts's playWeek), before its own moves. Plan

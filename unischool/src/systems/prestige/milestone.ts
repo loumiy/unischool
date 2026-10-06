@@ -1,17 +1,22 @@
 import type { GameState, Pillar } from '../../state/types';
-import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget } from './prestigeSystem';
+import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget } from './prestigeSystem';
 import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
 import { postBoardLetter } from '../finance/distress';
-import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationStatus, withShareFull } from '../../data/specializationData';
+import { specializationOfferRule } from '../../data/prestigeWords';
+import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationOfferLine, specializationStatus, withShareFull } from '../../data/specializationData';
 
 // ---------------------------------------------------------------------
 // The milestone and the choice (Plan 85D). A college that climbs into the
-// guide's top SPECIALIZATION_MILESTONE_RANK is asked to choose a
-// specialization: one pillar, for good (specialization.ts). Three beats:
+// guide's top SPECIALIZATION_MILESTONE_RANK, or into the top
+// SPECIALIZATION_PILLAR_RANK of any one pillar's standing from Year
+// SPECIALIZATION_PILLAR_YEAR (Plan 95R, the second review's B4-2), is asked to choose a specialization: one pillar,
+// for good (specialization.ts). Either route is "the milestone" below.
+// Three beats:
 //
 //   notice  the first week the college stands within
-//           SPECIALIZATION_NOTICE_PLACES of the milestone, the board's
+//           SPECIALIZATION_NOTICE_PLACES of the milestone (overall, or in
+//           a pillar), the board's
 //           letter (a board letter in the inbox; it never stops the clock)
 //           names the four and what each gives;
 //   offer   the first summer the college stands at the milestone, read on
@@ -40,18 +45,34 @@ export function tickSpecialization(s: GameState): void {
   const offerDue = s.specializationOffered === undefined && s.pendingInterrupt?.type === 'summer';
   if (!noticeDue && !offerDue) return;
   const rank = playerRank(s);
-  if (noticeDue && rank <= SPECIALIZATION_MILESTONE_RANK + SPECIALIZATION_NOTICE_PLACES) {
+  const best = bestPillarStanding(s);
+  // Places ahead of the milestone, and years ahead of the pillar's route.
+  const within = (places: number, years: number) => rank <= SPECIALIZATION_MILESTONE_RANK + places
+    || (s.clock.year >= SPECIALIZATION_PILLAR_YEAR - years && best.rank <= SPECIALIZATION_PILLAR_RANK + places);
+  if (noticeDue && within(SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS)) {
     s.specializationNotice = s.clock.year;
     postBoardLetter(s, SPECIALIZATION_NOTICE_ID);
   }
-  if (offerDue && rank <= SPECIALIZATION_MILESTONE_RANK) {
+  if (offerDue && within(0, 0)) {
     s.specializationOffered = s.clock.year;
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
-      message: `The college stands #${rank} in the guide. At the summer's close the board will ask it to choose a specialization.`,
+      message: specializationOfferLine(rank <= SPECIALIZATION_MILESTONE_RANK ? null : best, rank),
       kind: 'good',
     });
   }
+}
+
+// The college's best place in the four pillars' standings (the standings'
+// own ranking, as the choice's cards read it), the first pillar on a tie.
+// Ranks only: the weekly watch runs it until the notice has come.
+export function bestPillarStanding(s: GameState): { pillar: Pillar; rank: number } {
+  let best = { pillar: PILLARS[0], rank: Infinity };
+  PILLARS.forEach((pillar, i) => {
+    const rank = rankBy(s, PILLAR_AXES[i]);
+    if (rank < best.rank) best = { pillar, rank };
+  });
+  return best;
 }
 
 // Whether the choice is open: offered, and not yet made.
@@ -95,7 +116,7 @@ export function resolveSpecialization(s: GameState, pillar: Pillar | null): void
 // The college's specialization, or where it stands on the choice, in a
 // sentence (History › Prestige, the standings).
 export function collegeSpecialization(s: GameState): string {
-  return specializationStatus(specializationOf(s), s.specializationYear, specializationOpen(s), SPECIALIZATION_MILESTONE_RANK, PRESTIGE_MAX);
+  return specializationStatus(specializationOf(s), s.specializationYear, specializationOpen(s), specializationOfferRule(), PRESTIGE_MAX);
 }
 
 // Each specialization as the choice shows it: the college's value and rank

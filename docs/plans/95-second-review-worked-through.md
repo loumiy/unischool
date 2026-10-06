@@ -1795,6 +1795,114 @@ Selective and Lean never reach prestige 70 or the top 25.
   - a save mid-run where the college already stands in a pillar's top 10
     is offered at its next summer, not at once.
 
+**As implemented.**
+- **The rule.** Two routes to the offer (`prestigeSystem.ts`):
+  - `SPECIALIZATION_MILESTONE_RANK` is 30 (was 20): the overall route.
+  - From Year 20 (`SPECIALIZATION_PILLAR_YEAR`), the top 10 of any one
+    pillar's standing (`SPECIALIZATION_PILLAR_RANK`): the pillar route.
+
+  `tickSpecialization` reads the overall rank and the best of the four
+  pillar ranks (`milestone.ts`'s `bestPillarStanding`: the standings' own
+  `rankBy`). The notice comes 4 places ahead on either route. On the
+  pillar route it comes no sooner than Year 18
+  (`SPECIALIZATION_NOTICE_YEARS = 2`). The offer's log line names the
+  route: "#30 in the guide", or "#10 in research in the standings" when
+  only the pillar brought it. All four choices stay open whichever route
+  brought the offer.
+- **Why Year 20 (the deviation from the PR section).** The plain top 10
+  was too early. A young college stands about #10–13 in student life
+  within its first decade, so the goal players were offered the choice at
+  Y9–21 and the Completionist at Y6–10. The top 5 lost the championships
+  player its offer and still offered assets at Y11. With Year 20 as the
+  pillar route's start, every goal but satisfaction gets the offer in
+  Y20–43. Of the coordinator's two options (Year 20, or from the overall
+  top 50) the year is the simpler for a player to read. It also keeps
+  revenue's offer: that player stands about #55 overall all run, so the
+  top 50 would have lost it.
+- **Words.** `prestigeWords.ts` gains `specializationOfferWhen` and
+  `specializationOfferRule`: "The board offers the choice of a
+  specialization at the first summer the college stands in the guide's top
+  30 or, from Year 20, in the top 10 of any one pillar's standing."
+  - The status line (History, the standings), the closed-building line in
+    the build menu, and the Research Park and complex lines all use it.
+    After the merge with 95H, History › Prestige's help no longer states
+    the rule (95H moved it to its own line); the status line under it does.
+  - The notice is now titled "Within reach of a specialization" and names
+    both routes.
+  - The choice's intro names the route: the guide's rank if the college
+    is in the top 30, else its pillar ("#6 in athletics, in the top 10 of
+    a pillar's standing").
+  - `test/pillar-rule.test.ts` now fails if any file but `prestigeWords.ts`
+    types the offer's rank into a string.
+- **Tests** (`specialization-choice.test.ts`):
+  - first in research in Year 17: no notice and no offer; in Year 19: the
+    notice and no offer;
+  - the notice and the offer through the pillar alone, with the college at
+    #60 overall; one place short in the pillar gives the notice and no
+    offer;
+  - a save written mid-year in research's top 10 gets the notice at once,
+    no offer until that year's summer, then the choice at its close, and
+    may choose athletics.
+- **The goal players** (`review:goals`, seeds 12345, 4242 and 777, name
+  Blackmoor; the goal report gains an *Offered* column):
+
+  | Goal | Offered: review → plain top 10 → **Year 20** | Takes | Titles a run | Y50 rank |
+  |---|---|---|---|---|
+  | revenue | never → Y19 → **Y20** (20–21) | research ×3 | 0 | 55 |
+  | prestige | Y41 → Y19 → **Y20** (20–20) | academics ×3 | 0 | 2 |
+  | satisfaction | never → never → **never** | — | 0 | 60 |
+  | assets | Y39 → Y9 → **Y20** (20–20) | research ×3 | 1 | 2 |
+  | championships | never → Y12 → **Y20** (20–30) | athletics ×3 | **57** (review: 0, ten in all) | 42 |
+  | good-then-big | Y47 → Y41 → **Y41** (30–43) | academics ×3 | 0 | 10 |
+  | big-then-good | Y43 → Y14 → **Y20** (20–23) | student life ×3 | 1 | 1 |
+
+  The top 5 alone (measured, then dropped) gave revenue Y20, prestige Y20,
+  assets Y11, big-then-good Y28, good-then-big Y43, and **never** for
+  championships or satisfaction. Satisfaction is still never offered: its
+  student life stands about #26 and it is about #55 overall. Each goal
+  takes its offer in the year it comes.
+- **The sim moved.** Re-baselined; three seeds, medians; change from
+  main's baseline (95N) in brackets:
+
+  | Player | Y10 prestige | Y25 rank / prestige | Y50 rank / prestige | Offered and chosen | Top 20 |
+  |---|---|---|---|---|---|
+  | Guided | 47.4 | 31 / 79.4 (+0.2) | 1 / 119.8 (+1.0) | research Y25, Y26, Y20 (was Y30–32) | Y30, Y32, Y30 |
+  | Guided, academics | 47.4 | 31 / 79.5 (+0.3) | 1 / 120.3 (−1.0) | Y25, Y26, Y20 | Y29, Y32, Y31 |
+  | Guided, research | 47.4 | 31 / 79.4 (+0.2) | 1 / 119.8 (+1.0) | Y25, Y26, Y20 | Y30, Y32, Y30 |
+  | Guided, student life | 47.4 | 31 / 79.5 (+0.2) | 1 / 117.9 (−0.9) | Y25, Y26, Y20 | Y31, Y32, Y29 |
+  | Guided, athletics | 47.4 | 31 / 79.5 (+0.2) | 1 / 120.8 (+0.8) | Y25, Y26, Y20 | Y30, Y32, Y30 |
+  | Guided, unspecialized | 47.4 | 31 / 79.4 (+0.1) | 3 (+1) / 111.6 (+0.5) | offered with Guided | Y30, Y33, Y30 |
+  | Completionist | 47.1 | 35 (−4) / 76.4 (+2.5) | 3 (−3) / 112.3 (+3.8) | student life Y20 ×3 (was Y40–43) | Y31, Y37, Y33 (was Y40–43) |
+  | Selective, Lean, Idle | unchanged | unchanged | unchanged | never | never |
+
+  No player collapses. Guided is first on every seed from Y41–43. The
+  Completionist reaches first on one seed (Y48). Its one week in the red is
+  as before; no other run goes into the red.
+- **Plan 85I's targets** (Plan 85D's table, as 85I restated it):
+  - Each specialist is first by Year 50 on every seed: met.
+  - Its pillar is first by 5 or more for academics (8.2–8.6), research
+    (9.8–9.9) and athletics (12.6–13.0): met. Student life misses on all
+    three seeds (+4.7, #3 at −2.9, +0.3; before: 3.9, 7.0, 5.7).
+  - Unspecialized play is in the top 10 and never first (3rd; best 2, 5,
+    3): met.
+  - The milestone falls in the owner's 25–40 for Guided on two seeds of
+    three (Y25, Y26), and at Y20 on 777.
+- **The rivals** are untouched: each is dealt its pillar off its id
+  (`rivalData.ts`): 35 academics, 23 research, 19 student life and 22
+  athletics of 99. "35-odd per pillar" holds only for academics, as it did
+  before this PR.
+- **Deviations:**
+  - The pillar route starts in Year 20 (see "Why Year 20" above).
+  - The notice on the pillar route waits until Year 18, so the board does
+    not write a decade ahead.
+  - The goal players ran on three seeds and one name, not ten seeds (the
+    brief allowed three); each run takes 5–15 minutes on a shared machine.
+  - Most goals are offered at exactly Y20, the low edge of the plan's
+    Y25–35 window.
+  - Satisfaction still never gets an offer.
+  - Championships wins about 57 titles a run with athletics from Y20. That
+    is far above the review's one; 95U and 95V should read against it.
+
 ### PR 95S — Teaching: the line that opens *Below A*, and the Provost's policy (B4-5)
 
 - **The link.** History › Prestige's teaching line ("11% of courses graded
@@ -2313,6 +2421,55 @@ was not.
 - **Checks:** the share image at the declared size; the README's links and
   images resolve.
 
+**As implemented.** Pictures, words and tools; nothing under `src/`
+changed, so no sim.
+- **The share image**, 1200×630 as `index.html` declares, 132 KB: the
+  Completionist's campus in week 14 of Year 32, laid out, on `vite
+  preview` (the canvas map, as the shot reports), the chrome hidden, the
+  view two steps flatter so the farmland, the road and its town, the hills
+  and the haze ring the campus, and the trees in their autumn colours. The
+  `og:image:alt` says so now ("dormitory towers" and "a stadium" were not in
+  it).
+- **One command:** `CAMPUS_URL=… npm run share-image`
+  (`tools/shareImage.mjs`: scenario, layout, shot). Its recipe is in the
+  tools README beside the others'. The tools gained what it needed:
+  `scenario --week N` (stop in week N of the year asked), and `shot`'s
+  `--bare` (the time-lapse's chrome list), `--tilt=N`, JPEG out by
+  extension (`--quality`), and the map that drew named in its last line.
+  Drawn in a 1600×840 viewport at scale 0.75, so the campus is sharper than
+  a 1200-wide viewport draws it.
+- **The README:** the one clause at :15 is gone; *What you do* gains
+  **Play on after the Final Report** (into the Epilogue, a decade added each
+  tenth summer) and **Sandbox mode** (title screen: unlimited funds, instant
+  building, every building open). The prestige bullet names the four
+  pillars and the one choice, not the old six inputs. A new section, *Four
+  pillars, one specialization*, after the summer card, in the README's
+  register ("excellent at all four, … the very best at only one"), with
+  R's rule as `specializationOfferWhen()` says it: the guide's top 30, or
+  from Year 20 the top 10 of any one pillar. *Current state* lists the
+  pillars and the specialization.
+- **Captions:** Faculty, Athletics and History changed after the 4 October
+  pictures (95G, 95I, 95H), so those three pictures are taken again with
+  the tools README's own recipe (year-50 `--build-all` run, each tab in its
+  colours), and their captions and alt text describe them: Faculty's grid
+  of faces under its figure row, Athletics' one-line programs, History's
+  three views on Prestige. Curriculum, Research, Students and Treasury
+  still match their pictures (95M has not landed) and are unchanged.
+- **The store page:** the specialization's offer reads R's exact rule in
+  the long description and the features, and screenshot 5's note no longer
+  says `tab-history.png` shows the report's heading.
+- **Checks:** the share image is 1200×630 JPEG; every link and image in
+  the README resolves; `npm run check` passes.
+
+Deviations:
+- **Three README pictures retaken**, not only their captions checked: a
+  caption fitted to the 4 October pictures would describe screens the
+  game no longer has. Their toolbar now wears the new icons, so they differ
+  from the four untouched tabs' in that strip. They are quantized to 256
+  colours with Pillow (`pngquant` is not on this machine), 170–220 KB.
+- **Week 14, not 12:** both are in the window; at 14 the leaves have turned
+  further (`seasons.ts`: 0.8 against 0.6) and none are down.
+
 ### PR 95Z — The AI disclosure and the store page, drafted (B6-3, B6-5)
 
 Drafts for the owner to edit. Nothing is published.
@@ -2332,6 +2489,37 @@ Drafts for the owner to edit. Nothing is published.
   - the five screenshots the review's §4 lists, as captions with the
     picture each wants, from `docs/images`.
 - **Checks:** none in code. The owner reads both drafts.
+
+**As implemented.** Docs only: no code, no sim.
+- `docs/store/ai-disclosure.md`: the facts it rests on, Steam's
+  pre-generated and live-generated answers, itch.io's part by part, a short
+  form, and what to keep out of any copy. The game makes no runtime AI or
+  network calls: `unischool/src` holds no `fetch`, `XMLHttpRequest`,
+  `WebSocket` or `sendBeacon`, and its runtime dependencies are React and
+  three font packages. The live-generated answer says so.
+- `README.md` gains one section, *How UniSchool is made*, after
+  *Development*, with the short form and a link to the full text. No other
+  section is touched, for 95Y.
+- `docs/store/steam-page.md`: a short description (220 of Steam's 300
+  characters), the long one, twelve features with *Sandbox mode* and *Play
+  on after the Final Report* among them, and the five screenshots as
+  captions. The specialization's offer reads "once the college stands high
+  enough, overall or in one pillar", since R's rule is still being tuned.
+
+Deviations:
+- **The review's suggested Steam text says the text was "edited by the
+  developer".** The draft leaves that out until the human edit (the owner's,
+  in the backlog) is done, and marks where it goes back in. Likewise the
+  line naming a human artist waits for the commissions.
+- **Only one of the five screenshots is in `docs/images` as it should be**
+  (the Faculty grid). The campus was taken in week 2, before the trees
+  turn; the admissions card is cropped to portrait; the specialization
+  choice and the Final Report have no picture there. The table says which
+  to retake and points at the 85D shots of the frames wanted. All need
+  retaking at 16:9 for Steam in any case: `docs/images` is 16:10.
+- **itch.io's graphics answer is left to the owner**, with *yes, with the
+  note* recommended: no image generator, but the drawing code was written
+  with the assistant.
 
 ### What area 6 does not do
 
@@ -2562,6 +2750,53 @@ still happens, so the random stream reads the same.
 - `BACKLOG.md`'s entry for the offer and the tenure case is removed.
 - **Checks:** a test per kind (ties to the id, as now); a test that the
   random stream is unchanged by the naming.
+
+**As implemented.** `namedFaculty` (`catalogue.ts`) has the two new kinds,
+both read and tied to the id: `'tenure-track'` is the shortest-serving
+professor with `TENURE_CASE_MIN_YEARS` (4) to `TENURE_CASE_MAX_YEARS` (10)
+years at the college, and `'recent'` the shortest-serving with at least a
+year. `star-poached` names `'researcher'`, `tenure-case` `'tenure-track'`
+and `two-body` `'recent'`. `eligible()` now also asks that an event's
+professor kind finds someone, so a kind that finds nobody takes the event
+out of that week's pool; it is read, so the pool's one draw is still the
+only one. `rollVars` still draws `{faculty}` first. `event-truth` checks
+each kind against a roster built for it (ties to the id), that each event
+cannot fire with nobody to name, that naming and the eligibility check
+leave the stream as it was, and, in place of Plan 79D's test that no
+leaving event names by kind, that every event that lets its professor go
+does. `BACKLOG.md`'s entry is gone.
+- **Deviation:** the tenure window has an upper end (ten years). The
+  shortest-serving with at least four years can still be a professor of
+  twenty-five at a college that has hired nobody since; with the upper end
+  the tenure case never names them, as the section says, and the event
+  waits instead.
+- **Balance** (re-baselined on PR 95R's baseline; 30 runs, three seeds).
+  Prestige moves little: Guided Y25 78.7 (−0.7), Y50 117.6 (−2.2); its
+  specialized variants Y50 −0.2 to −2.2; Completionist Y50 −0.2, Selective
+  −1.1, Lean +0.7; Idle does not move. Every Guided run is still first at
+  Y50 and never in the red. The faculty's means (Guided, the mean of the
+  three seeds, measured with the harness; "before" is this branch with the
+  three events' `names` taken off, which reproduces the old baseline's
+  prestige and cash):
+
+  | | Before | After |
+  |---|---|---|
+  | Research, Y25 | 53.1 | 53.9 |
+  | Teaching, Y25 | 67.7 | 70.0 |
+  | Research, Y50 | 66.3 | 63.9 |
+  | Teaching, Y50 | 84.6 | 84.1 |
+
+  **What moves most is the late money.** Guided's Y50 cash falls from
+  $6.4B to $0.3B (median), its endowment from about $3B to under $0.1B,
+  and its Y50 research rank from 1 to 8. On the old baseline all three
+  seeds' research grants snowballed after year 34 (seed 4242: $12.8B of
+  grants by Y50, against $1.5B now), and the money swept into the
+  endowment from year 42. Now no seed's does. Taking the names off one
+  event at a time (seeds 4242 and 12345) places it mostly in the tenure
+  case and the two-body problem rather than the offer, but which run takes
+  off is a threshold, not a slope. The second review's area 7 had already
+  called the year-50 surplus a question of balance for area 4. The
+  research variant still takes off ($6.8B, +$0.4B).
 
 ### What area 7 does not do
 
