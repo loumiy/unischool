@@ -154,12 +154,12 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
         <div className="funnel-lines">
           <FunnelLine
             label="Applicant pool"
-            note="What the college drew. Prestige and price set its size; beds, word of mouth and what you have built for each audience scale it; sticker shock then takes a cut, hitting the quality bands unevenly."
+            note="What the college drew. Prestige and price set its size; beds, word of mouth and what the college has built for each audience scale it; sticker shock then takes a cut, hitting the quality bands unevenly."
             value={count(s.students.applicantPool)}
           />
           <FunnelLine
             label="Admit rate"
-            note="Your decision, not a reading. Admitting deeper reaches further down the quality distribution, so it buys class size with incoming quality."
+            note="The college's decision, not a reading. Admitting deeper reaches further down the quality distribution, so it buys class size with incoming quality."
             value={pct(s.students.admitRate)}
           />
           <FunnelLine

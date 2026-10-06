@@ -15,7 +15,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   // === Business ===
 
   // --- Finance ---
-  FINA101: 'Introduces the time value of money, risk, and the core tools of personal and corporate finance.',
+  FINA101: 'Prices a bond, a loan and a retirement plan with the time value of money, and shows why risk raises what investors demand.',
   FINA110: 'Works through capital budgeting, cost of capital, and the financing and payout decisions a firm makes to create value.',
   FINA120: 'Values stocks and bonds, builds portfolios under the trade-off between risk and return, and tests whether markets price either correctly.',
   FINA130: 'Builds three-statement, discounted cash flow, and scenario models in spreadsheets, with the sensitivity tests that show where a valuation breaks.',
@@ -26,7 +26,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   FINA240: 'Traces how overconfidence, loss aversion, and herding move prices away from what rational models predict, and what that leaves for arbitrage.',
 
   // --- Accounting ---
-  ACCT101: 'Covers the accounting cycle, financial statements, and the language of business record-keeping.',
+  ACCT101: 'Records a small firm\'s first year in journal entries and closes it into a balance sheet and an income statement.',
   ACCT110: 'Prepares and reads the balance sheet, income statement, and cash-flow statement under the standards that govern external reporting.',
   ACCT120: 'Turns cost data into decisions — budgeting, break-even analysis, variance reports, and pricing — for the people who run the business.',
   ACCT130: 'Covers how income, deductions, and credits are computed for individuals and businesses, and how tax planning changes a decision.',
@@ -59,7 +59,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ECON240: 'Prices pollution, climate damage, and natural resources, and compares taxes, tradable permits, and regulation by what each costs per ton of emissions cut.',
 
   // --- Management ---
-  MGMT101: 'Introduces leadership styles, team dynamics, and the fundamentals of managing people.',
+  MGMT101: 'Studies how teams form, stall and recover, and what a first-time manager can do about each, through cases and team projects.',
   MGMT110: 'Covers recruiting, compensation, performance review, and employment law, and how each shapes who stays and how they work.',
   MGMT120: 'Designs the processes that make and deliver things: capacity, scheduling, quality, and the bottlenecks that set throughput.',
   MGMT130: 'Tests corporate decisions against moral frameworks, stakeholder claims, and the cases where the law permitted what the public would not.',
@@ -105,7 +105,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ELEC240: 'Lays out digital circuits in CMOS from transistor to chip, with timing, power, and the design flow that gets a chip fabricated.',
 
   // --- Chemical Engineering ---
-  CHEN101: 'Introduces the chemical process industries and the unit operations, flows, and conversions that run them.',
+  CHEN101: 'Follows a barrel of crude and a vat of corn mash through a plant, and names the unit operation each step takes.',
   CHEN110: 'Starts with energy balances on flowing streams, then applies phase and chemical equilibrium to the separations and reactions a plant depends on.',
   CHEN120: 'Calculates friction losses, pump heads, and pressure drops for process piping, with the Reynolds number deciding which correlation applies.',
   CHEN130: 'Closes mass and energy balances on a whole flowsheet, with recycle, purge, and reaction, the bookkeeping a plant design is checked against.',
@@ -151,7 +151,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   // === Arts & Media ===
 
   // --- Media Studies ---
-  MDIA101: 'Surveys how mass media shapes public opinion, culture, and information flow.',
+  MDIA101: 'Measures what newspapers, broadcasters and platforms each reach, and what the research says they do to opinion.',
   MDIA110: 'Reads the major theories of media effects and meaning, from propaganda models to audience reception, against what the evidence supports.',
   MDIA120: 'Compares how press freedom, ownership, and public broadcasting differ across countries, and what each arrangement does to the news.',
   MDIA130: 'Examines how platforms, algorithms, and participatory media reshape identity, community, and the public sphere.',
@@ -173,7 +173,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   GRDS240: 'Designs a complete magazine or book, from pacing and typographic system through the cover to press-ready files.',
 
   // --- Creative Writing ---
-  CRWR101: 'Workshops short fiction and poetry to build a foundational creative practice.',
+  CRWR101: 'Writes a poem and a short story a week, read aloud and critiqued, to learn what revision is for.',
   CRWR110: 'Drafts and revises short stories under group critique, with close attention to point of view, scene, and structure.',
   CRWR120: 'Writes in received and open forms, revising for image, line, and sound under weekly critique.',
   CRWR130: 'Writes memoir, essay, and reportage, and works out the obligations to fact and to other people that fiction does not carry.',
@@ -206,7 +206,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   FILM240: 'Edits, color-grades, and finishes a film to delivery, with the workflow and versioning a real release requires.',
 
   // --- Studio Art ---
-  SART101: 'Introduces line, shape, and composition through studio exercises in two-dimensional art.',
+  SART101: 'Works through line, shape, balance and figure-ground in cut paper and ink, critiqued on the wall each week.',
   SART110: 'Builds observational skill in line, value, and proportion from still life and the figure, in charcoal, graphite, and ink.',
   SART120: 'Works in oil and acrylic on color mixing, surface, and composition, from studies to sustained canvases.',
   SART130: 'Builds in clay, plaster, wood, and found material, and learns what changes when a work occupies space rather than a wall.',
@@ -219,7 +219,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   // === Social Sciences & Humanities ===
 
   // --- English ---
-  ENGL101: 'Introduces close reading and literary analysis across poetry, fiction, and drama.',
+  ENGL101: 'Reads a sonnet, a short story and a play line by line, and builds an argument about each from the words on the page.',
   ENGL110: 'Reads Beowulf, Chaucer, Milton, the Romantics, and Woolf in order, and how English itself changed as a literary language.',
   ENGL120: 'Asks what makes a literature American rather than English, through Bradstreet, Douglass, Dickinson, Twain, Faulkner, and Morrison.',
   ENGL130: 'Introduces the schools of criticism — formalist, Marxist, psychoanalytic, feminist, postcolonial — and puts each to work on a text.',
@@ -230,7 +230,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   ENGL240: 'Writes documentation, proposals, and reports for expert and lay readers, with structure, plain language, and usability testing.',
 
   // --- Sociology ---
-  SOCY101: 'Examines how social structures, institutions, and group behavior shape everyday life.',
+  SOCY101: 'Shows how class, family, school and work shape choices people believe are their own, with the surveys that measure it.',
   SOCY110: 'Analyzes class, status, and power: how inequality is measured, reproduced across generations, and justified.',
   SOCY120: 'Reads Marx, Weber, Durkheim, and their successors, and asks what each framework explains that the others cannot.',
   SOCY130: 'Examines how racial and ethnic categories are made, enforced, and contested, and their effects on housing, schooling, and justice.',
@@ -241,7 +241,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   SOCY240: 'Analyzes how gender is socially constructed and enforced, in work, family, and the body, and how sexuality intersects with it.',
 
   // --- Anthropology ---
-  ANTH101: 'Introduces the four fields of anthropology and what each asks about being human.',
+  ANTH101: 'Introduces cultural, biological, linguistic and archaeological anthropology, each through the one case it explains best.',
   ANTH110: 'Studies kinship, ritual, exchange, and belief across societies through ethnography, and what fieldwork can and cannot see.',
   ANTH120: 'Covers human evolution, primate behavior, and modern human variation, from fossil evidence to genetics.',
   ANTH130: 'Teaches survey, excavation, stratigraphy, and dating, and how material remains are turned into claims about the past.',
@@ -274,7 +274,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   HIST240: 'Traces how scientific ideas and machines were made, contested, and adopted, from the Scientific Revolution to the digital age.',
 
   // --- Philosophy ---
-  PHIL101: 'Builds skills in argument analysis, deduction, and identifying logical fallacies.',
+  PHIL101: 'Puts arguments into standard form, tests their validity, and names the fallacies that make bad ones persuasive.',
   PHIL110: 'Examines utilitarian, deontological, and virtue theories of right action, and tests them on real moral problems.',
   PHIL120: 'Asks what exists — numbers, universals, possible worlds — and what makes something the same thing over time or an action free.',
   PHIL130: 'Studies knowledge, justification, and skepticism, and what testimony, perception, and reason can each be trusted to deliver.',
@@ -355,7 +355,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   // === Health Science ===
 
   // --- Public Health ---
-  PHLT101: 'Surveys how populations, policy, and environment shape community health outcomes.',
+  PHLT101: 'Compares two neighboring counties\' death rates and asks how income, housing and policy explain the gap.',
   PHLT110: 'Measures disease in populations with incidence, prevalence, and risk, and designs the cohort and case-control studies that find its causes.',
   PHLT120: 'Teaches descriptive statistics, confidence intervals, hypothesis tests, and simple regression on health data, enough to read a clinical trial\'s results.',
   PHLT130: 'Examines how health systems are financed, regulated, and run, and the policy choices behind coverage, cost, and access.',
@@ -377,7 +377,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   NURS240: 'Runs a full patient load on a specialty unit under a preceptor — the transition from student to practicing nurse.',
 
   // --- Nutrition ---
-  NUTR101: 'Covers macronutrients, micronutrients, and how diet supports human health.',
+  NUTR101: 'Reads a food label line by line: the calories and protein first, then the vitamins whose shortfall still causes disease.',
   NUTR110: 'Follows carbohydrates, fats, and proteins from digestion through the metabolic pathways that store and burn them.',
   NUTR120: 'Matches nutrient needs to each life stage and its common shortfall: folate in pregnancy, iron in toddlers, protein in old age.',
   NUTR130: 'Plans menus and therapeutic diets, such as low-sodium, carbohydrate-controlled, and texture-modified, and documents each case in the nutrition care process.',
@@ -410,7 +410,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   KINE240: 'Designs physical activity for people with disabilities and chronic conditions, with inclusion and safety as the starting points.',
 
   // --- Neuroscience ---
-  NEUR101: 'Introduces the nervous system from single neurons up to behavior and cognition.',
+  NEUR101: 'Follows a reflex, a memory and a decision from the neurons that carry them to the behavior they produce.',
   NEUR110: 'Maps the structures of the brain and spinal cord, their connections, and what damage to each does, with brain dissection in the lab.',
   NEUR120: 'Covers ion channels, action potentials, synaptic transmission, and the molecular machinery of the neuron.',
   NEUR130: 'Links perception, memory, language, and decision-making to brain systems, through imaging, lesion, and recording studies.',
@@ -423,7 +423,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   // === Computer Science ===
 
   // --- Computer Science ---
-  COMP101: 'Teaches programming fundamentals — variables, control flow, and functions — through hands-on projects.',
+  COMP101: 'Writes small programs that read, loop and decide, and learns to find its own bugs before a grader does.',
   COMP110: 'Implements lists, stacks, trees, hash tables, and graphs, and analyzes which one a problem needs and at what cost.',
   COMP120: 'Designs and analyzes algorithms — sorting, graph search, dynamic programming, greedy methods — with proofs of correctness and running time.',
   COMP130: 'Explains what an operating system does for a program — processes, scheduling, virtual memory, files — and writes concurrent code that uses it.',
@@ -434,7 +434,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   COMP240: 'Ships a full-stack web application to outside users, with authentication, caching, load testing, and the attacks a public site has to withstand.',
 
   // --- Data Science ---
-  DATA101: 'Introduces data collection, cleaning, and exploratory analysis techniques.',
+  DATA101: 'Takes a messy public dataset from download to a first chart, cleaning and questioning it at every step.',
   DATA110: 'Fits linear and generalized linear models, checks their assumptions, and reads what the coefficients do and do not claim.',
   DATA120: 'Trains and evaluates supervised and unsupervised models — regression, trees, clustering, neural networks — with the bias-variance trade-off throughout.',
   DATA130: 'Designs charts and interactive graphics that make a dataset\'s structure legible, and learns what makes a visualization mislead.',

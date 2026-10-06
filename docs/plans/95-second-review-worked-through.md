@@ -615,6 +615,56 @@ the sim was not run (the one file under `systems/` touched,
   sentences (`courseDescriptions.ts`), so none restates its title.
 - **Checks:** `npm run review:strings` clean, and its new rules tested.
 
+**As implemented.** Text only; no logic moved, so the sim was not run.
+
+- **The words.** The tile's load reads "9/10 course slots" (one string in
+  `FacultyTile.tsx`); the suggested move's tooltip "program slot 2". The
+  armed labels: "Confirm — the other three shares stay empty for good" and
+  "Confirm — {course} loses its teacher for a term". The Answered pane:
+  "It was left unanswered, so it settled the way it does when nobody
+  answers." The downtown's two lines say "Spring term".
+- **Rankings.** The standings' help keeps "Seven rankings" and adds that
+  the Final Report grades the six beside prestige. The report's head reads
+  "Six of the seven standings, graded over the arc", with a note under it:
+  prestige is the blend of four of the six and counts once, as the guide's
+  last word. Its chart draws all seven (it always did: `STANDINGS` holds
+  prestige), so its title is now "The seven standings, year by year".
+  Plan 47's glossary and `progression.md` say seven.
+- **Dates.** The inbox's list rows, the Answered rows included (a second
+  hand-built "Y31W50" the review did not name), use `gameDateOfWeek` /
+  `gameDate`; a milestone row reads "Year 8". The long form fits the list
+  pane at 1600 px and on a 390 px phone
+  (`docs/reviews/2026-10-review-ii-fixes/95j-inbox-dates*.jpg`,
+  `95j-faculty-course-slots.jpg`).
+- **Second person.** 20 help hints, notes, tooltips and two decision
+  answers say "the college" or "the President" (the scanner's "you" count
+  40 → 21). What is left is letters to the President, the events, the
+  crash screen and the credits, which the rule allows.
+- **The checks.** `tools/review/glossaryChecks.ts` holds four rules (bare
+  "slots", a numbered "slot", "default", "Spring/Fall Term");
+  `strings.ts` reports them in a section of their own and prints the count
+  ("none found"). `test/glossary-checks.test.ts` catches the review's
+  strings as written and passes the glossary's words.
+- **The 101s.** All 16 took `2a`'s sentence.
+
+Deviations:
+- **"Distinguished".** The glossary has no second word for a program's
+  stage, and the stage's "distinguished" runs through the milestones, the
+  toasts, the curriculum and PR M's plan. So the stage keeps its word, and
+  the one place it meets the rank, the person page's Recognition, says
+  what it means: "Taught in Political Science, a program complete since
+  Year 12". The glossary's Stage entry records this.
+- **Training's armed label** does not name the course's new teacher: the
+  label takes the course alone so the call site in `FacultyTile.tsx`
+  (which PR G moves) is untouched, and the warning beneath it already
+  names the taker or says nobody can take it.
+- **NUTR101** reads "…line by line: the calories and protein first, then
+  the vitamins…": `2a`'s "from … to …" put Health Science at 13 of the
+  test's 12.
+- `FacultyTab.tsx`'s summary line ("fewer if the college keeps them") is
+  one phrase in a paragraph PR G may fold; take G's text on a conflict
+  and keep the phrase.
+
 ### PR 95K — The inbox and the phone (B2-7)
 
 - **The board's letter keeps its arrival week.** The queue stores the

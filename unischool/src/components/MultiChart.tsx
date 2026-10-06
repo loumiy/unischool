@@ -3,7 +3,7 @@ import { useId } from 'react';
 // ---------------------------------------------------------------------
 // Several series over the years on one set of axes (Plan 34, v2's
 // HistoryChart): rank in History, money in the Treasury, the classes in
-// Students, the six standings in the Final Report. Each series is named
+// Students, the seven standings in the Final Report. Each series is named
 // and its last value printed at its end; ranks draw with one at the top;
 // the figure carries a text alternative. Colors are tokens, so the
 // color-vision-safe set reads it, and lines past the third are dashed so

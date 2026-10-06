@@ -262,7 +262,7 @@ function DepartmentRow(
             {demandCount > 0 && onOpenCurriculum && (
               <>
                 {' '}
-                <button type="button" className="dept-demand-door" onClick={() => onOpenCurriculum(`field:${c.field}`)} title={`Open the Curriculum on the ${c.field} courses still ahead of you`}>
+                <button type="button" className="dept-demand-door" onClick={() => onOpenCurriculum(`field:${c.field}`)} title={`Open the Curriculum on the ${c.field} courses not yet developed`}>
                   {openCourses.length === 0
                     ? 'Open in Curriculum →'
                     : c.state === 'short' || c.state === 'over'
@@ -693,7 +693,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
           {' '}<strong>{cap.total.offered}</strong> taken by what is on offer,
           {' '}<strong>{cap.total.available}</strong> more open and waiting.
           {toFinish > 0
-            ? ` Teaching the whole catalog takes ${cap.total.catalogue} course slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the course slots a new hire brings, fewer if you keep them long enough to grow.`
+            ? ` Teaching the whole catalog takes ${cap.total.catalogue} course slots in the departments that hold them — ${toFinish} short, about ${hiresFor(toFinish)} more appointments at the course slots a new hire brings, fewer if the college keeps them long enough to grow.`
             : ' Every department can already teach its whole catalog.'}
         </p>
         <FacultyMarketNote s={s} />

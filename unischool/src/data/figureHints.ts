@@ -23,7 +23,7 @@ export const FIGURE_HINTS = {
   funds: 'Operating funds, and what the week adds or takes at today\'s rates; a deficit, or a matter left unanswered, can push them below zero, and the board reviews them every term.',
   // Rank follows prestige's summer step (Plan 78C), read from prestigeSystem.ts.
   rank: (field: number): Sentence => `Of ${field} colleges, by prestige; #1 is the top; the rank follows prestige, which moves mostly at the summer and rises then by at most ${prestigeFigure(PRESTIGE_MAX_RISE)} points.`,
-  enrolled: 'Students on the books across all four classes, set each summer by the class you admit and who does not return.',
+  enrolled: 'Students on the books across all four classes, set each summer by the class the college admits and who does not return.',
   prestige: `Prestige, graded each summer: the blend of ${pillarWeightsWords()}, with the endowment added and neglect and crowding taken off.`,
   // The lowest need and its figure (Plan 78B), so the chip says where to look.
   satisfaction: (need: string, figure: string): Sentence => `How content the students are, out of 100; the lowest of the five needs is ${need}, at ${figure}, and the Students tab shows what serves each.`,
