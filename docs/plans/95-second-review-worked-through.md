@@ -1071,6 +1071,56 @@ Deviations:
   - An inbox test that a letter from week 5 still reads week 5 at week 30.
   - Screenshots of the toolbar at each text size.
 
+**As implemented.** Save version 95.
+
+- **The board's letter.** `Distress` gains `letterWeeks`, the absolute
+  week each queued letter came, beside `letters`. Four helpers in
+  `distress.ts` keep the two in step: `postBoardLetter` (the ladder, the
+  idle-cash watch and the specialization notice all post through it),
+  `shiftBoardLetter` ("Noted"), `dropBoardLetters` (the sweep's answer)
+  and `clearBoardLetters` (the three tools that clear the queue for a
+  photograph). The inbox's board item takes `letterWeeks[0]`, so it sorts
+  among the letters by its own week, and the reading pane's head reads
+  the same date (it too read this week).
+- **The migration** (`boardLetterWeeks`, 94 → 95): the specialization
+  notice is dated week 1 of `specializationNotice`'s year, the idle-cash
+  letters week 1 of `idleLetterYear`'s, and a ladder letter the save's
+  week, as it read before. `sanitizeDistress` keeps each week with its
+  letter when it drops one the game no longer has, and a week missing,
+  malformed or after the save's reads as the save's.
+- **The fixture** `test/fixtures/save-v94.json` is the
+  `specialization-notice` scenario (year 29, the notice queued), written
+  at 94. `save-migrations` checks it loads dated to Y29W1, that moved on
+  four years it still does while a ladder letter added reads the save's
+  week, and that a malformed week reads as the save's. `inbox.test.ts`
+  checks a letter from week 5 reads week 5 at week 30, and that "Noted"
+  leaves the next letter its own week.
+- **The Answered list's empty line** reads "Nothing answered yet. The
+  matters settled lately are kept here."
+- **"Answer to go on"** is a flat note in the muted ink, in italic, where
+  the Close button stands; no border, no pill.
+- **The funds figure** is the display face with tabular numerals
+  ("$46,290,839", the commas close).
+- **The phone's ticker:** the date stands beside the line, not in it, and
+  does not shrink, so the message gives way and the year stays ("Y29W1"
+  at the largest text, where it read "Y").
+- **Checks:** `check` and `test:slow` pass; `npm run sim` shows no change
+  against the baseline. Screenshots in `docs/reviews/2026-10-review-ii-fixes/`:
+  `95k-toolbar-text-sizes.jpg` (1×, 1.15×, 1.3×),
+  `95k-phone-ticker-largest-text-before-after.jpg`,
+  `95k-inbox-board-letter-week.jpg` and `95k-inbox-held-note.jpg`.
+
+Deviations:
+- **`--mono` stays.** The funds figure was not its one use: the dock's
+  weekly net, the faculty card's facts, the scoreboard, the build stamp,
+  the cohort change, the park's tally and the debug panel read it (Plan
+  90). The net beside the funds keeps the mono, as those records do.
+- **The ladder's letters** have no week in an old save (`closedAt` is
+  only the last term closed, which may come after the letter), so they
+  take the save's week.
+- **The screenshots** are the canvas map only, in one vernacular: nothing
+  here touches the map.
+
 ### PR 95L — The course catalog's shape: the table, for the owner (B2-6)
 
 The shape has waited since Plan 76G because each change moves course ids in

@@ -106,7 +106,8 @@ stepped aside whenever a tab was open.
 What stops the clock is answered here too. A pending interrupt is pinned first
 under **The clock waits** and shown in the reading pane in its modal card; the
 shell opens the inbox on it, shuts every other way off it (the toolbar's other
-buttons are disabled and Close gives way to "Answer to go on"), and once it is
+buttons are disabled and Close gives way to a flat note, "Answer to go on",
+not a button: Plan 95K), and once it is
 answered returns the player to the view they were on, or opens the build menu
 when a letter was answered with "Continue and open Build" (Plan 78B). Only the
 Final Report's page still stands in front of the screen.
@@ -197,12 +198,13 @@ geometry.
   palette above is for the interface.
 - **Three faces.** `--display` (Bricolage Grotesque at 800) for titles,
   figures, chips and buttons; `--sans` (Archivo, loaded 400–700) for prose
-  and detail lines; and `--mono` (Azeret Mono) for the dock's funds counter
-  and its weekly net, so the digits hold their columns as it ticks — and,
-  since Plan 90, for figures read as a printed or posted record: a faculty
+  and detail lines; and `--mono` (Azeret Mono) for the dock's weekly net
+  and, since Plan 90, for figures read as a printed or posted record: a faculty
   card's salary and slots, an athletics program's scoreboard, a build
   tile's stamp, a cohort's change on last year, the research park's tally
-  count. Every other figure is the display face with tabular numerals. All three
+  count. Every other figure is the display face with tabular numerals, the
+  dock's funds counter among them since Plan 95K (the mono spaced its
+  commas: "$41 , 657 , 506"). All three
   are self-hosted through `@fontsource` imports in `main.tsx`. The display
   face has no italic, so it is never slanted; a difference is marked by
   weight, color or opacity.

@@ -2,7 +2,7 @@ import type { GameState, Pillar } from '../../state/types';
 import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget } from './prestigeSystem';
 import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
-import { foundingDistress } from '../finance/distress';
+import { postBoardLetter } from '../finance/distress';
 import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationStatus, withShareFull } from '../../data/specializationData';
 
 // ---------------------------------------------------------------------
@@ -42,7 +42,7 @@ export function tickSpecialization(s: GameState): void {
   const rank = playerRank(s);
   if (noticeDue && rank <= SPECIALIZATION_MILESTONE_RANK + SPECIALIZATION_NOTICE_PLACES) {
     s.specializationNotice = s.clock.year;
-    (s.finance.distress ??= foundingDistress()).letters.push(SPECIALIZATION_NOTICE_ID);
+    postBoardLetter(s, SPECIALIZATION_NOTICE_ID);
   }
   if (offerDue && rank <= SPECIALIZATION_MILESTONE_RANK) {
     s.specializationOffered = s.clock.year;
