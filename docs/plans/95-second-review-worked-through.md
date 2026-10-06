@@ -438,6 +438,78 @@ it in every vernacular. This PR measures first.
 - If art changed: rerun `npm run gallery:assets`, and take screenshots of
   each changed form in Georgian, Gothic, Classical and Mission.
 
+**As implemented.** Art only: `materialOf` feeds the drawing and nothing
+under `systems`, `state`, `data` or `sim` reads it, so the sim was not run.
+
+- **Measured.** The three campuses were made as the review made them:
+  `npm run scenario -- --player <P> --year 50 --seed 12345 --clear-modal`
+  (Completionist with `--build-all`), which writes year 51 week 2. All
+  three found in Georgian. `review:probe -- vernacular` now ends each
+  campus with a line per set (Modern and Art Deco left out) giving the
+  buildings and footprint area in the render wall, and which ones. The
+  share is the same in all seven sets, because the render forms were the
+  same in each:
+
+  | Campus (year 51) | Buildings | Render wall, before | Area, before | After |
+  |---|---:|---:|---:|---:|
+  | Completionist, every asset stood | 77 | 21 (27%) | 31% | 0 |
+  | Natural, seed 12345 | 68 | 20 (29%) | 37% | 0 |
+  | Guided, seed 12345 | 62 | 21 (34%) | 36% | 0 |
+
+  Beside the review's figures, massing and walls following the
+  vernacular: 56% / 49% of area (Completionist), 59% / 50% (Natural), 50%
+  / 45% (Guided); the review had 55% / 49%, 58% / 50%, 51% / 46%. Plan 87
+  did not change the render forms, so on `main` a third of the campus was
+  still render.
+
+  The render forms (`-- catalogue`: 21 of 81 placeables, in all five
+  founding sets): the works labs (Biology, Chemistry, Physics, Electrical,
+  Chemical Engineering) and the Research Park; the test halls and studio
+  (Mechanical, Civil, Aerospace, Film); Computing; the Humanities Research
+  Institute and Experimental Economics (a portico and a pavilion, in
+  render because they are labs); the Recreation Center, the gym, the
+  Sports & Recreation Complex, the Arena and the Field House; the two
+  apartment rungs (DORM-05, DORM-07); and the Football Stadium. The
+  stadium alone is 14–17% of the area.
+- **Decided: over 10% on every campus, so the walls changed.**
+  `renderOutOfPlace` (`buildingSpec.ts`) turns render into the set's
+  academic wall (`brickRed`) under the labs' flat deck everywhere but
+  Modern and Art Deco (`RENDER_VERNACULARS`): brick in Georgian and Tudor,
+  ashlar in Gothic (keeping its slate, as 87I's labs did), limestone in
+  Classical and Second Empire, stucco in Mission, ochre in Italianate. It
+  is 87I's rule made general: the Neuroscience Labs' wall
+  (`vernacularWallOf`, one stable object per set) is now the one every
+  render form takes, and `VERNACULAR_WALL_LABS` keeps only the Labs' own
+  exception (the wall in Modern too). Massing unchanged. After it,
+  `-- catalogue` lists no render wall in Georgian, Gothic, Classical or
+  Mission, and Modern keeps its 21.
+- **The stadium.** Its stands were tinted by the wall, so the change
+  would have made the seating brick. The stands' walls take the set's
+  wall and the seating, concourse and fascia stay concrete (the render
+  color), Franklin Field's way; in Modern and Art Deco it draws exactly as
+  before.
+- **Tests.** `building-spec.test.ts`'s invariant-materials rule now reads
+  against Modern: an invariant building in render there wears the set's
+  academic wall elsewhere, the rest stay as they were, and nothing but
+  open ground wears render outside Modern and Art Deco. Every roof still
+  reads against its wall (Mission's stucco, Gothic's ashlar and the bonus
+  sets included). `catalogue.test.ts` passes unchanged.
+- **Pictures.** `npm run gallery:assets` rerun (`docs/assets/`; it also
+  picks up Walnut Hall, missing since an earlier plan). Each changed form
+  in Georgian, Gothic, Classical and Mission (rows), from `npm run sheet`:
+  `docs/reviews/2026-10-review-ii-fixes/95d-works-labs.jpg`,
+  `95d-test-halls-and-institutes.jpg`, `95d-sport-and-apartments.jpg` and
+  `95d-stadium.jpg` (the full bowl).
+- **Deviations.**
+  - The apartment blocks, the gyms and the stadium changed as well as the
+    labs. The PR said "the forms that remain"; those are what remained,
+    and without them the stadium alone kept every campus over 10%.
+  - The stadium keeps concrete seating, so only its walls follow the set.
+  - Open ground keeps render for its props: it is left out of the measure,
+    and its props are not walls.
+  - The note gives year 51 week 2, the year `scenario --year 50` writes,
+    as the review's year-51 campuses were.
+
 ### What area 1 does not do
 
 - B1-4 (diagonal walks) and B1-5 (doors) stay in the backlog.
@@ -1250,6 +1322,67 @@ The owner's answer: open near the first years' grade, with no words added.
   - `npm run review:strings` is clean.
   - Tests that pin these strings are updated.
   - Screenshots of the lab, Library and greyed tiles.
+
+**As implemented.** Words and display only. Under `systems/`, the charter's
+log line and the research row's text changed, and `treasury.ts` gained
+`loanBar`, which only the build menu reads, so the sim was not run.
+
+- **The lab.** The tile reads "starts research, 25% of prestige" while no
+  lab stands or is going up, "lifts research, 25% of prestige" after, and
+  "required for capstone courses" second. The 25% comes from
+  `prestigeWords.ts`'s new `pillarWorthWords('research')`, which reads
+  `PILLAR_WEIGHTS` (`test/pillar-rule.test.ts` pins it). History's breadth
+  row, with no lab, adds "A school's founding opens its lab." A lab is
+  gated on its school's founding (`schoolGate`), so the line is true.
+- **The unfounded school.** "Business · 5 programs, not yet founded": the
+  name in the heading's ink, the rest muted as before.
+- **Cancel.** The button reads "Cancel", the hint "Esc cancels", and the
+  comment says the same.
+- **The Library.** The tile reads "serves 3,200" and "past 120% of need,
+  six times the upkeep". Both figures come from `BEYOND_NEED_FROM` and
+  `BEYOND_NEED_UPKEEP` (six in words through `countWord`).
+  `NEED_SPACE.academic` is now "Academic space", so the Treasury's excess
+  line and the building panel say it the same way. The attrition reasons
+  still say "study space", because that is what a student who left would
+  name.
+- **A greyed tile says why.** Under its foot, in the loan line's place:
+  "$2.1M short · the college can borrow up to $1.0M" (the screenshot's
+  labs). `loanBar` gives `loanFor`'s conditions in its own order: the
+  board's freeze ("the board has frozen borrowing"), no cash in hand
+  ("with no cash in hand, the college cannot borrow"), or the room. Past
+  the room the tile reads "can borrow up to $X", or "has no borrowing room
+  left" when the room is nothing. A board freeze on construction reads
+  "construction frozen". A venue's greyed expansion shows its shortfall
+  too. The `title` carries the same reason in full. `test/treasury.test.ts`
+  checks that `loanBar` names a reason exactly when `loanFor` offers no
+  loan for a shortfall.
+- **The charter.** "With its first laboratory open" in the letter and in
+  both log lines. `test/charter.test.ts` is updated.
+- **The satisfaction target.** "Satisfaction target" (now the whole target,
+  84) and "Satisfaction today" head the needs breakdown. The clubs' panel
+  keeps each source's share and the cost. The target's hint reads "the
+  five needs below, weighted, as the campus stands this week".
+- **Screenshots** in `docs/reviews/2026-10-review-ii-fixes/`:
+  `95q-lab-and-library-tiles.jpg` (Georgian), `95q-greyed-tiles-gothic.jpg`
+  (Gothic, cash cut to $900k), `95q-curriculum-unfounded.jpg` and
+  `95q-satisfaction-target.jpg`. Map-free, so no SVG fallback or second
+  camera.
+- `npm run review:strings` is clean.
+
+**Deviations.**
+- The lab's line is shorter than the spec's. "starts research · a lab's
+  work lifts research, 25% of prestige" ran to four lines on the 132px
+  tile and pushed its foot out of the menu. It reads "starts research, 25%
+  of prestige".
+- The Library's line reads "past 120% of need, six times the upkeep", not
+  "...it costs six times as much to keep", for the same reason. "· academic"
+  is dropped after "serves", as the spec's own wording drops it.
+- The build menu's height cap rises from 372px to 432px. The longer lines
+  and a greyed tile's reason overflowed the old cap at 1440×900. A tab of
+  short tiles stays as short as it was.
+- The target's "without student life → with" arrow is gone. At the head
+  of the needs it showed two numbers that read as one ("79 → 79"). The
+  clubs' panel already gives each source's share.
 
 ### What area 3 does not do
 

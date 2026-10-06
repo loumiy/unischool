@@ -105,7 +105,6 @@ const LAB_FEATURES: Partial<Record<string, LabFeature>> = {
 // a red-brick campus. Exempt from the invariant-materials rule
 // (test/building-spec.test.ts).
 export const VERNACULAR_WALL_LABS: readonly string[] = ['LAB-NEUR'];
-const LAB_WALLS = new Map<Vernacular, Material>();
 
 export function labFeatureOf(t: Buildable): LabFeature | undefined {
   return LAB_FEATURES[t.id];
@@ -767,7 +766,8 @@ const GEORGIAN_MATERIALS = {
   brickBuff: { wall: '#bb9468', roof: SLATE },
   // The civic set: library, gallery, the arts center and the law school.
   limestone: { wall: '#d8cdb4', roof: DECK },
-  // Labs, works, sheds: deliberately the dullest wall on the map.
+  // Labs, works, sheds: deliberately the dullest wall on the map. Worn only
+  // in Modern and Art Deco since Plan 95D (renderOutOfPlace).
   render: { wall: '#b0a992', roof: DECK },
   curtain: { wall: '#93a9b4', roof: DECK },
   // The residence halls: the one dark wall on the map, so the residential
@@ -1583,7 +1583,7 @@ export function stoneFor(v: Vernacular): StonePalette {
 }
 
 export function materialOf(t: Buildable, v: Vernacular): Material {
-  const own = baseMaterialOf(t, v);
+  const own = renderOutOfPlace(t, v, baseMaterialOf(t, v));
   const pitched = roofFor(v).pitchedRoof;
   // The halls and the civic porticos; housing and the pavilions keep their
   // own roofs.
@@ -1607,6 +1607,34 @@ function flatDeckOf(wall: Material, deck: string): Material {
   return decked;
 }
 const FLAT_DECKED = new Map<Material, Material>();
+
+// The buff render is a Modern wall, and Art Deco's. Anywhere else the
+// forms that wore it (the labs, works and test halls, the gyms and arenas,
+// the apartment blocks, the Research Park) take the set's academic wall
+// instead, as the Neuroscience Labs did first (Plan 87I): brick in Georgian
+// and Tudor, ashlar in Gothic, limestone in Classical and Second Empire,
+// stucco in Mission, ochre in Italianate. Massing unchanged (Plan 95D, the
+// second review's B1-3). The stadium's walls take it too, its seating stays
+// concrete (buildingMotifs.tsx); open ground keeps render for its props.
+export const RENDER_VERNACULARS: readonly Vernacular[] = ['modern', 'artDeco'];
+function renderOutOfPlace(t: Buildable, v: Vernacular, own: Material): Material {
+  if (own !== materialsFor(v).render || RENDER_VERNACULARS.includes(v)) return own;
+  return motifOf(t) === 'grounds' ? own : vernacularWallOf(v);
+}
+
+// The academic wall under the labs' flat deck, not the halls' pitched roof;
+// Gothic's gray ashlar is the deck's own gray, so it keeps its slate. One
+// stable object per vernacular, so BuildingMotif's memo holds.
+function vernacularWallOf(v: Vernacular): Material {
+  let wall = VERNACULAR_WALLS.get(v);
+  if (!wall) {
+    const MATERIALS = materialsFor(v);
+    wall = { wall: MATERIALS.brickRed.wall, roof: v === 'gothic' ? MATERIALS.brickRed.roof : MATERIALS.render.roof };
+    VERNACULAR_WALLS.set(v, wall);
+  }
+  return wall;
+}
+const VERNACULAR_WALLS = new Map<Vernacular, Material>();
 
 function baseMaterialOf(t: Buildable, v: Vernacular): Material {
   const MATERIALS = materialsFor(v);
@@ -1651,17 +1679,8 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     case 'athleticsNatatorium':
       return MATERIALS.curtain;
     case 'lab':
-      // The academic wall under the labs' flat deck, not the halls' pitched
-      // roof; Gothic's gray ashlar is the deck's own gray, so it keeps its slate.
-      if (VERNACULAR_WALL_LABS.includes(t.id)) {
-        // One stable object per vernacular, so BuildingMotif's memo holds.
-        let lab = LAB_WALLS.get(v);
-        if (!lab) {
-          lab = { wall: MATERIALS.brickRed.wall, roof: v === 'gothic' ? MATERIALS.brickRed.roof : MATERIALS.render.roof };
-          LAB_WALLS.set(v, lab);
-        }
-        return lab;
-      }
+      // The academic wall in every set, Modern's white panel too (Plan 87I).
+      if (VERNACULAR_WALL_LABS.includes(t.id)) return vernacularWallOf(v);
       return MATERIALS.render;
     case 'gym':
     case 'recCenter':
