@@ -18,7 +18,7 @@
 import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
-import { buildYearInReview, projectedAttrition, yearLog } from '../src/state/yearInReview';
+import { REVIEW_LIST_CAP, buildYearInReview, projectedAttrition, reviewGroup, yearLog } from '../src/state/yearInReview';
 import { FOUNDING_PRESET } from '../src/data/foundingData';
 import type { GameState } from '../src/state/types';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
@@ -90,7 +90,8 @@ console.log('year in review tests');
   const finished = entries.filter((e) => e.topic === 'course').length;
   assert(finished === developing, `every course that finished carries the course topic (${finished} of ${developing})`);
   assert(built.lines[0]?.text === `${developing} courses finished`, `and the Built section counts them (${built.lines[0]?.text})`);
-  assert(built.lines.some((l) => l.text.includes('Social Sciences & Humanities') || l.text.includes('in ')), 'grouped by school');
+  // The schools are the group's members (Plan 95I), not lines of their own.
+  assert((built.lines[0]?.items ?? []).length > 0 && built.lines[0].items!.every((x) => / in /.test(x)), `grouped by school (${built.lines[0]?.items?.join(', ')})`);
 
   const people = text(s, 'people');
   assert(people.includes(`Appointed ${candidate.name}`), `the appointment is listed (${people})`);
@@ -203,6 +204,36 @@ console.log('year in review tests');
   const seniors = section('class').lines.map((l) => l.text);
   const classLine = (s.alumni ?? []).some((a) => a.classYear < s.clock.year) ? `The class of Year ${s.clock.year}:` : 'The first graduating class:';
   assert(seniors.length === 2 && seniors[0].startsWith(classLine) && seniors[1].startsWith('120 seniors leave'), `how it will remember its years, and how warmly (${seniors.join(' | ')})`);
+}
+
+// --- like lines group, and every list is capped (Plan 95I) ---------------
+{
+  const s = toSummer(teachingCollege('Groups'));
+  const year = s.clock.year;
+  const staff = s.faculty.slice(0, 2);
+  // Two appointments of people still on the faculty, and five more who are
+  // not: seven like lines, one group.
+  for (const f of staff) s.log.unshift({ year, week: 10, message: `Appointed ${f.name} to the faculty in ${f.field}, at $1/yr.`, kind: 'info', topic: 'appointment', subject: f.id });
+  for (let i = 0; i < 5; i += 1) s.log.unshift({ year, week: 11 + i, message: `Appointed Dr. Gone ${i} to the faculty in History, at $1/yr.`, kind: 'info', topic: 'appointment', subject: `gone-${i}` });
+  const people = section(s, 'people');
+  const group = people.lines.find((l) => l.text === '7 professors appointed');
+  assert(!!group, `seven appointments are one line (${people.lines.map((l) => l.text).join(' | ')})`);
+  assert(group?.items?.length === 7, 'which keeps all seven, for "and N more" to open');
+  assert(group?.items?.[0] === `${staff[0].name} (${staff[0].field})`, `a professor still here is named with the field (${group?.items?.[0]})`);
+  assert(group?.items?.includes('Appointed Dr. Gone 0 to the faculty in History, at $1/yr') ?? false, 'one who is gone keeps the log\'s line');
+  assert(REVIEW_LIST_CAP === 5, 'and a list shows five before "and N more"');
+
+  // One of a kind stays the full sentence; none is no line.
+  const one = reviewGroup(['a'], (n) => `${n} things`, (x) => x, (x) => `The thing ${x}`, 'good');
+  assert(one.length === 1 && one[0].text === 'The thing a' && one[0].items === undefined && one[0].tone === 'good', 'a group of one is its own line');
+  assert(reviewGroup([], (n) => `${n}`, String, String).length === 0, 'a group of none is no line');
+  const two = reviewGroup(['a', 'b'], (n) => `${n} things`, (x) => x.toUpperCase(), String);
+  assert(two.length === 1 && two[0].text === '2 things' && two[0].items?.join() === 'A,B', 'two or more are a head over their short forms');
+
+  // Buildings and programs group the same way.
+  for (const t of s.tech.filter((x) => x.kind !== 'course').slice(0, 3)) s.log.unshift({ year, week: 20, message: `Completed ${t.name}.`, kind: 'good', topic: 'building', subject: t.id });
+  const built = section(s, 'built');
+  assert(built.lines.some((l) => l.text === '3 buildings completed' && l.items?.length === 3), `three buildings are one line (${built.lines.map((l) => l.text).join(' | ')})`);
 }
 
 if (failures === 0) {

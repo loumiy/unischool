@@ -2778,9 +2778,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .athletics-pot dt { color: var(--ink-muted); }
 .athletics-pot dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-/* Program cards: auto-fill with a min track, no breakpoint per team count. */
+/* Program cards: one to a row (Plan 95I), each folded to its one line
+   until it is opened in place, as the Curriculum's programs are. */
 .team-card-list { list-style: none; margin: 0; padding: 0; display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .team-card { position: relative; flex: 1; min-width: 0; padding: var(--inset-card); background: var(--cream-hi); border: 2px solid var(--outline);
   border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 5px; }
 .team-card-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
@@ -2792,6 +2793,19 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   color: var(--school-on-secondary); font-size: var(--text-md); line-height: 1; cursor: default; }
 .team-card-corner > [aria-hidden] { position: absolute; top: var(--space-4); right: var(--space-4); }
 .team-card.is-flagship .team-card-head { padding-right: var(--space-24); }
+/* The folded line (Plan 95I): the small scoreboard, the quality and the
+   next action after the name, wrapping under it on a narrow screen. */
+.team-card.collapsed { padding-top: var(--space-6); padding-bottom: var(--space-6); }
+.team-card-head { flex-wrap: wrap; }
+.team-card.collapsed .team-card-name { flex: 0 1 auto; }
+.team-card-line { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4) var(--space-12); margin-left: auto;
+  font-size: var(--text-2xs); color: var(--ink-muted); }
+.team-card-line strong { color: var(--ink); }
+.team-card-standing.scoreboard.compact { display: inline-flex; align-items: baseline; gap: var(--space-8);
+  padding: var(--space-2) var(--space-8); box-shadow: none; }
+.scoreboard.compact .scoreboard-digits { font-size: var(--text-md); cursor: help; }
+.team-card-next { font-weight: 700; color: var(--ink); }
+.staff-seat-hire.team-card-next { color: var(--school-primary); }
 /* Rank and standing on a small navy scoreboard (Plan 90): the rank in the
    school's gold mono digits, the rival series and the season beside it. */
 .team-card-standing.scoreboard { display: grid; grid-template-columns: auto minmax(0, 1fr);
@@ -3058,6 +3072,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* A prestige term's "what moves it" (Plan 78C), as History's Standing sets
    its detail line. */
 .review-detail { display: block; margin-top: 1px; font-size: var(--text-xs); font-weight: 400; line-height: 1.4; color: var(--ink-muted); }
+/* A group's members (Plan 95I): a quiet list under its head, the first
+   five, then "and N more", which opens the rest in place. */
+.review-section .review-items { margin: 2px 0 0 var(--space-6); }
+.review-section .review-items li { font-size: var(--text-xs); font-weight: 400; color: var(--ink); padding: 1px 0; border-top: none; }
+.review-more { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px; }
+.review-more:hover { color: var(--ink); }
 .review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 !important; }
 @media (max-width: 560px) { .review-grid { grid-template-columns: 1fr; } }
 /* ---------- Ambitions (HistoryTab.tsx's AmbitionsPanel) ---------- */
