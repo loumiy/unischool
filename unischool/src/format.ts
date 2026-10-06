@@ -46,14 +46,33 @@ export function money(v: number): string {
 
 // Money at the grain a scan or a chart axis needs: "$180k", "$4.0M", "$12M",
 // "$3.2B". The short form, for tiles, cards, chips, buttons and salary tags:
-// wherever prices are compared at a glance.
+// wherever prices are compared at a glance. The figure is rounded to the
+// unit's shown grain first, and only then is the unit chosen, so 999,500
+// reads "$1.0M", never "$1,000k" (Plan 95AB, the second review's H7-6).
+const SHORT_UNITS: readonly { size: number; suffix: string; tenths: boolean }[] = [
+  { size: 1, suffix: '', tenths: false },
+  { size: 1_000, suffix: 'k', tenths: false },
+  { size: 1_000_000, suffix: 'M', tenths: true },
+  { size: 1_000_000_000, suffix: 'B', tenths: true },
+];
 export function moneyShort(v: number): string {
   const sign = v < 0 ? '−' : '';
   const abs = Math.abs(v);
-  if (abs >= 1_000_000_000) return `${sign}$${decimal(abs / 1_000_000_000, abs >= 10_000_000_000 ? 0 : 1)}B`;
-  if (abs >= 1_000_000) return `${sign}$${decimal(abs / 1_000_000, abs >= 10_000_000 ? 0 : 1)}M`;
-  if (abs >= 1_000) return `${sign}$${decimal(Math.round(abs / 1_000))}k`;
-  return `${sign}$${decimal(Math.round(abs))}`;
+  let i = SHORT_UNITS.length - 1;
+  while (i > 0 && abs < SHORT_UNITS[i].size) i -= 1;
+  for (;;) {
+    const { size, suffix, tenths } = SHORT_UNITS[i];
+    // Millions and billions under ten show a tenth: "$4.0M". Rounded in
+    // whole tenths, so 9,950,000 is a hundred tenths and reads "$10M".
+    const inTenths = tenths ? Math.round(abs / (size / 10)) : 0;
+    const digits = tenths && inTenths < 100 ? 1 : 0;
+    const shown = digits === 1 ? inTenths / 10 : Math.round(abs / size);
+    if (shown >= 1_000 && i < SHORT_UNITS.length - 1) {
+      i += 1;
+      continue;
+    }
+    return `${sign}$${decimal(shown, digits)}${suffix}`;
+  }
 }
 
 // A hand-built signed figure, with a true minus: "+1.5", "−3". A change

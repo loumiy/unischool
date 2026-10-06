@@ -131,6 +131,20 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
   assert(threw === '', `a campus with works under way records (${threw || 'no error'})`);
   const unsupported = { ...Object.fromEntries(things.stats.unsupported), ...Object.fromEntries(ground.stats.unsupported) };
   assert(Object.keys(unsupported).length === 0, `the sites hold nothing it cannot draw (${JSON.stringify(unsupported)})`);
+
+  // The map records the buildings before the ground, which carries the
+  // scaffold's pattern. Unseen, the hatch was a fill it could not draw;
+  // the scene's defs, taken in first, hold it (Plan 95AB, H7-8c).
+  const first = (declare: boolean): Record<string, number> => {
+    const rec = new Recorder({ rules, defs: new Map(), skipClass: 'campus-building-complete' });
+    if (declare) rec.declare(scene.defs);
+    for (const e of scene.entries) rec.record(e.key, e.node, scene.values);
+    return Object.fromEntries(rec.stats.unsupported);
+  };
+  const unseen = first(false);
+  assert(Object.keys(unseen).some((k) => k.includes('campus-scaffold')), `buildings first, with no defs: the hatch is missed (${JSON.stringify(unseen)})`);
+  const declared = first(true);
+  assert(Object.keys(declared).length === 0, `buildings first, the scene's defs taken in: nothing it cannot draw (${JSON.stringify(declared)})`);
 }
 
 // No shape falls back to the canvas's initial black. The painter reads the
