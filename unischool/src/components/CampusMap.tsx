@@ -831,6 +831,12 @@ function canvasOn(): boolean {
   return CANVAS_MAP && !canvasFailed;
 }
 
+// The defs the canvas takes in before it records anything: a site's
+// scaffold hatch is drawn by buildings recorded before the ground that
+// carries the pattern (Plan 95AB, the second review's H7-8c). One element,
+// so the pattern's tile is kept from scene to scene.
+const SCENE_DEFS = <ScaffoldPattern />;
+
 // What the canvas map draws (mapCanvas.ts): the land behind and the ground
 // under the sorted scene, each entry of the sorted scene with what its
 // drawing depends on, and the land in front; the occasions the art reads;
@@ -878,6 +884,7 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
   }
   return {
     camera,
+    defs: SCENE_DEFS,
     values: { colors: layout.colors, snow: a.snow, banner: a.banners, collegeName: a.name, developing: a.developing, crowds: a.crowds },
     soft: `${a.season}|${a.snow}`,
     ring: {
@@ -887,7 +894,7 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
     ground: {
       node: (
         <>
-          <defs><ScaffoldPattern /></defs>
+          <defs>{SCENE_DEFS}</defs>
           {parts.ground}
         </>
       ),
@@ -1905,18 +1912,32 @@ export default function CampusMap({
   }
 
   // Zoom toward the cursor: the world point under it stays under it.
-  function onWheel(e: React.WheelEvent<SVGSVGElement>) {
-    e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
-    const cur = viewRef.current;
-    const nextZoom = Math.min(MAX_ZOOM, Math.max(zoomFloor(), cur.zoom * Math.exp(-e.deltaY * ZOOM_SPEED)));
-    if (nextZoom === cur.zoom) return;
-    const worldX = (px - cur.x) / cur.zoom;
-    const worldY = (py - cur.y) / cur.zoom;
-    applyView({ x: px - worldX * nextZoom, y: py - worldY * nextZoom, zoom: nextZoom });
-  }
+  // Attached natively, not as React's onWheel: React's wheel listener is
+  // passive, so its preventDefault is ignored and the browser scrolls, or
+  // for a trackpad pinch zooms the page, as well (Plan 95AB, the second
+  // review's H7-2). The one <svg> takes the pointer over both maps, the
+  // canvas and the SVG fallback.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      const rect = svg!.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const cur = viewRef.current;
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(zoomFloor(), cur.zoom * Math.exp(-e.deltaY * ZOOM_SPEED)));
+      if (nextZoom === cur.zoom) return;
+      const worldX = (px - cur.x) / cur.zoom;
+      const worldY = (py - cur.y) / cur.zoom;
+      applyView({ x: px - worldX * nextZoom, y: py - worldY * nextZoom, zoom: nextZoom });
+    }
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+    // zoomFloor and applyView read and write refs only, so the closure is
+    // never stale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function zoomBy(factor: number) {
     const svg = svgRef.current;
@@ -2246,7 +2267,6 @@ export default function CampusMap({
           onPointerCancel={onMapPointerUp}
           onClick={onMapClick}
           onContextMenu={onMapContextMenu}
-          onWheel={onWheel}
           // Drag-and-drop from the build popup resolves to a tile like every
           // other pointer event.
           onDragOver={(e) => {

@@ -35,6 +35,29 @@ export interface ReviewLine {
   // A second, smaller line under the first: a prestige term's "what moves
   // it", as History › Prestige reads it (Plan 78C).
   detail?: string;
+  // A group of like lines (Plan 95I, the second review's B2-1): the line is
+  // its head ("4 professors appointed") and these are its members, shown
+  // REVIEW_LIST_CAP at a time with "and N more" opening the rest in place.
+  items?: string[];
+}
+
+// How many of a group's members show before "and N more".
+export const REVIEW_LIST_CAP = 5;
+
+// Like lines, grouped (Plan 95I): one line says the thing in full; two or
+// more become one head over their short forms, as the courses always did.
+// Every list in the review is made here, so a new one (the matters left
+// unanswered, say) is one call.
+export function reviewGroup<T>(
+  members: readonly T[],
+  head: (n: number) => string,
+  short: (m: T) => string,
+  full: (m: T) => string,
+  tone?: ReviewLine['tone'],
+): ReviewLine[] {
+  if (members.length === 0) return [];
+  if (members.length === 1) return [{ text: full(members[0]), tone }];
+  return [{ text: head(members.length), tone, items: members.map(short) }];
 }
 
 export interface ReviewSection {
@@ -65,9 +88,9 @@ function plural(n: number, one: string, many = `${one}s`): string {
   return `${count(n)} ${n === 1 ? one : many}`;
 }
 
-// Courses finished, grouped by school. Looked up off the course id (the
+// Courses finished, counted by school. Looked up off the course id (the
 // line's subject), not its name.
-function coursesBySchool(entries: LogEntry[]): ReviewLine[] {
+function coursesBySchool(entries: LogEntry[]): string[] {
   const counts = new Map<string, number>();
   for (const e of entries) {
     const programId = e.subject ? programOfCourse(e.subject) : undefined;
@@ -76,7 +99,7 @@ function coursesBySchool(entries: LogEntry[]): ReviewLine[] {
   }
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([school, n]) => ({ text: `${plural(n, 'course')} finished in ${school}` }));
+    .map(([school, n]) => `${count(n)} in ${school}`);
 }
 
 function nameOf(s: GameState, id: string | undefined): string | null {
@@ -84,27 +107,35 @@ function nameOf(s: GameState, id: string | undefined): string | null {
   return s.tech.find((t) => t.id === id)?.name ?? null;
 }
 
+// A log line as the review shows it: its sentence without the full stop.
+const sentence = (e: LogEntry): string => e.message.replace(/\.$/, '');
+
 function built(s: GameState, entries: LogEntry[]): ReviewSection {
   const lines: ReviewLine[] = [];
   const courses = byTopic(entries, 'course');
-  if (courses.length > 0) {
-    lines.push({ text: `${plural(courses.length, 'course')} finished`, tone: 'good' });
-    if (courses.length > 1) lines.push(...coursesBySchool(courses));
-  }
-  for (const e of byTopic(entries, 'program')) lines.push({ text: e.message.replace(/\.$/, ''), tone: 'good' });
-  for (const e of byTopic(entries, 'milestone')) lines.push({ text: e.message.replace(/\.$/, ''), tone: 'good' });
+  if (courses.length === 1) lines.push({ text: '1 course finished', tone: 'good' });
+  if (courses.length > 1) lines.push({ text: `${plural(courses.length, 'course')} finished`, tone: 'good', items: coursesBySchool(courses) });
+  lines.push(...reviewGroup(byTopic(entries, 'program'), (n) => `${count(n)} programs founded`,
+    (e) => (e.subject ? programById(e.subject)?.name : undefined) ?? sentence(e), sentence, 'good'));
+  lines.push(...reviewGroup(byTopic(entries, 'milestone'), (n) => `${count(n)} milestones`, sentence, sentence, 'good'));
   const buildings = byTopic(entries, 'building').map((e) => nameOf(s, e.subject)).filter((n): n is string => n !== null);
-  if (buildings.length > 0) lines.push({ text: `Completed: ${buildings.join(', ')}`, tone: 'good' });
+  lines.push(...reviewGroup(buildings, (n) => `${count(n)} buildings completed`, (n) => n, (n) => `Completed: ${n}`, 'good'));
   return { key: 'built', title: 'Built', lines, empty: 'Nothing finished this year.' };
 }
 
-function people(entries: LogEntry[]): ReviewSection {
-  const lines: ReviewLine[] = [];
-  const appointed = byTopic(entries, 'appointment');
-  const departed = byTopic(entries, 'departure');
-  for (const e of appointed) lines.push({ text: e.message.replace(/\.$/, ''), tone: 'good' });
-  for (const e of departed) lines.push({ text: e.message.replace(/\.$/, ''), tone: 'bad' });
-  for (const e of byTopic(entries, 'prize')) lines.push({ text: e.message.replace(/\.$/, ''), tone: 'good' });
+// An appointment's short form: the professor and the field, while they are
+// still on the faculty; otherwise the log's own line.
+function appointee(s: GameState, e: LogEntry): string {
+  const f = e.subject ? s.faculty.find((x) => x.id === e.subject) : undefined;
+  return f ? `${f.name} (${f.field})` : sentence(e);
+}
+
+function people(s: GameState, entries: LogEntry[]): ReviewSection {
+  const lines: ReviewLine[] = [
+    ...reviewGroup(byTopic(entries, 'appointment'), (n) => `${count(n)} professors appointed`, (e) => appointee(s, e), sentence, 'good'),
+    ...reviewGroup(byTopic(entries, 'departure'), (n) => `${count(n)} departures and retirements`, sentence, sentence, 'bad'),
+    ...reviewGroup(byTopic(entries, 'prize'), (n) => `${count(n)} prizes`, sentence, sentence, 'good'),
+  ];
   return { key: 'people', title: 'People', lines, empty: 'No appointments and no departures.' };
 }
 
@@ -266,7 +297,7 @@ export function buildYearInReview(s: GameState): YearInReview {
     year: s.clock.year,
     sections: [
       built(s, entries),
-      people(entries),
+      people(s, entries),
       research(entries),
       students(s, entries),
       moneySection(s, entries),

@@ -113,10 +113,10 @@ const runningNow = (n: number) => (n === 0 ? 'none running now' : `${n} running 
 export const PARK_WORDS = {
   // The research pillar's specialization term, as its row reads.
   termNoPark: (year: string, goingUp: boolean) => (goingUp
-    ? `The college is specialized in research${year}, but the Research Park is still going up, so this stays empty. Once it stands, each Landmark Program its labs run fills the term: ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`
+    ? `The college is specialized in research${year}, but the Research Park is still going up, so this stays empty. Once it stands, each Landmark Program its labs run fills the share: ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`
     : `The college is specialized in research${year}, but no Research Park stands, so this stays empty. Build one from the capital projects, then commission Landmark Programs in the labs: ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`),
   termReading: (year: string, done: number, running: number, full: boolean) =>
-    `The college is specialized in research${year}: its Landmark Programs at the Research Park add up to ${years(done)} years of work in the last ${LANDMARK_WINDOW_YEARS} (a year for each program, each year it runs; ${runningNow(running)}). ${full ? `The term is full from ${LANDMARK_YEARS_FOR_FULL}.` : `It fills as that rises, full at ${LANDMARK_YEARS_FOR_FULL}; no more than ${LANDMARKS_COUNTED} running at once count.`}`,
+    `The college is specialized in research${year}: its Landmark Programs at the Research Park add up to ${years(done)} years of work in the last ${LANDMARK_WINDOW_YEARS} (a year for each program, each year it runs; ${runningNow(running)}). ${full ? `The share is full from ${LANDMARK_YEARS_FOR_FULL}.` : `It fills as that rises, full at ${LANDMARK_YEARS_FOR_FULL}; no more than ${LANDMARKS_COUNTED} running at once count.`}`,
 
   // The term's row while it is empty for want of the specialization, at a
   // college whose park already stands.

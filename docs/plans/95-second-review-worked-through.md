@@ -444,6 +444,66 @@ the before and after counts in their **As implemented** note.
 - **Checks:** `npm run review:strings` is clean. The tests that pin these
   strings are updated.
 
+**As implemented.** Words only; nothing the simulation reads changed, so
+the sim was not run (the one file under `systems/` touched,
+`finance/distress.ts`, changed a comment).
+
+- **The rule's home** is `src/data/prestigeWords.ts`, a small words
+  module: `pillarWeightsWords()` ("academics 35%, research 25%, student
+  life 25% and athletics 15%", from `PILLAR_WEIGHTS`), `pillarShareRule()`
+  ("Each pillar holds a share only its own specialization fills, worth up
+  to 9.8 points of prestige in academics, 7.0 in research, 8.5 in student
+  life and 5.1 in athletics, so without one no pillar reaches the top."),
+  `pillarRule()` (the two together), `specializationShareWorth(pillar)`
+  (`SPECIALIZATION_TERM_WEIGHTS` × `PILLAR_WEIGHTS`, the share in points
+  of prestige, B2-3's figures) and `PILLAR_RULE_HOME` ("History ›
+  Prestige"). `test/pillar-rule.test.ts` scans every `.ts`/`.tsx` in
+  `src/` but `prestigeSystem.ts` for a pillar typed beside its weight or
+  the four weights in a row, and checks that each pattern catches its
+  sample, so the scan cannot go quiet.
+- **What it rewrote** (the habit, applied to itself: grepped for "only its
+  own specialization", "35%", "academic ranking", "prudent", "the term"):
+  - History's help (`HistoryTab.tsx`): the weights and the share rule
+    from the functions. The Prestige chart's note: the four pillars at
+    their weights, the endowment added, neglect and crowding taken off.
+    The guide chart's note: "Of {n} colleges, by prestige; #1 is the top."
+    The Catalog note: "Breadth counts toward prestige as one part of the
+    academics pillar, Curriculum breadth."
+  - The standings' help: the weights and the rule dropped for a pointer
+    to History › Prestige; the readings note under the four pillars takes
+    `pillarWeightsWords()`.
+  - The guide's help (`RankingsPanel.tsx`): the weights from the
+    function, the rule as a pointer.
+  - The choice's intro and the board's notice: `pillarShareRule()`,
+    passed in as an argument (`CHOICE_WORDS.intro`'s `rule`,
+    `specializationNotice`'s third), so `specializationData.ts`, which
+    `prestigeSystem.ts` imports, does not import back.
+  - The status line (`specializationStatus`): "specialization share".
+  - "Share" for "term" in the four programs' rows (training, the park,
+    the complex, the downtown: "The share is full from 12.", "fills the
+    share", "half the share") and on the Faculty training bar.
+  - The Rank hint: "Of {n} colleges, by prestige; #1 is the top; the rank
+    follows prestige, …" (one sentence, as `test/figures.test.ts` asks).
+  - The endowment: the board's worry gone. The help says "Above 5.0% the
+    draw takes most of the return: the fund grows little or shrinks, and
+    next year's draw with it"; the Grows line adds "so next year's draw
+    grows as little" (or "and next year's draw shrinks with it").
+    `DRAW_RATE_PRUDENT` still marks the line; its comment says so.
+  - `docs/plans/README.md`: the habit, as a third rule.
+- **Deviations.**
+  - The Prestige *figure* hint (`figureHints.ts`'s `prestige`) carried the
+    same false list as the chart's note (no athletics); it now takes
+    `pillarWeightsWords()` too. Not in the section; the same claim.
+  - The spec names three programs' lines; there are four (student life's
+    downtown says "term" too), and all four say "share".
+  - The share rule gives each share in points of prestige (9.8, 7.0, 8.5,
+    5.1), since it is built from both weights. The choice's cards and the
+    notice's list still say the pillar points ("worth 28 points"): F's to
+    change, and F can read `specializationShareWorth`.
+  - The status line keeps its own sentence (with "share"), not a pointer:
+    it sits in History › Prestige itself, and in the standings under it.
+  - The README's heading reads "Three rules" now that it holds three.
+
 ### PR 95F — The specialization choice, in prestige points (B2-3)
 
 - **The figure.** Each card says its share in points of prestige: "up to
@@ -592,6 +652,75 @@ Deviations:
   review's 1,858 and 2,252; the Review at year 30, the review's 618).
   Screenshots.
 
+**As implemented.**
+
+- **Athletics.** Every program card starts folded to its one line
+  (`AthleticsTab.tsx`'s `TeamCard`): the arrow, its place in the order, the
+  name, the band's tag (or the flagship's gold corner, which stays), a
+  small scoreboard with the rank and last season's result (`SportScore`,
+  in 90F's navy and gold, the neighbours in its tooltip), its quality and
+  its next action (`NextAction`: the first open chair as "Hire a head
+  coach →" to the market, else the venue it waits on or its postseason
+  ban, else nothing). The arrow opens the full card in place. The fold is
+  76B's own: its `useCollapse` moved out of `CurriculumTab.tsx` into
+  `components/useCollapse.ts`, and both tabs use it, keys namespaced
+  (`team:`), the override kept for the session.
+- **The summer Review.** `state/yearInReview.ts`'s `reviewGroup` makes
+  every list: one like line is said in full as before; two or more become
+  one head ("4 professors appointed") over their short forms (the
+  professor and field, the program's name, the building's name, the
+  school's count). Courses, programs founded, milestones, buildings,
+  appointments, departures and prizes all go through it. `ReviewLine`
+  gains `items`; `InterruptModal.tsx`'s `ReviewLineView` shows the first
+  `REVIEW_LIST_CAP` (five) and "and N more", which opens the rest in place.
+  T's "matters left unanswered" is one more `reviewGroup` call in
+  `events()`.
+- **Counts** (`npm run review:gallery`, desktop, against `main` before and
+  this branch after; the review's own figures in brackets):
+
+  | Screen | Before | After |
+  |---|---:|---:|
+  | Athletics, `year-25-rich` (year 26) | 2,095 w / 196 c (1,858 / 107) | 1,524 / 167 |
+  | Athletics, `summer30` (year 30) | 2,204 / 181 (2,167 / 123) | 1,551 / 149 |
+  | Athletics, `year-40-done` (year 41) | 1,539 / 86 (2,252 / 156) | 354 / 28 |
+  | The Review, `summer30` | 518 / 2 (618) | 493 / 2 |
+
+  What is left on Athletics at years 26 and 30 is mostly the market below
+  the programs (a candidate per open chair, each with its Hire buttons), at
+  colleges with most chairs empty; at year 41, every chair filled, the tab
+  is the department and twenty lines. The year-30 Review had no list past
+  five that year, so the cap shows at year 10 (Completionist): 16 courses
+  in six schools and six programs founded, each "and 1 more".
+- **Tests.** `test/year-in-review.test.ts`: the schools are the courses'
+  members; seven appointments are one line with all seven kept, a
+  professor still on the faculty named with the field, one gone keeping
+  the log's line; a group of one is its sentence and of none no line;
+  three buildings are one line. No test pinned the Athletics cards.
+- **Checks.** `npm run check` passes. No sim: nothing the simulation or
+  the harness runs reads `yearInReview.ts` or the tab.
+- Screenshots in `docs/reviews/2026-10-review-ii-fixes/`: `95i-athletics-*`
+  (years 26 and 41, folded, one open, a phone) and `95i-review-*` (year
+  10, capped, and one list opened).
+
+**Deviations.**
+
+- **Measured with `review:gallery`, not `review:sweep`.** The sweep is the
+  bug sweep (saves and invariants); the words and controls are the
+  gallery's, as the review took them. The baselines moved since the
+  review (the Review is 518 words at year 30 on `main`, not 618), so both
+  columns above are taken now.
+- **Quality for "grade".** A program has no letter grade; its figure is
+  its quality, and the folded line shows that.
+- **One card to a row.** The cards were an auto-fill grid (290 px tracks);
+  a folded line needs the row's width, so the list is one column, as the
+  Curriculum's programs are. An opened card takes the row.
+- **More lists than named.** Milestones, departures and prizes group too,
+  through the same function, so no list in the Review runs long. A group
+  of one keeps the full sentence; the courses' per-school lines became
+  the group's members, and so are capped.
+- **"Hire an assistant coach".** The open seat's screen-reader label read
+  "a assistant coach"; it takes the new line's article.
+
 ### PR 95J — The glossary's last mile, and the 101s (B2-5, B2-6)
 
 - **The words**, with `2c` and `2d`'s wording:
@@ -680,6 +809,55 @@ every save. This PR writes the change as a table and changes no code.
   Report's records, and the inbox.
 - The table lands in `docs/reviews/2026-10-review-ii-fixes/catalog-shape.md`
   for the owner's answer. M follows that answer.
+
+**As implemented:** [`catalog-shape.md`](../reviews/2026-10-review-ii-fixes/catalog-shape.md)
+is M's whole specification. No code changed.
+
+- **The fourth tier** is 310: 28 weeks, $3.0M, $2,400 a week, tier
+  penalty 6, requiring the four tier-3 courses and inheriting their gates.
+  Established is unchanged (tier 2); distinguished now needs the capstone;
+  the graduate gate takes the capstones in through `NUMS`. The doc lists
+  every file and line that assumes nine courses or three tiers, and the
+  player text that calls tier 3 "capstones", which becomes "advanced".
+- **Forty-two capstones**, one a major, with titles and sentences. Forty are
+  new.
+- **Every item of `2a`'s table**, before and after. The JD swaps
+  Comparative & International Law for Professional Responsibility and puts
+  the clinic last (570). MED550 ↔ MED600. ACCT140 ↔ ACCT240, FINA130 ↔
+  FINA210. New bridges: Financial Modeling to ACCT110, COMP120 to MATH130.
+  Sociology gains Social Statistics (Urban Sociology goes); Political
+  Science, Research Methods (Political Campaigns goes); Anthropology, the
+  history of its theory (Museum & Heritage Studies goes); Philosophy, Early
+  Modern Philosophy (Aesthetics goes); History, Modern East Asia
+  (Historical Archaeology goes). Nursing gains medical-surgical, maternal
+  and newborn, and psychiatric nursing (Critical Care and Gerontological
+  Nursing go).
+- **The id map**: 11 ids move, 8 courses go, 50 are new. The catalog is
+  420 undergraduate and 53 graduate courses, 473 in all.
+- **Where ids live in a save**: `tech` (with its saved prereqs), `developing`,
+  `courseFaculty`, the career spans, `seen.courseIds` and the log's
+  `subject`. The programs, milestones, history, Final Report, inbox,
+  research and events hold none.
+
+Where it departs from the text above, and why:
+
+- **Strategic Management becomes Management's capstone (MGMT310)**, not a
+  swap with 230. It is the usual last course of a US business degree, and
+  the October review's swap predates a fourth tier. Organizational
+  Behavior, a standard requirement the major lacked, takes 140.
+- **Nursing's Clinical Practicum II becomes its capstone (NURS310).** The
+  three new courses take the slots of Critical Care, Gerontological Nursing
+  and the practicum, but the practicum moves rather than goes. Two courses
+  are removed, not three.
+- **MED600 is retitled "Transition to Clerkships".** At 600 it still comes
+  before the clerkship year, so "Residency Preparation" stayed wrong; the
+  title follows `2a`'s sentence, which stops at the wards.
+- **The migration's rules go a step past "carries its state".** A moved
+  course that is merely available goes back to locked when its new
+  prereqs are unmet; a developing or done one stays. A removed course's
+  career spans are dropped, because new courses reuse the freed ids.
+  Prereqs are rebuilt from the catalog, since `refreshAuthoredText` leaves
+  them as saved.
 
 ### PR 95M — The course catalog's shape: the data and the migration (B2-6)
 
@@ -1237,6 +1415,48 @@ scenario, which the review itself fixed (H7-8a).
 - **Checks:** a console free of the passive-listener error over a map
   session; the probe's miss count at zero over the review's saves.
 
+**As implemented.**
+- **The wheel.** `CampusMap.tsx`'s zoom-to-cursor handler moved into an
+  effect that adds it to the map's `<svg>` with `{ passive: false }` and
+  removes it on unmount; `onWheel={onWheel}` is gone. The one `<svg>` sits
+  over both maps and takes their pointer, so one listener serves the
+  canvas and the SVG fallback. The zoom itself is unchanged.
+- **The short form.** `moneyShort` walks a small table of units. It rounds
+  at the unit's grain (tenths of a million or billion under ten, whole
+  units otherwise, in whole tenths so 9,950,000 is a hundred of them) and
+  steps up a unit when the rounded figure reaches 1,000. The same applies
+  below a thousand: 999.5 reads "$1k", not "$1,000".
+  `test/number-format.test.ts` checks each boundary, either side:
+  $999 / $1k, $999k / $1.0M, $9.9M / $10M, $999M / $1.0B (at 999,500,000
+  and 999,950,000), $9.9B / $10B, and a negative.
+- **The scaffold.** Why the canvas missed it: `mapCanvas.ts` records the
+  scene's entries before the ground, and only the ground carries
+  `<defs><ScaffoldPattern/></defs>`. So the first frame's sites resolved
+  `url(#campus-scaffold)` to nothing, and kept that until their signature
+  changed. `Recorder.declare(node)` now takes in defs ahead of any
+  recording. The scene has a `defs` field, which `canvasSceneOf` fills with
+  one module-level `<ScaffoldPattern />` (one element, so the pattern's
+  tile is kept). `MapCanvas` declares it whenever it changes, before it
+  records anything. `test/canvas-scene.test.ts` records the sites before
+  the ground both ways. Without the defs the hatch is missed, and with
+  them nothing is.
+- **Measured** (Chromium, dev build, 1440×900; a Completionist year-8 save
+  with eight more buildings set under way at stages from excavation to
+  shell, alongside its own three sites). The session dragged, turned
+  (Q, E), tilted (Z, X), and zoomed by wheel with and without Ctrl, then
+  zoomed in on six sites. On both maps, every wheel event arrived
+  cancelable and was default-prevented (Ctrl included), the page's zoom
+  stayed 1, and the console held no error or warning. The canvas probe's
+  `unsupported` was `{}`. The same six sites on both maps:
+  `docs/reviews/2026-10-review-ii-fixes/95ab-scaffold-canvas-vs-svg.jpg`.
+  The hatching matches at each stage.
+- **Deviations.** The visual check is one save, in one vernacular
+  (georgian), from the opening camera, not every review save. The hatch
+  is the same pattern in every vernacular and is drawn in screen space.
+  The probe was read over that one session. The fix is the order of
+  recording, which the unit test holds for any save. Balance: no
+  simulation code touched, so no sim run.
+
 ### PR 95AC — Names (H7-7, H7-8b)
 
 - **The form says how the name will read** (H7-7). On the founding form,
@@ -1249,8 +1469,35 @@ scenario, which the review itself fixed (H7-8a).
 - **The harness's college** (H7-8b). `DEFAULT_NAME` (`sim/harness/game.ts:44`)
   becomes "Test", so a save reads "Test College", and after the charter
   "Test University". Rename only. The run's random stream does not read
-  the name, so the sim reads the same. Check that it does.
+  the name, so the sim reads the same. Check that it does. (It did not:
+  see As implemented.)
 - **Checks:** a test for the new caption, and `npm run sim` unchanged.
+
+**As implemented.**
+- The founding form's caption for a name that opens "University of" or
+  "College of" is `foundingData.ts`'s `prefixedCaption`, shown when
+  `types.ts`'s new `typedPrefixed` holds. It takes the place of the
+  "University" caption, so the two never show together. `charter.test`
+  covers `typedPrefixed`.
+- The harness's college is "Test" (`DEFAULT_NAME`). Its saves read "Test
+  College", and "Test University" after the charter.
+- **Deviation: the sim moved, and the baseline was re-recorded.** The plan
+  said the random stream does not read the name. It does: the name seeds
+  the program offers' roll (`programOffers.ts:186`), the promises
+  (`promises.ts:66`) and the chronicle (`chronicle.ts:338`). Renaming the
+  harness's college reshuffles all three. No rule changed. The shift is the
+  noise of a new draw:
+
+  | Player | Y50 rank | Y50 prestige |
+  |---|---|---|
+  | Completionist | 1 (−2) | 115.1 (+1.3) |
+  | Selective | 64 (+2) | 51.6 (+0.2) |
+  | Lean | 69 (−6) | 42.6 (−0.4) |
+  | Guided | 1 | 116.0 (−1.1) |
+  | Guided, unspecialized | 6 | 109.4 (−1.7) |
+
+  So AC is a seventh baseline move, made on its own as the plan's rule
+  asks. Every later PR is read against it.
 
 ### PR 95AD — Three events name the professor they mean (H7-9)
 

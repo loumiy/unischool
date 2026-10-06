@@ -63,6 +63,9 @@ export interface CanvasScene {
   ring: { node: React.ReactNode; sig: string };
   ground: { node: React.ReactNode; sig: string };
   front: { node: React.ReactNode; sig: string };
+  // The defs any recording may use (the scaffold's hatch), taken in before
+  // the scene records, whatever it records first.
+  defs?: React.ReactNode;
   // In paint order.
   entries: readonly CanvasEntry[];
   inspected: string | null;
@@ -362,6 +365,7 @@ export class MapCanvas implements CrowdSink {
   // Where each walker shown in the last frame was drawn.
   private lastWalkers: readonly { i: number; slot: number; fig: Box }[] = [];
   private gold = '#c9a227';
+  private defsSeen: React.ReactNode = undefined;
   // Everything in the scene it could not draw since it started, by name
   // (the review tools read it through the map's MapReview).
   readonly missed: Record<string, number> = {};
@@ -541,6 +545,10 @@ export class MapCanvas implements CrowdSink {
     // 1. What each thing draws: recorded again when it changed (its
     // signature, or the doors it holds open); a change of season only
     // marks it, for the budget below.
+    if (scene.defs !== undefined && scene.defs !== this.defsSeen) {
+      this.defsSeen = scene.defs;
+      this.entryRec.declare(scene.defs);   // the defs are shared with groundRec
+    }
     if (this.sceneDirty || doorsChanged || this.doorsPending) {
       this.doorsPending = false;
       const seen = new Set<string>();

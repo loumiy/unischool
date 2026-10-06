@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, FOUNDERS_GEORGIAN_COLOURS, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
-import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, UNIVERSITY_CAPTION } from '../data/foundingData';
+import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, UNIVERSITY_CAPTION, prefixedCaption } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
 import type { SchoolColors, Vernacular } from '../state/types';
-import { COLLEGE_NAME_MAX, bareSchoolName, typedUniversity } from '../state/types';
+import { COLLEGE_NAME_MAX, bareSchoolName, typedPrefixed, typedUniversity } from '../state/types';
 
 // Shown once, before play begins: name the school, and choose its
 // architecture and colors. Every other founding condition comes from
@@ -633,7 +633,9 @@ export default function StartupScreen({ onStart, sandbox = false }: {
         {name.length >= COLLEGE_NAME_MAX && <p className="startup-name-note" role="status">{NAME_LIMIT_NOTE}</p>}
         <div className="startup-facade">
           <SchoolFacade name={name} vernacular={vernacular} colors={colors} />
-          {typedUniversity(name) && (
+          {typedPrefixed(name) ? (
+            <p className="startup-facade-caption" role="note">{prefixedCaption(bareSchoolName(name))}</p>
+          ) : typedUniversity(name) && (
             <p className="startup-facade-caption" role="note">{UNIVERSITY_CAPTION}</p>
           )}
         </div>
