@@ -4,8 +4,8 @@
 [second game review](../reviews/2026-10-game-review-ii/README.md)
 ([Plan 86](86-second-game-review.md)) into PRs, one area at a time.*
 
-**Status: Proposed.** Areas 1–4 and 6 answered. Area 7 is added below when
-the owner answers it.
+**Status: Proposed.** Every area answered (area 5 is the review's summary,
+with no findings of its own). PRs A–Z and AA–AD.
 
 ---
 
@@ -20,13 +20,14 @@ already fixed is closed here, with the plan that fixed it. It gets no PR.
 
 - One branch per PR (`plan-95x-subject`), merged once `check` and `slow`
   pass.
-- **Balance never moves, except in M, N, R, S and X.** `npm run sim` reads
+- **Balance never moves, except in M, N, R, S, X and AD.** `npm run sim` reads
   the same as `sim/baseline.json` after every other PR. Of those five:
   - M reshapes the course catalog;
   - N lowers the opening prestige;
   - R offers the specialization sooner;
   - S gives the Provost a teaching policy, which the harness players use;
   - X adds a late use for money, if W's measure calls for one.
+  - AD makes three events name the professor they mean.
   Each re-baselines with the owner's sign-off, and runs on its own between
   the others' sim runs, so each baseline moves for one reason.
 - A visual PR carries screenshots in `docs/reviews/2026-10-review-ii-fixes/`:
@@ -68,6 +69,10 @@ already fixed is closed here, with the plan that fixed it. It gets no PR.
 | X | A late use for money (only if W calls for it) | B4-10 | **yes** |
 | Y | The shop window: the share image and the README's words | B6-1, B6-5 | no |
 | Z | The AI disclosure and the store page, drafted | B6-3, B6-5 | no |
+| AA | The save and the clock: Landmark weeks, two tabs, opened matters | H7-1, H7-3, H7-4 | no |
+| AB | The map and the money: the wheel, the short form, the scaffold on the canvas | H7-2, H7-6, H7-8c | no |
+| AC | Names: the form says how a name will read; the harness's college | H7-7, H7-8b | no |
+| AD | Three events name the professor they mean | H7-9 | **yes** |
 
 B, C and D touch different files (`seasons.ts` and the grounds;
 `downtownData.ts`, `Surroundings.tsx` and the camera; `buildingSpec.ts`), so
@@ -96,6 +101,13 @@ Area 4's order:
 - X waits for W's numbers, and on R and S, since both change what a late
   college spends on.
 - T, U and V can go side by side with any of them.
+
+Area 7's order:
+- AA, AB and AC are small and independent, and can land any time.
+- AC changes the harness's college name, which every scenario save and
+  screenshot carries. Land it before the PRs that take screenshots from
+  scenarios, so none of them reads "Test University University".
+- AD moves balance, and runs on its own, as the other re-baselines do.
 
 Area 6's order: Y and Z are documents and pictures, and can land any time.
 Y's README words name the pillars and the specialization as R leaves them,
@@ -973,3 +985,124 @@ Drafts for the owner to edit. Nothing is published.
 - B6-5's pause-on-arrival default stays on. T's *Pause for news* is a
   separate setting, off.
 - Nothing is published: no Steam page, no itch.io page, no devlog.
+
+---
+
+## Area 7 — Bugs
+
+### The owner's answer
+
+No code the bugs name has changed since the review, except the `training`
+scenario, which the review itself fixed (H7-8a).
+
+| Bug | What | On `main` | Answer |
+|---|---|---|---|
+| H7-1 | A pre-85F save counts more than three Landmark Programs a week | Open (`persistence.ts`, `researchParkGate`: the cap is on the year only) | **AA** |
+| H7-2 | The map's wheel zoom can't stop the browser's | Open (`CampusMap.tsx:1908, 2249`, a passive React `onWheel`) | **AB** |
+| H7-3 | A second tab's Continue drops the first tab's unsaved weeks | Open (`engine/useGame.ts:71`) | **AA**: save before losing |
+| H7-4 | A matter opened before a reload pauses the clock again | Open (`App.tsx:128`) | **AA**: `sessionStorage` |
+| H7-5 | A board letter is always dated this week | Open | Close here: **K** fixes it (B2-7) |
+| H7-6 | Short money rounds past its unit | Open (`format.ts`'s `moneyShort`) | **AB** |
+| H7-7 | "University of Ashford College" | Open (`bareSchoolName` strips a trailing word only) | **AC**: say it on the form. No rule change |
+| H7-8 | Tooling | a: `training` fixed by the review; `demand` still runs out. b: `DEFAULT_NAME = 'Test University'`. c: the canvas reports `url(#campus-scaffold)` | **AB** for c, **AC** for b. a's `demand` is left |
+| H7-9 | Three events still name anyone | Open: `star-poached`, `tenure-case` and `two-body` have no `names.faculty` | **AD**, and re-baseline |
+
+### PR 95AA — The save and the clock (H7-1, H7-3, H7-4)
+
+- **Landmark weeks, counted per week** (H7-1). `researchParkGate`
+  (`persistence.ts`) builds a count per absolute week, caps each week at
+  `LANDMARKS_COUNTED`, and only then sums by year, capping the year as now.
+  The comment already says this is the rule.
+  - `test/fixtures/save-v81-recruiting.json` joins the migration test,
+    with the invariant (`invariants.ts:186`) checked after it is read and
+    after a year of play.
+  - Saves already migrated keep their overcount. It fades from the
+    ten-year window, and the invariant is not run against old years. Say
+    so in the PR.
+- **A tab saves before it gives up the college** (H7-3). On the `storage`
+  event that takes the claim (`useGame.ts:71`):
+  - a tab whose game is ahead of the stored one (a later week than the
+    save it read) saves first, then calls `lose()`;
+  - the claiming tab meets the newer save at its next write and shows the
+    banner, as Plan 79B's guard does;
+  - "Open it here" then loads the newer game.
+  - `tools/review/twoTabs.mjs`'s case 4 reads the first tab's weeks kept.
+- **Opened matters survive a reload** (H7-4). `App.tsx`'s `opened` set is
+  kept in `sessionStorage` under the run's id, read on load, and cleared
+  on a new game. `unseen.ts` takes the opened set as now. Reads and writes
+  sit in try/catch, so a blocked storage only loses the convenience.
+- **Checks:**
+  - the migration test above;
+  - a two-tabs test that the first tab's weeks are kept;
+  - a test that an opened matter in its final week does not pause after a
+    reload.
+
+### PR 95AB — The map and the money (H7-2, H7-6, H7-8c)
+
+- **The wheel** (H7-2). The map's wheel handler is attached natively in an
+  effect, `addEventListener('wheel', …, { passive: false })`, on the
+  map's element, in place of React's `onWheel` (`CampusMap.tsx:2249`).
+  `preventDefault` then holds, so a trackpad pinch zooms the map, not the
+  page. Both maps take it, the canvas and the SVG fallback.
+- **The short form** (H7-6). `moneyShort` rounds to the unit's shown
+  precision first, then picks the unit:
+  - 999,500 reads "$1.0M";
+  - 9,950,000 reads "$10M";
+  - 999,950,000 reads "$1.0B".
+  Tests at each boundary, either side.
+- **The scaffold on the canvas** (H7-8c). The canvas misses
+  `url(#campus-scaffold)` because the pattern's def is not yet seen when
+  the element is recorded (`canvasPaint.ts:1090`). Register
+  `SCAFFOLD_PATTERN_ID`'s pattern with the canvas's defs before the scene
+  records, or draw the hatch as lines. Check that a site's hatched shell
+  shows the same on both maps at each construction stage, and that the
+  map's probe reports nothing it cannot draw.
+- **Checks:** a console free of the passive-listener error over a map
+  session; the probe's miss count at zero over the review's saves.
+
+### PR 95AC — Names (H7-7, H7-8b)
+
+- **The form says how the name will read** (H7-7). On the founding form,
+  a name that begins "University of" or "College of" shows a caption
+  under the facade, as a trailing "University" already does
+  (`UNIVERSITY_CAPTION`, `StartupScreen.tsx:636`). It shows the name as
+  the pennant will carry it, "University of Ashford College", and says
+  that typing "Ashford" gives "Ashford College". `bareSchoolName` is
+  unchanged.
+- **The harness's college** (H7-8b). `DEFAULT_NAME` (`sim/harness/game.ts:44`)
+  becomes "Test", so a save reads "Test College", and after the charter
+  "Test University". Rename only. The run's random stream does not read
+  the name, so the sim reads the same. Check that it does.
+- **Checks:** a test for the new caption, and `npm run sim` unchanged.
+
+### PR 95AD — Three events name the professor they mean (H7-9)
+
+Plan 79D's mechanism (`catalogue.ts`'s `namedFaculty`, and an event's
+`names.faculty`) already lets an event name someone by kind. The draw
+still happens, so the random stream reads the same.
+
+- **New kinds** for `names.faculty`:
+  - `'tenure-track'`: the professor nearest tenure, the shortest-serving
+    with at least `TENURE_CASE_MIN_YEARS` (about four) at the college;
+  - `'recent'`: the most recent hire with a year at the college.
+- **The three events** (`eventCatalogue.ts`):
+  - `star-poached` names `'researcher'`, the strongest researcher. Their
+    departure is the one that costs;
+  - `tenure-case` names `'tenure-track'`. A case never names a
+    professor of twenty-five years;
+  - `two-body` names `'recent'`.
+- An event whose kind finds nobody (no one in the tenure window) does not
+  fire that week, rather than falling back to the drawn name.
+- **Balance.** Who leaves changes, so `npm run sim` moves. Re-baseline, and
+  show the faculty's mean research and teaching at Y25 and Y50, and
+  prestige, against the baseline.
+- `BACKLOG.md`'s entry for the offer and the tenure case is removed.
+- **Checks:** a test per kind (ties to the id, as now); a test that the
+  random stream is unchanged by the naming.
+
+### What area 7 does not do
+
+- H7-7's rule: a name beginning "University of" still takes the suffix.
+  The form only says so.
+- H7-8a's `demand` scenario still runs out at year 30.
+- H7-5 is K's.
