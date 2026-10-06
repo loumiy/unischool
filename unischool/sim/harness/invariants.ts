@@ -201,6 +201,11 @@ export function brokenRules(s: GameState): string[] {
   }
   if (runs.length > 0 && s.specialization !== 'athletics' && s.sandbox !== true) out.push('deep runs recorded at a college not specialized in athletics');
 
+  // The programs cut (Plan 95V): none in a year still to come.
+  for (const c of s.orgs.cutPrograms ?? []) {
+    if (c.year > s.clock.year) out.push(`${c.sport} cut in Year ${c.year}, still to come`);
+  }
+
   // The downtown and the festival (Plan 85H): the district grows, and
   // festivals are held, only at a college specialized in student life; the
   // growth is 0 to 1 and the goodwill 0 to 100; a festival a spring at most,

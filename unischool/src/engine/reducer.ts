@@ -1,4 +1,5 @@
 import { answerPromises, tickPromises } from '../systems/promises/promises';
+import { cutTeam } from '../systems/athletics/cut';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
 import { DEV_BUILD } from './devBuild';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
@@ -503,6 +504,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       team[slot] = null;
       return s;
     }
+
+    // A program cut for good (Plan 95V, systems/athletics/cut.ts): refused
+    // for a flagship in season, checked there, not trusted from the UI.
+    case 'CUT_TEAM':
+      cutTeam(s, action.teamId);
+      return s;
 
     // A gated tab's gate has opened (see TabNav.tsx's TAB_GATES). Idempotent
     // via the seen bucket, because App.tsx dispatches it from an effect that
