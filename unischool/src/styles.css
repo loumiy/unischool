@@ -357,17 +357,7 @@ button, input, select, textarea { font-size: inherit; }
   box-shadow: var(--elevation-dialog); padding: var(--space-24); }
 /* The title art's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx):
    the quad under a clear sky, and the mark and the name in white on it.
-   The title's menu is the game's own card; the founding card is frosted,
-   its primary in the sky's blue, the game's own and not the school's, so
-   it holds whatever colors a run has chosen. */
-:root {
-  --title-sky: #1f78d1;
-  --title-sky-deep: #155ca6;
-  --title-sky-wash: #e7f1fb;
-  --title-frost: rgba(255, 255, 255, 0.86);
-  --title-shadow: 0 18px 40px rgba(16, 52, 96, 0.28), 0 2px 6px rgba(16, 52, 96, 0.12);
-  --title-hairline: rgba(27, 42, 74, 0.14);
-}
+   The menus over it are the game's own cards. */
 .title-screen, .startup {
   background: #4f9be0 url('./assets/campus-quad.webp') center 62% / cover no-repeat fixed; }
 .title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) 40px; }
@@ -382,10 +372,6 @@ button, input, select, textarea { font-size: inherit; }
 /* The menu: the game's own front-screen card and buttons over the art,
    narrower so the quad shows round it. */
 .title-screen .title-card { width: min(460px, 100%); margin-top: auto; }
-/* The founding's doors open in the sky's blue (StartupScreen.tsx). */
-.startup .startup-begin-btn {
-  border: 1px solid var(--title-hairline); border-radius: 999px; box-shadow: 0 1px 2px rgba(16, 52, 96, 0.08);
-  font-family: var(--sans); font-weight: 700; transition: background-color 120ms, box-shadow 120ms, transform 120ms; }
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
@@ -3058,26 +3044,24 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   font-family: var(--sans); font-weight: 800; font-size: var(--text-3xl); letter-spacing: 0.04em; text-transform: uppercase;
   text-shadow: 0 2px 12px rgba(10, 50, 110, 0.3); }
 .startup-brand-mark { width: 44px; height: auto; display: block; filter: drop-shadow(0 2px 8px rgba(10, 50, 110, 0.25)); }
-.startup-card { background: var(--title-frost); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 22px;
-  padding: var(--space-32); max-width: 480px; width: 100%; box-sizing: border-box; color: var(--ink); box-shadow: var(--title-shadow); }
+.startup-card { background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
+  padding: var(--space-32); max-width: 480px; width: 100%; box-sizing: border-box; color: var(--ink); box-shadow: var(--elevation-dialog); }
 .startup-card h1 { margin: var(--space-6) 0 var(--space-24); }
 /* Back to the title: a quiet link above the dateline. */
 .startup-back { display: inline-block; margin: calc(-1 * var(--space-12)) 0 var(--space-12) calc(-1 * var(--space-8));
-  padding: var(--space-4) var(--space-8); border: 0; border-radius: 999px; background: transparent; color: var(--title-sky-deep);
-  font-family: var(--sans); font-weight: 700; font-size: var(--text-sm); cursor: pointer; }
-.startup-back:hover { background: var(--title-sky-wash); }
+  padding: var(--space-4) var(--space-8); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--school-primary);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-sm); cursor: pointer; }
+.startup-back:hover { background: var(--cream-lo); }
 /* The name field; the fixed half of the name is carved into the facade. */
-.startup-name { width: 100%; box-sizing: border-box; font-size: var(--text-xl); padding: 10px var(--space-16); border-radius: 12px;
-  border: 1px solid var(--title-hairline); background: #fff; color: var(--ink); font-family: var(--display);
-  box-shadow: inset 0 1px 2px rgba(16, 52, 96, 0.08); }
-.startup-name:focus { outline: none; border-color: var(--title-sky); box-shadow: 0 0 0 3px rgba(31, 120, 209, 0.22); }
+.startup-name { width: 100%; box-sizing: border-box; font-size: var(--text-xl); padding: var(--space-8) var(--space-12); border-radius: var(--radius-md);
+  border: 2px solid var(--outline); background: var(--cream); color: var(--ink); font-family: var(--display); }
+.startup-name:focus { border-color: var(--gold-dim); }
 /* The name has reached COLLEGE_NAME_MAX (the review's G7-19), as the
    facade caption below is set. */
 .startup-name-note { margin: var(--space-8) 0 0; font-size: var(--text-xs); line-height: 1.35; color: var(--ink-muted); }
 
 .startup-facade { margin: 14px 0 28px; }
-.startup-facade-svg { display: block; width: 100%; height: auto; border-radius: 12px; }
+.startup-facade-svg { display: block; width: 100%; height: auto; }
 /* Why the facade says College (Plan 78G): a muted line under the stone,
    shown only while the typed name ends in "University". */
 .startup-facade-caption { margin: var(--space-8) 0 0; font-size: var(--text-xs); line-height: 1.35; color: var(--ink-muted); text-align: center; }
@@ -3093,10 +3077,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The founding picks: option cards, pressable, the picked one in the
    secondary fill (the segmented rule). */
 .startup-vern-btn { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px;
-  background: #fff; border: 1px solid var(--title-hairline); border-radius: 12px; padding: var(--space-6) var(--space-4); color: var(--ink);
-  box-shadow: 0 1px 2px rgba(16, 52, 96, 0.08); font-family: var(--sans); font-weight: 700; font-size: var(--text-xs); line-height: 1.15;
-  cursor: pointer; }
-.startup-vern-btn:hover { background: var(--title-sky-wash); }
+  background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-md); padding: var(--space-6) var(--space-4); color: var(--ink);
+  box-shadow: var(--shadow-1); font-family: var(--display); font-weight: 800; font-size: var(--text-xs); line-height: 1.15; }
+.startup-vern-btn:hover { background: var(--cream-lo); }
 .startup-vern-btn.active { background: var(--school-secondary); color: var(--school-on-secondary); }
 .startup-vern-btn { flex-direction: column; gap: 2px; grid-column: span 4; }
 /* Five founding sets on the first row, the four bonus sets on the second. */
@@ -3110,23 +3093,18 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* Color pairs (StartupScreen.tsx): one even row of two-tone chips (primary
    above, secondary below), the active one ringed and lifted. */
 .startup-colors { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
-.startup-color-btn { aspect-ratio: 1; padding: 3px; background: #fff; border: 1px solid var(--title-hairline);
-  border-radius: 12px; box-shadow: 0 1px 2px rgba(16, 52, 96, 0.08); display: flex; cursor: pointer; }
-.startup-color-btn:hover { background: var(--title-sky-wash); }
-.startup-color-btn.active { background: #fff; border-color: var(--title-sky); box-shadow: 0 0 0 3px rgba(31, 120, 209, 0.3); }
-.startup-color-swatch { flex: 1; display: flex; flex-direction: column; border-radius: 8px; overflow: hidden; }
+.startup-color-btn { aspect-ratio: 1; padding: 3px; background: var(--cream-hi); border: 2px solid var(--outline);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-1); display: flex; }
+.startup-color-btn:hover { background: var(--cream-lo); }
+.startup-color-btn.active { background: var(--school-secondary); }
+.startup-color-swatch { flex: 1; display: flex; flex-direction: column; border-radius: var(--radius-xs); overflow: hidden; }
 .startup-color-swatch > span { flex: 1; display: block; }
 .startup-color-swatch > span:last-child { flex: 0 0 38%; }
 .startup-color-name { margin: 8px 0 20px; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--school-primary); }
 
 /* The run the doors would erase (founding over one in progress). */
 .startup-replacing { margin: 0 0 var(--space-12); font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); text-align: center; }
-.startup-begin-btn { width: 100%; padding: 14px var(--space-12); font-size: var(--text-lg); }
-/* The doors open in the sky's blue, the title's primary. */
-.startup .startup-begin-btn { border-color: transparent; background: var(--title-sky); color: #fff; box-shadow: 0 8px 20px rgba(21, 92, 166, 0.35); }
-.startup .startup-begin-btn:hover:not(:disabled) { background: var(--title-sky-deep); color: #fff;
-  transform: translateY(-1px); box-shadow: 0 10px 24px rgba(21, 92, 166, 0.4); }
-.startup .startup-begin-btn:disabled { box-shadow: none; }
+.startup-begin-btn { width: 100%; padding: var(--space-12); font-size: var(--text-lg); }
 
 /* thin scrollbars inside parchment panels */
 .log::-webkit-scrollbar { width: 8px; }
