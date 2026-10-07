@@ -32,7 +32,8 @@ export interface Listing {
   grade: Grade | null;
   // Salary at this school's market rate, a year.
   pay: number;
-  // Codes of the waiting courses their slots would open.
+  // Titles of the waiting courses their slots would open (Plan 96D: by
+  // name, not code).
   unblocks: string[];
 }
 
@@ -45,7 +46,7 @@ function listingFor(s: GameState, candidate: Faculty, waiting: Buildable[]): Lis
     course,
     grade: course ? projectedQuality(s, course, candidate).grade : null,
     pay: facultyPay(s, candidate.salary),
-    unblocks: waiting.slice(0, candidate.courseSlots).map((t) => t.name.split(' · ')[0]),
+    unblocks: waiting.slice(0, candidate.courseSlots).map((t) => t.name.split(' · ')[1] ?? t.name),
   };
 }
 

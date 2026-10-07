@@ -8,6 +8,10 @@
 //   npm run scenario -- --strategy Completionist --year 40 --clear-modal /tmp/y40.json
 //   npm run profile -- /tmp/y40.json [--seconds=10] [--size=1440,900]
 //
+// --tab=<label> opens a tab over the map first (its toolbar button's label:
+// Students, Faculty…), so what is measured is the game running behind a
+// screen, as the owner noticed it late in a run (Plan 96G).
+//
 // Headless Chromium draws in software, so read the numbers against each
 // other (before and after a change, one speed against another) rather than
 // as what a player's machine will show.
@@ -44,7 +48,17 @@ await page.addInitScript(
 );
 await page.goto(URL, { waitUntil: 'load' });
 await page.waitForTimeout(1500);
+// A loaded save opens on the title screen: continue into it.
+const cont = page.locator('.title-primary');
+if (await cont.count()) await cont.first().click();
+await page.waitForTimeout(1500);
 const renderer = await waitForMap(page, 5_000);
+const TAB = flag('tab', null);
+if (TAB) {
+  await page.getByRole('button', { name: TAB, exact: true }).first().click();
+  await page.waitForSelector('.tab-overlay', { timeout: 10_000 });
+  await page.waitForTimeout(800);
+}
 
 // Samples frames for `seconds` while answering any modal that stops the clock.
 async function sample(seconds) {
@@ -52,6 +66,7 @@ async function sample(seconds) {
     const w = window;
     w.__frames = [];
     w.__long = 0;
+    w.__longMs = 0;
     let last = performance.now();
     const tick = (t) => {
       w.__frames.push(t - last);
@@ -60,7 +75,7 @@ async function sample(seconds) {
     };
     w.__sampling = true;
     requestAnimationFrame(tick);
-    new PerformanceObserver((list) => { w.__long += list.getEntries().length; }).observe({ type: 'longtask', buffered: false });
+    new PerformanceObserver((list) => { for (const e of list.getEntries()) { w.__long += 1; w.__longMs += e.duration; } }).observe({ type: 'longtask', buffered: false });
   });
   const until = Date.now() + seconds * 1000;
   while (Date.now() < until) {
@@ -77,18 +92,22 @@ async function sample(seconds) {
       fps: 1000 / mean,
       p95: frames[Math.floor(frames.length * 0.95)] ?? 0,
       longTasks: w.__long,
+      longMs: w.__longMs,
       week: document.body.innerText.match(/Year \d+ · [^\n]*Week \d+/)?.[0] ?? '?',
     };
   });
 }
 
 const SPEEDS = ['Paused', 'Play', '2×', '4×'];
-console.log(`${savePath} at ${W}×${H}, ${SECONDS}s per speed, the ${renderer ?? 'unknown'} map`);
-console.log('speed        fps    p95 frame   long tasks   clock after');
+console.log(`${savePath} at ${W}×${H}, ${SECONDS}s per speed, the ${renderer ?? 'unknown'} map${TAB ? `, under the ${TAB} tab` : ''}`);
+console.log('speed        fps    p95 frame   long tasks   long-task ms   clock after');
 for (const label of SPEEDS) {
-  await page.locator(`button[aria-label="${label}"]`).first().click();
+  // A speed the save has not opened (4× waits on a Provost) is skipped.
+  const button = page.locator(`button[aria-label="${label}"]`).first();
+  if (await button.isDisabled()) { console.log(`${label.padEnd(10)}   (locked)`); continue; }
+  await button.click();
   const r = await sample(SECONDS);
-  console.log(`${label.padEnd(10)} ${r.fps.toFixed(1).padStart(6)} ${`${r.p95.toFixed(1)} ms`.padStart(12)} ${String(r.longTasks).padStart(12)}   ${r.week}`);
+  console.log(`${label.padEnd(10)} ${r.fps.toFixed(1).padStart(6)} ${`${r.p95.toFixed(1)} ms`.padStart(12)} ${String(r.longTasks).padStart(12)} ${r.longMs.toFixed(0).padStart(14)}   ${r.week}`);
 }
 if (errors.length) console.log(`\npage errors:\n  ${errors.join('\n  ')}`);
 await browser.close();

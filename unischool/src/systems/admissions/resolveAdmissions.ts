@@ -12,9 +12,9 @@ import { EPILOGUE_DECADE, finalReport } from '../../state/finalReport';
 import { summariseYears } from '../chronicle/chronicle';
 import { SEMICENTENNIAL_YEAR } from '../../state/types';
 import { advanceClasses, priceTolerance, projectAdmissions, trailingYearSatisfaction } from './admissionsSystem';
-import { cohortCounts, deriveCohortSignals } from './cohorts';
+import { cohortCounts, crowdingForPool, deriveCohortSignals } from './cohorts';
 import { attritionReasons, summerAttrition } from './consequences';
-import { applyReportCard, crowdingScore, gradeYear } from '../prestige/prestigeSystem';
+import { applyReportCard, gradeYear } from '../prestige/prestigeSystem';
 import { intakeCeiling } from '../techtree/instructionCapacity';
 import {
   activatePetition,
@@ -101,7 +101,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // (including the crowding one the report card just read).
   const priorYearAvgSatisfaction = trailingYearSatisfaction(s);
   // The year's overcrowding, read before its accumulators reset (Plan 71).
-  const crowding = crowdingScore(s);
+  const crowding = crowdingForPool(s);
   s.students.priorYearAvgSatisfaction = priorYearAvgSatisfaction;
   s.students.satisfactionYearSum = 0;
   s.students.satisfactionYearWeeks = 0;

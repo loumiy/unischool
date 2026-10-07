@@ -195,18 +195,21 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
           <span className="satisfaction-card-weight" title={`${ATTRIBUTE_WEIGHTS[attribute]}% of the satisfaction target`}>
             ×{(ATTRIBUTE_WEIGHTS[attribute] / 100).toFixed(2)}
           </span>
-          <span className="satisfaction-card-coverage">
-            {detail.dormant
-              ? 'Not yet a need'
-              : detail.neededForFullScore > 0
+          {/* Housing says beds against the beds wanted; the other needs say
+              nothing here (Plan 96E: "1,200/113 served" beside a score of 40
+              read as a contradiction, the score being mostly teaching). */}
+          {(detail.dormant || attribute === 'housing') && (
+            <span className="satisfaction-card-coverage">
+              {detail.dormant
+                ? 'Not yet a need'
                 // Not every student lives in (satisfactionSystem.ts's
                 // expectedRatio), so housing says how many want a bed
                 // (Plan 35: "350/175 beds" read as a contradiction).
-                ? attribute === 'housing'
+                : detail.neededForFullScore > 0
                   ? `${count(detail.totalServed)} beds, ${count(detail.neededForFullScore)} wanted`
-                  : `${fraction(detail.totalServed, detail.neededForFullScore)} ${unit}`
-                : `${count(detail.totalServed)} ${unit}`}
-          </span>
+                  : `${count(detail.totalServed)} beds`}
+            </span>
+          )}
         </div>
       </div>
       <button
@@ -230,7 +233,7 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
                   ))}
                   <li className="satisfaction-contributor-total">
                     <span>Total {unit}</span>
-                    <span>{count(detail.totalServed)}{detail.neededForFullScore > 0 ? `/${count(detail.neededForFullScore)}` : ''}</span>
+                    <span>{count(detail.totalServed)}{attribute === 'housing' && detail.neededForFullScore > 0 ? `/${count(detail.neededForFullScore)}` : ''}</span>
                   </li>
                 </ul>
               ) : (
@@ -261,7 +264,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>{SECTION_HEADINGS['students.breakdown']}</h2>
         <HelpHint
-          text="The five needs the satisfaction target is a weighted sum of, read live off the campus as it stands right now — not smoothed, so a building finished this week already shows here even while the headline number is still drifting toward its new target. Each dial fills toward 100; the multiplier under each name is how much of the headline number that need is worth (×0.20 is a fifth of it). Expand one to see exactly what is behind its score: every building serving that need, how many it serves and any other named contributor."
+          text="The five needs the satisfaction target is made of, read live off the campus: a building finished this week shows here while the headline still drifts. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
         />
       </div>
       {/* The target and today's figure head the needs they are made of,
@@ -335,17 +338,15 @@ function StudentDemandPanel({ s }: { s: GameState }) {
           satisfaction {satisfactionFigure(stakes.satisfactionNow)} → {satisfactionFigure(stakes.satisfactionIfMet)} ·
           {' '}{count(stakes.applicantsIfMet)} applicants
         </dd>
-        <dt>If the deadline passes</dt>
+        <dt>
+          If the deadline passes
+          <HelpHint text="These figures are all it costs, at next summer's funnel. Satisfaction cannot fall below a floor, so a demand left unmet stalls the college rather than sinking it." />
+        </dt>
         <dd>
           satisfaction {satisfactionFigure(stakes.satisfactionNow)} → {satisfactionFigure(stakes.satisfactionIfFailed)} ·
           {' '}{count(stakes.applicantsIfFailed)} applicants
         </dd>
       </dl>
-      <p className="empty-note demand-footnote">
-        Missing the deadline costs goodwill and the applicants word of mouth brings — the figures
-        above, at next summer's funnel. Nothing else: satisfaction cannot fall below a floor, so an unaffordable
-        demand left unmet stalls the college rather than sinking it.
-      </p>
     </section>
   );
 }
@@ -416,28 +417,6 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
           </section>
         ) : (
           <StudentLifeEffect s={s} />
-        )}
-
-        {clubsOpen && pending.length > 0 && (
-          <section className="panel panel-span-2">
-            <h2>Awaiting recognition</h2>
-            <p className="empty-note">
-              The President answers them together at the summer's Students step; none waits on a decision now.
-            </p>
-            <ul className="org-list">
-              {pending.map((p) => (
-                <li key={p.id} className="org-row">
-                  <span className="org-name">
-                    {p.name}
-                    <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
-                  </span>
-                  <span className="org-meta">
-                    {p.foundingMembers} founding members · {moneyShort(p.upkeepPerWeek)}/wk if recognized
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
         )}
 
         {/* The rosters are hidden while there are no organisations; the
@@ -513,6 +492,27 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
             )}
           </section>
           </>
+        )}
+
+        {/* A half-panel after the clubs and chapters, so their pair keeps its
+            row (Plan 96D). */}
+        {clubsOpen && pending.length > 0 && (
+          <section className="panel">
+            <h2>Awaiting recognition</h2>
+            <ul className="org-list">
+              {pending.map((p) => (
+                <li key={p.id} className="org-row">
+                  <span className="org-name">
+                    {p.name}
+                    <span className="org-tag">{p.kind === 'club' ? 'club' : p.greekKind}</span>
+                  </span>
+                  <span className="org-meta">
+                    {p.foundingMembers} founding members · {moneyShort(p.upkeepPerWeek)}/wk if recognized
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
       </div>

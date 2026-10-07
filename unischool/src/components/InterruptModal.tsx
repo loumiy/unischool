@@ -68,7 +68,7 @@ const REVEAL_MS = 2_600;
 
 const NEED_LABEL: Record<'housing' | 'basicNeeds', string> = {
   housing: 'Beds',
-  basicNeeds: 'Dining & health',
+  basicNeeds: 'Dining', // the need is dining; health is its own (Plan 96E)
 };
 
 // Coverage is clamped to 1, so a covered school reads "adequate" with no
@@ -297,6 +297,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           disabled={tuitionLocked}
           onChange={(e) => setTuition(Number(e.target.value))} />
         <PriceTierTag tier={priceTierNow} ratio={tolerance > 0 ? tuition / tolerance : 1} />
+        {/* What families will pay at this prestige, beside the tier (Plan
+            96I; the backlog's "the price is set blind"): above it, the
+            pool shrinks faster and the strongest applicants go elsewhere. */}
+        <span className="price-tolerance" title={FIGURE_HINTS.priceTolerance}>Families expect about {money(Math.round(tolerance / 100) * 100)}</span>
       </label>
       {floor > 0 && (
         <p className="admissions-prompt">The board holds tuition where it is: it may rise, not fall.</p>
@@ -446,7 +450,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 <Figure
                   label="Crowding"
                   hint={FIGURE_HINTS.projectedCrowding}
-                  value={<span className="crowding-cost">{signed(-consequence.crowding, 1)} of prestige's grade ({consequence.crowdingWorst.label} {pct(consequence.crowdingWorst.coverage)})</span>}
+                  value={<span className="crowding-cost">{crowdingSentence(consequence.crowdingWorst.label, consequence.crowdingWorst.coverage, consequence.crowding)}</span>}
                 />
               )}
               {consequence.totalEnrolled > SCALE_FREE_BELOW && (() => {
@@ -540,10 +544,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
   return (
     <>
       <h2>Year {review.year} in review</h2>
-      <p>
-        The year is over. Before the summer's decisions, what it produced.
-        {review.truncated && ' The log no longer reaches back to its first weeks.'}
-      </p>
+      {review.truncated && <p>The log no longer reaches back to its first weeks.</p>}
       {era && <p className="review-era">{CHRONICLE_WORDS.now.replace('{era}', era.name)}</p>}
       <div className="review-grid">
         {review.sections.map((section) => (
@@ -616,9 +617,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
             ? ' — clubs form once the campus has a Student Center for them to meet in.'
             : '.'}
         </p>
-      ) : (
-        <p>What the students organized this year, and are asking the college to recognize.</p>
-      )}
+      ) : null}
       <StudentLifeDigest
         petitions={petitions}
         approved={approved}
@@ -1303,6 +1302,15 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 // What s.pendingInterrupt calls for (docs/architecture/interrupts.md): the
 // Enter key for the read-and-continue stops, and the Final Report's page.
 // Every other stop is answered in the inbox (InterruptContent, below).
+// The summer's crowding line in words (Plan 96E): the worst-covered need,
+// its coverage, and what it takes off the prestige target ("Dining feeds
+// only 51% of this class: prestige target −9.9").
+const CROWDING_VERB: Record<string, string> = { dining: 'feeds', housing: 'houses' };
+export function crowdingSentence(label: string, coverage: number, points: number): string {
+  const need = label.charAt(0).toUpperCase() + label.slice(1);
+  return `${need} ${CROWDING_VERB[label] ?? 'covers'} only ${pct(coverage)} of this class: prestige target ${signed(-points, 1)}`;
+}
+
 export default function InterruptModal({ s, act, onNewCollege }: { s: GameState; act: (a: Action) => void; onNewCollege?: () => void }) {
   const interrupt = s.pendingInterrupt;
 

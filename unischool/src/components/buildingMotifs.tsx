@@ -4117,11 +4117,17 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
   const tf = boxFaces(tb.col, tb.row, tb.w, tb.h, 0, Ht);
   const [TL, TR] = shedFaces(tf);
   const tTop = Ht - up(1.4);
-  // The climbing walls: the tower's two far walls, inside.
+  // The climbing walls: the tower's two inner walls, the ones that face
+  // into the hall (its outer two, on the street, are the glass). They are
+  // drawn only where they are a far wall, seen through the glass; from a
+  // camera that faces them they are the tower's solid near walls (Plan 96F:
+  // the climb was drawn on whichever two walls were far, so it showed from
+  // every side, behind glass on every side).
   const climb: Shp[] = [];
   const ropes: Shp[] = [];
   const panelTones = [CLIMB_WALL, '#2f8f9d', '#d9d2c2', '#e0b13a'];
-  [tf.dir.AB, tf.dir.DA].forEach((dir, wi) => {
+  const inner = [opposite(corner.colWall), opposite(corner.rowWall)];
+  [tf.dir.AB, tf.dir.DA].filter((dir) => inner.includes(dir)).forEach((dir, wi) => {
     const wf = wallOf(tf, dir);
     const tone = (k: number) => shade(panelTones[(k + wi) % panelTones.length]!, WALL_LIGHT[opposite(dir)] * 0.9);
     const n = 3;
@@ -4238,13 +4244,22 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
     </>
   );
   // The climbing tower. Its outer walls (on the hall's own) come down to
-  // the ground; a wall inside the hall's corner shows only above its roof.
+  // the ground, glazed; a wall inside the hall's corner shows only above
+  // its roof, and is solid: the climb is on its other side.
   const outer = (s: ShedFace) => s.dir === corner.colWall || s.dir === corner.rowWall;
   const tower = (
     <>
       {[TL, TR].map((s, i) => {
         const z0 = outer(s) ? 0 : H;
         const clip = wallQuad(s.o, s.a, Ht, 0.04, 0.96, Math.max(tsill, z0 + up(0.4)), tTop);
+        if (!outer(s)) {
+          return (
+            <g key={`tg${i}`}>
+              <polygon points={polyPoints(wallQuad(s.o, s.a, Ht, 0, 1, z0, Ht))} fill={i === 0 ? pal.wallLeft : pal.wallRight} />
+              <WallBand origin={s.o} along={s.a} wallHeight={Ht} from={Ht - EAVES_COURSE} to={Ht} className="iso-cornice" fill={c.cornice} />
+            </g>
+          );
+        }
         return (
           <g key={`tg${i}`}>
             <polygon points={polyPoints(wallQuad(s.o, s.a, Ht, 0, 1, z0, Ht))} fill={i === 0 ? pal.wallLeft : pal.wallRight} />

@@ -447,6 +447,16 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
 // climbs (280 -> 400 -> 650). Fully built the chain serves 38,000 (plus the
 // fitness trio's 9,000).
 export const HEALTH_CENTER_TIER1_POPULATION_GATE = 1_500;
+// Health becomes a need over the next HEALTH_PHASE_IN students past the
+// gate, not all at once (Plan 96I). The Health Center can only be built
+// once enrolment passes the gate, so a class that crossed it met a need it
+// had been unable to meet: health read 0% covered, and crowding took the
+// whole 25 points off the prestige target in one summer (the opening
+// report's year-4 cliff). 0 below the gate, 1 from gate + HEALTH_PHASE_IN.
+export const HEALTH_PHASE_IN = 1_000;
+export function healthPhaseIn(enrolled: number): number {
+  return Math.max(0, Math.min(1, (enrolled - HEALTH_CENTER_TIER1_POPULATION_GATE) / HEALTH_PHASE_IN));
+}
 const HEALTH_CENTER_TIER1_ID = 'HLTH-T1';
 const HEALTH_CENTER_TIER1_SERVES = 2_000;
 const HEALTH_CENTER_TIER1_COST = 560_000;

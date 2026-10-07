@@ -2,14 +2,14 @@ import { tagTeeth } from '../identity/teeth';
 import { QUIRK_MORALE_CAP, QUIRK_MORALE_PER_POINT, quirkById } from '../../data/quirkData';
 import { pairingBumps } from '../estate/pairing';
 import type { Buildable, GameState, SatisfactionAttributes } from '../../state/types';
-import { HEALTH_CENTER_TIER1_POPULATION_GATE, isRetailFood, RETAIL_FOOD_SHARE } from '../../data/facilitiesData';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE, healthPhaseIn, isRetailFood, RETAIL_FOOD_SHARE } from '../../data/facilitiesData';
 import {
   athleticsSocialBonus, CHAPTER_HOUSE_CAPACITY_BONUS, clubSocialBonus, greekSocialBonus, studentLifeSocialBonus,
 } from '../../data/studentLifeData';
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { extensionGain } from '../estate/estate';
 import { campusCourseScores } from '../faculty/facultyAssignment';
-import { GRADE_POINTS, meanGradePoints } from '../../data/courseQuality';
+import { GRADE_POINTS, meanGradeLetter, meanGradePoints } from '../../data/courseQuality';
 import { annualTuitionBilled } from '../finance/financeSystem';
 import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
@@ -131,11 +131,6 @@ export function teachingAgainstStandard(s: GameState): number {
   const floor = GRADE_POINTS.C;
   return clamp((meanGradePoints(scores) - floor) / (expectedGradePoints(s) - floor), 0, 1);
 }
-// The share of courses at A, the rest at B, that earns the teaching's full
-// points: how the Students tab says what these students expect.
-export function aShareForFullMarks(s: GameState): number {
-  return clamp((expectedGradePoints(s) - GRADE_POINTS.B) / (GRADE_POINTS.A - GRADE_POINTS.B), 0, 1);
-}
 
 // Satisfaction's one consequence is word of mouth on the next admissions
 // pool (admissionsSystem.ts's WORD_OF_MOUTH_STRENGTH), so a class arriving
@@ -254,10 +249,12 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   const affordability = affordabilityBonus(s);
   const basicNeeds = clamp(basicNeedsRatio + affordability, ATTRIBUTE_SCORE_FLOOR, 100);
 
-  // Health scores full (dormant) below the health center's population gate.
+  // Health scores full (dormant) below the health center's population gate,
+  // and becomes a need over the students past it (healthPhaseIn, Plan 96I).
+  const phase = healthPhaseIn(enrolled);
   const health = enrolled < HEALTH_CENTER_TIER1_POPULATION_GATE
     ? 100
-    : ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1);
+    : 100 - phase * (100 - ratioScore(servedPopulationFor(s, 'health'), enrolled, TARGET_RATIO.health, 1));
 
   // Housing: bed capacity (dorms plus housed Greek chapters, and the
   // downtown's, Plan 85H) over enrolled.
@@ -320,10 +317,13 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
 
   const bonuses: AttributeContributor[] = [];
   const flat = flatBonusFor(s, attribute);
-  if (flat > 0) bonuses.push({ label: 'Quads and the like, at any size', value: flat });
+  if (flat > 0) bonuses.push({ label: 'Green space', value: flat });
   if (attribute === 'academic') {
     const teaching = teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS;
-    bonuses.push({ label: `Teaching, against what these students expect (A's in ${pct(aShareForFullMarks(s))} of courses, B's in the rest)`, value: teaching });
+    // The grade the courses average, and what it earns (Plan 96E). What
+    // these students expect (expectedGradePoints) stays unsaid: it shows
+    // in what an average earns as the college rises.
+    bonuses.push({ label: `Average course grade (${meanGradeLetter(meanGradePoints(campusCourseScores(s)))})`, value: teaching });
     bonuses.push({ label: 'Library seats', value: libraryPoints(s) });
   }
   if (attribute === 'social') {

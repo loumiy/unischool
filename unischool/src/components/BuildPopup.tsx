@@ -365,8 +365,8 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
 }
 
 // The stamp's chain position for a sequential chain; nothing for
-// one-of-a-kind types, and nothing for a tiered building, whose level is
-// LevelPips (Plan 90).
+// one-of-a-kind types, and nothing for a tiered building: its name says
+// which step it is, and its level shows on its own panel (Plan 96D).
 function rowMarker(t: Buildable, group: TypeGroup, index: number): string | undefined {
   if (t.tier !== undefined) return undefined;
   if (group.repeatable && group.sequential !== false) return `#${index + 1}`;
@@ -387,26 +387,6 @@ function TilePlan({ Icon, stamp, t, vernacular }: {
         ? <BuildThumb t={t} vernacular={vernacular} />
         : <span className="build-tile-icon"><Icon /></span>}
       {stamp && <span className="build-tile-stamp">{stamp}</span>}
-    </span>
-  );
-}
-
-// The highest tier its facility type reaches in the data, so a level reads
-// out of the chain's length (the health chain's three, the library's one).
-function maxTierOf(s: GameState, t: Buildable): number {
-  return s.tech.reduce((max, other) => (other.facilityType === t.facilityType && other.tier !== undefined
-    ? Math.max(max, other.tier) : max), t.tier ?? 0);
-}
-
-// A tiered building's level as pips (Plan 90): filled up to the level, out of
-// the chain's top tier.
-function LevelPips({ s, t }: { s: GameState; t: Buildable }) {
-  const tier = t.tier;
-  if (tier === undefined) return null;
-  const of = maxTierOf(s, t);
-  return (
-    <span className="build-tile-level" role="img" aria-label={`Level ${tier} of ${of}`} title={`Level ${tier} of ${of}`}>
-      {Array.from({ length: of }, (_, i) => <i key={i} className={i < tier ? 'on' : undefined} />)}
     </span>
   );
 }
@@ -468,7 +448,6 @@ function BuildTile({
         >
           <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
           <span className="build-tile-name">{t.name}</span>
-          <LevelPips s={s} t={t} />
           <TileLines lines={lines} />
           <span className="build-tile-foot">expand · {moneyShort(rung.cost)} · {weeksShort(rung.weeks)}</span>
           {(frozen || shortfall > 0) && (
@@ -483,7 +462,6 @@ function BuildTile({
       <div className="build-tile done" title={[t.name, ...lines].join(' · ')}>
         <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
         <span className="build-tile-name">{t.name}</span>
-        <LevelPips s={s} t={t} />
         <TileLines lines={lines} />
       </div>
     );
@@ -516,7 +494,6 @@ function BuildTile({
       >
         <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
-        <LevelPips s={s} t={t} />
         <TileLines lines={lines} />
         <span className="build-tile-foot">{armed ? 'placing…' : 'site · no charge'}</span>
       </button>
@@ -530,7 +507,6 @@ function BuildTile({
       <div className="build-tile developing" title={`${t.name} · ${t.duration - weeksLeft} of ${t.duration} weeks built`}>
         <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
-        <LevelPips s={s} t={t} />
         <span className="build-tile-progress">
           <ProgressBar
             fraction={elapsed}
@@ -586,7 +562,6 @@ function BuildTile({
     >
       <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
       <span className="build-tile-name">{t.name}</span>
-      <LevelPips s={s} t={t} />
       <TileLines lines={lines} />
       <span className="build-tile-foot">
         {armed

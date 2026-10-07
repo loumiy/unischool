@@ -37,7 +37,7 @@ function assert(cond: boolean, msg: string): void {
 function hire(s: GameState, id: string, field: string, teaching: number, courseSlots = 3): Faculty {
   const f: Faculty = {
     id, name: `Dr. ${id}`, field,
-    teaching, research: 50, teachingPotential: teaching, researchPotential: 50,
+    teaching, research: 50, teachingPotential: teaching, researchPotential: 50, startFraction: 0.55,
     tenureWeeks: 0, weeksListed: 0, acclaim: 0, salary: 0, courseSlots,
     nationality: 'United States', flag: '🇺🇸', bio: 'A test fixture, not a character.', gender: 'female', heritage: 'Anglo/Western European',
   };

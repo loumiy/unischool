@@ -201,6 +201,10 @@ export interface Faculty {
   research: number;   // 0..100, current — grows toward researchPotential with tenure
   teachingPotential: number; // 0..100, rolled once
   researchPotential: number; // 0..100, rolled once
+  // How far along their potentials they arrived, 0.4..1 (facultyData.ts's
+  // startFractionFor, Plan 96H): grownStat grows teaching and research
+  // from potential × this. 0.55 for everyone before Plan 96H.
+  startFraction: number;
   tenureWeeks: number; // weeks on the roster; 0 for a candidate, bar the founding market's (facultyData.ts's foundingCandidates)
   weeksListed: number; // weeks on the market, 0 once appointed; a listing withdraws at CANDIDATE_LISTING_WEEKS
   salary: number;      // annual; recomputed from current stats plus a seniority premium

@@ -797,7 +797,17 @@ function sceneParts(
     entry: (entry: SceneEntry) => {
       if (entry.kind === 'tree') return <Tree key={entry.key} row={entry.row} col={entry.col} seed={entry.seed} camera={camera} />;
       if (entry.kind === 'prop') {
-        return <VenueContext.Provider key={entry.key} value={entry.owner ?? null}><g>{entry.node}</g></VenueContext.Provider>;
+        // A venue's prop (the fountain, the statue, a pitch's goals) is its
+        // venue's to click, on the canvas through data-building and on the
+        // SVG through the click, as the venue's plate is (Plan 96C: a click
+        // on the fountain fell through to the ground, so its panel, and
+        // Take down, could not be reached).
+        const owner = entry.owner ?? null;
+        return (
+          <VenueContext.Provider key={entry.key} value={owner}>
+            {owner ? <g data-building={owner} onClick={() => onInspect(owner)}>{entry.node}</g> : <g>{entry.node}</g>}
+          </VenueContext.Provider>
+        );
       }
       const e = byId.get(entry.id);
       return e ? <VenueContext.Provider key={entry.key} value={e.t.id}><g>{building(e)}</g></VenueContext.Provider> : null;
@@ -1116,9 +1126,30 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
   );
 });
 
+const SEASON_STEP_MS = 5_000;
+
+// `value`, changing at most once every `ms`: a change inside the interval
+// waits for its end, and shows the latest value then.
+function useSteadyValue<T>(value: T, ms: number): T {
+  const [shown, setShown] = useState(value);
+  const lastRef = useRef(0);
+  useEffect(() => {
+    if (Object.is(value, shown)) return undefined;
+    const wait = lastRef.current + ms - performance.now();
+    if (wait <= 0) {
+      lastRef.current = performance.now();
+      setShown(value);
+      return undefined;
+    }
+    const timer = setTimeout(() => { lastRef.current = performance.now(); setShown(value); }, wait);
+    return () => clearTimeout(timer);
+  }, [value, shown, ms]);
+  return shown;
+}
+
 export default function CampusMap({
-  s, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, gait,
+  s: live, resting = false, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
+  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -1150,10 +1181,21 @@ export default function CampusMap({
   onInspectTargetConsumed?: () => void;
   // Reports which building's panel is open (the opening walkthrough reads it).
   onInspectedChange?: (id: string | null) => void;
+  // The build menu is open: the map closes its building panel (Plan 96C).
+  buildOpen?: boolean;
   // The clock's pace as a multiple of Play, 0 while it is stopped: how fast
   // the walkers walk.
   gait: number;
+  // A tab covers the map (Plan 96G): it draws the college as it last showed
+  // it and the walkers stop, so a week under a tab costs the map nothing.
+  // It catches up the moment the tab closes.
+  resting?: boolean;
 }) {
+  // The state the map draws: today's, or while resting the last it showed.
+  // Every memo keyed on the state then holds under a tab.
+  const shownRef = useRef(live);
+  if (!resting) shownRef.current = live;
+  const s = shownRef.current;
   // The picked-up building's facing (R turns it a quarter at a time).
   const [facing, setFacing] = useState<Facing>(0);
   // The bench tool's facing once R has turned it (Plan 80I); until then a
@@ -1169,6 +1211,9 @@ export default function CampusMap({
     onInspectedChange?.(inspectedId);
     if (focus && inspectedId !== focus.hallId) setFocus(null);
   }, [inspectedId]);
+  useEffect(() => {
+    if (buildOpen) setInspectedId(null);
+  }, [buildOpen]);
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
   // React state, unlike pan and zoom, because a turn changes every polygon.
   // Set on the projection here at the top of the render so everything below
@@ -2122,7 +2167,11 @@ export default function CampusMap({
   // leaves, and the snow on the roofs. Changes by the week, never animates.
   // With the setting off, the map stays at a week of plain summer green.
   const seasonsOn = useSettings().seasons;
-  const week = seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK;
+  // At most one change of season every SEASON_STEP_MS of real time (Plan
+  // 96G's follow-up): a new season redraws every tree and some buildings,
+  // which at Play is once a week, and at 8× was eight times as often. Above
+  // Play the colors step a few weeks at a time, too fast to see.
+  const week = useSteadyValue(seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK, SEASON_STEP_MS);
   const season = useMemo(() => seasonStyle(week), [week]);
   const snow = useMemo(() => seasonOf(week).snow, [week]);
   // The downtown (Plan 85H): its step; whether its windows are warm (the
@@ -2357,7 +2406,7 @@ export default function CampusMap({
             </BannerContext.Provider>
             </CrowdContext.Provider>
             </>)}
-            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} />
+            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <FullMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />

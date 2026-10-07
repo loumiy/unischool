@@ -6,7 +6,7 @@ import type { SatisfactionAttributes } from '../state/types';
 export const NEED_WORD: Readonly<Record<keyof SatisfactionAttributes, string>> = {
   academic: 'academic',
   social: 'social life',
-  basicNeeds: 'basic needs',
+  basicNeeds: 'dining',
   health: 'health',
   housing: 'housing',
 };

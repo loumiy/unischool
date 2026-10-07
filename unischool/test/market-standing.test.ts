@@ -3,14 +3,17 @@
 // with prestige and research mostly with research standing. The pool's
 // mean potential rises with standing, the spread stays wide with rare
 // standouts, the draw takes the stream's draws as the flat roll did, and
-// the founding market is unchanged.
+// the founding market is unchanged. Plan 96H: the early market's top is
+// wider, and a candidate's current stats start at their own fraction of
+// the potential, so the year-1 market meets the owner's targets.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 
 import {
   FOUNDING_STANDING, foundingCandidates, generateCandidate, initialCandidatePool, marketCenters, potentialAround,
-  type MarketStanding,
+  startFractionFor, type MarketStanding,
 } from '../src/data/facultyData';
+import { gradeFor } from '../src/data/courseQuality';
 import { FOUNDING_MARKET } from '../src/data/foundingData';
 import { bindScriptStream, drawsSoFar } from '../src/engine/random';
 
@@ -63,14 +66,28 @@ const tMeans = pools.map((p) => mean(p.teaching));
 const rMeans = pools.map((p) => mean(p.research));
 assert(tMeans.every((m, i) => i === 0 || m > tMeans[i - 1]! + 2), `the mean teaching potential rises with standing (${tMeans.map((m) => m.toFixed(1)).join(' → ')})`);
 assert(rMeans.every((m, i) => i === 0 || m > rMeans[i - 1]! + 2), `the mean research potential rises with standing (${rMeans.map((m) => m.toFixed(1)).join(' → ')})`);
-assert(Math.abs(tMeans[0]! - 51) < 3 && Math.abs(tMeans[4]! - 80) < 3, `about 50 at founding and 80 at the top, quirks and all (${tMeans[0]!.toFixed(1)}, ${tMeans[4]!.toFixed(1)})`);
+assert(Math.abs(tMeans[0]! - 55) < 3 && Math.abs(tMeans[4]! - 80) < 3, `about 55 at founding (the wider top, Plan 96H) and 80 at the top, quirks and all (${tMeans[0]!.toFixed(1)}, ${tMeans[4]!.toFixed(1)})`);
 
 // Wide at every stage, within [30, 100], and rarely a standout early.
 const early = pools[0]!;
 assert(early.teaching.every((v) => v >= 30 && v <= 100) && pools[4]!.teaching.every((v) => v >= 30 && v <= 100), 'every potential in [30, 100]');
 assert(share(early.teaching, (v) => v <= 40) > 0.08 && share(early.teaching, (v) => v >= 60) > 0.08, 'the spread is wide at founding');
-const standouts = share(early.teaching, (v) => v >= 75);
-assert(standouts > 0.005 && standouts < 0.06, `a standout (75 or more) is rare at founding, but there (${(standouts * 100).toFixed(1)}%)`);
+// The year-1 market (Plan 96H's targets): about one in ten an A-tier
+// potential, one in five a B; current stats mostly C, D and F, an A rare.
+{
+  bindScriptStream(9600);
+  const year1 = Array.from({ length: 10_000 }, () => generateCandidate('History', [], { prestige: 42, research: 18 }));
+  const at = (pick: (c: typeof year1[number]) => number, g: string) => year1.filter((c) => gradeFor(pick(c)) === g).length / year1.length;
+  const potA = at((c) => c.teachingPotential, 'A'); const potB = at((c) => c.teachingPotential, 'B');
+  const curA = at((c) => c.teaching, 'A'); const curB = at((c) => c.teaching, 'B'); const curC = at((c) => c.teaching, 'C');
+  const p = (x: number) => `${(x * 100).toFixed(1)}%`;
+  assert(potA > 0.08 && potA < 0.13, `about one in ten has an A-tier teaching potential (${p(potA)})`);
+  assert(potB > 0.16 && potB < 0.25, `and about one in five a B (${p(potB)})`);
+  assert(curA > 0.002 && curA < 0.02, `an A-tier teacher today is rare, but there (${p(curA)})`);
+  assert(curB > 0.03 && curB < 0.08 && curC > 0.15 && curC < 0.25, `a few B and a fifth C today (${p(curB)}, ${p(curC)})`);
+  assert(year1.every((c) => c.teaching <= c.teachingPotential && c.research <= c.researchPotential), 'nobody arrives above their potential');
+  assert(year1.every((c) => c.startFraction >= 0.4 && c.startFraction <= 1 && c.startFraction === startFractionFor(c.id)), 'each start is in [0.4, 1], from the id');
+}
 assert(share(pools[4]!.teaching, (v) => v >= 75) > 0.4, 'and common at the top');
 // The inverse spread: monotone, centered, the standouts above the body.
 const offsets = [0, 0.25, 0.5, 0.75, 0.96, 0.97, 0.985, 0.9999].map((u) => potentialAround(50, u) - 50);

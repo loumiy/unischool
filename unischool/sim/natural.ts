@@ -8,6 +8,8 @@
 //   npm run natural                          seed 12345, printed
 //   npm run natural -- --seed 4242           another seed
 //   npm run natural -- --out <file.md>       and written to a file
+//   npm run natural -- --opening             years 1-5, and the pool's factors (Plan 96B):
+//                                            sim/opening.ts
 //   npm run natural -- --pacing              the pacing scorecard (Plans 66, 68):
 //                                            three players, three seeds, against
 //                                            sim/pacing.ts
@@ -24,6 +26,7 @@ import { foundGame, playYears, DEFAULT_SEED } from './harness/game';
 import { createNaturalPlayer, SORT_AT_HALLS } from './harness/natural';
 import { playerNamed } from './harness/archetypes';
 import { TEACHING } from './harness/moves';
+import { OPENING_YEARS, openingText, pricedPlayer, trackOpening } from './opening';
 import { PACING_PLAYERS, PACING_SEEDS, scorecard, scorecardText, trackYears, type PacingPlayer, type PaceYear } from './pacing';
 
 const arg = (flag: string) => {
@@ -36,6 +39,32 @@ const seed = Number(arg('--seed') ?? DEFAULT_SEED);
 const name = arg('--name') ?? 'Blackmoor';
 const out = arg('--out');
 const YEARS = 50;
+
+// ---- The opening (Plan 96B) ----
+// The scorecard's three players on its three seeds, and the natural line at
+// the owner's prices, for five years each: fifteen short runs.
+if (process.argv.includes('--opening')) {
+  const t = Date.now();
+  const OWNER_PRICES = { 1: 25_000, 2: 20_000 };
+  const runs = [
+    ...PACING_PLAYERS.flatMap((p) => PACING_SEEDS.map((sd) => ({ player: p as string, seed: sd, years: trackOpening(playerNamed(p)!, sd) }))),
+    ...PACING_SEEDS.map((sd) => ({ player: 'Natural at the owner\'s prices ($25k, then $20k)', seed: sd, years: trackOpening(pricedPlayer(playerNamed('Natural')!, OWNER_PRICES), sd) })),
+  ];
+  const text = [
+    `# The opening`,
+    '',
+    `Years 1–${OPENING_YEARS}, each read as the next year opens (its summer just closed), for the pacing scorecard's three players on seeds ${PACING_SEEDS.join(', ')}, and the natural line again at the owner's prices from the second playthrough ($25,000 in year 1, $20,000 in year 2, its own after). *Tolerance* is the families' price tolerance at the prestige the summer was priced at. Written by \`npm run natural -- --opening\` (\`sim/opening.ts\`, Plan 96B) in ${((Date.now() - t) / 1000).toFixed(0)} s.`,
+    '',
+    openingText(runs),
+  ].join('\n');
+  if (out) {
+    writeFileSync(out, text);
+    console.log(`Wrote ${out}.`);
+  } else {
+    console.log(text);
+  }
+  process.exit(0);
+}
 
 // ---- The pacing scorecard (Plans 66 and 68) ----
 // Three players on three seeds, and the guided player teaching-blind on the

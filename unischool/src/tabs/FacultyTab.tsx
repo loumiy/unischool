@@ -751,13 +751,6 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
       <section className="panel faculty-people">
         <div className="panel-head">
           <span className="panel-head-title"><h3>{VIEWS.find((v) => v.id === view)!.title}</h3></span>
-          <span className="dept-views segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
-            {VIEWS.map((v) => (
-              <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
-                {v.label}
-              </button>
-            ))}
-          </span>
           {view === 'departments' && (
             <span className="dept-bulk">
               <button type="button" onClick={() => setAll(true)}>Expand all</button>
@@ -769,6 +762,13 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
               ) : null}
             </span>
           )}
+          <span className="dept-views segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
+            {VIEWS.map((v) => (
+              <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
+                {v.label}
+              </button>
+            ))}
+          </span>
         </div>
 
         {view !== 'departments' && (

@@ -21,7 +21,8 @@ import { initialTech } from '../src/data/techData';
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
-import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
+import { WEEKS_PER_YEAR, type Faculty, type GameState } from '../src/state/types';
+import { grownStat, LEGACY_START_FRACTION } from '../src/data/facultyData';
 import { LANDMARKS_COUNTED, landmarksCounted } from '../src/data/researchParkData';
 import { speedUpRefusal, speedUpsFor } from '../src/systems/prestige/speedUps';
 
@@ -306,6 +307,22 @@ function testNothingBoughtYet(): void {
   assert(speedUpsFor(state).join() === 'wing' && speedUpRefusal(state, 'wing') === null, 'the park\'s second wing is on sale');
 }
 
+// ---- 99 -> 100 (Plan 96H): each professor's own start ----
+// The version-99 fixture is a Guided run in Year 4. Everyone on its roster
+// and its market arrived at 0.55 of their potential, and loads with that
+// start, so no stat moves on load or on the next week's growth.
+function testLegacyStarts(): void {
+  const raw = fixture('save-v99.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  const before = [...parsed.state.faculty, ...parsed.state.candidates];
+  assert(parsed.version === 99 && before.length > 0 && before.every((f) => (f as Partial<Faculty>).startFraction === undefined), 'the version-99 fixture has faculty with no start of their own');
+  const state = loads(raw, 'the version-99 fixture');
+  if (!state) return;
+  const people = [...state.faculty, ...state.candidates];
+  assert(people.every((f) => f.startFraction === LEGACY_START_FRACTION), 'everyone loads with the old start, 0.55');
+  assert(state.faculty.every((f) => f.teaching === (f.training ? f.teaching : grownStat(f.teachingPotential, f.tenureWeeks, f.startFraction))), 'and their teaching is what it was');
+}
+
 testLaunchFixture();
 testChain();
 testCatalogShape();
@@ -314,6 +331,7 @@ testMilestoneWeeks();
 testBoardLetterWeeks();
 testNoCutsYet();
 testNothingBoughtYet();
+testLegacyStarts();
 testRoundTrip();
 testRefusals();
 

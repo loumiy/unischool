@@ -118,8 +118,9 @@ const f: Faculty = {
 {
   const q = quirkById('grant-magnet')!;
   const words = quirkExplained(q.effects);
-  assert(words.includes('research potential +12') && words.includes('paid 10% more'), `a quirk's effects in words (${words})`);
-  assert(quirkExplained({}) === 'It changes nothing in the numbers.', 'and one with none says so');
+  assert(words === 'research potential +12, pay +10%', `a quirk's effects as numbers (${words})`);
+  assert(quirkExplained(quirkById('harsh-grader')!.effects) === 'teaching potential +4, morale −2', 'morale is a number too');
+  assert(quirkExplained({}) === '', 'and one with none says nothing');
 }
 
 // ---- A candidate has no history ----

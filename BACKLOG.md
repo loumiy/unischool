@@ -22,6 +22,23 @@ is answered, and the work is sequenced in [Plan 95](docs/plans/95-second-review-
 What the owner left out of Plan 95 and kept for later is below, under
 each entry it continues.*
 
+## Awaiting the owner: the second playthrough
+
+*The owner's notes from a run after Plan 95, sorted and read against the
+code in [`docs/reviews/2026-10-owners-playthrough-ii.md`](docs/reviews/2026-10-owners-playthrough-ii.md):
+ten bugs whose cause is known, UI and text changes the owner has decided,
+balance (the first three years, the faculty's 55% start), performance late
+in a run. The owner answered its four questions (its §7): drop "Est. Year
+1", course names in place of codes, no formal text pass, and print years
+1–5 in the pacing report before tuning the opening. Sequenced and landed
+in [Plan 96](docs/plans/96-the-owners-second-playthrough.md).*
+
+- **Targets against actuals** (the owner, kept here at their request).
+  Satisfaction shows *target* beside *today*, and prestige shows
+  "current → target" and "Drifting toward…". The owner likes the idea but
+  suspects it confuses a new player. Decide whether to keep both, keep one,
+  or show only the actual with a direction arrow.
+
 ## Awaiting the owner: the October 2026 review's area 6
 
 *Areas 1, 2, 3 and 7 of the October review
@@ -105,7 +122,8 @@ a sequence of PRs.*
   exist; a target enrolment, or *stay small on purpose*, in the summer's
   admissions beat does not.
 - **The price is set blind** (A4-6). The summer's tuition slider shows a
-  tier but not how last year's price moved the pool
+  tier, and since Plan 96I what families expect at the college's prestige,
+  but not how last year's price moved the pool
   (`components/InterruptModal.tsx`). Show last year's response beside it.
   Plan 89's Admissions Office answers it for a college that opens the
   office; this entry stays for the rest.
@@ -200,6 +218,12 @@ a sequence of PRs.*
   - **Why.** After Plan 83 most of a change's main-thread cost at Play is
     the game's own update, not the map: when a building finishes, 68 of
     the 76 ms, the canvas taking 8.
+  - **Measured again (Plan 96G).** A headless TICK at year 45 is 47 ms,
+    of which the state's clone is 5 ms. Under a tab, after 96G stopped the
+    map there, a week costs about 160 ms of main thread in a production
+    build, most of it React rendering the shell and the open tab, which a
+    worker would not move. Rendering less per week (memoised tabs, a
+    shell that re-renders only what changed) is the larger win.
   - **What it takes.** The tick posts each week's state back. The
     snapshot must cross the thread boundary, either by structured clone
     or as the changed records. Actions go the other way, with the one
