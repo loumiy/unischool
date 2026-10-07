@@ -90,7 +90,7 @@ export const PROJECTS: readonly ProjectDef[] = [
     project: { fromYear: 15, curriculum: 'Social Sciences & Humanities', boosts: { academics: 3 } },
   },
   {
-    id: 'PROJ-BUSINESS', name: 'The Business School',
+    id: 'PROJ-BUSINESS', name: 'The Graduate Business School',
     description: 'Glass, a trading floor and an atrium where recruiters wait: the home of the MBA.',
     cost: 35_000_000, weeks: 130, upkeep: 35_000,
     project: { fromYear: 15, curriculum: 'Business', boosts: { academics: 3 } },

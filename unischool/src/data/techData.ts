@@ -536,7 +536,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'MBAX', code: 'MBA', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
-    homeSchool: 'Business', section: 'Business School',
+    homeSchool: 'Business', section: 'Graduate Business School',
     prestigeWeight: 1.4,
     blurb: 'the MBA program',
     courses: [
@@ -645,7 +645,7 @@ export function graduatePrograms(): GraduateProgramSeed[] {
 // The Curriculum's graduate sections, in the order they are drawn after the
 // seven schools (Plan 80B).
 export const GRADUATE_SCHOOL_SECTION = 'Graduate School';
-export const GRADUATE_SECTIONS: readonly string[] = [GRADUATE_SCHOOL_SECTION, 'Business School', 'Law School', 'Medical School'];
+export const GRADUATE_SECTIONS: readonly string[] = [GRADUATE_SCHOOL_SECTION, 'Graduate Business School', 'Law School', 'Medical School'];
 
 export function graduateSection(program: GraduateProgramSeed): string {
   return program.section ?? GRADUATE_SCHOOL_SECTION;

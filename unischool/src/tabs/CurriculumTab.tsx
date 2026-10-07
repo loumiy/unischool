@@ -1319,14 +1319,12 @@ export default function CurriculumTab(
         <div className="panel-head">
           <span className="panel-head-title">
             {/* While filtering, the crumb shows the whole-catalogue search. */}
-            {filtering ? (
+            {filtering && (
               <h2 className="curriculum-crumbs">
                 <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>The curriculum</button>
                 <span className="crumb-sep" aria-hidden="true">›</span>
                 <span className="crumb-current">Matching courses</span>
               </h2>
-            ) : (
-              <h2>The curriculum</h2>
             )}
           </span>
           <span className="panel-head-figure">

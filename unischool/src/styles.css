@@ -561,11 +561,11 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
   color: color-mix(in srgb, var(--school-on-primary) 65%, transparent); }
 .day-ticker-cell { width: 14px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--school-on-primary) 30%, transparent); }
 .day-ticker-cell.lit { background: var(--school-secondary); }
-/* The term's weeks, the one under way in the second colour (Plan 90). */
-.term-bar { display: flex; gap: 1px; }
-.term-bar > span { flex: 1; height: 3px; border-radius: 1px; background: color-mix(in srgb, var(--school-on-primary) 25%, transparent); }
-.term-bar > span.done { background: color-mix(in srgb, var(--school-on-primary) 70%, transparent); }
-.term-bar > span.now { background: var(--school-secondary); }
+/* The college year (Plan 90): Fall's half, then Spring's, each filled to
+   the week under way. */
+.year-bar { display: flex; gap: 3px; }
+.year-bar-term { flex: 1; height: 3px; border-radius: 1px; overflow: hidden; background: color-mix(in srgb, var(--school-on-primary) 25%, transparent); }
+.year-bar-term > span { display: block; height: 100%; background: var(--school-secondary); }
 
 .toolbar-speed { flex: none; display: flex; align-items: center; gap: 6px; position: relative; }
 /* Why a locked speed's key did nothing (Plan 70E), floated above the gears. */
@@ -3526,22 +3526,26 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .ladder-rung-opens { margin: var(--space-4) 0 0 var(--space-24); font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.35; }
 
 /* ---------- Pennant (Pennant.tsx) ---------- */
-.pennant { position: fixed; z-index: 11; top: var(--space-12); left: 24px; display: flex; flex-direction: column; align-items: flex-start;
-  max-width: 320px; pointer-events: none; }
-/* An embroidered patch (Plan 90): felt in the school colour with a faint
-   grain, a satin border in the second colour, a stitch line inside it and
-   an outline ring and hard shadow outside. */
-.pennant-body { position: relative; display: grid; justify-items: center; gap: var(--space-4); max-width: 100%; box-sizing: border-box;
-  padding: var(--space-12) 26px 13px; text-align: center; border-radius: 999px;
-  background-color: var(--school-primary); color: var(--school-on-primary);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.12 0 0 0 0 0.2 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  border: 5px solid var(--school-secondary); box-shadow: 0 0 0 2px var(--outline), 4px 4px 0 2px var(--outline); }
-.pennant-body::before { content: ''; position: absolute; inset: var(--space-4); border-radius: inherit; pointer-events: none;
-  border: 1.5px dashed color-mix(in srgb, var(--school-secondary) 70%, transparent); }
-/* Two lines at most (Plan 76I): a long name ran to four and covered the
-   menu. The whole name is in the title, and so hoverable. */
-.pennant-name { font-family: var(--display); font-weight: 800; font-size: var(--text-2xl); line-height: 1.08; letter-spacing: -0.01em; overflow-wrap: anywhere;
-  min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; pointer-events: auto; }
+.pennant { position: fixed; z-index: 11; top: 0; left: 24px; display: flex; flex-direction: column; align-items: stretch;
+  width: 150px; pointer-events: none; filter: drop-shadow(3px 3px 0 var(--outline)); }
+/* A felt banner hung from the top edge (Plan 90): the school colour with a
+   satin border in the second colour and a stitch line inside it, cut to a
+   point. */
+.pennant-body { position: relative; display: grid; place-items: center; min-height: 92px; box-sizing: border-box;
+  padding: 26px 12px 8px; text-align: center; background: var(--school-primary); color: var(--school-on-primary);
+  border: 4px solid var(--school-secondary); border-top: 0; border-bottom: 0; }
+.pennant-body::before { content: ''; position: absolute; inset: 0 5px; pointer-events: none;
+  border: 1.5px dashed color-mix(in srgb, var(--school-secondary) 70%, transparent); border-top: 0; border-bottom: 0; }
+.pennant-tail { height: 46px; margin-top: -1px; background: var(--school-secondary); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.pennant-tail::before { content: ''; display: block; height: calc(100% - 8px); margin: 0 4px; background: var(--school-primary);
+  clip-path: polygon(0 0, 100% 0, 50% 100%); }
+/* The whole name, always (Plan 76I's clamp is gone): a longer name takes a
+   smaller size, balanced over a few lines. */
+.pennant-name { font-family: var(--display); font-weight: 800; font-size: var(--text-2xl); line-height: 1.08; letter-spacing: -0.01em;
+  overflow-wrap: break-word; hyphens: auto; text-wrap: balance; min-width: 0; max-width: 100%; pointer-events: auto; }
+.pennant-name.long { font-size: calc(var(--text-2xl) * 0.82); }
+.pennant-name.longer { font-size: calc(var(--text-2xl) * 0.7); }
+.pennant-name.longest { font-size: calc(var(--text-2xl) * 0.6); line-height: 1.12; }
 /* The building panel takes the same corner, so the pennant yields to it
    here (the open building is map-local state, not App's). */
 body:has(.building-info-panel) .pennant { display: none; }
@@ -3766,9 +3770,10 @@ body:has(.building-info-panel) .pennant { display: none; }
   .build-popup { max-height: min(560px, calc(100vh - var(--toolbar-height) - 140px)); }
   /* A tab's title gives way to its Close, which wrapped at the largest text. */
   .tab-overlay-head h2 { font-size: calc(26px * var(--text-scale)); }
-  /* The pennant clears the menu and map tools, at two lines at most. */
-  .pennant { left: 12px; max-width: calc(100vw - 84px); }
-  .pennant-body { padding: 10px 20px 11px; }
+  /* The pennant clears the menu and map tools. */
+  .pennant { left: 12px; width: 128px; }
+  .pennant-body { padding: 18px 10px 6px; min-height: 64px; }
+  .pennant-tail { height: 34px; }
   /* The summer's beats: the number over the word, so a beat's name never
      runs into the next one's at the larger text sizes. */
   .summer-steps li { flex: 1 1 auto; white-space: normal; padding: 0 4px 6px; }

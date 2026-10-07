@@ -171,9 +171,8 @@ function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; on
     return (
       <p className="building-info-line">
         {t.effects?.flatSatisfactionBonus !== undefined
-          ? `+${t.effects.flatSatisfactionBonus} social life, at any size`
+          ? `+${t.effects.flatSatisfactionBonus} social life`
           : 'A green centerpiece for campus life.'}
-        {' — no capacity figure; a quad does not scale with enrollment.'}
       </p>
     );
   }
