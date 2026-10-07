@@ -392,7 +392,7 @@ export default function App() {
   // loses nothing.
   const newCollege = (sandbox = false) => { setFoundSandbox(sandbox); setFront('found'); };
 
-  const frontScreen = front === 'title' ? (
+  const frontPage = front === 'title' ? (
     <TitleScreen
       s={s}
       onContinue={() => { if (continueHere()) setFrontState(null); }}
@@ -406,6 +406,13 @@ export default function App() {
     : front === 'settings' ? <SettingsPanel onClose={closeFront}><SoundControls /></SettingsPanel>
       : front === 'credits' ? <Credits onClose={closeFront} />
         : null;
+  // Reached from the title, the hall, the settings and the credits keep its
+  // painted quad behind their cards (styles.css's .front-art), so the title
+  // does not drop to a bare page; reached from the game, they cover the map
+  // as before.
+  const frontScreen = frontPage && front !== 'title' && frontBack === 'title'
+    ? <div className="front-art">{frontPage}</div>
+    : frontPage;
 
   if (!s.started || front === 'found') {
     // On this screen the debug panel offers Load alone (see DebugPanel.tsx).

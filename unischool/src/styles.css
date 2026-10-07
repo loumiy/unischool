@@ -358,8 +358,10 @@ button, input, select, textarea { font-size: inherit; }
 /* The title art's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx):
    the quad under a clear sky, and the mark and the name in white on it.
    The menus over it are the game's own cards. */
-.title-screen, .startup {
+.title-screen, .startup, .front-art > .front-screen {
   background: #4f9be0 url('./assets/campus-quad.webp') center 62% / cover no-repeat fixed; }
+/* A front screen opened from the title (App.tsx): its card over the art. */
+.front-art { display: contents; }
 .title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) 40px; }
 .title-head { text-align: center; color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
 .logo { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
