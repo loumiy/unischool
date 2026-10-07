@@ -114,7 +114,7 @@ knowingly:
 | G | The ten-year demo | B, F |
 | H | The desktop build | B, D |
 | I | The itch page and the playtest kit | D, H (docs only) |
-| J | The owner's pass, and 0.9.0 on itch.io | all |
+| J | The owner's pass, and 0.1.0 on itch.io | all |
 
 Each PR has its own branch (`plan-97x-subject`) and merges once `check`
 and `slow` pass.
@@ -124,8 +124,10 @@ and `slow` pass.
 ## PR 97B — Versions and editions
 
 - **A version scheme.**
-  - `package.json` becomes **`0.9.0`**. Playtest fixes are `0.9.1`,
-    `0.9.2`…, and **`1.0.0` is reserved for launch**.
+  - `package.json` becomes **`0.1.0`**. Playtest fixes are `0.1.1`,
+    `0.1.2`…. Each later build that changes what players see (the
+    post-playtest build, the public demo) takes the next minor number,
+    `0.2.0` and on, and **`1.0.0` is reserved for launch**.
   - `vite.config.ts` defines `__APP_VERSION__` (from `package.json`) and
     `__BUILD_ID__` (the short git commit, or `local`).
   - A small `src/build.ts` exports `VERSION`, `BUILD_ID`, `EDITION` and
@@ -136,7 +138,7 @@ and `slow` pass.
   - `VITE_PLATFORM`: `web` (the default, the Vercel site), `itch` (PR D) or
     `desktop` (PR H).
 - **Where the version shows:**
-  - a quiet line on the title screen ("v0.9.0 · playtest");
+  - a quiet line on the title screen ("v0.1.0 · playtest");
   - the Credits;
   - the crash screen (`CrashScreen.tsx`);
   - the bug report (`engine/crashContext.ts`);
@@ -458,12 +460,12 @@ Docs only. Everything here is a draft for the owner to edit.
 - **The triage rule,** written in the README: every reply is filed by the
   reviews' areas (1 aesthetics, 2 UI and text, 3 intuitive gameplay, 4
   strategy, 7 bugs).
-  - A bug that loses a save or blocks a run is fixed in a `0.9.x` build
+  - A bug that loses a save or blocks a run is fixed in a `0.1.x` build
     within days.
   - Everything else waits for the playtest's end, and becomes the next
     plan.
 
-## PR 97J — The owner's pass, and 0.9.0 on itch.io
+## PR 97J — The owner's pass, and 0.1.0 on itch.io
 
 - **The owner plays before anyone else does** (the rest of 70L), against
   `checklist.md`:
@@ -475,7 +477,7 @@ Docs only. Everything here is a draft for the owner to edit.
   Small findings are fixed in this PR. Larger ones go to the playtest's
   README as known issues, and onto the itch page.
 - **Release:**
-  - tag `v0.9.0`; the desktop workflow builds the packages;
+  - tag `v0.1.0`; the desktop workflow builds the packages;
   - upload the web zip and the three desktop packages to itch.io (not the
     demo);
   - publish the page;
@@ -493,8 +495,8 @@ together. Today is 7 October 2026.
 | When | What |
 |---|---|
 | **7 Oct – early Nov** | PRs B–J. B, C and E first, then D and F, then G and H, then I and J. |
-| **Early Nov** | `0.9.0` public on itch.io; recruiting starts. |
-| **Nov – mid Dec** | The playtest. `0.9.x` patches for save-losing and blocking bugs only. The owner reads replies weekly. |
+| **Early Nov** | `0.1.0` public on itch.io; recruiting starts. |
+| **Nov – mid Dec** | The playtest. `0.1.x` patches for save-losing and blocking bugs only. The owner reads replies weekly. |
 | **Mid Dec** | Triage into `docs/reviews/playtest-1/`, and the next plan, from what testers said. |
 | **Dec – Jan** | The owner's human text edit, informed by what testers read and skipped. The capsule art and logo commissioned (artists take weeks; ask in November). The devlog's first post: *what the playtest taught us*. |
 | **By end of Jan 2027** | The Steam page, with the plan before it covering Steamworks, signing and notarizing. Still on the June 2027 Next Fest track (register by 25 April). |

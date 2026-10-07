@@ -82,7 +82,7 @@ page, and a price ($14.99 was recommended). Whether the owner's playtest
 
 *Picked up by [Plan 97](docs/plans/97-the-itch-playtest.md) (Proposed,
 October 2026): 70K as its PR E, revised for a playtest, and 70L as its PR
-J, with 0.9.0 on itch.io before 1.0.0. These entries leave when Plan 97
+J, with 0.1.0 on itch.io before 1.0.0. These entries leave when Plan 97
 lands.*
 
 *Held by the owner's decision (September 2026), after Plan 70's PRs A–J
