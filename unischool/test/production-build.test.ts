@@ -21,7 +21,8 @@ import { DEV_BUILD } from '../src/engine/devBuild';
 import { createInitialState } from '../src/state/actions';
 import TitleScreen from '../src/components/TitleScreen';
 import Credits from '../src/components/Credits';
-import { BUILD_STAMP, buildLine, EDITION, PLATFORM, VERSION, versionLine } from '../src/build';
+import { BUILD_STAMP, buildLine, EDITION, PLATFORM, VERSION, siteUrl, versionLine } from '../src/build';
+import { backUpDue } from '../src/components/InterruptModal';
 
 let checks = 0;
 let failures = 0;
@@ -114,8 +115,21 @@ function testCredits(): void {
   assert(naming.length === 0, `nothing in src/ or index.html names Louis Miyani or Claude Code (${naming.join(', ')})`);
 }
 
+// The itch.io build (Plan 97D): relative paths only there, the backup line
+// every fifth summer in a browser, and no share link to the frame's own
+// address.
+function testItchBuild(): void {
+  const config = source(join(process.cwd(), 'vite.config.ts'));
+  assert(!/\bbase\s*:/.test(config), 'the Vercel build keeps Vite\'s default base, "/" (only build:itch sets "./")');
+  const script = source(join(process.cwd(), 'tools/buildItch.mjs'));
+  assert(/base: '\.\/'/.test(script) && /VITE_PLATFORM = 'itch'/.test(script), 'build:itch builds with relative paths for the itch platform');
+  assert(backUpDue(5) && backUpDue(25) && !backUpDue(4) && !backUpDue(1), 'the review offers a backup every fifth summer');
+  assert(siteUrl().origin === '' || PLATFORM === 'web', 'off the web, no share link to the page\'s own address');
+}
+
 testDebugIsDevOnly();
 testCrashScreen();
+testItchBuild();
 testCredits();
 testVersion();
 

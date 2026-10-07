@@ -9,7 +9,10 @@ import { REVIEW_LIST_CAP, buildYearInReview } from '../state/yearInReview';
 import type { ReviewLine } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
 import { hallEntryFor, hangInHall } from '../state/hall';
-import { runFinished } from '../analytics/analytics';
+import { runFinished, saveExported } from '../analytics/analytics';
+import { exportSave } from '../state/persistence';
+import { downloadFile } from './download';
+import { PLATFORM } from '../build';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { REPORT_WORDS } from '../data/reportData';
 import { PromiseOffer } from '../tabs/PromisesPanel';
@@ -530,6 +533,12 @@ function ReviewLineView({ line }: { line: ReviewLine }) {
 
 // Beat one: the year just lived, in facts (state/yearInReview.ts).
 // Read-and-continue.
+// Every fifth summer, in a browser (Plan 97D): the run lives in the page's
+// storage, which Safari clears after seven days unvisited and a private
+// window on close, so the review offers the file. The desktop build keeps
+// its own storage and does not ask.
+export const backUpDue = (year: number) => PLATFORM !== 'desktop' && year % 5 === 0;
+
 function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: string[]) => void }) {
   const review = buildYearInReview(s);
   const era = currentEra(s);
@@ -555,6 +564,12 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
         ))}
       </div>
       <PromiseOffer s={s} taken={taken} onToggle={toggle} />
+      {backUpDue(review.year) && (
+        <p className="review-backup">
+          A browser can clear what a page keeps, after weeks unvisited or when a private window closes.{' '}
+          <button type="button" className="menu-btn" onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); saveExported('backup'); }}>Back up this run</button>
+        </p>
+      )}
       <div className="modal-actions">
         <button onClick={() => onContinue(taken)}>{taken.length > 0 ? 'Make it public' : 'Continue'}</button>
       </div>

@@ -19,7 +19,7 @@ export type Edition = (typeof EDITIONS)[number];
 export const PLATFORMS = ['web', 'itch', 'desktop'] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
-const env = (import.meta as ImportMeta & { env?: { VITE_EDITION?: string; VITE_PLATFORM?: string } }).env;
+const env = (import.meta as ImportMeta & { env?: { VITE_EDITION?: string; VITE_PLATFORM?: string; VITE_SITE_URL?: string } }).env;
 
 function oneOf<T extends string>(list: readonly T[], value: string | undefined, fallback: T): T {
   return (list as readonly string[]).includes(value ?? '') ? (value as T) : fallback;
@@ -29,6 +29,24 @@ export const VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_VERSI
 export const BUILD_ID: string = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'local';
 export const EDITION: Edition = oneOf(EDITIONS, env?.VITE_EDITION, 'full');
 export const PLATFORM: Platform = oneOf(PLATFORMS, env?.VITE_PLATFORM, 'web');
+
+// Where the game lives, for the report card's share line (Plan 97D):
+// VITE_SITE_URL when the build sets it (the itch.io page), else the page's
+// own address, except on itch.io, whose game frame is served from a CDN
+// address no one should be sent to; there it is left out until set.
+export function siteUrl(): { origin: string; host: string } {
+  const set = env?.VITE_SITE_URL?.trim();
+  if (set) {
+    try {
+      const u = new URL(set);
+      return { origin: u.href.replace(/\/$/, ''), host: `${u.host}${u.pathname}`.replace(/\/$/, '') };
+    } catch {
+      // Not a URL: as unset.
+    }
+  }
+  if (PLATFORM !== 'web' || typeof location === 'undefined') return { origin: '', host: '' };
+  return { origin: location.origin, host: location.host };
+}
 
 // The stamp an exported save and a bug report carry.
 export interface BuildStamp {

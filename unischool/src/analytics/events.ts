@@ -68,7 +68,7 @@ export const EVENTS = {
   run_finished: { mark: MARKS, rank: 'number', title_tags: { list: TAGS.map((t) => t.id) }, continued: 'boolean' },
   heartbeat: {},
   report_shared: { kind: ['download', 'copy'] },
-  save_exported: { kind: ['menu', 'crash', 'set-aside'] },
+  save_exported: { kind: ['menu', 'crash', 'set-aside', 'backup'] },
   save_imported: { kind: ['file'] },
   crashed: { message: 'message', year: 'number' },
 } as const satisfies Record<string, Record<string, FieldKind>>;

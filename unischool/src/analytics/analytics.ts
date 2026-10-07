@@ -30,6 +30,7 @@ const env = (import.meta as ImportMeta & { env?: { VITE_POSTHOG_KEY?: string; VI
 export const DEFAULT_HOST = 'https://eu.i.posthog.com';
 export const ID_KEY = 'unischool.stats.id';
 export const RUN_KEY = 'unischool.stats.run';
+type StatsKey = typeof ID_KEY | typeof RUN_KEY;
 // A heartbeat every ten minutes of unpaused, visible play.
 export const HEARTBEAT_MS = 10 * 60 * 1000;
 const FLUSH_MS = 10_000;
@@ -87,21 +88,21 @@ export function answerStats(on: boolean): void {
 
 // ---- Storage, every access wrapped ----
 
-function read(key: string): string | null {
+function read(key: StatsKey): string | null {
   try {
     return globalThis.localStorage?.getItem(key) ?? null;
   } catch {
     return null;
   }
 }
-function write(key: string, value: string): void {
+function write(key: StatsKey, value: string): void {
   try {
     globalThis.localStorage?.setItem(key, value);
   } catch {
     // Kept for the session only.
   }
 }
-function remove(key: string): void {
+function remove(key: StatsKey): void {
   try {
     globalThis.localStorage?.removeItem(key);
   } catch {
@@ -322,7 +323,7 @@ export function runFinished(s: GameState, report: { mark: string; rank: number }
 export function reportShared(kind: 'download' | 'copy'): void {
   track('report_shared', { kind });
 }
-export function saveExported(kind: 'menu' | 'crash' | 'set-aside'): void {
+export function saveExported(kind: 'menu' | 'crash' | 'set-aside' | 'backup'): void {
   track('save_exported', { kind });
 }
 // An imported file is another run: a new run id, its time from zero.

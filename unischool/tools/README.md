@@ -297,6 +297,23 @@ See [`docs/architecture/playtesting.md`](../../docs/architecture/playtesting.md)
 for the whole harness — the scenarios, the debug flag and panel, and the
 report (`npm run sim`).
 
+## The itch.io build, in itch.io's frame
+
+`buildItch.mjs` builds the game with relative paths for itch.io and zips it
+(`release/unischool-<version>-itch-web.zip`); `itchFrame.mjs` serves that
+build the way itch.io does, cross-origin under a sub-path inside a host
+page with itch.io's iframe attributes, and with `--check` plays the frame's
+risks in Chromium: saves across a reload, downloads, the clipboard's
+fallback, keys, the wheel, sound and two frames (Plan 97D).
+
+```sh
+npm run build:itch
+npm run itch:frame                  # open http://localhost:8771/ to play it framed
+npm run itch:frame -- --check
+```
+
+Uploading is [`docs/store/itch-release.md`](../../docs/store/itch-release.md).
+
 ## Playing it as a newcomer, and timing it
 
 Both drive the real app in a headless Chromium against a running dev server

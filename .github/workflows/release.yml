@@ -1,0 +1,46 @@
+name: Release
+
+# The files to upload to itch.io (Plan 97D; the desktop packages join in
+# Plan 97H). Runs on a version tag (v0.1.0) or by hand from the Actions
+# tab ("Run workflow"). Download the zip from the run's Artifacts, and
+# upload it on the itch.io project page (docs/store/itch-release.md).
+#
+# VITE_POSTHOG_KEY is the repository secret of that name, so the build
+# sends play statistics; ITCH_PAGE_URL, a repository variable, is the
+# address the report card's share line names (leave it unset until the
+# page exists).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: unischool
+
+jobs:
+  itch-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: unischool/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build:itch
+        env:
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_SITE_URL: ${{ vars.ITCH_PAGE_URL }}
+      # The game in an itch.io-style frame, in Chrome: saves, downloads, the
+      # clipboard's fallback, keys, the wheel, sound and two frames.
+      - run: npm run itch:frame -- --check
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+      - uses: actions/upload-artifact@v4
+        with:
+          name: itch-web
+          path: unischool/release/*.zip
+          if-no-files-found: error

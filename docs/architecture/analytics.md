@@ -52,7 +52,7 @@ and never ask.
 | `run_finished` | Leaving the Final Report | its mark, rank, the ids of the college's guidebook tags, whether the run went on into the Epilogue |
 | `heartbeat` | Every 10 minutes of play | none |
 | `report_shared` | The report card downloaded or copied | which |
-| `save_exported` | A save downloaded | from where: the menu, the crash screen, or a set-aside save |
+| `save_exported` | A save downloaded | from where: the menu, the summer's backup line, the crash screen, or a set-aside save |
 | `save_imported` | A save loaded from a file | none |
 | `crashed` | The game stops on an error | the error's message (with your college's names removed) and the year; never the run itself |
 

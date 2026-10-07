@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:itch": "tsc -b && node tools/buildItch.mjs",
+    "itch:frame": "node tools/itchFrame.mjs",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "preview": "vite preview",

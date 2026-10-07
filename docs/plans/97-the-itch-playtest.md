@@ -7,7 +7,7 @@ web and desktop builds, anonymous play statistics, a way to send feedback
 from inside the game, and the ten-year demo built for later. It takes over
 Plan 70's held PRs K (analytics) and L (launch).*
 
-**Status: In progress.** PRs B, C and E are done.
+**Status: In progress.** PRs B, C, D and E are done.
 
 ---
 
@@ -230,6 +230,18 @@ and `slow` pass.
   1440 × 900 with the fullscreen button and *mobile friendly*). It also
   gives the same through itch.io's `butler` CLI. The owner holds the
   `butler` key, and CI never does.
+
+*As built:* `index.html` keeps its `/favicon.ico`-style links, since Vite
+rewrites them to `./` under `base: './'` (the build script fails if an
+absolute path survives). itch.io's iframe attributes could not be read off a
+live page from the build container (itch.io is outside its network);
+`tools/itchFrame.mjs` uses the 2025 `game_drop` frame's (no `sandbox`, no
+`clipboard-write`) and says to check them against a live page. Downloads
+work in that frame, so they need no fallback; the clipboard does not, in
+Chrome, and *Copy summary* falls back to the line shown selected. The
+release workflow, `release.yml`, starts here with the web zip and the frame
+check; PR H adds the desktop packages. `VITE_SITE_URL` (the repository
+variable `ITCH_PAGE_URL`) names the page in the share line.
 
 ## PR 97E — Analytics (70K, revised for a playtest)
 
