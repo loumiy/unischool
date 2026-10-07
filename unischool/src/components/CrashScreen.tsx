@@ -2,6 +2,8 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { crashSource } from '../engine/crashContext';
 import { exportSave } from '../state/persistence';
 import { downloadFile } from './download';
+import { BUILD_STAMP, buildLine } from '../build';
+import { crashed, saveExported } from '../analytics/analytics';
 
 // The crash screen (Plan 70C): an error boundary around the whole game. A
 // render that throws would otherwise leave a blank page; this says what
@@ -24,8 +26,9 @@ export function CrashFallback({ error }: { error: Error }) {
       if (what === 'save') {
         const f = exportSave(source.state());
         downloadFile(f.filename, f.text);
+        saveExported('crash');
       } else {
-        const report = JSON.stringify({ error: `${error.name}: ${error.message}`, stack: error.stack ?? null, run: JSON.parse(source.runLog()) as unknown });
+        const report = JSON.stringify({ game: BUILD_STAMP, error: `${error.name}: ${error.message}`, stack: error.stack ?? null, run: JSON.parse(source.runLog()) as unknown });
         downloadFile(`unischool-bug-report-${Date.now()}.json`, report);
       }
     } catch {
@@ -52,6 +55,7 @@ export function CrashFallback({ error }: { error: Error }) {
           <button type="button" className="title-primary" onClick={() => window.location.reload()}>Reload</button>
         </div>
         <p className="crash-detail">{error.name}: {error.message}</p>
+        <p className="crash-detail">{buildLine()}</p>
       </section>
     </div>
   );
@@ -67,6 +71,14 @@ export default class CrashScreen extends Component<{ children: ReactNode }, { er
   componentDidCatch(error: Error, info: ErrorInfo): void {
     // Kept on the error for the bug report's stack.
     if (info.componentStack && !error.stack?.includes(info.componentStack)) error.stack = `${error.stack ?? ''}\n${info.componentStack}`;
+    // The play statistics hear of it: the message, its college's names
+    // scrubbed, and the year (analytics.ts). Never the state.
+    try {
+      const source = crashSource();
+      crashed(error, source ? source.state() : null);
+    } catch {
+      // The crash screen still shows.
+    }
   }
 
   render() {

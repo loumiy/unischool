@@ -6,6 +6,21 @@ B6-3). Nothing here is published. The wording follows the review's §7
 say plainly what was generated, what a person directed and chose, and what
 will be made by hand. A vague disclosure is read as the worst case.
 
+## The owner's decision on the Credits (7 October 2026)
+
+For the itch.io playtest (Plan 97, PR C), the game is credited to
+**Halifax Games**, a pseudonym for now, and the Credits no longer name
+the assistant. In its place, a footnote on *Halifax Games*, at the foot
+of the Credits card:
+
+> \* Made with the help of AI tools.
+
+This is the owner's choice for the game itself. It is shorter than the
+rule below ("don't hide the assistant behind 'tools'") asks of store
+copy, so the store forms stay specific: itch.io's and Steam's answers
+below still say part by part what was made with the assistant. The
+README's *How UniSchool is made* paragraph is unchanged.
+
 ## The facts it rests on
 
 Checked on `main` on 6 October 2026.
@@ -16,8 +31,8 @@ Checked on `main` on 6 October 2026.
   mockups and options each plan puts to them. Many plans start from the
   owner's own playthrough notes. Claude Code, an AI coding assistant, writes
   the code, the player-facing text and the plans' records from those briefs.
-  The in-game Credits say so in one line: "Built with Claude Code, plan by
-  plan" (`unischool/src/components/Credits.tsx`).
+  The in-game Credits say it in a footnote: "Made with the help of AI
+  tools" (`unischool/src/components/Credits.tsx`, above).
 - **What that produced.**
   - All of the game's code.
   - All of the player-facing text: letters, events, course descriptions,
@@ -34,8 +49,13 @@ Checked on `main` on 6 October 2026.
 - **What is not generated.** The typefaces (Archivo, Bricolage Grotesque,
   Azeret Mono) are open fonts by their designers. The share image
   (`unischool/public/og-image.jpg`) is a screenshot of the game.
-- **Nothing is generated while you play.** The game makes no network calls
-  at all: a search of `unischool/src` finds no `fetch`, no `XMLHttpRequest`,
+- **Nothing is generated while you play.** The game's only network call is
+  the anonymous play statistics (Plan 97E), sent to PostHog only in a
+  production build and only once the player allows it; they carry numbers
+  and fixed values, nothing generated and nothing typed
+  ([`analytics.md`](../architecture/analytics.md)). Otherwise the game makes
+  no network calls: a search of `unischool/src` finds one `fetch`, the
+  statistics' (`unischool/src/analytics/analytics.ts`), no `XMLHttpRequest`,
   no `WebSocket`, no `sendBeacon` and no AI service, and its only runtime
   dependencies are React and three font packages (`unischool/package.json`).
   Everything it shows is in the build. Saves stay in the browser.
@@ -78,8 +98,8 @@ Two sentences wait on the owner:
 
 **Live-generated content:**
 
-> None. The game generates no AI content while you play, and it makes no
-> network calls.
+> None. The game generates no AI content while you play. Its only network
+> call is anonymous play statistics, sent only if the player allows it.
 
 ## For itch.io
 

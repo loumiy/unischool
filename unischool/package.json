@@ -1,11 +1,13 @@
 {
   "name": "unischool",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:itch": "tsc -b && node tools/buildItch.mjs",
+    "itch:frame": "node tools/itchFrame.mjs",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "preview": "vite preview",

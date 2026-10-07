@@ -2,6 +2,7 @@ import { TEXT_SCALES, setSettings, useSettings } from '../settings';
 import { useHotkeys } from './hotkeys';
 import { CloseIcon } from './icons';
 import { switchStyle } from './segmentedSwitch';
+import { answerStats, statsAvailable } from '../analytics/analytics';
 
 // Settings (Plan 34, from v2's): text size, color vision and motion, the
 // pause when a matter arrives (Plan 78E) and for the news (Plan 95T), the
@@ -70,6 +71,16 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
           </span>
           <p className="settings-note">Autumn leaves and winter snow on the campus, or its summer green all year.</p>
         </fieldset>
+        {statsAvailable() && (
+          <fieldset className="settings-row">
+            <legend>Share anonymous play statistics</legend>
+            <span className="segmented switch" style={switchStyle(2, s.stats === 'on' ? 0 : 1)}>
+              <button type="button" className={s.stats === 'on' ? 'active' : undefined} aria-pressed={s.stats === 'on'} onClick={() => answerStats(true)}>On</button>
+              <button type="button" className={s.stats === 'on' ? undefined : 'active'} aria-pressed={s.stats !== 'on'} onClick={() => answerStats(false)}>Off</button>
+            </span>
+            <p className="settings-note">How far runs get and how long they take, to help the playtest: no names and nothing you type.</p>
+          </fieldset>
+        )}
         {children}
         <p className="settings-note">Kept in this browser, apart from your run.</p>
       </section>

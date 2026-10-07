@@ -41,6 +41,7 @@ import StudentsTab from './tabs/StudentsTab';
 import HistoryTab, { HISTORY_VIEW_START, type HistoryView } from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import { freshSeed } from './engine/random';
+import { noteTab } from './analytics/analytics';
 import './styles.css';
 
 // The playtest panel is in development builds only (Plan 70C): the public
@@ -260,6 +261,8 @@ export default function App() {
   function openTab(tab: TabId | null, target?: string) {
     if (tab !== null && !tabAvailable(s, tab)) return;
     if (holding && tab !== 'inbox') return;
+    // A tab opened, for the play statistics (analytics.ts).
+    if (tab !== null && overlay?.tab !== tab) noteTab(tab);
     setOverlay(tab === null ? null : { tab, target });
     if (tab !== null) {
       closeBuild();

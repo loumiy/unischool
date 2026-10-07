@@ -14,6 +14,11 @@ import '@fontsource/archivo/700.css';
 import '@fontsource/archivo/800.css';
 import App from './App';
 import CrashScreen from './components/CrashScreen';
+import { appOpened } from './analytics/analytics';
+
+// The play statistics' first event (analytics.ts): held until the title
+// screen's question is answered, and sent only if it is yes.
+appOpened();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

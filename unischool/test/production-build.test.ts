@@ -19,6 +19,10 @@ import CrashScreen, { CrashFallback } from '../src/components/CrashScreen';
 import { registerCrashSource } from '../src/engine/crashContext';
 import { DEV_BUILD } from '../src/engine/devBuild';
 import { createInitialState } from '../src/state/actions';
+import TitleScreen from '../src/components/TitleScreen';
+import Credits from '../src/components/Credits';
+import { BUILD_STAMP, buildLine, EDITION, PLATFORM, VERSION, siteUrl, versionLine } from '../src/build';
+import { backUpDue } from '../src/components/InterruptModal';
 
 let checks = 0;
 let failures = 0;
@@ -72,8 +76,62 @@ function testCrashScreen(): void {
   assert(live.includes('Download save') && live.includes('Download a bug report'), 'with a founded run it offers the save and a bug report');
 }
 
+// Which build this is (Plan 97B): the title screen, the Credits and the
+// crash screen name it; headless callers read the defaults.
+function testVersion(): void {
+  assert(VERSION === 'dev' && EDITION === 'full' && PLATFORM === 'web', `headless callers read the defaults (${VERSION}, ${EDITION}, ${PLATFORM})`);
+  assert(versionLine('0.1.0', 'full') === 'v0.1.0 · playtest', `a 0.x build is a playtest (${versionLine('0.1.0', 'full')})`);
+  assert(versionLine('0.1.0', 'demo') === 'v0.1.0 · demo', 'the demo edition says so');
+  assert(versionLine('1.0.0', 'full') === 'v1.0.0', 'and 1.0.0, launch, says neither');
+  assert(buildLine({ version: '0.1.0', build: 'a1b2c3d', edition: 'full', platform: 'itch' }) === 'Version 0.1.0 (a1b2c3d), playtest', 'the long line names the commit');
+
+  const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as { version: string };
+  assert(/^0\.\d+\.\d+$/.test(pkg.version), `package.json's version is a 0.x playtest version until launch (${pkg.version})`);
+  const config = source(join(process.cwd(), 'vite.config.ts'));
+  assert(config.includes('__APP_VERSION__') && config.includes('__BUILD_ID__'), 'vite.config.ts defines the version and the build');
+
+  const noop = () => {};
+  const s = createInitialState('Version');
+  const title = renderToStaticMarkup(createElement(TitleScreen, { s, onContinue: noop, onNewCollege: noop, onSandbox: noop, onHall: noop, onSettings: noop, onCredits: noop }));
+  assert(title.includes(`>${versionLine()}</p>`), 'the title screen shows the version line');
+  const credits = renderToStaticMarkup(createElement(Credits, { onClose: noop }));
+  assert(credits.includes(buildLine()), 'the Credits name the build');
+  const crash = renderToStaticMarkup(createElement(CrashFallback, { error: new Error('x') }));
+  assert(crash.includes(buildLine()), 'and so does the crash screen');
+  const crashSourceText = source(join(SRC, 'components/CrashScreen.tsx'));
+  assert(/JSON\.stringify\(\{ game: BUILD_STAMP,/.test(crashSourceText), 'the bug report carries the build\'s stamp');
+  assert(BUILD_STAMP.version === VERSION, 'the stamp is the build\'s');
+}
+
+// The Credits (Plan 97C): Halifax Games, with a footnote that AI tools
+// helped, and no one else credited by name anywhere a player reaches.
+function testCredits(): void {
+  const credits = renderToStaticMarkup(createElement(Credits, { onClose: () => {} }));
+  assert(credits.includes('Halifax Games'), 'the Credits name Halifax Games');
+  assert(credits.includes('Made with the help of AI tools.'), 'with the footnote');
+  assert(!credits.includes('With thanks to'), 'and no thanks row (the owner\'s call)');
+  const shipped = [...walk(SRC), join(process.cwd(), 'index.html')];
+  const naming = shipped.filter((f) => /Louis Miyani|Claude Code/.test(source(f))).map((f) => relative(process.cwd(), f));
+  assert(naming.length === 0, `nothing in src/ or index.html names Louis Miyani or Claude Code (${naming.join(', ')})`);
+}
+
+// The itch.io build (Plan 97D): relative paths only there, the backup line
+// every fifth summer in a browser, and no share link to the frame's own
+// address.
+function testItchBuild(): void {
+  const config = source(join(process.cwd(), 'vite.config.ts'));
+  assert(!/\bbase\s*:/.test(config), 'the Vercel build keeps Vite\'s default base, "/" (only build:itch sets "./")');
+  const script = source(join(process.cwd(), 'tools/buildItch.mjs'));
+  assert(/base: '\.\/'/.test(script) && /VITE_PLATFORM = 'itch'/.test(script), 'build:itch builds with relative paths for the itch platform');
+  assert(backUpDue(5) && backUpDue(25) && !backUpDue(4) && !backUpDue(1), 'the review offers a backup every fifth summer');
+  assert(siteUrl().origin === '' || PLATFORM === 'web', 'off the web, no share link to the page\'s own address');
+}
+
 testDebugIsDevOnly();
 testCrashScreen();
+testItchBuild();
+testCredits();
+testVersion();
 
 console.log('production build tests');
 if (failures > 0) {

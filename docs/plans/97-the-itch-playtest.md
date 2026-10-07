@@ -7,7 +7,7 @@ web and desktop builds, anonymous play statistics, a way to send feedback
 from inside the game, and the ten-year demo built for later. It takes over
 Plan 70's held PRs K (analytics) and L (launch).*
 
-**Status: Proposed.**
+**Status: In progress.** PRs B, C, D and E are done.
 
 ---
 
@@ -142,9 +142,11 @@ and `slow` pass.
   - the Credits;
   - the crash screen (`CrashScreen.tsx`);
   - the bug report (`engine/crashContext.ts`);
-  - the save file's wrapper on export (`exportSave`): `version`, `build`
-    and `edition` beside the payload. Import ignores them except to name
-    the build in a refusal.
+  - the save file's wrapper on export (`exportSave`): `version`, `build`,
+    `edition` and `platform` beside the payload, under one key, `game`
+    (the wrapper's own `version` is already the save's shape,
+    `SAVE_VERSION`). Import ignores them except to name the build in a
+    refusal.
 - **`LAUNCH_SAVE_VERSION` stays 78.** The migration chain already runs from
   there to `SAVE_VERSION` 100. Add `test/fixtures/save-playtest.json`, a
   year-25 save written by this build, to the migration suite. It's the
@@ -216,18 +218,46 @@ and `slow` pass.
     builds, the summer review gets one line every fifth summer: *Back up
     this run* (the existing *Download save*). The itch page says the same
     (PR I).
+- **CI builds the zips.** The owner works from the browser, with nothing
+  on a computer of their own, so the release workflow (PR H's
+  `desktop.yml`, renamed `release.yml`) also runs `build:itch` (and
+  `build:itch:demo` once PR G lands) and attaches the zips to the run.
+  `VITE_POSTHOG_KEY` comes from the repository secret of that name.
+  Building on a machine of one's own still works, with the key in
+  `unischool/.env.production.local`.
 - **Uploading.** `docs/store/itch-release.md` gives the steps by hand
   (upload the zip, tick *This file will be played in the browser*, set
   1440 × 900 with the fullscreen button and *mobile friendly*). It also
   gives the same through itch.io's `butler` CLI. The owner holds the
   `butler` key, and CI never does.
 
+*As built:* `index.html` keeps its `/favicon.ico`-style links, since Vite
+rewrites them to `./` under `base: './'` (the build script fails if an
+absolute path survives). itch.io's iframe attributes could not be read off a
+live page from the build container (itch.io is outside its network);
+`tools/itchFrame.mjs` uses the 2025 `game_drop` frame's (no `sandbox`, no
+`clipboard-write`) and says to check them against a live page. Downloads
+work in that frame, so they need no fallback; the clipboard does not, in
+Chrome, and *Copy summary* falls back to the line shown selected. The
+release workflow, `release.yml`, starts here with the web zip and the frame
+check; PR H adds the desktop packages. `VITE_SITE_URL` (the repository
+variable `ITCH_PAGE_URL`) names the page in the share line.
+
 ## PR 97E — Analytics (70K, revised for a playtest)
 
-70K's spec stands: PostHog through `posthog-js`, production builds only,
-only when `VITE_POSTHOG_KEY` is set, autocapture off, no cookies, a
-setting to turn it off, two sentences in the Credits. A playtest needs
-three changes to it.
+70K's spec stands: PostHog, production builds only, only when
+`VITE_POSTHOG_KEY` is set, autocapture off, no cookies, a setting to turn
+it off, two sentences in the Credits. A playtest needs three changes to
+it.
+
+*As built:* not through `posthog-js` but straight to PostHog's capture API
+(`/batch/`) with `fetch`, in `src/analytics/`. The library adds its own
+properties (the page's address, the browser, the referrer), loads further
+scripts from PostHog, and would need switching off piece by piece; the rule
+that every field is a number, a boolean or a listed value is simpler to
+keep when the game builds every event itself. Each event also asks PostHog
+for no person profile and no GeoIP lookup. Events, fields and bands are in
+[`analytics.md`](../architecture/analytics.md).
 
 - **The key is set where the build runs.** It goes in the environment of
   `build:itch`, `build:desktop` and Vercel's production build, not in
@@ -405,9 +435,11 @@ Built and tested now. Published later (§5).
     Steam, not before this playtest.
   - **Linux:** an AppImage, which also runs on a Steam Deck's desktop
     mode.
-- **CI.** A workflow `desktop.yml` runs on a `v*` tag, on Ubuntu, Windows
-  and macOS runners. It builds the packages and attaches them to the
-  workflow run. Uploading to itch.io stays the owner's step (`butler`, PR
+- **CI.** A workflow `release.yml` runs on a `v*` tag, or by hand from the
+  Actions tab, on Ubuntu, Windows and macOS runners. It builds the
+  packages and the itch.io zips (PR D), with `VITE_POSTHOG_KEY` from the
+  repository secret, and attaches them to the workflow run, where the
+  owner downloads them in the browser. Uploading to itch.io stays the owner's step (`butler`, PR
   D's notes).
 - **What can't be checked from the repository's container:** a launch on
   a real Windows PC and a real Mac. That is the owner's, in PR J.

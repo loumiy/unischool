@@ -1,2 +1,7 @@
 node_modules
 dist/
+
+# Local build secrets (Plan 97E: VITE_POSTHOG_KEY for a build on one's own machine).
+.env*.local
+dist-itch/
+release/

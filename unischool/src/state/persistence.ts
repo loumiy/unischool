@@ -8,6 +8,7 @@ import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
+import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
@@ -629,11 +630,16 @@ function migrate(payload: SavePayload): boolean {
   return payload.version === SAVE_VERSION;
 }
 
-// What goes in localStorage. `savedAt` is epoch milliseconds.
+// What goes in localStorage. `savedAt` is epoch milliseconds. `version` is
+// the save's shape (SAVE_VERSION), not the game's: an exported file also
+// carries `game`, the build that wrote it (Plan 97B, src/build.ts). It
+// lives in the wrapper, not in GameState, so it needs no migration, and an
+// older file without it reads as any other.
 export interface SavePayload {
   version: number;
   savedAt: number;
   state: GameState;
+  game?: BuildStamp;
 }
 
 // Every localStorage access is wrapped: the API throws when storage is
@@ -1470,9 +1476,27 @@ export const REFUSAL_TEXT: Record<SaveRefusal, string> = {
   'not-a-save': 'The file reads, but it holds no founded college.',
 };
 
+// The refusal as the import dialog says it, naming the build that made the
+// file when the file names one (Plan 97B).
+export function refusalText(read: { refused: SaveRefusal; madeBy?: BuildStamp }): string {
+  const text = REFUSAL_TEXT[read.refused];
+  return read.madeBy ? `${text} It was made by version ${read.madeBy.version} (${read.madeBy.build}).` : text;
+}
+
+// The build an exported file names, if it names one well formed (Plan 97B).
+// Import reads it only to say which build made a file it refuses.
+export function stampOf(payload: unknown): BuildStamp | null {
+  const g = (payload as { game?: unknown } | null)?.game as Partial<BuildStamp> | undefined;
+  if (typeof g !== 'object' || g === null) return null;
+  const text = (v: unknown) => typeof v === 'string' && v.length > 0 && v.length <= 40;
+  if (!text(g.version) || !text(g.build)) return null;
+  if (!(EDITIONS as readonly unknown[]).includes(g.edition) || !(PLATFORMS as readonly unknown[]).includes(g.platform)) return null;
+  return { version: g.version!, build: g.build!, edition: g.edition!, platform: g.platform! };
+}
+
 // Parse, migrate and sanitize one save's text: the whole load path, shared by
 // the boot load and an imported file.
-export function readSave(raw: string): { state: GameState; savedAt: number | null } | { refused: SaveRefusal } {
+export function readSave(raw: string): { state: GameState; savedAt: number | null } | { refused: SaveRefusal; madeBy?: BuildStamp } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -1482,10 +1506,13 @@ export function readSave(raw: string): { state: GameState; savedAt: number | nul
   if (typeof parsed !== 'object' || parsed === null) return { refused: 'unreadable' };
   const payload = parsed as Partial<SavePayload>;
   if (typeof payload.version !== 'number' || !Number.isInteger(payload.version)) return { refused: 'unreadable' };
-  if (payload.version > SAVE_VERSION) return { refused: 'too-new' };
+  // A file from another build names it when refused for its version.
+  const madeBy = stampOf(payload);
+  const byVersion = (refused: 'too-old' | 'too-new') => (madeBy ? { refused, madeBy } : { refused });
+  if (payload.version > SAVE_VERSION) return byVersion('too-new');
   if (typeof payload.state !== 'object' || payload.state === null) return { refused: 'not-a-save' };
   try {
-    if (!migrate(payload as SavePayload)) return { refused: 'too-old' };
+    if (!migrate(payload as SavePayload)) return byVersion('too-old');
   } catch {
     // A step met a state its version should not have written.
     return { refused: 'unreadable' };
@@ -1524,9 +1551,9 @@ export function loadGame(): GameState | null {
 // ---- Export and import (Plan 70B) ----
 
 // The run as a file: the same payload the browser keeps, named for the
-// college and the year.
+// college and the year, stamped with the build that wrote it.
 export function exportSave(state: GameState): { filename: string; text: string } {
-  const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state };
+  const payload: SavePayload = { version: SAVE_VERSION, savedAt: Date.now(), state, game: BUILD_STAMP };
   const slug = (state.self?.name ?? 'college').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'college';
   return { filename: `${slug}-year-${state.clock.year}.unischool.json`, text: JSON.stringify(payload) };
 }

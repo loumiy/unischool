@@ -23,6 +23,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # The itch.io zip builds too (Plan 97D), with no key: it sends nothing.
+      - run: npm run build:itch
 
   # The suites that play whole games, in parallel with the fast job.
   slow:

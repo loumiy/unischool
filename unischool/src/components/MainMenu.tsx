@@ -5,6 +5,7 @@ import { MenuIcon } from './icons';
 import ImportSave from './ImportSave';
 import { downloadFile } from './download';
 import { exportSave } from '../state/persistence';
+import { saveExported } from '../analytics/analytics';
 import { institutionName, type GameState } from '../state/types';
 
 // The top-right hamburger menu: Save, the run as a file and back (Plan 70B),
@@ -64,7 +65,7 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
           <button
             className="menu-btn"
             title="Download the run as a file, to keep or to continue in another browser."
-            onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); close(); }}
+            onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); saveExported('menu'); close(); }}
           >
             Download save
           </button>
