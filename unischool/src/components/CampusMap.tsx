@@ -1126,6 +1126,27 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
   );
 });
 
+const SEASON_STEP_MS = 5_000;
+
+// `value`, changing at most once every `ms`: a change inside the interval
+// waits for its end, and shows the latest value then.
+function useSteadyValue<T>(value: T, ms: number): T {
+  const [shown, setShown] = useState(value);
+  const lastRef = useRef(0);
+  useEffect(() => {
+    if (Object.is(value, shown)) return undefined;
+    const wait = lastRef.current + ms - performance.now();
+    if (wait <= 0) {
+      lastRef.current = performance.now();
+      setShown(value);
+      return undefined;
+    }
+    const timer = setTimeout(() => { lastRef.current = performance.now(); setShown(value); }, wait);
+    return () => clearTimeout(timer);
+  }, [value, shown, ms]);
+  return shown;
+}
+
 export default function CampusMap({
   s: live, resting = false, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
   onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait,
@@ -2146,7 +2167,11 @@ export default function CampusMap({
   // leaves, and the snow on the roofs. Changes by the week, never animates.
   // With the setting off, the map stays at a week of plain summer green.
   const seasonsOn = useSettings().seasons;
-  const week = seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK;
+  // At most one change of season every SEASON_STEP_MS of real time (Plan
+  // 96G's follow-up): a new season redraws every tree and some buildings,
+  // which at Play is once a week, and at 8× was eight times as often. Above
+  // Play the colors step a few weeks at a time, too fast to see.
+  const week = useSteadyValue(seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK, SEASON_STEP_MS);
   const season = useMemo(() => seasonStyle(week), [week]);
   const snow = useMemo(() => seasonOf(week).snow, [week]);
   // The downtown (Plan 85H): its step; whether its windows are warm (the

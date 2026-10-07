@@ -69,6 +69,17 @@ export const FIGURE_HALF_W = 5;
 export const FIGURE_H = 16;
 // How long the paths must stand still before the walkers replan for them.
 const PATH_SETTLE_MS = 700;
+// The crowd steps, and asks the map for a frame, at most this often: about
+// 30 a second, whatever the display's rate. Figures a few pixels tall at a
+// walk read as smooth at 30, and every step makes the canvas repaint where
+// they stand, which with a few hundred walkers late in a run is most of the
+// map (Plan 96G's follow-up: half the main thread on a Retina display).
+const WALKER_FRAME_MS = 33;
+// The doors held open change at most this often. On the canvas a building
+// whose doors change is recorded and drawn again; with a few hundred
+// walkers that was four or five buildings a frame. A door opening a fifth
+// of a second late, as a walker a tile away reaches it, does not show.
+const DOORS_EVERY_MS = 200;
 
 // The map's own randomness (mulberry32), never the sim's stream.
 function rng(seed: number): () => number {
@@ -273,6 +284,20 @@ function along(route: Waypoint[], lengths: number[], u: number): Waypoint {
   return { col: a.col + (b.col - a.col) * t, row: a.row + (b.row - a.row) * t };
 }
 
+// What the routes are planned on (walkGrid and doors read it, with each
+// building's motif): footprints, what stands in them and whether it is up.
+// The paths are kept apart, since a path waits for the drawing to stop.
+function routeKeyOf(layout: CampusLayout): string {
+  return layout.placed.map(({ t, p }) => [
+    t.id, p.col, p.row, p.w, p.h, p.facing ?? 0, t.kind, t.facilityType ?? '', t.status, t.slots ?? '', t.tier ?? '', motifOf(t),
+  ].join(':')).join('|');
+}
+function recordKey(r: Record<string, unknown>): string {
+  let out = '';
+  for (const k in r) out += `${k}=${String(r[k])};`;
+  return out;
+}
+
 export default function Walkers({ layout, students, gait, camera, turning, sink, resting = false }: {
   layout: CampusLayout;
   students: number;
@@ -293,13 +318,17 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
   useEffect(() => { if (!resting) wakeRef.current?.(); }, [resting]);
   const layerRef = useRef<SVGGElement>(null);
   const walkersRef = useRef<Walker[]>([]);
-  // The layout the routes are planned on. A building or a tree moves them
+  // The layout the routes are planned on. A building moves them
   // at once; a path waits until the drawing stops (Plan 62: every tile of a
   // stroke replanned the whole crowd, and it stood still while it waited).
   const [routeLayout, setRouteLayout] = useState(layout);
   useEffect(() => {
     if (layout === routeLayout) return undefined;
-    if (layout.massKey !== routeLayout.massKey) { setRouteLayout(layout); return undefined; }
+    // Only what the routes read moves them (routeKeyOf): a hall's label, its
+    // weathering or a week of construction left every tree to be grown
+    // again, most weeks of a long run.
+    if (routeKeyOf(layout) !== routeKeyOf(routeLayout)) { setRouteLayout(layout); return undefined; }
+    if (recordKey(layout.pathways) === recordKey(routeLayout.pathways)) return undefined;
     const timer = setTimeout(() => setRouteLayout(layout), PATH_SETTLE_MS);
     return () => clearTimeout(timer);
   }, [layout, routeLayout]);
@@ -485,6 +514,8 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
     };
 
     let frame = 0;
+
+    let doorsAt = 0;
     let last = performance.now();
     // One walker drawn on the SVG map at the committed camera: moved and
     // stepping. (The canvas map draws the crowd itself, from `crowd`.)
@@ -521,6 +552,8 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
     const step = (now: number) => {
       // Under a tab the loop stops; wakeRef starts it again.
       if (restingRef.current) { frame = 0; return; }
+      // Two frames of a 60 Hz display come in a hair under 33 ms.
+      if (now - last < WALKER_FRAME_MS - 3) { frame = requestAnimationFrame(step); return; }
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       table.grow(1);
@@ -568,8 +601,9 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
       // view: open them afresh.
       const redraw = doorsStaleRef.current;
       doorsStaleRef.current = false;
-      if (redraw || nextHeld.size !== held.size || [...nextHeld].some((k) => !held.has(k))) {
+      if (redraw || (now - doorsAt >= DOORS_EVERY_MS && (nextHeld.size !== held.size || [...nextHeld].some((k) => !held.has(k))))) {
         setDoors(nextHeld, redraw);
+        doorsAt = now;
         changed = true;
       }
       if (canvas && changed) sinkRef.current?.moved();

@@ -509,6 +509,57 @@ the backlog.
 - **No test of the resting loop.** The test runner has no DOM, so the
   profile is the check.
 
+**Follow-up: the map with the campus showing** (the owner asked whether
+performance had improved; it had only under a tab).
+
+- **Where the time went.** A CPU profile of a production build at year
+  45, 2×, the map showing:
+  - the canvas repainting where walkers moved;
+  - re-recording drawings;
+  - the walkers' own step.
+
+  React rendered about 3% of the time and the simulation 2%, so rendering
+  less of the shell would not have helped.
+  - At device pixel ratio 2, as on a Retina display, the main thread was
+    busy about 64% of the time.
+  - Repainting was already partial, clipped to the cells where something
+    moved.
+- **Three changes:**
+  1. **The walkers step at 30 a second** (`WALKER_FRAME_MS`), not at the
+     display's rate. Every step had the canvas repaint where they stand.
+  2. **A change of season re-records only what it changes**
+     (`mapCanvas.ts`'s `refreshSoft`).
+     - A drawing whose recording comes out the same when some of the
+       season's colors change learns that it does not read them (`freeOf`).
+       A later change to those alone leaves its drawing standing.
+     - Learning is per color, so a tree is not taken for season-free in a
+       week when only the grass changed.
+     - Most buildings stop being recorded again weekly. The trees still
+       are, since their leaves change.
+  3. **The map's season changes at most once every 5 s of real time**
+     (`useSteadyValue`). At Play that is every week, as before. At 2× to 8×
+     the colors step a few weeks at a time, so the trees are re-recorded
+     every 5 s, not 2 to 8 times a week.
+
+  Also: the walkers' routes are planned again only when what they read
+  changes (`routeKeyOf`: footprints, kinds, status), not when a hall's
+  label or weathering does.
+- **Measured.** Main-thread busy time, the same year-45 save, after a
+  10 s warm-up, over 20 s, headless Chromium at 1440×900, against a build
+  of the commit before:
+
+  | | Before | After |
+  |---|---|---|
+  | Device pixel ratio 1 | ~44% | ~33% |
+  | Device pixel ratio 2 | ~64% | ~49% |
+
+  Repeated runs agree within a few points.
+  - What is left is mostly compositing the drawings under the walkers.
+    Headless Chromium does that in software; a browser with a GPU does it
+    there.
+  - The next lever would be fewer walkers late in a run (up to 400 today),
+    a visual choice for the owner.
+
 ## PR 96H — Faculty: current and potential rolled apart
 
 Decision 5. Today every rolled candidate's current stats are

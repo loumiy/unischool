@@ -127,6 +127,45 @@ interface Rec {
   // only some things draws only where they were and are.
   laid?: Drawing | null;
   laidBox?: Box;
+  // Learned on a change of season (refreshSoft): the season's colors (and
+  // `snow`) that changed while its recording came out the same, so it does
+  // not read them. A later change to those alone passes it by, its drawing
+  // standing; a change to the thing itself makes a new Rec, which learns
+  // again.
+  freeOf?: Set<string>;
+}
+
+// A scene's soft key is the season's colors, as JSON, and the snow:
+// `season|snow` (CampusMap.tsx's canvasSceneOf). What changed between two
+// soft keys, by name (each color's CSS variable, and `snow`).
+const softParsed = new Map<string, Record<string, string>>();
+function softValues(soft: string): Record<string, string> {
+  let hit = softParsed.get(soft);
+  if (!hit) {
+    const cut = soft.lastIndexOf('|');
+    let colors: Record<string, string> = {};
+    try { colors = JSON.parse(soft.slice(0, cut)) as Record<string, string>; } catch { colors = { season: soft.slice(0, cut) }; }
+    hit = { ...colors, snow: soft.slice(cut + 1) };
+    if (softParsed.size > 64) softParsed.clear();
+    softParsed.set(soft, hit);
+  }
+  return hit;
+}
+function softChanged(a: string, b: string): string[] {
+  const x = softValues(a); const y = softValues(b);
+  const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
+  return [...keys].filter((k) => x[k] !== y[k]);
+}
+
+// A recording as a string, to tell whether a change of season changed it.
+// A Path2D carries its `d` beside it, so it is left out. Null when it
+// cannot be written (then it counts as changed).
+function opsKey(ops: readonly Op[]): string | null {
+  try {
+    return JSON.stringify(ops, (_k, v: unknown) => (typeof Path2D !== 'undefined' && v instanceof Path2D ? undefined : v));
+  } catch {
+    return null;
+  }
 }
 
 // How far the ground's and the land in front's drawings reach past each
@@ -667,13 +706,7 @@ export class MapCanvas implements CrowdSink {
         else if (r.drawing.scale !== s || r.soft !== scene.soft) later.push(r);
       }
       for (const r of now2) {
-        if (r.soft !== scene.soft) {
-          this.dropVariants(r);
-          r.ops = this.entryRec.record(r.entry.key, r.entry.node, scene.values);
-          r.soft = scene.soft;
-          r.box = opsBox(r.ops, zoomNow);
-          st.recorded += 1;
-        }
+        if (r.soft !== scene.soft && this.refreshSoft(r, scene, zoomNow)) st.recorded += 1;
         // Past the frame's time for drawings (after a turn, most of the
         // scene's): drawn straight onto the map this frame, and kept
         // over the next.
@@ -684,11 +717,16 @@ export class MapCanvas implements CrowdSink {
       for (const r of later) {
         if (budget <= 0) { more = true; break; }
         if (r.soft !== scene.soft) {
-          this.dropVariants(r);
-          r.ops = this.entryRec.record(r.entry.key, r.entry.node, scene.values);
-          r.soft = scene.soft;
-          r.box = opsBox(r.ops, zoomNow);
-          st.recorded += 1;
+          const known = r.freeOf !== undefined && softChanged(r.soft, scene.soft).every((k) => r.freeOf!.has(k));
+          if (!known) {
+            if (this.refreshSoft(r, scene, zoomNow)) st.recorded += 1;
+            budget -= r.ops.length;
+          } else {
+            r.soft = scene.soft;
+          }
+          // The season left it as it was, and its drawing is at this scale:
+          // it stands.
+          if (r.drawing && r.drawing.scale === s && !r.redraw) continue;
         }
         if (this.draw(r, s, dpr)) st.drawn += 1;
         budget -= r.ops.length;
@@ -839,6 +877,26 @@ export class MapCanvas implements CrowdSink {
     this.stats = st;
     this.pending = more;
     if (more) this.request();
+  }
+
+  // Records `r` again for the scene's season and snow. False when the
+  // recording came out the same, which it learns (freeOf: the colors that
+  // changed) so a change to those alone passes it by; its drawing stands.
+  private refreshSoft(r: Rec, scene: CanvasScene, zoomNow: number): boolean {
+    const changed = softChanged(r.soft, scene.soft);
+    const ops = this.entryRec.record(r.entry.key, r.entry.node, scene.values);
+    r.soft = scene.soft;
+    const before = opsKey(r.ops);
+    if (before !== null && before === opsKey(ops)) {
+      r.freeOf ??= new Set();
+      for (const k of changed) r.freeOf.add(k);
+      return false;
+    }
+    this.dropVariants(r);
+    r.ops = ops;
+    r.box = opsBox(ops, zoomNow);
+    r.redraw = true;
+    return true;
   }
 
   // A building's other-door drawings, gone with a change to the rest of it.
