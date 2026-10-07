@@ -3094,7 +3094,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* One stone color for every solid; depth comes from .facade-line strokes. */
 /* The facade's sky: the one surface not colored from the vernacular. */
 .facade-sky { fill: #d6e7f6; }
-.facade-banner-text { fill: #6b4423; font-family: var(--display); font-weight: 700; letter-spacing: 0.05em; }
+/* The name inscribed on the facade's band: spaced serif capitals, their
+   color set per layer by SchoolFacade from the band's own stone. */
+.facade-banner-text { font-family: Georgia, 'Times New Roman', 'Liberation Serif', serif; font-weight: 400; letter-spacing: 0.14em; }
 
 /* Vernacular picker: one row of five equal chips; the facade is the preview. */
 .startup-vernaculars { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }

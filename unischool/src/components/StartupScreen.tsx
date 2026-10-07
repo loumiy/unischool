@@ -35,18 +35,20 @@ const FACADE_BAND_WIDTH = 404; // shared span for the cornice/frieze/architrave
 // needsCompression), a little inside FACADE_BAND_WIDTH.
 const FACADE_TEXT_WIDTH = 360;
 
-// Stepped sizes, so a short name gets a large banner font.
+// Stepped sizes, so a short name gets larger letters. Kept well inside the
+// band's height, as an inscription is, rather than filling it.
 function bannerFontSize(len: number): number {
-  if (len <= 16) return 25;
-  if (len <= 24) return 20;
-  if (len <= 34) return 16;
-  if (len <= 46) return 13;
-  return 11;
+  if (len <= 16) return 18;
+  if (len <= 24) return 15.5;
+  if (len <= 34) return 13;
+  if (len <= 46) return 11;
+  return 9.5;
 }
 
-// Rough average glyph width in em for this uppercase serif, so `textLength`
-// compression applies only to names that overflow the smallest size.
-const AVG_GLYPH_WIDTH_EM = 0.62;
+// Rough average advance in em for these spaced serif capitals (the glyph
+// and the letter-spacing in styles.css), so `textLength` compression
+// applies only to names that overflow the smallest size.
+const AVG_GLYPH_WIDTH_EM = 0.84;
 
 // Shades derived from one material, as buildingMotifs' paletteFrom does on the map.
 function tint(hex: string, factor: number): string {
@@ -241,18 +243,26 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
       {/* The wall the name is cut into, and the band itself. */}
       <rect fill={wall} x={FACADE_BAND_LEFT} y={bandY} width={FACADE_BAND_WIDTH} height={FACADE_VIEW_HEIGHT - bandY} />
       <rect fill={trim} stroke={tint(trim, 0.78)} strokeWidth="0.9" x={FACADE_BAND_LEFT} y={bandY} width={FACADE_BAND_WIDTH} height={bandH} />
-      <text
-        className="facade-banner-text"
-        x={cx}
-        y={bandY + bandH / 2 + 1}
-        fontSize={fontSize}
-        textLength={compress ? FACADE_TEXT_WIDTH : undefined}
-        lengthAdjust={compress ? 'spacingAndGlyphs' : undefined}
-        textAnchor="middle"
-        dominantBaseline="central"
-      >
-        {bannerText}
-      </text>
+      {/* The name cut into the band: the letters a shade of the stone
+          itself, lit from above, so each cut throws a shadow along its top
+          edge and catches the light along its bottom. */}
+      {([[0.7, tint(trim, 1.07)], [-0.6, tint(trim, 0.6)], [0, tint(trim, 0.74)]] as const).map(([dy, fill]) => (
+        <text
+          key={dy}
+          className="facade-banner-text"
+          x={cx}
+          y={bandY + bandH / 2 + 1 + dy}
+          fill={fill}
+          fontSize={fontSize}
+          textLength={compress ? FACADE_TEXT_WIDTH : undefined}
+          lengthAdjust={compress ? 'spacingAndGlyphs' : undefined}
+          textAnchor="middle"
+          dominantBaseline="central"
+          aria-hidden={dy !== 0 || undefined}
+        >
+          {bannerText}
+        </text>
+      ))}
 
       {georgian ? <GeorgianFront wall={wall} trim={trim} wallTop={wallTop} /> : <FacadeFront vernacular={vernacular} palette={palette} />}
 
