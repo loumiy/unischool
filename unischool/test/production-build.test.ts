@@ -108,6 +108,7 @@ function testCredits(): void {
   const credits = renderToStaticMarkup(createElement(Credits, { onClose: () => {} }));
   assert(credits.includes('Halifax Games'), 'the Credits name Halifax Games');
   assert(credits.includes('Made with the help of AI tools.'), 'with the footnote');
+  assert(!credits.includes('With thanks to'), 'and no thanks row (the owner\'s call)');
   const shipped = [...walk(SRC), join(process.cwd(), 'index.html')];
   const naming = shipped.filter((f) => /Louis Miyani|Claude Code/.test(source(f))).map((f) => relative(process.cwd(), f));
   assert(naming.length === 0, `nothing in src/ or index.html names Louis Miyani or Claude Code (${naming.join(', ')})`);

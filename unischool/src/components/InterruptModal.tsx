@@ -9,6 +9,7 @@ import { REVIEW_LIST_CAP, buildYearInReview } from '../state/yearInReview';
 import type { ReviewLine } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
 import { hallEntryFor, hangInHall } from '../state/hall';
+import { runFinished } from '../analytics/analytics';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { REPORT_WORDS } from '../data/reportData';
 import { PromiseOffer } from '../tabs/PromisesPanel';
@@ -578,12 +579,12 @@ function FinalReportBeat({ s, onContinue, onNewCollege }: { s: GameState; onCont
       <p className="review-empty">{REPORT_WORDS.epilogue}</p>
       {/* Leaving the report hangs the run in the hall of fame (state/hall.ts). */}
       <div className="final-page-leave">
-        <button onClick={() => { hangInHall(s, report); onContinue(); }}>Continue into the Epilogue →</button>
+        <button onClick={() => { hangInHall(s, report); runFinished(s, report, true); onContinue(); }}>Continue into the Epilogue →</button>
         {onNewCollege && (
           <NewCollegeButton
             note={REPORT_WORDS.newCollege}
             lost="its books close for good"
-            onConfirm={() => { hangInHall(s, report); onNewCollege(); }}
+            onConfirm={() => { hangInHall(s, report); runFinished(s, report, false); onNewCollege(); }}
           />
         )}
       </div>

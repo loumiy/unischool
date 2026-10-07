@@ -10,6 +10,8 @@ import { HallFrame } from './HallOfFame';
 import { calendarDate, gameDate } from '../format';
 import Logo from './Logo';
 import { BUILD_ID, versionLine } from '../build';
+import { useSettings } from '../settings';
+import { answerStats, saveExported, statsAvailable } from '../analytics/analytics';
 
 // THE TITLE (Plan 34, from v2's; V1-35): what the game opens on. The run in
 // this browser, to carry on; a new college, to found (this game's startup
@@ -34,6 +36,10 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
   // A run this version could not open (persistence.ts's set-aside save).
   const [setAside, setSetAside] = useState(() => readSetAsideSave());
   const underway = s.started;
+  // The play statistics' question (Plan 97E): asked once, before anything
+  // is sent, in a build that sends them at all.
+  const settings = useSettings();
+  const asking = statsAvailable() && settings.stats === 'unasked';
   return (
     <div className="front-screen title-screen" role="dialog" aria-modal="true" aria-label="UniSchool">
       <header className="title-head">
@@ -41,6 +47,14 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
         <p className="title-tagline">Fifty years to build a university.</p>
       </header>
       <div className="title-card">
+        {asking && (
+          <p className="title-stats" role="status">
+            UniSchool sends anonymous play statistics to help the playtest.
+            {' '}
+            <button type="button" className="menu-btn" onClick={() => answerStats(true)}>Fine</button>
+            <button type="button" className="menu-btn btn-quiet" onClick={() => answerStats(false)}>Turn off</button>
+          </p>
+        )}
         {setAside && (
           <p className="title-set-aside" role="status">
             {setAside.name ? `${setAside.name}, a college saved` : 'A college saved'}
@@ -49,7 +63,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
             <button
               type="button"
               className="menu-btn"
-              onClick={() => { const raw = readSetAsideRaw(); if (raw) downloadFile(`${(setAside.name ?? 'college').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-set-aside.unischool.json`, raw); }}
+              onClick={() => { const raw = readSetAsideRaw(); if (raw) { downloadFile(`${(setAside.name ?? 'college').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-set-aside.unischool.json`, raw); saveExported('set-aside'); } }}
             >
               Download it
             </button>

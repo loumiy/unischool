@@ -11,6 +11,7 @@ import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 import { openingHoldsClock } from '../state/opening';
 import { registerCrashSource } from './crashContext';
 import { getSettings } from '../settings';
+import { noteStop, notePlaying, noteWeek, observe, runResumed, runStarted } from '../analytics/analytics';
 
 // Milliseconds per week-tick; 0 = paused. `real` makes a 50-year run take a
 // few hours of play so a development choice feels like a commitment;
@@ -63,8 +64,12 @@ export function useGame() {
     setElsewhere(false);
     return true;
   }, [lose]);
-  // A tab that has lost the claim does not run.
+  // A tab that has lost the claim does not run. A stop is counted for the
+  // play statistics (analytics.ts).
+  const speedRef = useRef<Speed>(speed);
+  speedRef.current = speed;
   const setSpeed = useCallback((next: Speed) => {
+    if (next === 'paused' && speedRef.current !== 'paused') noteStop();
     if (next === 'paused' || !elsewhereRef.current) setSpeedRaw(next);
   }, []);
   // A tab that has played on since its last save writes it before it stops
@@ -82,7 +87,7 @@ export function useGame() {
   // into the game, claimed, with no title screen between.
   const [resumed] = useState(() => takeResume() && state.started);
   useEffect(() => {
-    if (resumed) claim();
+    if (resumed && claim()) runResumed(state.clock.year);
   }, []);
 
   // Every action dispatched this session, from the state the session opened
@@ -121,7 +126,13 @@ export function useGame() {
       last = now;
       const { progress, ticks } = advanceWeekProgress(weekProgressRef.current, delta, msPerWeekRef.current);
       weekProgressRef.current = progress;
-      for (let i = 0; i < ticks; i++) dispatch({ type: 'TICK' });
+      // The play statistics' time: the clock running (analytics.ts checks
+      // the page is in view), and the speed each week was played at.
+      if (msPerWeekRef.current > 0) notePlaying(delta);
+      for (let i = 0; i < ticks; i++) {
+        noteWeek(speedRef.current);
+        dispatch({ type: 'TICK' });
+      }
     }, SAMPLE_MS);
     return () => clearInterval(id);
   }, []);
@@ -211,8 +222,18 @@ export function useGame() {
   // so the page reloads into it (openHere); false then, and the title stays.
   const continueHere = useCallback((): boolean => {
     if (saveIsNewer()) { openHere(); return false; }
-    return claim();
+    if (!claim()) return false;
+    runResumed(stateRef.current.clock.year);
+    return true;
   }, [claim]);
+
+  // The run's events for the play statistics (analytics.ts): read off the
+  // state before and after each change, never from the reducer.
+  const observed = useRef(state);
+  useEffect(() => {
+    observe(observed.current, state);
+    observed.current = state;
+  }, [state]);
 
   const act = useCallback((a: Action) => {
     // A manual save in a tab that has lost the claim, or would meet the
@@ -226,7 +247,10 @@ export function useGame() {
     if (a.type === 'RESOLVE_ADMISSIONS') pendingSave.current = 'autosave';
     // Abandoning the run deletes the save too.
     if (a.type === 'RESET') clearSave();
-    if (a.type === 'START_GAME') setFoundings((n) => n + 1);
+    if (a.type === 'START_GAME') {
+      setFoundings((n) => n + 1);
+      runStarted(a.vernacular, a.sandbox === true);
+    }
     dispatch(a);
   }, []);
 

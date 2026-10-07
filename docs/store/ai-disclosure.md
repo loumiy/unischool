@@ -49,9 +49,13 @@ Checked on `main` on 6 October 2026.
 - **What is not generated.** The typefaces (Archivo, Bricolage Grotesque,
   Azeret Mono) are open fonts by their designers. The share image
   (`unischool/public/og-image.jpg`) is a screenshot of the game.
-- **Nothing is generated while you play.** The game makes no network calls
-  at all (true until Plan 97's PR E, after which it sends anonymous play
-  statistics only when the player allows it; PR E rewrites this line): a search of `unischool/src` finds no `fetch`, no `XMLHttpRequest`,
+- **Nothing is generated while you play.** The game's only network call is
+  the anonymous play statistics (Plan 97E), sent to PostHog only in a
+  production build and only once the player allows it; they carry numbers
+  and fixed values, nothing generated and nothing typed
+  ([`analytics.md`](../architecture/analytics.md)). Otherwise the game makes
+  no network calls: a search of `unischool/src` finds one `fetch`, the
+  statistics' (`unischool/src/analytics/analytics.ts`), no `XMLHttpRequest`,
   no `WebSocket`, no `sendBeacon` and no AI service, and its only runtime
   dependencies are React and three font packages (`unischool/package.json`).
   Everything it shows is in the build. Saves stay in the browser.
@@ -94,8 +98,8 @@ Two sentences wait on the owner:
 
 **Live-generated content:**
 
-> None. The game generates no AI content while you play, and it makes no
-> network calls.
+> None. The game generates no AI content while you play. Its only network
+> call is anonymous play statistics, sent only if the player allows it.
 
 ## For itch.io
 

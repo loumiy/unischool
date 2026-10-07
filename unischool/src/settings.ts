@@ -27,9 +27,14 @@ export interface GameSettings {
   // only not applied): for a player who finds the winter white too much,
   // and for tools/timelapseShoot.mjs, where it strobes once a year.
   seasons: boolean;
+  // Anonymous play statistics (Plan 97E, analytics/analytics.ts): asked once,
+  // on the title screen, before anything is sent; then on or off here.
+  stats: StatsConsent;
 }
 
-export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true, pauseForNews: false, seasons: true };
+export type StatsConsent = 'unasked' | 'on' | 'off';
+
+export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true, pauseForNews: false, seasons: true, stats: 'unasked' };
 
 export const SETTINGS_KEY = 'unischool.settings.v1';
 
@@ -42,6 +47,7 @@ export function normaliseSettings(raw: unknown): GameSettings {
     pauseOnArrival: o.pauseOnArrival !== false,
     pauseForNews: o.pauseForNews === true,
     seasons: o.seasons !== false,
+    stats: o.stats === 'on' || o.stats === 'off' ? o.stats : 'unasked',
   };
 }
 
@@ -56,6 +62,11 @@ function load(): GameSettings {
 
 let current: GameSettings = load();
 const listeners = new Set<() => void>();
+
+// For a module outside React that follows the settings (analytics.ts).
+export function onSettings(l: () => void): () => void {
+  return subscribe(l);
+}
 
 export function getSettings(): GameSettings {
   return current;

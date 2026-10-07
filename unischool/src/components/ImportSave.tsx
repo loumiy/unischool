@@ -3,6 +3,7 @@ import ConfirmButton from './ConfirmButton';
 import { adoptSave, readSave, refusalText } from '../state/persistence';
 import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
+import { flush, saveImported } from '../analytics/analytics';
 
 // "Load a save file" (Plan 70B): a file the player downloaded earlier, from
 // this browser or another. The file goes through the same path as the boot
@@ -28,6 +29,8 @@ export default function ImportSave({ current, className = 'menu-btn' }: { curren
       setRefusal('This browser refused to store the save (storage may be full or turned off).');
       return;
     }
+    saveImported();
+    flush();
     window.location.reload();
   }
 

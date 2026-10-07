@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ConfirmButton from './ConfirmButton';
 import type { HallEntry } from '../state/hall';
 import { CARD_HEIGHT, CARD_WIDTH, reportCardSummary, reportCardSvg } from '../state/reportCard';
+import { reportShared } from '../analytics/analytics';
 
 // The report card's two buttons (Plan 70J): Download card renders the card's
 // SVG (state/reportCard.ts) to a PNG in the browser and saves it, nothing
@@ -34,13 +35,14 @@ export default function ReportCardActions({ entry }: { entry: HallEntry }) {
     try {
       await navigator.clipboard.writeText(reportCardSummary(entry, window.location.origin));
       setSaid('Copied.');
+      reportShared('copy');
     } catch {
       setSaid('The browser would not copy it.');
     }
   };
   return (
     <div className="report-card-actions">
-      <button type="button" onClick={() => { void downloadCard(entry).catch(() => setSaid('The card could not be drawn.')); }}>Download card</button>
+      <button type="button" onClick={() => { reportShared('download'); void downloadCard(entry).catch(() => setSaid('The card could not be drawn.')); }}>Download card</button>
       <button type="button" onClick={() => { void copy(); }}>Copy summary</button>
       {said && <span className="report-card-said" role="status">{said}</span>}
     </div>

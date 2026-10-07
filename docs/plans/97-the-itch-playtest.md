@@ -7,7 +7,7 @@ web and desktop builds, anonymous play statistics, a way to send feedback
 from inside the game, and the ten-year demo built for later. It takes over
 Plan 70's held PRs K (analytics) and L (launch).*
 
-**Status: In progress.** PRs B and C are done.
+**Status: In progress.** PRs B, C and E are done.
 
 ---
 
@@ -233,10 +233,19 @@ and `slow` pass.
 
 ## PR 97E — Analytics (70K, revised for a playtest)
 
-70K's spec stands: PostHog through `posthog-js`, production builds only,
-only when `VITE_POSTHOG_KEY` is set, autocapture off, no cookies, a
-setting to turn it off, two sentences in the Credits. A playtest needs
-three changes to it.
+70K's spec stands: PostHog, production builds only, only when
+`VITE_POSTHOG_KEY` is set, autocapture off, no cookies, a setting to turn
+it off, two sentences in the Credits. A playtest needs three changes to
+it.
+
+*As built:* not through `posthog-js` but straight to PostHog's capture API
+(`/batch/`) with `fetch`, in `src/analytics/`. The library adds its own
+properties (the page's address, the browser, the referrer), loads further
+scripts from PostHog, and would need switching off piece by piece; the rule
+that every field is a number, a boolean or a listed value is simpler to
+keep when the game builds every event itself. Each event also asks PostHog
+for no person profile and no GeoIP lookup. Events, fields and bands are in
+[`analytics.md`](../architecture/analytics.md).
 
 - **The key is set where the build runs.** It goes in the environment of
   `build:itch`, `build:desktop` and Vercel's production build, not in
