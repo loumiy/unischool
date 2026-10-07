@@ -356,10 +356,10 @@ button, input, select, textarea { font-size: inherit; }
 .title-card { width: min(640px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   box-shadow: var(--elevation-dialog); padding: var(--space-24); }
 /* The title art's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx):
-   the quad under a clear sky, the mark and the name in white on it, and the
-   menus on frosted white cards with soft shadows rather than the game's
-   outlined ones. The sky's blue is the primary; it is the game's own, not
-   the school's, so it holds whatever colors a run has chosen. */
+   the quad under a clear sky, and the mark and the name in white on it.
+   The title's menu is the game's own card; the founding card is frosted,
+   its primary in the sky's blue, the game's own and not the school's, so
+   it holds whatever colors a run has chosen. */
 :root {
   --title-sky: #1f78d1;
   --title-sky-deep: #155ca6;
@@ -379,23 +379,13 @@ button, input, select, textarea { font-size: inherit; }
 .logo-name { margin: 0; font-family: var(--sans); font-weight: 800; font-size: clamp(40px, 8vw, 96px); line-height: 1;
   letter-spacing: 0.04em; text-transform: uppercase; color: #fff; }
 .title-tagline { margin: var(--space-12) 0 0; font-family: var(--sans); font-weight: 600; font-size: var(--text-xl); color: #fff; }
-/* The menu: a frosted card, buttons centred, the one primary in the sky. */
-.title-screen .title-card { width: min(460px, 100%); margin-top: auto; background: var(--title-frost);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 22px; box-shadow: var(--title-shadow); padding: var(--space-24); }
-.title-screen .title-actions { gap: 10px; }
-.title-screen :is(.title-primary, .menu-btn), .startup .startup-begin-btn {
+/* The menu: the game's own front-screen card and buttons over the art,
+   narrower so the quad shows round it. */
+.title-screen .title-card { width: min(460px, 100%); margin-top: auto; }
+/* The founding's doors open in the sky's blue (StartupScreen.tsx). */
+.startup .startup-begin-btn {
   border: 1px solid var(--title-hairline); border-radius: 999px; box-shadow: 0 1px 2px rgba(16, 52, 96, 0.08);
   font-family: var(--sans); font-weight: 700; transition: background-color 120ms, box-shadow 120ms, transform 120ms; }
-.title-screen .menu-btn { padding: 10px var(--space-16); text-align: center; background: #fff; color: var(--ink); }
-.title-screen .menu-btn:hover:not(:disabled) { background: var(--title-sky-wash); color: var(--title-sky-deep); }
-.title-screen .title-primary { border-color: transparent; border-radius: 18px; background: var(--title-sky); color: #fff;
-  box-shadow: 0 8px 20px rgba(21, 92, 166, 0.35); }
-.title-screen .title-primary:hover:not(:disabled) { background: var(--title-sky-deep); color: #fff;
-  transform: translateY(-1px); box-shadow: 0 10px 24px rgba(21, 92, 166, 0.4); }
-.title-screen .confirm-button > button.confirm-armed { border-color: var(--bad-on-light); background: var(--danger-bg); color: var(--danger-ink); box-shadow: none; }
-.title-screen .title-hall { padding-top: var(--space-16); border-top: 1px solid var(--title-hairline); }
-.title-screen .title-hall-head { text-align: center; }
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
