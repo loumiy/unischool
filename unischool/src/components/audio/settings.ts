@@ -12,7 +12,7 @@ export interface AudioSettings {
 
 export const DEFAULT_AUDIO: AudioSettings = {
   muted: false,
-  master: 0.7,
+  master: 0.3, // the owner's default (Plan 97): quiet until turned up
   music: 0.5,
   ambience: 0.5,
   sfx: 0.7,
