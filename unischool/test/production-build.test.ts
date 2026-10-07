@@ -102,8 +102,20 @@ function testVersion(): void {
   assert(BUILD_STAMP.version === VERSION, 'the stamp is the build\'s');
 }
 
+// The Credits (Plan 97C): Halifax Games, with a footnote that AI tools
+// helped, and no one else credited by name anywhere a player reaches.
+function testCredits(): void {
+  const credits = renderToStaticMarkup(createElement(Credits, { onClose: () => {} }));
+  assert(credits.includes('Halifax Games'), 'the Credits name Halifax Games');
+  assert(credits.includes('Made with the help of AI tools.'), 'with the footnote');
+  const shipped = [...walk(SRC), join(process.cwd(), 'index.html')];
+  const naming = shipped.filter((f) => /Louis Miyani|Claude Code/.test(source(f))).map((f) => relative(process.cwd(), f));
+  assert(naming.length === 0, `nothing in src/ or index.html names Louis Miyani or Claude Code (${naming.join(', ')})`);
+}
+
 testDebugIsDevOnly();
 testCrashScreen();
+testCredits();
 testVersion();
 
 console.log('production build tests');

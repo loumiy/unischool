@@ -58,9 +58,10 @@ made shipping depend on three things. Where each stands:
   campus, and the README's screenshots predate Plans 80–85 (the History
   and Faculty captions describe screens that have since changed).
 - **Choices that exclude each other.** Plan 85's specializations.
-- **AI disclosure and visible human direction.** Only the Credits line
-  ("Claude Code, plan by plan"). Nothing on the title screen or a store
-  page.
+- **AI disclosure and visible human direction.** The Credits credit
+  Halifax Games with a footnote, "Made with the help of AI tools" (Plan
+  97C, the owner's decision); the store forms' answers are drafted in
+  `docs/store/ai-disclosure.md`. Nothing on a store page yet.
 
 And the owner's decisions: a free web demo of the first decade, a Steam
 page, and a price ($14.99 was recommended). Whether the owner's playtest

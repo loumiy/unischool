@@ -7,7 +7,7 @@ web and desktop builds, anonymous play statistics, a way to send feedback
 from inside the game, and the ten-year demo built for later. It takes over
 Plan 70's held PRs K (analytics) and L (launch).*
 
-**Status: In progress.** PR B is done.
+**Status: In progress.** PRs B and C are done.
 
 ---
 
