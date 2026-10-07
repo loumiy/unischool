@@ -9,6 +9,7 @@ import { readHall } from '../state/hall';
 import { HallFrame } from './HallOfFame';
 import { calendarDate, gameDate } from '../format';
 import Logo from './Logo';
+import { BUILD_ID, versionLine } from '../build';
 
 // THE TITLE (Plan 34, from v2's; V1-35): what the game opens on. The run in
 // this browser, to carry on; a new college, to found (this game's startup
@@ -100,6 +101,8 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
             </>
           )}
         </section>
+        {/* Which build this is (Plan 97B): feedback names it. */}
+        <p className="title-version" title={`Build ${BUILD_ID}`}>{versionLine()}</p>
       </div>
     </div>
   );

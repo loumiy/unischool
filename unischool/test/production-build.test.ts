@@ -19,6 +19,9 @@ import CrashScreen, { CrashFallback } from '../src/components/CrashScreen';
 import { registerCrashSource } from '../src/engine/crashContext';
 import { DEV_BUILD } from '../src/engine/devBuild';
 import { createInitialState } from '../src/state/actions';
+import TitleScreen from '../src/components/TitleScreen';
+import Credits from '../src/components/Credits';
+import { BUILD_STAMP, buildLine, EDITION, PLATFORM, VERSION, versionLine } from '../src/build';
 
 let checks = 0;
 let failures = 0;
@@ -72,8 +75,36 @@ function testCrashScreen(): void {
   assert(live.includes('Download save') && live.includes('Download a bug report'), 'with a founded run it offers the save and a bug report');
 }
 
+// Which build this is (Plan 97B): the title screen, the Credits and the
+// crash screen name it; headless callers read the defaults.
+function testVersion(): void {
+  assert(VERSION === 'dev' && EDITION === 'full' && PLATFORM === 'web', `headless callers read the defaults (${VERSION}, ${EDITION}, ${PLATFORM})`);
+  assert(versionLine('0.1.0', 'full') === 'v0.1.0 · playtest', `a 0.x build is a playtest (${versionLine('0.1.0', 'full')})`);
+  assert(versionLine('0.1.0', 'demo') === 'v0.1.0 · demo', 'the demo edition says so');
+  assert(versionLine('1.0.0', 'full') === 'v1.0.0', 'and 1.0.0, launch, says neither');
+  assert(buildLine({ version: '0.1.0', build: 'a1b2c3d', edition: 'full', platform: 'itch' }) === 'Version 0.1.0 (a1b2c3d), playtest', 'the long line names the commit');
+
+  const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as { version: string };
+  assert(/^0\.\d+\.\d+$/.test(pkg.version), `package.json's version is a 0.x playtest version until launch (${pkg.version})`);
+  const config = source(join(process.cwd(), 'vite.config.ts'));
+  assert(config.includes('__APP_VERSION__') && config.includes('__BUILD_ID__'), 'vite.config.ts defines the version and the build');
+
+  const noop = () => {};
+  const s = createInitialState('Version');
+  const title = renderToStaticMarkup(createElement(TitleScreen, { s, onContinue: noop, onNewCollege: noop, onSandbox: noop, onHall: noop, onSettings: noop, onCredits: noop }));
+  assert(title.includes(`>${versionLine()}</p>`), 'the title screen shows the version line');
+  const credits = renderToStaticMarkup(createElement(Credits, { onClose: noop }));
+  assert(credits.includes(buildLine()), 'the Credits name the build');
+  const crash = renderToStaticMarkup(createElement(CrashFallback, { error: new Error('x') }));
+  assert(crash.includes(buildLine()), 'and so does the crash screen');
+  const crashSourceText = source(join(SRC, 'components/CrashScreen.tsx'));
+  assert(/JSON\.stringify\(\{ game: BUILD_STAMP,/.test(crashSourceText), 'the bug report carries the build\'s stamp');
+  assert(BUILD_STAMP.version === VERSION, 'the stamp is the build\'s');
+}
+
 testDebugIsDevOnly();
 testCrashScreen();
+testVersion();
 
 console.log('production build tests');
 if (failures > 0) {

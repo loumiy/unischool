@@ -16,7 +16,8 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { COURSE_ID_MAP_95M, exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, SAVE_VERSION } from '../src/state/persistence';
+import { COURSE_ID_MAP_95M, exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, refusalText, SAVE_VERSION, stampOf } from '../src/state/persistence';
+import { BUILD_STAMP } from '../src/build';
 import { initialTech } from '../src/data/techData';
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
@@ -74,6 +75,31 @@ function testLaunchFixture(): void {
   assert(broken.length === 0, `and holds every rule after it${broken.length ? `: ${broken.join('; ')}` : ''}`);
 }
 
+// ---- The playtest fixture (Plan 97B) ----
+// The save the itch.io playtest's first build (0.1.0) wrote: a year-25 run,
+// stamped with that build. The testers' saves are the first saves real
+// people own, so every later build must open it and play it on.
+function testPlaytestFixture(): void {
+  const raw = fixture('save-playtest.json');
+  const parsed = JSON.parse(raw) as { version: number };
+  assert(parsed.version >= 100, `the playtest fixture was written at version 100 or later (${parsed.version})`);
+  const stamp = stampOf(parsed);
+  assert(stamp?.version === '0.1.0' && stamp.edition === 'full', `it names the build that wrote it (${JSON.stringify(stamp)})`);
+  const state = loads(raw, 'the playtest fixture');
+  if (!state) return;
+  assert(state.clock.year === 25, `the playtest fixture is a year-25 run (year ${state.clock.year})`);
+  const g = foundGame({ from: state, seed: 12345 });
+  let error: unknown = null;
+  try {
+    playYears(g, createGuidedPlayer(), 1);
+  } catch (e) {
+    error = e;
+  }
+  assert(error === null && g.s.clock.year === 26, `the playtest fixture plays a year on${error ? `: ${String(error)}` : ''}`);
+  const broken = brokenRules(g.s);
+  assert(broken.length === 0, `and holds every rule after it${broken.length ? `: ${broken.join('; ')}` : ''}`);
+}
+
 // ---- The chain: a link and a fixture for every version since launch ----
 function testChain(): void {
   for (let v = LAUNCH_SAVE_VERSION; v < SAVE_VERSION; v += 1) {
@@ -96,6 +122,15 @@ function testRoundTrip(): void {
   assert(!('refused' in back), 'an exported save imports');
   if ('refused' in back) return;
   assert(JSON.stringify(back.state) === JSON.stringify(read.state), 'and is the same run');
+  // The file names the build that wrote it (Plan 97B), beside the payload.
+  const wrapper = JSON.parse(file.text) as { version: number; game?: unknown };
+  assert(wrapper.version === SAVE_VERSION, 'the wrapper\'s version is still the save\'s shape');
+  assert(JSON.stringify(stampOf(wrapper)) === JSON.stringify(BUILD_STAMP), `the exported file carries the build's stamp (${JSON.stringify(wrapper.game)})`);
+  // The launch fixture predates the stamp: a file without one imports.
+  assert(!('game' in JSON.parse(fixture('save-launch.json'))), 'the launch fixture has no stamp');
+  // A malformed stamp is ignored, never a reason to refuse.
+  const odd = readSave(JSON.stringify({ ...wrapper, game: { version: 3, build: null } }));
+  assert(!('refused' in odd), 'a file with a malformed stamp still imports');
 }
 
 // ---- Refusals, each with its reason ----
@@ -111,6 +146,12 @@ function testRefusals(): void {
   const oldest = Math.min(...Object.keys(MIGRATIONS).map(Number), SAVE_VERSION);
   assert(refused(JSON.stringify({ ...launch, version: oldest - 1 })) === 'too-old', 'a save older than the chain is refused as too old');
   assert(refused(JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: {} })) === 'not-a-save', 'a save with no college in it is refused');
+  // A refusal for the file's version names the build that made it.
+  const game = { version: '0.4.2', build: 'abc1234', edition: 'full', platform: 'itch' };
+  const newer = readSave(JSON.stringify({ ...launch, version: SAVE_VERSION + 1, game }));
+  assert('refused' in newer && refusalText(newer).endsWith('It was made by version 0.4.2 (abc1234).'), `a newer build's file is refused naming it (${'refused' in newer ? refusalText(newer) : 'read'})`);
+  const unnamed = readSave(JSON.stringify({ ...launch, version: SAVE_VERSION + 1 }));
+  assert('refused' in unnamed && !refusalText(unnamed).includes('made by version'), 'a file without a stamp is refused without one');
 }
 
 // ---- 81 -> 82 (Plan 80D): a milestone's week, and the redrawn walk ----
@@ -324,6 +365,7 @@ function testLegacyStarts(): void {
 }
 
 testLaunchFixture();
+testPlaytestFixture();
 testChain();
 testCatalogShape();
 testLandmarkWeeks();

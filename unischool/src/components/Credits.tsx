@@ -1,5 +1,6 @@
 import { useHotkeys } from './hotkeys';
 import { CloseIcon } from './icons';
+import { buildLine } from '../build';
 
 // THE CREDITS (Plan 34, from v2's).
 export default function Credits({ onClose }: { onClose: () => void }) {
@@ -21,6 +22,8 @@ export default function Credits({ onClose }: { onClose: () => void }) {
           <dd>React, TypeScript, Vite and the Web Audio API</dd>
           <dt>With thanks to</dt>
           <dd>Every college that ever sent a letter about the parking lot</dd>
+          <dt>This build</dt>
+          <dd>{buildLine()}</dd>
         </dl>
         <p className="review-empty">Your runs, your settings and your hall of fame live in this browser and nowhere else.</p>
       </section>

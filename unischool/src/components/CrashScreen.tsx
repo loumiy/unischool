@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { crashSource } from '../engine/crashContext';
 import { exportSave } from '../state/persistence';
 import { downloadFile } from './download';
+import { BUILD_STAMP, buildLine } from '../build';
 
 // The crash screen (Plan 70C): an error boundary around the whole game. A
 // render that throws would otherwise leave a blank page; this says what
@@ -25,7 +26,7 @@ export function CrashFallback({ error }: { error: Error }) {
         const f = exportSave(source.state());
         downloadFile(f.filename, f.text);
       } else {
-        const report = JSON.stringify({ error: `${error.name}: ${error.message}`, stack: error.stack ?? null, run: JSON.parse(source.runLog()) as unknown });
+        const report = JSON.stringify({ game: BUILD_STAMP, error: `${error.name}: ${error.message}`, stack: error.stack ?? null, run: JSON.parse(source.runLog()) as unknown });
         downloadFile(`unischool-bug-report-${Date.now()}.json`, report);
       }
     } catch {
@@ -52,6 +53,7 @@ export function CrashFallback({ error }: { error: Error }) {
           <button type="button" className="title-primary" onClick={() => window.location.reload()}>Reload</button>
         </div>
         <p className="crash-detail">{error.name}: {error.message}</p>
+        <p className="crash-detail">{buildLine()}</p>
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import ConfirmButton from './ConfirmButton';
-import { adoptSave, readSave, REFUSAL_TEXT } from '../state/persistence';
+import { adoptSave, readSave, refusalText } from '../state/persistence';
 import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
 
@@ -19,7 +19,7 @@ export default function ImportSave({ current, className = 'menu-btn' }: { curren
     setRefusal(null);
     if (!file) return;
     const read = readSave(await file.text());
-    if ('refused' in read) setRefusal(REFUSAL_TEXT[read.refused]);
+    if ('refused' in read) setRefusal(refusalText(read));
     else setPicked(read.state);
   }
 
