@@ -1,16 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Graduation cap">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="UniSchool">
   <title>UniSchool</title>
-  <!-- A graduation cap in the app's navy/gold/parchment palette (the same
-       colours styles.css defines as custom properties at :root). NOTE: this
-       is XML, so no double hyphen may appear inside a comment - naming those
-       CSS custom properties here verbatim would make the file unparseable
-       and silently kill the favicon. -->
-  <rect width="64" height="64" rx="12" fill="#10182a"/>
-  <!-- mortarboard -->
-  <path d="M32 16 8 26l24 10 24-10-24-10z" fill="#c9a227"/>
-  <!-- cap body under the board -->
-  <path d="M18 31v10c0 4.4 6.3 8 14 8s14-3.6 14-8V31l-14 5.8L18 31z" fill="#f2ede0"/>
-  <!-- tassel -->
-  <path d="M53 28v11" stroke="#c9a227" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-  <circle cx="53" cy="42" r="3.5" fill="#c9a227"/>
+  <!-- The game's mark (src/components/Logo.tsx, the same paths) in white on
+       the title art's sky blue. NOTE: this is XML, so no double hyphen may
+       appear inside a comment, or the file stops parsing and the favicon
+       silently dies. -->
+  <rect width="64" height="64" rx="12" fill="#1f78d1"/>
+  <svg x="8" y="9" width="48" height="46" viewBox="40 30 740 625">
+    <g fill="#ffffff">
+      <path fill-rule="evenodd" d="M95 190 413 40 730 190V222H95Z M413 113a34 34 0 1 0 0.01 0Z"/>
+      <path d="M138 250H290V262Q268 266 265 280H165Q162 266 138 262Z M165 278H265V514H165Z M165 512Q162 522 140 526V545H290V526Q268 522 265 512Z"/>
+      <path d="M538 250H690V262Q668 266 665 280H565Q562 266 538 262Z M565 278H665V514H565Z M565 512Q562 522 540 526V545H690V526Q668 522 665 512Z"/>
+      <path d="M340 250H490V262Q468 266 465 280H365Q362 266 340 262Z M365 278H465V495A50 50 0 0 1 365 495Z"/>
+      <path d="M105 562H298Q312 562 322 590H105Z M720 562H530Q516 562 506 590H720Z M45 602H775V650H45Z"/>
+    </g>
+  </svg>
 </svg>

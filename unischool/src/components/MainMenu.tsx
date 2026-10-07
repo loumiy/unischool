@@ -13,9 +13,11 @@ import { institutionName, type GameState } from '../state/types';
 // directly above the map's zoom/'?' pill (see styles.css's
 // --corner-menu-height). New game asks once more (ConfirmButton), as every
 // destructive action does.
-export default function MainMenu({ s, act, onHall, onSettings, onTitle }: {
+export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onTitle }: {
   s: GameState;
   act: (a: Action) => void;
+  // The startup screen; the run is erased only when the new one is founded.
+  onNewCollege: () => void;
   onHall: () => void;
   onSettings: () => void;
   onTitle: () => void;
@@ -76,7 +78,7 @@ export default function MainMenu({ s, act, onHall, onSettings, onTitle }: {
             label="New game"
             armedLabel={`Confirm — erase ${institutionName(s.self)}`}
             warning={`${institutionName(s.self)} is erased and a new college is founded.`}
-            onConfirm={() => act({ type: 'RESET' })}
+            onConfirm={() => { close(); onNewCollege(); }}
           />
         </div>
       )}

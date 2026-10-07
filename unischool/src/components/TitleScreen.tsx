@@ -8,11 +8,15 @@ import { institutionName } from '../state/types';
 import { readHall } from '../state/hall';
 import { HallFrame } from './HallOfFame';
 import { calendarDate, gameDate } from '../format';
+import Logo from './Logo';
 
 // THE TITLE (Plan 34, from v2's; V1-35): what the game opens on. The run in
 // this browser, to carry on; a new college, to found (this game's startup
 // screen); and the hall of fame's newest portraits, because they are the
 // reason to play again.
+//
+// Over the title art (assets/campus-quad.webp): the mark and the name in the
+// sky, the menu on a frosted card below them, the quad showing round it.
 
 const SHOWN = 3;
 
@@ -31,11 +35,11 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
   const underway = s.started;
   return (
     <div className="front-screen title-screen" role="dialog" aria-modal="true" aria-label="UniSchool">
+      <header className="title-head">
+        <Logo />
+        <p className="title-tagline">Fifty years to build a university.</p>
+      </header>
       <div className="title-card">
-        <header className="title-head">
-          <h1 className="title-name">UniSchool</h1>
-          <p className="title-tagline">Fifty years to build a university.</p>
-        </header>
         {setAside && (
           <p className="title-set-aside" role="status">
             {setAside.name ? `${setAside.name}, a college saved` : 'A college saved'}

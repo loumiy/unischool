@@ -10,6 +10,8 @@ import '@fontsource/archivo/400.css';
 import '@fontsource/archivo/500.css';
 import '@fontsource/archivo/600.css';
 import '@fontsource/archivo/700.css';
+// The title's wordmark (Logo.tsx): Archivo at its heaviest.
+import '@fontsource/archivo/800.css';
 import App from './App';
 import CrashScreen from './components/CrashScreen';
 
