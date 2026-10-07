@@ -80,7 +80,7 @@ function tickCandidatePool(s: GameState): void {
       s.log.unshift({
         year: s.clock.year,
         week: s.clock.week,
-        message: `${candidate.name} (${candidate.field}) is on the market — a field with courses waiting on a hire.`,
+        message: `${candidate.name} (${candidate.field}) is on the market.`,
         kind: 'info',
         topic: 'candidate',
         subject: candidate.id,

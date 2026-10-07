@@ -536,7 +536,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
   },
   {
     id: 'MBAX', code: 'MBA', name: 'Graduate School of Business', degree: 'MBA', type: 'professional',
-    homeSchool: 'Business', section: 'Business School',
+    homeSchool: 'Business', section: 'Graduate Business School',
     prestigeWeight: 1.4,
     blurb: 'the MBA program',
     courses: [
@@ -645,7 +645,7 @@ export function graduatePrograms(): GraduateProgramSeed[] {
 // The Curriculum's graduate sections, in the order they are drawn after the
 // seven schools (Plan 80B).
 export const GRADUATE_SCHOOL_SECTION = 'Graduate School';
-export const GRADUATE_SECTIONS: readonly string[] = [GRADUATE_SCHOOL_SECTION, 'Business School', 'Law School', 'Medical School'];
+export const GRADUATE_SECTIONS: readonly string[] = [GRADUATE_SCHOOL_SECTION, 'Graduate Business School', 'Law School', 'Medical School'];
 
 export function graduateSection(program: GraduateProgramSeed): string {
   return program.section ?? GRADUATE_SCHOOL_SECTION;
@@ -852,7 +852,7 @@ export function initialTech(): Buildable[] {
       id: academicHallId(i),
       kind: 'building',
       name,
-      description: `An academic hall with ${ACADEMIC_HALL_SLOTS} program slots. Six programs of one school in one hall found that school.`,
+      description: `An academic hall with ${ACADEMIC_HALL_SLOTS} program slots.`,
       cost,
       duration: i === 0 ? ACADEMIC_HALL_FIRST_WEEKS : ACADEMIC_HALL_WEEKS,
       prereqs: i === 0 ? [] : [academicHallId(i - 1)],
@@ -886,9 +886,9 @@ export function initialTech(): Buildable[] {
         kind: 'course',
         graduateProgram: program.id,
         name: `${program.code ?? program.id} ${course.num} · ${course.title}`,
-        // Authored (Plan 72C); the entry course adds its gate.
+        // Authored (Plan 72C); the entry course names its program.
         description: i === 0
-          ? `${GRADUATE_COURSE_DESCRIPTIONS[id]} Founds ${program.blurb}${program.blurb.includes(program.degree) ? '' : ` (${program.degree})`}; offered once ${graduateGateDescription(program)}, and taught there.`
+          ? `${GRADUATE_COURSE_DESCRIPTIONS[id]} Founds ${program.blurb}.`
           : GRADUATE_COURSE_DESCRIPTIONS[id],
         cost: professional ? PROFESSIONAL_COURSE_COST : DOCTORAL_COURSE_COST,
         duration: courseWeeks(id, professional ? PROFESSIONAL_COURSE_WEEKS : DOCTORAL_COURSE_WEEKS),

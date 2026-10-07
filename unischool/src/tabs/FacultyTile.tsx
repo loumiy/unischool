@@ -265,7 +265,7 @@ export default function FacultyTile(
               </span>
             )}
             {commitment && (
-              <span className="faculty-badge project" title={`On ${commitment.topic} at ${commitment.labName}, ${weeksShort(commitment.weeksRemaining)} left: two course slots fewer until it ends`}>
+              <span className="faculty-badge project" title={`On ${commitment.topic} at ${commitment.labName}, ${weeksShort(commitment.weeksRemaining)} left`}>
                 On a project
               </span>
             )}

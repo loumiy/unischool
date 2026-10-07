@@ -124,9 +124,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     return {
       key,
       headline: `${program.name} is founded`,
-      detail: program.type === 'professional'
-        ? `Every course in the ${program.degree} program is finished. A professional school counts toward curriculum breadth — the largest input to the prestige target — and is weighted there above its course count, though still inside that input's cap.`
-        : `Every course in the ${program.degree} program is finished. A research degree counts toward curriculum breadth AND toward the college's research standing, both as capped inputs to the prestige target.`,
+      detail: `Every course in the ${program.degree} program is finished.`,
       unlocks: [],
     };
   }
@@ -146,7 +144,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
     return {
       key,
       headline: `${subject} is fully distinguished`,
-      detail: 'Every program in the school is distinguished. A distinguished school is the heaviest single contribution curriculum breadth can make to the prestige target, and it can train its successors: once every one of its courses is taught, its graduate programs open in the capital project built to house them.',
+      detail: 'Every program in the school is distinguished.',
       unlocks: [],
     };
   }
@@ -158,7 +156,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         return {
           key,
           headline: `${major.name} is now an established program`,
-          detail: `Every upper-level course in ${major.name} (${school.schoolName}) is finished. The program counts toward curriculum breadth from now on — the largest input to the prestige target — and its advanced courses are open.`,
+          detail: `Every upper-level course in ${major.name} (${school.schoolName}) is finished, and its advanced courses are open.`,
           unlocks: major.tier3Ids.map((id) => nameOf(s, id)),
         };
       }
@@ -166,7 +164,7 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
         return {
           key,
           headline: `${major.name} is now a distinguished program`,
-          detail: `All ten courses in ${major.name} (${school.schoolName}), the capstone among them, are done. Distinguishing a program is a further, separate share of curriculum breadth on top of establishing it.`,
+          detail: `All ten courses in ${major.name} (${school.schoolName}), the capstone among them, are done.`,
           unlocks: [],
         };
       }
@@ -622,7 +620,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'build',
         label: 'Build the chapter house',
         describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes up to a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social life from the week it opens and adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both effective immediately — the house itself goes on the build menu, under Housing, for you to place on campus.`,
+          `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, forever. ${ctx.subjectName} contributes up to a further ${CHAPTER_HOUSED_SOCIAL_BONUS} points of social life from the week it opens and adds ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both effective immediately.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -915,8 +913,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'campaign',
         label: "Run the board's campaign",
         describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} committed; ${money((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER)} into the endowment at the board's own match. `
-          + 'It pays out every year from now on, and feeds the financial-resources input to prestige.',
+          `${money(ctx.amount ?? 0)} committed; ${money((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER)} into the endowment at the board's own match.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const raised = Math.round((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER);
@@ -966,7 +963,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const sport = sportById(ctx.subjectField);
           const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
           const ready = venue?.status === 'done';
-          return `${money(ctx.amount ?? 0)} up front for a program budget, and ${money(weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX))} a week to run it from now on, whether or not it has a venue yet — the coaching staff is hired separately, from the Athletics tab's own candidate pool. ` + (
+          return `${money(ctx.amount ?? 0)} up front and ${money(weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX))} a week. ` + (
             ready
               ? `${venue!.name} is already standing, so the team plays varsity at once.`
               : `${venue ? venue.name : 'A shared venue'} goes on the build menu — the team plays varsity once it is built, and shares it with any other team in the same category.`
@@ -1164,7 +1161,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
       const terms = hall ? `, ${money(hall.cost)}, ${count(hall.duration)} weeks to build` : '';
       const roof = schools.length === 0 ? '' : ` Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''}.`;
-      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum.${roof} A school is six programs of one school in one hall, any hall, Founders Hall included, and six program slots go only so far. ${elm} is the first hall the college can build: six program slots more${terms}. Site it now; which school grows where is yours to decide.`;
+      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum.${roof} ${elm} is the first hall the college can build: six program slots more${terms}. Site it now; which school grows where is yours to decide.`;
     },
     ask: (s) => ({ text: `Site ${hallName(s, FIRST_HALL_ID)}`, go: 'build', intent: { kind: 'site', buildableIds: [FIRST_HALL_ID] } }),
     done: (s) => FIRST_HALL_ID in s.placements,
@@ -1186,7 +1183,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       // The figures behind it (Plan 78B), read as the letter is written.
       const seats = s.tech.filter((t) => t.facilityType === 'diningHall').reduce((n, t) => n + servingPopulation(t), 0);
       const figures = ` The college has ${countOf(totalEnrolled(s.students))} students, ${countOf(s.students.capacity)} beds and ${countOf(seats)} dining seats.`;
-      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${figures}${lack} Housing is not a cap on how many we admit — this college can grow with no bed at all — but a college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
+      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${figures}${lack} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
     },
     ask: (s) => ({
       text: 'Site a residence hall and a dining hall', go: 'build',
@@ -1237,7 +1234,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const offers = claim && claim.school === p.school && schoolOffers(s, p.hallId).length > 0
         ? ` ${hall} holds nothing but ${p.school}, so it offers every ${p.school} program the college can found, whatever else is on offer.`
         : '';
-      return `${p.school} has ${count(p.housed)} of six in ${hall}.${offers} ${count(6 - p.housed)[0].toUpperCase()}${count(6 - p.housed).slice(1)} more ${p.school} ${6 - p.housed === 1 ? 'program' : 'programs'} there found the School of ${p.school}. Programs of other schools can go on beginning in any hall with a free program slot.`;
+      return `${p.school} has ${count(p.housed)} of six in ${hall}.${offers} ${count(6 - p.housed)[0].toUpperCase()}${count(6 - p.housed).slice(1)} more ${p.school} ${6 - p.housed === 1 ? 'program' : 'programs'} there found the School of ${p.school}.`;
     },
     ask: (s) => schoolAsk(s),
     done: (s) => foundedSchools(s).length > 0,

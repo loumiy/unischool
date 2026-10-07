@@ -13,7 +13,7 @@ import Figure from '../components/Figure';
 import {
   ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, COLLEGE_PULL_MAX,
   NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_CLASSES, RECRUITING_FULL_LIFT, SCHOLARSHIP_LEVELS, SCHOLARSHIP_ORDER, TRAINER_FIELD,
-  VARSITY_PETITION_MIN_TENURE_YEARS, annualScholarships, ceilingResolved, coachProfile, collegePull, departmentPot, orderedTeams,
+  annualScholarships, ceilingResolved, coachProfile, collegePull, departmentPot, orderedTeams,
   recruitingTarget, scholarshipCostFor, sportById, teamQuality, teamQualityEarned, TEAM_QUALITY_KNEE, varsityEligibleYear, venueForCategory,
 } from '../data/studentLifeData';
 import type { ProgramFunding } from '../data/studentLifeData';
@@ -22,9 +22,8 @@ import { athleticRank, rankBy, sportRank, sportRankedList } from '../systems/riv
 import { annualGateFor, attendanceFor } from '../systems/athletics/gate';
 import { rivalFor, seasonRecordFor, trophyFor } from '../systems/athletics/season';
 import { cutRefusal, cutSettlement, programName } from '../systems/athletics/cut';
-import { CUT_GIVING_YEARS } from '../systems/alumni/giving';
 import type { ScholarshipLevel, SeasonResult } from '../state/types';
-import { count, countWord, decimal, money, moneyShort, pct, weeksShort } from '../format';
+import { count, decimal, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
 import { switchStyle } from '../components/segmentedSwitch';
 import { useCollapse } from '../components/useCollapse';
@@ -315,17 +314,17 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           value={`${pot.programs.filter((p) => p.band === 'flagship').length} of ${pot.cap}`}
           hint={pot.cap > pot.baseCap
             ? COMPLEX_WORDS.flagshipsHint(pot.cap, pot.baseCap, s.orgs.athleticsBudget)
-            : `How many programs are flagships, of the ${pot.cap} the ${s.orgs.athleticsBudget} subsidy allows: the first on the list. Only a flagship is funded in full and recruits.`}
+            : `How many programs are flagships, of the ${pot.cap} the ${s.orgs.athleticsBudget} subsidy allows: the first on the list.`}
         />
         {scholarships > 0 && (
-          <Figure label="Scholarships" value={`${money(scholarships)}/yr`} hint="What the flagships' scholarship budgets cost the college in a year, paid from its own funds rather than the department's: the Treasury's Athletic scholarships line." />
+          <Figure label="Scholarships" value={`${money(scholarships)}/yr`} hint="What the flagships' scholarship budgets cost the college in a year, paid from its own funds rather than the department's." />
         )}
         {active.length > 0 && (
           <>
             <Figure label="Gate" value={`${money(pot.earned)}/yr`} hint="What the programs earn at the gate in a year, which goes into the same fund." />
             <Figure label="Fund" value={`${money(pot.pot)}/yr`} hint="The subsidy and the gate together: what the programs take from, in the order of the cards." />
             <Figure label="Programs take" value={`${money(pot.drawn)}/yr`} hint={`What the programs take from the fund to compete, in the order of the cards until the fund runs out: a flagship its sport's whole cost, any other program up to ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of it.`} />
-            <Figure label="Back to the college" value={pot.surplus > 0 ? `${money(pot.surplus)}/yr` : 'nothing'} hint="The subsidy the programs do not take is never charged, and the gate they leave is paid to the college each week, as the Treasury's Athletics surplus." />
+            <Figure label="Back to the college" value={pot.surplus > 0 ? `${money(pot.surplus)}/yr` : 'nothing'} hint="The subsidy the programs do not take is never charged, and the gate they leave is paid to the college each week." />
           </>
         )}
       </dl>
@@ -520,7 +519,7 @@ function Recruiting({ s, act, team, flagship }: { s: GameState; act: (a: Action)
       )}
       <div className="team-card-meta">
         {(flagship || now > 0.05) && (
-          <span title={`What the recruited classes add to the team: a class a year, up to +${decimal(perClass, 1)} each, built over ${RECRUITING_CLASSES} years to at most +${decimal(full)} on full scholarships${atComplex}, and lost a class a year when the money stops or the program is no longer a flagship.`}>
+          <span title={`What the recruited classes add to the team: a class a year, up to +${decimal(perClass, 1)} each, built over ${RECRUITING_CLASSES} years to at most +${decimal(full)} on full scholarships${atComplex}.`}>
             recruiting <strong>+{decimal(now, 1)}</strong>{trend}
           </span>
         )}
@@ -543,7 +542,7 @@ function CutProgram({ s, act, team }: { s: GameState; act: (a: Action) => void; 
       <ConfirmButton
         className="btn-quiet"
         disabled={refusal !== null}
-        title={refusal ?? `End ${name} for good. The venue stays, for recreation, and the club may form again; the alumni give less for ${countWord(CUT_GIVING_YEARS)} years.`}
+        title={refusal ?? `End ${name} for good.`}
         label="Cut the program"
         armedLabel={`Confirm — ${name} ends; its alumni will give less`}
         warning={settlement > 0 ? `Its staff are paid to the season's end: ${money(settlement)}.` : undefined}
@@ -610,7 +609,7 @@ function TeamCard({ s, act, team, funding, rank }: {
           <span>quality <strong>{quality}</strong>
             {/* The slowdown above the knee (Plan 85D's review), said where the number is. */}
             {team.status === 'active' && teamQualityEarned(team, s) > quality && (
-              <span className="team-held" title={teamSlowed(TEAM_QUALITY_KNEE, teamQualityEarned(team, s), quality, specializationOf(s))}> slowed</span>
+              <span className="team-held" title={teamSlowed(teamQualityEarned(team, s), quality)}> slowed</span>
             )}
           </span>
           <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
@@ -667,7 +666,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
       {ordered.length === 0 ? (
         <div className="empty-note">
           {/* Before any team: the first sport club and what comes next. */}
-          <p>No sport club has gone varsity yet. The path: a sport club forms on the Students tab, and after {VARSITY_PETITION_MIN_TENURE_YEARS} years it may petition to go varsity — a program budget, a shared venue for its sport, and a place on this list.</p>
+          <p>No sport club has gone varsity yet.</p>
           {s.orgs.clubs.filter((c) => c.sport !== null).length > 0 && (
             <ul className="org-list">
               {s.orgs.clubs.filter((c) => c.sport !== null).map((c) => {

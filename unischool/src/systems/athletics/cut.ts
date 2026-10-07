@@ -3,10 +3,8 @@ import { WEEKS_PER_YEAR } from '../../state/types';
 import type { BoardLetter } from '../../data/boardData';
 import { isFlagship, scholarshipCostFor, sportById } from '../../data/studentLifeData';
 import { postBoardLetter } from '../finance/distress';
-import { CUT_GIVING_YEARS } from '../alumni/giving';
 import { PLAYOFF_WEEK } from './playoffs';
 import { OCCASIONS, rivalFor, trophyFor } from './season';
-import { countWord } from '../../format';
 
 // ---------------------------------------------------------------------
 // Cutting a varsity program (Plan 95V, the second review's B4-8). The
@@ -80,7 +78,7 @@ export function cutLetter(s: GameState, id: string): BoardLetter | undefined {
   return {
     from: 'From the alumni',
     title: `${name}, cut`,
-    text: `The alumni have heard that ${name} will not take the field again. Those who played for it write that they will give elsewhere for a while, and the annual fund will feel it for ${countWord(CUT_GIVING_YEARS)} years.${rivalry} The venue stays, for anyone who wants to play.`,
+    text: `The alumni have heard that ${name} will not take the field again. Those who played for it write that they will give elsewhere for a while.${rivalry}`,
   };
 }
 

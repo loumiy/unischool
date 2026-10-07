@@ -1440,6 +1440,9 @@ function refreshAuthoredText(state: GameState): void {
     // Athletic Performance Complex (Plan 87C): a saved one under its old
     // catalog name takes the new; a donor's name is kept.
     if (t.id === REC_CENTER_TIER2_ID && t.name === 'Athletics Complex') t.name = authored.name;
+    // The MBA's capital project was the Business School, beside the School
+    // of Business: a saved one under the old name takes the new.
+    if (t.id === 'PROJ-BUSINESS' && t.name === 'The Business School') t.name = authored.name;
     // A course's weeks are the catalog's until it starts (techData.ts's
     // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
     // was started with, so its progress still reads against them.

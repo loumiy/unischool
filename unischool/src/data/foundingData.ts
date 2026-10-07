@@ -13,7 +13,7 @@ export const UNIVERSITY_CAPTION = 'Every college opens as a College; the board g
 // or "College of" (the second review's H7-7): the suffix is added all the
 // same, so the form shows the name as the pennant will carry it.
 export const prefixedCaption = (bare: string): string =>
-  `This will read "${bare} College", and "${bare} University" once the board grants it. A name of its own, such as "Ashford", reads "Ashford College".`;
+  `This will read "${bare} College", and "${bare} University" once the board grants it.`;
 
 // Under the name field, on the founding screen and in the charter's rename,
 // once the name has reached the longest it can be (the review's G7-19): the

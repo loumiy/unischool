@@ -22,8 +22,8 @@ function raise(s: GameState, petition: OrgPetition): void {
     year: s.clock.year,
     week: s.clock.week,
     message: petition.kind === 'club'
-      ? `Students have organized the ${petition.name} and are petitioning for recognition — the President decides at the summer's Students step.`
-      : `A ${petition.greekKind ?? 'fraternity'} calling itself ${petition.name} has petitioned the Hellenic Council for a charter — the President decides at the summer's Students step.`,
+      ? `Students have organized the ${petition.name} and are petitioning for recognition.`
+      : `A ${petition.greekKind ?? 'fraternity'} calling itself ${petition.name} has petitioned the Hellenic Council for a charter.`,
     kind: 'info',
     topic: 'petition',
     subject: petition.id,

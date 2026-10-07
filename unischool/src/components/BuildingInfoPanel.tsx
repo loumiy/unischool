@@ -21,8 +21,7 @@ import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAs
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canRelocateProgram, committeeSeats, courseSlotsFree, eligibleInstructors, facultyGate,
-  FOUNDERS_MOVE_WEEKS, relocationWeeks,
+  canFoundProgram, canRelocateProgram, courseSlotsFree, eligibleInstructors, facultyGate, relocationWeeks,
 } from '../systems/techtree/techSystem';
 import { declineRefusal, hostOffers, isHoused, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
@@ -78,7 +77,7 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
     <>
       <p className="building-info-line">
         {t.effects?.servesPopulation !== undefined
-          ? `${count(t.effects.servesPopulation)} social capacity — a shared competition venue, not a rec facility.`
+          ? `${count(t.effects.servesPopulation)} social capacity`
           : t.description}
       </p>
       {(t.expansions ?? 0) > 0 && (
@@ -171,9 +170,8 @@ function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; on
     return (
       <p className="building-info-line">
         {t.effects?.flatSatisfactionBonus !== undefined
-          ? `+${t.effects.flatSatisfactionBonus} social life, at any size`
+          ? `+${t.effects.flatSatisfactionBonus} social life`
           : 'A green centerpiece for campus life.'}
-        {' — no capacity figure; a quad does not scale with enrollment.'}
       </p>
     );
   }
@@ -184,7 +182,6 @@ function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; on
           {t.effects?.researchRateBonus !== undefined
             ? `${signedPct(t.effects.researchRateBonus)} research output`
             : 'Specialized lab space.'}
-          {' — no capacity figure; this program\'s advanced courses require it instead.'}
         </p>
         <LabResearch t={t} s={s} onOpenResearch={onOpenResearch} />
       </>
@@ -241,12 +238,12 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
         <span className="hall-slot-name">{program.name}</span>
         <span className="program-tile-meta">
           {inTransit > 0
-            ? <span className="program-tile-transit" title={`In transit — ${inTransit} weeks until it is teaching again`}>moving · {weeksShort(inTransit)}</span>
+            ? <span className="program-tile-transit" title={`In transit · ${inTransit} weeks`}>moving · {weeksShort(inTransit)}</span>
             : dark
-              ? <span className="program-tile-transit" title="A course has no instructor: the program is dark until it is restaffed">dark</span>
+              ? <span className="program-tile-transit" title="A course has no instructor">dark</span>
               : <span className="program-tile-progress">{fraction(progress.done, progress.total)}</span>}
           {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
-          {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
+          {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100`} />}
         </span>
       </button>
       {open && (
@@ -258,7 +255,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
           </dl>
           <p className="building-info-line program-summary-next">
             {inTransit > 0
-              ? `In transit — ${inTransit} week${inTransit === 1 ? '' : 's'} until its courses count again.`
+              ? `In transit · ${inTransit} week${inTransit === 1 ? '' : 's'}.`
               : progress.next
                 ? (() => {
                   const field = progress.next.requiresFaculty;
@@ -267,7 +264,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
                     <>
                       Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {moneyShort(progress.next.cost)} · {weeksShort(progress.next.duration)}
                       {gate !== 'open' && (
-                        <span className="program-summary-blocked"> — needs {field} faculty{gate === 'hireable' ? ', a candidate is listed' : ', nobody on the market'}.</span>
+                        <span className="program-summary-blocked"> — needs {field} faculty.</span>
                       )}
                     </>
                   );
@@ -317,7 +314,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
   if (inTransit > 0) {
     return (
       <p className="building-info-line building-info-construction relocate-note">
-        In transit — {inTransit} week{inTransit === 1 ? '' : 's'} until its courses count again. Nothing in it can be started or advanced until then.
+        In transit · {inTransit} week{inTransit === 1 ? '' : 's'} left.
       </p>
     );
   }
@@ -327,7 +324,7 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
   return (
     <div className="relocate">
       <p className="building-info-line relocate-note">
-        Free, but the program closes for {relocationWeeks(s, program.id)} weeks: no teaching, no progress, and it counts toward no school until it settles.
+        Free · closed {relocationWeeks(s, program.id)} weeks
       </p>
       {destinations.map((d) => (
         <p key={d.hallId} className="relocate-row">
@@ -482,9 +479,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         <ConfirmButton
           className="btn-quiet hall-offer-decline"
           disabled={refusal !== null}
-          title={refusal ?? `Set ${program.name} aside for another offer; one offer a year may be declined`}
+          title={refusal ?? `Set ${program.name} aside for another offer`}
           label="Not this year"
-          armedLabel={`Confirm — no other offer can be declined until Year ${s.clock.year + 1}`}
+          armedLabel="Confirm"
           onConfirm={() => {
             act({ type: 'DECLINE_OFFER', programId: program.id });
             if (pickedProgram === program.id) { setPickedProgram(null); setPickedFaculty(null); }
@@ -503,14 +500,14 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       )}
       {claim && (
         <p className="building-info-line building-info-dedication" style={{ color: schoolMark(claim.school).hue }}>
-          {schoolMark(claim.school).motif} {claim.school} · {claim.housed} of {claim.slots} — six found the School of {claim.school}.
+          {schoolMark(claim.school).motif} {claim.school} · {claim.housed} of {claim.slots}
         </p>
       )}
       {founders && (
         <p className="building-info-line">
           {officeAllowance(s) > 0
-            ? `Where programs begin, and where the administration sits. A program moving out of it is closed for ${FOUNDERS_MOVE_WEEKS} weeks on the way; a slot it leaves can hold an office.`
-            : `Where programs begin. Six programs of one school in any hall, this one included, found that school; a program moving out of it is closed for ${FOUNDERS_MOVE_WEEKS} weeks on the way.`}
+            ? 'Where programs begin, and where the administration sits.'
+            : 'Where programs begin.'}
         </p>
       )}
       <p className="building-info-line">
@@ -599,7 +596,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         <div className={`hall-offer${officesOffered > 0 ? ' follows-switch' : ''}`}>
           {committeeFull && (
             <p className="building-info-line building-info-construction hall-offer-committee">
-              The curriculum committee is writing {committeeSeats(s)} courses already, its most: a program can be founded once one of them is done.
+              The curriculum committee is full.
             </p>
           )}
           {ownSchool ? (
@@ -640,16 +637,14 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
               ) : (
                 <>
                   <p className="building-info-line">
-                    {s.faculty.some((f) => f.field === entry.requiresFaculty)
-                      ? `Needs ${entry.requiresFaculty} faculty: every professor in the field is teaching a full load. Appoint one to found this program.`
-                      : `Needs ${entry.requiresFaculty} faculty: nobody on the payroll teaches ${entry.requiresFaculty}. Appoint a professor to found this program.`}
+                    Needs {entry.requiresFaculty} faculty.
                   </p>
                   {entry.requiresFaculty && act && <MarketInField s={s} act={act} field={entry.requiresFaculty} projectedFor={entry} />}
                 </>
               )}
               {pickedHomeHall && (
                 <p className="building-info-line">
-                  {picked.school} has a hall of its own: {hallDisplayName(s, pickedHomeHall)}. Found it there to keep the school together.
+                  {picked.school} has a hall of its own: {hallDisplayName(s, pickedHomeHall)}.
                 </p>
               )}
               {s.finance.cash < entry.cost && (
@@ -660,7 +655,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
               <ConfirmButton
                 className={`building-info-jump${s.events.opening.stage === 'found' && canFound ? ' opening-target' : ''}`}
                 disabled={!canFound || !act}
-                title={committeeFull ? 'No room on the committee for its entry course until one of its courses is done' : undefined}
+                title={committeeFull ? 'The curriculum committee is full' : undefined}
                 needsConfirm={cut !== null}
                 label={chosen
                   ? `Found ${picked.name} · ${moneyShort(entry.cost)}`
@@ -669,7 +664,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
                   ? `Confirm — this takes one of the ${countWord(cut.slots)} program slots ${cut.school} needs`
                   : `Found ${picked.name}`}
                 warning={cut
-                  ? `${hallDisplayName(s, t)} holds ${cut.school} (${fraction(cut.housed, cut.slots)}): ${picked.name} here keeps it from becoming the School of ${cut.school} until it moves out.`
+                  ? `Takes a slot ${cut.school} needs.`
                   : undefined}
                 onConfirm={() => {
                   if (founding && act) act({ type: 'FOUND_PROGRAM', ...founding });
@@ -707,7 +702,7 @@ function LevelLine({ s, t }: { s: GameState; t: Buildable }) {
 // renovate it (systems/estate).
 function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action) => void }) {
   if ((t.extensionWeeks ?? 0) > 0) {
-    return <p className="building-info-line">A story going up, open throughout: {t.extensionWeeks} weeks left.</p>;
+    return <p className="building-info-line">A story going up: {t.extensionWeeks} weeks left.</p>;
   }
   const extend = canExtend(t) ? (
     <button type="button" className="building-info-jump" disabled={!canPayForWorks(s, extensionCost(t)) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction; nothing new goes up until it lifts.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
@@ -715,16 +710,16 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
     </button>
   ) : null;
   if ((t.renovationWeeks ?? 0) > 0) {
-    return <p className="building-info-line">Under renovation, open throughout: {t.renovationWeeks} weeks left.</p>;
+    return <p className="building-info-line">Under renovation: {t.renovationWeeks} weeks left.</p>;
   }
   const historic = t.historic
     ? <p className="building-info-line">Historic: a landmark of the college's own past.</p>
     : canDeclareHistoric(s, t) ? (
       <ConfirmButton
         className="building-info-jump"
-        label="Declare historic · lends prestige, costs a quarter more to keep"
+        label="Declare historic"
         armedLabel="Confirm — it can never come down"
-        warning="For good: it can never be demolished, and its upkeep stays a quarter higher."
+        warning="Permanent. +25% upkeep."
         onConfirm={() => act({ type: 'DECLARE_HISTORIC', id: t.id })}
       />
     ) : null;
@@ -770,7 +765,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
       className="building-info-jump btn-danger"
       label="Demolish"
       armedLabel={`Confirm — ${hallDisplayName(s, t)} comes down`}
-      warning={<>It is free, nothing is returned, and it cannot be undone.</>}
+      warning="Cannot be undone."
       onConfirm={() => { act({ type: 'DEMOLISH_BUILDING', id: t.id }); onClose(); }}
     />
   );

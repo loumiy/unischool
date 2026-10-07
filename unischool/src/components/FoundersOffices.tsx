@@ -41,7 +41,7 @@ export function officeStatusLine(s: GameState, officeId: string): string | null 
     case 'admissions': {
       const pool = s.students.lastFunnel?.applicants;
       const range = pool ? admissionsRange(s, pool) : null;
-      return range ? `At last year's pool, a range of ${count(range.low)}–${count(range.high)}; the summer shows it at the price the college sets.` : 'The summer shows its range at the price the college sets.';
+      return range ? `At last year's pool, a range of ${count(range.low)}–${count(range.high)}.` : 'The summer shows its range at the price the college sets.';
     }
     case 'curriculum': return `The committee writes ${committeeSeats(s)} courses at once, one of them this office's.`;
     case 'faculty-recruitment': return `The market holds up to ${candidatePoolTarget(s)}, each listed ${candidateListingWeeks(s)} weeks.`;
@@ -106,7 +106,7 @@ export function OfficeTile({ slot, s, act, open, onToggle }: {
             <ConfirmButton
               className="building-info-jump office-close"
               label={`Close office · slot dark ${weeksShort(OFFICE_CLOSING_WEEKS)}`}
-              armedLabel={`Confirm — the slot does nothing for ${OFFICE_CLOSING_WEEKS} weeks, and its price is not returned`}
+              armedLabel="Confirm"
               onConfirm={() => act({ type: 'CLOSE_OFFICE', officeId: office.id })}
             />
           )}
@@ -126,7 +126,7 @@ export function AllowanceRow({ s }: { s: GameState }) {
     ? ` · next: ${next.name}${progress ? ` (${progress.unit === 'prestige' ? prestigeFigure(progress.value) : count(Math.floor(progress.value))} of ${count(progress.target)})` : ''}`
     : '';
   return (
-    <div className="office-allowance" title="Offices the college may hold: one for each of six milestones">
+    <div className="office-allowance" title="Offices the college may hold">
       <span>Offices</span>
       {Array.from({ length: MAX_OFFICES }, (_, i) => (
         <i key={i} className={i < held ? 'held' : i < allowance ? 'free' : 'locked'} aria-hidden="true" />

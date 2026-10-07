@@ -117,7 +117,7 @@ export function crossMajorPrereqs(t: Buildable, find: (id: string) => Buildable 
 export function courseHoldReason(s: GameState, t: Buildable, lookup?: Map<string, Buildable>): string | null {
   if (t.kind !== 'course' || t.status === 'done' || t.status === 'developing') return null;
   const programId = programOfCourse(t.id);
-  if (programId !== undefined && isInTransit(s, programId)) return 'Its program is moving halls; nothing starts until it settles';
+  if (programId !== undefined && isInTransit(s, programId)) return 'Its program is moving halls';
   const find = lookup ? (id: string) => lookup.get(id) : (id: string) => s.tech.find((x) => x.id === id);
   if (t.status === 'locked') {
     const bridges = crossMajorPrereqs(t, find);

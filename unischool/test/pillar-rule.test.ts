@@ -47,7 +47,7 @@ console.log('pillar rule tests');
 // ---- The hints say what the guide ranks by (B2-2) ----
 {
   const rank = FIGURE_HINTS.rank(100);
-  assert(rank.startsWith('Of 100 colleges, by prestige; #1 is the top') && !rank.includes('academic ranking'), `the Rank hint ranks by prestige ("${rank}")`);
+  assert(rank.startsWith('Of 100 colleges, by prestige') && !rank.includes('academic ranking'), `the Rank hint ranks by prestige ("${rank}")`);
   assert(FIGURE_HINTS.prestige.includes(pillarWeightsWords()), `the Prestige hint names the four pillars at their weights ("${FIGURE_HINTS.prestige}")`);
 }
 

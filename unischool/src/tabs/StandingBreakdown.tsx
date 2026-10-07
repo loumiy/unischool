@@ -1,4 +1,4 @@
-import { pct, prestigeFigure, signed } from '../format';
+import { pct, prestigeFigure } from '../format';
 import {
   multiplierLine, type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
@@ -132,14 +132,11 @@ export function StandingFigure({ breakdown }: { breakdown: StandingBreakdown }) 
   );
 }
 
-// The summer model, in a sentence: what the year is grading toward, how
-// the step works, and last summer's card if there is one.
-function summerNote(breakdown: StandingBreakdown, gap: number): string {
-  const { riseRate, maxRise, fallRate, reportCard } = breakdown.summer!;
-  const step = gap > 0 ? Math.min(gap * riseRate, maxRise) : Math.abs(gap) * fallRate;
-  const grading = `This year is grading ${prestigeFigure(breakdown.target)}; each summer, prestige closes `
-    + `${pct(riseRate)} of a gap upward (at most ${prestigeFigure(maxRise)} points) and ${pct(fallRate)} downward`
-    + (Math.abs(gap) < 0.05 ? '.' : ` — ${signed(gap > 0 ? step : -step, 1)} if nothing changes.`);
+// The summer model, in a sentence: what the year is grading toward, and
+// last summer's card if there is one.
+function summerNote(breakdown: StandingBreakdown): string {
+  const { reportCard } = breakdown.summer!;
+  const grading = `This year is grading ${prestigeFigure(breakdown.target)}.`;
   const last = reportCard
     ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${prestigeFigure(reportCard.before)} → ${prestigeFigure(reportCard.after)}.`
     // Before the first summer (Plan 78C): when the grade first counts.
@@ -172,14 +169,13 @@ export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: 
       )}
       <p className="standing-note">
         {breakdown.summer
-          ? summerNote(breakdown, gap)
+          ? summerNote(breakdown)
           : breakdown.live
             ? `Read as it stands, week by week, and ${pct(breakdown.share ?? 0)} of prestige.`
             : Math.abs(gap) < 0.05
             ? 'Sitting at its target.'
             : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${prestigeFigure(breakdown.target)}, by `
-              + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week — about `
-              + `${(Math.abs(gap) * breakdown.driftRate * 52).toFixed(1)} over a year if nothing changes.`}
+              + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week.`}
         {breakdown.share !== undefined && !breakdown.live && ` It is ${pct(breakdown.share)} of prestige.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
       </p>

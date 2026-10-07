@@ -135,13 +135,13 @@ console.log('crowding cost tests');
   assert(Math.abs(attributeCoverage(under, 'basicNeeds') - 0.84) < 0.005, `dining reads 84% (${attributeCoverage(under, 'basicNeeds')})`);
   const step = nextStep(under);
   console.log('    at 84%:', step?.text);
-  assert(step?.text === 'Dining serves 84% — crowding is costing prestige; a dining hall would raise it', `crowding speaks under the grace (${step?.text})`);
+  assert(step?.text === 'Dining at 84%; a dining hall would raise it', `crowding speaks under the grace (${step?.text})`);
   assert(step?.go === 'build', 'and opens the build menu');
 
   const over = at(0.86);
   const quiet = nextStep(over);
   console.log('    at 86%:', quiet?.text);
-  assert(!quiet?.text.includes('crowding'), `at 86% it is quiet (${quiet?.text})`);
+  assert(!quiet?.text.includes('Dining at'), `at 86% it is quiet (${quiet?.text})`);
 
   // The line carries the intent of the reading it stands before, so the
   // guided player does what it did without it (a line, not an intent).
@@ -154,7 +154,7 @@ console.log('crowding cost tests');
   building.developing[next.id] = 9;
   const named = nextStep(building);
   console.log('    going up:', named?.text);
-  assert(named?.text === `Dining serves 84% — crowding is costing prestige; ${next.name} opens in 9 weeks`, `it names the building going up (${named?.text})`);
+  assert(named?.text === `Dining at 84%; ${next.name} opens in 9 weeks`, `it names the building going up (${named?.text})`);
   assert(named?.go === 'hall' && named.hallId === next.id, 'and opens its site');
 
   // Then it is only something to know: a step the player can act on (an
@@ -163,7 +163,7 @@ console.log('crowding cost tests');
   lab.status = 'done';
   assert(nextStep(building)?.intent?.kind === 'research', `it gives way to a step that can be taken (${nextStep(building)?.text})`);
   building.tech.find((t) => t.id === next.id)!.status = 'available';
-  assert(nextStep(building)?.text.startsWith('Dining serves 84%') === true && nextStep(building)?.intent?.kind === 'research',
+  assert(nextStep(building)?.text.startsWith('Dining at 84%') === true && nextStep(building)?.intent?.kind === 'research',
     'with nothing going up, crowding speaks first and the guided player keeps the lab\'s intent');
 }
 

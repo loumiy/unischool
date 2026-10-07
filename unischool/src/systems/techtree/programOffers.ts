@@ -146,10 +146,7 @@ export function offeredIn(s: GameState, hallId: string, programId: string): bool
 export function declineRefusal(s: GameState, programId: string): string | null {
   if (!s.programOffers.includes(programId)) return 'That program is not on offer.';
   const last = s.declinedOffer;
-  if (last && last.year === s.clock.year) {
-    const name = programs().find((program) => program.id === last.programId)?.name ?? last.programId;
-    return `One offer a year may be declined, and ${name} was declined this year. The next can be declined in Year ${s.clock.year + 1}.`;
-  }
+  if (last && last.year === s.clock.year) return 'Already declined one this year.';
   const replacements = offerablePrograms(s).filter((program) => !s.programOffers.includes(program.id));
   if (replacements.length === 0) return 'Nothing else is left to offer in its place.';
   return null;

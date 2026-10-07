@@ -123,7 +123,7 @@ function claimed(name = 'Decline'): { s: GameState; school: string } {
 
   const second = t.programOffers[0];
   const reason = declineRefusal(t, second);
-  assert(reason !== null && reason.includes('Year 5') && reason.includes(programById(first)!.name), `a second decline this year is refused with its reason ("${reason}")`);
+  assert(reason === 'Already declined one this year.', `a second decline this year is refused with its reason ("${reason}")`);
   const u = reducer(t, { type: 'DECLINE_OFFER', programId: second });
   assert(JSON.stringify(u.programOffers) === JSON.stringify(t.programOffers), 'and changes nothing');
 

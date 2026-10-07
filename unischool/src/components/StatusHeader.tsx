@@ -196,24 +196,34 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
 
   // Two rows, clock above gears, with the calendar page beside both
   // (styles.css's .toolbar-right). The page carries the whole date for a
-  // screen reader; the year, days and term bar beside it are drawn only.
+  // screen reader; the year, days and year bar beside it are drawn only.
+  // The page counts the term's weeks, not the year's: "Spring, week 38"
+  // read as a calendar's September.
   const date = gameDate(s.clock.year, s.clock.week);
   const termWeek = weekOfTerm(s.clock.week);
   return (
     <>
       <div className="toolbar-calendar" role="img" aria-label={date} title={date}>
         <span className="toolbar-calendar-term">{termSeason(s.clock.week)}</span>
-        <span className="toolbar-calendar-week">{s.clock.week}</span>
+        <span className="toolbar-calendar-week">{termWeek}</span>
         <span className="toolbar-calendar-word">Week</span>
       </div>
       <div className="toolbar-school" aria-hidden="true">
         <span className="toolbar-clock">Year {s.clock.year}</span>
         <div className="toolbar-days">
           <DayTicker s={s} speed={speed} weekProgress={weekProgress} />
-          <div className="term-bar" title={`Week ${termWeek} of ${TERM_LENGTH} this term`}>
-            {Array.from({ length: TERM_LENGTH }, (_, i) => (
-              <span key={i} className={i + 1 < termWeek ? 'done' : i + 1 === termWeek ? 'now' : undefined} />
-            ))}
+          {/* The college year, Fall then Spring: each term's half fills
+              as its weeks pass, so the bar runs from the year's first
+              week of classes to its summer, not January to December. */}
+          <div className="year-bar" title={`${termSeason(s.clock.week)} term, week ${termWeek} of ${TERM_LENGTH}`}>
+            {(['Fall', 'Spring'] as const).map((term, i) => {
+              const filled = Math.max(0, Math.min(TERM_LENGTH, s.clock.week - i * TERM_LENGTH));
+              return (
+                <span key={term} className="year-bar-term">
+                  <span style={{ width: `${(filled / TERM_LENGTH) * 100}%` }} />
+                </span>
+              );
+            })}
           </div>
         </div>
       </div>

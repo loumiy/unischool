@@ -236,7 +236,7 @@ export const DOWNTOWN_WORDS = {
   // Where the needs are shown.
   offCampus: 'Downtown, off campus',
   offCampusBeds: (beds: string) => `${beds} downtown`,
-  offCampusHint: `The downtown district's places: it meets up to ${pct(OFF_CAMPUS_SHARE)} of the need once grown in full, and as much of that as it has grown before then. It costs the college nothing to keep.`,
+  offCampusHint: `The downtown district's places: it meets up to ${pct(OFF_CAMPUS_SHARE)} of the need once grown in full, and as much of that as it has grown before then.`,
 
   // The Students tab's panel.
   head: 'The downtown',
@@ -254,7 +254,7 @@ export const DOWNTOWN_WORDS = {
   hintGrowth: `How far the town beside the campus has grown into a downtown district: full after about ${DISTRICT_YEARS_TO_FULL} years at a goodwill of ${GOODWILL_START}, faster the warmer the town.` as `${string}.`,
   hintGoodwill: `The town's goodwill toward the college, 0 to 100: each festival raises it, a spring without one costs ${-SKIPPED_GOODWILL}, and the town-and-gown events trade it; student life's specialization share reads it in full from ${GOODWILL_FOR_FULL}.` as `${string}.`,
   hintFestivals: `The spring festivals of the last ${FESTIVAL_WINDOW_YEARS} years, each counted by its scale (${SCORING}): ${FESTIVAL_POINTS_FOR_FULL} points fill student life's specialization share.` as `${string}.`,
-  hintOffCampus: `What the downtown meets of the students' needs, up to ${pct(OFF_CAMPUS_SHARE)} of each once grown in full: places the college does not have to build or keep.` as `${string}.`,
+  hintOffCampus: `What the downtown meets of the students' needs, up to ${pct(OFF_CAMPUS_SHARE)} of each once grown in full.` as `${string}.`,
   hintLast: 'The latest spring festival and its scale; the next is decided in the inbox at the fourth week of the Spring term.' as `${string}.`,
 };
 

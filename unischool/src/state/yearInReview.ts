@@ -191,7 +191,7 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
     });
   }
   const petitions = s.orgs.pendingPetitions.length;
-  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organization')} petitioning for recognition — the President answers at this summer's Students step` });
+  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organization')} petitioning for recognition` });
   const leaving = projectedAttrition(s);
   if (leaving > 0) {
     const reasons = attritionReasons(s);

@@ -102,13 +102,13 @@ function courseDemandByField(s: GameState): Map<string, DemandByMajor> {
 function demandSentence(field: string, demand: DemandByMajor | undefined, catalogue: number): string {
   if (!demand || demand.length === 0) {
     return catalogue > 0
-      ? `No ${field} course is open yet — ${catalogue} in the catalog are waiting behind buildings and prerequisites.`
+      ? `No ${field} course is open yet.`
       : `Nothing in the catalog asks for ${field}.`;
   }
   const count = demand.reduce((n, g) => n + g.courses.length, 0);
   return `${count} open ${count === 1 ? 'course pulls' : 'courses pull'} on ${field}: `
     + demand.map((g) => `${g.group} (${g.courses.join(', ')})`).join('; ')
-    + `. Each one occupies a course slot in this department for as long as it is offered, whether or not somebody is teaching it.`;
+    + '.';
 }
 
 // The row's action (hiringNext.ts's deptAction): appoint the listing, post a
@@ -146,7 +146,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
         className="dept-action search"
         disabled={!action.canPost}
         onClick={(e) => { e.stopPropagation(); act({ type: 'POST_SEARCH', field: c.field }); }}
-        title={`Nobody is listed in ${c.field}. A search runs half a year with a much better chance every week that somebody is: ${money(action.cost)}.`}
+        title={`Run a search: ${money(action.cost)}`}
       >
         Post a search <span className="dept-action-meta">{moneyShort(action.cost)}</span>
       </button>
@@ -306,7 +306,7 @@ function DepartmentRow(
                 </ul>
               ) : (
                 <p className="empty-note">
-                  No {c.field} candidate is listed. The market turns over every week — or pay for a search.
+                  No {c.field} candidates this week.
                 </p>
               )}
               {/* A search, offered per short department. */}
@@ -407,7 +407,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
         <div className="next-up-item wall">
           <span className="next-up-label">Short-staffed</span>
           <span className="next-up-doors">
-            <button type="button" className="next-up-door" onClick={() => onOpenCurriculum?.('unstaffed')} title="Departments teaching more than they supply — every course without an instructor, in the Curriculum">
+            <button type="button" className="next-up-door" onClick={() => onOpenCurriculum?.('unstaffed')} title="Unstaffed courses">
               {over.map((c) => c.field).join(', ')} · {unstaffed} {unstaffed === 1 ? 'course' : 'courses'} unstaffed →
             </button>
           </span>
@@ -453,7 +453,7 @@ export function FacultyFigures({ cap }: { cap: FacultyCapacity }) {
         <strong>{count(t.supply)}</strong> course slots
       </span>
       {' · '}
-      <span title="Course slots taken by the courses on offer, whether or not somebody is teaching them">
+      <span title="Course slots in use">
         <strong>{count(t.offered)}</strong> on offer
       </span>
       {t.available > 0 && (
@@ -466,7 +466,7 @@ export function FacultyFigures({ cap }: { cap: FacultyCapacity }) {
       )}
       {' · '}
       {t.shortfall > 0 ? (
-        <span title={`Teaching the whole catalog takes ${count(t.catalogue)} course slots in the departments that hold them: about ${hiresFor(t.shortfall)} more appointments, fewer if they stay long enough to grow`}>
+        <span title={`About ${hiresFor(t.shortfall)} more appointments to teach the whole catalog`}>
           <strong>{count(t.shortfall)}</strong> short of the catalog
         </span>
       ) : (
@@ -800,7 +800,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
                 {people.length === 0
                   ? (market ? 'Nobody is on the market this week.' : 'Nobody is on the faculty yet. Appoint someone from the market.')
                   : market && scopedField
-                    ? `No ${scopedField.field} candidate is listed. The market turns over every week — or pay for a search.`
+                    ? `No ${scopedField.field} candidates this week.`
                     : 'Nobody matches.'}
               </p>
             )}

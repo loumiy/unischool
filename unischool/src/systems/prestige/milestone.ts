@@ -108,7 +108,7 @@ export function resolveSpecialization(s: GameState, pillar: Pillar | null): void
   s.specializationYear = payload?.year ?? s.clock.year - 1;
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
-    message: `The college specializes in ${PILLAR_WORDS[pillar]}: ${SPECIALIZATION_CARDS[pillar].name.replace(/^The /, 'the ')}. Its share of ${PILLAR_WORDS[pillar]} opens, for good.`,
+    message: `The college specializes in ${PILLAR_WORDS[pillar]}: ${SPECIALIZATION_CARDS[pillar].name.replace(/^The /, 'the ')}.`,
     kind: 'good',
   });
 }

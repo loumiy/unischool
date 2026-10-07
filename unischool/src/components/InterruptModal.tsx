@@ -102,7 +102,6 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
   onToggle: (id: string) => void;
 }) {
   if (petitions.length === 0) return null;
-  const clubs = petitions.filter((p) => p.kind === 'club').length;
 
   return (
     <div className="digest">
@@ -111,11 +110,6 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
           ? 'One new student organization this year'
           : `${petitions.length} new student organizations this year`}
       </h3>
-      <p className="digest-note">
-        {clubs === petitions.length
-          ? 'Recognize an organization and it costs a little every week and adds a little to student satisfaction, for as long as it exists. Decline and the students notice.'
-          : 'Chapters carry more of both than clubs do — more cost, and considerably more student life.'}
-      </p>
       {petitions.map((p) => (
         <label key={p.id} className={`digest-row ${approved.has(p.id) ? 'approved' : 'declined'}`}>
           <input type="checkbox" checked={approved.has(p.id)} onChange={() => onToggle(p.id)} />
@@ -139,7 +133,7 @@ const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> =
   bargain: { label: 'a bargain for the college\'s prestige', className: 'price-tier-bargain' },
   fair: { label: 'in line with the college\'s prestige', className: 'price-tier-fair' },
   expensive: { label: 'more than the college\'s prestige supports', className: 'price-tier-expensive' },
-  reckless: { label: 'far above what the college\'s prestige supports; expect sticker shock', className: 'price-tier-reckless' },
+  reckless: { label: 'far above what the college\'s prestige supports', className: 'price-tier-reckless' },
 };
 
 // "Fair" spans 0.7 to 1.15 of what prestige supports, about $6,000 at most
@@ -329,7 +323,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               className="reveal"
               // The year's lift (Plan 79C), named where it is counted.
               label={outcome.lift > 0
-                ? <>Applicant pool <span className="outcome-note">(including {count(outcome.lift)} drawn for this year only by new landmarks and milestones)</span></>
+                ? <>Applicant pool <span className="outcome-note">(+{count(outcome.lift)} this year only)</span></>
                 : 'Applicant pool'}
               hint={FIGURE_HINTS.applicants}
               value={<>
@@ -353,17 +347,16 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
             )}
             <Figure
               className="reveal"
-              label={<>Room for <span className="outcome-note">(the catalog's places, less those who stay on)</span></>}
+              label="Room for"
               hint={FIGURE_HINTS.room}
               value={<AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />}
             />
           </dl>
           <p className="admissions-ceiling-note">
             {count(ceiling.capacity)} places across the courses now taught
-            {ceiling.moving > 0 ? `, counting ${count(ceiling.moving)} in programs moving halls, which teach again early in the year` : ''}; {count(ceiling.stayingOn)} return next year.
+            {ceiling.moving > 0 ? `, counting ${count(ceiling.moving)} in programs moving halls` : ''}; {count(ceiling.stayingOn)} return next year.
             {ceiling.nextSummer > ceiling.capacity
-              ? ` Next summer the catalog will hold ${count(ceiling.nextSummer)}, counting the courses now in development.`
-              : ' Nothing in development will add places by next summer.'}
+              && ` Next summer the catalog will hold ${count(ceiling.nextSummer)}, counting the courses now in development.`}
           </p>
 
           <div className="cohort-breakdown">
@@ -611,12 +604,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
     <>
       <h2>Students</h2>
       {petitions.length === 0 ? (
-        <p>
-          No new student organization petitioned this year
-          {s.orgs.clubs.length === 0 && s.orgs.chapters.length === 0
-            ? ' — clubs form once the campus has a Student Center for them to meet in.'
-            : '.'}
-        </p>
+        <p>No new student organization petitioned this year.</p>
       ) : null}
       <StudentLifeDigest
         petitions={petitions}
@@ -628,7 +616,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
         })}
       />
       <dl className="admissions-outcomes">
-        <Figure label={<>Tuition for the incoming class <span className="outcome-note">(locked for four years)</span></>} value={`${money(decision.tuition)}/yr`} hint={FIGURE_HINTS.tuitionLocked} />
+        <Figure label="Tuition for the incoming class" value={`${money(decision.tuition)}/yr`} hint={FIGURE_HINTS.tuitionLocked} />
         <Figure label="Admit rate" value={pct(decision.admitRate)} hint={FIGURE_HINTS.admitRate} />
       </dl>
       <div className="modal-actions">
@@ -706,7 +694,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
           ? `${standings.find((r) => r.isPlayer)?.name ?? 'The college'} has entered the guide's top fifty, at #${rank}.`
           : published
             ? `This year's standings: the college is #${rank}.`
-            : `The college ranks #${rank} of ${payload.field}. The guide prints fifty names; the college is not yet among them.`}
+            : `The college ranks #${rank} of ${payload.field}.`}
       </p>
 
       {delta !== null && (
@@ -844,7 +832,7 @@ export function MilestoneCelebrationView({ s, payload, onDismiss }: {
           <dd className={delta > 0 ? 'milestone-gain' : ''}>{signed(delta, 1)}</dd>
         </div>
         <div>
-          <dt>Prestige today <span className="outcome-note">(steps toward the target each summer, and drifts a little between)</span></dt>
+          <dt>Prestige today</dt>
           <dd>{prestigeFigure(s.self.reputation)}</dd>
         </div>
       </dl>
@@ -1059,9 +1047,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
         {s.orgs.teams.length === 1
           ? 'The college fields a varsity program now, and nobody is running it.'
           : `The college fields ${s.orgs.teams.length} varsity programs now, and nobody is running them.`}
-        {' '}Three candidates have applied. A director lifts every team the college fields —
-        and unlike a coach, there is only one of them, so the question is simply how much of
-        the department's budget goes to the person in charge.
+        {' '}Three candidates have applied.
       </p>
 
       <div className="ad-candidates">
@@ -1097,7 +1083,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
       )}
 
       <button className="ad-decline" onClick={() => onResolve(null, mascot)}>
-        Appoint nobody for now — the search goes on, and the position will come back around.
+        Appoint nobody for now
       </button>
     </>
   );
@@ -1177,7 +1163,7 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
     <>
       <h2>The Deans' recommendations</h2>
       <p>
-        Courses without an instructor leave their whole program dark: no places, no progress and a zero in every grade.
+        Some courses have no instructor.
         The Deans have found who can take them.
       </p>
       {plans.map((p) => (

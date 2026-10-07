@@ -93,7 +93,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                   className="panel-action small"
                   label={`Hire from outside · ${moneyShort(def.outsideSalary * market)}/yr`}
                   armedLabel="Confirm — a salary for good"
-                  warning="A seat is for good: its salary is paid every year from now on."
+                  warning="Permanent."
                   onConfirm={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school })}
                 />
               </div>

@@ -246,7 +246,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
           ) : (
             <div className="inbox-quiet">
               <h3 className="heading-panel">Nothing to read</h3>
-              <p>Events that want an answer, the board's letters, milestones and the week's news all arrive here. The button in the toolbar counts what needs deciding.</p>
+              <p>Events that want an answer, the board's letters, milestones and the week's news all arrive here.</p>
             </div>
           )}
       </div>
@@ -374,7 +374,7 @@ function ReadingPane({ s, act, item, onOpenTab }: {
             <span className="inbox-side-key eyebrow">Deadline</span>
             <span className={`inbox-side-big${item.urgent ? ' urgent' : ''}`}>{dueLabel(left, weeks)}</span>
             <span className="inbox-side-key eyebrow">Met by</span>
-            <span className="inbox-side-value">Building it: the demand closes the week it is met</span>
+            <span className="inbox-side-value">Build it</span>
           </aside>
         </div>
       </article>
@@ -482,7 +482,7 @@ function AnswerView({ l }: { l: LogEntry }) {
         <p className="inbox-meta">{gameDate(l.year, l.week)}</p>
       </header>
       <p className={`inbox-para${a.lapsed ? ' lapsed' : ''}`}>{a.how}</p>
-      {a.lapsed && <p className="inbox-para inbox-note">It was left unanswered, so it settled the way it does when nobody answers.</p>}
+      {a.lapsed && <p className="inbox-para inbox-note">Left unanswered.</p>}
     </article>
   );
 }

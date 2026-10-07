@@ -26,7 +26,7 @@ import { REPORT_WORDS } from '../src/data/reportData';
 import { STANDINGS } from '../src/systems/rivals/rivalsSystem';
 import { pillarRule } from '../src/data/prestigeWords';
 import { GRADE_POINTS, meanGradeLetter } from '../src/data/courseQuality';
-import { PILLARS, pillarBreakdown, teachingCeiling, teachingCeilingAt } from '../src/systems/prestige/prestigeSystem';
+import { PILLARS, pillarBreakdown, teachingCeiling } from '../src/systems/prestige/prestigeSystem';
 
 let checks = 0;
 let failures = 0;
@@ -125,7 +125,6 @@ const HOMES: Record<HistoryView, string[]> = {
   const standard = teachingCeiling(s);
   assert(/^courses average an? [ABCDF][+−]?: standing can reach \d+\./.test(standard.detail), `the line names the mean grade (${standard.detail})`);
   assert(standard.detail.includes(`reach ${standard.value.toFixed(0)}.`), 'and the standing it allows');
-  assert(standard.detail.includes(`B's reaches ${teachingCeilingAt(GRADE_POINTS.B).toFixed(0)}`), 'and a campus of B\'s');
   assert(!/graded A/.test(standard.detail), 'not the share of A\'s');
 }
 

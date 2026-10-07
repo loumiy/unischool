@@ -262,7 +262,7 @@ function letter(id: string) {
   s.pendingInterrupt = null;
   const hall = letter('a-hall-of-its-own');
   assert(hall.ask(s).text === 'Site Elm Hall' && hall.ask(s).go === 'build', `its ask is to site Elm Hall (${hall.ask(s).text})`);
-  assert(!hall.body(s).includes('undefined') && hall.body(s).includes('Founders Hall included'), 'and its body reads: a school in any hall');
+  assert(!hall.body(s).includes('undefined') && hall.body(s).includes('Elm Hall is the first hall'), 'and its body names the hall to build');
   assert(nextStep(s)?.text === 'Site Elm Hall', 'the line carries the ask past year one');
 
   s.placements['HALL-01'] = { row: 10, col: 20, w: 7, h: 5 };

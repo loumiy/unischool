@@ -2,7 +2,7 @@
 // The Curriculum tab's sections (Plan 80B, tabs/CurriculumTab.tsx's
 // curriculumGroups): the seven schools draw their majors, and the graduate
 // programs sit in four sections of their own after them — the doctorates
-// and the MFA in the Graduate School, the MBA in the Business School, the
+// and the MFA in the Graduate School, the MBA in the Graduate Business School, the
 // JD in the Law School, the MD in the Medical School — in their home
 // schools' colors. Only the tab's grouping moves: the discovery sections
 // the rest of the game reads keep each program under its home school.
@@ -47,13 +47,13 @@ s.halls['TEST-HOST'] = graduatePrograms().map((p) => ({ programId: p.id }));
 {
   const groups = curriculumGroups(s);
   const keys = groups.map((grp) => grp.key);
-  const gradKeys = keys.filter((k) => ['Graduate School', 'Business School', 'Law School', 'Medical School'].includes(k));
-  assert(gradKeys.join('|') === 'Graduate School|Business School|Law School|Medical School', `the four graduate sections, in order (${gradKeys.join(', ')})`);
+  const gradKeys = keys.filter((k) => ['Graduate School', 'Graduate Business School', 'Law School', 'Medical School'].includes(k));
+  assert(gradKeys.join('|') === 'Graduate School|Graduate Business School|Law School|Medical School', `the four graduate sections, in order (${gradKeys.join(', ')})`);
   assert(keys.slice(-4).join('|') === gradKeys.join('|'), 'after every school');
 
   const rowsOf = (key: string) => groups.find((grp) => grp.key === key)?.rows.map((row) => row.program.id) ?? [];
   assert(rowsOf('Graduate School').sort().join(',') === ['PHDB', 'PHDC', 'PHDE', 'PHDH', 'PHDL', 'PHDS', 'MFAX'].sort().join(','), `the Graduate School holds the doctorates and the MFA (${rowsOf('Graduate School').join(', ')})`);
-  assert(rowsOf('Business School').join(',') === 'MBAX', 'the Business School the MBA');
+  assert(rowsOf('Graduate Business School').join(',') === 'MBAX', 'the Graduate Business School the MBA');
   assert(rowsOf('Law School').join(',') === 'LAWS', 'the Law School the JD');
   assert(rowsOf('Medical School').join(',') === 'MED', 'the Medical School the MD');
   for (const grp of groups) {
@@ -62,7 +62,7 @@ s.halls['TEST-HOST'] = graduatePrograms().map((p) => ({ programId: p.id }));
   }
 
   const mark = (key: string) => groups.find((grp) => grp.key === key)?.mark;
-  assert(mark('Business School')?.hue === schoolMark('Business').hue, "the Business School is in Business's color");
+  assert(mark('Graduate Business School')?.hue === schoolMark('Business').hue, "the Graduate Business School is in Business's color");
   assert(mark('Law School')?.hue === schoolMark('Social Sciences & Humanities').hue, "the Law School in Social Sciences & Humanities' color");
   assert(mark('Medical School')?.hue === schoolMark('Health Science').hue, "the Medical School in Health Science's color");
   assert(mark('Graduate School')?.hue === undefined, "the Graduate School takes the college's colors, its rows their home schools'");
@@ -86,7 +86,7 @@ s.halls['TEST-HOST'] = graduatePrograms().map((p) => ({ programId: p.id }));
 s.halls['TEST-HOST'] = [{ programId: 'LAWS' }];
 {
   const keys = curriculumGroups(s).map((grp) => grp.key);
-  assert(keys.includes('Law School') && !keys.includes('Graduate School') && !keys.includes('Business School') && !keys.includes('Medical School'), `only the Law School with the JD alone (${keys.join(', ')})`);
+  assert(keys.includes('Law School') && !keys.includes('Graduate School') && !keys.includes('Graduate Business School') && !keys.includes('Medical School'), `only the Law School with the JD alone (${keys.join(', ')})`);
 }
 
 console.log(`  ${failures === 0 ? '✓' : '✗'} ${checks - failures} of ${checks} checks passed`);

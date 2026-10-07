@@ -101,7 +101,7 @@ function PrestigeCharts({ s }: { s: GameState }) {
           years={years}
           values={history.map((h) => h.prestige)}
           format={prestigeFigure}
-          note="Slow to move: graded each summer and stepped toward the grade, with a little drift toward it between summers."
+          note="Graded each summer."
         />
         <MultiChart
           title="Place in the guide, by year"
@@ -282,7 +282,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => count(v)}
-            note="The class each summer's funnel committed — fed by prestige, tuition and word of mouth. Beds scale the applicant pool, never a hard limit on enrollment."
+            note="Each summer's entering class."
           />
           <HistoryChart
             label="Operating funds"
@@ -290,7 +290,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             years={years}
             values={history.map((h) => h.cash)}
             format={moneyShort}
-            note="Cash on hand each summer. Troughs are the years the college committed to something expensive."
+            note="Cash on hand each summer."
           />
           <HistoryChart
             label="Catalog"
@@ -298,7 +298,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             years={years}
             values={history.map((h) => h.coursesDone)}
             format={(v) => fraction(v, totalCourses)}
-            note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established. Breadth counts toward prestige as one part of the academics pillar, Curriculum breadth.`}
+            note={`${latest.programsEstablished} program${latest.programsEstablished === 1 ? '' : 's'} established.`}
           />
         </div>
       </section>

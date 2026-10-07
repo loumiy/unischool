@@ -4,7 +4,7 @@ import { BEYOND_NEED_FROM, BEYOND_NEED_UPKEEP, isRetailFood } from '../../data/f
 import { NEED_SPACE } from '../../data/needWords';
 import { expectedRatio, offCampusPlaces, servedPopulationFor } from '../satisfaction/satisfactionSystem';
 import { isPriceUpkept, upkeepShare } from './estate';
-import { count, decimal, pct } from '../../format';
+import { count, decimal } from '../../format';
 
 // Space beyond need (Plan 80F), the owner's call: charge mainly for
 // overbuilding. In each need a facility serves, capacity up to
@@ -80,23 +80,19 @@ export function beyondNeedUpkeep(s: GameState): BeyondNeedUpkeep {
 }
 
 // "Dining: 5,400 places for 3,900 students"; for the needs a student uses a
-// share of a place for, the places they need too. Past the line it says
-// what it costs. The building panel's line.
+// share of a place for, the places they need. The building panel's line.
 export function needUseSentence(s: GameState, attribute: keyof SatisfactionAttributes): string {
   const r = needCapacity(s, attribute);
   const label = NEED_SPACE[attribute];
   const perStudent = expectedRatio(s, attribute) === 1;
   const use = perStudent
     ? `${label}: ${count(r.capacity)} places for ${count(r.enrolled)} students`
-    : `${label}: ${count(r.capacity)} places; ${count(r.enrolled)} students need ${count(r.need)}`;
-  return r.beyondShare > 0
-    ? `${use}. Past ${pct(BEYOND_NEED_FROM)} of the need, a place costs ${decimal(BEYOND_NEED_UPKEEP)} times as much to keep.`
-    : `${use}.`;
+    : `${label}: ${count(r.capacity)} places for ${count(r.need)} needed`;
+  return `${use}.`;
 }
 
 // The Treasury's note: each need past the line and how far.
 export function beyondNeedNote(s: GameState): string {
   const { byNeed } = beyondNeedUpkeep(s);
-  const over = byNeed.map((n) => `${NEED_SPACE[n.attribute].toLowerCase()} ${decimal(n.capacity / Math.max(n.need, 1), 1)} times the need`).join(', ');
-  return `${over}: past ${pct(BEYOND_NEED_FROM)} of what the students need, a place costs ${decimal(BEYOND_NEED_UPKEEP)} times as much to keep`;
+  return byNeed.map((n) => `${NEED_SPACE[n.attribute].toLowerCase()} ${decimal(n.capacity / Math.max(n.need, 1), 1)} times the need`).join(', ');
 }
