@@ -6,7 +6,7 @@ import type { GameState, Pillar, ReportCard, SatisfactionAttributes } from '../.
 import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
-import { GRADE_POINTS, meanGradeLetter, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
+import { meanGradeLetter, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
 import { INITIATIVE_COMPLETION_CREDIT, labEquippedFields, researchableFields } from '../../data/researchData';
 import { athleticProgramStrength, departmentPot, sportEconomics, studentLifeSocialRaw, teamQuality, STUDENT_LIFE_PRESTIGE_FULL } from '../../data/studentLifeData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE, healthPhaseIn } from '../../data/facilitiesData';
@@ -489,7 +489,7 @@ export function teachingCeiling(s: GameState): NonNullable<StandingBreakdown['ce
   return {
     value,
     label: 'The teaching standard',
-    detail: `${average}: standing can reach ${value.toFixed(0)}. A campus of B's reaches ${teachingCeilingAt(GRADE_POINTS.B).toFixed(0)}; only A's everywhere reach ${PRESTIGE_MAX}.`,
+    detail: `${average}: standing can reach ${value.toFixed(0)}.`,
   };
 }
 
@@ -560,7 +560,7 @@ function studentLifeBreakdown(s: GameState): StandingBreakdown {
   return pillarOf(s, 'studentLife', null, [
     weigh(
       'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
-      `Students have averaged ${satisfactionFigure(average)} of 100 this year; ${WELFARE_FLOOR_SATISFACTION} earns nothing and ${WELFARE_FULL_SATISFACTION} pays in full.`,
+      `Students have averaged ${satisfactionFigure(average)} of 100 this year.`,
     ),
     weigh(
       'campus', 'Campus life', CAMPUS_LIFE_WEIGHT, socialLifeScore(s),
@@ -568,7 +568,7 @@ function studentLifeBreakdown(s: GameState): StandingBreakdown {
     ),
     weigh(
       'beauty', 'Campus beauty', BEAUTY_WEIGHT, beautyScore(s),
-      `The campus scores ${campusBeauty(s).toFixed(0)} of 100 for its trees, landmarks, upkeep and quads; 50 is neutral.`,
+      `The campus scores ${campusBeauty(s).toFixed(0)} of 100 for its trees, landmarks, upkeep and quads.`,
     ),
   ], projectInput(s, 'experience'));
 }
@@ -644,8 +644,8 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       'crowding', 'Crowding', CROWDING_PENALTY, crowdingScore(s),
       `Averaged over the year. Today the worst is ${worst.label} at ${pct(worst.coverage)}`
         + (worst.coverage >= CROWDING_GRACE
-          ? `; nothing is lost at ${pct(CROWDING_GRACE)} or better.`
-          : ` (${coverages.slice(1).map((c) => `${c.label} ${pct(c.coverage)}`).join(', ')}); nothing is lost at ${pct(CROWDING_GRACE)} or better.`),
+          ? '.'
+          : ` (${coverages.slice(1).map((c) => `${c.label} ${pct(c.coverage)}`).join(', ')}).`),
     ),
   ], prestigeReadings(s), {
     riseRate: PRESTIGE_RISE_RATE,
@@ -766,11 +766,11 @@ function reading(
 function concentrationDetail(s: GameState): string {
   const best = deepestSchool(s);
   if (!best) {
-    return 'No school founded yet — six programs of one school in one hall found it, and finishing every one of them distinguishes it.';
+    return 'No school founded yet.';
   }
   if (best.founded && best.distinguished) return `The School of ${best.school}: founded and distinguished.`;
   if (best.founded) return `The School of ${best.school}: founded, not yet distinguished — every one of its programs complete would finish it.`;
-  return `${best.school}: distinguished but never founded — its programs were finished without ever sharing one hall.`;
+  return `${best.school}: distinguished but never founded.`;
 }
 
 export function prestigeReadings(s: GameState): StandingReading[] {

@@ -11,7 +11,7 @@ import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/tec
 import { awaitsSite, isPlaceableKind } from '../state/campusMap';
 import BuildThumb from './BuildThumb';
 import { foundersHallUnsited } from '../state/opening';
-import { BEYOND_NEED_FROM, BEYOND_NEED_UPKEEP, FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
@@ -25,7 +25,7 @@ import {
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, DisclosureIcon,
 } from './icons';
-import { count, countWord, decimal, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
+import { count, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
 import { LOAN_RATE, LOAN_YEARS, borrowingRoom, financingFor, giftFunds, loanBar, loanFor } from '../systems/finance/treasury';
 import { pillarWorthWords } from '../data/prestigeWords';
 import { constructionFrozen } from '../systems/finance/distress';
@@ -320,21 +320,17 @@ function builtDetail(t: Buildable): string | undefined {
   return undefined;
 }
 
-// A lab's lines lead with research (Plan 95Q, the second review's B3-7):
-// the first lab "starts research", the rest lift it, at the pillar's weight
-// read from PILLAR_WEIGHTS (prestigeWords.ts), never typed; the advanced
-// courses second. Short, to fit the tile.
+// A lab's line is research (Plan 95Q, the second review's B3-7): the first
+// lab "starts research", the rest lift it, at the pillar's weight read from
+// PILLAR_WEIGHTS (prestigeWords.ts), never typed. Short, to fit the tile.
 function labLines(s: GameState, t: Buildable): string[] {
   const first = t.status !== 'done' && !s.tech.some((o) => o.facilityType === 'lab' && (o.status === 'done' || o.status === 'developing'));
-  return [`${first ? 'starts' : 'lifts'} ${pillarWorthWords('research')}`, 'required for advanced courses'];
+  return [`${first ? 'starts' : 'lifts'} ${pillarWorthWords('research')}`];
 }
 
-// The Library's lines (Plan 95Q, B3-10): what it serves, and when it costs
-// more to keep, every figure from the upkeep rule (facilitiesData.ts's
-// BEYOND_NEED_FROM and BEYOND_NEED_UPKEEP; estate/beyondNeed.ts).
+// The Library's line (Plan 95Q, B3-10): what it serves.
 function libraryLines(t: Buildable): string[] {
-  const times = Number.isInteger(BEYOND_NEED_UPKEEP) ? countWord(BEYOND_NEED_UPKEEP) : decimal(BEYOND_NEED_UPKEEP, 1);
-  return [`serves ${count(t.effects?.servesPopulation ?? 0)}`, `past ${pct(BEYOND_NEED_FROM)} of need, ${times} times the upkeep`];
+  return [`serves ${count(t.effects?.servesPopulation ?? 0)}`];
 }
 
 // A tile's lines under its name: builtDetail's, or the lab's and the
@@ -443,7 +439,7 @@ function BuildTile({
           disabled={shortfall > 0 || frozen}
           title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
-            : `Expands the ${t.name} in place — no new building. Adds ${count(rung.seatsGain)} seats in the stands, and their prestige, at once, and ${count(rung.servesGain)} of social capacity when the ${rung.weeks} weeks of work are done; the teams keep playing while the work is under way.`}
+            : `Adds ${count(rung.seatsGain)} seats and ${count(rung.servesGain)} social capacity.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
           <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
@@ -483,7 +479,7 @@ function BuildTile({
         disabled={!sitable}
         title={armed
           ? 'Click an empty tile on the map to site here, or click this again to cancel.'
-          : 'The founding hall — pick it up, then click where it stands. No charge.'}
+          : 'The founding hall. No charge.'}
         draggable={sitable}
         onDragStart={(e) => {
           onArmPlacement(t.id);
@@ -706,7 +702,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'draw' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'draw'}
         onClick={() => onSetPathTool('draw')}
-        title="Draw a pathway by filling in tiles — P on the map does the same, and the right mouse button erases while either tool is armed"
+        title="Draw pathways (P)"
       >
         <TilePlan Icon={DrawPathIcon} />
         <span className="build-tile-name">Draw path</span>
@@ -717,7 +713,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'erase' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'erase'}
         onClick={() => onSetPathTool('erase')}
-        title="Erase a drawn pathway — with either tool armed the right mouse button erases too, so this is for a long clearing pass rather than a correction"
+        title="Erase pathways (right-click also erases)"
       >
         <TilePlan Icon={EraseIcon} />
         <span className="build-tile-name">Erase path</span>
@@ -730,7 +726,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'plant' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'plant'}
         onClick={() => onSetPathTool('plant')}
-        title="Plant trees by filling in tiles — the right mouse button fells while either tree tool is armed. Nothing is planted under a building or a path."
+        title="Plant trees"
       >
         <TilePlan Icon={TreeIcon} />
         <span className="build-tile-name">Plant trees</span>
@@ -742,7 +738,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'fell' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'fell'}
         onClick={() => onSetPathTool('fell')}
-        title="Fell trees — with either tree tool armed the right mouse button fells too, so this is for clearing woodland rather than a correction"
+        title="Fell trees (right-click also fells)"
       >
         <TilePlan Icon={EraseIcon} />
         <span className="build-tile-name">Fell trees</span>
@@ -754,7 +750,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'lamp' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'lamp'}
         onClick={() => onSetPathTool('lamp')}
-        title="Stand a lamp on or beside a path, one a click — the right mouse button lifts one. Free, like a path."
+        title="Place a lamp (free)"
       >
         <TilePlan Icon={DrawPathIcon} />
         <span className="build-tile-name">Lamps</span>
@@ -765,7 +761,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         className={`build-tile tool ${pathTool === 'bench' ? 'placing' : ''}`}
         aria-pressed={pathTool === 'bench'}
         onClick={() => onSetPathTool('bench')}
-        title="Set a bench on or beside a path, one a click: it faces the path, and R turns it before it is set. The right mouse button lifts one. Free, like a path."
+        title="Place a bench (R to rotate)"
       >
         <TilePlan Icon={DrawPathIcon} />
         <span className="build-tile-name">Benches</span>
@@ -849,10 +845,10 @@ export default function BuildPopup({
         </div>
 
         {constructionFrozen(s) && (
-          <p className="stall-note">The board has frozen new construction until the college has run two surplus terms with cash in the bank.</p>
+          <p className="stall-note">The board has frozen new construction.</p>
         )}
         {s.finance.cash < 0 && !constructionFrozen(s) && (
-          <p className="stall-note">Cash is negative — the college is running an operating deficit, so nothing can be paid for from cash or a loan until the balance recovers. A building the campaign fund covers in full can still start.</p>
+          <p className="stall-note">Cash is negative.</p>
         )}
 
         <nav className="build-mode-tabs segmented" aria-label="Build categories">

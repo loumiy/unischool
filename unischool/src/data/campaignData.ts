@@ -47,7 +47,7 @@ export const CAMPAIGNS: readonly CampaignDef[] = [
     resonates: ['thinned'],
     text: 'The case for support writes itself, which the Development Office says is rare. Half of those being asked lived three to a room, and the letter says so in the first line.',
     kept: 'The Housing Campaign closed at its number, and the building fund is there for the next residence.',
-    missed: 'The Housing Campaign closed short. What was raised is restricted and waiting; what was asked for was not all given.',
+    missed: 'The Housing Campaign closed short. What was raised is restricted and waiting.',
   },
   {
     id: 'teaching-chairs', kind: 'endowment', title: 'The Campaign for the Faculty', years: 8,

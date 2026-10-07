@@ -77,7 +77,7 @@ export function initialDorms(): Buildable[] {
       id: STARTING_DORM_ID,
       kind: 'dorm',
       name: 'Meadow House',
-      description: 'The college\'s first residence hall — build it to give students somewhere to live on campus.',
+      description: 'The college\'s first residence hall.',
       cost: STARTING_DORM_COST,
       duration: STARTING_DORM_WEEKS,
       prereqs: [],

@@ -360,7 +360,7 @@ function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => vo
           {chosen === null && <p className="research-park-line">{PARK_WORDS.gatedUnchosen(specializationOfferRule())}</p>}
           <p className="research-park-line">
             {projectOpens(park.project)}
-            {projectOpen(s, park) && ' It is open: build it from the capital projects in the build menu.'}
+            {projectOpen(s, park) && ' It is open.'}
           </p>
           {/* A tally, a cell per lab (Plan 90); each cell names its lab. */}
           <div className="park-tally">
@@ -377,7 +377,6 @@ function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => vo
               })}
             </div>
           </div>
-          <p className="research-park-note">A new lab raises the count: it has to finish a project too.</p>
         </>
       )}
     </section>
@@ -436,8 +435,7 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
 
         {facilities.length === 0 ? (
           <p className="empty-note">
-            No research facility has been finished yet. Every school can build one — a lab, an institute,
-            a studio or a computing center — once its building and that program's entry course are done.
+            No research facility has been finished yet.
           </p>
         ) : (
           <>

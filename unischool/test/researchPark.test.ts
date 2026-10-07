@@ -98,8 +98,8 @@ function earned(specialization: GameState['specialization']): GameState {
   park(s).status = 'locked';
   unlockAvailable(s);
   assert(park(s).status === 'locked' && !closedBySpecialization(s, park(s)), 'not before every lab has finished a project, nor listed closed then');
-  assert(/specialized in research and every lab on campus has finished a research project; no other college may build it/.test(projectOpens(def.project)), `its gate in words ("${projectOpens(def.project)}")`);
-  assert(/keeps its Landmark Programs and adds nothing more/.test(def.description) && def.description.includes(`${Math.round(PARK_RESEARCH_BOOST * 100)}%`), 'the description says what it does, and what an old park keeps');
+  assert(projectOpens(def.project).endsWith('specialized in research and every lab on campus has finished a research project.'), `its gate in words ("${projectOpens(def.project)}")`);
+  assert(def.description.endsWith('home of the Landmark Programs.'), 'the description says what it is');
   // The letter asks to site it only while it can be: closed again, it asks nothing.
   const letter = OPENING_LETTERS.find((l) => l.id === 'the-research-park')!;
   assert(park(s).status === 'locked' && letter.done(s), 'the letter is done while the park is closed');

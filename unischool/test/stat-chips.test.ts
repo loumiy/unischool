@@ -3,8 +3,8 @@
 // src/data/statChips.ts): prestige opens History › Prestige and rank the
 // guide's table (Plan 80C), satisfaction opens Students › the breakdown, and
 // each lands from the first week. The committee, a chip until Plan 91, is
-// lamps on the Curriculum button: test/committee.test.ts's. The rank chip's sentence says prestige's summer step as
-// prestigeSystem.ts sets it.
+// lamps on the Curriculum button: test/committee.test.ts's. The rank chip's
+// sentence says the rank is by prestige.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -15,8 +15,6 @@ import { tickLadder } from '../src/systems/ladder/ladderSystem';
 import { sectionAvailable, tabAvailable } from '../src/components/TabNav';
 import { STAT_CHIPS, STAT_CHIP_WORDS, chipDoor } from '../src/data/statChips';
 import { FIGURE_HINTS } from '../src/data/figureHints';
-import { PRESTIGE_MAX_RISE } from '../src/systems/prestige/prestigeSystem';
-import { prestigeFigure } from '../src/format';
 import { rankingsRows } from '../src/components/RankingsTable';
 
 bindScriptStream(4242);
@@ -100,11 +98,10 @@ console.log('stat chip tests');
   assert(FIGURE_HINTS.committee(3, 4, true).includes('of the 4 it can write at once'), 'and it names the most at once');
 }
 
-// --- the rank chip says prestige's summer step -----------------------------
+// --- the rank chip says the rank is by prestige ----------------------------
 {
   const hint = FIGURE_HINTS.rank(100);
-  assert(hint.includes('follows prestige'), `the rank's sentence says it follows prestige (${hint})`);
-  assert(hint.includes(`at most ${prestigeFigure(PRESTIGE_MAX_RISE)} points`), 'and the most a summer can add, read from prestigeSystem.ts');
+  assert(hint.includes('by prestige'), `the rank's sentence says it follows prestige (${hint})`);
 }
 
 if (failures === 0) {

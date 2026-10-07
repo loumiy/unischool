@@ -406,7 +406,7 @@ export const PROMISE_LINES = {
   decadeTaken: "Chosen",
   none: "Nothing promised, and nothing owed.",
   capReached: "Three is as many promises as the college will make at once.",
-  note: "A public commitment with a date on it. Declining costs nothing; keeping it is worth more than that.",
+  note: "A public commitment with a date on it.",
 } as const;
 
 export function promiseById(id: string): PromiseDef | undefined {

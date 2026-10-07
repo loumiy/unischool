@@ -1,6 +1,4 @@
 import type { CapitalProject, Pillar } from '../state/types';
-import { PARK_RESEARCH_BOOST } from './researchParkData';
-import { COMPLEX_FLAGSHIPS, COMPLEX_RECRUITING_BOOST } from './athleticsComplexData';
 
 // A pillar in a sentence (specializationData.ts's PILLAR_WORDS, written out:
 // that module reads this one's neighbors).
@@ -71,7 +69,7 @@ export const PROJECTS: readonly ProjectDef[] = [
   // the labs' output rises (data/researchParkData.ts).
   {
     id: 'PROJ-RESEARCH-PARK', name: 'The Research Park',
-    description: `Laboratories at the edge of campus where faculty and industry work side by side. Once it stands, any lab can take on a Landmark Program. At a college specialized in research, its Landmark work fills research's specialization share and every lab's output is ${Math.round(PARK_RESEARCH_BOOST * 100)}% higher; a park at a college specialized in anything else keeps its Landmark Programs and adds nothing more.`,
+    description: `Laboratories at the edge of campus where faculty and industry work side by side: home of the Landmark Programs.`,
     cost: 45_000_000, weeks: 144, upkeep: 45_000,
     project: { fromYear: 12, everyLabFinished: true, specialization: 'research', boosts: {} },
   },
@@ -119,7 +117,7 @@ export const PROJECTS: readonly ProjectDef[] = [
   // upkeep is the complex's running cost. Kept by the owner (2026-10-01).
   {
     id: 'PROJ-ATHLETICS-COMPLEX', name: 'The Athletic Performance Complex',
-    description: `A glass-walled training center beside the venues: a strength hall, a sports-science lab, recovery pools, film rooms and a running track on the roof, where every varsity athlete trains. At a college specialized in athletics it carries ${COMPLEX_FLAGSHIPS} more flagship programs than the subsidy level allows, its scholarships recruit ${Math.round(COMPLEX_RECRUITING_BOOST * 100)}% more, its teams play stronger in a semifinal and a final, and its deep runs fill athletics' specialization share.`,
+    description: `A glass-walled training center beside the venues: a strength hall, a sports-science lab, recovery pools, film rooms and a running track on the roof, where every varsity athlete trains.`,
     cost: 30_000_000, weeks: 104, upkeep: 35_000,
     project: { fromYear: 1, specialization: 'athletics', boosts: {} },
   },
@@ -142,7 +140,7 @@ export function projectOpens(p: CapitalProject): string {
   // A specialization's own building (Plan 85E, 85F): the specialization
   // first, then any gate of its own (the Research Park's labs).
   if (p.specialization !== undefined) {
-    return `Opens once the college is specialized in ${SPECIALIZED_WORDS[p.specialization]}${once ? ` and ${once}` : ''}; no other college may build it.`;
+    return `Opens once the college is specialized in ${SPECIALIZED_WORDS[p.specialization]}${once ? ` and ${once}` : ''}.`;
   }
   const year = p.late
     ? `Year ${p.fromYear}, or Year ${DEFEND_ERA_YEAR} for a college at prestige ${DEFEND_ERA_PRESTIGE}`

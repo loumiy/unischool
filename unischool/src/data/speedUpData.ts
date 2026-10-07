@@ -115,7 +115,7 @@ export const SPEED_UP_WORDS = {
       case 'phase': return `A deep run made with the second phase standing counts half again toward the share.`;
     }
   },
-  ceiling: 'It fills the share sooner; the share is full at the same mark.',
+  ceiling: 'It fills the share sooner.',
   buy: (price: string) => `Buy, ${price}`,
   armed: (price: string) => `Confirm — ${price}`,
   done: {

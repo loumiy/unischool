@@ -187,7 +187,7 @@ function freeSlot(s: GameState): NextStep | null {
   const claimed = claimedHalls(s).find((c) => hasRoom(c.hallId));
   if (!claimed) return null;
   return claimed.hallId === FOUNDERS_HALL_ID
-    ? { text: `${nameOf(FOUNDERS_HALL_ID)} has room for ${claimed.school} when one is on offer: founding a program or declining an offer draws the next`, intent: { kind: 'wait' } }
+    ? { text: `${nameOf(FOUNDERS_HALL_ID)} has room for ${claimed.school} when one is on offer`, intent: { kind: 'wait' } }
     : { text: `${nameOf(claimed.hallId)} has room only for ${claimed.school}, and nothing of ${claimed.school} is left to offer`, intent: { kind: 'wait' } };
 }
 
@@ -275,7 +275,7 @@ const CROWDED_LABEL: Partial<Record<keyof SatisfactionAttributes, string>> = {
 function crowding(s: GameState, rest: NextStep | null): NextStep | null {
   const worst = crowdingCoverages(s).find((c) => c.attribute !== undefined && c.coverage < CROWDING_GRACE);
   if (!worst?.attribute) return rest;
-  const need = `${CROWDED_LABEL[worst.attribute] ?? ATTRIBUTE_LABEL[worst.attribute]} serves ${pct(worst.coverage)} — crowding is costing prestige`;
+  const need = `${CROWDED_LABEL[worst.attribute] ?? ATTRIBUTE_LABEL[worst.attribute]} at ${pct(worst.coverage)}`;
   const intent = rest?.intent ? { intent: rest.intent } : {};
   const coming = comingFor(s, worst.attribute);
   if (coming) {
@@ -297,7 +297,7 @@ function darkProgram(s: GameState): NextStep | null {
   if (plan.length === 0) return null;
   const names = [...dark].map((id) => programById(id)?.name ?? id);
   const text = names.length === 1
-    ? `${names[0]} is dark — a course has no instructor; staff it from the market`
+    ? `${names[0]} is dark: staff it`
     : `${names.length} programs are dark — ${names[0]} and more; staff them from the market`;
   return { text, go: 'curriculum', urgent: true, intent: { kind: 'restaff', school: null } };
 }

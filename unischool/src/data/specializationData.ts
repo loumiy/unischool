@@ -127,10 +127,8 @@ export function specializationTerm(s: GameState, pillar: Pillar): { score: numbe
 // A program's quality slows above the knee without the athletics
 // specialization (studentLifeData.ts's teamQuality), on its card in the
 // Athletics tab.
-export function teamSlowed(knee: number, earned: number, quality: number, chosen: Pillar | null): string {
-  return chosen
-    ? `Its staff, funding and recruiting would make it ${earned}; above ${knee} each point comes harder, and the college is specialized in ${PILLAR_WORDS[chosen]}, so it plays at ${quality}.`
-    : `Its staff, funding and recruiting would make it ${earned}; above ${knee} each point comes harder without a specialization in athletics, so it plays at ${quality}.`;
+export function teamSlowed(earned: number, quality: number): string {
+  return `Would be ${earned}; plays at ${quality}.`;
 }
 
 // The team quality in the Athletics tab's help (Plan 85C), as the college's
@@ -156,7 +154,7 @@ export function specializationStatus(
   chosen: Pillar | null, year: number | undefined, offered: boolean, offer: string, max: number,
 ): string {
   if (chosen) {
-    return `The college is specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? `, chosen in Year ${year}` : ''}: ${PILLAR_WORDS[chosen]} may rise to the full ${max}, and the other three pillars' specialization shares stay empty.`;
+    return `The college is specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? `, chosen in Year ${year}` : ''}: ${PILLAR_WORDS[chosen]} may rise to the full ${max}.`;
   }
   if (offered) return 'The college has not chosen a specialization, so each pillar\'s specialization share is empty. The board\'s offer stands, and comes back at the close of every summer until one is chosen.';
   return `The college has no specialization, so each pillar's specialization share is empty. ${offer}`;
@@ -237,7 +235,7 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     fillsShort: `The share fills as professors are trained, full once ${pct(TRAINED_SHARE_FOR_FULL)} of the faculty is.`,
     mechanics: [
       { text: 'The Faculty Training Institute on the map, a capital project only this specialization may build.', ready: true },
-      { text: `Each year the institute takes professors picked for training, one for every ${FACULTY_PER_TRAINING_PICK} on the faculty and at least ${MIN_TRAINING_PICKS}. Each rises a full grade in teaching (the width of their grade on the course scale) and keeps it, and teaches one course fewer for a term.`, ready: true },
+      { text: `Each year the institute takes professors picked for training, one for every ${FACULTY_PER_TRAINING_PICK} on the faculty and at least ${MIN_TRAINING_PICKS}. Each rises a full grade in teaching and keeps it, and teaches one course fewer for a term.`, ready: true },
     ],
   },
   research: {
@@ -342,10 +340,10 @@ export const CHOICE_WORDS = {
   rivals: (count: number) => (count === 0 ? 'No rival is specialized in it.' : `${count} rival${count === 1 ? ' is' : 's are'} specialized in it`),
   strongestRival: (name: string, value: number) => `; the strongest, ${name}, stands at ${value.toFixed(0)}.`,
   choose: (name: string) => `Choose ${name.replace(/^The /, 'the ')}`,
-  confirm: 'Confirm — the other three shares stay empty for good',
+  confirm: 'Confirm',
   warning: (pillar: Pillar) => `The college will be specialized in ${PILLAR_WORDS[pillar]} for good. It cannot be changed or undone.`,
   later: 'Not this year',
-  laterNote: 'The offer stands: it comes back at the close of every summer until a specialization is chosen.',
+  laterNote: 'The offer will come back next summer.',
 };
 
 // The board's notice (Plan 85D), when the college first comes within reach

@@ -10,7 +10,6 @@ import { marketRateMultiplier } from '../data/facultyData';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import { FIGURE_HINTS } from '../data/figureHints';
-import { HOME_DATES_PER_SEASON } from '../systems/athletics/gate';
 import { departmentPot } from '../data/studentLifeData';
 import { count, decimal, money, moneyShort, multiplier, pct, prestigeFigure } from '../format';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
@@ -60,10 +59,8 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
   const sectionsNote = teaching.courses === 0
     ? 'no course is offered yet'
     : teaching.overflow > 0
-      ? `every section is full and ${count(teaching.overflow)} students are in overflow — the catalog is smaller than the college`
-      : teaching.fill >= 0.85
-        ? `sections are running ${pct(teaching.fill)} full`
-        : `sections are running ${pct(teaching.fill)} full — the catalog is bigger than the college`;
+      ? `every section is full and ${count(teaching.overflow)} students are in overflow`
+      : `sections are running ${pct(teaching.fill)} full`;
 
   // What drives each line's figure, so the statement teaches the economy
   // rather than just reporting it. Which lines show is treasuryStatement.ts's.
@@ -72,19 +69,19 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
     prestigeRevenue: `donors and grants, scaling with prestige ${prestigeFigure(s.self.reputation)}`,
     annualFund: `what ${(s.alumni?.length ?? 0)} graduated class${(s.alumni?.length ?? 0) === 1 ? '' : 'es'} give, by their warmth and years out`,
     endowmentPayout: `a ${pct(drawRate(s), 1)} draw on ${money(s.finance.endowment)}`,
-    athleticsSurplus: `${money(flow.gateRevenue)}/wk at the gate over ${HOME_DATES_PER_SEASON} home dates a season, into the department's fund first; this is what was left once every program took its cost`,
+    athleticsSurplus: `${money(flow.gateRevenue)}/wk at the gate`,
     weeklySalaries: `${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}; salaries rise with tenure`,
-    seatUpkeep: `${count(s.students.capacity)} beds — an empty one still costs, at half rate`,
+    seatUpkeep: `${count(s.students.capacity)} beds`,
     instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section; ${sectionsNote}`,
     servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} for crowding` : ''}`,
-    scaleCost: `the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)} — each doubling costs every student more`,
+    scaleCost: `the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)}`,
     academicUpkeep: `running ${coursesDone} courses and the teaching buildings they sit in`,
-    facilityUpkeep: 'libraries, dining, rec and labs, each carrying its own running cost',
+    facilityUpkeep: 'libraries, dining, rec and labs',
     beyondNeedUpkeep: beyondNeedNote(s),
     studentLifeUpkeep: `${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`,
-    athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate — the department's cost to the college`,
-    athleticScholarships: `the scholarship budgets of ${scholarshipTeams} flagship${scholarshipTeams === 1 ? '' : 's'}, set on the Athletics tab: what their recruiting costs`,
-    administration: `${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'}, for good — ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of the payroll`,
+    athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate`,
+    athleticScholarships: `the scholarship budgets of ${scholarshipTeams} flagship${scholarshipTeams === 1 ? '' : 's'}`,
+    administration: `${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'} · ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of payroll`,
     offices: officesNote(s),
     debtService: `${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`,
   };
@@ -205,7 +202,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               { name: 'Endowment', points: s.history.filter((h) => h.endowment !== undefined).map((h) => ({ x: h.year, y: h.endowment! })), format: moneyShort },
               { name: 'Net', points: s.history.map((h) => ({ x: h.year, y: h.net })), format: moneyShort },
             ]}
-            note="Read each summer. The net is the year's change in cash on hand, so a year that built something big reads low."
+            note="Read each summer."
           />
         </section>
       )}

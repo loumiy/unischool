@@ -52,7 +52,6 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
         <dt>Grows</dt>
         <dd>
           {growth >= 0 ? `${rate(growth)} a year, before gifts` : `shrinks ${rate(-growth)} a year`}
-          {draw > DRAW_RATE_PRUDENT && <span className="stat"> — {growth >= 0 ? 'so next year\'s draw grows as little' : 'and next year\'s draw shrinks with it'}</span>}
         </dd>
       </dl>
       <div className="treasury-transfer">
@@ -65,7 +64,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
               className="panel-action small"
               label={moneyShort(amount)}
               armedLabel={`Confirm — ${moneyShort(amount)} never comes back to cash`}
-              warning="The endowment is one way: it pays out its draw, but the principal does not come back to cash."
+              warning="Permanent."
               onConfirm={() => act({ type: 'MOVE_TO_ENDOWMENT', amount })}
             />
           ))}

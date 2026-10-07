@@ -57,7 +57,7 @@ export const OPENING_STEPS: Record<Exclude<OpeningStage, 'play'>, OpeningStep> =
   'site-hall': {
     eyebrow: 'Step one',
     title: 'Raise Founders Hall',
-    body: () => 'Every building comes from the build menu at the foot of the screen. Click Founders Hall to pick it up, then click a clear stretch of ground to set it down — its footprint follows the pointer, and the ground is the college\'s own, so this one costs nothing. Every later building is placed the same way.',
+    body: () => 'Every building comes from the build menu at the foot of the screen. Click Founders Hall to pick it up, then click a clear stretch of ground to set it down — its footprint follows the pointer.',
     door: 'build',
   },
   appoint: {

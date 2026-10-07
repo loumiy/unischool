@@ -24,7 +24,7 @@ export const CAREER_WORDS = {
   joined: (college: string, year: number, term: string) => `Joined ${college} in Year ${year}, ${term.toLowerCase()}.`,
   // A founding professor's record from elsewhere (facultyData.ts's
   // FOUNDING_TENURE_WEEKS) comes with them.
-  foundingNote: 'Came with a record from elsewhere, which counts toward their growth but not their years here.',
+  foundingNote: 'Came with a record from elsewhere.',
   yearsHere: (years: number) => (years < 1 ? 'In their first year here.' : `${years} ${years === 1 ? 'year' : 'years'} here.`),
   retires: (years: number) => (years <= 1 ? 'Retires within the year.' : `Retires in about ${years} years.`),
 
@@ -62,13 +62,13 @@ export const CAREER_WORDS = {
   distinguished: (program: string, year: number | undefined) =>
     (year !== undefined ? `Taught in ${program}, a program complete since Year ${year}.` : `Taught in ${program}, a program with every course complete.`),
   longService: (years: number, year: number) => `${years} years of service, reached in Year ${year}.`,
-  noRecognition: 'Nothing yet. Prizes, a program taught in to its last course and 25 years of service are what count.',
+  noRecognition: 'Nothing yet.',
 
   // Training at the Faculty Training Institute (Plan 85E).
   trained: (year: number, from: number, to: number, gradeFrom: string, gradeTo: string) =>
     `Trained at the Faculty Training Institute in Year ${year}: teaching from ${from} (${gradeFrom}) to ${to} (${gradeTo}), and their potential with it.`,
   trainingNow: (until: string) => `At the institute this term: one course fewer until ${until}.`,
-  notTrained: 'Not trained at the institute yet. A training raises teaching a full grade, for good.',
+  notTrained: 'Not trained at the institute yet.',
   trainingPoints: (points: number) => `Training has added ${points} to their teaching in all.`,
 
   // The chart.
@@ -76,7 +76,7 @@ export const CAREER_WORDS = {
   chartTooShort: 'The chart begins once they have finished a year here.',
 
   // A candidate has no history here, and says so.
-  candidate: (name: string, college: string) => `${name} has not worked at ${college}. There is no history here yet: the record starts the week they are appointed.`,
+  candidate: (name: string, college: string) => `${name} has not worked at ${college}.`,
 
   // Doors and actions.
   toCurriculum: (field: string) => `${field} courses in the Curriculum →`,

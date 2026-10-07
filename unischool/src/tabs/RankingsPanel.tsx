@@ -29,7 +29,7 @@ export default function RankingsPanel({ s }: { s: GameState }) {
       <p className="stat">
         {rank <= TOP_50_CUTOFF
           ? `The college is #${rank} in the guide.`
-          : `The college is #${rank}. The guide prints ${TOP_50_CUTOFF} names; the college is not yet among them.`}
+          : `The college is #${rank}.`}
       </p>
       <RankingsTable rows={rankingsRows(list, TOP_50_CUTOFF)} lastYear={false} pillars={pillarColumns(s)} specializations={specializations(s)} />
     </section>

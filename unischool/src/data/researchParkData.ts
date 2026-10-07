@@ -154,6 +154,6 @@ export const PARK_WORDS = {
   // The next-step line, at a lab that has not finished a research project
   // while the park is still ahead (nextStep.ts's idleLab).
   unprovenLab: (lab: string, specialized: boolean) => (specialized
-    ? `${lab} has not finished a research project — every lab that does brings the Research Park closer`
+    ? `${lab} has not finished a research project`
     : `${lab} has not finished a research project — the Research Park waits on every lab, and on a specialization in research`),
 };

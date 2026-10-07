@@ -129,7 +129,7 @@ const f: Faculty = {
   assert(candidate.career === undefined, 'a candidate carries no record');
   assert(joinedLine(college, candidate) === null && courseTimeline(s, candidate) === null, 'and has no arrival and no timeline');
   assert(researchLines(candidate).length === 0 && recognitions(s, candidate).length === 0 && statSeries(s, candidate).length === 0, 'no research, recognition or chart');
-  assert(CAREER_WORDS.candidate(candidate.name, college).includes('no history here yet'), 'which the page says plainly');
+  assert(CAREER_WORDS.candidate(candidate.name, college) === `${candidate.name} has not worked at ${college}.`, 'which the page says plainly');
 }
 
 if (failures > 0) {

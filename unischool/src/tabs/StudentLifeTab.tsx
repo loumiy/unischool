@@ -14,7 +14,7 @@ import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, interestClubs, sportClubCapacity, sportClubs,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
 import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionTarget, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
-import { DEMAND_SATISFACTION_THRESHOLD, DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
+import { DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
 import { DOWNTOWN_WORDS, districtGrowth, goodwillOf } from '../data/downtownData';
@@ -91,9 +91,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
       </dl>
       {effect.totalTargetContribution <= 0.01 && (effect.clubCount > 0 || effect.chapterCount > 0 || effect.teamCount > 0) && (
         <p className="empty-note">
-          Social satisfaction is already at its limit from the campus itself, so these organizations
-          are adding nothing to the target right now — they will start to again the moment the campus
-          grows past what its social facilities cover.
+          Social satisfaction is at its limit.
         </p>
       )}
     </section>
@@ -223,7 +221,7 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
       {open && (
         <div className="satisfaction-card-detail">
           {detail.dormant ? (
-            <p className="empty-note">Dormant — the campus has not yet reached the size where this need starts to matter.</p>
+            <p className="empty-note">Dormant.</p>
           ) : (
             <>
               {detail.contributors.length > 0 ? (
@@ -297,8 +295,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <section className="panel">
         <h2>Student demands</h2>
         <p className="empty-note">
-          No outstanding demands. Students ask the institution for something only when
-          satisfaction falls below {DEMAND_SATISFACTION_THRESHOLD}.
+          No outstanding demands.
         </p>
       </section>
     );
@@ -426,7 +423,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
           <section className="panel">
             <div className="panel-head">
               <h2>Clubs</h2>
-              <span className="panel-count" title="Interest clubs and sport clubs are counted against separate limits: a sport club leaves the list when it goes varsity.">
+              <span className="panel-count">
                 {interestClubs(s).length}/{clubCapacity(s)} · sport {sportClubs(s).length}/{sportClubCapacity(s)}
               </span>
             </div>
@@ -471,7 +468,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
             {!s.orgs.hellenicCouncilApproved ? (
               <p className="empty-note">
                 {s.orgs.hellenicCouncilOffered
-                  ? 'The college has no Greek life. The Hellenic Council was declined, and the question does not come back.'
+                  ? 'The college has no Greek life.'
                   : HELLENIC_COUNCIL_HINT}
               </p>
             ) : chapters.length === 0 ? (

@@ -38,7 +38,7 @@ export function charterRefusal(s: GameState): string | null {
   if (officeStrength(s, 'student-activities') <= 0) return 'The college has no Student Activities Office.';
   const wait = charterWait(s);
   if (wait > 0) return `The office can charter another club in ${wait} week${wait === 1 ? '' : 's'}.`;
-  if (!canFormClub(s)) return 'There is no room for another club: a Student Center, and room under the cap, come first.';
+  if (!canFormClub(s)) return 'No room for another club.';
   return null;
 }
 

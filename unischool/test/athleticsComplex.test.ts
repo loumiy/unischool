@@ -88,8 +88,8 @@ function college(specialization: GameState['specialization'], status: 'locked' |
   const def = PROJECTS.find((p) => p.id === ATHLETICS_COMPLEX_ID)!;
   assert(def.project.specialization === 'athletics', 'the complex is the athletics specialization\'s');
   assert(Object.values(def.project.boosts).every((b) => !b), 'it lifts no standing of its own');
-  assert(/specialized in athletics; no other college may build it/.test(projectOpens(def.project)), `its gate in words ("${projectOpens(def.project)}")`);
-  assert(def.description.includes(`${COMPLEX_FLAGSHIPS} more flagship programs`) && /deep runs fill athletics' specialization share/.test(def.description), 'the description says what it does');
+  assert(projectOpens(def.project) === 'Opens once the college is specialized in athletics.', `its gate in words ("${projectOpens(def.project)}")`);
+  assert(def.description.endsWith('where every varsity athlete trains.'), 'the description says what it is');
   const s0 = launch();
   assert(complex(s0)?.status === 'locked', 'the launch fixture, walked up the chain, has the complex in its catalog, locked');
   for (const chosen of ['none', 'academics', 'research', 'studentLife'] as const) {

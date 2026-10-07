@@ -42,7 +42,7 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
       ) : !hasAdvancementOffice(s) ? (
         <p className="empty-note">A campaign needs a VP of Advancement to run it (the Faculty tab's Administration).</p>
       ) : open.length === 0 ? (
-        <p className="empty-note">No campaign is ready. Each opens once the college has the alumni for it and the need it answers.</p>
+        <p className="empty-note">No campaign is ready.</p>
       ) : (
         <ul className="campaign-list">
           {open.map((c) => (

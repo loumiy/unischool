@@ -52,7 +52,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             <button type="button" className={s.pauseOnArrival ? 'active' : undefined} aria-pressed={s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: true })}>On</button>
             <button type="button" className={s.pauseOnArrival ? undefined : 'active'} aria-pressed={!s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: false })}>Off</button>
           </span>
-          <p className="settings-note">The clock stops for each new matter to decide. Either way, a matter not yet opened stops it once in its final week.</p>
+          <p className="settings-note">The clock stops for each new matter to decide.</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Pause for news</legend>

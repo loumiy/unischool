@@ -307,7 +307,7 @@ function InstructorChip({ f, grade, draggable, onDragStart, onDragEnd }: {
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      title={`${f.name}${draggable ? ' — drag onto another course in this department to swap' : ''}`}
+      title={f.name}
     >
       <FacultyPortrait f={portraitOf(f)} size={18} />
       <span className="instructor-chip-name">{surnameOf(f.name)}</span>
@@ -403,15 +403,13 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
       )}
       {state === 'done' && !instructor && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
       {unstaffed && <span className="cell-stamp unstaffed" title="No instructor">!</span>}
-      {transit && !unstaffed && <span className="cell-stamp transit" title="Its program is moving halls — closed until it settles">⇄</span>}
+      {transit && !unstaffed && <span className="cell-stamp transit" title="Moving halls">⇄</span>}
       {/* Yellow: one appointment away. Red: nobody to appoint, only time fixes it. */}
       {showGateDot && (
         <span
           className={`cell-gate-dot ${gate}`}
           aria-hidden="true"
-          title={gate === 'hireable'
-            ? `Needs ${t.requiresFaculty} faculty: every professor in the field is teaching a full load, and a candidate is on the market`
-            : `Needs ${t.requiresFaculty} faculty: every professor in the field is teaching a full load, and nobody is on the market`}
+          title={`Needs ${t.requiresFaculty} faculty`}
         />
       )}
       {state === 'developing' && (
@@ -465,7 +463,7 @@ export function InstructorOption(
         {/* The salary as the college pays it, as every Appoint shows it
             (Plan 78F): the founding picker's first professor included. */}
         <span className="instructor-option-meta">
-          {facultyQualityTier(f)} · {f.field}{pay && <> · <span className="instructor-option-pay" title={`Salary ${money(f.salary)}; the college pays ${money(Math.round(facultyPay(s, f.salary)))} a year at its market rate, whichever courses they teach`}>{moneyShort(facultyPay(s, f.salary))}/yr</span></>}
+          {facultyQualityTier(f)} · {f.field}{pay && <> · <span className="instructor-option-pay" title={`Salary ${money(f.salary)}`}>{moneyShort(facultyPay(s, f.salary))}/yr</span></>}
         </span>
         <span className="instructor-option-bars">
           <span className="instructor-stat" title={`Teaching ${f.teaching} of a possible ${f.teachingPotential}`}>
@@ -501,7 +499,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
   if (left > 0) {
     return (
       <p className="course-drawer-note search-running">
-        A {field} search is running — {left} week{left === 1 ? '' : 's'} left. Every week it may turn somebody up.
+        A {field} search is running — {left} week{left === 1 ? '' : 's'} left.
       </p>
     );
   }
@@ -531,7 +529,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
       <h5>On the market in {field}</h5>
       {listed.length === 0 ? (
         <p className="course-drawer-note quiet">
-          No {field} candidates are listed this week. The market turns over every week — or pay for a search.
+          No {field} candidates this week.
         </p>
       ) : (
         listed.map((c) => (
@@ -656,7 +654,7 @@ function CourseDrawer(
                     <li key={id} className={met ? 'met' : 'unmet'}>
                       <span className="prereq-static">
                         <StatusIcon status={met ? 'done' : 'failed'} /> {p?.name ?? id}
-                        <span className="prereq-bridge" title="Built on the campus map, not developed here">build</span>
+                        <span className="prereq-bridge" title="Built on the map">build</span>
                       </span>
                     </li>
                   );
@@ -762,7 +760,7 @@ function CourseDrawer(
           <p className="course-drawer-warning">{money(Math.ceil(shortfall))} short of the development cost.</p>
         )}
         {t.status === 'available' && courseSlotsFree(s) === 0 && (
-          <p className="course-drawer-warning">The curriculum committee is writing {committeeSeats(s)} courses already, its most; this one starts when one of them is done.</p>
+          <p className="course-drawer-warning">The curriculum committee is full.</p>
         )}
         {/* The same reason a greyed cell's tooltip gives (courseHoldReason). */}
         {state === 'locked' && (
@@ -771,7 +769,7 @@ function CourseDrawer(
         {(() => {
           const programId = programOfCourse(t.id);
           return programId !== undefined && isInTransit(s, programId)
-            ? <p className="course-drawer-warning">Its program is moving halls: not taught, not advancing, and counting toward nothing until it settles.</p>
+            ? <p className="course-drawer-warning">Its program is moving halls.</p>
             : null;
         })()}
       </div>
@@ -801,7 +799,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
   );
 
   if (progress.inTransit) {
-    return <p className="row-action"><span className="row-action-note">Moving halls — nothing can start until it settles.</span></p>;
+    return <p className="row-action"><span className="row-action-note">Moving halls.</span></p>;
   }
   if (!next) {
     const developing = program.courseIds.map((id) => lookup.get(id)).filter((t) => t?.status === 'developing') as Buildable[];
@@ -867,7 +865,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
         title={canStart
           ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, ${money(next.cost)}`
           : shortfall > 0 ? `${money(Math.ceil(shortfall))} short of the development cost`
-            : courseSlotsFree(s) === 0 ? `The committee is writing its most (${committeeSeats(s)}); the next starts when a course is done` : 'Cannot start this course right now'}
+            : courseSlotsFree(s) === 0 ? 'The committee is full' : 'Cannot start this course right now'}
         onClick={() => act({ type: 'START_DEVELOPMENT', nodeId: next.id, facultyId: best.id })}
       >
         {/* The course by its title, not its code (Plan 96D); the code and the
@@ -881,7 +879,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
         <button
           type="button"
           className="row-action-secondary batch"
-          title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)} — grades ${batchGrades.join(' ')} as their load climbs`}
+          title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)} — grades ${batchGrades.join(' ')}`}
           onClick={() => { for (const t of batch) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: best.id }); }}
         >
           All {batch.length} with {surnameOf(best.name)} → {batchGrades.join(' ')}
@@ -928,7 +926,7 @@ function ProgramRowView(
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
         {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
         {hall && <span className="program-row-hall" title="The hall it is taught in">{hallDisplayName(s, hall)}</span>}
-        {dark && <span className="program-row-dark" title="A course has no instructor: the whole program is dark — no places, no progress, a zero in every grade — until it is restaffed">dark · unstaffed</span>}
+        {dark && <span className="program-row-dark" title="A course has no instructor">dark · unstaffed</span>}
         {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} compact />}
         <span className="lane-count">{fraction(progress.done, progress.total)}</span>
       </header>
@@ -1064,7 +1062,7 @@ function FilterBar(
         className={`curriculum-chip${filters.grade === 'belowA' ? ' on' : ''}`}
         aria-pressed={filters.grade === 'belowA'}
         onClick={() => onChange({ ...filters, grade: filters.grade === 'belowA' ? 'all' : 'belowA' })}
-        title="Every developed course graded below an A, plus any left unstaffed: the courses that hold the college's academic standing back. A course in a dark program counts by the grade its instructor earns on it."
+        title="Courses graded below A, or unstaffed"
       >
         Below A
       </button>
@@ -1353,7 +1351,7 @@ export default function CurriculumTab(
         <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
 
         {s.finance.cash < 0 && (
-          <p className="stall-note">Cash is negative — the college is running an operating deficit, so no course can be started until the balance recovers.</p>
+          <p className="stall-note">Cash is negative.</p>
         )}
         </div>
 

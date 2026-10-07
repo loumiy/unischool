@@ -21,12 +21,12 @@ const CLASS_ROWS: ReadonlyArray<[keyof GameState['students']['classes'], string]
   ['senior', 'Seniors'],
 ];
 
-// One funnel figure with its drivers underneath, in the same shape as
+// One funnel figure with an optional note underneath, in the same shape as
 // TreasuryTab's StatementLine. The value is preformatted: the figures are in
 // different units.
 function FunnelLine({ label, note, value, net }: {
   label: string;
-  note: string;
+  note?: string;
   value: string;
   net?: boolean;
 }) {
@@ -34,7 +34,7 @@ function FunnelLine({ label, note, value, net }: {
     <div className={net ? 'statement-net funnel-net' : 'statement-line'}>
       <div className="statement-line-label">
         <span>{label}</span>
-        <span className="statement-line-note">{note}</span>
+        {note && <span className="statement-line-note">{note}</span>}
       </div>
       <span className="statement-line-amount">{value}</span>
     </div>
@@ -128,27 +128,24 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
         <div className="funnel-lines">
           <FunnelLine
             label="Applicant pool"
-            note="Prestige and price set its size; beds, word of mouth and what the college built scale it."
             value={count(s.students.applicantPool)}
           />
           <FunnelLine
             label="Admit rate"
-            note="Admitting deeper buys a bigger class with weaker students."
             value={pct(s.students.admitRate)}
           />
           <FunnelLine
             label="Incoming quality"
-            note="The class that enrolled, on average. It feeds prestige."
+            note="The class that enrolled, on average."
             value={`${count(s.students.incomingQuality)}/100`}
           />
           <FunnelLine
             label="Satisfaction"
-            note="The year's average scales next summer's pool."
             value={satisfactionFigure(s.students.satisfaction)}
           />
           <FunnelLine
             label="Enrolled"
-            note="The four classes. A freshman class can be no larger than the catalog's places."
+            note="The four classes."
             value={count(enrolled)}
             net
           />
