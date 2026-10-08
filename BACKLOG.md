@@ -98,10 +98,10 @@ from (97F).*
 
 ## On hold from Plan 70: analytics (K) and launch (L)
 
-*Picked up by [Plan 97](docs/plans/97-the-itch-playtest.md) (Proposed,
-October 2026): 70K as its PR E, revised for a playtest, and 70L as its PR
-J, with 0.1.0 on itch.io before 1.0.0. These entries leave when Plan 97
-lands.*
+*Picked up by [Plan 97](docs/plans/97-the-itch-playtest.md), done 8
+October 2026: 70K as its PR E, and 70L's owner's pass as its PR J, with
+0.1.0 public on itch.io. What 70L kept for launch (1.0.0) still waits
+here.*
 
 *Held by the owner's decision (September 2026), after Plan 70's PRs A–J
 landed. Both specs stay in [Plan 70](docs/plans/70-launch.md); they wait
@@ -116,7 +116,7 @@ here until they are picked up again.*
   Settings; two sentences in the Credits. **Needs the owner** to set
   `VITE_POSTHOG_KEY` in Vercel's production environment before it reports
   anything.
-- **70L — launch.** Not started. The owner plays a full run on a fresh
+- **70L — launch.** *The owner's pass is done as Plan 97J (0.1.0 on itch.io, 8 October 2026); 1.0.0 waits for launch.* The original entry: The owner plays a full run on a fresh
   browser and a second session on a tablet, against a short checklist in
   `docs/reviews/` (the first hour, the first school, the first summer, a
   save exported and re-imported, a rank change, a specialization, the

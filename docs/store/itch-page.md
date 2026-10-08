@@ -1,7 +1,9 @@
 # The itch.io page — a draft
 
-**Status:** a draft for the owner to edit (Plan 97I). Nothing here is
-published. It is built from [`steam-page.md`](steam-page.md), cut to what
+**Status:** published, 8 October 2026, at
+[halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool).
+The owner edited it on itch.io, so the live page is the reference; this
+was its draft (Plan 97I). It is built from [`steam-page.md`](steam-page.md), cut to what
 an early playtest page needs. Every line says only what the game does on
 `main` today. "AI" never sits beside "school simulator" (the second
 review's §2).
@@ -31,6 +33,15 @@ Uploading the build and the embed settings are in
 
 Tags, said once more: never "AI", and never "school simulator" beside
 anything about how the game was made.
+
+## The page's look
+
+As set on 8 October, in the game's palette (`unischool/src/styles.css`):
+background `#7b1e2b` (the maroon), the column `#f7f2e8` (the cream), text
+`#1b2a4a` (the navy), links `#7b1e2b`; screenshots in the sidebar; no
+page background image; the cover as the embed's background, shown until a
+player clicks *Run game*. The embed is 1440 × 900, mobile friendly, with
+the fullscreen button and no automatic start.
 
 ## The description
 

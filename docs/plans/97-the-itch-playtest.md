@@ -7,7 +7,7 @@ web and desktop builds, anonymous play statistics, a way to send feedback
 from inside the game, and the ten-year demo built for later. It takes over
 Plan 70's held PRs K (analytics) and L (launch).*
 
-**Status: In progress.** PRs B, C, D, E, F and I are done; G and H are moved to the backlog (below).
+**Status: Done (8 October 2026).** PRs B–F, I and J are done, and `0.1.0` is public on itch.io at [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool). G and H are moved to the backlog (below).
 
 ---
 
@@ -547,6 +547,15 @@ advises, beside the Credits' short footnote.
 
 ---
 
+*As built:* the owner played the build through many times and judged it
+ready (8 October). The tag is `v.0.1.0` (with a stray dot; the release
+workflow, which runs on any `v*` tag, built it all the same) on `433e111`,
+the merge of Plan 97's F and I. The page went public on Thursday 8
+October, a month ahead of §5's date: the playtest simply runs longer. The
+first upload failed ("Failed to find index.html"): GitHub had zipped the
+workflow's zip again. The workflow now attaches the built folder, so the
+file downloaded is the file uploaded (`itch-release.md`).
+
 ## 5. After the playtest
 
 These are not PRs of this plan. They are recorded so the dates hold
@@ -554,9 +563,9 @@ together. Today is 7 October 2026.
 
 | When | What |
 |---|---|
-| **7 Oct – early Nov** | PRs B–F, I and J (G and H moved to the backlog). |
-| **Early Nov** | `0.1.0` public on itch.io; recruiting starts. |
-| **Nov – mid Dec** | The playtest. `0.1.x` patches for save-losing and blocking bugs only. The owner reads replies weekly. |
+| **7–8 Oct** | PRs B–F, I and J (G and H moved to the backlog). |
+| **8 Oct** (a month early) | `0.1.0` public on itch.io; recruiting starts with friends ([`recruiting.md`](../reviews/playtest-1/recruiting.md)). |
+| **Oct – mid Dec** | The playtest. `0.1.x` patches for save-losing and blocking bugs only. The owner reads replies weekly. |
 | **Mid Dec** | Triage into `docs/reviews/playtest-1/`, and the next plan, from what testers said. |
 | **Dec – Jan** | The owner's human text edit, informed by what testers read and skipped. The capsule art and logo commissioned (artists take weeks; ask in November). The devlog's first post: *what the playtest taught us*. |
 | **By end of Jan 2027** | The Steam page, with the plan before it covering Steamworks, signing and notarizing. Still on the June 2027 Next Fest track (register by 25 April). |
