@@ -7,7 +7,7 @@ web and desktop builds, anonymous play statistics, a way to send feedback
 from inside the game, and the ten-year demo built for later. It takes over
 Plan 70's held PRs K (analytics) and L (launch).*
 
-**Status: In progress.** PRs B, C, D, E and F are done.
+**Status: In progress.** PRs B, C, D, E, F and I are done; G and H are moved to the backlog (below).
 
 ---
 
@@ -81,6 +81,16 @@ knowingly:
   The README's *How UniSchool is made* paragraph (line 235) is not changed
   by this plan.
 
+## The owner's decision of 8 October: a quieter playtest
+
+The itch.io playtest is a quiet run, looking for **about 100 players** and
+good feedback, on the web build alone. **PRs G (the ten-year demo) and H
+(the desktop build) move to the backlog.** They come back together with
+the full demo launch and its marketing push. Their specs stay below,
+unchanged, for that plan to pick up. What the rest of this plan said of
+them is changed to match: PR I's page has no downloads, PR J's pass has no
+desktop or demo build, and the release workflow builds only the web zip.
+
 ## Rules for every PR in this plan
 
 - **No balance change.** The pacing scorecard and `sim/baseline.json` read
@@ -111,9 +121,9 @@ knowingly:
 | D | The itch.io web build | B |
 | E | Analytics (70K, revised for a playtest) | B |
 | F | Feedback from inside the game | B, E |
-| G | The ten-year demo | B, F |
-| H | The desktop build | B, D |
-| I | The itch page and the playtest kit | D, H (docs only) |
+| G | The ten-year demo — *moved to the backlog* | B, F |
+| H | The desktop build — *moved to the backlog* | B, D |
+| I | The itch page and the playtest kit | D (docs only) |
 | J | The owner's pass, and 0.1.0 on itch.io | all |
 
 Each PR has its own branch (`plan-97x-subject`) and merges once `check`
@@ -374,6 +384,8 @@ feedback* turns the two prompts off.
 
 ## PR 97G — The ten-year demo
 
+*Moved to the backlog (8 October 2026): not needed for the playtest.*
+
 Built and tested now. Published later (§5).
 
 - **`VITE_EDITION=demo` ends the run at the tenth summer.**
@@ -405,6 +417,8 @@ Built and tested now. Published later (§5).
   - `npm run check` builds both editions.
 
 ## PR 97H — The desktop build
+
+*Moved to the backlog (8 October 2026): not needed for the playtest.*
 
 - **Electron, not Tauri.** Tauri runs on each system's own web view
   (WebKit on macOS and Linux), so the canvas map, audio and storage would
@@ -469,7 +483,6 @@ Docs only. Everything here is a draft for the owner to edit.
   - **what to expect:** a run is fifty years and two to four hours, saves
     stay in this browser, back up with *Download save*, and statistics are
     anonymous (linked to `analytics.md`);
-  - the downloads, with the SmartScreen and *right-click → Open* notes;
   - five screenshots in the second review's order (§4), shot from this
     build with the existing tools (`npm run shot`, `review:gallery`), at
     16:9;
@@ -490,14 +503,14 @@ Docs only. Everything here is a draft for the owner to edit.
   - `checklist.md`: 70L's list, extended for the owner's pass (PR J):
     the first hour, the first school, the first summer, a save exported
     and re-imported, a rank change, the specialization, the Final Report,
-    the Epilogue, play again, and the same on itch.io's frame, a phone, a
-    tablet, Windows and macOS;
+    the Epilogue, play again, and the same on itch.io's frame, a phone and
+    a tablet;
   - `recruiting.md`: where to post and what to say. The places:
     r/tycoon, r/CityBuilders and r/playmygame; the r/IndieGaming feedback
     thread; itch.io's community boards; management-game Discords; friends
     who play Two Point, Football Manager or Civilization. A goal of
-    **20–40 testers and 50 started runs**: enough to see the funnel's
-    shape, and small enough to read every reply.
+    **about 100 players** (the owner's goal, 8 October): enough to see
+    the funnel's shape, and small enough to read every reply.
 - **The triage rule,** written in the README: every reply is filed by the
   reviews' areas (1 aesthetics, 2 UI and text, 3 intuitive gameplay, 4
   strategy, 7 bugs).
@@ -506,21 +519,27 @@ Docs only. Everything here is a draft for the owner to edit.
   - Everything else waits for the playtest's end, and becomes the next
     plan.
 
+*As built:* the screenshots and the cover are in `docs/store/itch/`, as
+JPEGs at 1920 × 1080 and 630 × 500, taken on the production build; the
+page's commands retake them. The playtest's home adds `findings.md`, the
+file the triage rule fills, and three saves for the owner's pass
+(`saves/`: year 6's summer, the specialization offer, the Final Report) so
+the late moments can be checked without playing fifty years. The page
+carries the disclosure's full *How UniSchool is made* text, as the review
+advises, beside the Credits' short footnote.
+
 ## PR 97J — The owner's pass, and 0.1.0 on itch.io
 
 - **The owner plays before anyone else does** (the rest of 70L), against
   `checklist.md`:
   - a full run in the itch.io frame on a fresh browser;
-  - a session on a phone or tablet;
-  - an install and a launch of the Windows and macOS packages;
-  - a demo build to year 10, and its save carried into the full game.
+  - a session on a phone or tablet.
 
   Small findings are fixed in this PR. Larger ones go to the playtest's
   README as known issues, and onto the itch page.
 - **Release:**
-  - tag `v0.1.0`; the desktop workflow builds the packages;
-  - upload the web zip and the three desktop packages to itch.io (not the
-    demo);
+  - tag `v0.1.0`; the release workflow builds the web zip;
+  - upload it to itch.io;
   - publish the page;
   - post the first recruiting messages.
 - **`BACKLOG.md`** is updated: 70K and 70L leave *On hold*, pointing here.
@@ -535,13 +554,13 @@ together. Today is 7 October 2026.
 
 | When | What |
 |---|---|
-| **7 Oct – early Nov** | PRs B–J. B, C and E first, then D and F, then G and H, then I and J. |
+| **7 Oct – early Nov** | PRs B–F, I and J (G and H moved to the backlog). |
 | **Early Nov** | `0.1.0` public on itch.io; recruiting starts. |
 | **Nov – mid Dec** | The playtest. `0.1.x` patches for save-losing and blocking bugs only. The owner reads replies weekly. |
 | **Mid Dec** | Triage into `docs/reviews/playtest-1/`, and the next plan, from what testers said. |
 | **Dec – Jan** | The owner's human text edit, informed by what testers read and skipped. The capsule art and logo commissioned (artists take weeks; ask in November). The devlog's first post: *what the playtest taught us*. |
 | **By end of Jan 2027** | The Steam page, with the plan before it covering Steamworks, signing and notarizing. Still on the June 2027 Next Fest track (register by 25 April). |
-| **Feb – Mar 2027** | The ten-year demo (PR G) goes public on itch.io and Steam. |
+| **Feb – Mar 2027** | The ten-year demo and the desktop build (PRs G and H, from the backlog) with the full demo launch and its marketing push, on itch.io and Steam. |
 
 The Steam page's January date is now tight, since the playtest runs into
 December. If triage shows larger changes are needed, the page slips to

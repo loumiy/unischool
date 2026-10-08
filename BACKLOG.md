@@ -79,6 +79,23 @@ page, and a price ($14.99 was recommended). Whether the owner's playtest
 - **The playtest (70L)** measures a first run's real length, and whether
   players reach year 30 (B6-5).
 
+## Held from Plan 97: the ten-year demo (G) and the desktop build (H)
+
+*Moved out of the itch.io playtest by the owner (8 October 2026): the
+playtest is a quiet run on the web build, for about 100 players. Both come
+back with the full demo launch and its marketing push. Their specs stand in
+[Plan 97](docs/plans/97-the-itch-playtest.md); the build flags they need
+(`VITE_EDITION=demo`, `VITE_PLATFORM=desktop`) already exist (97B), and the
+feedback module already lists the demo's end as a place its link opens
+from (97F).*
+
+- **97G — the ten-year demo.** `VITE_EDITION=demo` ends the run after the
+  tenth summer, on an end screen that shows what is ahead; sandbox hidden;
+  demo saves carry into the full game, one way.
+- **97H — the desktop build.** Electron in `desktop/`, loading the built
+  game through `app://`; Windows, macOS and Linux packages from the
+  release workflow; unsigned until the Steam plan signs them.
+
 ## On hold from Plan 70: analytics (K) and launch (L)
 
 *Picked up by [Plan 97](docs/plans/97-the-itch-playtest.md) (Proposed,
@@ -90,7 +107,8 @@ lands.*
 landed. Both specs stay in [Plan 70](docs/plans/70-launch.md); they wait
 here until they are picked up again.*
 
-- **70K — analytics.** Not started. PostHog through `posthog-js`, in
+- **70K — analytics.** *Done as Plan 97E (October 2026), straight to
+  PostHog's API rather than through `posthog-js`.* The original entry: PostHog through `posthog-js`, in
   production builds only, memory persistence and no cookies, autocapture
   off; page views and six run events with no free text (`run_started`,
   `year_reached`, `run_finished`, `report_shared`, `save_exported` /

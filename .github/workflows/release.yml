@@ -1,7 +1,7 @@
 name: Release
 
-# The files to upload to itch.io (Plan 97D; the desktop packages join in
-# Plan 97H). Runs on a version tag (v0.1.0) or by hand from the Actions
+# The file to upload to itch.io (Plan 97D; the desktop packages of Plan
+# 97H wait in the backlog). Runs on a version tag (v0.1.0) or by hand from the Actions
 # tab ("Run workflow"). Download the zip from the run's Artifacts, and
 # upload it on the itch.io project page (docs/store/itch-release.md).
 #
