@@ -30,11 +30,14 @@ export interface GameSettings {
   // Anonymous play statistics (Plan 97E, analytics/analytics.ts): asked once,
   // on the title screen, before anything is sent; then on or off here.
   stats: StatsConsent;
+  // The feedback form's two prompts (Plan 97F, feedback.ts): after the fifth
+  // summer and on the Final Report, each once. Off, neither shows.
+  feedbackPrompts: boolean;
 }
 
 export type StatsConsent = 'unasked' | 'on' | 'off';
 
-export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true, pauseForNews: false, seasons: true, stats: 'unasked' };
+export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true, pauseForNews: false, seasons: true, stats: 'unasked', feedbackPrompts: true };
 
 export const SETTINGS_KEY = 'unischool.settings.v1';
 
@@ -48,6 +51,7 @@ export function normaliseSettings(raw: unknown): GameSettings {
     pauseForNews: o.pauseForNews === true,
     seasons: o.seasons !== false,
     stats: o.stats === 'on' || o.stats === 'off' ? o.stats : 'unasked',
+    feedbackPrompts: o.feedbackPrompts !== false,
   };
 }
 

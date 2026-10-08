@@ -12,6 +12,7 @@ import Logo from './Logo';
 import { BUILD_ID, versionLine } from '../build';
 import { useSettings } from '../settings';
 import { answerStats, saveExported, statsAvailable } from '../analytics/analytics';
+import { feedbackAvailable, openFeedback } from '../feedback';
 
 // THE TITLE (Plan 34, from v2's; V1-35): what the game opens on. The run in
 // this browser, to carry on; a new college, to found (this game's startup
@@ -99,6 +100,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
           <ImportSave current={s} />
           <button type="button" className="menu-btn" onClick={onSettings}>Settings</button>
           <button type="button" className="menu-btn" onClick={onCredits}>Credits</button>
+          {feedbackAvailable() && <button type="button" className="menu-btn" title="A short form, in a new tab." onClick={() => openFeedback(underway ? s : null, 'title')}>Send feedback</button>}
         </nav>
         <section className="title-hall" aria-label="The hall of fame">
           <h2 className="title-hall-head">The hall of fame</h2>

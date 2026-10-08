@@ -3,6 +3,7 @@ import { useHotkeys } from './hotkeys';
 import { CloseIcon } from './icons';
 import { switchStyle } from './segmentedSwitch';
 import { answerStats, statsAvailable } from '../analytics/analytics';
+import { feedbackAvailable } from '../feedback';
 
 // Settings (Plan 34, from v2's): text size, color vision and motion, the
 // pause when a matter arrives (Plan 78E) and for the news (Plan 95T), the
@@ -79,6 +80,16 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
               <button type="button" className={s.stats === 'on' ? undefined : 'active'} aria-pressed={s.stats !== 'on'} onClick={() => answerStats(false)}>Off</button>
             </span>
             <p className="settings-note">How far runs get and how long they take, to help the playtest: no names and nothing you type.</p>
+          </fieldset>
+        )}
+        {feedbackAvailable() && (
+          <fieldset className="settings-row">
+            <legend>Ask for feedback</legend>
+            <span className="segmented switch" style={switchStyle(2, s.feedbackPrompts ? 0 : 1)}>
+              <button type="button" className={s.feedbackPrompts ? 'active' : undefined} aria-pressed={s.feedbackPrompts} onClick={() => setSettings({ feedbackPrompts: true })}>On</button>
+              <button type="button" className={s.feedbackPrompts ? undefined : 'active'} aria-pressed={!s.feedbackPrompts} onClick={() => setSettings({ feedbackPrompts: false })}>Off</button>
+            </span>
+            <p className="settings-note">Twice at most, once after five years and once at the Final Report. The menu's Send feedback is always there.</p>
           </fieldset>
         )}
         {children}

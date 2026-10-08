@@ -54,6 +54,7 @@ and never ask.
 | `report_shared` | The report card downloaded or copied | which |
 | `save_exported` | A save downloaded | from where: the menu, the summer's backup line, the crash screen, or a set-aside save |
 | `save_imported` | A save loaded from a file | none |
+| `feedback_opened` | A link to the feedback form is followed | from where: the menu, the title screen, Report a bug, the crash screen, the fifth summer's or the Final Report's prompt, the demo's end |
 | `crashed` | The game stops on an error | the error's message (with your college's names removed) and the year; never the run itself |
 
 Bands, not figures: enrollment is sent as the lower edge of 0, 500, 1,000,

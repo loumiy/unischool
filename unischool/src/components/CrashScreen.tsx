@@ -2,8 +2,9 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { crashSource } from '../engine/crashContext';
 import { exportSave } from '../state/persistence';
 import { downloadFile } from './download';
-import { BUILD_STAMP, buildLine } from '../build';
+import { buildLine } from '../build';
 import { crashed, saveExported } from '../analytics/analytics';
+import { bugReport, bugReportName, feedbackAvailable, openFeedback } from '../feedback';
 
 // The crash screen (Plan 70C): an error boundary around the whole game. A
 // render that throws would otherwise leave a blank page; this says what
@@ -28,8 +29,7 @@ export function CrashFallback({ error }: { error: Error }) {
         downloadFile(f.filename, f.text);
         saveExported('crash');
       } else {
-        const report = JSON.stringify({ game: BUILD_STAMP, error: `${error.name}: ${error.message}`, stack: error.stack ?? null, run: JSON.parse(source.runLog()) as unknown });
-        downloadFile(`unischool-bug-report-${Date.now()}.json`, report);
+        downloadFile(bugReportName(), bugReport(source.runLog(), error));
       }
     } catch {
       // Nothing more can be done from here; the reload still is.
@@ -52,6 +52,11 @@ export function CrashFallback({ error }: { error: Error }) {
         <div className="crash-actions">
           {started && <button type="button" className="menu-btn" onClick={() => download('save')}>Download save</button>}
           {source && <button type="button" className="menu-btn" onClick={() => download('report')}>Download a bug report</button>}
+          {/* The form, to send the report to (Plan 97F). The last save stands;
+              nothing is saved from a game that has fallen over. */}
+          {feedbackAvailable() && (
+            <button type="button" className="menu-btn" onClick={() => { let st = null; try { st = source?.state() ?? null; } catch { /* left out */ } openFeedback(st, 'crash'); }}>Send it with feedback</button>
+          )}
           <button type="button" className="title-primary" onClick={() => window.location.reload()}>Reload</button>
         </div>
         <p className="crash-detail">{error.name}: {error.message}</p>

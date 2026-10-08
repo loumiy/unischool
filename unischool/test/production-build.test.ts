@@ -99,7 +99,7 @@ function testVersion(): void {
   const crash = renderToStaticMarkup(createElement(CrashFallback, { error: new Error('x') }));
   assert(crash.includes(buildLine()), 'and so does the crash screen');
   const crashSourceText = source(join(SRC, 'components/CrashScreen.tsx'));
-  assert(/JSON\.stringify\(\{ game: BUILD_STAMP,/.test(crashSourceText), 'the bug report carries the build\'s stamp');
+  assert(/bugReport\(source\.runLog\(\), error\)/.test(crashSourceText), 'the crash screen\'s bug report is feedback.ts\'s, with the error');
   assert(BUILD_STAMP.version === VERSION, 'the stamp is the build\'s');
 }
 
