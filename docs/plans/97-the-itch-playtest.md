@@ -7,7 +7,7 @@ web and desktop builds, anonymous play statistics, a way to send feedback
 from inside the game, and the ten-year demo built for later. It takes over
 Plan 70's held PRs K (analytics) and L (launch).*
 
-**Status: In progress.** PRs B, C, D and E are done.
+**Status: In progress.** PRs B, C, D, E and F are done.
 
 ---
 
@@ -362,6 +362,15 @@ for no person profile and no GeoIP lookup. Events, fields and bands are in
   saved before any link opens.
 - **Checks:** the links are absent without a URL. The prefill never holds
   the college's or the president's name. Each prompt appears once.
+
+*As built:* the form is Tally's `https://tally.so/r/Gx2Z2p`, written into
+`src/feedback.ts` as the default (it is public, and the owner works from the
+browser, so a build needs no setting for it); `VITE_FEEDBACK_URL` overrides
+it, and set empty removes every link. The plan's first question ("How far
+did you get?") is the `year` hidden field. The install id rides in the link
+only while statistics are on. The title screen has *Send feedback* too, and
+the crash screen's link reads *Send it with feedback*. Settings' *Ask for
+feedback* turns the two prompts off.
 
 ## PR 97G — The ten-year demo
 

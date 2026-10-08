@@ -13,6 +13,7 @@ import { runFinished, saveExported } from '../analytics/analytics';
 import { exportSave } from '../state/persistence';
 import { downloadFile } from './download';
 import { PLATFORM } from '../build';
+import FeedbackPrompt from './FeedbackPrompt';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { REPORT_WORDS } from '../data/reportData';
 import { PromiseOffer } from '../tabs/PromisesPanel';
@@ -539,7 +540,7 @@ function ReviewLineView({ line }: { line: ReviewLine }) {
 // its own storage and does not ask.
 export const backUpDue = (year: number) => PLATFORM !== 'desktop' && year % 5 === 0;
 
-function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: string[]) => void }) {
+function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (promises: string[]) => void; onSave: () => void }) {
   const review = buildYearInReview(s);
   const era = currentEra(s);
   const [taken, setTaken] = useState<string[]>([]);
@@ -564,6 +565,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
         ))}
       </div>
       <PromiseOffer s={s} taken={taken} onToggle={toggle} />
+      {review.year === 5 && <FeedbackPrompt s={s} prompt="five-years" text="Five years in. Two minutes of feedback?" onSave={onSave} />}
       {backUpDue(review.year) && (
         <p className="review-backup">
           A browser can clear what a page keeps, after weeks unvisited or when a private window closes.{' '}
@@ -583,7 +585,7 @@ function ReviewBeat({ s, onContinue }: { s: GameState; onContinue: (promises: st
 // into the Epilogue.
 // Play again (Plan 70J): the report card's two buttons, and Found another
 // college, which hangs the run too before it ends it.
-function FinalReportBeat({ s, onContinue, onNewCollege }: { s: GameState; onContinue: () => void; onNewCollege?: () => void }) {
+function FinalReportBeat({ s, onContinue, onNewCollege, onSave }: { s: GameState; onContinue: () => void; onNewCollege?: () => void; onSave: () => void }) {
   const report = finalReport(s);
   return (
     <>
@@ -591,6 +593,7 @@ function FinalReportBeat({ s, onContinue, onNewCollege }: { s: GameState; onCont
       <h2>{REPORT_WORDS.title}</h2>
       <FinalReportView s={s} report={report} />
       <ReportCardActions entry={hallEntryFor(s, report)} />
+      <FeedbackPrompt s={s} prompt="final-report" text="Fifty years. How was it? Two minutes of feedback helps the playtest." onSave={onSave} />
       <p className="review-empty">{REPORT_WORDS.epilogue}</p>
       {/* Leaving the report hangs the run in the hall of fame (state/hall.ts). */}
       <div className="final-page-leave">
@@ -648,9 +651,9 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
     <>
       <SummerSteps beat={payload.beat} final={payload.final} />
       {payload.beat === 0 && payload.final ? (
-        <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} />
+        <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onSave={() => act({ type: 'SAVE_GAME' })} />
       ) : payload.beat === 0 ? (
-        <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} />
+        <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} onSave={() => act({ type: 'SAVE_GAME' })} />
       ) : payload.beat === 1 ? (
         <AdmissionsInterruptForm
           payload={{ tuition: payload.tuition, admitRate: payload.admitRate, lockedTuition: payload.lockedTuition }}
@@ -1369,7 +1372,7 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
     return (
       <div className="final-page" role="dialog" aria-modal="true" aria-label={REPORT_WORDS.title}>
         <div className="final-page-inner">
-          <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onNewCollege={onNewCollege} />
+          <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onNewCollege={onNewCollege} onSave={() => act({ type: 'SAVE_GAME' })} />
         </div>
       </div>
     );

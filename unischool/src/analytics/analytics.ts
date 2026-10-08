@@ -342,6 +342,20 @@ export function scrub(message: string, s: GameState | null): string {
   return out.slice(0, 200);
 }
 
+// The feedback form's link (feedback.ts) and where it was opened from.
+export function feedbackOpened(from: FeedbackFrom): void {
+  track('feedback_opened', { from });
+}
+export type FeedbackFrom = 'menu' | 'title' | 'bug' | 'crash' | 'five-years' | 'final-report' | 'demo';
+
+// The install id, for the feedback form's link to name, so a reply can be
+// read beside the same player's statistics. Only while statistics are on,
+// and never made here: a player who said no is not identified.
+export function sharedInstallId(): string | null {
+  if (!statsAvailable() || consent() !== 'on') return null;
+  return read(ID_KEY);
+}
+
 export function crashed(error: Error, s: GameState | null): void {
   track('crashed', { message: scrub(`${error.name}: ${error.message}`, s), year: s?.started ? s.clock.year : 0 });
 }

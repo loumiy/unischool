@@ -3734,6 +3734,9 @@ body:has(.building-info-panel) .pennant { display: none; }
 .report-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; }
 .report-card-actions button { padding: var(--space-6) var(--space-12); font-size: var(--text-sm); }
 .report-card-said { font-size: var(--text-sm); color: var(--ink-muted); }
+.feedback-prompt { margin: 12px 0 0; padding: 10px 14px; border: 2px solid var(--parchment-line); border-radius: var(--radius-lg); font-size: var(--text-md); }
+.feedback-prompt .menu-btn { display: inline-block; width: auto; margin: 6px 8px 0 0; padding: 4px 12px; }
+.menu-note { margin: 2px 0 4px; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.4; }
 .review-backup { margin: 12px 0 0; font-size: var(--text-sm); color: var(--ink-muted); }
 .review-backup .menu-btn { display: inline-block; width: auto; margin: 6px 0 0; padding: 4px 12px; }
 .report-card-manual { display: flex; flex-direction: column; gap: 4px; flex-basis: 100%; font-size: var(--text-sm); color: var(--ink-muted); }

@@ -6,6 +6,8 @@ import ImportSave from './ImportSave';
 import { downloadFile } from './download';
 import { exportSave } from '../state/persistence';
 import { saveExported } from '../analytics/analytics';
+import { bugReport, bugReportName, feedbackAvailable, openFeedback } from '../feedback';
+import { crashSource } from '../engine/crashContext';
 import { institutionName, type GameState } from '../state/types';
 
 // The top-right hamburger menu: Save, the run as a file and back (Plan 70B),
@@ -24,6 +26,8 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
   onTitle: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  // Report a bug's word on the file it just downloaded (Plan 97F).
+  const [bugNote, setBugNote] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -38,6 +42,20 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
 
   function close() {
     setOpen(false);
+    setBugNote(false);
+  }
+
+  // The form, after the run is saved (Plan 97F). Report a bug downloads the
+  // session's record first and says to attach it.
+  function feedback(bug: boolean) {
+    act({ type: 'SAVE_GAME' });
+    if (bug) {
+      const source = crashSource();
+      if (source) downloadFile(bugReportName(), bugReport(source.runLog()));
+      setBugNote(true);
+    }
+    openFeedback(s, bug ? 'bug' : 'menu');
+    if (!bug) close();
   }
 
   return (
@@ -70,6 +88,13 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
             Download save
           </button>
           <ImportSave current={s} />
+          {feedbackAvailable() && (
+            <>
+              <button className="menu-btn" title="A short form, in a new tab. The run is saved first." onClick={() => feedback(false)}>Send feedback</button>
+              <button className="menu-btn" title="Downloads a record of this session, then opens the form to attach it to." onClick={() => feedback(true)}>Report a bug</button>
+              {bugNote && <p className="menu-note" role="status">A bug report was downloaded. Attach it to the form's "Anything broken?" question.</p>}
+            </>
+          )}
           <button className="menu-btn" onClick={() => { close(); onHall(); }}>Hall of fame</button>
           <button className="menu-btn" onClick={() => { close(); onSettings(); }}>Settings</button>
           <button className="menu-btn" onClick={() => { close(); onTitle(); }}>Title screen</button>

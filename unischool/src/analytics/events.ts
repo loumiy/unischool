@@ -70,6 +70,7 @@ export const EVENTS = {
   report_shared: { kind: ['download', 'copy'] },
   save_exported: { kind: ['menu', 'crash', 'set-aside', 'backup'] },
   save_imported: { kind: ['file'] },
+  feedback_opened: { from: ['menu', 'title', 'bug', 'crash', 'five-years', 'final-report', 'demo'] },
   crashed: { message: 'message', year: 'number' },
 } as const satisfies Record<string, Record<string, FieldKind>>;
 
