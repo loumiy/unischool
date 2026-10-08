@@ -21,10 +21,24 @@ all. Post as yourself, say it's your game, and answer every comment.
 | **Management-game Discords** | Players of Two Point, Football Manager, Civilization, Prison Architect. | Ask a moderator first; a channel for self-promotion usually exists. |
 | **Friends** | Who play those games. | The best feedback, and the first ten players. |
 
-**When:** spread it over two weeks, not one day. Friends first (week one),
-so the obvious problems are found by people who'll forgive them; Reddit and
-the boards in week two. Space the Reddit posts a few days apart, so
-replies can be answered.
+**When** (the page went public Thursday 8 October 2026):
+
+- **Week 1 (from 12 October): friends, and a Discord or two,** after asking
+  the moderators. They forgive rough edges and find the obvious problems.
+  Read every reply within a day; a save-losing or blocking bug becomes
+  `0.1.1` before the wider posts.
+- **Weeks 2–3 (from 19 October): Reddit, one community every few days,**
+  in this order: r/playmygame (small, feedback-minded: a test of the
+  post's wording), r/tycoon, r/CityBuilders, then r/IndieGaming's feedback
+  thread on its day. Tuesday to Thursday, about 9–11am Eastern (weekend
+  mornings also work for gaming communities). Stay two or three hours
+  after each post to answer. itch.io's boards the same weeks.
+- **Week 3 or 4: a second wave with an update.** An itch.io devlog, "What
+  the first players told me, and what changed", once `0.1.1` is out, and
+  a follow-up comment where a post did well.
+- **Avoid:** US Thanksgiving week (from 23 November), Steam Next Fest weeks
+  (check this October's dates; indie communities fill with demos), and
+  mid-December onward.
 
 ## What to say
 
@@ -49,7 +63,7 @@ r/tycoon):
 > where you stopped and why. There's a two-minute feedback form in the
 > game's menu, or just reply here.
 >
-> [link to the itch.io page]
+> https://halifaxgames.itch.io/unischool
 
 **A Discord message:**
 
@@ -57,7 +71,7 @@ r/tycoon):
 > campus to build, a faculty of named people, one permanent
 > specialization). It's in a free playtest on itch.io and I'm looking for
 > players who like Two Point or Football Manager to tell me where it drags
-> or confuses. [link] — the menu has a short feedback form. Thank you!
+> or confuses. https://halifaxgames.itch.io/unischool — the menu has a short feedback form. Thank you!
 
 **To friends:** the same, plus what you'd especially like them to try
 (the first hour, the first summer, getting to the specialization).

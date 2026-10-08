@@ -1,14 +1,14 @@
-# Playtest 1 — itch.io, November to December 2026
+# Playtest 1 — itch.io, October to December 2026
 
 *The first time anyone but the owner plays UniSchool (Plan 97). A quiet
 run: the full game, free, on the web, for **about 100 players**, to hear
 what they do and say before the text edit, the art and the demo launch.*
 
-**Status:** being set up. The build, the statistics and the feedback form
-are in the game (Plan 97 B–F). The page draft is
-[`docs/store/itch-page.md`](../../store/itch-page.md); uploading is
-[`docs/store/itch-release.md`](../../store/itch-release.md). The owner's
-pass ([`checklist.md`](checklist.md)) comes before the page is published.
+**Status:** live since Thursday 8 October 2026, at
+[halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool)
+(`0.1.0`, built from `433e111`). The owner's pass is done
+([`checklist.md`](checklist.md)); recruiting starts with friends
+([`recruiting.md`](recruiting.md)).
 
 ## What it is for
 
@@ -28,9 +28,12 @@ And everything else they find: what confuses, what bores, what breaks.
 
 | When | What |
 |---|---|
-| Early November | The owner's pass ([`checklist.md`](checklist.md)); `0.1.0` published on itch.io; the first recruiting posts ([`recruiting.md`](recruiting.md)). |
-| November – mid December | The playtest. Replies read weekly. `0.1.x` builds only for bugs that lose a save or block a run. |
-| Mid December | The form closes. Triage (below), and the next plan written from it. |
+| 8 October (Thursday) | `0.1.0` public on itch.io, a month ahead of the plan's date. |
+| Week of 12 October | Friends and one or two Discords ([`recruiting.md`](recruiting.md)). Anything that loses a save or blocks a run becomes `0.1.1` before the wider posts. |
+| 19 October – early November | Reddit, one community every few days, and itch.io's boards. |
+| Early to mid November | An itch.io devlog with what the first players said and what changed; a follow-up where posts did well. |
+| October – mid December | The playtest. Replies read weekly. `0.1.x` builds only for bugs that lose a save or block a run. Avoid posting in US Thanksgiving week (from 23 November) and Steam Next Fest weeks. |
+| Mid December | The form closes (or runs on, if replies still come). Triage (below), and the next plan written from it. |
 
 ## Where feedback arrives
 

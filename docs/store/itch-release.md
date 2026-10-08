@@ -15,10 +15,15 @@ itch.io web zip. It runs:
   first).
 
 When the run finishes (a few minutes), open it and scroll to
-**Artifacts**. Download **itch-web**. GitHub wraps every artifact in a zip
-of its own, so open that download once: inside is
-`unischool-<version>-itch-web.zip`. **That inner zip is the file to
-upload. Don't unzip it.**
+**Artifacts**. Download **unischool-<version>-itch-web**. It arrives as a
+zip with `index.html` at its root: **that file is the one to upload, as it
+is.** Don't unzip it. (Safari may unzip downloads by itself: if a folder
+arrives instead, turn off Safari's *Open "safe" files after downloading*,
+or download in another browser.)
+
+*Before 8 October the workflow attached the game's own zip, which GitHub
+then zipped again; itch.io, finding a zip and no `index.html`, refused it.
+A run from before then holds `itch-web`: upload the zip inside it.*
 
 What the build uses:
 
