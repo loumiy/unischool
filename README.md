@@ -119,6 +119,30 @@ the other four architectures, each in another of the eight colour pairs:
 | ![The same campus in Mission, maroon and gold](docs/images/campus-mission.png) | ![The same campus in Modern, purple and gold](docs/images/campus-modern.png) |
 | **Mission** · maroon and gold | **Modern** · purple and gold |
 
+## The camera
+
+The view turns a quarter at a time and tilts through ten steps, from close
+to the horizon, with the hills and the haze, down to a plan. The same campus
+at four of them:
+
+| | |
+|---|---|
+| ![The campus seen low, near the horizon: the towers and the stadium stand up against the haze, the town along the road in front](docs/images/campus-tilt-low.png) | ![The campus a step flatter than the opening view, the ring of land and the hills behind it](docs/images/campus-tilt-shallow.png) |
+| **Low** · the lowest tilt | **Shallow** · one step flatter than the opening view |
+| ![The campus seen steeply from above, the walks reading as a grid between the buildings](docs/images/campus-tilt-steep.png) | ![The campus in plan, straight down: roofs, quads and walks, the heights gone](docs/images/campus-tilt-plan.png) |
+| **Steep** · two steps steeper than the opening view | **Plan** · straight down |
+
+## In motion
+
+- [Fifty years in thirty seconds](docs/images/timelapse.webm): one campus
+  from its first week to year 50, a frame a season.
+- [The walkers](docs/images/clip-walkers.webm) crossing the Grand Quad in
+  year 51.
+- [A walk drawn](docs/images/clip-paths.webm) with the path tool, two
+  straight runs out from the campus in year 3.
+- [A hall going up](docs/images/clip-building.webm): footings, frame,
+  shell, and the finished hall, over its 34 weeks.
+
 ## The interfaces
 
 Every view other than the map is a full screen laid over it, with the dock
