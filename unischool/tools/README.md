@@ -256,7 +256,10 @@ year-50 campus), captions the year and term unless `--no-caption`, and keeps
 a PNG a frame with `--png` for an editor. It turns the map's seasons off
 (the Seasons setting, `settings.ts`): at one frame a quarter, one frame a
 year lands in the winter white and the video strobes. `--seasons` keeps
-them, for a cut that holds a frame per week. `--from=N --to=N` retakes a range;
+them, for a cut that holds a frame per week. `timelapse --dense-year N` writes a frame
+every week of year N among the quarterly ones, so a cut can slow there and
+show one year's seasons: shoot that range with `--from`/`--to` and
+`--seasons`, and the rest without. `--from=N --to=N` retakes a range;
 the video is rebuilt from every shot on disk. The ffmpeg Playwright ships
 writes only VP8, so the result is a WebM; convert it for Steam (H.264 MP4)
 with any full ffmpeg. Two hundred frames take some fifteen minutes on four

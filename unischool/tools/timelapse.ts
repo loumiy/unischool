@@ -44,7 +44,7 @@ import { pathTileKey, placementTiles } from '../src/state/campusMap';
 import type { GameState, Pathways, Placement, Placements, TileCoord, Trees, Vernacular } from '../src/state/types';
 import { clearBoardLetters } from '../src/systems/finance/distress';
 
-const VALUE_FLAGS = ['player', 'years', 'every', 'seed', 'name', 'colors', 'vernacular', 'out'];
+const VALUE_FLAGS = ['player', 'years', 'every', 'dense-year', 'seed', 'name', 'colors', 'vernacular', 'out'];
 const flags: Record<string, string> = {};
 {
   const argv = process.argv.slice(2);
@@ -58,6 +58,9 @@ const player = playerNamed(flags.player ?? 'Completionist');
 if (!player) throw new Error(`no player matching "${flags.player}". Known: ${PLAYERS.join(', ')}`);
 const years = Number(flags.years ?? 50);
 const every = Number(flags.every ?? 13);
+// --dense-year N: a frame every week of year N, for a cut that slows to show
+// one year's seasons (shot with timelapseShoot's --seasons).
+const denseYear = flags['dense-year'] ? Number(flags['dense-year']) : null;
 const seed = flags.seed ? Number(flags.seed) : DEFAULT_SEED;
 const out = flags.out ?? 'node_modules/.tmp/timelapse';
 
@@ -68,7 +71,7 @@ const game = foundGame({ seed });
 const snapshots: GameState[] = [];
 const endYear = game.s.clock.year + years;
 for (let week = 0, limit = years * 52 * 4 + 100; week < limit && game.s.clock.year < endYear; week++) {
-  if (week % every === 0) snapshots.push(structuredClone(game.s));
+  if (week % every === 0 || game.s.clock.year === denseYear) snapshots.push(structuredClone(game.s));
   playWeek(game, player);
 }
 // No frame once the clock has turned into year N + 1: the video ends in year N.
