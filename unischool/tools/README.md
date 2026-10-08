@@ -312,6 +312,10 @@ npm run itch:frame                  # open http://localhost:8771/ to play it fra
 npm run itch:frame -- --check
 ```
 
+`itchCover.mjs` lays the title screen's mark and name over a bare campus
+shot for the page's cover image (`docs/store/itch-page.md` has the
+commands).
+
 Uploading is [`docs/store/itch-release.md`](../../docs/store/itch-release.md).
 
 ## Playing it as a newcomer, and timing it

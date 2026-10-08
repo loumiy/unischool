@@ -160,10 +160,13 @@ production build, at 1920 × 1080 (16:9). In the second review's order
 
 ## The cover image
 
-[`itch/cover.jpg`](itch/cover.jpg), 630 × 500: the fall campus of
-screenshot 1, alone, without the game's controls. It stands in until the
-commissioned capsule art exists (the backlog's owner tasks); upload it
-under **Cover image**.
+[`itch/cover.jpg`](itch/cover.jpg): the fall campus of screenshot 1,
+without the game's controls, under the title screen's mark and name
+(Archivo 800 in wide white capitals, the soft blue shadow) on a band of
+the title art's blue sky. It is 1260 × 1000, itch.io's 630 × 500 at twice
+the density, so it stays sharp on a high-density screen; itch.io scales it.
+It stands in until the commissioned capsule art exists (the backlog's
+owner tasks); upload it under **Cover image**.
 
 ## Retaking them
 
@@ -175,7 +178,8 @@ From `unischool/`, with the production build served
 npm run scenario -- --player Completionist --year 32 --week 14 --clear-modal --name Blackmoor --colors navy-gold campus.json
 npm run layout -- campus.json campus-laid.json
 npm run shot -- campus-laid.json ../docs/store/itch/1-campus.jpg --size=1920,1080 --tilt=-2 --zoom=-1
-npm run shot -- campus-laid.json ../docs/store/itch/cover.jpg --bare --size=1260,1000 --scale=0.5 --tilt=-2 --zoom=-1
+npm run shot -- campus-laid.json cover-bg.jpg --bare --size=1260,1000 --tilt=-2 --zoom=-1 --pan=0,220
+node tools/itchCover.mjs cover-bg.jpg ../docs/store/itch/cover.jpg
 npm run scenario -- summer summer.json
 npm run shot -- summer.json ../docs/store/itch/2-admissions.jpg --size=1920,1080 --click=Continue --click="Set tuition for the year"
 npm run scenario -- specialization spec.json
