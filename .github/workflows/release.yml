@@ -2,8 +2,8 @@ name: Release
 
 # The file to upload to itch.io (Plan 97D; the desktop packages of Plan
 # 97H wait in the backlog). Runs on a version tag (v0.1.0) or by hand from the Actions
-# tab ("Run workflow"). Download the zip from the run's Artifacts, and
-# upload it on the itch.io project page (docs/store/itch-release.md).
+# tab ("Run workflow"). Download the artifact from the run's page and
+# upload that file to itch.io as it is (docs/store/itch-release.md).
 #
 # VITE_POSTHOG_KEY is the repository secret of that name, so the build
 # sends play statistics; ITCH_PAGE_URL, a repository variable, is the
@@ -39,8 +39,14 @@ jobs:
       - run: npm run itch:frame -- --check
         env:
           CHROME_PATH: /usr/bin/google-chrome
+      # GitHub zips whatever a run attaches, so attaching the zip gave a zip
+      # inside a zip, and itch.io found no index.html. The built folder is
+      # attached instead: GitHub's own zip of it, with index.html at the
+      # root, is the file to upload as it downloads.
+      - id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
-          name: itch-web
-          path: unischool/release/*.zip
+          name: unischool-${{ steps.version.outputs.version }}-itch-web
+          path: unischool/dist-itch/
           if-no-files-found: error
