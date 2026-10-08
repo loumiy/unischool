@@ -85,6 +85,17 @@ see for it. The same campus in the other four sets is beside it —
 honest comparison the vernaculars want: one layout, one run, only the
 architecture changing.
 
+**Tilts.** `campus-tilt-*.png` are the same laid-out year-50 save from
+four steps of the tilt ladder (`isoProjection.ts`'s `PITCH_SINES`; the
+opening view is the fourth), bare, each zoomed so the campus fills it:
+
+```sh
+npm run shot -- node_modules/.tmp/out.json docs/images/campus-tilt-low.png --tilt=-3 --zoom=1 --bare --scale=2
+npm run shot -- node_modules/.tmp/out.json docs/images/campus-tilt-shallow.png --tilt=-1 --zoom=0 --bare --scale=2
+npm run shot -- node_modules/.tmp/out.json docs/images/campus-tilt-steep.png --tilt=2 --zoom=-2 --pan=0,-50 --bare --scale=2
+npm run shot -- node_modules/.tmp/out.json docs/images/campus-tilt-plan.png --tilt=6 --zoom=-2 --pan=0,-90 --bare --scale=2
+```
+
 **Colours.** Every picture in `docs/images` wears a different one of the
 eight school colour pairs (`--colors <id>`, `schoolColors.ts`'s
 `SCHOOL_COLOR_PAIRS`), so the README shows the choice exists: the campus in
@@ -232,12 +243,14 @@ npm run timelapse -- --name Blackmoor --colors navy-gold --out node_modules/.tmp
 npm run timelapse:shoot -- node_modules/.tmp/timelapse --fps=8 --png
 ```
 
-`docs/images/timelapse.webm` is the 720p cut of that run, one step further
-out so the year-50 campus fits the smaller frame:
+`docs/images/timelapse.webm` is the 720p cut of that run. It is shot at
+1408 by 792 one zoom step out from the opening view and scaled down to 1280
+by 720, which frames the campus some 15% closer than a 720p viewport two
+steps out would (a whole step in crops the year-50 campus):
 
 ```sh
-npm run timelapse:shoot -- node_modules/.tmp/timelapse --fps=8 --size=1280,720 --zoom=-2 --pan=60,35
-cp node_modules/.tmp/timelapse/timelapse.webm docs/images/timelapse.webm
+npm run timelapse:shoot -- node_modules/.tmp/timelapse --fps=8 --size=1408,792 --zoom=-1 --pan=30,22
+ffmpeg -i node_modules/.tmp/timelapse/timelapse.webm -vf scale=1280:720 -c:v libvpx -b:v 2M docs/images/timelapse.webm
 ```
 
 The frames share one plan: the run's final campus goes through `layout.ts`,
@@ -262,10 +275,44 @@ writes only VP8, so the result is a WebM; convert it for Steam (H.264 MP4)
 with any full ffmpeg. Two hundred frames take some fifteen minutes on four
 cores.
 
-`docs/images/timelapse.webm` is the first cut: the Completionist run above,
-seed 12345, in navy and gold, scaled to 720p at 2 Mb/s so the repository
-carries 6 MB rather than 38 (`-vf scale=1280:720 -c:v libvpx -b:v 2M`), with
-the seasons off. Re-run the two commands above for the full-quality file.
+`docs/images/timelapse.webm` is the Completionist run above, seed 12345,
+in navy and gold, scaled to 720p at 2 Mb/s so the repository carries a few
+MB rather than tens, with the seasons off. Re-run the commands above for
+the full-quality file.
+
+### A few seconds, close up
+
+`clip.mjs` records a short clip of the live map: a save loaded, one
+building put in the middle and the camera brought close, the interface
+hidden, and a few seconds played. The page's clock is Playwright's fake
+one, stepped a frame at a time between screenshots, so the clip plays at
+an even 30 frames a second however slowly the headless renderer draws, and
+the walkers are walked out for eight seconds of page time before the
+first frame. Settings are set so nothing that arrives pauses the clock,
+and a stop the clock would wait on is answered with its last button, as
+`newplayer` answers them. The three in `docs/images`, at 1920 by 1080:
+
+```sh
+npm run dev                                          # in one shell
+# The walkers on the Grand Quad, year 51 (the laid-out save above).
+npm run clip -- node_modules/.tmp/out.json docs/images/clip-walkers.webm --focus=QUAD-T2 --zoom=4 --scale=1.5
+# Two straight runs drawn with the path tool (P, Shift held), year 3.
+npm run clip -- node_modules/.tmp/timelapse/frame-0012.json docs/images/clip-paths.webm \
+  --focus=DINING-01 --zoom=3 --no-seasons --stroke=130,100:430,-50 --stroke=430,-50:190,-170 --scale=1.5
+# A hall from footings to finished: its 34 weeks in two seconds, then one more.
+npm run clip -- node_modules/.tmp/timelapse/frame-0046.json docs/images/clip-building.webm \
+  --focus=HALL-06 --zoom=4 --until-built --no-seasons --scale=1.5
+```
+
+The saves are the time-lapse's frames, so a building going up is a real
+site in a real run: `frame-0046` holds Year 12's new hall at its first
+week. `--focus` takes a building id or part of its name; `--stroke` is a
+drag in screen pixels from the middle, repeatable; `--until-built` sets the
+page time a frame so the focused site finishes a second before the end;
+`--step=MS` sets it by hand; `--speed` picks the clock's gear (a locked
+one is refused). The flags are in the script's header. The clip is VP9
+when the ffmpeg found has it (`/usr/bin/ffmpeg` is tried first), VP8
+otherwise.
 
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB

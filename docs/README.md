@@ -7,7 +7,7 @@
 | [`plans/`](plans/) | past | Closed records of how work was sequenced and what shipped |
 | [`reviews/`](reviews/README.md) | snapshot | Reviews of the game as it stood on a given date, and the screenshots and harness reports later plans cite as evidence ([index](reviews/README.md)) |
 | [`assets/`](assets/) | present | The asset gallery: every buildable asset in every vernacular, as the game draws it (`npm run gallery:assets`, which writes this folder; never edit it by hand) |
-| [`images/`](images/) | present | The root README's screenshots and the timelapse, re-shot by the tools in `unischool/tools/README.md` |
+| [`images/`](images/) | present | The root README's screenshots, the timelapse and the short clips, re-shot by the tools in `unischool/tools/README.md` |
 
 Work that is going to happen but **has not** lives in
 [`BACKLOG.md`](../BACKLOG.md) at the repository root — the one forward-looking

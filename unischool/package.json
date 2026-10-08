@@ -20,6 +20,7 @@
     "check": "npm run typecheck && npm run lint && npm test",
     "scenario": "rolldown tools/scenario.ts -o node_modules/.tmp/scenario.mjs -f esm -p node && node node_modules/.tmp/scenario.mjs",
     "shot": "node tools/shoot.mjs",
+    "clip": "node tools/clip.mjs",
     "phone": "node tools/phoneCheck.mjs",
     "layout": "rolldown tools/layout.ts -o node_modules/.tmp/layout.mjs -f esm -p node && node node_modules/.tmp/layout.mjs",
     "timelapse": "rolldown tools/timelapse.ts -o node_modules/.tmp/timelapse.mjs -f esm -p node && node node_modules/.tmp/timelapse.mjs",
