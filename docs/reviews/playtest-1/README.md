@@ -41,6 +41,7 @@ And everything else they find: what confuses, what bores, what breaks.
 |---|---|---|
 | **The feedback form** | Tally → the form → **Submissions** | The nine questions, an optional email, any bug report attached, and the hidden fields: version, build, edition, platform, year, week, rank, and the install id when the player allowed statistics. |
 | **The itch.io page's comments** | The page, and the itch.io dashboard's notifications | Free text. Ask a commenter to use the form for anything long. |
+| **Reddit threads** | The posts listed in [`findings.md`](findings.md), *The replies* | Free text. Log every reply there, with its link, before filing it. |
 | **The play statistics** | PostHog (eu.posthog.com) → the **Playtest 1** dashboard | The funnel from opening the game to year 50, minutes played by year, returning players, specializations, crashes. Every event is listed in [`analytics.md`](../../architecture/analytics.md). |
 
 A form reply with an `install_id` can be read beside the same player's
@@ -57,7 +58,8 @@ Once a week, about an hour:
 1. **The dashboard:** how many new players, how far they got, the median
    minutes at each year, anything in *Crashes*.
 2. **The form's new replies,** each filed under the areas below.
-3. **The page's comments:** answer them; file what they say.
+3. **The page's comments and the Reddit threads:** answer them; log
+   each reply in `findings.md` and file what it says.
 4. **Anything that loses a save or blocks a run** goes to a `0.1.x` build
    this week (below). Everything else waits.
 
