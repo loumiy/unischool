@@ -40,7 +40,8 @@ As set on 8 October, in the game's palette (`unischool/src/styles.css`):
 background `#7b1e2b` (the maroon), the column `#f7f2e8` (the cream), text
 `#1b2a4a` (the navy), links `#7b1e2b`; screenshots in the sidebar; no
 page background image; the cover as the embed's background, shown until a
-player clicks *Run game*. The embed is 1440 × 900, mobile friendly, with
+player clicks *Run game*. The embed is 1440 × 900, with *Mobile friendly* unticked (from 9
+October: phones aren't supported), with
 the fullscreen button and no automatic start.
 
 ## The description
@@ -82,8 +83,8 @@ the Epilogue.
 - **A full run is fifty years:** roughly two to four hours, depending on
   the speed you play at, over as many sittings as you like. Growth is slow
   on purpose, and money paces the first decades.
-- **It plays in the browser,** on a computer or a tablet. A phone works,
-  but the map is small.
+- **It plays in the browser, on a computer.** Phones aren't supported
+  yet: the tutorial covers the map on a small screen.
 - **Your run is saved in this browser.** Browsers can clear a site's
   storage, Safari after seven days without a visit, and a private window
   when it closes, so keep a copy: **Menu → Download save**, and **Load a

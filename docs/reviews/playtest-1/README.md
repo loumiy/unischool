@@ -88,4 +88,8 @@ Every reply, comment and statistic that says something is filed in
 *Found in the owner's pass and not fixed before publishing. Copy each onto
 the itch.io page too.*
 
-- None yet.
+- **Phones aren't supported** (found by a player, R4 in `findings.md`;
+  the owner's decision, 9 October). The tutorial's boxes cover the map,
+  and the *Place* button is hard to find, so a phone run can't get past
+  Founders Hall. The game is for a computer for now; nothing is changed
+  for phones that would cost the desktop game.

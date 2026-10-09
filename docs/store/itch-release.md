@@ -62,7 +62,8 @@ Under **Uploads**:
 2. Tick **This file will be played in the browser**.
 3. Under **Embed options**:
    - **Viewport dimensions:** 1440 × 900;
-   - tick **Mobile friendly** (orientation: Default);
+   - leave **Mobile friendly** unticked (phones aren't supported: the
+     owner's decision, 9 October 2026);
    - tick **Fullscreen button**;
    - leave **Automatically start on page load** unticked: the player's
      first click is what lets the game's sound start;

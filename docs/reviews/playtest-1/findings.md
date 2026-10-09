@@ -37,13 +37,14 @@ marked **0.1.x** and fixed in a patch.*
 
 ## 7 · Bugs
 
-- **0.1.x? On a phone, Founders Hall can't be built.** The player guessed
-  the game wasn't meant for mobile and stopped. The itch.io page says "a
-  phone works, but the map is small", and the checklist's phone pass
-  (`checklist.md`, *On other screens*) is unticked. If siting the hall
-  fails on touch, every phone run is blocked at the start: reproduce it
-  on a phone (and a tablet), then either fix it or change the page's line
-  and add it to *Known issues* in `README.md`. *1 player · reddit (R4).*
+- **On a phone, Founders Hall can't be built.** The player guessed the
+  game wasn't meant for mobile and stopped. *1 player · reddit (R4).*
+  The cause (the owner, 9 October): the tutorial's boxes cover the map,
+  so there is nowhere to tap, and with a box closed the *Place* button
+  is hard to find. **Decided: phones are not supported for now.** The
+  owner won't give up any of the desktop game's quality for them, so this
+  is not a `0.1.x` fix. It is listed under *Known issues* in `README.md`,
+  and the itch.io page now says the game is for a computer.
 
 ## Asked for
 
