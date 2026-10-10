@@ -26,6 +26,14 @@ marked **0.1.x** and fixed in a patch.*
   (I1 and I2 are almost certainly R1's player under the itch.io name
   ALEXANDERGGA08, so they don't add a player.)
 
+- **Let players switch architectures mid-run.** Today the architecture
+  is picked at the founding and kept for the run; the owner is
+  considering letting players switch, or mix styles as they build. One
+  player: "Let them switch. More player freedom, more player enjoyment."
+  If the number of styles grows, make picking one easy: pin favourites,
+  search, or a random pick. *1 player · reddit (R6, R7).* Kept in
+  `BACKLOG.md` under *The campus*.
+
 ## 2 · UI and text
 
 ## 3 · Intuitive gameplay
@@ -116,8 +124,19 @@ trimmed, not edited.*
 
 ### Reddit, r/gamedevscreens — [the thread](https://www.reddit.com/r/gamedevscreens/comments/1x1wntb/comment/pexhs5f/?context=1)
 
-- Linked by the owner on 10 October; the comment itself isn't logged
-  yet (it wasn't pasted).
+*The owner's post, "How many architectural styles is too many?", with a
+sheet of the styles (Collegiate Gothic, Classical, Mission, Modern, Tudor,
+Italianate, and more): "Should I narrow this down?" (9 October).*
+
+- **R6** · mebjammin — "If you're happy making them someone will be
+  happy to use them. If you're adding a lot I'd make a way to pin
+  favorite styles/search styles/randomly select a style just to make it
+  user friendly."
+  *Owner:* "The way I have it set up now is you select a style at the
+  start and you're stuck with it, but I am considering letting players
+  switch and/or mix and match styles as they build."
+- **R7** · mebjammin (the same player as R6) — "Let then switch. More
+  player freedom more player enjoyment."
 
 ### itch.io — the page's comments and ratings
 

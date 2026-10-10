@@ -163,6 +163,13 @@ a sequence of PRs.*
 
 ### The campus
 
+- **Switching or mixing architectures** (the owner, considering,
+  October 2026). The architecture is chosen at the founding and kept for
+  the run. Open: let the player switch it later, or pick a style per
+  building. A player asked for switching (R6–R7 in
+  `docs/reviews/playtest-1/findings.md`), and suggested, if the styles
+  multiply, pinned favourites, search or a random pick in the chooser.
+
 - **Hand-built campuses as layout plans** (the owner, September 2026).
   `tools/campuses/` holds campuses the owner laid out by hand in a sandbox
   run and exported (`tudor-year-1.unischool.json` first); see
