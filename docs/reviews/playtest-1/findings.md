@@ -20,8 +20,11 @@ marked **0.1.x** and fixed in a patch.*
 
 - **The concept and the detail land.** "Extremely well thought of and so
   fun"; the university fits the city-builder theme; "I love all the
-  details." Also "looks pretty good" and "looked like a fun concept".
-  *3 players · reddit (R1, R3, R4).*
+  details." Also "looks pretty good", "looked like a fun concept",
+  "pretty damn awesome, idea and execution", and a five-star rating:
+  "deeply impressed". *3 players · reddit (R1, R3, R4), comment (I1, I2).*
+  (I1 and I2 are almost certainly R1's player under the itch.io name
+  ALEXANDERGGA08, so they don't add a player.)
 
 ## 2 · UI and text
 
@@ -51,7 +54,24 @@ marked **0.1.x** and fixed in a patch.*
 Not findings about the game; counted here so the demand shows.
 
 - **A Steam demo / Steam release.** "Would love a steam demo in the
-  future", and "Steam hope?" *1 player, twice · reddit (R1, R5).*
+  future", "Steam hope?", and "waiting for years with a theme like this
+  on steam". *1 player, three times · reddit (R1, R5), comment (I1).*
+
+## The numbers
+
+*Snapshots of the itch.io dashboard (Analytics), copied by hand. PostHog's
+**Playtest 1** dashboard holds the rest (how far runs get, `year_reached`;
+how often the form is opened, `feedback_opened`).*
+
+| Date | Views | Browser plays | Ratings | Comments | Collections | 7-day impressions | CTR |
+|---|---|---|---|---|---|---|---|
+| 10 October | 230 | 113 | 1 (★★★★★) | 2 | 4 | 2,469 | 2.84% |
+
+Where the 10 October views came from (top referrers): Google 18,
+itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
+Android app), then itch.io's browse pages: *new and popular* for web (10),
+tycoon (6), city builder (4–5), strategy, simulation and management.
+Plays started 8 October and peaked the next day (about 60).
 
 ## Patches shipped
 
@@ -93,3 +113,17 @@ trimmed, not edited.*
   — "I'm guessing this wasn't meant to be played on mobile? I can't build
   the founder's hall. Looked like a fun concept."
 - **R5** · AlexanderGGA (the same player as R1) — "Steam hope?"
+
+### Reddit, r/gamedevscreens — [the thread](https://www.reddit.com/r/gamedevscreens/comments/1x1wntb/comment/pexhs5f/?context=1)
+
+- Linked by the owner on 10 October; the comment itself isn't logged
+  yet (it wasn't pasted).
+
+### itch.io — the page's comments and ratings
+
+- **I1** · ALEXANDERGGA08 · comment, 10 October — "This is pretty damn
+  awesome, idea and execution so far it's good, love it, waiting for
+  years with a theme like this on steam, hope you make it!"
+  *Owner (Halifax Games):* "Thanks for playing!"
+- **I2** · ALEXANDERGGA08 · rating, 10 October — ★★★★★, "Wow, deeply
+  impressed by this game, tried it and it's wow!"
