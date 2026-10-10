@@ -31,8 +31,12 @@ marked **0.1.x** and fixed in a patch.*
   considering letting players switch, or mix styles as they build. One
   player: "Let them switch. More player freedom, more player enjoyment."
   If the number of styles grows, make picking one easy: pin favourites,
-  search, or a random pick. *1 player · reddit (R6, R7).* Kept in
-  `BACKLOG.md` under *The campus*.
+  search, or a random pick. *1 player · reddit (R6, R7).*
+  **Decided: keep the choice as it is for now** (the owner, 10 October).
+  A campus in one style looks better than a mix, and each style is a
+  reason to play again: a player doesn't see the Gothic library until
+  they found a Gothic college. Kept in mind under *Direction, not plan*
+  in `BACKLOG.md`.
 
 ## 2 · UI and text
 
