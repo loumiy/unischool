@@ -42,6 +42,7 @@ And everything else they find: what confuses, what bores, what breaks.
 | **The feedback form** | Tally → the form → **Submissions** | The nine questions, an optional email, any bug report attached, and the hidden fields: version, build, edition, platform, year, week, rank, and the install id when the player allowed statistics. |
 | **The itch.io page's comments** | The page, and the itch.io dashboard's notifications | Free text. Ask a commenter to use the form for anything long. |
 | **Reddit threads** | The posts listed in [`findings.md`](findings.md), *The replies* | Free text. Log every reply there, with its link, before filing it. |
+| **foundplay.io** | The owner's post there (11 October) | Whatever its players write; log it in `findings.md` like a Reddit reply. |
 | **The play statistics** | PostHog (eu.posthog.com) → the **Playtest 1** dashboard | The funnel from opening the game to year 50, minutes played by year, returning players, specializations, crashes. Every event is listed in [`analytics.md`](../../architecture/analytics.md). |
 
 A form reply with an `install_id` can be read beside the same player's

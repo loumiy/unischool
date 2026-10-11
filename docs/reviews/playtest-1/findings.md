@@ -178,6 +178,10 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
 - **R7** · mebjammin (the same player as R6) — "Let then switch. More
   player freedom more player enjoyment."
 
+### foundplay.io — the owner's post (11 October)
+
+- No replies logged yet.
+
 ### itch.io — the page's comments and ratings
 
 - **I1** · ALEXANDERGGA08 · comment, 10 October — "This is pretty damn
