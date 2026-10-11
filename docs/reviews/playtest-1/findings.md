@@ -12,7 +12,7 @@ marked **0.1.x** and fixed in a patch.*
 
 | Question | What the playtest found |
 |---|---|
-| How long is a first run, and where do people stop? | Half of the desktop runs stop before the first summer; of those past it, most reach year 10 (PostHog, 11 October, below). A run's length depends on the speed played: at mostly 1× the clock is near the design's 3.6 hours (year 35 at 119 minutes, year 20 at 83: about 2.5–3.5 hours to year 50); players who use 4× and 8× reach year 50 in about an hour (59 and 71 minutes). Played minutes are cumulative per run (re-checked 11 October). One player: 4+ hours in a first sitting, with a partner (R3). |
+| How long is a first run, and where do people stop? | Half of the desktop runs stop before the first summer; of those past it, most reach year 10 (PostHog, 11 October, below). A run's length depends on the speed played: at mostly 1× the clock is near the design's 3.6 hours (year 35 at 119 minutes, year 20 at 83: about 2.5–3.5 hours to year 50); players who use 4× and 8× reach year 50 in about an hour (59 and 71 minutes). Played minutes are cumulative per run and count only the running clock; in real time the one full run in a single sitting took nearly 6 hours (re-checked 11 October). One player: 4+ hours in a first sitting, with a partner (R3). |
 | Do players reach the specialization? | Every player who reached year 21 was offered it; 4 chose, all in years 21–24 (PostHog). |
 | The opening, the summer and the Final Report | The opening: one player lost after the tutorial ends (R2). |
 
@@ -120,6 +120,21 @@ left out of the counts below. Small numbers; read them as a direction.*
   | Mostly 1× | 4 | 3.1–4.1 minutes a year | about 2.5–3.5 hours, projected |
   | Mostly 2× | 1 | 2.8 minutes a year | about 2.3 hours, projected |
   | Much of it at 4× and 8× | 3 | 1.2–1.5 minutes a year | 59 and 71 minutes, reached |
+
+  **Real time is far longer than played time.** PostHog's funnel shows
+  the wall-clock time between steps (its "median time" per step, 30 → 40
+  1h 28m and 40 → 50 1h 07m, is the median of these two players' gaps).
+  The two runs that reached year 50:
+
+  | Player | Year 1 → 50, wall clock | Played minutes | Clock running |
+  |---|---|---|---|
+  | One sitting, 11 October | 5h 51m (11:09 to 17:00 UTC) | 71 | about a fifth of the time |
+  | Over three days, 8–10 October | 28h 46m, with a night away | 59 | — |
+
+  The one-sitting run's decades took 50, 38, 94, 94 and 75 minutes of real
+  time. So about four fifths of a session is spent with the clock stopped:
+  reading, deciding, building, or away with the game open. Even at 4× and
+  8×, a full run was about six hours at the desk (and R3 played 4+ hours).
 
   The 10 who stopped before the first summer had played under a minute
   of running clock, over 20 seconds to 6 minutes on the page: they left
