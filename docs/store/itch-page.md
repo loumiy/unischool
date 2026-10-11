@@ -175,13 +175,13 @@ production build, at 1920 × 1080 (16:9). In the second review's order
 [`itch/cover.jpg`](itch/cover.jpg): the fall campus of screenshot 1,
 without the game's controls, under the title screen's mark and name
 (Archivo 800 in wide white capitals, the soft blue shadow) on a band of
-the title art's blue sky. It is 1260 × 1000, itch.io's 630 × 500 at twice
+the title art's blue sky, brightened and saturated (`--vivid`, the owner's
+edit of 11 October). It is 1260 × 1000, itch.io's 630 × 500 at twice
 the density, so it stays sharp on a high-density screen; itch.io scales it.
 It stands in until the commissioned capsule art exists (the backlog's
 owner tasks); upload it under **Cover image**.
 
-[`itch/cover-wide.jpg`](itch/cover-wide.jpg) is the same at 1920 × 1080, brighter and more
-saturated (`--vivid`, the owner's edit of 11 October),
+[`itch/cover-wide.jpg`](itch/cover-wide.jpg) is the same at 1920 × 1080,
 for sites that want a wide cover (foundplay.io, 11 October).
 
 ## Retaking them
@@ -195,7 +195,7 @@ npm run scenario -- --player Completionist --year 32 --week 14 --clear-modal --n
 npm run layout -- campus.json campus-laid.json
 npm run shot -- campus-laid.json ../docs/store/itch/1-campus.jpg --size=1920,1080 --tilt=-2 --zoom=-1
 npm run shot -- campus-laid.json cover-bg.jpg --bare --size=1260,1000 --tilt=-2 --zoom=-1 --pan=0,220
-node tools/itchCover.mjs cover-bg.jpg ../docs/store/itch/cover.jpg
+node tools/itchCover.mjs cover-bg.jpg ../docs/store/itch/cover.jpg --vivid
 npm run shot -- campus-laid.json cover-wide-bg.jpg --bare --size=1920,1080 --tilt=-2 --zoom=0 --pan=0,300
 node tools/itchCover.mjs cover-wide-bg.jpg ../docs/store/itch/cover-wide.jpg --size=960,540 --vivid
 npm run scenario -- summer summer.json
