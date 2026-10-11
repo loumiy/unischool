@@ -12,8 +12,8 @@ marked **0.1.x** and fixed in a patch.*
 
 | Question | What the playtest found |
 |---|---|
-| How long is a first run, and where do people stop? | One player: 4+ hours in a first sitting, with a partner, and still playing (R3). |
-| Do players reach the specialization? | |
+| How long is a first run, and where do people stop? | Half of the desktop runs stop before the first summer; of those past it, most reach year 10 (PostHog, 11 October, below). The clock runs much faster than planned: year 10 at 22–43 played minutes, year 30 at 44–97, year 50 at 59 for the one player there. One player: 4+ hours in a first sitting, with a partner (R3). |
+| Do players reach the specialization? | Every player who reached year 21 was offered it; 4 chose, all in years 21–24 (PostHog). |
 | The opening, the summer and the Final Report | The opening: one player lost after the tutorial ends (R2). |
 
 ## 1 · Aesthetics
@@ -84,6 +84,37 @@ itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
 Android app), then itch.io's browse pages: *new and popular* for web (10),
 tycoon (6), city builder (4–5), strategy, simulation and management.
 Plays started 8 October and peaked the next day (about 60).
+
+### PostHog, 11 October
+
+*Only players who allow statistics, and whose ad blocker lets them
+through: 31 of itch.io's 113 browser plays. The owner's own sessions are
+likely among them (the internal cohort is empty): one on 7 October, before
+launch, and one on 8 October with 13 opens and 3 feedback links. They are
+left out of the counts below. Small numbers; read them as a direction.*
+
+- **Who:** 29 players. 6 on a phone or tablet: none reached a first
+  summer. 5 started the Sandbox first; 4 of them never started a real run.
+- **Where desktop runs stop** (19 players who founded a normal run):
+
+  | Reached | Players | Played minutes when they got there |
+  |---|---|---|
+  | Founded a college | 19 | — |
+  | The first summer (year 1) | 9 | 2–4 |
+  | Year 5 | 8 | 11–21 |
+  | Year 10 | 8 | 22–43 |
+  | Year 20 | 5 | 33–83 |
+  | Year 30 | 3 | 44–97 |
+  | Year 50 | 1 | 59 |
+
+  The 10 who stopped before the first summer had played under a minute
+  of running clock, over 20 seconds to 6 minutes on the page: they left
+  during the founding and the walkthrough. Past the first summer, 8 of 9
+  reached year 10.
+- **The specialization:** offered to the 4 players who reached year 21;
+  all 4 chose (years 21, 21, 21, 24).
+- **The rest:** 7 feedback links followed by 4 players, 18 saves
+  downloaded by 5, 1 Final Report finished and shared.
 
 ## Patches shipped
 
