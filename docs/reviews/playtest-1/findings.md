@@ -116,6 +116,11 @@ left out of the counts below. Small numbers; read them as a direction.*
 - **The rest:** 7 feedback links followed by 4 players, 18 saves
   downloaded by 5, 1 Final Report finished and shared.
 
+### Tally, 11 October
+
+The form: 9 visits, 2 started, 0 submitted. It is one page of nine
+questions, six of them typed answers.
+
 ## Patches shipped
 
 | Version | Date | What it fixed |
