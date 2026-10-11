@@ -12,7 +12,7 @@ marked **0.1.x** and fixed in a patch.*
 
 | Question | What the playtest found |
 |---|---|
-| How long is a first run, and where do people stop? | Half of the desktop runs stop before the first summer; of those past it, most reach year 10 (PostHog, 11 October, below). The clock runs much faster than planned: year 10 at 22–43 played minutes, year 30 at 44–97, year 50 at 59 for the one player there. One player: 4+ hours in a first sitting, with a partner (R3). |
+| How long is a first run, and where do people stop? | Half of the desktop runs stop before the first summer; of those past it, most reach year 10 (PostHog, 11 October, below). A run's length depends on the speed played: at mostly 1× the clock is near the design's 3.6 hours (year 35 at 119 minutes, year 20 at 83: about 3–3.5 hours to year 50); players who use 4× and 8× reach year 50 in about an hour (59 and 71 minutes). Played minutes are cumulative per run (re-checked 11 October). One player: 4+ hours in a first sitting, with a partner (R3). |
 | Do players reach the specialization? | Every player who reached year 21 was offered it; 4 chose, all in years 21–24 (PostHog). |
 | The opening, the summer and the Final Report | The opening: one player lost after the tutorial ends (R2). |
 
@@ -106,6 +106,20 @@ left out of the counts below. Small numbers; read them as a direction.*
   | Year 20 | 5 | 33–83 |
   | Year 30 | 3 | 44–97 |
   | Year 50 | 1 | 59 |
+
+  *Played minutes count from the founding, cumulatively, with the clock
+  running and the tab on screen (`analytics.ts`, `notePlaying`; checked
+  against each run's yearly values, which only rise, by 2–4 minutes a
+  year). Pauses and reading are not in them, and a run continued from a
+  downloaded save starts again from 0.*
+
+  **By speed** (the runs past year 10, weeks played at each speed):
+
+  | Player's speed | Runs | Pace | Year 50 |
+  |---|---|---|---|
+  | Mostly 1× | 3 | 3.4–4.1 minutes a year | about 3–3.5 hours, projected |
+  | Mostly 2× | 2 | 2.8 minutes a year | about 2.3 hours, projected |
+  | Much of it at 4× and 8× | 3 | 1.2–1.4 minutes a year | 59 and 71 minutes, reached |
 
   The 10 who stopped before the first summer had played under a minute
   of running clock, over 20 seconds to 6 minutes on the page: they left
