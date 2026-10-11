@@ -180,6 +180,9 @@ the density, so it stays sharp on a high-density screen; itch.io scales it.
 It stands in until the commissioned capsule art exists (the backlog's
 owner tasks); upload it under **Cover image**.
 
+[`itch/cover-wide.jpg`](itch/cover-wide.jpg) is the same at 1920 × 1080,
+for sites that want a wide cover (foundplay.io, 11 October).
+
 ## Retaking them
 
 From `unischool/`, with the production build served
@@ -192,6 +195,8 @@ npm run layout -- campus.json campus-laid.json
 npm run shot -- campus-laid.json ../docs/store/itch/1-campus.jpg --size=1920,1080 --tilt=-2 --zoom=-1
 npm run shot -- campus-laid.json cover-bg.jpg --bare --size=1260,1000 --tilt=-2 --zoom=-1 --pan=0,220
 node tools/itchCover.mjs cover-bg.jpg ../docs/store/itch/cover.jpg
+npm run shot -- campus-laid.json cover-wide-bg.jpg --bare --size=1920,1080 --tilt=-2 --zoom=0 --pan=0,300
+node tools/itchCover.mjs cover-wide-bg.jpg ../docs/store/itch/cover-wide.jpg --size=960,540
 npm run scenario -- summer summer.json
 npm run shot -- summer.json ../docs/store/itch/2-admissions.jpg --size=1920,1080 --click=Continue --click="Set tuition for the year"
 npm run scenario -- specialization spec.json

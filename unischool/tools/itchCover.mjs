@@ -7,6 +7,10 @@
 //     --tilt=-2 --zoom=-1 --pan=0,220          # the campus, low in the frame
 //   node tools/itchCover.mjs bg.jpg ../docs/store/itch/cover.jpg
 //
+// --size=W,H draws another shape at twice W by H: --size=960,540 is a
+// 1920 by 1080 wide cover (for sites, like foundplay.io, that want one),
+// from a background shot at 1920,1080.
+//
 // The mark is Logo.tsx's, and the name is set as the title screen sets it
 // (styles.css's .logo-name: Archivo 800, wide capitals, white, the soft
 // blue shadow). The title screen's art puts them on a blue sky; the campus
@@ -20,9 +24,12 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const [bgPath, outPath] = process.argv.slice(2);
-if (!bgPath || !outPath) {
-  console.error('usage: node tools/itchCover.mjs <background.jpg> <out.jpg>');
+const args = process.argv.slice(2);
+const [bgPath, outPath] = args.filter((a) => !a.startsWith('--'));
+const sizeArg = args.find((a) => a.startsWith('--size='));
+const [W, H] = sizeArg ? sizeArg.slice(7).split(',').map(Number) : [630, 500];
+if (!bgPath || !outPath || !(W > 0 && H > 0)) {
+  console.error('usage: node tools/itchCover.mjs <background.jpg> <out.jpg> [--size=W,H]');
   process.exit(2);
 }
 
@@ -35,10 +42,10 @@ const bg = readFileSync(resolve(bgPath)).toString('base64');
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: 'Archivo'; font-weight: 800; src: url(data:font/woff2;base64,${font}) format('woff2'); }
-html, body { margin: 0; width: 630px; height: 500px; overflow: hidden; }
-.cover { position: relative; width: 630px; height: 500px; background: url(data:image/jpeg;base64,${bg}) center / cover; }
+html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
+.cover { position: relative; width: ${W}px; height: ${H}px; background: url(data:image/jpeg;base64,${bg}) center / cover; }
 /* The title art's sky, fading into the haze above the campus. */
-.sky { position: absolute; inset: 0 0 auto 0; height: 300px;
+.sky { position: absolute; inset: 0 0 auto 0; height: ${Math.round(H * 0.6)}px;
   background: linear-gradient(180deg, rgba(58, 128, 205, 0.92) 0%, rgba(86, 152, 220, 0.78) 45%, rgba(120, 175, 225, 0.35) 75%, rgba(150, 190, 225, 0) 100%); }
 .head { position: absolute; inset: 34px 0 auto 0; display: flex; flex-direction: column; align-items: center; gap: 12px;
   color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
@@ -57,9 +64,9 @@ const dir = mkdtempSync(join(tmpdir(), 'cover-'));
 const page = join(dir, 'cover.html');
 writeFileSync(page, html);
 const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
-const tab = await browser.newPage({ viewport: { width: 630, height: 500 }, deviceScaleFactor: 2 });
+const tab = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
 await tab.goto(`file://${page}`);
 await tab.evaluate(() => document.fonts.ready);
 await tab.locator('.cover').screenshot({ path: outPath, type: 'jpeg', quality: 90 });
 await browser.close();
-console.log(`wrote ${outPath} (1260 by 1000, itch.io's 630 by 500 at twice the density)`);
+console.log(`wrote ${outPath} (${W * 2} by ${H * 2}, ${W} by ${H} at twice the density)`);
