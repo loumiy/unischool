@@ -3,6 +3,7 @@ import ConfirmButton from './ConfirmButton';
 import type { Action } from '../state/actions';
 import { MenuIcon } from './icons';
 import ImportSave from './ImportSave';
+import SaveSlots from './SaveSlots';
 import { downloadFile } from './download';
 import { exportSave } from '../state/persistence';
 import { saveExported } from '../analytics/analytics';
@@ -87,6 +88,7 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
           >
             Download save
           </button>
+          <SaveSlots current={s} canSave={s.started} />
           <ImportSave current={s} />
           {feedbackAvailable() && (
             <>
