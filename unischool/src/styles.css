@@ -2578,6 +2578,14 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .standing-head h3 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
 .standing-figure { font-family: var(--display); font-size: var(--text-md); color: var(--school-primary); font-weight: 800; }
 .standing-arrow { color: var(--ink-muted); font-weight: 400; }
+/* A figure and which way it is moving (Plan 98B, TrendFigure.tsx): green up,
+   red down, nothing when it holds; a fast move a size larger. */
+.trend-figure { display: inline-flex; align-items: baseline; gap: 0.3em; }
+.trend-arrow { display: inline-block; margin-left: 0.25em; font-size: 0.6em; line-height: 1; vertical-align: 0.15em; }
+.trend-arrow.up { color: var(--ok-on-light); }
+.trend-arrow.down { color: var(--bad-on-light); }
+.trend-arrow.fast { font-size: 0.8em; vertical-align: 0.05em; }
+.trend-figure .trend-arrow { margin-left: 0; }
 .standing-note { margin: 6px 0 10px; font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.5; }
 .standing-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 /* A pillar's figure carries both scales (Plan 95H): on a narrow screen it

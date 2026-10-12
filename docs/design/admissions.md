@@ -191,8 +191,9 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   Class size is bought with quality rather than conceded to yield.
 
 The panel projects **what committing would do** before it is committed
-(`systems/admissions/consequences.ts`): the weekly net, the satisfaction target,
-and whichever capacity need the incoming class would stretch furthest — all read
+(`systems/admissions/consequences.ts`): the weekly net, the change the class
+makes to satisfaction (an arrow and points; the target is not shown, Plan
+98B), and whichever capacity need the incoming class would stretch furthest — all read
 at the body this decision produces, which is the three classes still enrolled
 (each still paying the price it was admitted under) plus the incoming one.
 

@@ -932,6 +932,12 @@ export function athleticStanding(s: GameState): number {
   return 100 * pillarScore(s, 'athletics');
 }
 
+// How far prestige moves this week, by the tick's own step (Plan 98B): what
+// the dock's arrow reads, since the target itself is not shown.
+export function prestigeWeeklyChange(s: GameState): number {
+  return drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE) - s.self.reputation;
+}
+
 // Academic standing trembles toward its target; the other two drift at the
 // full weekly rate. Kept in one function so invariants.test.ts can confine
 // every writer to this file.

@@ -372,6 +372,12 @@ export function satisfactionTarget(s: GameState): number {
   return clamp(diminished(weightedSum(computeSatisfactionBreakdown(s))) + tagTeeth(s, 'satisfaction'), 0, 100);
 }
 
+// How far the headline moves this week, toward the target (Plan 98B): what
+// the arrow beside it reads, since the target itself is not shown.
+export function satisfactionWeeklyChange(s: GameState): number {
+  return (satisfactionTarget(s) - s.students.satisfaction) * SATISFACTION_DRIFT_RATE;
+}
+
 // What student life is worth on the satisfaction target. Orgs nudge the
 // target, not the stock, so this reruns the real computation on shallow
 // copies with each source removed (like prestigeTargetWithout) and reports

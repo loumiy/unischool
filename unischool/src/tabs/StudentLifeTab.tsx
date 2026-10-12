@@ -13,7 +13,8 @@ import { sectionAnchor } from '../components/sectionTarget';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, interestClubs, sportClubCapacity, sportClubs,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
-import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionTarget, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionWeeklyChange, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { SATISFACTION_TREND, TrendFigure } from '../components/TrendFigure';
 import { DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
@@ -80,7 +81,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <h2>Effect on satisfaction</h2>
         <HelpHint
           align="end"
-          text="Satisfaction drifts toward a target set by what the campus offers. Student organizations move that target, so these are the real points they are adding to it right now — the same figures that set satisfaction each week. The headline satisfaction number moves toward the target over the coming weeks."
+          text="Satisfaction moves a little each week toward what the campus offers. Student organizations are part of that, so these are the real points they add to where it is heading right now — the same figures that set satisfaction each week. The headline number follows over the coming weeks."
         />
       </div>
       <dl>
@@ -190,7 +191,7 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
           <span className="satisfaction-card-label">{label}</span>
           {dialFull(detail.score, detail.dormant) && <span className="satisfaction-card-full">Full marks</span>}
           {/* The need's share of the headline, as a multiplier tag (Plan 90 I). */}
-          <span className="satisfaction-card-weight" title={`${ATTRIBUTE_WEIGHTS[attribute]}% of the satisfaction target`}>
+          <span className="satisfaction-card-weight" title={`${ATTRIBUTE_WEIGHTS[attribute]}% of satisfaction`}>
             ×{(ATTRIBUTE_WEIGHTS[attribute] / 100).toFixed(2)}
           </span>
           {/* Housing says beds against the beds wanted; the other needs say
@@ -262,14 +263,18 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>{SECTION_HEADINGS['students.breakdown']}</h2>
         <HelpHint
-          text="The five needs the satisfaction target is made of, read live off the campus: a building finished this week shows here while the headline still drifts. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
+          text="The five needs satisfaction is made of, read live off the campus: a building finished this week shows here while the headline catches up over the coming weeks. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
         />
       </div>
-      {/* The target and today's figure head the needs they are made of,
-          not the clubs' panel (Plan 95Q, the second review's B3-10). */}
+      {/* Today's figure heads the needs it is made of, not the clubs'
+          panel (Plan 95Q); its arrow says which way it is moving, and the
+          target it moves toward is not shown (Plan 98B). */}
       <dl className="satisfaction-target">
-        <Figure label="Satisfaction target" value={satisfactionFigure(satisfactionTarget(s))} hint={FIGURE_HINTS.satisfactionTarget} />
-        <Figure label="Satisfaction today" value={satisfactionFigure(s.students.satisfaction)} hint={FIGURE_HINTS.satisfactionToday} />
+        <Figure
+          label="Satisfaction"
+          value={<TrendFigure value={satisfactionFigure(s.students.satisfaction)} change={satisfactionWeeklyChange(s)} {...SATISFACTION_TREND} />}
+          hint={FIGURE_HINTS.satisfactionToday}
+        />
       </dl>
       <ul className="satisfaction-cards">
         {ATTRIBUTE_ORDER.map((attribute) => (

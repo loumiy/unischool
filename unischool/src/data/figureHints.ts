@@ -41,11 +41,10 @@ export const FIGURE_HINTS = {
   chargedByClass: 'What each class on the books pays: its price was locked the summer it enrolled, for four years.',
 
   // Students.
-  clubs: 'Points the clubs add to the satisfaction target right now, as of this week\'s figures.',
-  greek: 'Points the Greek chapters add to the satisfaction target right now, as of this week\'s figures.',
-  varsity: 'Points varsity teams add to the satisfaction target right now, as of this week\'s figures.',
-  satisfactionTarget: 'Where satisfaction is heading: the five needs below, weighted, as the campus stands this week.',
-  satisfactionToday: 'Satisfaction this week; it moves toward the target over the coming weeks.',
+  clubs: 'Points the clubs add to where satisfaction is heading, as of this week\'s figures.',
+  greek: 'Points the Greek chapters add to where satisfaction is heading, as of this week\'s figures.',
+  varsity: 'Points varsity teams add to where satisfaction is heading, as of this week\'s figures.',
+  satisfactionToday: 'Satisfaction this week, moving a little each week toward what the five needs below add up to, the arrow saying which way.',
   orgCost: 'What student organizations cost each week, and over a year, in upkeep and athletic staff.',
 
   // The summer.
@@ -54,7 +53,7 @@ export const FIGURE_HINTS = {
   freshmen: 'The class that enrolls.',
   incomingQuality: 'The average preparation of the class that enrolls, out of 100.',
   projectedNet: 'The week\'s net once this class and the three above it pay their locked prices, against today\'s.',
-  projectedSatisfaction: 'The satisfaction target with this many students on the campus, against today\'s.',
+  projectedSatisfaction: 'Which way this class moves satisfaction, in points, once it is on the campus.',
   tightestNeed: 'Beds or dining, whichever will be more stretched, as a share of what the students will need, now and with this class.',
   priceTolerance: 'What families will pay at the college\'s prestige.',
   projectedCrowding: 'Once this class enrols, the worst-covered of beds, dining, health and class seats, against 85%.',
