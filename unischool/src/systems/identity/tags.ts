@@ -7,6 +7,7 @@ import { programById } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { beautyTerms } from '../estate/beauty';
 import { priceTolerance } from '../admissions/admissionsSystem';
+import { pillarValue } from '../prestige/prestigeSystem';
 
 // PERCEIVED IDENTITY (Plan 31, from v2's tags.ts): what the guidebooks say.
 // Each tag has an indicator from 0 to 1, read at the turn of the year; two
@@ -56,8 +57,10 @@ export function tagIndicators(s: GameState): Record<string, number> {
   const quality = s.students.incomingQuality;
   const satisfaction = s.students.satisfaction;
   const teaching = campusAverageCourseQuality(s) ?? 0;
-  const research = s.self.researchStanding;
-  const academics = s.self.reputation;
+  // The research and academics pillars as they stand (Plan 98E). Until
+  // then research read its lagging stock and "academics" read prestige.
+  const research = pillarValue(s, 'research');
+  const academics = pillarValue(s, 'academics');
   const housed = Object.values(s.halls).flat().map((slot) => slot.programId).filter((id): id is string => id !== null);
   const arts = housed.filter((id) => programById(id)?.school === 'Arts & Media').length;
   const artsClubs = s.orgs.clubs.filter((c) => /\bart|music|theat|film|dance|choir|design|writ|poet|photo|comic|anime|jazz|orchestra|cappella|drama|improv|ceramic|band|ballroom/i.test(c.name)).length;

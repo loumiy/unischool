@@ -819,16 +819,16 @@ export function prestigeTargetWithout(s: GameState, milestoneKeys: readonly stri
   return computePrestigeTarget({ ...s, milestones });
 }
 
-// The research and student-life pillars are also stocks (s.self's
-// researchStanding and socialStanding): each drifts toward its pillar's
-// value at the full weekly rate, as its old standing did. Since Plan 85I no
-// ranking, table or breakdown reads them: the standings, the guide, the
-// report, the Final Report and the history rank the pillar values, as they
-// did academics and athletics. Three slow readings still do: the faculty
-// market's research center (facultyData.ts's marketStandingOf), a varsity
-// program's pull from campus life (studentLifeData.ts's collegePull) and the
-// research-powerhouse tag (identity/tags.ts). Neither reaches prestige
-// (test/invariants.test.ts section 5).
+// The research and student-life pillars are also kept on s.self
+// (researchStanding and socialStanding). Until Plan 98E each drifted toward
+// its pillar at the full weekly rate, so the three readings that use them
+// lagged the pillars the guide ranks; since then tickPrestige sets each to
+// its pillar as of the week. They are read by the faculty market's research
+// center (facultyData.ts's marketStandingOf) and a varsity program's pull
+// from campus life (studentLifeData.ts's collegePull), which cannot import
+// this file; the research-powerhouse tag reads the pillars directly
+// (identity/tags.ts). Neither reaches prestige (test/invariants.test.ts
+// section 5).
 
 // Both start below the pillars' floor: these are earned, not arrived with.
 export const RESEARCH_STANDING_BASELINE = 18;
@@ -938,15 +938,20 @@ export function prestigeWeeklyChange(s: GameState): number {
   return drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE) - s.self.reputation;
 }
 
-// Academic standing trembles toward its target; the other two drift at the
-// full weekly rate. Kept in one function so invariants.test.ts can confine
+// Academic standing trembles toward its target; the other two are set to
+// their pillars (Plan 98E). Kept in one function so invariants.test.ts can confine
 // every writer to this file.
 export function tickPrestige(s: GameState): void {
   s.students.crowdingYearSum += crowdingShortfallNow(s);
   s.students.crowdingYearWeeks += 1;
   s.self.reputation = drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE);
-  s.self.researchStanding = drift(s.self.researchStanding, computeResearchTarget(s), PRESTIGE_DRIFT_RATE);
-  s.self.socialStanding = drift(s.self.socialStanding, computeSocialTarget(s), PRESTIGE_DRIFT_RATE);
+  // The research and student-life pillars as they stand (Plan 98E). Since
+  // Plan 85I the pillars are read live, so these two fields are each pillar
+  // as of this week, not a stock lagging toward it; what still reads them
+  // (the faculty market's standing, a team's pull) follows the pillar the
+  // guide ranks. Kept as fields so those readers need not import this file.
+  s.self.researchStanding = computeResearchTarget(s);
+  s.self.socialStanding = computeSocialTarget(s);
 }
 
 function drift(current: number, target: number, rate: number): number {
