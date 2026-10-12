@@ -312,13 +312,13 @@ holds the whole model; `facultyAssignment.ts` holds the aggregates.
 
 This is what makes academic satisfaction more than "develop everything". A
 catalogue of 421 courses staffed by whoever was free is a school full of Ds, and
-it now reads as one. Since [Plan 71](../plans/71-economy.md) the grades are most
+it now reads as one. Since [Plan 71](../plans/071-economy.md) the grades are most
 of academic satisfaction and they cap prestige (see
 [progression.md](progression.md)), so hand-picking faculty is how a college
 climbs past the top 25.
 
 **Academic satisfaction reads the grades against the class**
-([Plan 80F](../plans/80-the-owners-playtest.md), the owner's call: better
+([Plan 80F](../plans/080-the-owners-playtest.md), the owner's call: better
 students demand better teaching). Teaching is 60 of its 100 points and the
 library's seats 40 (80 and 20 until then). The courses are read as grade
 points, the same reading the teaching ceiling takes (A 1, B 0.65, C 0.35,

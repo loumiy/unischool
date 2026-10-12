@@ -1,6 +1,6 @@
 # UniSchool: a consistency review
 
-*A read of the whole game except its balance: the simulation's logic, the run's flow and its modals, the screens, the authored data, the words, and the map as the camera turns. It asks four questions everywhere: what looks off, what looks off when the camera turns, what contradicts itself, and what is said or built twice. It covers `main` at `5274502` (after Plan 42). The fixes are three PRs: [Plan 43](../plans/43-consistency-review.md) (logic, flow, screens and data, with this document), [Plan 44](../plans/44-the-map-in-every-view.md) (the map in every view) and [Plan 45](../plans/45-the-words-agree.md) (the words). Numbers were not run: nothing here is a tuning judgment.*
+*A read of the whole game except its balance: the simulation's logic, the run's flow and its modals, the screens, the authored data, the words, and the map as the camera turns. It asks four questions everywhere: what looks off, what looks off when the camera turns, what contradicts itself, and what is said or built twice. It covers `main` at `5274502` (after Plan 42). The fixes are three PRs: [Plan 43](../plans/043-consistency-review.md) (logic, flow, screens and data, with this document), [Plan 44](../plans/044-the-map-in-every-view.md) (the map in every view) and [Plan 45](../plans/045-the-words-agree.md) (the words). Numbers were not run: nothing here is a tuning judgment.*
 
 ## How it was done
 
@@ -207,7 +207,7 @@ The projection, hit-testing, depth sort and memoisation are right in every view.
   - Better walking, and doors that open.
 - Spelling: American, always.
 
-The answers are carried out in Plans [46](../plans/46-the-owners-answers.md)
+The answers are carried out in Plans [46](../plans/046-the-owners-answers.md)
 (Q1–Q10 and Q12), 47 (Q13 and Q14), 48 (Q15) and 49 (Q16).
 
 Each is a design call. Each has a recommendation; none has been acted on.

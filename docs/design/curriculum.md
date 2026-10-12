@@ -54,7 +54,7 @@ opened teaching three programs). Three moves (Plan 14) give it its shape:
 2. **Programs arrive three at a time.** From week one, the player is never
    shown forty-two doors. They are shown **three** (`s.programOffers`), drawn
    from what remains; founding one draws a replacement. Since
-   [Plan 71](../plans/71-economy.md) (the owner's rule) **two of the three
+   [Plan 71](../plans/071-economy.md) (the owner's rule) **two of the three
    come from schools the college has started and one from a school it has
    not**, for as long as both kinds remain; when one kind runs out the other
    fills the table. Among started schools the draw favors the ones further
@@ -371,7 +371,7 @@ sharing a title, because the tab shows a title without its code in several
 places.
 
 *(A literal constellation layout was built and abandoned before this — see
-`docs/plans/02-academic-core.md`'s "Why the constellation failed". The
+`docs/plans/002-academic-core.md`'s "Why the constellation failed". The
 three-level map that replaced it — school cards, then lanes, then the drawer —
 lasted until Plan 14, whose rows are what the halls model needed: one screen
 where a school's shape is something you can see forming.)*

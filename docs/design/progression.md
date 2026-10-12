@@ -150,7 +150,7 @@ for the year just ended and summed into a year score on the same 5..150
 scale, and prestige steps toward that score by a share of the gap —
 `PRESTIGE_RISE_RATE` (0.20) above it, `PRESTIGE_FALL_RATE` (0.30) below (see
 `src/systems/prestige/prestigeSystem.ts`'s `gradeYear`). A climb is capped at
-`PRESTIGE_MAX_RISE` (2.1) a summer ([Plan 67](../plans/67-pacing-tuning.md), 2.1 since Plan 68):
+`PRESTIGE_MAX_RISE` (2.1) a summer ([Plan 67](../plans/067-pacing-tuning.md), 2.1 since Plan 68):
 a college that has outgrown its standing earns it a year at a time, so the
 climb from the founding's low fifties to 150 takes about forty years whatever
 order the catalogue fills in. It never jumps to
@@ -161,10 +161,10 @@ are graded on the year's *average*, because those are the two a player could
 game by timing a dorm's completion in week 50; everything else on state at
 the summer.
 
-**Prestige is the blend of four pillars** ([Plan 85](../plans/85-specializations.md)
+**Prestige is the blend of four pillars** ([Plan 85](../plans/085-specializations.md)
 PR B, by the owner's decision). Until then prestige *was* academic standing,
 and research and campus life were rankings beside it that never fed it
-([Plan 80](../plans/80-the-owners-playtest.md) §1). The owner asked for
+([Plan 80](../plans/080-the-owners-playtest.md) §1). The owner asked for
 prestige to measure all four things a college is known for, so each pillar
 is now a standing on the prestige scale, from 32 (a college with nothing)
 to 150 (every term in full), and prestige's target is their weighted mean:
@@ -196,7 +196,7 @@ of its terms. Three **adjustments** stay outside every pillar:
   applicant pool (see [admissions.md](admissions.md)).
 
 **No pillar is capped; each holds a share only its specialization fills**
-(the owner's decision in [Plan 85](../plans/85-specializations.md) PR D's
+(the owner's decision in [Plan 85](../plans/085-specializations.md) PR D's
 review, 2026-09-30, replacing PR C's ceilings: "the game should just be
 structured such that it's not possible (or highly improbable) to get as high
 as 150 without the specialization bonus"). Each pillar holds a
@@ -259,7 +259,7 @@ shows, so every college stands lower through the middle of the run than it
 did under the ceilings, and the strong players climb the guide about six
 years later.
 
-**The milestone and the choice** ([Plan 85](../plans/85-specializations.md)
+**The milestone and the choice** ([Plan 85](../plans/085-specializations.md)
 PR D; `systems/prestige/milestone.ts`). The specialization is chosen once,
 late, and kept:
 
@@ -355,7 +355,7 @@ one, in Year 51's first week on another, and second on the third. Held to no
 specialization, neither is ever first (best 4th; since Plan 85F, best
 3rd).
 
-**The balance pass** ([Plan 85](../plans/85-specializations.md) PR I). The
+**The balance pass** ([Plan 85](../plans/085-specializations.md) PR I). The
 report (`npm run sim`) plays the Guided player held to each specialization
 and to none beside the plain Guided player, and every harness player that
 reaches the milestone now runs the athletics department alike, whatever it
@@ -414,13 +414,13 @@ The pillars' terms, as they were weighted inside prestige before:
   below 40 it earns nothing, at 80 it pays in full. What lets a happy small
   college hold a standing a crowded large one cannot.
 
-**The teaching standard caps the target** ([Plan 71](../plans/71-economy.md),
+**The teaching standard caps the target** ([Plan 71](../plans/071-economy.md),
 the owner's rule: "you don't become a highly prestigious school with mediocre
 teaching"). Every graded course scores grade points (A 1, B 0.65, C 0.35,
 D 0.1, F 0); their mean sets a ceiling of 88 + 62 × mean
 (`prestigeSystem.ts`'s `teachingCeiling`), and the target is the lower of that
 and the weighted sum. The line is straight since
-[Plan 80F](../plans/80-the-owners-playtest.md) (it was 88 + 62 × mean^1.3,
+[Plan 80F](../plans/080-the-owners-playtest.md) (it was 88 + 62 × mean^1.3,
 which held an all-B campus near 123 and made each grade's first steps worth
 the least): an all-B campus reaches about 128, half B's and half C's 119,
 and only A's everywhere reach 150. The History tab names the ceiling, says
@@ -438,7 +438,7 @@ to 212. The ceiling was unchanged; *when* it could be earned was not, and that
 traced to a real flaw rather than a tuning error — course quality reached
 prestige only as a multiplier on breadth, and breadth is milestone-gated.
 Teaching quality became its own input and breadth went back to breadth ×
-library. Recorded in `docs/plans/02-academic-core.md` §6b so it is not re-attempted.
+library. Recorded in `docs/plans/002-academic-core.md` §6b so it is not re-attempted.
 
 Each input is clamped to its own 0..1 share of the target before being
 weighted, and the admissions-derived input (incoming student quality)
@@ -481,7 +481,7 @@ the climb is *unblocked* — nothing about a low grade makes an input harder to
 raise, which `test/report-card.test.ts` asserts and the sim's recovery
 scenario proves on a broken school. Plan 15 is the record of how this model
 replaced the weekly drift and what it was fitted to:
-[`../plans/15-growth-has-a-cost.md`](../plans/15-growth-has-a-cost.md).
+[`../plans/015-growth-has-a-cost.md`](../plans/015-growth-has-a-cost.md).
 
 **Direct-mutation audit.** `self.reputation` is written in exactly three places,
 and all three are intentional. (1) **Founding** sets the opening value
@@ -696,7 +696,7 @@ report as it was written, and every tenth year after adds an addendum. The start
 what the game is — *Fifty years to build a university.* — and the History tab
 counts down as well as up ("Year 23 of 50"), its charts fixed at fifty so the
 curves have somewhere to go. Plan 17 is the record of the decision and its
-fitting: [`../plans/17-the-endpoint.md`](../plans/17-the-endpoint.md).
+fitting: [`../plans/017-the-endpoint.md`](../plans/017-the-endpoint.md).
 
 ### Promises
 
@@ -774,7 +774,7 @@ is untouched. The player can still be first — the field arrives. With
 prestige able to fall (above), a school that coasts in the defend era now loses
 *rank* for it, which is the whole mechanism of the era and needs no new system.
 
-**The field rises on its own** ([Plan 67](../plans/67-pacing-tuning.md)).
+**The field rises on its own** ([Plan 67](../plans/067-pacing-tuning.md)).
 Every rival gains a little each year, in proportion to the fourth power of
 its authored standing (`FIELD_RISE_RATE`, 1.05 a year at an authored 100),
 easing to nothing at the field's ceiling (`FIELD_CEILING`, 138), past which
@@ -786,7 +786,7 @@ the top 25, the top ten and first place come in the build era's second half
 and the defend era, not the found era. The elite's closing on a leader is not
 drift: a leader above the ceiling is still chased, and passed if it coasts.
 
-**First place can be taken, late** ([Plan 72](../plans/72-owners-answers.md)
+**First place can be taken, late** ([Plan 72](../plans/072-owners-answers.md)
 I). The band does not leapfrog a leader that holds its standing
 (`ELITE_NO_LEAPFROG_GAP`): it closes to within a point and stops. In the
 last fifteen years (`CONTEST_YEARS`), a college whose standing has slipped

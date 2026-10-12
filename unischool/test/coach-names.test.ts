@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------
-// The names (Plan 21's PR A — see docs/plans/21-the-department.md, Finding
+// The names (Plan 21's PR A — see docs/plans/021-the-department.md, Finding
 // 9). Half of all coaches used to be drawn from 98 possible names, with no
 // dedupe, on a market that churns ~78 candidates a year. What is worth
 // pinning:
