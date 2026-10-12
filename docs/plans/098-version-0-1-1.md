@@ -427,6 +427,34 @@ Each PR has its own branch (`plan-98x-subject`).
   and the stall count before and after goes in the PR. This is a player-
   facing fix too: the line no longer asks for something the player can't do.
 
+**As implemented.**
+
+- **Selective** calls `tendTeaching` on `TEND_EVERY_WEEKS`, as the
+  Completionist does. Year 50 on the standard seeds: 56th, where it was
+  62nd on 98E's baseline (Plan 85I's table had it 61st). Its prestige is
+  62.0, up 10.3.
+- **The championships goal player** calls the Guided player's own
+  `background` moves from year 15 (exported from `sim/harness/guided.ts`),
+  after its athletics moves. The first option was enough, so nothing is
+  forced. Across its ten runs (`npm run review:goals -- --goals
+  championships`):
+  - it reaches the top 20 in all ten, median year 40, where before it
+    never did;
+  - it is offered the specialization in all ten (three were never offered
+    it), and chooses athletics in each;
+  - its year-50 rank goes from 44th to 12th and its prestige from 78 to
+    104, with athletics still first (#1 in that pillar).
+- **The lab step:** `idleLab` names a lab only when `labCanStart` finds an
+  unblocked offer the college can fund with `LAB_RESERVE_WEEKS` (5) of
+  expenses left. The guided harness's research floor is that same
+  constant. Research weeks asked but not carried, summed over four
+  guided runs (`npm run guided`): 1,244 before, 46 after. The other 11–14
+  per run are weeks when another step took the money first. Tested in
+  `lab-step.test.ts`.
+- The baseline is re-recorded. The Guided players move a little with the
+  lab step: Guided first reaches the top ten in Y42, and its year-50
+  prestige is up 0.6.
+
 ### PR 98H — 0.1.1
 
 After this plan's B–G and Plans 99–102 have landed:

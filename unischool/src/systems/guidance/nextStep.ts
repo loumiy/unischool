@@ -20,6 +20,8 @@ import { PARK_WORDS, parkStands } from '../../data/researchParkData';
 import { specializationOf } from '../prestige/specialization';
 import { slotFree } from '../administration/offices';
 import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
+import { initiativeOffers } from '../../data/researchData';
+import { financeBreakdown } from '../finance/financeSystem';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the earliest undone letter ask (the letters' order must
@@ -307,8 +309,19 @@ function darkProgram(s: GameState): NextStep | null {
 // finishing one opens the Research Park (Plan 59), which since Plan 85F only
 // a college specialized in research may build, so only such a college (or
 // one yet to choose) is told the park comes closer.
+// Only a lab with a project it can start (Plan 98G): an
+// unblocked offer the college can fund and keep LAB_RESERVE_WEEKS of
+// expenses in hand. Otherwise the line moves on: it never asks for what
+// the player can't do.
+export const LAB_RESERVE_WEEKS = 5;
+
+export function labCanStart(s: GameState, labId: string): boolean {
+  const floor = LAB_RESERVE_WEEKS * financeBreakdown(s).totalExpenses;
+  return initiativeOffers(s, labId).some((o) => !o.blockedReason && s.finance.cash - o.fundingCost >= floor);
+}
+
 function idleLab(s: GameState): NextStep | null {
-  const idle = s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id]);
+  const idle = s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id] && labCanStart(s, t.id));
   if (idle.length === 0) return null;
   const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
   const unproven = idle.find((t) => !finished.has(t.id));

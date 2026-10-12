@@ -91,7 +91,7 @@ import {
   buildable, developCourse, foundOffer, hireForBlocked, homeFor, moveHome, relieveCrowding, site,
   siteNextHall, tendTeaching, TEACHING, TEND_EVERY_WEEKS,
 } from '../../sim/harness/moves';
-import { buildFor, foundIn, reserveOf } from '../../sim/harness/guided';
+import { background, buildFor, foundIn, reserveOf } from '../../sim/harness/guided';
 import { brokenRules } from '../../sim/harness/invariants';
 import type { SpecializationRule } from '../../sim/harness/specialization';
 import { ATHLETICS_COMPLEX_ID, complexFlagships } from '../../src/data/athleticsComplexData';
@@ -950,6 +950,8 @@ function assetsPolicy(): Policy {
 const FINAL_FOUR: readonly string[] = ['semifinal', 'final', 'champion'];
 // How many sports it makes its flagships (Plan 80G: "one or two").
 const CHOSEN_FLAGSHIPS = 2;
+// The year it starts funding academics as the Guided player does (Plan 98G).
+const ACADEMICS_FROM_YEAR = 15;
 
 function championshipsPolicy(): Policy {
   // Postseasons missed in a row, per sport (lastSeason is overwritten yearly).
@@ -1062,6 +1064,10 @@ function championshipsPolicy(): Policy {
         if (dorm) site(g, dorm);
       });
       if (s.clock.week % TEND_EVERY_WEEKS === 0) j.because('tend-teaching', 'Keep the teaching up.', () => tendTeaching(g, { reserve }));
+      // From year 15, academics too, by the Guided player's own moves
+      // (Plan 98G): athletics alone never took it into the overall top 20,
+      // so it never reached the milestone where it specializes.
+      if (s.clock.year >= ACADEMICS_FROM_YEAR) j.because('academics', 'A college in the top twenty can specialize in athletics: the academic core gets it there.', () => background(g, reserve));
       // Rec facilities that come with athletics (gym, pool, tennis) are
       // the athletes' too.
       const rec = cheapest(buildable(s, reserveOf(s, 6)).filter((t) => ['gym', 'pool', 'tennisCourts', 'recCenter'].includes(t.facilityType ?? '')));

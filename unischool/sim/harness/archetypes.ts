@@ -173,6 +173,9 @@ const SELECTIVE: Policy = {
       }
     }
     hireForBlocked(g, { reserve });
+    // Its teaching kept up as the Completionist's is (Plan 98G): without
+    // it, a narrow college's few courses aged and it sat 61st at year 50.
+    if (g.s.clock.week % TEND_EVERY_WEEKS === 0) tendTeaching(g, { reserve });
     developCourse(g, { reserve });
     buildDorm(g, 0.9, { reserve });
     const [worst, score] = worstAttribute(g.s);

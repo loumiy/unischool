@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------
 
 import { teachingCollege } from './fixtures/teaching';
+import { equipLab } from './fixtures/lab';
 import { reducer } from '../src/engine/reducer';
 import type { GameState } from '../src/state/types';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
@@ -158,6 +159,9 @@ function orphanEnglish(s: GameState): void {
   quiet.events = { ...s.events, opening: { ...s.events.opening, skipped: true } };
   quiet.tech = s.tech.map((x) => (x.id.startsWith('HALL-') ? { ...x, status: 'locked' } : x));
   quiet.students = { ...s.students, satisfactionBreakdown: { academic: 70, social: 70, basicNeeds: 70, health: 70, housing: 70 } };
+  quiet.faculty = [...s.faculty];
+  quiet.finance = { ...s.finance };
+  equipLab(quiet, lab.id);
   const line = nextStep(quiet);
   assert(line?.intent?.kind === 'research' && line.intent.labId === lab.id, `the line points at the unproven lab (${line?.text})`);
 }
