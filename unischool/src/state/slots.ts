@@ -16,7 +16,9 @@ import { exportSave, readSave, type SaveRefusal } from './persistence';
 
 export const SLOT_COUNT = 3;
 export const SLOTS_KEY = 'unischool.slots';
-export const slotKey = (id: number) => `unischool.slot.${id}`;
+// A slot's save: SLOT_KEY and its number (`unischool.slot.2`).
+export const SLOT_KEY = 'unischool.slot.';
+export const slotKey = (id: number) => `${SLOT_KEY}${id}`;
 
 export interface SlotInfo {
   id: number;
@@ -52,8 +54,9 @@ export function listSlots(): (SlotInfo | null)[] {
   return Array.from({ length: SLOT_COUNT }, (_, i) => {
     const info = index.find((e) => e.id === i + 1) ?? null;
     if (!info) return null;
+    const key = `${SLOT_KEY}${info.id}`;
     try {
-      return localStorage.getItem(slotKey(info.id)) === null ? null : info;
+      return localStorage.getItem(key) === null ? null : info;
     } catch {
       return null;
     }
@@ -67,7 +70,7 @@ export type SlotWrite = 'saved' | 'full';
 export function saveToSlot(id: number, state: GameState, now = Date.now()): SlotWrite {
   if (!Number.isInteger(id) || id < 1 || id > SLOT_COUNT) throw new Error(`no slot ${id}`);
   const { text } = exportSave(state);
-  const key = slotKey(id);
+  const key = `${SLOT_KEY}${id}`;
   let before: string | null = null;
   try {
     before = localStorage.getItem(key);
@@ -92,8 +95,9 @@ export function saveToSlot(id: number, state: GameState, now = Date.now()): Slot
 // The run a slot holds, read as an imported file is.
 export function readSlot(id: number): { state: GameState } | { refused: SaveRefusal | 'empty' } {
   let raw: string | null;
+  const key = `${SLOT_KEY}${id}`;
   try {
-    raw = localStorage.getItem(slotKey(id));
+    raw = localStorage.getItem(key);
   } catch {
     raw = null;
   }
@@ -103,8 +107,9 @@ export function readSlot(id: number): { state: GameState } | { refused: SaveRefu
 }
 
 export function deleteSlot(id: number): void {
+  const key = `${SLOT_KEY}${id}`;
   try {
-    localStorage.removeItem(slotKey(id));
+    localStorage.removeItem(key);
     writeIndex(readIndex().filter((e) => e.id !== id));
   } catch {
     // A slot that cannot be removed stays listed.

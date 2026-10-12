@@ -5,6 +5,7 @@ import { deleteSlot, listSlots, readSlot, saveToSlot, type SlotInfo } from '../s
 import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
 import { flush } from '../analytics/analytics';
+import { calendarDate } from '../format';
 
 // ---------------------------------------------------------------------
 // The save slots (Plan 98D): three places to keep a run, beside the
@@ -17,9 +18,6 @@ import { flush } from '../analytics/analytics';
 
 const STORAGE_FULL = 'Not saved: this browser\'s storage is full. Delete a slot, or use Download save to keep the run as a file.';
 
-function savedWhen(at: number): string {
-  return new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 export default function SaveSlots({ current, canSave, className = 'menu-btn' }: {
   current: GameState; canSave: boolean; className?: string;
@@ -75,7 +73,7 @@ export default function SaveSlots({ current, canSave, className = 'menu-btn' }: 
               <div className="save-slot-what">
                 <span className="save-slot-id">Slot {id}</span>
                 {slot
-                  ? <span>{slot.collegeName}, Year {slot.year} <span className="save-slot-when">· {savedWhen(slot.savedAt)}</span></span>
+                  ? <span>{slot.collegeName}, Year {slot.year} <span className="save-slot-when">· {calendarDate(slot.savedAt)}</span></span>
                   : <span className="save-slot-empty">Empty</span>}
               </div>
               <div className="save-slot-actions">
