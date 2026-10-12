@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ConfirmButton from './ConfirmButton';
 import { discardSetAsideSave, readSetAsideRaw, readSetAsideSave } from '../state/persistence';
 import ImportSave from './ImportSave';
+import SaveSlots from './SaveSlots';
 import { downloadFile } from './download';
 import type { GameState } from '../state/types';
 import { institutionName } from '../state/types';
@@ -97,6 +98,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
             needsConfirm={underway}
             onConfirm={onSandbox}
           />
+          <SaveSlots current={s} canSave={false} />
           <ImportSave current={s} />
           <button type="button" className="menu-btn" onClick={onSettings}>Settings</button>
           <button type="button" className="menu-btn" onClick={onCredits}>Credits</button>

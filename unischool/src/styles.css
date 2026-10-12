@@ -392,6 +392,16 @@ button, input, select, textarea { font-size: inherit; }
 .crash-detail { font-family: var(--display); font-variant-numeric: tabular-nums; font-size: var(--text-sm); color: var(--ink-muted); overflow-wrap: anywhere; }
 /* Load a save file (Plan 70B): the button, and what the chosen file is. */
 .import-save { display: flex; flex-direction: column; gap: 6px; }
+/* The save slots (Plan 98D, SaveSlots.tsx): three rows, each what it holds
+   and its actions. */
+.save-slots { display: flex; flex-direction: column; gap: 8px; }
+.save-slots-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.save-slot { display: flex; flex-direction: column; gap: 4px; padding: var(--space-6) var(--space-8); border: 1.5px solid var(--cream-lo); border-radius: var(--radius-sm); background: var(--cream-hi); }
+.save-slot-what { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; font-size: var(--text-sm); color: var(--ink); }
+.save-slot-id { font-family: var(--display); font-weight: 800; }
+.save-slot-when, .save-slot-empty { color: var(--ink-muted); }
+.save-slot-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.save-slot-actions .menu-btn { width: auto; }
 .import-save-note { margin: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--ink-muted); display: flex; flex-direction: column; gap: 6px; }
 .import-save-note p { margin: 0; color: var(--ink); font-weight: 600; }
 .title-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
