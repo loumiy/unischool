@@ -22,7 +22,12 @@ marked **0.1.x** and fixed in a patch.*
   fun"; the university fits the city-builder theme; "I love all the
   details." Also "looks pretty good", "looked like a fun concept",
   "pretty damn awesome, idea and execution", and a five-star rating:
-  "deeply impressed". *3 players · reddit (R1, R3, R4), comment (I1, I2).*
+  "deeply impressed", and "the most fun and detailed simulation/city
+  building game I played in a long long time". *3 players · reddit (R1,
+  R3, R4, R8), comment (I1, I2).*
+  **A line for the store page:** "this feels like the football manager of
+  universities" (R8, a Football Manager fan; the marketability memo had
+  named FM players as the audience).
   (I1 and I2 are almost certainly R1's player under the itch.io name
   ALEXANDERGGA08, so they don't add a player.)
 
@@ -51,6 +56,9 @@ marked **0.1.x** and fixed in a patch.*
 ## 4 · Strategy
 
 ## 7 · Bugs
+
+- **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
+  Not yet traced in the code. *Owner.*
 
 - **On a phone, Founders Hall can't be built.** The player guessed the
   game wasn't meant for mobile and stopped. *1 player · reddit (R4).*
@@ -206,6 +214,18 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
   switch and/or mix and match styles as they build."
 - **R7** · mebjammin (the same player as R6) — "Let then switch. More
   player freedom more player enjoyment."
+
+### Reddit, a chat message
+
+- **R8** · Careless-Flower6059 (the same player as R3) · 9 October —
+  "I really really enjoyed your game to the point where I think it's the
+  most fun and detailed simulation/city building game I played in a long
+  long time. I'm a huge football manager fan and this feels like the
+  football manager of universities basically."
+  *Owner* (12 October): thanks; names what still needs work (stairs
+  drawn backwards, subtle animations on menus and pop-ups, tuning the
+  fifty years to the right mix of challenge and enjoyment) and asks them
+  to fill in the feedback form.
 
 ### foundplay.io — the owner's post (11 October)
 
