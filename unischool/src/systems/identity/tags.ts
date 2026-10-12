@@ -80,7 +80,10 @@ export function tagIndicators(s: GameState): Record<string, number> {
     // fewer beds than that.
     commuter: clamp01((0.35 * students - s.students.capacity) / (0.35 * students) / 0.5),
     'country-club': clamp01((priceRatio - 1.05) / 0.25) * clamp01((beauty - 55) / 20),
-    'pressure-cooker': withCohort(clamp01((0.25 - s.students.admitRate) / 0.15) * clamp01((62 - satisfaction) / 12), shares.highAchievers),
+    // Hard to get into and hard on its students, at a college serious about
+    // its academics (Plan 98F: the academics pillar, which the tag claims,
+    // in place of the high achievers' share).
+    'pressure-cooker': clamp01((0.25 - s.students.admitRate) / 0.15) * clamp01((62 - satisfaction) / 12) * (0.5 + 0.5 * clamp01((academics - 60) / 40)),
     'the-bargain': withCohort(clamp01((0.85 - priceRatio) / 0.25) * (quality >= 45 ? 1 : 0.4), shares.priceSensitive),
     'old-money': clamp01((perStudent - 30_000) / 50_000) * clamp01(s.clock.year / 25),
   };

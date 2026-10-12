@@ -1,4 +1,4 @@
-import { useHotkeys } from './hotkeys';
+import { isKey, useHotkeys } from './hotkeys';
 import { CloseIcon } from './icons';
 import { buildLine } from '../build';
 import { statsAvailable } from '../analytics/analytics';
@@ -8,7 +8,7 @@ import { statsAvailable } from '../analytics/analytics';
 // (Plan 97C, the owner's decision). What was made with them, part by part,
 // is in docs/store/ai-disclosure.md and on the store pages.
 export default function Credits({ onClose }: { onClose: () => void }) {
-  useHotkeys((e) => { if (e.key === 'Escape') onClose(); });
+  useHotkeys((e) => { if (isKey(e, 'back')) onClose(); });
   return (
     <div className="front-screen" role="dialog" aria-modal="true" aria-label="Credits">
       <section className="title-card credits">

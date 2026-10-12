@@ -21,7 +21,7 @@ import ToolbarPopup from './ToolbarPopup';
 import { setPlantingSpecies, usePlantingSpecies } from './plantingChoice';
 import type { Species } from '../data/treeData';
 import {
-  DrawPathIcon, EraseIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
+  DrawPathIcon, EraseIcon, FellIcon, LampIcon, BenchIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, DisclosureIcon,
 } from './icons';
@@ -372,7 +372,7 @@ function rowMarker(t: Buildable, group: TypeGroup, index: number): string | unde
 // The tile's head (Plan 90): a strip of plan paper with the building's
 // drawing on it, and the stamp ("#3", "BUILT", "×7 BUILT") in its corner.
 // A building is drawn as the map draws it (Plan 94, BuildThumb.tsx); a tool
-// (paths, trees, lamps, benches) keeps its glyph.
+// (paths, trees, lamps, benches) keeps its icon.
 function TilePlan({ Icon, stamp, t, vernacular }: {
   Icon: () => React.JSX.Element; stamp?: string;
   t?: Buildable; vernacular?: Vernacular;
@@ -740,7 +740,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('fell')}
         title="Fell trees (right-click also fells)"
       >
-        <TilePlan Icon={EraseIcon} />
+        <TilePlan Icon={FellIcon} />
         <span className="build-tile-name">Fell trees</span>
         <span className="build-tile-foot">clear woodland</span>
       </button>
@@ -752,7 +752,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('lamp')}
         title="Place a lamp (free)"
       >
-        <TilePlan Icon={DrawPathIcon} />
+        <TilePlan Icon={LampIcon} />
         <span className="build-tile-name">Lamps</span>
         <span className="build-tile-foot">beside a path</span>
       </button>
@@ -763,7 +763,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         onClick={() => onSetPathTool('bench')}
         title="Place a bench (R to rotate)"
       >
-        <TilePlan Icon={DrawPathIcon} />
+        <TilePlan Icon={BenchIcon} />
         <span className="build-tile-name">Benches</span>
         <span className="build-tile-foot">beside a path</span>
       </button>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useHotkeys } from './hotkeys';
+import { isKey, useHotkeys } from './hotkeys';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, FOUNDERS_GEORGIAN_COLOURS, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
 import { isUnlocked, readUnlocks, unlockOf, readSeen, isNewUnlock, markSeen } from '../state/unlocks';
@@ -302,7 +302,7 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
   // it changes (App.tsx writes it again once the run exists).
   useEffect(() => { applySchoolColors(colors); }, [colors.primary, colors.secondary]);
 
-  useHotkeys((e) => { if (e.key === 'Escape') onBack(); });
+  useHotkeys((e) => { if (isKey(e, 'back')) onBack(); });
 
   return (
     // Over the title art, as the title screen is: the mark in the sky, the

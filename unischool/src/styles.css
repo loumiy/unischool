@@ -415,6 +415,12 @@ button, input, select, textarea { font-size: inherit; }
 .settings-row { border: 0; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .settings-row legend { margin-bottom: var(--space-6); padding: 0; }
 .settings-note { flex-basis: 100%; margin: 4px 0 0; font-size: var(--text-xs); color: var(--ink-muted); }
+.settings-keys { flex-basis: 100%; margin: 0; display: grid; gap: var(--space-6); }
+.settings-keys-group { display: grid; gap: 3px; }
+.settings-keys-place { font-size: var(--text-xs); color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.settings-keys dd { margin: 0; display: grid; grid-template-columns: 9.5em 1fr; gap: 8px; align-items: baseline; font-size: var(--text-sm); }
+.settings-keys-caps { display: flex; flex-wrap: wrap; gap: 3px; }
+.settings-keys kbd { font: inherit; font-size: var(--text-xs); min-width: 1.7em; text-align: center; padding: 1px 5px; border: 1px solid var(--ink-muted); border-radius: 4px; }
 .title-version { margin: var(--space-12) 0 0; font-size: var(--text-sm); color: var(--ink-muted); text-align: center; font-variant-numeric: tabular-nums; }
 .credits-lede { font-style: italic; color: var(--ink-muted); }
 .credits-list { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }

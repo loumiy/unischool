@@ -137,6 +137,45 @@ export function EraseIcon() {
   );
 }
 
+// The landscape tools (Plan 98F), drawn here: a felled stump with its
+// axe, a lamp post, and a park bench seen from the front.
+export function FellIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M5 21v-6h7v6" />
+      <ellipse cx="8.5" cy="15" rx="3.5" ry="1.2" />
+      <path d="M3 21h11" />
+      <path d="M13 13l7-7" />
+      <path d="M17 4.5l3.5 3.5-2 1-2.5-2.5Z" />
+    </svg>
+  );
+}
+
+export function LampIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 9v12" />
+      <path d="M9 21h6" />
+      <path d="M9 9h6l-1-4h-4Z" />
+      <path d="M12 3v2" />
+    </svg>
+  );
+}
+
+export function BenchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M4 8h16" />
+      <path d="M4 11h16" />
+      <path d="M3 14h18" />
+      <path d="M5 14v5" />
+      <path d="M19 14v5" />
+      <path d="M6 8v6" />
+      <path d="M18 8v6" />
+    </svg>
+  );
+}
+
 // ---------- build-mode category / facility glyphs ----------
 // Same convention as the toolbar icons. One per build-popup category
 // (BuildPopup.tsx's SECTION_ICON), so a category is recognisable by glyph.

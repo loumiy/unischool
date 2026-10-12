@@ -1,5 +1,5 @@
 import { TEXT_SCALES, setSettings, useSettings } from '../settings';
-import { useHotkeys } from './hotkeys';
+import { SHORTCUTS, isKey, keyName, useHotkeys, type Shortcut, type ShortcutPlace } from './hotkeys';
 import { CloseIcon } from './icons';
 import { switchStyle } from './segmentedSwitch';
 import { answerStats, statsAvailable } from '../analytics/analytics';
@@ -10,11 +10,28 @@ import { feedbackAvailable } from '../feedback';
 // seasons on the map (Plan 74I), and the sound (App.tsx passes
 // SoundControls in).
 
+// The Keyboard section (Plan 98F), from hotkeys.ts's table: by place, and
+// one line for the keys that share a meaning (W A S D and the arrows pan).
+function shortcutRows(): { where: ShortcutPlace; lines: { keys: string[]; does: string }[] }[] {
+  const out: { where: ShortcutPlace; lines: { keys: string[]; does: string }[] }[] = [];
+  for (const { keys, does, where } of Object.values(SHORTCUTS) as Shortcut[]) {
+    let group = out.find((g) => g.where === where);
+    if (!group) out.push(group = { where, lines: [] });
+    const line = group.lines.find((l) => l.does === does);
+    if (line) line.keys.push(...keys.map(keyName));
+    else group.lines.push({ keys: keys.map(keyName), does });
+  }
+  // Letters before the named keys: W A S D, then the arrows.
+  const letter = (k: string) => (/^[A-Z0-9]$/.test(k) ? 0 : 1);
+  for (const { lines } of out) for (const l of lines) l.keys.sort((a, b) => letter(a) - letter(b));
+  return out;
+}
+
 const SCALE_LABELS: Record<number, string> = { 1: 'Standard', 1.15: 'Larger', 1.3: 'Largest' };
 
 export default function SettingsPanel({ onClose, children }: { onClose: () => void; children?: React.ReactNode }) {
   const s = useSettings();
-  useHotkeys((e) => { if (e.key === 'Escape') onClose(); });
+  useHotkeys((e) => { if (isKey(e, 'back')) onClose(); });
   return (
     <div className="front-screen" role="dialog" aria-modal="true" aria-label="Settings">
       <section className="title-card settings">
@@ -93,6 +110,22 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
           </fieldset>
         )}
         {children}
+        <fieldset className="settings-row">
+          <legend>Keyboard</legend>
+          <dl className="settings-keys">
+            {shortcutRows().map(({ where, lines }) => (
+              <div key={where} className="settings-keys-group">
+                <dt className="settings-keys-place">{where}</dt>
+                {lines.map(({ keys, does }) => (
+                  <dd key={does}>
+                    <span className="settings-keys-caps">{keys.map((k) => <kbd key={k}>{k}</kbd>)}</span>
+                    <span>{does}</span>
+                  </dd>
+                ))}
+              </div>
+            ))}
+          </dl>
+        </fieldset>
         <p className="settings-note">Kept in this browser, apart from your run.</p>
       </section>
     </div>

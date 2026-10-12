@@ -369,6 +369,47 @@ Each PR has its own branch (`plan-98x-subject`).
   from one table that `hotkeys.ts` and its callers also read, so the list
   can't drift from the keys.
 
+**As implemented.**
+
+- **The tags.** `TAG_AXIS` moves commuter to experience and country club to
+  access. Pressure cooker's third term is the academics pillar, at half
+  weight from 60 and full at 100, where it was the high achievers' share.
+  The title phrases already named what the tags claim, so they're unchanged.
+- **The tag test** lists, for each tag, the standings its test in `tags.ts`
+  reads. It checks that each tag claims one of them. It also checks that,
+  with the claimed standing the weakest and an unread one weak too, the
+  title names the unread one (`final-report.test.ts`).
+- **The share card's fonts:**
+  - The display face (Bricolage Grotesque, pinned at weight 800) and the
+    sans (Archivo 400, 700 and 400 italic), subset to printable ASCII,
+    Latin-1, and the dashes, quotes, bullet, ellipsis and arrow, in
+    `src/assets/card-fonts/`. `tools/subsetCardFonts.sh` writes them.
+  - **Size:** 48 KB for the four files, where the fontsource files they come
+    from are 86 KB. The SVG goes from 4 KB to 69 KB. The PNG is about the
+    same size (92 KB before, 95 KB after).
+  - The fonts are fetched with the first card download rather than with the
+    game, and inlined. The card falls back to the system's faces if the
+    fetch fails.
+  - The card's serif italic lines (the title, the chronicle) are now the
+    sans italic, since the game has no serif.
+  - The share-card test checks that the subset still holds every character
+    in `reportData.ts`.
+- **The icons:** `FellIcon`, `LampIcon` and `BenchIcon` in `icons.tsx`.
+  The build menu's tool tiles had borrowed the eraser and pencil icons, not
+  glyphs.
+- **The arrows:** `RankingsTable` and `InterruptModal` already drew ▲▼.
+  `AthleticsTab`'s neighbour tooltip moves from ↑↓ to them.
+- **The shortcut list:**
+  - `SHORTCUTS` in `hotkeys.ts` holds every key the game answers.
+  - Every `useHotkeys` handler checks keys through `isKey(e, id)`; the tab
+    letters and `CampusMap`'s pan keys are built from the table.
+  - Settings' *Keyboard* section lists the table by place, one line per
+    meaning.
+  - `shortcuts.test.ts` fails if a key is bound twice, or if a
+    `useHotkeys` handler compares `e.key` with a literal.
+- **Balance:** `npm run sim` matches 98E's baseline on every row, so the
+  pressure cooker's new test changed nothing the harness reaches.
+
 ### PR 98G — The harness's three players
 
 - **Selective** calls `tendTeaching` on the Completionist's cadence. Its

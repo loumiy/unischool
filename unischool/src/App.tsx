@@ -3,7 +3,7 @@ import { MILESTONES } from './data/ladderData';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { SPEEDS, useGame } from './engine/useGame';
 import { openingHoldsClock } from './state/opening';
-import { mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
+import { SHORTCUTS, isKey, mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
 import type { GameState } from './state/types';
 import { institutionName } from './state/types';
 import StartupScreen from './components/StartupScreen';
@@ -66,12 +66,9 @@ const DebugPanel = import.meta.env.DEV ? lazy(() => import('./components/DebugPa
 // The four views with a letter of their own: the ones a player dips in and
 // out of constantly. Every extra letter here is one the map can't use. Each
 // key toggles, like clicking the tab's toolbar icon twice.
-const TAB_HOTKEYS: Record<string, TabId> = {
-  c: 'curriculum',
-  f: 'faculty',
-  l: 'students',
-  i: 'inbox',
-};
+const TAB_HOTKEYS: Record<string, TabId> = Object.fromEntries(
+  (['curriculum', 'faculty', 'students', 'inbox'] as const).flatMap((tab) => SHORTCUTS[tab].keys.map((key) => [key, tab])),
+);
 
 // 'found': the startup screen, founding a college (the run in progress, if
 // any, is kept until its doors open).
@@ -148,7 +145,7 @@ export default function App() {
   // Sound (Plan 34): the director hears the run, not the title screen; M
   // mutes wherever the player is.
   useAudioDirector(s.started && front !== 'title' && front !== 'found' ? s : null);
-  useHotkeys((e) => { if (e.key.toLowerCase() === 'm') audio.toggleMute(); });
+  useHotkeys((e) => { if (isKey(e, 'mute')) audio.toggleMute(); });
 
   // A front screen covers the whole game, so nothing behind it answers a
   // key: no tab letters, no Escape ladder, no speed keys, no map keys, and
@@ -376,7 +373,7 @@ export default function App() {
   // in CampusMap, whose Escape is enabled exactly when this handler has
   // nothing to close. An interrupt outranks all of it.
   useHotkeys((e) => {
-    if (e.key !== 'Escape' || s.pendingInterrupt) return;
+    if (!isKey(e, 'back') || s.pendingInterrupt) return;
     if (ladderOpen) setLadderOpen(false);
     else if (logOpen) setLogOpen(false);
     // A building in hand is put down before the menu closes (Plan 34).

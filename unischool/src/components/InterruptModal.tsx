@@ -43,7 +43,7 @@ import AnimatedNumber from './AnimatedNumber';
 import Figure from './Figure';
 import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
 import { FIGURE_HINTS } from '../data/figureHints';
-import { isActivationTarget, useHotkeys } from './hotkeys';
+import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
 import { currentEra, listOf } from '../systems/chronicle/chronicle';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
@@ -1332,7 +1332,7 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
   // athletic director (both). useHotkeys ignores Enter on a focused button
   // or input, so those keep their native behavior.
   useHotkeys((e) => {
-    if (e.key !== 'Enter' || !interrupt) return;
+    if (!isKey(e, 'answer') || !interrupt) return;
     if (isActivationTarget(e.target)) return;
 
     switch (interrupt.type) {

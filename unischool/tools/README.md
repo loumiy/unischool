@@ -186,6 +186,13 @@ flatter, so the ring of land, the hills and the haze are in the frame) and
 An out path ending `.jpg` writes a JPEG. The shot names the map that drew
 it; keep the picture only if it says the canvas.
 
+The report card a player downloads at the Final Report carries its own
+fonts (Plan 98F): the display face and the sans, subset to the characters a
+card can hold, in `src/assets/card-fonts/`. `subsetCardFonts.sh` writes
+them from the fontsource packages; re-run it after updating those (it needs
+`pip install fonttools brotli`). The share-card test checks that the subset
+still holds every character the report's own words use.
+
 ### Phones and tablets
 
 `--phone` and `--tablet` give the driver a 390x844 or 820x1180 touch
