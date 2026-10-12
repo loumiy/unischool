@@ -380,6 +380,8 @@ Each PR has its own branch (`plan-98x-subject`).
     meaning.
   - `shortcuts.test.ts` fails if a key is bound twice, or if a
     `useHotkeys` handler compares `e.key` with a literal.
+- **Balance:** `npm run sim` matches 98E's baseline on every row, so the
+  pressure cooker's new test changed nothing the harness reaches.
 
 ### PR 98G — The harness's three players
 
