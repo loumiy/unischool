@@ -7,6 +7,60 @@ all, move it back to the backlog.*
 
 ---
 
+## Discarded by the owner on 12 October 2026
+
+*The owner sorted every open entry (fix for 0.1.1, defer, or discard). These
+were discarded; the owner's reason is given where one was. The full entries
+as they stood are in `BACKLOG.md` at commit `3c82c1f`.*
+
+- **The price is set blind, the other half** (A4-6): last year's price and
+  the pool it drew beside the tuition slider. The tolerance on the slider
+  (96I) and the summer's *why the pool moved* stand.
+- **Size levers** (A4-5): a target enrollment, or staying small on purpose,
+  in the summer's admissions beat.
+- **Walks that draw straight** (A1-7, B1-4): edge-joined runs still draw as
+  steps.
+- **Doors that meet the campus** (A1-8, B1-5). *"Let the player connect
+  paths and landscape on their own; no need to automate."*
+- **Real slopes on campus** (Plan 81).
+- **A smoother turn** (what Plan 83 left).
+- **The sim on a worker thread** (after Plan 83; Plan 96G measured that
+  rendering less per week is the larger win).
+- **Events that reach further:** a prestige input through durable state,
+  and an audit of the catalogue for dominant choices.
+- **Faculty lifecycle: rival poaching and paid retention.**
+- **A school-wide budget, and a CFO to run it.**
+- **Per-major mechanical effects.**
+- **Founding a team directly**, without the Athletics Development Office.
+  *"That's enough"*: the office (Plan 89) is the way.
+- **Physical-object tabs** (direction).
+- **A board of directors as people**, and the executive seats beyond Plan
+  28's (direction).
+- **The mix needs ears:** a listening pass on the sound and music
+  (direction).
+- **Camera polish:** a look at the stands from behind (direction).
+
+## Sequenced on 12 October 2026
+
+*Picked by the owner for 0.1.1 and turned into plans, so they left the
+backlog:*
+
+- **Targets against actuals** → Plan 98 (the owner's answer: hide the
+  target, show the actual with a direction arrow).
+- **No notice when an unlock is earned**, **report tags whose test does not
+  read the standing they claim**, **what Plan 76H skipped** (the share
+  card), **key rebinding and more than one save slot**, **three slow
+  readings still read the old stocks**, **the championships goal player**,
+  **the Selective archetype**, **the guided line's lab-project step** →
+  Plan 98.
+- **Decorative assets:** the gazebo and the door signs, and the Japanese
+  Garden moved to a later milestone → Plan 99. The rest stays in the
+  backlog under *Later*.
+- **Hide other schools' offers in a claimed hall** → Plan 100, reworked by
+  the owner into how a hall is claimed.
+- **Events that do what they say** → Plan 101.
+- **The course catalog's shape** → Plan 102.
+
 ## Taken off on 12 October 2026
 
 *Re-read against the code after Plan 97 (0.1.0 on itch.io).*
