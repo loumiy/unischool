@@ -25,7 +25,7 @@
 import type { Action } from '../../src/state/actions';
 import type { Buildable, GameState, SatisfactionAttributes } from '../../src/state/types';
 import { standsOnCampus } from '../../src/state/types';
-import { nextStep } from '../../src/systems/guidance/nextStep';
+import { LAB_RESERVE_WEEKS, nextStep } from '../../src/systems/guidance/nextStep';
 import type { StepIntent } from '../../src/systems/guidance/intent';
 import { OPENING_LETTERS } from '../../src/data/eventData';
 import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../src/data/techData';
@@ -54,8 +54,10 @@ import { slotFree } from '../../src/systems/administration/offices';
 export const RESERVE_WEEKS = 3;
 export const ASK_RESERVE_WEEKS = 2;
 // A research initiative the line asks for is funded only from above this
-// (Plan 69), so the catalogue's courses and hires are paid first.
-export const RESEARCH_RESERVE_WEEKS = 5;
+// (Plan 69), so the catalogue's courses and hires are paid first. It is the
+// line's own floor (nextStep.ts's LAB_RESERVE_WEEKS, Plan 98G), so the line
+// asks only for a project this player will fund.
+export const RESEARCH_RESERVE_WEEKS = LAB_RESERVE_WEEKS;
 // Plain sense keeps every satisfaction attribute above this, and treats
 // one under EMERGENCY as worth breaking the saving for.
 export const LIVABLE = 60;
@@ -245,8 +247,9 @@ export function carry(g: Game, intent: StepIntent, reserve: number): boolean {
   }
 }
 
-// Plain money sense, after the line: one of each a week.
-function background(g: Game, reserve: number): void {
+// Plain money sense, after the line: one of each a week. The championships
+// goal player borrows it from year 15 (tools/review/goalPlayers.ts, Plan 98G).
+export function background(g: Game, reserve: number): void {
   const growing = () => weeklyNet(g.s) > 0;
   foundOffer(g, { reserve });
   if (growing()) hireForBlocked(g, { reserve });
