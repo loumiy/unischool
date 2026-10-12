@@ -3112,6 +3112,11 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .startup-vern-btn.locked { border-style: dashed; opacity: 0.72; }
 .startup-vern-btn.locked.active { opacity: 1; }
 .startup-vern-lock { font-weight: 600; font-size: var(--text-2xs); letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+/* A set unlocked since a college was last founded in it (Plan 98C). */
+.startup-vern-new { display: block; margin-top: 2px; font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--school-on-secondary); background: var(--school-secondary); border-radius: var(--radius-xs); padding: 0 4px; }
+/* What the run earned for the next college, under the Final Report. */
+.final-report-unlocks { font-weight: 700; }
 .startup-vern-locked-note { margin: -6px 0 14px; font-size: var(--text-xs); color: var(--ink); text-align: center; }
 
 /* Color pairs (StartupScreen.tsx): one even row of two-tone chips (primary

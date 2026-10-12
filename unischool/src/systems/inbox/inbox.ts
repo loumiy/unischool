@@ -11,6 +11,7 @@ import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER } from '../finance/sweep';
 import { cutLetter } from '../athletics/cut';
 import { schoolFoundedKey } from '../techtree/schools';
 import { foundingNotes } from './foundingNote';
+import { unlockLabel } from '../../state/unlocks';
 
 // ---------------------------------------------------------------------
 // THE INBOX (Plan 77): everything addressed to the president, in one
@@ -124,7 +125,12 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
 
 // A celebration's or a report's sender and subject, as a stop (a save
 // from before Plan 95T) or as the letter it is now.
-function newsWords(type: 'milestone' | 'research-complete', payload: unknown): [string, string] {
+function newsWords(type: NewsLetter['type'], payload: unknown): [string, string] {
+  // A bonus architecture earned for the next college (Plan 98C).
+  if (type === 'unlock') {
+    const v = (payload as { vernacular?: string } | undefined)?.vernacular ?? '';
+    return ['For your next college', `${unlockLabel(v)} architecture, unlocked`];
+  }
   if (type === 'milestone') {
     const entries = (payload as MilestonePayload | undefined)?.entries ?? [];
     return ['A celebration', entries.length === 1 ? entries[0].headline : `${entries.length} things to celebrate`];
@@ -140,6 +146,7 @@ function newsPreview(n: NewsLetter): string {
     const entries = n.payload.entries;
     return entries.length === 1 ? entries[0].detail : entries.map((e) => e.headline).join('; ');
   }
+  if (n.type === 'unlock') return `Your next college can be built in ${unlockLabel(n.payload.vernacular)}.`;
   const r = n.payload.report;
   return r.award ? `${r.award.facultyName} wins ${r.award.prizeName}.` : `${r.labName}: ${r.publications} published, ${r.breakthroughs} ${r.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'}.`;
 }
