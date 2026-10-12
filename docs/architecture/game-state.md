@@ -37,6 +37,20 @@ than crashing. **New Game** erases the save and returns to the startup screen.
 The main menu can also **download the run as a file** and **load a save file**
 (Plan 70B), through the same path as the boot load.
 
+**Save slots** (Plan 98D, `state/slots.ts`, `SaveSlots.tsx`). Three places to
+keep a run beside the autosave, which the game goes on writing as before.
+- **What a slot holds:** a save file exactly as *Download save* writes it, in
+  `unischool.slot.<id>`, with an index (`unischool.slots`) of what the menu
+  lists: the college, the year and week, and when it was saved.
+- **Loading a slot** goes through `readSave`, so an older version migrates as
+  an import does, and adopts it as an import is adopted.
+- **The menus:** in game, a slot can be saved into, loaded and deleted, and
+  each loss asks first; the title screen only loads.
+- **A refused write** (storage full) leaves the slot and the autosave as they
+  were and says so.
+- **Size:** a year-50 save is about 0.6 MB, so the autosave and three full
+  slots are about 2.4 MB, inside a browser's usual 5 MB.
+
 **Two tabs on one save** (Plan 79B). Every tab on the game shares the one
 key, so the last tab to take up the college keeps it. A tab that continues
 or founds a game **claims** the save: its id goes under

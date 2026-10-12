@@ -264,6 +264,33 @@ Each PR has its own branch (`plan-98x-subject`).
   - the storage-full path, with a stubbed `localStorage`;
   - the two-tab claim (`unischool.save.claim`) still guards the autosave.
 
+**As implemented.**
+
+- **Set aside stays as it is.** The plan read it as a feature to fold into
+  the slots, but it isn't one: it is where a save this version cannot read
+  is kept so the next save doesn't destroy it (`persistence.ts`). It is
+  untouched, and there is nothing to move into slot 1.
+- **Where the slots are:**
+  - *Save slots…* in the game's menu opens three rows, each saved into, loaded and deleted. Every loss asks first.
+  - The title screen offers the same rows, load only.
+- **Loading a slot** adopts its run and reloads onto the title screen, the
+  same as *Load a save file*.
+- **Size measured:** a year-50 save (the README's laid-out campus) is about
+  0.59 MB. The autosave and three full slots come to about 2.4 MB.
+- **No `GameState` change and no migration:** slots are storage keys, and
+  each holds the export format.
+- **Docs:** `architecture/game-state.md`.
+- **Checks:** `test/save-slots.test.ts` covers:
+  - three empty slots to start;
+  - a round trip;
+  - an older version migrated on load;
+  - a full browser refusing a new slot and an overwrite, keeping what the slot held and never touching the autosave;
+  - a delete;
+  - a slot missing its save, and a broken index, reading empty.
+
+  The menu flow (save to a slot, arm and confirm a load) was checked in the
+  running game.
+
 ### PR 98E — The old stocks read the pillars
 
 - `marketStandingOf`: `research` reads `pillarValue(s, 'research')`.
