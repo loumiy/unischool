@@ -37,7 +37,7 @@ unless a promise is on offer); the decision and the digest are not.
 
 Plan 16 is the record of how the summer came to be one stop rather than an
 admissions modal and a mid-year report:
-[`../plans/16-the-year.md`](../plans/16-the-year.md). Plan 33 dropped its
+[`../plans/016-the-year.md`](../plans/016-the-year.md). Plan 33 dropped its
 Standing beat, the U.S. News report: the figures stay in History's standings,
 and entering the guide keeps its own moment.
 
@@ -114,14 +114,14 @@ modeled as aggregate applicant *statistics*, never individual applicants:
 
 - **Applications** are driven by **price**, **current prestige**, and the
   **average student satisfaction over the preceding year** (word of mouth).
-  Since [Plan 71](../plans/71-economy.md):
+  Since [Plan 71](../plans/071-economy.md):
   - **Prestige's pool is a curve, not a line**: 1,000 plus 55,000 × ((prestige
     − 24) / 116)^1.5, so a new college draws a trickle (about a third of the
     old line's pool at founding) and the same pool as before at prestige 140.
   - **Past the price tolerance applicants fall away faster**, so a high price
     takes in less per applicant than a fair one and is a choice about who
     comes, not a money machine. The overreach is **counted once**, in sticker
-    shock (below), since [Plan 80F](../plans/80-the-owners-playtest.md): the
+    shock (below), since [Plan 80F](../plans/080-the-owners-playtest.md): the
     price factor is exp(−ratio) at every price. From Plan 71 until then the
     price factor carried its own overreach term, exp(−0.75 × (ratio − 1)) on
     every band, beside sticker shock's; it is folded into sticker shock's
@@ -174,7 +174,7 @@ modeled as aggregate applicant *statistics*, never individual applicants:
   is chosen. `admitRate(prestige)` is what the slider *opens* at: what a school
   of this standing would normally take, more selective the more standing it has.
   **A small college takes most of its few applicants** ([Plan
-  80F](../plans/80-the-owners-playtest.md), the backlog's *admit rate's early
+  80F](../plans/080-the-owners-playtest.md), the backlog's *admit rate's early
   slope*): the curve sits 50 points above the old logistic up to
   prestige 50 and eases down to meet it by 100 (a smoothstep), so a founding
   college opens at about 86% rather than 36%, and from prestige 100 the curve
@@ -259,7 +259,7 @@ schools pull the grad-school bound. This is what gives several different
 strategies each their own reason for enrollment to grow, instead of only
 prestige and price.
 
-**Athletes read results as well as capacity** ([Plan 21](../plans/21-the-department.md)'s
+**Athletes read results as well as capacity** ([Plan 21](../plans/021-the-department.md)'s
 PR C), exactly as the research-oriented read output beside labs: each
 national title is worth a term the summer after and decays over a few years,
 last season's deep runs count a little, and the summer modal names the cause

@@ -54,7 +54,7 @@ Twelve plans landed between `58fa3fd` and `4062bfb`. For a buyer, five matter:
 **What that does to the October verdicts (the reviewer's judgment):**
 
 - **Production values: up a step, from "tidy" to "a place".** The year-30 view with the ring of land and the autumn trees reads as a picture in its own right. It is still a flat-shaded procedural campus, not Two Point's hand-animated 3D, and nothing changed about humour or animation. So the art remains a reason a buyer chooses a competitor, but no longer a reason to scroll past.
-- **Replay value: the structure is now there.** A run ends in one of four identities, chosen once and kept, with rivals that specialize too. 85I's harness shows each specialist reaching first by year 50 on most seeds, and the unspecialized player never first on the three main seeds (on five more seeds it took first once, by 0.6 points, in its last two years) ([Plan 85, 85I](../../plans/85-specializations.md)). That makes "play again as a research university" a real pitch. B6-2 has the two gaps.
+- **Replay value: the structure is now there.** A run ends in one of four identities, chosen once and kept, with rivals that specialize too. 85I's harness shows each specialist reaching first by year 50 on most seeds, and the unspecialized player never first on the three main seeds (on five more seeds it took first once, by 0.6 points, in its last two years) ([Plan 85, 85I](../../plans/085-specializations.md)). That makes "play again as a research university" a real pitch. B6-2 has the two gaps.
 - **The store-page screenshot: better material, no new shots.** Every image a stranger would see today predates the changes above (B6-1).
 
 ## 1. The niche: what it is and who plays it
@@ -205,7 +205,7 @@ Dates re-verified from search extracts of the Steamworks pages (fetch blocked): 
 - **Met for academics** (+3.7 to +8.6) and **athletics** (+11.0 to +11.9).
 - **Not met for research** (5th–6th, 1.5 to 8.5 behind) and **student life** (3rd, 8.1 to 9.7 behind), because their rankings read slow-drifting stocks rather than the pillar values.
 
-85I proposes, but did not build, the smallest fix: rank research and student life on their pillar values, as academics and athletics already are (`rivalsSystem.ts`'s `selfValue` and `pillarColumns`). Read that way, research leads by 9.9 and 9.8 on two seeds and student life on all three ([Plan 85, 85I](../../plans/85-specializations.md)).
+85I proposes, but did not build, the smallest fix: rank research and student life on their pillar values, as academics and athletics already are (`rivalsSystem.ts`'s `selfValue` and `pillarColumns`). Read that way, research leads by 9.9 and 9.8 on two seeds and student life on all three ([Plan 85, 85I](../../plans/085-specializations.md)).
 
 The choice also arrives late: the Guided player reaches the top-20 milestone in years 31–35.
 

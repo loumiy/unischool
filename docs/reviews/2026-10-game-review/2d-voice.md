@@ -4,7 +4,7 @@ Plan 73, area 2. Commit read: `58fa3fd`. Every player-facing string outside the 
 
 Read in full: **3,711 rows, 20,138 words, on 47 screens** of `strings.csv`, screen by screen and in file order within each screen. Skipped, as briefed: Events (catalogue), Course descriptions, Events (decision) and letters, Promises, Names (people, rivals, mascots), Debug panel (developer only), Audio (not read).
 
-The standard: “a senior administrator’s dry, specific prose, American spelling, no in-jokes that break the frame”, plus the concrete rules of Plan 47 (`docs/plans/47-one-voice.md`):
+The standard: “a senior administrator’s dry, specific prose, American spelling, no in-jokes that break the frame”, plus the concrete rules of Plan 47 (`docs/plans/047-one-voice.md`):
 
 - **Verbs:** a read-only modal closes with *Continue*, a note with *Noted*; *Dismiss*, *Understood* and *Resolve* are retired as dismiss verbs.
 - **Dates and weeks:** prose says “Year N”; the log and charts keep compact stamps; compact durations read *Nw*, rates */wk*, and prose says weeks.

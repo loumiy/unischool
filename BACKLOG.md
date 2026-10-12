@@ -22,11 +22,11 @@ is left here waits for later.*
 *Sorted by the owner on 12 October 2026 and sequenced, so they are no longer
 backlog: see the plans for each.*
 
-- [Plan 98](docs/plans/98-version-0-1-1.md): actuals with an arrow in place
+- [Plan 98](docs/plans/098-version-0-1-1.md): actuals with an arrow in place
   of targets, a notice when a bonus style unlocks, the Final Report's tags
   and the share card, save slots, the three readings of the old stocks,
   the harness's three players, and the 0.1.1 release.
-- [Plan 99](docs/plans/99-a-gazebo-and-door-signs.md): a gazebo, door
+- [Plan 99](docs/plans/099-a-gazebo-and-door-signs.md): a gazebo, door
   signs, and the Japanese Garden at a later milestone.
 - [Plan 100](docs/plans/100-halls-claimed-by-three.md): a hall is claimed
   by a school only once it holds three of that school's programs.
@@ -56,7 +56,7 @@ February–March, and the game launches in late summer.*
   - the capsule art and the logo, commissioned.
 - **Held from Plan 97.** Moved out of the itch.io playtest by the owner
   (8 October 2026); both come back with the demo launch and its marketing
-  push. Their specs stand in [Plan 97](docs/plans/97-the-itch-playtest.md);
+  push. Their specs stand in [Plan 97](docs/plans/097-the-itch-playtest.md);
   the build flags they need (`VITE_EDITION=demo`, `VITE_PLATFORM=desktop`)
   already exist (97B), and the feedback module already lists the demo's
   end as a place its link opens from (97F).

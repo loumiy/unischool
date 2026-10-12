@@ -12,7 +12,7 @@ Plan 73, area 2, "Consistency". This is a read-only audit. Commit read: `a520bbd
   - *minor*: noticeable but harmless.
   - *polish*: a clean-up.
 - **What is not counted as a departure:**
-  - Map drawings, the startup facade and the faculty portraits. Plan 18 keeps their art "as drawn" (`docs/plans/18-the-look.md:44-49`).
+  - Map drawings, the startup facade and the faculty portraits. Plan 18 keeps their art "as drawn" (`docs/plans/018-the-look.md:44-49`).
   - The debug panel, which is for developers only.
   - The nationality flag emoji. They are authored in `src/data/facultyData.ts:446-500` but deliberately not rendered (`src/tabs/FacultyTab.tsx:56`).
 
@@ -37,7 +37,7 @@ Plan 73, area 2, "Consistency". This is a read-only audit. Commit read: `a520bbd
 | R11 | **Rule 2: state is a chip, never a coloured card.** A filled pill with a word in it, "on a card that stays cream". A card's own colour is only ever the school's. | 103-107 |
 | R12 | **Keyboard.** `R` rotates "same as the ⟳ on its footprint ghost". Camera turning and tilting is "Keys only — the map's corner pill has zoom buttons and nothing for the camera". `C` `F` `L` open Curriculum, Faculty and **Student Life**. | 116-128 |
 
-#### 1b. `docs/plans/47-one-voice.md`
+#### 1b. `docs/plans/047-one-voice.md`
 
 | # | Rule | Line |
 |---|---|---|
@@ -60,10 +60,10 @@ The two register documents give **no type scale, no weights other than display 8
   - Semantic colours "in pairs: one tuned for the dark chrome, one for paper" (lines 66-75).
   - "spacing deliberately not tokenised" (line 40).
 - **Plan 18, the Varsity direction the register cites:**
-  - "Archivo at 500–700 for text" (`docs/plans/18-the-look.md:32-33`).
+  - "Archivo at 500–700 for text" (`docs/plans/018-the-look.md:32-33`).
   - "Headline numbers are short, rounded" (line 32).
   - "every eyebrow the display face in the primary … the picked one the secondary fill" (lines 271-274).
-- **Plan 22B:** one formatter file. Every amount goes through `money`, with one short form `moneyShort`, and negative money is written "−$5,000" (`docs/plans/22-foundations.md:123-146`).
+- **Plan 22B:** one formatter file. Every amount goes through `money`, with one short form `moneyShort`, and negative money is written "−$5,000" (`docs/plans/022-foundations.md:123-146`).
 - **Consistency review:** American spelling and straight quotes (`docs/reviews/2026-09-consistency-review.md:141-142`). Q13 asked for "one date format … sentence case" and one close-control convention (lines 107 and 253-256).
 
 ---

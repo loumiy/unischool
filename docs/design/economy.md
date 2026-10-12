@@ -7,7 +7,7 @@ Money is the game's clock. This document is what `financeSystem.ts`,
 
 **Money is the primary pacing resource, and it is a bottleneck, not a threat.**
 It is the throttle for the first half of the game (the owner's rule, restated
-by [Plan 71](../plans/71-economy.md)): the thing that keeps a player waiting is
+by [Plan 71](../plans/071-economy.md)): the thing that keeps a player waiting is
 saving for the next thing they want. The one other limit is the curriculum
 committee's seats on courses, graduate ones among them since Plan 80E (four,
 up to eight with prestige — see [curriculum.md](curriculum.md)), a bandwidth
@@ -24,7 +24,7 @@ placeable Buildable is developed and placed by one action (see
 [buildables.md](../architecture/buildables.md)). The one remnant of siting is
 `RETROACTIVE_SITING_COST`, a small recovery fee for the rare
 `'done'`-but-unplaced Buildable. How the design arrived here is recorded in
-[Plan 01](../plans/01-design-alignment.md).
+[Plan 01](../plans/001-design-alignment.md).
 
 Money can only pace the game if the school's own growth keeps spending it. That
 is what the **growth loop** is for, and it is the shape everything in
@@ -41,8 +41,8 @@ is what the **growth loop** is for, and it is the shape everything in
    sections and services all carry the market rate its standing commands.
 3. **Demand** — the applicant pool is prestige x price x word of mouth
    (satisfaction) x overcrowding. The prestige pool is a curve that trickles
-   early and reaches 56,000 at prestige 140 ([Plan 71](../plans/71-economy.md);
-   a straight line since [Plan 67](../plans/67-pacing-tuning.md), a steep logistic
+   early and reaches 56,000 at prestige 140 ([Plan 71](../plans/071-economy.md);
+   a straight line since [Plan 67](../plans/067-pacing-tuning.md), a steep logistic
    before that), a price past the tolerance costs applicants faster than one
    under it, and beds throttle it only in the founding years (full at 2,500). Enrollment is earned, never automatic — and the freshman
    class cannot exceed the seats the catalogue has left after graduation.
@@ -50,7 +50,7 @@ is what the **growth loop** is for, and it is the shape everything in
    dominant income line (see
    [admissions.md](admissions.md)'s "Tuition follows the class that paid it").
    Beside it the reputation dividend, the endowment payout and — since
-   [Plan 21](../plans/21-the-department.md) — the **athletics surplus**: the
+   [Plan 21](../plans/021-the-department.md) — the **athletics surplus**: the
    gate is paid to the department's own pot first, and only what is left once
    every program on the priority list has drawn its cost spills into general
    income, with the tier's subsidy on the expense side. A winning department
@@ -105,7 +105,7 @@ and finishes by year 44–47. Every one reaches #1 by year 50 when it hand-picks
 faculty, and a teaching-blind one finishes around #16.
 
 The high-price line's slow start is the price of charging high, not a fault
-(the owner's call, [Plan 72](../plans/72-owners-answers.md) J): its year
+(the owner's call, [Plan 72](../plans/072-owners-answers.md) J): its year
 10–30 targets on the scorecard are what it produces, about 6% of its year-50
 enrollment at year 10, a quarter at year 20 and two thirds at year 30
 ([`2026-09-pacing-high-price.md`](../reviews/2026-09-pacing-high-price.md),
@@ -150,7 +150,7 @@ its building, a kitchen 30% of its dining hall, the boiler 12% of the standing
 residence halls, a storm 3% of everything standing, floored at $60k.
 
 **Facility upkeep charges mainly for overbuilding** ([Plan
-80F](../plans/80-the-owners-playtest.md), the owner's call). It comes in two
+80F](../plans/080-the-owners-playtest.md), the owner's call). It comes in two
 parts, both read off what a building cost:
 
 - **Campus upkeep.** Every building that serves students a need (dining, the
@@ -337,7 +337,7 @@ opening's money" above; the arithmetic is in `foundingData.ts`). The boom that
 follows a founding that works (the catalogue built by Year 15, first place
 by Year 17) is left open for the owner: every cost lever measured tips the
 economy into a stall before it slows the boom, so the fix is a mechanism
-that smooths the threshold, not a constant ([Plan 35](../plans/35-balance-and-playtest.md)).
+that smooths the threshold, not a constant ([Plan 35](../plans/035-balance-and-playtest.md)).
 
 ## The cost of being large (Plan 36)
 
