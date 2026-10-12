@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------
 
 import { teachingCollege } from './fixtures/teaching';
+import { equipLab } from './fixtures/lab';
 import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { projectAdmissions, trailingYearSatisfaction } from '../src/systems/admissions/admissionsSystem';
@@ -161,6 +162,7 @@ console.log('crowding cost tests');
   // idle lab) speaks first (Plan 95O's rule).
   const lab = building.tech.find((t) => t.facilityType === 'lab')!;
   lab.status = 'done';
+  equipLab(building, lab.id);
   assert(nextStep(building)?.intent?.kind === 'research', `it gives way to a step that can be taken (${nextStep(building)?.text})`);
   building.tech.find((t) => t.id === next.id)!.status = 'available';
   assert(nextStep(building)?.text.startsWith('Dining at 84%') === true && nextStep(building)?.intent?.kind === 'research',
