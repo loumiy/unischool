@@ -86,12 +86,22 @@ how often the form is opened, `feedback_opened`).*
 | Date | Views | Browser plays | Ratings | Comments | Collections | 7-day impressions | CTR |
 |---|---|---|---|---|---|---|---|
 | 10 October | 230 | 113 | 1 (★★★★★) | 2 | 4 | 2,469 | 2.84% |
+| 12 October | 389 | 209 | 1 (★★★★★) | 2 | 6 | 4,091 | 3.37% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
 Android app), then itch.io's browse pages: *new and popular* for web (10),
 tycoon (6), city builder (4–5), strategy, simulation and management.
 Plays started 8 October and peaked the next day (about 60).
+
+On 12 October (top referrers, 30 days): Google 32, reddit.com 17 (and 8
+from the Reddit Android app), itch.io's front page 15, *new and popular*
+for web 14, **foundplay.io 11** (its free boost, from 11 October), and
+itch.io's browse pages for management (11, plus 5 and 5), tycoon (8, 6,
+4), city builder (5, 5), strategy, simulation and **college** (4).
+Daily plays: about 20, 60, 40, 60 from 8 to 11 October, a second peak on
+11 October (foundplay.io and the r/gamedevscreens post). PostHog saw 37
+of the 209 plays, about one in six.
 
 ### PostHog, 11 October
 
