@@ -11,7 +11,8 @@
 
 Work that is going to happen but **has not** lives in
 [`BACKLOG.md`](../BACKLOG.md) at the repository root — the one forward-looking
-document here. Nothing belongs in two places at once: when a plan lands, what
+document here; what has come off it, and where it went, is in
+[`backlog-archive.md`](backlog-archive.md). Nothing belongs in two places at once: when a plan lands, what
 it changed goes into `design/` or `architecture/`, and the plan is left alone
 as the record of what was believed at the time.
 
