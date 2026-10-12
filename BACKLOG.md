@@ -32,8 +32,8 @@ backlog: see the plans for each.*
   by a school only once it holds three of that school's programs.
 - [Plan 101](docs/plans/101-events-that-do-what-they-say.md): the events'
   choices backed by real systems, and a memory of answers.
-- [Plan 102](docs/plans/102-the-course-catalog.md): the course catalog's
-  shape, reorganized at about its present size.
+- [Plan 102](docs/plans/102-the-course-catalog.md): what Plans 95L–M left
+  of the course catalog's shape, at its present size.
 
 ## Launch: toward Next Fest and 1.0
 

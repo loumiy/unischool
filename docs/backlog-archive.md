@@ -59,7 +59,10 @@ backlog:*
 - **Hide other schools' offers in a claimed hall** → Plan 100, reworked by
   the owner into how a hall is claimed.
 - **Events that do what they say** → Plan 101.
-- **The course catalog's shape** → Plan 102.
+- **The course catalog's shape** → Plan 102. Most of the entry was
+  already done by Plans 95L–M (6 October), which the re-read above missed;
+  Plan 102 takes what is left (400-level numbers, the MD's internal
+  medicine).
 
 ## Taken off on 12 October 2026
 
