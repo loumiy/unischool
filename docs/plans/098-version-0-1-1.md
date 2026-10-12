@@ -280,6 +280,52 @@ Each PR has its own branch (`plan-98x-subject`).
   seeds 1–5, in the PR. The scorecard's targets must still pass. The
   baseline is re-recorded.
 
+**As implemented.**
+
+- **The stocks are set, not drifted.** `tickPrestige` sets
+  `researchStanding` and `socialStanding` to their pillar targets each
+  week, so every reader (`marketStandingOf`, `collegePull`, the debug
+  panel) reads the pillar without a change of its own. The research-
+  powerhouse and pressure-cooker tags read `pillarValue` directly. The data
+  files can't import `prestigeSystem` (a cycle broke module start-up), which
+  is why the readers stay on the fields.
+- **The lag was not small.** Measured on `main` over six fifty-year runs
+  (Natural and Guided, the standard seeds), the social stock sat about 30
+  points under its target at year 5 and 5 to 15 under late; research trailed
+  by 10 to 50 points through years 10 to 30.
+- **The re-fit:**
+  - **The faculty market's research scale** reads 26 to 160, where it read
+    18 to 150. That's half-way to a least-squares fit of the old stock on
+    the pillar (34 to 171). With no re-fit, research grants ran to 2.49×
+    their funding (the guardrail is 1.70–2.30×). With the full fit, the
+    Guided player never reached first place.
+  - **`collegePull`** is unchanged. Its re-fit to the same fit (47 to 111)
+    changed no target for the better.
+- **Balance**, `npm run sim` on the standard seeds against `main`:
+  - Year-50 ranks within 3 places, prestige within 3.1 points.
+  - Year-50 cash moves a lot for the Guided players (Guided $690M to
+    $2.0B). Seeds that stop spending in their 30s bank the rest, and more
+    of them stop sooner. `main` does the same on other seeds (Guided, research,
+    on 4242: $10.7B), so it's the harness hoarding sooner, not an economy
+    change.
+  - On seeds 1–5 (measured before the re-fit) the year-50 ranks move by at
+    most 4 places.
+- **The pacing scorecard** (`npm run natural -- --pacing`): 79 of 115
+  targets met, where `main` meets 84. **The plan's bar, that the targets
+  still pass, is not met.** The misses are mostly a step past a window
+  `main` met at its edge:
+  - the natural college's net reaching 90% of its growth in Y42, where the window is Y37–Y41;
+  - the Guided player first in the top ten in Y36 (window Y37–Y45);
+  - the Completionist's graduate courses all developed in Y44 (window Y36–Y42);
+  - the natural college's Y40 enrollment at 94% of Y50's, rounding just under the target's ≥ 94%;
+  - its enrollment growing 7% after Y40 (target ≤ 5%);
+  - the teaching-blind guided player 8th at Y50, where the target is 11–25.
+  
+  One target `main` missed now passes: the Completionist's programs 90%
+  founded by Y32. Merged on the owner's "merge and continue", with the
+  shortfall flagged to them; the targets are theirs to move or hold.
+- The baseline is re-recorded.
+
 ### PR 98F — The report tags, the share card and the shortcut list
 
 - **The tags** (decision 5):
@@ -334,6 +380,8 @@ Each PR has its own branch (`plan-98x-subject`).
     meaning.
   - `shortcuts.test.ts` fails if a key is bound twice, or if a
     `useHotkeys` handler compares `e.key` with a literal.
+- **Balance:** `npm run sim` matches 98E's baseline on every row, so the
+  pressure cooker's new test changed nothing the harness reaches.
 
 ### PR 98G — The harness's three players
 

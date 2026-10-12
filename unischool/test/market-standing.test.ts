@@ -50,9 +50,13 @@ const share = (a: number[], f: (v: number) => boolean) => a.filter(f).length / a
 
 // The centers: about 50 at founding standing, toward 80 at the top.
 const at = marketCenters(FOUNDING_STANDING);
-const top = marketCenters({ prestige: 150, research: 150 });
+// Research reads the live pillar on a scale running to 160 (Plan 98E), so
+// the pillar's own top, 150, falls a little short of the market's.
+const top = marketCenters({ prestige: 150, research: 160 });
+const pillarTop = marketCenters({ prestige: 150, research: 150 });
 assert(Math.abs(at.teaching - 50) < 1e-9 && Math.abs(at.research - 50) < 1e-9, `50 at founding standing (${at.teaching}, ${at.research})`);
 assert(Math.abs(top.teaching - 80) < 1e-9 && Math.abs(top.research - 80) < 1e-9, `80 at the top (${top.teaching}, ${top.research})`);
+assert(pillarTop.research > 78 && pillarTop.research < 80, `just under it at the pillar's top (${pillarTop.research})`);
 // Teaching follows prestige alone; research mostly research standing.
 const famous = marketCenters({ prestige: 150, research: 18 });
 const scholarly = marketCenters({ prestige: 50, research: 150 });
