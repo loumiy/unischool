@@ -21,6 +21,9 @@ function shortcutRows(): { where: ShortcutPlace; lines: { keys: string[]; does: 
     if (line) line.keys.push(...keys.map(keyName));
     else group.lines.push({ keys: keys.map(keyName), does });
   }
+  // Letters before the named keys: W A S D, then the arrows.
+  const letter = (k: string) => (/^[A-Z0-9]$/.test(k) ? 0 : 1);
+  for (const { lines } of out) for (const l of lines) l.keys.sort((a, b) => letter(a) - letter(b));
   return out;
 }
 
