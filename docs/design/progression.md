@@ -453,8 +453,9 @@ course-development sprint.
 
 **The player can see all of this.** The History tab opens with **Prestige**
 — one row per pillar and per adjustment, each row a bar of what it is *worth*
-against the most it could reach, and today's stock against the target it is
-drifting toward. Each pillar's row opens onto its own make-up: its terms,
+against the most it could reach, and today's prestige with an arrow for the
+way it is moving this week; the target it moves toward is not shown (Plan
+98B, the owner's answer on targets against actuals). Each pillar's row opens onto its own make-up: its terms,
 the two multipliers on the academic rows they touch, and a capital project's
 lift. History's standings show the four pillars again, each broken down,
 beside their rankings. It is read off `prestigeSystem.ts`'s
@@ -470,7 +471,7 @@ it" line under it (`standingDetailLine`), so the two cannot word a term
 differently.
 
 **The report card is shown.** The Prestige panel carries the summer model in
-its note — what the year is grading toward, what the step would move — and
+its note — which way the year's grade is pulling, in words — and
 each row shows last summer's grade beside what it is worth now; the crowding
 row is drawn as the subtraction it is. Under the inputs sits one **reading**
 that counts for nothing: **instruction capacity**, the seats the housed
@@ -760,7 +761,7 @@ retired by Plan 33 for the report. It is kept as a harness reading only
 designed against its axes.
 
 From the tenth year the History tab shows the report in draft — the arc so
-far — the way the Prestige panel shows what the year is grading toward.
+far — the way the Prestige panel says which way the year's grade is pulling.
 
 ### The top has to be held
 

@@ -169,6 +169,33 @@ Each PR has its own branch (`plan-98x-subject`).
   player-facing string under `src/` (outside `DebugPanel`) contains
   "target" for these two figures.
 
+**As implemented.**
+
+- **`TrendFigure.tsx`:** `trendOf`, `trendWords`, `TrendArrow` and
+  `TrendFigure`.
+- **The weekly change** is the tick's own step, so the arrow and the next
+  week agree: `prestigeWeeklyChange` (`prestigeSystem.ts`, the tremor
+  rate), `satisfactionWeeklyChange` (`satisfactionSystem.ts`) and
+  `weeklyChange(breakdown)` for a standing.
+- **The arrow is on the dock's prestige and satisfaction chips too.** They
+  are the figures a player reads most, and the owner's answer was to show
+  the actual with an arrow.
+- **Prestige's floor is 0.005 a week, not 0.05.** Between summers prestige
+  only trembles toward the year's grade, a few hundredths a week, and at
+  0.05 its arrow almost never showed.
+- **Wording:**
+  - the research letter's "(feeds the prestige target)" became "(adds to prestige)";
+  - the championship letter's "to the target" became "to where it is heading";
+  - a held ceiling reads "It is holding this standing back now".
+- **Kept:** the Institutional Research office's rank forecast, an earned
+  reading of the year's grade, not the target shown by default.
+- **Docs rewritten:** `design/progression.md`, `design/admissions.md` and
+  `architecture/playtesting.md`.
+- **Checks:**
+  - `test/actuals-arrow.test.ts`: the three states, the words, and a sweep of `src/` (outside the DebugPanel) for player strings that name either target;
+  - `plan96-fixes`' crowding line updated;
+  - `npm run check` and `test:slow` pass, and `sim/baseline.json` is unchanged.
+
 ### PR 98C — A notice when a style unlocks
 
 - **The earned list is returned.** `writeSave` and `hangInHall` pass

@@ -3,6 +3,7 @@ import {
   multiplierLine, type StandingBreakdown, type StandingInput, type StandingReading,
 } from '../systems/prestige/prestigeSystem';
 import { SPECIALIZED_TAG } from '../data/specializationData';
+import { PRESTIGE_TREND, TrendFigure, trendWords } from '../components/TrendFigure';
 
 // ---------------------------------------------------------------------
 // A standing, explained: prestige's in History's Prestige panel, each of its
@@ -121,22 +122,32 @@ function ReadingRow({ item, max }: { item: StandingReading; max: number }) {
   );
 }
 
-// Where a standing sits and where it is heading: "51.5 → 53.2".
+// How far a standing moves this week: the share of the gap to its target
+// that closes each week. The target itself is not shown (Plan 98B).
+export function weeklyChange(breakdown: StandingBreakdown): number {
+  return (breakdown.target - breakdown.current) * breakdown.driftRate;
+}
+
+// Where a standing sits and which way it is moving: "51.5 ▲" (Plan 98B).
 export function StandingFigure({ breakdown }: { breakdown: StandingBreakdown }) {
   return (
     <span className="standing-figure">
-      {prestigeFigure(breakdown.current)}
-      <span className="standing-arrow"> → </span>
-      {prestigeFigure(breakdown.target)}
+      <TrendFigure value={prestigeFigure(breakdown.current)} change={weeklyChange(breakdown)} {...PRESTIGE_TREND} />
     </span>
   );
 }
 
-// The summer model, in a sentence: what the year is grading toward, and
-// last summer's card if there is one.
+// The summer model, in a sentence: which way this year's grade is pulling,
+// in words rather than the grade's figure (Plan 98B), and last summer's card
+// if there is one.
 function summerNote(breakdown: StandingBreakdown): string {
   const { reportCard } = breakdown.summer!;
-  const grading = `This year is grading ${prestigeFigure(breakdown.target)}.`;
+  const gap = breakdown.target - breakdown.current;
+  const grading = gap >= 0.05
+    ? "This year's grade is lifting it."
+    : gap <= -0.05
+      ? "This year's grade is pulling it down."
+      : "This year's grade is holding it steady.";
   const last = reportCard
     ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${prestigeFigure(reportCard.before)} → ${prestigeFigure(reportCard.after)}.`
     // Before the first summer (Plan 78C): when the grade first counts.
@@ -158,7 +169,6 @@ export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: 
   // All bars share one scale, the largest weight in this standing, so terms
   // are comparable at a glance.
   const max = Math.max(...breakdown.inputs.map((i) => i.weight));
-  const gap = breakdown.target - breakdown.current;
   return (
     <div className="standing">
       {titled && (
@@ -172,10 +182,7 @@ export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: 
           ? summerNote(breakdown)
           : breakdown.live
             ? `Read as it stands, week by week, and ${pct(breakdown.share ?? 0)} of prestige.`
-            : Math.abs(gap) < 0.05
-            ? 'Sitting at its target.'
-            : `Drifting ${gap > 0 ? 'up' : 'down'} toward ${prestigeFigure(breakdown.target)}, by `
-              + `${(Math.abs(gap) * breakdown.driftRate).toFixed(3)} a week.`}
+            : `${trendWords(weeklyChange(breakdown), PRESTIGE_TREND.floor, 3)}.`}
         {breakdown.share !== undefined && !breakdown.live && ` It is ${pct(breakdown.share)} of prestige.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
       </p>
@@ -186,7 +193,7 @@ export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: 
       {breakdown.ceiling && (
         <p className={`standing-note standing-ceiling${breakdown.held ? ' binding' : ''}`}>
           <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}
-          {breakdown.held && !rowSaid && ` ${breakdown.ceiling.held ?? 'It is holding the target down now.'}`}
+          {breakdown.held && !rowSaid && ` ${breakdown.ceiling.held ?? 'It is holding this standing back now.'}`}
           {belowA && belowA.count > 0 && (
             <>
               {' '}
