@@ -44,15 +44,19 @@ export const SPECIALIZATION_AXIS: Readonly<Record<Pillar, ReportAxis>> = {
   athletics: 'athletics',
 };
 
-// The standing each tag is, in effect, a claim about.
+// The standing each tag is, in effect, a claim about: the one its test in
+// identity/tags.ts reads, so a tag never hides the weakness of a standing
+// it does not measure (Plan 98F). A commuter school is a campus-life claim
+// (its test reads beds), a country club a price claim (its test reads the
+// price against what families expect, and the grounds).
 export const TAG_AXIS: Readonly<Record<string, ReportAxis>> = {
   'research-powerhouse': 'research',
   'teaching-college': 'academics',
   'party-school': 'experience',
   'jock-school': 'athletics',
   artsy: 'academics',
-  commuter: 'access',
-  'country-club': 'experience',
+  commuter: 'experience',
+  'country-club': 'access',
   'pressure-cooker': 'academics',
   'the-bargain': 'access',
   'old-money': 'finance',
