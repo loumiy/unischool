@@ -3,7 +3,7 @@ import type { HallEntry } from '../state/hall';
 import { readHall } from '../state/hall';
 import { REPORT_WORDS } from '../data/reportData';
 import { SchoolFacade } from './StartupScreen';
-import { useHotkeys } from './hotkeys';
+import { isKey, useHotkeys } from './hotkeys';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { CloseIcon } from './icons';
 import GradeMark from './GradeMark';
@@ -37,7 +37,7 @@ export function HallFrame({ entry, open, onClick }: { entry: HallEntry; open?: b
 export default function HallOfFame({ onClose, onNewCollege, running }: { onClose: () => void; onNewCollege?: () => void; running?: string }) {
   const [hall] = useState(() => readHall());
   const [open, setOpen] = useState<string | null>(hall[0]?.id ?? null);
-  useHotkeys((e) => { if (e.key === 'Escape') onClose(); });
+  useHotkeys((e) => { if (isKey(e, 'back')) onClose(); });
   const shown = hall.find((e) => e.id === open);
   return (
     <div className="front-screen" role="dialog" aria-modal="true" aria-label="The hall of fame">

@@ -5,7 +5,8 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import { composeTitle, finalReport, gradeAxes, satisfactionLeads, titleTag } from '../src/state/finalReport';
-import { reportGrade } from '../src/data/reportData';
+import { TAG_AXIS, WEAKNESSES, reportGrade, type ReportAxis } from '../src/data/reportData';
+import { TAGS } from '../src/data/tagData';
 import { STANDINGS } from '../src/systems/rivals/rivalsSystem';
 import type { GameState, YearSnapshot } from '../src/state/types';
 
@@ -123,6 +124,36 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
   strong.history.forEach((h) => { h.standings = { academics: 4, researchStanding: 3 }; });
   strong.identity = { tags: [], earning: {}, shedding: {} };
   assert(titleTag(strong, gradeAxes(strong)) === 'research-powerhouse', 'of two earned tags the guidebooks missed, the one on the stronger standing');
+}
+
+// ---- A tag hides only a standing it reads (Plan 98F) ----
+// The standings each tag's test in identity/tags.ts reads. The title skips
+// the claimed standing when it names the weakest, so the claim must be one
+// of these, or a tag would hide a weakness it never measured.
+{
+  const READS: Record<string, ReportAxis[]> = {
+    'research-powerhouse': ['research', 'academics'],
+    'teaching-college': ['academics', 'research'],
+    'party-school': ['experience'],
+    'jock-school': ['athletics'],
+    artsy: ['academics', 'experience'],
+    commuter: ['experience'],
+    'country-club': ['access', 'experience'],
+    'pressure-cooker': ['access', 'experience', 'academics'],
+    'the-bargain': ['access'],
+    'old-money': ['finance'],
+  };
+  const axes: ReportAxis[] = ['academics', 'research', 'experience', 'athletics', 'access', 'finance'];
+  for (const { id } of TAGS) {
+    assert(READS[id]?.includes(TAG_AXIS[id]), `${id} claims a standing its test reads (${TAG_AXIS[id]})`);
+    // With the claimed standing the weakest and an unread one weak too, the
+    // title names the unread one.
+    const unread = axes.find((a) => !READS[id].includes(a))!;
+    const s = run(100, 120);
+    s.identity = { tags: [id], earning: {}, shedding: {} };
+    const grades = axes.map((axis) => ({ axis, label: axis, mean: 0, first: 0, last: 0, grade: 'C', score: axis === TAG_AXIS[id] ? 10 : axis === unread ? 20 : 80 }));
+    assert(composeTitle(s, grades).endsWith(WEAKNESSES[unread]), `${id} leaves ${unread}'s weakness showing`);
+  }
 }
 
 // ---- The whole report ----
