@@ -11,8 +11,11 @@ import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import { finalReport } from '../src/state/finalReport';
 import { hallEntryFor, type HallEntry } from '../src/state/hall';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import * as reportData from '../src/data/reportData';
 import { REPORT_GRADES } from '../src/data/reportData';
-import { CARD_HEIGHT, CARD_WIDTH, cardTitle, chronicleLine, rankLine, reportCardSummary, reportCardSvg, wrap } from '../src/state/reportCard';
+import { CARD_HEIGHT, CARD_WIDTH, cardFontCss, cardTitle, chronicleLine, rankLine, reportCardSummary, reportCardSvg, wrap } from '../src/state/reportCard';
 
 bindScriptStream(7071);
 
@@ -110,6 +113,29 @@ console.log('report card tests');
   assert(lines.length === 2 && lines[0] === 'one two' && lines[1].endsWith('…'), `wrap cuts at the last line with an ellipsis (${lines.join(' / ')})`);
   assert(wrap('short', 20, 2).join('|') === 'short', 'and leaves a short line alone');
   assert(wrap('', 20, 2).length === 0, 'and an empty one empty');
+}
+
+// The card's own fonts (Plan 98F): four faces, embedded when given, each
+// subset small, and holding every character the report's own words use.
+{
+  const s = createInitialState('Blackmoor');
+  s.clock.year = 50;
+  const entry = hallEntryFor(s, finalReport(s), 1_000);
+  const fonts = { display: 'data:font/woff2;base64,AAAA', sans: 'data:font/woff2;base64,BBBB', sansBold: 'data:font/woff2;base64,CCCC', sansItalic: 'data:font/woff2;base64,DDDD' };
+  const svg = reportCardSvg(entry, 'unischool.example', fonts);
+  assert(wellFormed(svg) && svg.includes(`<style>${cardFontCss(fonts)}</style>`), 'the fonts ride in the card\'s own style');
+  assert((svg.match(/@font-face/g) ?? []).length === 4, 'four faces');
+  assert(textOf(svg).join('|') === textOf(reportCardSvg(entry, 'unischool.example')).join('|'), 'and the words are the same without them');
+  const dir = join(process.cwd(), 'src/assets/card-fonts');
+  const files = readdirSync(dir).filter((f) => f.endsWith('.woff2'));
+  assert(files.length === 4, `four font files (${files.join(', ')})`);
+  for (const f of files) assert(readFileSync(join(dir, f)).length < 20_000, `${f} is subset (${readFileSync(join(dir, f)).length} bytes)`);
+  // tools/subsetCardFonts.sh's ranges: printable ASCII, Latin-1, and the
+  // dashes, quotes, bullet, ellipsis and arrow.
+  const kept = (c: string) => { const n = c.codePointAt(0)!; return (n >= 0x20 && n <= 0x7e) || (n >= 0xa0 && n <= 0xff) || (n >= 0x2013 && n <= 0x2014) || (n >= 0x2018 && n <= 0x201d) || n === 0x2022 || n === 0x2026 || n === 0x2192; };
+  const words = JSON.stringify(Object.values(reportData)) + textOf(svg).join('');
+  const missing = [...new Set([...words].filter((c) => !kept(c) && c >= ' '))];
+  assert(missing.length === 0, `the subset holds the report's characters (missing: ${missing.join(' ')})`);
 }
 
 if (failures === 0) {

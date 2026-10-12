@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import ConfirmButton from './ConfirmButton';
 import type { HallEntry } from '../state/hall';
-import { CARD_HEIGHT, CARD_WIDTH, reportCardSummary, reportCardSvg } from '../state/reportCard';
+import { CARD_HEIGHT, CARD_WIDTH, reportCardSummary, reportCardSvg, type CardFonts } from '../state/reportCard';
 import { reportShared } from '../analytics/analytics';
 import { siteUrl } from '../build';
 
@@ -14,9 +14,38 @@ import { siteUrl } from '../build';
 
 const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'college';
 
+// The card's own fonts (Plan 98F), fetched with the first card rather than
+// with the game, and inlined, since an image loads nothing of its own.
+const CARD_FONT_FILES = {
+  display: new URL('../assets/card-fonts/display-800.woff2', import.meta.url).href,
+  sans: new URL('../assets/card-fonts/sans-400.woff2', import.meta.url).href,
+  sansBold: new URL('../assets/card-fonts/sans-700.woff2', import.meta.url).href,
+  sansItalic: new URL('../assets/card-fonts/sans-400-italic.woff2', import.meta.url).href,
+};
+
+async function dataUri(url: string): Promise<string> {
+  const blob = await (await fetch(url)).blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).replace(/^data:[^;]*;/, 'data:font/woff2;'));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Without them (a failed fetch) the card falls back to the system's faces.
+async function cardFonts(): Promise<CardFonts | undefined> {
+  try {
+    const [display, sans, sansBold, sansItalic] = await Promise.all(Object.values(CARD_FONT_FILES).map(dataUri));
+    return { display, sans, sansBold, sansItalic };
+  } catch {
+    return undefined;
+  }
+}
+
 async function downloadCard(entry: HallEntry): Promise<void> {
   const img = new Image();
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(reportCardSvg(entry, siteUrl().host))}`;
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(reportCardSvg(entry, siteUrl().host, await cardFonts()))}`;
   await img.decode();
   const canvas = document.createElement('canvas');
   canvas.width = CARD_WIDTH;
