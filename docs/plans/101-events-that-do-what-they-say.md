@@ -34,7 +34,7 @@ Read against `main` at `9cec56b` plus PR #341.
 - **The lever test** (`test/event-truth.test.ts`, `LEVERS` :49) checks that
   a choice's label matches what its effects can do.
 
-What 76D left (`76-ui-and-text.md:434–444`), with the second review's
+What 76D left (`076-ui-and-text.md:434–444`), with the second review's
 update (`reviews/2026-10-game-review-ii/2b-flavor-and-mechanics.md:70–100`),
 sorted by the hook each needs:
 

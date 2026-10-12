@@ -69,12 +69,12 @@ backlog:*
 *Re-read against the code after Plan 97 (0.1.0 on itch.io).*
 
 - **The second review (Plan 86):** every area answered and sequenced in
-  [Plan 95](plans/95-second-review-worked-through.md). What the owner kept
+  [Plan 95](plans/095-second-review-worked-through.md). What the owner kept
   for later stayed in the backlog under the entry it continues.
 - **The owner's second playthrough:** sorted in
   [`reviews/2026-10-owners-playthrough-ii.md`](reviews/2026-10-owners-playthrough-ii.md),
   its four questions answered, and landed as
-  [Plan 96](plans/96-the-owners-second-playthrough.md). Only *Targets
+  [Plan 96](plans/096-the-owners-second-playthrough.md). Only *Targets
   against actuals* stays open.
 - **Area 6 of the October review (marketability), the parts that are
   built:**

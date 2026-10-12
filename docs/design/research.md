@@ -124,7 +124,7 @@ The Landmark Program opens with **the Research Park**, a capital
 project that itself waits on every standing lab having seen an initiative
 through (`s.research.finishedLabs`, recorded when one ends uncancelled): a
 college earns its landmark work by doing research everywhere it can first.
-Since [Plan 85F](../plans/85-specializations.md) the park is also **the
+Since [Plan 85F](../plans/085-specializations.md) the park is also **the
 research specialization's own building** (below): only a college
 specialized in research may build it. The Research tab shows the count until the park stands (Plan 80B, `labsTowardPark`):
 "Labs that have finished a project: n of m", each lab marked, and that a new

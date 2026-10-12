@@ -63,7 +63,7 @@ export const SERVICES_PER_STUDENT_PER_WEEK = 45; // at prestige 50
 // rising with every doubling of the roll above SCALE_FREE_BELOW. Every other
 // running cost is linear in size, so without it the marginal student pays
 // as well at 20,000 as at 1,000 and growth compounds until the catalog
-// runs out (docs/plans/36-costs-that-grow-with-size.md). Free below the
+// runs out (docs/plans/036-costs-that-grow-with-size.md). Free below the
 // threshold, so a founding college never pays it; logarithmic, so the
 // marginal student's margin falls smoothly rather than at a cliff; at the
 // prestige market rate, on top of it, never in place of it.

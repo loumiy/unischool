@@ -190,7 +190,7 @@ export function ledBy(name: string, specialization: Pillar): string {
 // for athletics, the teams' slowdown stands down and the big stage shrinks
 // to a quarter,
 // specialization.ts's athleticsLifted). `mechanics` are the plan's
-// (docs/plans/85-specializations.md, PRs 85E-H): each is `ready` once its PR
+// (docs/plans/085-specializations.md, PRs 85E-H): each is `ready` once its PR
 // builds it, and until then the screen says it is still to come. Since Plan
 // 85H every one is ready.
 // ---------------------------------------------------------------------
