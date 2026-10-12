@@ -7,31 +7,15 @@ does (see `docs/plans/README.md` for how that is done and named).*
 **This is the one forward-looking document in the repository.** The docs in
 `docs/design/` and `docs/architecture/` describe the game as it is; the plans
 in `docs/plans/` are closed records of work that has landed. If something is
-going to happen but has not, it belongs here.
+going to happen but has not, it belongs here. What has come off, and where
+it went, is in [`docs/backlog-archive.md`](docs/backlog-archive.md).
 
-*Re-read against the code after Plan 85 (October 2026): what later plans
-delivered came off, and what plans left open "for the owner" came on. The
-last two sections list what came off and where it went.*
+*Re-read against the code on 12 October 2026, after Plan 97 (0.1.0 on
+itch.io). Only work still to do or decide is left.*
 
 ---
 
-## The second review (Plan 86): answered
-
-*Every area of [`docs/reviews/2026-10-game-review-ii/`](docs/reviews/2026-10-game-review-ii/README.md)
-is answered, and the work is sequenced in [Plan 95](docs/plans/95-second-review-worked-through.md).
-What the owner left out of Plan 95 and kept for later is below, under
-each entry it continues.*
-
-## Awaiting the owner: the second playthrough
-
-*The owner's notes from a run after Plan 95, sorted and read against the
-code in [`docs/reviews/2026-10-owners-playthrough-ii.md`](docs/reviews/2026-10-owners-playthrough-ii.md):
-ten bugs whose cause is known, UI and text changes the owner has decided,
-balance (the first three years, the faculty's 55% start), performance late
-in a run. The owner answered its four questions (its §7): drop "Est. Year
-1", course names in place of codes, no formal text pass, and print years
-1–5 in the pacing report before tuning the opening. Sequenced and landed
-in [Plan 96](docs/plans/96-the-owners-second-playthrough.md).*
+## Decisions waiting on the owner
 
 - **Targets against actuals** (the owner, kept here at their request).
   Satisfaction shows *target* beside *today*, and prestige shows
@@ -39,129 +23,68 @@ in [Plan 96](docs/plans/96-the-owners-second-playthrough.md).*
   suspects it confuses a new player. Decide whether to keep both, keep one,
   or show only the actual with a direction arrow.
 
-## Awaiting the owner: the October 2026 review's area 6
+- **The price is set blind, the other half** (A4-6). The tuition slider
+  shows the tier and what families expect at the college's prestige
+  (Plan 96I), and once a price is set the summer says why the pool moved
+  against last year, the price among the factors (`poolChange`,
+  `systems/admissions/yearOverYear.ts`). What is missing is last year's
+  price and the pool it drew, shown beside the slider *before* the
+  price is set. Plan 89's Admissions Office shows a range for a college
+  that opens it.
+- **Hide other schools' offers in a claimed hall** (Plan 78D, for the
+  owner). They show behind a confirmation today; hiding them is one line
+  (`78-learning-the-game.md`, the owner's notes).
 
-*Areas 1, 2, 3 and 7 of the October review
-([`docs/reviews/2026-10-game-review/`](docs/reviews/2026-10-game-review/README.md))
-were answered by Plans 74–79. Area 4 was answered by Plans 76B, 78D, 80 and 85,
-except what is listed under *Named, not sequenced* below (the digest, size
-levers, the blind price, the report's last phrase). The fix-first list and
-eight of the ten ranked improvements are done; what became of every finding
-is in [the review's status note](docs/reviews/2026-10-game-review/STATUS.md).*
+- **A full endowment can still carry an unspecialized college to first**
+  (accepted by the owner in Plan 85I, "worth watching"). Decide whether it
+  needs anything or comes off.
 
-**Area 6 (marketability) has not been triaged.** Its memo
-([`6-marketability.md`](docs/reviews/2026-10-game-review/6-marketability.md))
-made shipping depend on three things. Where each stands:
+## Launch: toward Next Fest and 1.0
 
-- **A picture a stranger wants to click.** Seasons, the landmarks and the
-  ring of land are built (Plans 74, 81). The title screen still shows no
-  campus, and the README's screenshots predate Plans 80–85 (the History
-  and Faculty captions describe screens that have since changed).
-- **Choices that exclude each other.** Plan 85's specializations.
-- **AI disclosure and visible human direction.** The Credits credit
-  Halifax Games with a footnote, "Made with the help of AI tools" (Plan
-  97C, the owner's decision); the store forms' answers are drafted in
-  `docs/store/ai-disclosure.md`. Nothing on a store page yet.
+*The timeline is decided (the second review's B6-4, Plan 95): Next Fest in
+June 2027 (registration closes 25 April 2027). The Steam page goes live by
+January 2027 so wishlists build before the fest, the demo goes live in
+February–March, and the game launches in late summer.*
 
-And the owner's decisions: a free web demo of the first decade, a Steam
-page, and a price ($14.99 was recommended). Whether the owner's playtest
-(70L) or the demo comes first is part of the same decision.
-
-- **The timeline is decided** (the second review's B6-4, Plan 95): Next
-  Fest June 2027 (registration closes 25 April 2027). The Steam page goes
-  live by January 2027, so wishlists build before the fest, with the demo
-  live in February–March and launch in late summer.
+- **The playtest's findings** (B6-5). 0.1.0 is public on itch.io (Plan 97)
+  and measures a first run's real length and whether players reach year 30.
+  Read the numbers and decide what they change.
+- **The Steam page.** The store forms' AI-disclosure answers are drafted in
+  `docs/store/ai-disclosure.md`; nothing is on a store page yet. The price
+  is undecided ($14.99 was recommended in the October review's area 6).
 - **The owner's own tasks** (B6-3):
   - a human edit of the most-read text: the founding letters, the summer,
     the specialization letter and the Final Report;
   - a devlog started from the plans' quotes;
   - the capsule art and the logo, commissioned.
-- **The playtest (70L)** measures a first run's real length, and whether
-  players reach year 30 (B6-5).
-
-## Held from Plan 97: the ten-year demo (G) and the desktop build (H)
-
-*Moved out of the itch.io playtest by the owner (8 October 2026): the
-playtest is a quiet run on the web build, for about 100 players. Both come
-back with the full demo launch and its marketing push. Their specs stand in
-[Plan 97](docs/plans/97-the-itch-playtest.md); the build flags they need
-(`VITE_EDITION=demo`, `VITE_PLATFORM=desktop`) already exist (97B), and the
-feedback module already lists the demo's end as a place its link opens
-from (97F).*
-
-- **97G — the ten-year demo.** `VITE_EDITION=demo` ends the run after the
-  tenth summer, on an end screen that shows what is ahead; sandbox hidden;
-  demo saves carry into the full game, one way.
-- **97H — the desktop build.** Electron in `desktop/`, loading the built
-  game through `app://`; Windows, macOS and Linux packages from the
-  release workflow; unsigned until the Steam plan signs them.
-
-## On hold from Plan 70: analytics (K) and launch (L)
-
-*Picked up by [Plan 97](docs/plans/97-the-itch-playtest.md), done 8
-October 2026: 70K as its PR E, and 70L's owner's pass as its PR J, with
-0.1.0 public on itch.io. What 70L kept for launch (1.0.0) still waits
-here.*
-
-*Held by the owner's decision (September 2026), after Plan 70's PRs A–J
-landed. Both specs stay in [Plan 70](docs/plans/70-launch.md); they wait
-here until they are picked up again.*
-
-- **70K — analytics.** *Done as Plan 97E (October 2026), straight to
-  PostHog's API rather than through `posthog-js`.* The original entry: PostHog through `posthog-js`, in
-  production builds only, memory persistence and no cookies, autocapture
-  off; page views and six run events with no free text (`run_started`,
-  `year_reached`, `run_finished`, `report_shared`, `save_exported` /
-  `save_imported`, `crashed`); *Share anonymous play statistics* in
-  Settings; two sentences in the Credits. **Needs the owner** to set
-  `VITE_POSTHOG_KEY` in Vercel's production environment before it reports
-  anything.
-- **70L — launch.** *The owner's pass is done as Plan 97J (0.1.0 on itch.io, 8 October 2026); 1.0.0 waits for launch.* The original entry: The owner plays a full run on a fresh
-  browser and a second session on a tablet, against a short checklist in
-  `docs/reviews/` (the first hour, the first school, the first summer, a
-  save exported and re-imported, a rank change, a specialization, the
-  Final Report, play again); small findings are fixed in the PR, larger
-  ones come here. Then 1.0.0: `package.json` (still `0.0.0`),
-  `LAUNCH_SAVE_VERSION` confirmed as the public build's, the README
-  re-shot, and this file updated with what launch left for later. Depends
-  on K only if analytics should ship with 1.0.
+- **Held from Plan 97.** Moved out of the itch.io playtest by the owner
+  (8 October 2026); both come back with the demo launch and its marketing
+  push. Their specs stand in [Plan 97](docs/plans/97-the-itch-playtest.md);
+  the build flags they need (`VITE_EDITION=demo`, `VITE_PLATFORM=desktop`)
+  already exist (97B), and the feedback module already lists the demo's
+  end as a place its link opens from (97F).
+  - **97G — the ten-year demo.** `VITE_EDITION=demo` ends the run after
+    the tenth summer, on an end screen that shows what is ahead; sandbox
+    hidden; demo saves carry into the full game, one way.
+  - **97H — the desktop build.** Electron in `desktop/`, loading the built
+    game through `app://`; Windows, macOS and Linux packages from the
+    release workflow; unsigned until the Steam plan signs them.
+- **1.0.0** (what Plan 70L kept for launch). `package.json` to 1.0.0 (it
+  is 0.1.0), `LAUNCH_SAVE_VERSION` confirmed as the public build's (78
+  today), and this file updated with what launch leaves for later.
 
 ## Named, not sequenced
 
 *Each is a real piece of work with a known shape; none has been turned into
 a sequence of PRs.*
 
-### From the October review, still open
+### The college's choices
 
-- **A digest for the stops that ask nothing** (A4-3, with the rest of Plan
-  77B). Milestone notes and research reports still stop the clock as
-  interrupts (`systems/events/eventSystem.ts`), now answered in the inbox;
-  60–85% of weeks ask nothing while these crowd the rest. Fold them into
-  the summer or a weekly digest, and keep stops for choices. Plan 77B's
-  other half belongs here too: the year's review counts the matters that
-  took their default ("N left unanswered", `state/yearInReview.ts`) but
-  does not name them. Plan 78E built 77B's setting (pause when a matter
-  arrives); Plan 78 left the digest to this entry.
 - **Size levers** (A4-5). Declining an offer (78D) and recruiting (80G)
   exist; a target enrolment, or *stay small on purpose*, in the summer's
   admissions beat does not.
-- **The price is set blind** (A4-6). The summer's tuition slider shows a
-  tier, and since Plan 96I what families expect at the college's prestige,
-  but not how last year's price moved the pool
-  (`components/InterruptModal.tsx`). Show last year's response beside it.
-  Plan 89's Admissions Office answers it for a college that opens the
-  office; this entry stays for the rest.
-- **Small leftovers of the Final Report and the worklist** (A4-2, A4-4):
-  - the access weakness still reads "never opened its doors very wide"
-    (`data/reportData.ts`), which goes to the largest colleges; the
-    review proposed "stayed hard to get into";
-  - the Curriculum's *Below A* filter exists (76B) but nothing links to it
-    from the Prestige panel's teaching line.
-- **Hide other schools' offers in a claimed hall** (Plan 78D, for the
-  owner). They show behind a confirmation today; hiding them is one line
-  (`78-learning-the-game.md`, the owner's notes).
-
 ### The campus
+
 
 - **Hand-built campuses as layout plans** (the owner, September 2026).
   `tools/campuses/` holds campuses the owner laid out by hand in a sandbox
@@ -208,7 +131,8 @@ a sequence of PRs.*
   ranked order. None is built; the ring of land (Plan 81) has no water,
   and the only gate is the player-built Triumphal Gate (Plan 75B):
   1. water: a pond or a lake edge with a boathouse (a place for rowing,
-     and bridges for the paths), a new tile kind beside the road;
+     and bridges for the paths), a new tile kind beside the road. Rowing,
+     the one sport still wanted, waits on it;
   2. walls and gates along the road, so the campus has a front;
   3. a bandstand or a quad clock, a focal point that is not the fountain;
   4. sculpture of several kinds, picked by a hash of the tile;
@@ -328,18 +252,9 @@ a sequence of PRs.*
   pediatrics or obstetrics. The moves Plan 76G did not make wait here:
   FINA130/210, ACCT140/240, MED550/600, the JD's 540/570, and bridges
   before ACCT110 and MATH130. Each change moves course ids in every save.
-- **Athletics deferrals.** **Founding a team directly** (not through a
-  sport club's petition) is unbuilt; Plan 89's Athletics Development
-  Office builds it for a college that opens the office. **Disbanding a
-  team** is built (Plan 95V): *Cut the program* on a program's card, never
-  for a flagship in season; the alumni give less for five years and write
-  to say so, and the rivalry ends. The venue stays and returns to
-  recreation, and the sport's club may form again.
-  **Match simulation and a fixture list** stay out by the argument at the
-  head of `systems/athletics/season.ts`: three dated occasions and the
-  postseason produce a record and a rivalry, and a schedule would produce
-  nothing more. **Rowing** wants a lake (see water, above); golf stays
-  declined.
+- **Founding a team directly**, not through a sport club's petition. Plan
+  89's Athletics Development Office builds it for a college that opens the
+  office; a college without the office still cannot.
 
 ### Plan 85's leftovers
 
@@ -347,13 +262,9 @@ a sequence of PRs.*
   faculty market's standing (`facultyData.ts`, `marketStandingOf`), the
   sports' pull (`studentLifeData.ts`, `collegePull`) and the research
   powerhouse tag (Plan 85I, the owner's decision 2).
-- **A full endowment can still carry an unspecialized college to first**
-  (accepted by the owner in 85I; worth watching).
 - **The championships goal player never reaches the specialization
   milestone** (85G), so the review tool cannot measure the athletics
   specialization.
-- A dead string: `comingNote: 'Arrives in a later update.'` in
-  `data/specializationData.ts`, now that every card is `ready`.
 
 ### The harness
 
@@ -369,10 +280,11 @@ a sequence of PRs.*
 ### Small things
 
 - **From Plan 70's "does not do":** key rebinding and more than one save
-  slot. Unlocks that carry across runs exist for the four bonus
-  vernaculars (`state/unlocks.ts`), and `recordUnlocks` returns what was
-  newly earned, but both callers ignore it, so there is still no in-run
-  notice when one is earned.
+  slot.
+- **No notice when an unlock is earned.** Unlocks that carry across runs
+  exist for the four bonus vernaculars (`state/unlocks.ts`), and
+  `recordUnlocks` returns what was newly earned, but both callers ignore
+  it.
 - **Report tags whose test does not read the standing they claim**
   (commuter, country club, pressure cooker; left by Plan 76C).
 - **What Plan 76H skipped:** the share card's embedded fonts, its own
@@ -395,69 +307,3 @@ designed in a way that forecloses them.*
   four state-switched music themes were built without a listening pass on
   real speakers.
 - **Camera polish:** a look at the stands from behind.
-
-## Taken off in October 2026
-
-*Delivered or settled since the September re-read.*
-
-- **The October review's fix-first list:** all six (G7-1 in 79B; G7-3,
-  G7-4, G7-5 and G7-14 in 76C–D; the `node_modules` symlink on the review
-  branch).
-- **The October review's ranked improvements:** the first year explains
-  itself, the move to school halls unstuck, the text made true, a usable
-  Curriculum, one way to write a number, and a campus worth a screenshot
-  (Plans 74–79); strategies that end in different colleges (Plan 85). The
-  rest of 3, 5 and 8 is above.
-- **Area 4 of the review:** A4-1 (Plan 85), A4-2 (the *Below A* filter in
-  76B, the training program in 85E; the Provost's auto-fill declined by
-  the owner in Plan 80), A4-4 (76C and 85I: athletics scaled once, the
-  finance phrase, the student-life pillar on the experience axis), and
-  A4-5's decline and recruiting (78D, 80G).
-- **Plan 72's list** (the owner's answers on the September backlog):
-  landed, A–M.
-- **The Faculty tab, and a person page:** Plan 84.
-- **A faster map:** Plan 83, the canvas, with the SVG map kept as its
-  fallback. Its prototype missed the 30 ms bar and the owner went ahead
-  anyway; what is left is *A smoother turn*, above.
-- **A narrow college choosing which schools it founds:** a claimed hall
-  offers its own school's programs, and one offer a year can be declined
-  (Plan 78D).
-- **Research and campus life as inputs rather than ranked axes:** reversed
-  by Plan 85, which made prestige a blend of four pillars (academics 35%,
-  research 25%, student life 25%, athletics 15%).
-- **Seasons on the map:** built (Plan 74I). Only night stays declined.
-- **Board confidence:** removed (Plan 80C).
-- **Athletics deferrals:** capped flagships, recruiting, the college's
-  pull and a coach market that always offers someone solid (Plan 80G),
-  and the athletic performance complex's extra flagship slots (85G).
-
-## Taken off in September 2026
-
-*Delivered or settled before the October review; each now lives in the
-plan named and in `docs/design/` or `docs/architecture/`.*
-
-- **Research grants after the hosting rule:** re-fitted per depth in Plan
-  70D (`GRANT_DEPTH_SCALE`), now about 2× their cost and inside the
-  scorecard's band.
-- **A richer demand curve:** the frontier bites now, with price tolerance
-  rising with prestige, an overreach penalty, a crowding factor and an
-  applicant trickle (Plan 71).
-- **Campus map feedback:** beauty feeding the pool and prestige, and capped
-  pairing bumps (Plan 26).
-- **More authored events:** the catalogue (Plan 32), three tellings each
-  for the frequent ones (Plan 70I). What is left is reach, above.
-- **The old event table (H4):** replaced by the catalogue (Plan 32).
-- **The tutorial:** the opening walkthrough, the board's letters, the
-  school letters and the next-step line (Plans 16, 55, 58), and Plan 78.
-- **The startup screen and the mascot:** Plans 07, 08 and 21.
-- **The dead `prize` row:** deleted with its table (Plan 22C).
-- **Camera rotation and tilt, moving pedestrians, the README screenshots,
-  sound and music:** Plans 24, 34, 37, 38, 44, 48, 62, 64 and 70H.
-- **The consistency review's questions:** all sixteen answered (Plans
-  46–51, 59, 70C).
-- **The quiet founding years:** declined by the owner (September 2026).
-  The founding years are the tutorial by design, with the board's letters
-  and Plan 70I's notes.
-- **The rest of the map reading the college:** walkers by enrollment, the
-  crane, labs at work, crowds, banners and weathering are built; a full
-  residence's mark is Plan 72G.
