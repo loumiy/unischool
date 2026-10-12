@@ -230,10 +230,14 @@ Everything addressed to the president that does not stop the clock waits in
 the **inbox** (Plan 77, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
 full-screen tab in three tiers: **to decide** (the catalogue's inline events,
 the university charter among them, a student demand, a board letter with an
-ask), **letters** (milestones, the celebrations and research reports, the
-board's distress letters, the founding notes) and **bulletins** (the toasts'
-news, kept for a term). It is read off state the game already keeps; only
-the celebrations and reports are kept for it (`s.events.news`, a year). Only the first tier counts on the toolbar's button, red while one is
+ask), **letters** (milestones, the celebrations and research reports, a
+bonus architecture earned for the next college, the board's distress
+letters, the founding notes) and **bulletins** (the toasts' news, kept for a
+term). It is read off state the game already keeps; only the celebrations,
+reports and unlocks are kept for it (`s.events.news`, a year). An unlock's
+letter is the one filed from outside the tick (Plan 98C): `useGame.ts` banks
+a newly earned set in the browser's storage after each week and dispatches
+`UNLOCK_EARNED`, since the sim never reads storage. Only the first tier counts on the toolbar's button, red while one is
 in its last week; an arrival is also a toast with an Open button, for eight
 seconds. In year one a founding note or a milestone's arrival stays until it
 is opened or dismissed (Plan 78B), since the first year's guidance is in

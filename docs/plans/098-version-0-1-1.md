@@ -181,6 +181,38 @@ Each PR has its own branch (`plan-98x-subject`).
 - Sandbox runs still earn nothing.
 - **Checks:** tests for the letter, the report line and the *New* mark.
 
+**As implemented.**
+
+- **The check runs after each week, not at the save.** The autosave is
+  yearly, so a set earned in the spring would have waited until the next
+  year to be said. `useGame.ts` calls `bankUnlocks` whenever the week
+  changes, in the tab that holds the save, and dispatches `UNLOCK_EARNED`
+  with whatever was newly banked.
+- **The sim never reads the browser's storage.** The reducer files the
+  letter (`NewsLetter` type `unlock`) and the run's
+  `events.unlocksEarned`. Headless runs never dispatch the action, so the
+  sim baseline is untouched. No migration: both are optional.
+- **The letter:**
+  - from "For your next college";
+  - subject "Tudor architecture, unlocked";
+  - its reading pane gives the set's blurb, what earned it, and where to pick it.
+
+  Its toast comes from the inbox's arrival rule, like every letter's.
+- **The Final Report** says "New for your next college: Tudor architecture"
+  above the share buttons.
+- **The founding screen's *New*** reads a separate key,
+  `unischool.unlocks.seen`, so `unischool.unlocks` keeps its format. A
+  browser with no seen list marks nothing, so sets unlocked before this
+  PR aren't flagged. The first set banked after it starts the list.
+  Founding a college in a set marks it seen.
+- **Each set's label** now lives on its `Unlock` (`unlocks.ts`), so state
+  and inbox code name it without importing the founding screen.
+- **Checks:** `test/unlock-notice.test.ts` covers:
+  - one letter, filed once, kept for the report;
+  - a sandbox told nothing and banking nothing;
+  - banking only the newly earned;
+  - *New* until founded, and never for a set unlocked before.
+
 ### PR 98D — Save slots
 
 - **Three named slots** (decision 2): `unischool.slots`, an index of

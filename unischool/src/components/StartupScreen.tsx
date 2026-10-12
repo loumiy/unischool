@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useHotkeys } from './hotkeys';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, FOUNDERS_GEORGIAN_COLOURS, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
-import { isUnlocked, readUnlocks, unlockOf } from '../state/unlocks';
+import { isUnlocked, readUnlocks, unlockOf, readSeen, isNewUnlock, markSeen } from '../state/unlocks';
 import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, UNIVERSITY_CAPTION, prefixedCaption } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
@@ -293,6 +293,8 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
   // The bonus sets earlier runs have unlocked (state/unlocks.ts). A locked
   // one can still be previewed on the facade, but not founded.
   const [unlocked] = useState(readUnlocks);
+  // Sets unlocked since a college was last founded in them (Plan 98C).
+  const [seen] = useState(readSeen);
   const open = (id: Vernacular) => sandbox || isUnlocked(id, unlocked);
   const locked = !open(vernacular);
 
@@ -350,6 +352,7 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
               >
                 {choice.label}
                 {!isOpen && <span className="startup-vern-lock">Locked</span>}
+                {!sandbox && isNewUnlock(choice.id, unlocked, seen) && <span className="startup-vern-new">New</span>}
               </button>
             );
           })}
@@ -385,7 +388,7 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
         <button
           className="startup-begin-btn"
           disabled={bareSchoolName(name).length === 0 || locked}
-          onClick={() => onStart(bareSchoolName(name), vernacular, colors)}
+          onClick={() => { markSeen(vernacular); onStart(bareSchoolName(name), vernacular, colors); }}
         >
           Open the doors
         </button>

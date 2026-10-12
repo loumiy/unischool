@@ -68,7 +68,7 @@ function fireResearchReport(s: GameState): boolean {
 // demandSystem.ts's announceDemand), so the weeks after it read the same
 // and the run's random stream does not move. Letters older than the inbox
 // keeps go.
-function fileNews(s: GameState, letter: NewsLetter): void {
+export function fileNews(s: GameState, letter: NewsLetter): void {
   s.events.news = [...(s.events.news ?? []).filter((n) => letter.week - n.week < WEEKS_PER_YEAR), letter];
 }
 

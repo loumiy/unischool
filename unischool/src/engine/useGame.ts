@@ -6,6 +6,7 @@ import { reducer } from './reducer';
 import { createPreStartState } from '../state/actions';
 import type { Action } from '../state/actions';
 import { claimSave, claimTaken, clearSave, loadGame, requestResume, saveBeforeLosing, saveIsNewer, takeResume, trySave } from '../state/persistence';
+import { bankUnlocks } from '../state/unlocks';
 import { startRunLog, type RunLog } from './actionLog';
 import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 import { openingHoldsClock } from '../state/opening';
@@ -189,6 +190,18 @@ export function useGame() {
   useEffect(() => {
     if (foundings > 0 && stateRef.current.started && claim()) save(stateRef.current);
   }, [foundings]);
+
+  // A bonus architecture earned mid-run is said the week it is earned
+  // (Plan 98C): after each week, bank whatever the run has newly earned and
+  // file its letter. Only the tab holding the save does it, and never a
+  // sandbox (bankUnlocks). The sim never reads the browser's storage, so
+  // this lives here, not in the tick.
+  const week = state.started ? state.clock.year * WEEKS_PER_YEAR + state.clock.week : 0;
+  useEffect(() => {
+    if (week === 0 || !claimed.current) return;
+    const fresh = bankUnlocks(stateRef.current);
+    if (fresh.length > 0) dispatch({ type: 'UNLOCK_EARNED', ids: fresh });
+  }, [week]);
 
   // Also at the turn of each term, and whenever the page is hidden or
   // closed (Plan 35: a closed tab lost up to a year).

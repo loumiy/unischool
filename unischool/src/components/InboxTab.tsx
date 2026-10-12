@@ -19,6 +19,8 @@ import { SWEEP_DEFAULT_WEEKS } from '../systems/finance/sweep';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { InterruptContent, MilestoneCelebrationView, ResearchReportView } from './InterruptModal';
 import { modalWidth } from './modalLayout';
+import { UNLOCKS, unlockLabel } from '../state/unlocks';
+import { BONUS_VERNACULAR_CHOICES } from './buildingSpec';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 import { count, gameDate, gameDateOfWeek, satisfactionFigure, weeksProse, weeksShort } from '../format';
 
@@ -453,7 +455,9 @@ function ReadingPane({ s, act, item, onOpenTab }: {
         <div className={`modal modal-inbox modal-${modalWidth(n)}`} data-interrupt={n.type}>
           {n.type === 'milestone'
             ? <MilestoneCelebrationView s={s} payload={n.payload} />
-            : <ResearchReportView s={s} report={n.payload.report} />}
+            : n.type === 'unlock'
+              ? <UnlockLetterView vernacular={n.payload.vernacular} />
+              : <ResearchReportView s={s} report={n.payload.report} />}
         </div>
       </article>
     );
@@ -484,5 +488,20 @@ function AnswerView({ l }: { l: LogEntry }) {
       <p className={`inbox-para${a.lapsed ? ' lapsed' : ''}`}>{a.how}</p>
       {a.lapsed && <p className="inbox-para inbox-note">Left unanswered.</p>}
     </article>
+  );
+}
+
+// A bonus architecture earned for the next college (Plan 98C): what it is,
+// what earned it, and where to pick it.
+function UnlockLetterView({ vernacular }: { vernacular: string }) {
+  const unlock = UNLOCKS.find((u) => u.id === vernacular);
+  const blurb = BONUS_VERNACULAR_CHOICES.find((c) => c.id === vernacular)?.blurb;
+  return (
+    <>
+      <h2>{unlockLabel(vernacular)} architecture, unlocked</h2>
+      {blurb && <p>{blurb}</p>}
+      {unlock && <p><strong>What earned it:</strong> {unlock.condition}</p>}
+      <p>It is yours for every college after this one: pick it on the founding screen when you start the next.</p>
+    </>
   );
 }

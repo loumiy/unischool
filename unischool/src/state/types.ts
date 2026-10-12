@@ -653,6 +653,9 @@ export interface EventState {
   // clock. Oldest first; kept a year, as the inbox keeps a letter. Absent
   // in a state from before it (a fixture read raw): none filed.
   news?: NewsLetter[];
+  // The bonus architectures this run earned first (Plan 98C), for the
+  // Final Report's line. Absent on a save from before.
+  unlocksEarned?: string[];
 }
 
 // A celebration or a report as the inbox keeps it (EventState.news). It
@@ -661,6 +664,8 @@ export interface EventState {
 export type NewsLetter = { id: string; week: number; unread: boolean } & (
   | { type: 'milestone'; payload: { keys: string[]; entries: { key: string; headline: string; detail: string; unlocks: string[] }[] } }
   | { type: 'research-complete'; payload: { report: InitiativeReport } }
+  // A bonus architecture earned for the next college (Plan 98C).
+  | { type: 'unlock'; payload: { vernacular: string } }
 );
 
 // See state/opening.ts, which owns the order and the meaning.

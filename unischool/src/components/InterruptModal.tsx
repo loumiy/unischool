@@ -9,6 +9,7 @@ import { REVIEW_LIST_CAP, buildYearInReview } from '../state/yearInReview';
 import type { ReviewLine } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
 import { hallEntryFor, hangInHall } from '../state/hall';
+import { unlockLabel } from '../state/unlocks';
 import { runFinished, saveExported } from '../analytics/analytics';
 import { exportSave } from '../state/persistence';
 import { downloadFile } from './download';
@@ -44,7 +45,7 @@ import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financ
 import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
-import { currentEra } from '../systems/chronicle/chronicle';
+import { currentEra, listOf } from '../systems/chronicle/chronicle';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
@@ -592,6 +593,12 @@ function FinalReportBeat({ s, onContinue, onNewCollege, onSave }: { s: GameState
       <div className="final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
       <h2>{REPORT_WORDS.title}</h2>
       <FinalReportView s={s} report={report} />
+      {/* What this run earned for the next college (Plan 98C). */}
+      {(s.events.unlocksEarned?.length ?? 0) > 0 && (
+        <p className="final-report-unlocks">
+          New for your next college: {listOf(s.events.unlocksEarned!.map(unlockLabel))} architecture.
+        </p>
+      )}
       <ReportCardActions entry={hallEntryFor(s, report)} />
       <FeedbackPrompt s={s} prompt="final-report" text="Fifty years. How was it? Two minutes of feedback helps the playtest." onSave={onSave} />
       <p className="review-empty">{REPORT_WORDS.epilogue}</p>
