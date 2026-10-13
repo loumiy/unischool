@@ -271,6 +271,11 @@ Two of the brief's quotes have already moved:
 - **Tests:** `event-hires.test.ts` covers the three hires (named, field,
   appointed or not), the save, and the retirement names. `event-catalogue`
   fills a hiring event's `{candidate}` when it checks every telling.
+- **Balance** (`npm run sim`): ranks within 4 places and prestige within
+  1.3 points of 101C's baseline. Rolling the candidate draws on the run's
+  stream when a hiring event fires; the harness takes the defaults, which
+  hire nobody. The scorecard reads 85 of 115, against 82 under 101C. The
+  baseline is re-recorded.
 
 ### PR 101E — Campaigns, gifts and things on the map
 
