@@ -18,8 +18,7 @@ as they stood are in `BACKLOG.md` at commit `3c82c1f`.*
   (96I) and the summer's *why the pool moved* stand.
 - **Size levers** (A4-5): a target enrollment, or staying small on purpose,
   in the summer's admissions beat.
-- **Walks that draw straight** (A1-7, B1-4) — *brought back on 13 October:
-  now Plan 99's PR E*: edge-joined runs still draw as
+- **Walks that draw straight** (A1-7, B1-4): edge-joined runs still draw as
   steps.
 - **Doors that meet the campus** (A1-8, B1-5). *"Let the player connect
   paths and landscape on their own; no need to automate."*
