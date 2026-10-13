@@ -86,9 +86,9 @@ Everything that needs to stop time rides on this one mechanism:
 - **The opening walkthrough** — not an interrupt, but the same hold on the
   clock, so it is listed here. A founding from the startup screen
   (`START_GAME` with `guided`) opens on `s.events.opening.stage = 'welcome'`
-  with Founders Hall unsited, and the reducer's `TICK` is a no-op until the
-  stage is `'play'` (`src/state/opening.ts`, `openingHoldsClock`).
-  Five stages since Plan 80D, for a college that opens with nothing to
+  with Founders Hall unsited, and the reducer's `TICK` is a no-op on every
+  stage but `'await-course'` and `'play'` (`src/state/opening.ts`,
+  `openingHoldsClock`). Five stages since Plan 80D, ten since Plan 103, for a college that opens with nothing to
   teach: the board's welcome, which says nobody is on the payroll yet
   (Next, or "Skip the walkthrough and the letters"); site Founders Hall
   (the shell opens the build menu and rings the hall's tile; siting it is
@@ -98,17 +98,31 @@ Everything that needs to stop time rides on this one mechanism:
   market beside the program, where Dr. Grace Bennett is on offer from the
   founding market; done when anyone is on the payroll); found the first
   program (English with Bennett, its entry course to the committee; the
-  Found button is rung; done when a program is housed); then `'play'`,
-  where `App.tsx` starts the clock. The "done" steps are settled by
-  `settleOpening` from the action that did them (`PLACE_BUILDABLE`,
-  `HIRE_FACULTY`, `FOUND_PROGRAM`), never by the UI, and it moves on
-  through every step already done. Skipping, from any card, never sites
+  Found button is rung; done when a program is housed); wait for its first
+  course (`'await-course'`: `App.tsx` starts the clock and no card shows;
+  done when a housed program's entry course is taught); develop the next
+  course (`'second-course'`, Plan 103B: the clock held again, the shell
+  opens the Curriculum on that program with its row open and rings its
+  develop button; done when any course after a program's first is under
+  way or taught, or when none of the program's courses can be started);
+  read the needs (`'needs'`, Plan 103C: the shell opens Students on the
+  satisfaction breakdown and rings Housing and Dining; ends on Next);
+  site a residence hall, then a dining hall (`'site-housing'`,
+  `'site-dining'`: the build menu opens on each one's tab with the next
+  of its kind rung; done when one is sited, or when none can be put up);
+  then `'play'`. Reaching `'needs'` counts the "Somewhere to sleep, somewhere
+  to eat" letter read, so a walk that gets there never sends it; one
+  skipped before it gets the letter at week 9. The "done" steps are
+  settled by `settleOpening` from the action that did them (`PLACE_BUILDABLE`, `HIRE_FACULTY`, `FOUND_PROGRAM`,
+  `START_DEVELOPMENT`), and at the top of each `TICK` with no stop
+  standing (a course is taught by the tick), never by the UI, and it moves
+  on through every step already done. Skipping, from any card, never sites
   the hall: an unsited Founders Hall holds the clock whatever the stage,
   and the next-step line says "Site Founders Hall: the clock waits until
   it stands" (until Plan 80D the skip placed it where a headless founding
   would). The welcome IS the first letter's content, so a guided founding
   counts that letter read, its ask (seat the students) is the line once
-  the walk ends, and the letters carry on from the second. A headless
+  the first program is founded, and the letters carry on from the second. A headless
   founding (tests, the sim, a scenario file) opens at `'play'` with the
   hall pre-placed, and nothing taught.
   The copy is `src/data/openingData.ts` and the card is

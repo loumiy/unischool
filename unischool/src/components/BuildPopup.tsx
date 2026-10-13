@@ -11,6 +11,7 @@ import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/tec
 import { awaitsSite, isPlaceableKind } from '../state/campusMap';
 import BuildThumb from './BuildThumb';
 import { foundersHallUnsited } from '../state/opening';
+import { walkBuilding } from '../data/openingData';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
@@ -247,8 +248,14 @@ function buildSections(s: GameState): BuildSection[] {
 // The tab the menu opens on (Plan 92): Grounds, the first, except while
 // Founders Hall waits for its ground; then the tab that holds it, where the
 // walkthrough points (test/build-tab.test.ts).
+// The walkthrough's site steps (Plan 103C) open it on the tab holding the
+// building they ring.
 export function initialBuildTab(s: GameState): string {
-  return (foundersHallUnsited(s) ? buildTabOf(s, FOUNDERS_HALL_ID) : undefined) ?? TOOLS_SECTION_ID;
+  return walkBuildTab(s) ?? (foundersHallUnsited(s) ? buildTabOf(s, FOUNDERS_HALL_ID) : undefined) ?? TOOLS_SECTION_ID;
+}
+function walkBuildTab(s: GameState): string | undefined {
+  const t = walkBuilding(s);
+  return t ? buildTabOf(s, t.id) : undefined;
 }
 
 // The tab a Buildable is listed under, by section id (test/balance.test.ts).
@@ -545,7 +552,7 @@ function BuildTile({
   return (
     <button
       type="button"
-      className={`build-tile available ${armed ? 'placing' : ''}`}
+      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === walkBuilding(s)?.id && startable && !armed ? 'opening-target' : ''}`}
       disabled={!startable}
       title={armed ? 'Click an empty tile on the map to build here, or click this again to cancel.' : disabledReason}
       draggable={startable}
@@ -793,6 +800,11 @@ export default function BuildPopup({
   // Sections are recomputed every render; if the active tab has vanished
   // (built out), fall back to the first.
   const [activeId, setActiveId] = useState<string>(() => initialBuildTab(s));
+  // A site step begun with the menu already open turns it to its tab.
+  const walkTab = walkBuildTab(s);
+  useEffect(() => {
+    if (walkTab) setActiveId(walkTab);
+  }, [walkTab]);
   const active = sections.find((sec) => sec.id === activeId) ?? sections[0];
   // The downtown's beds (Plan 85H), beside the campus's.
   const offCampusBeds = offCampusPlaces(s, 'housing');

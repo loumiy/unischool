@@ -186,8 +186,13 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
   switch (action.type) {
     case 'TICK': {
       // The clock halts while an interrupt is pending or the opening
-      // walkthrough holds it (see state/opening.ts).
-      if (!s.started || s.pendingInterrupt || openingHoldsClock(s)) return state;
+      // walkthrough holds it (see state/opening.ts). A course taught last
+      // week moves the walk on here, so its card opens on a quiet week, not
+      // under a letter.
+      if (!s.started || s.pendingInterrupt) return state;
+      const stage = s.events.opening.stage;
+      settleOpening(s);
+      if (openingHoldsClock(s)) return s.events.opening.stage === stage ? state : s;
       for (const system of SYSTEMS) system(s);
       // Hold the week if a system just raised an interrupt.
       if (!s.pendingInterrupt) advanceClock(s);
@@ -232,6 +237,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       const node = s.tech.find((t) => t.id === action.nodeId);
       if (node && !isPlaceableKind(node) && canStartDevelopment(s, node, action.facultyId)) {
         startDevelopment(s, node, action.facultyId);
+        settleOpening(s); // the walkthrough's course step ends on a second course under way
       }
       return s;
     }

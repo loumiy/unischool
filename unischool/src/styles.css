@@ -3502,10 +3502,18 @@ button.inbox-row:hover { background: var(--cream-hi); }
   width: min(400px, calc(100vw - var(--corner-menu-height) - 64px)); box-sizing: border-box; padding: var(--space-16) var(--space-24);
   background: var(--cream); color: var(--ink); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   box-shadow: var(--elevation-note); animation: popup-rise 0.25s ease-out; }
+/* Over a tab (Plan 103B): below the tab's header, clear of its Close; over
+   Students (Plan 103C), at the foot, clear of the needs it rings. */
+@media (min-width: 761px) {
+  .opening-coach.over-tab { top: 72px; right: 32px; }
+  .opening-coach.over-tab.low { top: auto; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 16px); }
+}
 @media (max-width: 760px) {
   .opening-coach { right: 16px; left: 16px; width: auto; }
   .opening-coach.under-panel { top: auto; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
     max-height: 30vh; overflow-y: auto; }
+  /* A building in hand: the map's touch bar, and its Place, hold the top. */
+  .opening-coach.placing { display: none; }
 }
 .opening-coach h2 { margin: 0 0 var(--space-8); }
 .opening-coach p { margin: 0 0 12px; font-size: var(--text-md); line-height: 1.5; }
