@@ -530,6 +530,9 @@ export const GRAND_LANDMARK_IDS: readonly string[] = GRAND_LANDMARKS.map((l) => 
 // a satisfaction attribute, so no harness strategy builds one.
 export const AMENITIES: ReadonlyArray<{ id: string; name: string; description: string; cost: number; weeks: number; upkeep: number; beauty: number }> = [
   { id: 'AMENITY-STATUE', name: "The Founder's Statue", description: 'The founder in bronze on a stone plinth, a little larger than life, and a meeting place from the day it goes up.', cost: 150_000, weeks: 10, upkeep: 300, beauty: 0.6 },
+  // Plan 99C: between the statue and the fountain, at the town the garden
+  // left for the city.
+  { id: 'AMENITY-GAZEBO', name: 'The Gazebo', description: 'An open eight-sided pavilion with a railing and a pointed roof: where the band plays on summer evenings, and where half the campus has been proposed to.', cost: 250_000, weeks: 12, upkeep: 400, beauty: 0.8 },
   { id: 'AMENITY-FOUNTAIN', name: 'The Fountain', description: 'A basin and a jet on a paved circle: somewhere to sit, and the first photograph on every tour.', cost: 400_000, weeks: 13, upkeep: 800, beauty: 1 },
   { id: 'AMENITY-GARDEN', name: 'The Japanese Garden', description: 'A koi pond under a red bridge, a torii over the path, a three-tiered pagoda, a stone lantern and cherry trees in blossom: the quietest acre on campus.', cost: 300_000, weeks: 16, upkeep: 1_500, beauty: 1.5 },
   { id: 'AMENITY-CHAPEL', name: 'The Chapel', description: 'A small stone chapel, used for concerts and quiet as often as for services.', cost: 1_500_000, weeks: 39, upkeep: 2_000, beauty: 1.5 },

@@ -134,6 +134,7 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   // The small landmarks and amenities (Plan 26).
   'AMENITY-STATUE': { w: 2, h: 2 },
   'AMENITY-FOUNTAIN': { w: 3, h: 3 },
+  'AMENITY-GAZEBO': { w: 3, h: 3 },
   'AMENITY-GARDEN': { w: 6, h: 6 },
   'AMENITY-CHAPEL': { w: 5, h: 3 },
   'AMENITY-BELLTOWER': { w: 3, h: 3 },

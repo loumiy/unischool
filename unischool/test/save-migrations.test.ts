@@ -17,7 +17,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { unlockAvailable } from '../src/systems/techtree/techSystem';
-import { COURSE_ID_MAP_95M, exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, refusalText, SAVE_VERSION, stampOf } from '../src/state/persistence';
+import { COURSE_ID_MAP_95M, GAZEBO_ID, exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, refusalText, SAVE_VERSION, stampOf } from '../src/state/persistence';
 import { BUILD_STAMP } from '../src/build';
 import { initialTech } from '../src/data/techData';
 import { foundGame, playYears } from '../sim/harness/game';
@@ -365,6 +365,24 @@ function testLegacyStarts(): void {
   assert(state.faculty.every((f) => f.teaching === (f.training ? f.teaching : grownStat(f.teachingPotential, f.tenureWeeks, f.startFraction))), 'and their teaching is what it was');
 }
 
+// ---- 100 -> 101 (Plan 99C): the Gazebo joins the catalog ----
+// The version-100 fixture is a Guided run in Year 7, past A town's worth
+// (where the gazebo opens) and short of A small city. It has no gazebo; it
+// loads with one, open, and once only.
+function testGazeboJoins(): void {
+  const raw = fixture('save-v100.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  assert(parsed.version === 100 && !parsed.state.tech.some((t) => t.id === GAZEBO_ID) && parsed.state.ladder.reached.town !== undefined, 'the version-100 fixture is past the town, with no gazebo');
+  const state = loads(raw, 'the version-100 fixture');
+  if (!state) return;
+  const gazebos = state.tech.filter((t) => t.id === GAZEBO_ID);
+  assert(gazebos.length === 1 && gazebos[0].status === 'available', `it loads with the gazebo, open (${gazebos.map((t) => t.status).join()})`);
+  // A save short of the town gets it locked.
+  delete parsed.state.ladder.reached.town;
+  const early = loads(JSON.stringify(parsed), 'the version-100 fixture without the town');
+  assert(early?.tech.find((t) => t.id === GAZEBO_ID)?.status === 'locked', 'short of the town, it waits locked');
+}
+
 testLaunchFixture();
 testPlaytestFixture();
 testChain();
@@ -375,6 +393,7 @@ testBoardLetterWeeks();
 testNoCutsYet();
 testNothingBoughtYet();
 testLegacyStarts();
+testGazeboJoins();
 testRoundTrip();
 testRefusals();
 // Plan 99B moved the Japanese Garden from A town's worth to A small city.

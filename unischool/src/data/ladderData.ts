@@ -179,10 +179,10 @@ export const MILESTONES: readonly Milestone[] = [
     name: "A town's worth",
     condition: `${count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
-    buildables: ['HLTH-T1'],
+    buildables: ['HLTH-T1', 'AMENITY-GAZEBO'],
     tabs: [],
     letter: 'At this size the college is a small town, and a town gets sick. From here on students expect care on campus, and their satisfaction will count it. A town needs running, too: from here, every time the college doubles, each of its students costs a little more to administer.',
-    opens: ['Health & Counseling Center: care for students'],
+    opens: ['Health & Counseling Center: care for students', 'The Gazebo: an open pavilion for summer evenings, and campus beauty'],
   },
   {
     id: 'regional',

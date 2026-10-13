@@ -1,10 +1,11 @@
 import { useContext } from 'react';
-import type { FacilityType } from '../state/types';
+import type { FacilityType, Vernacular } from '../state/types';
 import { CrowdContext, VenueContext } from './mapOccasions';
 import { boxFaces, heightScale, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type FaceDir, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
+import { materialsFor, roofFor, stoneFor } from './buildingSpec';
 import { TreeAt, treeShadow, type Species } from './trees';
 import { QUAD_WALK, quadCentre } from './quadGeometry';
 import { lampArt } from './dressing';
@@ -1649,13 +1650,22 @@ function japaneseGardenProps(col: number, row: number, w: number, h: number): Gr
 // The amenities that stand on open ground (Plan 26). Each has its own
 // drawing (Plan 72M): they used to reuse the quads' centerpieces, the
 // statue the tier-1 quad's column and the fountain the Grand Quad's pool.
-function amenityProps(id: string | undefined, col: number, row: number, w: number, h: number): GroundProp[] {
-  if (id === 'AMENITY-GARDEN') return japaneseGardenProps(col, row, w, h);
+// Every open-ground amenity names its own branch (Plan 99C): an id with
+// none draws nothing raised, rather than passing for the fountain, and
+// test/amenity-art.test.ts checks each one has one.
+export const OPEN_GROUND_AMENITIES: readonly string[] = ['AMENITY-STATUE', 'AMENITY-FOUNTAIN', 'AMENITY-GARDEN', 'AMENITY-GAZEBO'];
+function amenityProps(id: string | undefined, col: number, row: number, w: number, h: number, vernacular?: Vernacular): GroundProp[] {
   const cc = col + w / 2; const cr = row + h / 2;
-  if (id === 'AMENITY-STATUE') {
-    return [{ key: 'statue', ...aroundPoint(cc, cr, Math.min(w, h) * 0.24), node: <FoundersStatue col={col} row={row} w={w} h={h} /> }];
+  switch (id) {
+    case 'AMENITY-GARDEN': return japaneseGardenProps(col, row, w, h);
+    case 'AMENITY-STATUE':
+      return [{ key: 'statue', ...aroundPoint(cc, cr, Math.min(w, h) * 0.24), node: <FoundersStatue col={col} row={row} w={w} h={h} /> }];
+    case 'AMENITY-FOUNTAIN':
+      return [{ key: 'fountain', ...aroundPoint(cc, cr, Math.min(w, h) * 0.42), node: <TieredFountain col={col} row={row} w={w} h={h} /> }];
+    case 'AMENITY-GAZEBO':
+      return [{ key: 'gazebo', ...aroundPoint(cc, cr, Math.min(w, h) * 0.44), node: <Gazebo col={col} row={row} w={w} h={h} vernacular={vernacular} /> }];
+    default: return [];
   }
-  return [{ key: 'fountain', ...aroundPoint(cc, cr, Math.min(w, h) * 0.42), node: <TieredFountain col={col} row={row} w={w} h={h} /> }];
 }
 
 // A mass of stone standing on the ground, lit like a building's faces.
@@ -1779,6 +1789,79 @@ function TieredFountain({ col, row, w, h }: GroundProps) {
       <polygon className="ground-fountain-kerb" points={round(R * 0.16, 27)} />
       <polygon className="ground-fountain-basin" points={round(R * 0.12, 27.5)} />
       <polygon className="ground-fountain-jet" points={stem(27.5, 37, 1.3, 0.45)} />
+    </>
+  );
+}
+
+// The Gazebo's ground (Plan 99C): a lawn, a ring of paving the footprint's
+// size, and a paved step out to the front edge, where a walk will meet it.
+function GazeboGround({ col, row, w, h }: GroundProps) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const R = Math.min(w, h) * 0.47;
+  const step = Math.min(w, h) * 0.12;
+  return (
+    <>
+      <polygon className="ground-lawn" points={polyPoints(boxFaces(col + 0.05, row + 0.05, w - 0.1, h - 0.1, 0, 0).top)} />
+      <polygon className="ground-fountain-paving" points={polyPoints(projectedCircle(cc, cr, R, 40))} />
+      <polygon className="ground-statue-walk" points={polyPoints(boxFaces(cc - step, cr, step * 2, h / 2 - 0.05, 0, 0).top)} />
+    </>
+  );
+}
+
+// The Gazebo (Plan 99C): an open octagonal pavilion on a low stone floor,
+// eight posts and a railing between them in the campus's trim, and a
+// pitched roof rising to a finial. The back of it is drawn first, then the
+// floor's edge, then the front, so posts and rails overlap as they stand.
+const GAZEBO_TRIM_FALLBACK = '#f3eee1';  // a style with no trim (modern) paints it white
+function Gazebo({ col, row, w, h, vernacular }: GroundProps & { vernacular?: Vernacular }) {
+  const cc = col + w / 2; const cr = row + h / 2;
+  const R = Math.min(w, h) * 0.38;
+  const trimOf = stoneFor(vernacular ?? 'georgian').trim;
+  const trim = trimOf === 'none' ? GAZEBO_TRIM_FALLBACK : trimOf;
+  // The style's pitched roof where it sets one (Gothic slate, Mission
+  // tile), else the roof its brick halls wear.
+  const v = vernacular ?? 'georgian';
+  const roof = roofFor(v).pitchedRoof ?? materialsFor(v).brickRed.roof;
+  const FLOOR = 3; const RAIL_LO = 11; const RAIL_HI = 14; const EAVE = 42; const APEX = 72; const TIP = 82;
+  const ring = projectedCircle(cc, cr, R, 8);
+  const eaves = projectedCircle(cc, cr, R * 1.1, 8);
+  const centre = project(cc, cr);
+  // Each post and each side, as screen points, with how far back it sits.
+  const posts = ring.map((p, i) => ({ i, p, depth: p.y }));
+  const sides = ring.map((p, i) => ({ a: p, b: ring[(i + 1) % 8], depth: (p.y + ring[(i + 1) % 8].y) / 2 }));
+  const mid = centre.y;
+  const post = (p: Pt) => polyPoints([
+    { x: p.x - 0.9, y: lift(p, FLOOR).y }, { x: p.x + 0.9, y: lift(p, FLOOR).y },
+    { x: p.x + 0.9, y: lift(p, EAVE).y }, { x: p.x - 0.9, y: lift(p, EAVE).y },
+  ]);
+  const rail = (a: Pt, b: Pt) => polyPoints([lift(a, RAIL_LO), lift(b, RAIL_LO), lift(b, RAIL_HI), lift(a, RAIL_HI)]);
+  const back = (d: number) => d <= mid;
+  const facet = (i: number) => {
+    const a = eaves[i]; const b = eaves[(i + 1) % 8];
+    // Lit from the left: the facets facing left and up are the light ones.
+    const lean = (b.x - a.x) / (Math.hypot(b.x - a.x, b.y - a.y) || 1);
+    return { pts: polyPoints([lift(a, EAVE), lift(b, EAVE), lift(centre, APEX)]), fill: shade(roof, 0.82 + 0.22 * lean), depth: (a.y + b.y) / 2 };
+  };
+  const facets = Array.from({ length: 8 }, (_, i) => facet(i)).sort((x, y) => x.depth - y.depth);
+  return (
+    <>
+      {/* The floor: its stone edge, then its boards. */}
+      <polygon className="ground-plinth-left" points={polyPoints(ring.map((q) => lift(q, 0)))} />
+      <polygon className="ground-fountain-kerb" points={polyPoints(projectedCircle(cc, cr, R * 1.04, 8).map((q) => lift(q, FLOOR)))} />
+      {/* The far side: posts and rails behind the middle. */}
+      {sides.filter((x) => back(x.depth)).map((x, i) => <polygon key={`rb${i}`} points={rail(x.a, x.b)} fill={shade(trim, 0.86)} />)}
+      {posts.filter((x) => back(x.depth)).map((x) => <polygon key={`pb${x.i}`} points={post(x.p)} fill={shade(trim, 0.9)} />)}
+      {/* The near side. */}
+      {sides.filter((x) => !back(x.depth)).map((x, i) => <polygon key={`rf${i}`} points={rail(x.a, x.b)} fill={trim} />)}
+      {posts.filter((x) => !back(x.depth)).map((x) => <polygon key={`pf${x.i}`} points={post(x.p)} fill={trim} />)}
+      {/* The eaves' trim band, then the roof, far facets first. */}
+      <polygon points={polyPoints(eaves.map((q) => lift(q, EAVE)))} fill={shade(trim, 0.8)} />
+      {facets.map((f, i) => <polygon key={`f${i}`} points={f.pts} fill={f.fill} />)}
+      {/* The finial. */}
+      <polygon points={polyPoints([
+        { x: centre.x - 0.8, y: lift(centre, APEX - 1).y }, { x: centre.x + 0.8, y: lift(centre, APEX - 1).y },
+        { x: centre.x + 0.3, y: lift(centre, TIP).y }, { x: centre.x - 0.3, y: lift(centre, TIP).y },
+      ])} fill={shade(trim, 0.75)} />
     </>
   );
 }
@@ -2035,9 +2118,13 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
     case 'pool': return <PoolDeck col={col} row={row} w={w} h={h} />;
     case 'quad': return <Quad col={col} row={row} w={w} h={h} tier={tier ?? 1} />;
     case 'amenity':
-      if (id === 'AMENITY-GARDEN') return <JapaneseGarden col={col} row={row} w={w} h={h} />;
-      if (id === 'AMENITY-STATUE') return <StatueGround col={col} row={row} w={w} h={h} />;
-      return <FountainGround col={col} row={row} w={w} h={h} />;
+      switch (id) {
+        case 'AMENITY-GARDEN': return <JapaneseGarden col={col} row={row} w={w} h={h} />;
+        case 'AMENITY-STATUE': return <StatueGround col={col} row={row} w={w} h={h} />;
+        case 'AMENITY-FOUNTAIN': return <FountainGround col={col} row={row} w={w} h={h} />;
+        case 'AMENITY-GAZEBO': return <GazeboGround col={col} row={row} w={w} h={h} />;
+        default: return <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />;
+      }
     default:
       return <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />;
   }
@@ -2052,11 +2139,13 @@ export function groundProps(
   // A venue's expansions (Plan 54): the field alone, then a small stand,
   // then full seating.
   stage = 0,
+  // The campus's style, for what is painted in its trim (the gazebo).
+  vernacular?: Vernacular,
 ): GroundProp[] {
   // Nothing stands on a site yet.
   if (developing) return [];
   switch (facilityType) {
-    case 'amenity': return amenityProps(id, col, row, w, h);
+    case 'amenity': return amenityProps(id, col, row, w, h, vernacular);
     case 'athleticsField': return pitchProps(col, row, w, h, stage);
     case 'athleticsDiamond': return diamondProps(col, row, w, h, stage);
     case 'tennisCourts': return courtsProps(col, row, w, h);
