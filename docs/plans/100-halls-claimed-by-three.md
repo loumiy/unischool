@@ -129,6 +129,46 @@ against `main` at `9cec56b` plus PR #341:
   - an old save with a one-program hall loads as open;
   - `offer-decline` and `split-school` updated.
 
+**As implemented.**
+
+- `claimedSchool` returns the school with `CLAIM_AT` (3) or more programs
+  in a purchased hall, whatever else is in it, and its count. At three
+  each, `s.hallClaims` settles it: the school recorded first keeps it, else
+  the one with more programs, then the first in slot order.
+  `settleClaims` keeps the record, after every founding and move and on
+  load, where a malformed record is dropped.
+- **The sorting reads a "home", not the claim.** `homeSchool` is the
+  claiming school, else the only school in the hall (the claim before this
+  plan). `schoolHall`, `schoolToMerge`, `programsAwayFromHome` and
+  `suggestedMove` read it, through `homeHalls`.
+  - On the new claim alone, a school's first one or two programs in a hall
+    would count as away from home, and the suggestions would move them on
+    out of the hall they are filling.
+  - The guidance's own reads (`nextStep`, `seating`, `establish`) were
+    switched to the home in this PR too, so its behaviour waits for 100D.
+- `offeredIn`: an open hall founds the global offers; a claimed hall only
+  its school's (decision 2).
+- `claimCutBy` keeps its meaning. Since a claimed hall founds only its
+  own, it can only apply to a move.
+- The letter "A school takes shape" arrives when the closest school's hall
+  is claimed by it, and its words say the hall is now that school's.
+- **Tests:**
+  - `sorting.test.ts`: one or two don't claim, three do, 3+1 claims, 3–3
+    goes to the first, a move under three loses the claim, an old save's
+    one-program hall loads open.
+  - `offer-decline.test.ts`: the fixture holds three of the school, a
+    claimed hall no longer founds the global offers, one program leaves a
+    hall open.
+  - The step case: at three Science programs beside History, Elm Hall is
+    claimed and the next step is founding there, not another move.
+- **Balance** (`npm run sim`): ranks within 5 places and prestige within
+  3.9 points of the baseline; Lean founds four schools by year 50, not
+  five. The scorecard: 79 of 115 met, against 78 on `main` measured the
+  same day. The natural player founds its first school in year 10, where
+  it was year 6, now inside its target (years 8–13). The baseline is
+  re-recorded.
+- `docs/design/curriculum.md` has the rule.
+
 ### PR 100C — The panel and the map
 
 - **An open hall's panel:** the three offers, as Founders Hall shows them
@@ -145,6 +185,29 @@ against `main` at `9cec56b` plus PR #341:
   on an open hall when an offer is foundable there, and on a claimed hall
   when its school has a program left.
 - **Checks:** a screenshot of an open, a just-claimed and a full hall.
+
+**As implemented.**
+
+- **The panel** (`BuildingInfoPanel.tsx`):
+  - A claimed hall offers its school's programs and nothing else. "Other
+    schools, from the offers" is gone, and so is the confirmation for
+    founding into another school's claim; `claimCutBy` is no longer read
+    by the panel.
+  - "Not this year" shows only under the global offers, so a claimed hall
+    has none.
+  - Decision 3's empty state reads "Every Science program is housed."
+  - An open purchased hall carries the line "Three programs of one school
+    make this its hall", plus "· Science 2 of 3" when one school leads
+    alone.
+- **The map label** (`campusLayout.ts`): "Elm Hall · Science · 4 of 6" when
+  claimed, and "Elm Hall · 3 of 6" for an open purchased hall.
+- **The offer marker** (`CampusMap.tsx`): a claimed hall shows it while its
+  school has a foundable program, and an open hall shows it while the
+  global offers hold one.
+- **Checks:** `npm run check`. The screenshot shows an open hall (one
+  school short of three), a hall claimed at three, and a full hall:
+
+  ![An open, a claimed and a full hall](../images/hall-claims.png)
 
 ### PR 100D — The harness and the guidance
 
