@@ -7,7 +7,7 @@ hall keeps offering the three weighted-random programs until it holds three
 programs of one school. Then it is that school's hall, and it offers the
 rest of that school's programs in place of the random offers.*
 
-**Status: Proposed (12 October 2026).**
+**Status: Approved (13 October 2026): every decision as proposed. In progress.**
 
 ---
 

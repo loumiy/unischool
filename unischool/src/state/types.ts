@@ -1300,6 +1300,11 @@ export interface GameState {
   courseFaculty: CourseFaculty;       // see CourseFaculty
   halls: Record<string, HallSlot[]>;  // see HallSlot
   programOffers: string[];            // see HallSlot
+  // Which school claimed each purchased hall, and the week it did (Plan
+  // 100): only read when two schools both hold three (a six-slot hall at
+  // 3 + 3), where the first to three keeps it. Kept by schools.ts's
+  // settleClaims; absent in older saves, which load with it settled.
+  hallClaims?: Record<string, { school: string; week: number }>;
   // The year's decline of a global offer (Plan 78D): the year it was spent
   // and the program set aside, kept off the table until the year turns
   // (programOffers.ts's declineOffer). Absent until the first decline.

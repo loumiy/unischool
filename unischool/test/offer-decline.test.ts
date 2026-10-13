@@ -3,14 +3,15 @@
 // year's decline of an offer, and the ask before another school's program
 // takes a claimed hall's program slot.
 //
-//   1. A purchased hall one school claims offers every revealed program of
-//      that school, whatever the draw, and the founding gate accepts them
-//      there and nowhere else; Founders Hall and an unclaimed hall keep the
-//      global offers.
+//   1. A purchased hall one school claims (three of its programs, Plan 100)
+//      offers every revealed program of that school, whatever the draw, and
+//      the founding gate accepts them there and nowhere else, and nothing
+//      else there (decision 2); Founders Hall and an open hall keep the
+//      global offers, and one program doesn't claim a hall.
 //   2. One offer a year may be declined: it leaves the table, the ordinary
 //      draw fills the place (never the game's random stream), and a second
 //      decline that year is refused with its reason.
-//   3. Founding another school's program into a claimed hall is the case
+//   3. Moving another school's program into a claimed hall is the case
 //      the hall panel asks about (claimCutBy); the hall's own school's, or
 //      any program into a hall no school claims, is not.
 //   4. A save's declinedOffer is sanitized on load.
@@ -54,9 +55,11 @@ console.log('offer decline tests');
 const ELM = academicHallId(0);
 const OAK = academicHallId(1);
 
-// A college with Elm Hall standing and one founding program moved into it:
-// Elm Hall is that school's claim. Oak Hall stands empty.
-function claimed(name = 'Decline'): { s: GameState; school: string } {
+// A college with Elm Hall standing, one founding program moved into it and
+// two more of its school housed beside it: three, so Elm Hall is that
+// school's claim (Plan 100). Oak Hall stands empty. `one` stops at the
+// first program, which leaves Elm Hall open.
+function claimed(name = 'Decline', one = false): { s: GameState; school: string } {
   const s = createInitialState(name);
   s.finance.cash = 500_000_000;
   for (const id of [ELM, OAK]) {
@@ -69,7 +72,13 @@ function claimed(name = 'Decline'): { s: GameState; school: string } {
   const at = founders.findIndex((slot) => slot.programId === programId);
   founders[at] = { programId: null };
   s.halls[ELM][0] = { programId };
-  return { s, school: programById(programId)!.school };
+  const school = programById(programId)!.school;
+  if (!one) {
+    const more = offerablePrograms(s).filter((p) => p.school === school && p.kind !== 'graduate').slice(0, 2);
+    more.forEach((p, i) => { s.halls[ELM][i + 1] = { programId: p.id }; });
+    refillOffers(s);
+  }
+  return { s, school };
 }
 
 // ---- 1. A claimed hall's own offers ----
@@ -81,6 +90,12 @@ function claimed(name = 'Decline'): { s: GameState; school: string } {
   assert(own.every((p) => p.school === school), 'and only that school\'s');
   assert(schoolOffers(s, FOUNDERS_HALL_ID).length === 0, 'Founders Hall has no school offers of its own');
   assert(schoolOffers(s, OAK).length === 0, 'nor does a hall no school claims');
+  // A global offer from another school isn't founded in a claimed hall.
+  const foreign = s.programOffers.find((id) => programById(id)?.school !== school);
+  if (foreign) assert(!offeredIn(s, ELM, foreign) && offeredIn(s, OAK, foreign), 'a claimed hall founds only its own school; an open hall the global offers');
+  // One program doesn't claim a hall.
+  const open = claimed('Open', true);
+  assert(schoolOffers(open.s, ELM).length === 0 && open.s.programOffers.every((id) => offeredIn(open.s, ELM, id)), 'one program leaves Elm Hall open, founding the global offers');
 
   // The gate: an own-school program not on the global offer is foundable in
   // Elm Hall, and in no other hall.
@@ -93,13 +108,13 @@ function claimed(name = 'Decline'): { s: GameState; school: string } {
     const entry = s.tech.find((t) => t.id === off.entryCourseId)!;
     const teacher = eligibleInstructors(s, entry)[0];
     if (teacher) {
-      const founding = { programId: off.id, hallId: ELM, slot: 1, facultyId: teacher.id };
+      const founding = { programId: off.id, hallId: ELM, slot: 3, facultyId: teacher.id };
       assert(canFoundProgram(s, founding), `and founding it into Elm Hall is allowed`);
       assert(!canFoundProgram(s, { ...founding, hallId: FOUNDERS_HALL_ID, slot: s.halls[FOUNDERS_HALL_ID].findIndex((x) => x.programId === null) }), 'into Founders Hall it is not');
       const rng = s.rng;
       const offers = [...s.programOffers];
       const t = reducer(s, { type: 'FOUND_PROGRAM', ...founding });
-      assert(t.halls[ELM][1].programId === off.id, `FOUND_PROGRAM houses ${off.name} in Elm Hall`);
+      assert(t.halls[ELM][3].programId === off.id, `FOUND_PROGRAM houses ${off.name} in Elm Hall`);
       assert(JSON.stringify(t.programOffers) === JSON.stringify(offers), 'and leaves the global offers as they were');
       assert(t.rng === rng, 'without a draw on the random stream');
     }

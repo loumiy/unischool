@@ -10,7 +10,7 @@ import {
 import { GRADUATE_HOSTS } from '../../data/projectData';
 import { isCelebratedMilestone } from '../../data/eventData';
 import { hallOf, isHoused, isInTransit, offeredIn, refillOffers, slotOf } from './programOffers';
-import { dedicatedHalls, schoolFoundedKey } from './schools';
+import { dedicatedHalls, schoolFoundedKey, settleClaims } from './schools';
 import { darkPrograms } from './darkness';
 import { tierOf, type CourseTier } from '../../data/courseQuality';
 import { ladderAllows } from '../ladder/ladderSystem';
@@ -468,8 +468,8 @@ export function canFoundProgram(s: GameState, f: Founding): boolean {
   if (!program) return false;
   if (isHoused(s, f.programId)) return false;
   // A graduate program goes only to its host, once earned; a major only to
-  // an academic hall, from the global offers or, in a hall one school
-  // claims, from that school's own (Plan 51, Plan 78D).
+  // an academic hall: from the global offers in an open hall, or from the
+  // school's own in a hall it claims (Plans 51, 78D and 100: offeredIn).
   if (program.kind === 'graduate') {
     if (GRADUATE_HOSTS[f.programId] !== f.hallId || !graduateGateMet(s, f.programId)) return false;
   } else {
@@ -494,6 +494,8 @@ export function foundProgram(s: GameState, f: Founding): void {
   if (!canFoundProgram(s, f)) return;
   const program = programById(f.programId)!;
   s.halls[f.hallId][f.slot] = { programId: f.programId };
+  // A third of its school claims the hall (Plan 100).
+  settleClaims(s);
   // Housing the program unlocks its entry course, so the ordinary start can
   // run in this same step.
   unlockAvailable(s);
@@ -560,6 +562,8 @@ export function relocateProgram(s: GameState, r: Relocation): void {
   const weeks = relocationWeeks(s, r.programId);
   s.halls[from.hallId][from.slot] = { programId: null };
   s.halls[r.hallId][r.slot] = { programId: r.programId, transitWeeks: weeks };
+  // A move can make a claim or lose one (Plan 100).
+  settleClaims(s);
   const program = programById(r.programId);
   const hall = s.tech.find((t) => t.id === r.hallId);
   s.log.unshift({

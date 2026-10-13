@@ -1,3 +1,4 @@
+import { settleClaims } from '../systems/techtree/schools';
 import { tagById } from '../data/tagData';
 import { campaignById } from '../data/campaignData';
 import { clauseById } from '../data/alumniData';
@@ -1625,6 +1626,12 @@ function sanitize(state: GameState): void {
   sanitizeCutPrograms(state);
   sanitizeDowntown(state);
   sanitizeBought(state);
+  // The halls' claims (Plan 100): a record that is not an object of
+  // { school, week } is dropped, then settled against the halls as they
+  // stand. A hall one or two programs claimed before loads open.
+  const claims = state.hallClaims as unknown;
+  if (claims !== undefined && (typeof claims !== 'object' || claims === null || Object.values(claims as Record<string, unknown>).some((c) => typeof c !== 'object' || c === null || typeof (c as { school?: unknown }).school !== 'string' || !Number.isInteger((c as { week?: unknown }).week)))) delete state.hallClaims;
+  settleClaims(state);
   const rs = state.rivalStanding as unknown as { rivalId?: unknown; above?: unknown } | undefined;
   if (rs !== undefined && (typeof rs !== 'object' || rs === null || typeof rs.rivalId !== 'string' || typeof rs.above !== 'boolean')) delete state.rivalStanding;
   else if (state.rivalStanding && state.rivalStanding.since !== undefined && !Number.isInteger(state.rivalStanding.since)) delete state.rivalStanding.since;
