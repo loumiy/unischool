@@ -88,7 +88,7 @@ Read against `main` at `9cec56b` plus PR #341.
 | A | This plan | — |
 | B | The garden at a later milestone | — |
 | C | The gazebo | B (the ladder lines) |
-| D | Door signs | — |
+| D | Door signs — **dropped** (13 October) | — |
 | E | Walks that draw straight (the staircase bug, added 13 October) | — |
 
 ### PR 99B — The garden at a later milestone
@@ -173,7 +173,13 @@ Read against `main` at `9cec56b` plus PR #341.
   50: 2nd (3rd after 99B), prestige 116.1 (+4.3 on 99B's baseline). No other
   player moves. The baseline is re-recorded.
 
-### PR 99D — Door signs
+### PR 99D — Door signs (dropped)
+
+**Dropped by the owner on 13 October.** It was built (#353): a plate centred
+over each front door, from zoom 1.4. The owner looked at it and decided
+against it, and the PR was closed without merging. The section below is
+the plan as it stood.
+
 
 - **What:** a small plate on the wall beside each building's front door,
   with its name. Buildings with no door get none (grounds, stadium,
