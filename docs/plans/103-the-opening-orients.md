@@ -284,5 +284,6 @@ All of them reuse what the walkthrough already has:
 - **Checked in the browser** at 1440 wide (the full walk, Next to both
   buildings placed) and at 390 wide by touch (both placed through the
   touch bar); no errors.
-- **Balance:** the sim is unchanged from the baseline after 103B, as
-  expected, since headless runs open at `'play'`.
+- **Balance:** `npm run sim` matches the baseline exactly after both
+  103B and 103C, as expected, since headless runs open at `'play'`.
+  `npm run test:slow` passes.
