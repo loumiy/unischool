@@ -154,6 +154,16 @@ left out of the counts below. Small numbers; read them as a direction.*
   reading, deciding, building, or away with the game open. Even at 4× and
   8×, a full run was about six hours at the desk (and R3 played 4+ hours).
 
+  **How much to read into the early stops** (the owner, 13 October): many
+  itch.io visitors open a game to look around with no plan to sit down
+  for a long run, so the stops before the first summer are mostly
+  browsing, not a fault. The tutorial still gets work (R2), on what
+  players said rather than this number. Step-by-step events for the
+  opening would tell browsing (stops spread out) from a stuck step
+  (stops piled at one place). With 13 October's players: 14 of 30 desktop
+  founders stopped before the first summer; 14 of the 16 past it reached
+  year 10.
+
   The 10 who stopped before the first summer had played under a minute
   of running clock, over 20 seconds to 6 minutes on the page: they left
   during the founding and the walkthrough. Past the first summer, 8 of 9
