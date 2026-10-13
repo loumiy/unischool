@@ -5,7 +5,7 @@ import { BIKE_RACK_ENROLMENT } from './dressing';
 import { chapterHouseId } from '../data/eventData';
 import { claimedSchool, dedicatedSchool, hallDisplayName } from '../systems/techtree/schools';
 import { SCHOOL_SIGNATURES } from './buildingSpec';
-import { FOUNDERS_HALL_ID } from '../data/techData';
+import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import { weatherBand, type AgeBand } from './ageMarks';
 import { conditionOf } from '../systems/estate/estate';
 
@@ -71,11 +71,16 @@ function recordKey(r: Record<string, unknown>): string {
 }
 
 // A hall on its way to a school says how far (Plan 55): "Elm Hall · Science
-// · 3 of 6". A dedicated hall already carries the school's name.
+// · 4 of 6" once a school claims it (Plan 100: three of its programs), and
+// an open purchased hall how full it is, "Elm Hall · 3 of 6". A dedicated
+// hall already carries the school's name; Founders Hall only its own.
 function hallLabel(s: GameState, t: Buildable): string {
   const name = hallDisplayName(s, t);
-  const claim = t.slots !== undefined && !dedicatedSchool(s, t.id) ? claimedSchool(s, t.id) : null;
-  return claim ? `${name} · ${claim.school} · ${claim.housed} of ${claim.slots}` : name;
+  if (t.slots === undefined || !isAcademicHall(t) || t.id === FOUNDERS_HALL_ID || dedicatedSchool(s, t.id) || !s.halls[t.id]) return name;
+  const claim = claimedSchool(s, t.id);
+  if (claim) return `${name} · ${claim.school} · ${claim.housed} of ${claim.slots}`;
+  const slots = s.halls[t.id];
+  return `${name} · ${slots.filter((slot) => slot.programId !== null).length} of ${slots.length}`;
 }
 
 export function campusLayout(s: GameState): CampusLayout {
