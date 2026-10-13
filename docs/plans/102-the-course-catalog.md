@@ -170,6 +170,12 @@ of the title at the time it was taught.
 - `docs/design/curriculum.md` has no MD list, so nothing changes there.
 - **Tests:** `internal-medicine.test.ts` covers a new run and a saved
   MED550, both available and under way. The catalog stays at 473.
+- **Balance** (`npm run sim`, on 101C's baseline): ranks within 5 places
+  and prestige within 2.2 points. The job market weighs each field by the
+  courses that ask for it (`candidateListingWeights`), so moving one
+  course from Public Health to Clinical Health reshuffles the stream from
+  the first week. The scorecard reads 82 of 115, as under 101C. The
+  baseline is re-recorded.
 
 ### PR 102C — Display numbers by tier
 
