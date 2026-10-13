@@ -1,7 +1,8 @@
 import type { Buildable, Facing, Vernacular } from '../state/types';
 import { up } from './campusScale';
 import { depthOrder } from './depthSort';
-import { boxFaces, type Pt } from './isoProjection';
+import { boxFaces, polyPoints, projectedCircle, type Pt } from './isoProjection';
+import { sideSeen, wallOfSide } from './facing';
 import { weatherVolumes } from './weatherVolumes';
 
 // Weathering by years standing: rain streaks down the walls after
@@ -46,22 +47,83 @@ const pts = (qs: Pt[]): string => qs.map((q) => `${q.x.toFixed(1)},${q.y.toFixed
 // A derelict's hoarding: site boards 2.4 m high.
 const HOARDING = up(2.4);
 
-// Ivy on a historic building (Plan 26): clusters climbing the visible walls
-// from the ground, thickest at the corners.
+// Ivy on a historic building (Plan 26), and on one an event left it on
+// (Plan 101E): runners climbing the visible walls from the ground, thickest
+// and tallest at the corners, each a thin stem that wanders as it rises and
+// now and then puts out a side shoot, with small lobed leaves alternating
+// along it. Laid out in the wall's own plane, so it climbs the wall at any
+// camera; drawn as one path per shade, however many leaves.
+const IVY_STEP_PX = 3.4;       // between leaf nodes up a stem, on screen
+const IVY_LEAF_PX = 1.9;       // a leaf's half-width, on screen
+
+// One ivy leaf: a pointed tip, two side lobes, a notch at the stalk; s is
+// its half-width, a its turn.
+function leafPath(c: Pt, s: number, a: number): string {
+  const shape: [number, number][] = [[0, -1.15], [0.45, -0.45], [1, -0.3], [0.62, 0.35], [0.5, 0.75], [0, 0.45], [-0.5, 0.75], [-0.62, 0.35], [-1, -0.3], [-0.45, -0.45]];
+  const cos = Math.cos(a); const sin = Math.sin(a);
+  return shape.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${(c.x + (x * cos - y * sin) * s).toFixed(1)},${(c.y + (x * sin + y * cos) * s).toFixed(1)}`).join('') + 'Z';
+}
+
 function Ivy({ t, f, salt = 0 }: { t: Buildable; f: ReturnType<typeof boxFaces>; salt?: number }) {
   const walls: [Pt, Pt, Pt, Pt][] = [[f.C, f.D, f.Ct, f.Dt], [f.B, f.C, f.Bt, f.Ct]];
-  const leaves: React.JSX.Element[] = [];
+  const stems: string[] = [];
+  const leaves: [string[], string[], string[]] = [[], [], []]; // dark, mid, light
+  const len = (a: Pt, b: Pt) => Math.hypot(b.x - a.x, b.y - a.y);
   walls.forEach(([g0, g1, e0, e1], k) => {
-    for (let i = 0; i < 26; i++) {
-      // Corners first: u clusters toward each end of the wall.
-      const r = hash(t.id, salt * 1000 + 300 + k * 40 + i);
-      const u = r < 0.5 ? r * 0.5 : 1 - (r - 0.5) * 0.5;
-      const v = hash(t.id, salt * 1000 + 340 + k * 40 + i) * 0.7 * (1 - Math.abs(u - 0.5));
-      const q = lerp(lerp(g0, g1, u), lerp(e0, e1, u), v);
-      leaves.push(<circle key={`${k}-${i}`} className="campus-ivy-leaf" cx={q.x.toFixed(1)} cy={q.y.toFixed(1)} r={2.2 + hash(t.id, 380 + i) * 1.8} />);
+    const wide = len(g0, g1);
+    const tall = len(g0, e0);
+    if (wide < 4 || tall < 4) return;
+    const at = (u: number, v: number) => lerp(lerp(g0, g1, u), lerp(e0, e1, u), v);
+    const r = (i: number) => hash(t.id, salt * 1000 + 300 + k * 97 + i);
+    let seq = 0;
+    const leafAt = (q: Pt, side: number, up: number) => {
+      const shade = Math.floor(r(seq++) * 3);
+      const s = IVY_LEAF_PX * (0.75 + r(seq++) * 0.5);
+      const off = { x: q.x + side * s * 0.9, y: q.y + s * 0.3 };
+      leaves[shade]!.push(leafPath(off, s, side * (0.5 + r(seq++) * 0.5) + up));
+    };
+    // A runner: from (u, v0) up toward vMax, drifting du a step.
+    const climb = (u0: number, v0: number, vMax: number, du: number, depth: number) => {
+      const steps = Math.max(2, Math.round(((vMax - v0) * tall) / IVY_STEP_PX));
+      let u = u0;
+      let q = at(u, v0);
+      let d = `M${q.x.toFixed(1)},${q.y.toFixed(1)}`;
+      for (let i = 1; i <= steps; i++) {
+        u = Math.min(0.99, Math.max(0.01, u + du + (r(seq++) - 0.5) * (2.2 / wide)));
+        q = at(u, v0 + ((vMax - v0) * i) / steps);
+        d += `L${q.x.toFixed(1)},${q.y.toFixed(1)}`;
+        leafAt(q, i % 2 === 0 ? 1 : -1, 0);
+        if (r(seq++) < 0.45) leafAt(q, i % 2 === 0 ? -1 : 1, 0.3);
+        // A side shoot, now and then, a few nodes up and away.
+        if (depth === 0 && i > 1 && i < steps - 1 && r(seq++) < 0.18) {
+          const v = v0 + ((vMax - v0) * i) / steps;
+          climb(u, v, Math.min(vMax, v + (4 * IVY_STEP_PX) / tall), (r(seq++) < 0.5 ? -1 : 1) * (1.6 / wide), 1);
+        }
+      }
+      // The top of a runner ends in a tuft.
+      leafAt(q, 1, -0.4);
+      leafAt(q, -1, 0.4);
+      stems.push(d);
+    };
+    // Runners by the wall's length, most at the corners.
+    const runners = Math.max(3, Math.round(wide / 14));
+    for (let i = 0; i < runners; i++) {
+      const x = r(seq++);
+      // Clear of the door at the wall's middle (buildingMotifs.tsx's doors).
+      const mid = 0.15 + r(seq++) * 0.5;
+      const u = x < 0.6 ? (x < 0.3 ? x * 0.4 : 1 - (x - 0.3) * 0.4) : mid < 0.4 ? mid : mid + 0.2;
+      const corner = 1 - Math.min(u, 1 - u) * 2; // 1 at a corner, 0 mid-wall
+      const vMax = 0.25 + (0.35 + corner * 0.35) * (0.6 + r(seq++) * 0.4);
+      climb(u, 0, Math.min(0.92, vMax), 0, 0);
     }
   });
-  return <g className="campus-ivy">{leaves}</g>;
+  const kinds = ['dark', 'mid', 'light'] as const;
+  return (
+    <g className="campus-ivy">
+      <path className="campus-ivy-stem" d={stems.join('')} />
+      {leaves.map((ls, i) => (ls.length > 0 ? <path key={i} className={`campus-ivy-leaf ${kinds[i]}`} d={ls.join('')} /> : null))}
+    </g>
+  );
 }
 
 export default function AgeMarks({ t, p, band, vernacular, historic = false }: {
@@ -227,6 +289,28 @@ export default function AgeMarks({ t, p, band, vernacular, historic = false }: {
           }).join('')).join('')} />
         </>
       )}
+    </g>
+  );
+}
+
+// A sinkhole by the door (Plan 101E, the-sinkhole's "Fence it"): the hole,
+// a ring of fencing round it, on the ground out from the front wall and to
+// one side of the steps. Drawn with the building, so only while the camera
+// sees that front: then the hole lies in front of it, never over it.
+export function Sinkhole({ p }: { p: { col: number; row: number; w: number; h: number; facing?: Facing } }) {
+  if (!sideSeen(p.facing, 'front')) return null;
+  const dir = wallOfSide(p.facing, 'front');
+  const out = 1.7;
+  const along = (span: number) => span * 0.25;
+  const c = dir === 'posRow' ? { col: p.col + along(p.w), row: p.row + p.h + out }
+    : dir === 'negRow' ? { col: p.col + along(p.w), row: p.row - out }
+      : dir === 'posCol' ? { col: p.col + p.w + out, row: p.row + along(p.h) }
+        : { col: p.col - out, row: p.row + along(p.h) };
+  const fence = projectedCircle(c.col, c.row, 1.15, 24);
+  return (
+    <g className="campus-sinkhole" aria-hidden="true">
+      <polygon points={polyPoints(projectedCircle(c.col, c.row, 0.85, 24))} fill="#3b2f25" stroke="#5a4636" strokeWidth={1} />
+      <polygon points={polyPoints(fence)} fill="none" stroke="#c8b27a" strokeWidth={1.2} strokeDasharray="3 2" />
     </g>
   );
 }

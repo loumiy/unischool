@@ -6,7 +6,7 @@ import { CHARTER_INSTANCE } from '../systems/events/charter';
 import { NAME_LIMIT_NOTE } from '../data/foundingData';
 import type { Action } from '../state/actions';
 import { isCutLetter } from '../systems/athletics/cut';
-import { answered, boardAsks, boardLetterFor, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
+import { STATUE_ASK, answered, boardAsks, boardLetterFor, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
 import { foundingNotes } from '../systems/inbox/foundingNote';
 import { dueLabel, toDecideCount } from '../systems/inbox/unseen';
 import { catalogueOf } from '../systems/events/catalogueEngine';
@@ -458,6 +458,23 @@ function ReadingPane({ s, act, item, onOpenTab }: {
             : n.type === 'unlock'
               ? <UnlockLetterView vernacular={n.payload.vernacular} />
               : <ResearchReportView s={s} report={n.payload.report} />}
+        </div>
+      </article>
+    );
+  }
+
+  // A donor's statue to place (Plan 101E): the ask, and the way to Build.
+  if (item.kind === 'gift') {
+    const statue = s.tech.find((t) => t.id === item.ref);
+    return (
+      <article className="inbox-letter">
+        <ReadHead tier="decide" from={item.from} subject={item.subject} meta="From the Advancement Office to the President" />
+        <div className="inbox-read-main">
+          <div className="inbox-body"><p className="inbox-para">{STATUE_ASK}</p></div>
+          {statue && <p className="inbox-para inbox-note">{statue.name} is in the build menu, paid for from the building fund.</p>}
+          <div className="modal-actions inbox-actions">
+            <button type="button" onClick={() => onOpenTab('build')}>Open Build</button>
+          </div>
         </div>
       </article>
     );

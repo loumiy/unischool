@@ -5,7 +5,7 @@ import { absoluteWeek, findDecisionEvent, findOpeningLetter, type MilestonePaylo
 import { MILESTONES, CHARTER_ID } from '../../data/ladderData';
 import { BOARD_LETTERS, type BoardLetter } from '../../data/boardData';
 import { demandCopy } from '../../data/demandData';
-import { eventById, eventText, fill } from '../events/catalogue';
+import { STATUE_ID, eventById, eventText, fill } from '../events/catalogue';
 import { catalogueOf, firstSentence } from '../events/catalogueEngine';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER } from '../finance/sweep';
 import { cutLetter } from '../athletics/cut';
@@ -38,9 +38,12 @@ import { unlockLabel } from '../../state/unlocks';
 // answered event, which is the Answered list.
 // ---------------------------------------------------------------------
 
+// What the statue's place in the inbox says (Plan 101E).
+export const STATUE_ASK = 'The donor\'s gift is in the building fund, and so is the price of his statue. He would like to see it going up, and asks, each time he writes, where.';
+
 export type InboxTier = 'hold' | 'decide' | 'letter' | 'bulletin';
 
-export type InboxKind = 'interrupt' | 'event' | 'demand' | 'board' | 'milestone' | 'news' | 'founding' | 'bulletin';
+export type InboxKind = 'interrupt' | 'event' | 'demand' | 'gift' | 'board' | 'milestone' | 'news' | 'founding' | 'bulletin';
 
 export interface InboxItem {
   id: string;
@@ -240,6 +243,16 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
     });
   }
 
+  // A donor's statue to place (Plan 101E): it stands in the tier until it is
+  // going up, a standing ask that never lights the badge.
+  if (s.advancement?.statuePledged && s.tech.some((t) => t.id === STATUE_ID && (t.status === 'locked' || t.status === 'available'))) {
+    decide.push({
+      id: 'gift:statue', kind: 'gift', tier: 'decide', ref: STATUE_ID,
+      from: 'The Advancement Office', subject: 'Place the donor\'s statue', preview: STATUE_ASK,
+      week: now, unread: false,
+    });
+  }
+
   // The board's letters: the queue is unread by definition, and "Noted"
   // takes the oldest (reducer.ts's READ_BOARD_LETTER), so only the oldest is
   // shown, as the note over the map did. It is dated the week it came
@@ -340,7 +353,7 @@ export function inboxBadge(items: readonly InboxItem[]): InboxBadge {
   for (const i of items) {
     if (i.tier === 'hold' || i.tier === 'decide') {
       // A demand once noted is a goal on the list, not a question.
-      if (i.kind === 'demand' && !i.unread) continue;
+      if ((i.kind === 'demand' || i.kind === 'gift') && !i.unread) continue;
       count += 1;
       if (i.urgent) urgent = true;
     } else if (i.tier === 'letter' && i.unread) unreadLetters += 1;
