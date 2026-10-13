@@ -402,6 +402,9 @@ Two of the brief's quotes have already moved:
   field, holder, its successor), no fund without a gift, and the save. The
   treasury test's every-line state holds a scholarship. `save-migrations`
   loads the version-101 fixture.
+- **Balance** (`npm run sim`): no row moved. The harness takes the
+  defaults, which endow no fund. The scorecard reads 85 of 115, as before.
+  The baseline is unchanged.
 
 ### PR 101G — The levers and clocks that don't exist
 
