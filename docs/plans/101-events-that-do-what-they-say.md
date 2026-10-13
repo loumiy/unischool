@@ -6,7 +6,7 @@ Plan 76D relabelled the event choices whose truth needs a system the
 events couldn't reach, so each says what its effect does. This plan builds
 those systems, so the choices can say what a college would really do.*
 
-**Status: Approved (13 October 2026): every decision as proposed. In progress.**
+**Status: Done (13 October 2026). B–H merged (#359, #360, #362, #364, #365, #366, and H in the PR that carries this line).**
 
 ---
 
@@ -502,3 +502,6 @@ program, so the plan's teach-out could not be read off them:
   courses, teachers, milestones, record, offers, log, giving), a refused
   closing that changes nothing, program-thin's answer and its waiting, and
   the save. `save-migrations` loads the version-102 fixture.
+- **Balance** (`npm run sim`): no row moved. program-thin's default is
+  unchanged, and it waits only when no program could close. The scorecard
+  reads 85 of 115. The baseline is unchanged.
