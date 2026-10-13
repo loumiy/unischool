@@ -16,6 +16,7 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { unlockAvailable } from '../src/systems/techtree/techSystem';
 import { COURSE_ID_MAP_95M, exportSave, LAUNCH_SAVE_VERSION, MIGRATIONS, readSave, refusalText, SAVE_VERSION, stampOf } from '../src/state/persistence';
 import { BUILD_STAMP } from '../src/build';
 import { initialTech } from '../src/data/techData';
@@ -376,6 +377,19 @@ testNothingBoughtYet();
 testLegacyStarts();
 testRoundTrip();
 testRefusals();
+// Plan 99B moved the Japanese Garden from A town's worth to A small city.
+// A save that opened it at the town keeps it: here the v97 save with A
+// small city taken off its ladder, as a college between the two would be.
+function testGardenKept(): void {
+  const wrapper = JSON.parse(fixture('save-v97.json'));
+  delete wrapper.state.ladder.reached.city;
+  const s = loads(JSON.stringify(wrapper), 'a save between the town and the city');
+  if (!s) return;
+  unlockAvailable(s);
+  const garden = s.tech.find((t) => t.id === 'AMENITY-GARDEN');
+  assert(garden?.status === 'available', `its garden stays open (${garden?.status})`);
+}
+testGardenKept();
 
 console.log('save migrations tests');
 if (failures > 0) {

@@ -6,7 +6,7 @@ gazebo, a plate by each building's door naming it, and the Japanese Garden
 moved to a later milestone. The rest of the October review's decorative
 list stays in the backlog.*
 
-**Status: Proposed (12 October 2026).**
+**Status: Approved (12 October 2026): every decision as proposed. In progress.**
 
 ---
 
@@ -92,6 +92,24 @@ Read against `main` at `9cec56b` plus PR #341.
   for it.
 - **The words:** grep `src/` and `docs/design/` for the garden's milestone
   ("1,500 students", "A town's worth") and rewrite each.
+
+**As implemented.**
+
+- `AMENITY-GARDEN` moves from `town`'s buildables and `opens` line to
+  `city`'s. City's letter now mentions the garden's acres, and
+  `docs/design/progression.md`'s table lists it. No other text named the
+  garden's milestone.
+- **Saves:** no migration, as decision 2 asks. The ladder gates a buildable
+  only on its way from locked to available (`meetsUnlockGates`;
+  `holdBackUnreached` runs only at founding), so a garden a save opened
+  stays open. `save-migrations.test.ts` loads the v97 save with A small
+  city taken off its ladder, a college between the two milestones, and
+  its garden stays available. `beauty.test.ts` checks the new gate both
+  ways.
+- **Balance:** `npm run sim` moves only the Completionist, which builds
+  the cheapest amenity on the menu and no longer finds the garden at
+  1,500 students. Year 50: 3rd where it was 2nd, prestige 111.8 (−2.3).
+  The baseline is re-recorded.
 
 ### PR 99C — The gazebo
 

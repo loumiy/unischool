@@ -179,10 +179,10 @@ export const MILESTONES: readonly Milestone[] = [
     name: "A town's worth",
     condition: `${count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
-    buildables: ['HLTH-T1', 'AMENITY-GARDEN'],
+    buildables: ['HLTH-T1'],
     tabs: [],
     letter: 'At this size the college is a small town, and a town gets sick. From here on students expect care on campus, and their satisfaction will count it. A town needs running, too: from here, every time the college doubles, each of its students costs a little more to administer.',
-    opens: ['Health & Counseling Center: care for students', 'The Japanese Garden: a koi pond, a torii and cherry trees, and campus beauty'],
+    opens: ['Health & Counseling Center: care for students'],
   },
   {
     id: 'regional',
@@ -251,10 +251,13 @@ export const MILESTONES: readonly Milestone[] = [
     name: 'A small city',
     condition: `${count(HEALTH_CENTER_TIER2_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER2_POPULATION_GATE),
-    buildables: ['HLTH-T2'],
+    // The Japanese Garden opens here since Plan 99B, a mark of a big campus
+    // (it was A town's worth's). A save that opened it there keeps it: the
+    // ladder gates a buildable only while it is locked.
+    buildables: ['HLTH-T2', 'AMENITY-GARDEN'],
     tabs: [],
-    letter: 'A campus this size needs a clinic, not a nurse.',
-    opens: ['University Clinic: outpatient care for thousands more'],
+    letter: 'A campus this size needs a clinic, not a nurse, and has the acres for a garden.',
+    opens: ['University Clinic: outpatient care for thousands more', 'The Japanese Garden: a koi pond, a torii and cherry trees, and campus beauty'],
   },
   {
     id: 'research',
