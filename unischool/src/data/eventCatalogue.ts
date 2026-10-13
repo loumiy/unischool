@@ -1032,6 +1032,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'defer', label: 'Defer it to the summer works', effects: { backlog: 700000 } },
     ],
     default: 'nurse',
+    settles: ['replace'],
+    recalls: {
+      nurse: 'The central boiler, nursed through the winter of Year {answeredYear}, is coughing again, and has added a rattle. Facilities have sent their earlier memo a second time, with the date circled.',
+      defer: 'The central boiler whose replacement went to the summer works in Year {answeredYear} has begun to cough again. The summer works, facilities would like it noted, did not reach it.',
+    },
   },
   {
     id: 'the-ice-walk',
@@ -1306,6 +1311,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'search', label: 'Keep looking for it', effects: {} },
     ],
     default: 'search',
+    settles: ['cards'],
+    recalls: {
+      rekey: 'The master key to {building} has been lost. The locks were all changed in Year {answeredYear}, and the new master key has gone the way of the old one, on a ring with nine others and, the porters report, a different small plastic lobster.',
+      search: 'The master key to {building} has been lost again. The search for the last one, begun in Year {answeredYear}, was never formally called off, and the locksmith has sent his four pages again with a new date at the top.',
+    },
   },
   {
     id: 'the-buckets',
@@ -1420,6 +1430,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'leave', label: 'Leave it with the committee', effects: {} },
     ],
     default: 'leave',
+    settles: ['require'],
+    recalls: {
+      leave: 'The Curriculum Committee, left with the writing course in Year {answeredYear}, has met eleven more times and approved the minutes of all of them. The chair would again like the President to \'indicate a view\', and no longer pretends it is anything but a request to be rescued.',
+    },
   },
   {
     id: 'the-grade-medians',
@@ -1436,6 +1450,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'leave', label: 'Leave the grades alone', effects: { mood: 1 } },
     ],
     default: 'leave',
+    settles: ['publish'],
+    recalls: {
+      leave: 'The median grade, left alone in Year {answeredYear}, has gone on rising and now sits a whisker below the top of the scale. A second graduate school has written to ask what an A from {school} is meant to signify, and has copied the first.',
+    },
   },
   {
     id: 'the-lab-inspection',
@@ -1487,6 +1505,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'hold', label: 'Keep to midnight closing', effects: { mood: -2 } },
     ],
     default: 'hold',
+    settles: ['open'],
+    recalls: {
+      hold: 'It is exam season, and the library still closes at midnight, as the college decided in Year {answeredYear}. At ten past, the night guard\'s flashlight now finds fifty students who did not hear the bell, and one who has brought a sleeping bag.',
+    },
   },
   {
     id: 'the-laundry',
@@ -1794,6 +1816,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'keep', label: 'Keep the land', effects: { warmth: 1 } },
     ],
     default: 'keep',
+    settles: ['sell', 'lease'],
+    recalls: {
+      keep: 'The timber company told in Year {answeredYear} that the college would keep its wooded northern strip has written again, with a higher figure and the same phrase: \'the opportunity site\'. The strip has still found no use, which the letter mentions twice.',
+    },
   },
   {
     id: 'the-strategic-plan',
@@ -1889,6 +1915,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'grandfather', label: 'Adopt them for new trustees only', effects: { warmth: -1 } },
     ],
     default: 'grandfather',
+    settles: ['adopt'],
+    recalls: {
+      grandfather: 'The term limits adopted for new trustees in Year {answeredYear} have so far limited nobody. The longest-serving trustee, still on the board and still chairing its governance committee, would like to discuss whether the review that recommended them might itself be reviewed.',
+    },
   },
   {
     id: 'the-rankings-survey',
@@ -1956,6 +1986,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
       { id: 'upstairs', label: 'Move ground-floor teaching for a term', effects: { cash: -400000, backlog: 1500000, mood: -4, quality: -1 } },
     ],
     default: 'repair',
+    settles: ['defend'],
+    recalls: {
+      repair: 'The river came over the east meadow again on Thursday. The repairs deferred after the flood of Year {answeredYear} were still waiting when the water reached the second step of {building}, and the grounds staff carried the ground-floor archive up a story by hand for the second time, faster than the first.\n\nNobody was hurt. The claims adjuster has asked, in writing, whether the college intends to make a habit of this. The hydrologist has not written; the board has had her report since the last time.',
+      upstairs: 'The river came over the east meadow again on Thursday. The teaching moved upstairs after the flood of Year {answeredYear} came back down when the ground floor dried, and it is going back up now, with the archive, by hand, through the night, past the water on the second step of {building}.\n\nNobody was hurt. The claims adjuster has asked, in writing, whether the college intends to make a habit of this. The hydrologist has not written; the board has had her report since the last time.',
+    },
   },
   {
     id: 'the-sickness-term',
