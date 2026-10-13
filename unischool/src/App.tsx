@@ -32,6 +32,8 @@ import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
 import OpeningCoach from './components/OpeningCoach';
+import { setCollapsed } from './components/useCollapse';
+import { walkProgram } from './data/openingData';
 import type { OpeningStage } from './state/types';
 import FacultyTab, { FACULTY_VIEW_START, MARKET_TARGET, type FacultyViewMemory } from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
@@ -287,14 +289,26 @@ export default function App() {
     setLadderOpen(false);
   }
 
+  // The walkthrough's course step (Plan 103B): the Curriculum, on the walk's
+  // program, with its row open so its courses show.
+  function openWalkProgram() {
+    const program = walkProgram(s);
+    if (program) setCollapsed(`program:${program}`, false);
+    openTab('curriculum', program ? `program:${program}` : undefined);
+  }
+
   // The opening walkthrough drives the shell (see state/opening.ts). Each
   // transition into a stage acts once: 'site-hall' opens the build menu,
   // 'appoint' closes it, drops the pickup and opens Founders Hall's panel
   // (where the first professor is appointed and the first program founded),
-  // 'found' opens the panel unless 'appoint' already has, and 'play' starts
-  // the clock (the game opens paused). On mount, a save resumed mid-walk
-  // acts on the door-opening stages but not on 'play'. The ref holds the
-  // last stage acted on so StrictMode's double effect can't act twice.
+  // 'found' opens the panel unless 'appoint' already has, 'await-course'
+  // starts the clock (the game opens paused), and 'second-course' opens the
+  // Curriculum on the walk's program, its row open (Plan 103B). A walk
+  // skipped before the clock started starts it at 'play'; one that ends
+  // after leaves the speed the player chose. On mount, a save resumed
+  // mid-walk acts on the door-opening stages but not on the clock. The ref
+  // holds the last stage acted on so StrictMode's double effect can't act
+  // twice.
   const stage: OpeningStage = s.events.opening.stage;
   const actedStage = useRef<OpeningStage | null>(null);
   useEffect(() => {
@@ -310,7 +324,8 @@ export default function App() {
       setPlacingIdState(null);
       inspectHall(FOUNDERS_HALL_ID);
     }
-    else if (stage === 'play' && prev !== null) setSpeed('real');
+    else if (stage === 'second-course') openWalkProgram();
+    else if (prev !== null && (stage === 'await-course' || (stage === 'play' && prev !== 'second-course'))) setSpeed('real');
   }, [s.started, stage]);
 
   // A stop opens the inbox on itself (Plan 77), and each new stop or summer
@@ -605,8 +620,10 @@ export default function App() {
         act={act}
         buildOpen={buildOpen}
         hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
+        curriculumOpen={overlay?.tab === 'curriculum'}
         onOpenBuild={() => setBuildOpen(true)}
         onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
+        onOpenCurriculum={openWalkProgram}
       />}
     </>
   );

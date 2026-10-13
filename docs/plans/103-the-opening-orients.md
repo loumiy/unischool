@@ -7,7 +7,7 @@ player is properly oriented before releasing them to do whatever they
 want." After the three opening steps, a player may ask "now what?" Some
 will find their own way through the tabs; some want more direction.*
 
-**Status: Proposed.**
+**Status: Approved (13 October 2026): every decision as proposed. B built.**
 
 ---
 
@@ -176,6 +176,40 @@ All of them reuse what the walkthrough already has:
   - skip from `second-course`;
   - the program closed during `await-course`;
   - an old save at `play` gets no step.
+
+**As implemented.**
+
+- **One more way the step ends:** when none of the program's open courses
+  can be started (no professor with room, a full committee, or no cash),
+  `'second-course'` is done at once. The step holds the clock, so without
+  this a player who had spent the money could only skip. It follows the
+  next-step line's rule: never ask for what the player can't do (Plan 98G).
+- **The walk moves on at the top of `TICK`,** not after the systems run:
+  the course is taught by one tick, and the card opens at the next, on a
+  week with no stop standing, so it never opens under a letter. The clock
+  doesn't move in between.
+- **`walkProgram` lives in `data/openingData.ts`,** not `state/opening.ts`:
+  a data file imports nothing from `state/` but types, and the card's copy
+  needs it.
+- **The card over a tab:** on a wide screen it sits below the tab's header
+  (`.over-tab`): pinned top-right, it covered the Curriculum's Close. On a
+  phone it drops to the foot, as under the hall's panel, so the ringed
+  button stays in view.
+- **The clock:** `'await-course'` starts it, as `'play'` did. A walk that
+  ends after the course step leaves the speed the player chose.
+- **Copy:** "Introduction to Literary Studies is taught. English is ten
+  courses, and the next four are open now: each is developed the way the
+  first was, by the curriculum committee, with a professor to teach it.
+  Each takes 10 to 15 weeks to write. Develop one: the ringed button
+  starts the course it names." Every figure is read live.
+- **Docs:** `interrupts.md` and `ui-shell.md`. `progression.md` names no
+  stages, so nothing changes there.
+- **Tests** (`opening.test.ts`, 98 checks): the walk through the new
+  stages; skip from the step; no program left; no cash; a run at `'play'`
+  never gets the step; a save on the step resumes on it.
+- **Checked in the browser,** at 1440 and 390 wide: the row open, the
+  button ringed, the card clear of both; Close, then the card's door, then
+  the ringed button starts ENGL110 and ends the walk.
 
 ### PR 103C — Steps 5–7: the needs, and fixing them
 

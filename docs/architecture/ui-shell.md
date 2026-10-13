@@ -421,16 +421,20 @@ the clock held (see [interrupts.md](interrupts.md)); `App.tsx` acts once on
 each transition into a stage — opens the build menu for the hall, closes it,
 drops the pickup and opens Founders Hall's panel when the hall stands (where
 the first professor is appointed and the first program founded, Plan 80D),
-starts the clock when the walk ends — through the same `setBuildOpen` and
+starts the clock while the first course is written, opens the Curriculum on
+that program with its row open when the course step begins (Plan 103B, through
+`useCollapse.ts`'s `setCollapsed`) — through the same `setBuildOpen` and
 `inspectHall` every other caller uses, so the one-slot rule holds. The card is
 `OpeningCoach.tsx`, pinned top-right beside the main menu and the map tools,
 with no backdrop so the screen under it stays workable (Plan 78F: top-center
 it covered the hall the player had just set down, and top-left is the
-building panel's). On a phone it spans the width at the top, and drops to the
-foot, over the dock, while the hall's panel holds the top. The control each
+building panel's). Over the Curriculum it sits below the tab's header, clear
+of its Close. On a phone it spans the width at the top, and drops to the
+foot, over the dock, while the hall's panel or the Curriculum holds the top. The control each
 step needs carries `.opening-target` (the Build button, the hall's tile,
 Founders Hall's first free program slot in its panel on the map, English
-among the offers, and the Found button). A skipped walk that left the hall
+among the offers, the Found button, and the program row's develop button in
+the Curriculum). A skipped walk that left the hall
 unsited keeps the Build button and the hall's tile rung while the clock
 waits for it.
 

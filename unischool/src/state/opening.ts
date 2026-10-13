@@ -1,5 +1,7 @@
 import type { GameState, OpeningStage } from './types';
-import { FOUNDERS_HALL_ID } from '../data/techData';
+import { FOUNDERS_HALL_ID, programById, programs } from '../data/techData';
+import { canStartDevelopment } from '../systems/techtree/techSystem';
+import { housedPrograms, walkProgram } from '../data/openingData';
 import { awaitsSite } from './campusMap';
 
 // The opening walkthrough: the first clicks of a new school, with the clock
@@ -18,12 +20,21 @@ import { awaitsSite } from './campusMap';
 //   found      found a program into Founders Hall, English with her; done
 //              when a program is housed. Its entry course goes to the
 //              committee.
+//   await-course  the clock runs and no card shows while the entry course
+//              is written (Plan 103B); done when a housed program's entry
+//              course is taught, or no program is housed any more.
+//   second-course  the Curriculum opens on that program (openingData.ts's
+//              walkProgram), its row open and its next course's button
+//              ringed; done when any course after a program's first is
+//              under way or taught, or when none of its courses can be
+//              started.
 //   play       the clock runs; the first letter is counted read.
 //
 // Transitions are readings of state, not UI flags: settleOpening runs after
-// PLACE_BUILDABLE, HIRE_FACULTY and FOUND_PROGRAM, and moves on through
-// every step already done; advanceOpening answers the welcome's Next.
-// A headless founding opens at 'play' with the hall pre-placed.
+// PLACE_BUILDABLE, HIRE_FACULTY, FOUND_PROGRAM and START_DEVELOPMENT, and at
+// the top of each TICK (a course is taught by the tick), and moves on
+// through every step already done; advanceOpening answers the welcome's
+// Next. A headless founding opens at 'play' with the hall pre-placed.
 //
 // Skipping never sites the hall (Plan 80D): a college with Founders Hall
 // unsited holds the clock whatever the stage (openingHoldsClock), and the
@@ -42,9 +53,11 @@ export function foundersHallUnsited(s: GameState): boolean {
 
 // Whether the walk holds the clock: gates the reducer's TICK and useGame's
 // sampler, like a pending interrupt. A skipped walk still holds it while
-// Founders Hall is unsited: nothing can be taught before it stands.
+// Founders Hall is unsited: nothing can be taught before it stands. The
+// wait for the first course is the one stage that lets the clock run.
 export function openingHoldsClock(s: GameState): boolean {
-  return s.events.opening.stage !== 'play' || foundersHallUnsited(s);
+  const stage = s.events.opening.stage;
+  return (stage !== 'play' && stage !== 'await-course') || foundersHallUnsited(s);
 }
 
 // The welcome's Next; other stages are settled by settleOpening.
@@ -53,17 +66,43 @@ export function advanceOpening(s: GameState): void {
   settleOpening(s);
 }
 
-// Whether a step's reading holds.
+// Every program's first course: the walk's second course is any other.
+let entryIds: Set<string> | null = null;
+function laterCourseStarted(s: GameState): boolean {
+  entryIds ??= new Set(programs().map((p) => p.entryCourseId));
+  return s.tech.some((t) => t.kind === 'course' && (t.status === 'developing' || t.status === 'done') && !entryIds!.has(t.id));
+}
+
+// Whether one of the program's open courses can be started now, by
+// someone on the payroll with room, the committee and the cash: the step
+// never holds the clock on what can't be done.
+function nextCourseStartable(s: GameState, programId: string): boolean {
+  return (programById(programId)?.courseIds ?? []).some((id) => {
+    const t = s.tech.find((x) => x.id === id);
+    return t !== undefined && t.status === 'available' && canStartDevelopment(s, t);
+  });
+}
+
+// Whether a step's reading holds. A program gone before its course is
+// taught ends both course steps, so the walk never waits on a row that
+// isn't there; so does a program none of whose courses can be started.
 function stepDone(s: GameState, stage: OpeningStage): boolean {
   switch (stage) {
     case 'site-hall': return !foundersHallUnsited(s);
     case 'appoint': return s.faculty.length > 0;
-    case 'found': return Object.values(s.halls).some((slots) => slots.some((slot) => slot.programId !== null));
+    case 'found': return housedPrograms(s).length > 0;
+    case 'await-course': return walkProgram(s) !== null || housedPrograms(s).length === 0;
+    case 'second-course': {
+      const program = walkProgram(s);
+      return program === null || laterCourseStarted(s) || !nextCourseStartable(s, program);
+    }
     default: return false;
   }
 }
 
-const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = { 'site-hall': 'appoint', appoint: 'found', found: 'play' };
+const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = {
+  'site-hall': 'appoint', appoint: 'found', found: 'await-course', 'await-course': 'second-course', 'second-course': 'play',
+};
 
 // The steps that end when the thing was done, called after every action
 // that could do one. Moves on through every step already done, so a
