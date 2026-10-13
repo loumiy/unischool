@@ -139,6 +139,40 @@ Read against `main` at `9cec56b` plus PR #341.
 - **Optional, if it fits:** the gazebo as an event's promise target in
   Plan 101's statue PR (a donor's gazebo). Noted there, not built here.
 
+**As implemented.**
+
+- **Data:** `AMENITY-GAZEBO` as decision 4 sets it, a 3×3 footprint, and
+  `town`'s buildables and `opens` line. Its build-menu sentence: "An open
+  eight-sided pavilion with a railing and a pointed roof: where the band
+  plays on summer evenings, and where half the campus has been proposed to."
+- **Art:**
+  - The ground is a lawn, a paved ring the footprint's size, and a paved
+    step to the front edge. The step faces the front edge, not the
+    nearest walk: the ground paint has no path context.
+  - The raised part is a stone floor, eight posts and a railing in the
+    style's trim (white where a style has none, as Modern), and an
+    octagonal roof to a finial. The roof is the style's pitched roof
+    where it sets one (Gothic slate, Mission tile), else its brick halls'
+    roof. Far posts and rails are drawn before near ones.
+  - `groundProps` takes the vernacular, and the map, the build-menu
+    thumbnails and the contact sheet pass it.
+  - **No fall-through:** both switches name each amenity, and an unknown
+    one draws nothing raised. `amenity-art.test.ts` checks that every
+    open-ground amenity has a branch and isn't drawn as the fountain.
+  - The contact sheet's headroom for open ground goes from 40 to 90, so
+    the gazebo isn't clipped. The asset gallery is regenerated (the
+    gazebo is in `docs/assets/grounds-2.jpg`, every vernacular).
+- **Migration:** `SAVE_VERSION` 101 (`gazeboJoins`) adds the gazebo to an
+  older save, open if it's past A town's worth, else locked.
+  `save-v100.json` is a Guided run in year 7, past the town and short of
+  the city, written before the bump. `save-migrations.test.ts` checks
+  that the gazebo arrives open, once, and arrives locked short of the
+  town.
+- **Balance:** the plan expected no move, but the Completionist builds the
+  cheapest amenity on the menu, so it builds the gazebo at the town. Year
+  50: 2nd (3rd after 99B), prestige 116.1 (+4.3 on 99B's baseline). No other
+  player moves. The baseline is re-recorded.
+
 ### PR 99D — Door signs
 
 - **What:** a small plate on the wall beside each building's front door,
