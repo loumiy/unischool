@@ -5,7 +5,7 @@ point to the development records in `docs/plans/`.*
 
 ---
 
-## 0.1.1
+## 0.1.1 — 13 October 2026
 
 ### New
 

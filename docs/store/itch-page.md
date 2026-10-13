@@ -1,7 +1,8 @@
 # The itch.io page
 
 **Status:** published, 8 October 2026, at
-[halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool).
+[halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool);
+0.1.1 went live on 13 October 2026.
 The owner rewrote the description on itch.io; the text below is the live
 page's (13 October), with the changes for 0.1.1. The first draft (Plan
 97I) was built from [`steam-page.md`](steam-page.md), cut to what an early

@@ -17,7 +17,7 @@ archive, and what is left here waits for later.*
 
 ---
 
-## Shipped in 0.1.1
+## Shipped in 0.1.1 (13 October 2026)
 
 *Sorted by the owner on 12 October 2026, sequenced in Plans 98–102 (and
 Plan 103's opening), and landed by 13 October. What players see is in
