@@ -344,6 +344,11 @@ Two of the brief's quotes have already moved:
   going up, not pledged twice), the booster pot (this year only, summed,
   sanitized), the worn line on a built campus, and the marks (kept while
   repairs wait, cleared when paid).
+- **Balance** (`npm run sim`, against 101D's baseline): ranks within 3
+  places and prestige within 2 points. The harness takes the defaults: the
+  booster club's *Take the money* now funds the athletics pot, where gate
+  money it leaves unspent still spills into income. The scorecard reads 85
+  of 115, as under 101D. The baseline is re-recorded.
 
 ### PR 101F — Named funds
 
