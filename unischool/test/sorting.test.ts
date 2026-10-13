@@ -190,6 +190,21 @@ function letter(id: string) {
   assert(!('refused' in read) && claimedSchool(read.state, 'HALL-01') === null && read.state.halls['HALL-01'][0].programId === 'PHYS', 'an old save\'s one-program hall loads open, the program where it was');
 }
 
+// --- the line, short of a claim (Plan 100) ------------------------------
+{
+  // Founders Hall holds an office, so Science grows in Elm Hall.
+  const s = college('Short');
+  s.halls[FOUNDERS_HALL_ID][5] = { programId: null, office: { id: 'admissions', openedYear: 1 } };
+  stand(s, 'HALL-01', 20);
+  s.halls['HALL-01'][0] = { programId: 'PHYS' };
+  s.programOffers = ['CHEM'];
+  const line = nextStep(s)?.text ?? '';
+  assert(line.endsWith("in Elm Hall, one of two more Science programs that make it Science's hall"), `a hall short of three says how many more claim it (${line})`);
+  s.halls['HALL-01'][1] = { programId: 'BIOL' };
+  const last = nextStep(s)?.text ?? '';
+  assert(last.endsWith("in Elm Hall to make it Science's hall"), `and the last of them (${last})`);
+}
+
 // --- the next-step line: establish a school, and the step toward it -------
 {
   const s = college('Line');
