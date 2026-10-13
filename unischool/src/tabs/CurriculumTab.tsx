@@ -2,6 +2,7 @@ import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { useCallback, useEffect, useState } from 'react';
 import { useCollapse } from '../components/useCollapse';
+import { walkProgram } from '../data/openingData';
 import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
@@ -860,7 +861,7 @@ function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact
     <p className="row-action">
       <button
         type="button"
-        className="row-action-develop"
+        className={`row-action-develop${s.events.opening.stage === 'second-course' && program.id === walkProgram(s) ? ' opening-target' : ''}`}
         disabled={!canStart}
         title={canStart
           ? `Start ${next.name} with ${best.name}: ${next.duration} weeks, ${money(next.cost)}`

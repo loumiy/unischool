@@ -182,9 +182,12 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
   // unit is named.
   const unit = attribute === 'housing' ? 'beds' : 'served';
 
+  // The walkthrough's needs step rings the two it asks for (Plan 103C).
+  const ringed = s.events.opening.stage === 'needs' && (attribute === 'housing' || attribute === 'basicNeeds');
+
   // Expanded state is reported by `aria-expanded` on the toggle, not a class.
   return (
-    <li className="satisfaction-card">
+    <li className={`satisfaction-card${ringed ? ' opening-target' : ''}`}>
       <div className="satisfaction-card-head">
         <SatisfactionDial score={detail.score} dormant={detail.dormant} />
         <div className="satisfaction-card-text">
