@@ -1,7 +1,7 @@
 import type { GameState, PendingCatalogueEvent } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
-import { STATUE_ID, eventCampaign, fill, namedDamage, scaledEffects, statuePledgeable } from '../systems/events/catalogue';
+import { STATUE_ID, eventCampaign, fill, namedDamage, repairsOf, scaledEffects, statuePledgeable } from '../systems/events/catalogue';
 import { wornLine } from '../systems/estate/paths';
 import { choiceCost } from '../systems/events/catalogueEngine';
 import { money, moneyShort, pct, signed, signedMoney } from '../format';
@@ -95,6 +95,12 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
         break;
       }
       case 'boosterGift': out.push(`${money(v)} to the athletics department this year`); break;
+      case 'repairGift': {
+        const repairs = repairsOf(s, v);
+        if (repairs > 0) out.push(`${money(repairs)} of repairs done`);
+        if (v - repairs > 0) out.push(`${money(v - repairs)} to the building fund`);
+        break;
+      }
       case 'paveLine': { const n = wornLine(s).length; if (n > 0) out.push(`${n} tiles of path laid`); break; }
       case 'ivy': out.push(`ivy stays on ${vars.building ?? 'the building'}`); break;
       case 'sinkhole': out.push(`the hole fenced by ${vars.building ?? 'the building'}`); break;

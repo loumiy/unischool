@@ -49,7 +49,10 @@ const spends = (c: CatalogueChoice) => (e(c).cash ?? 0) < 0 || (e(c).endowment ?
 const repairs = (c: CatalogueChoice) => (e(c).backlog ?? 0) < 0 || (e(c).backlogOn ?? 0) < 0;
 const LEVERS: Lever[] = [
   { word: /\b(hire|appoint)\b/i, ok: spends, why: 'a hire costs money (and names no one the market did not)' },
-  { word: /\b(fund|pay|buy|install|endow|build|rebuild|replace)\b/i, ok: (c) => spends(c) || repairs(c) || (e(c).buildingFund ?? 0) !== 0 || (e(c).warmth ?? 0) > 0, why: 'what is paid for is paid' },
+  // What is installed is paid for (Plan 101G: the reunion's clock was
+  // "installed" by warmth alone).
+  { word: /\binstall\b/i, ok: spends, why: 'what is installed is paid for' },
+  { word: /\b(fund|pay|buy|endow|build|rebuild|replace)\b/i, ok: (c) => spends(c) || repairs(c) || (e(c).buildingFund ?? 0) !== 0 || (e(c).warmth ?? 0) > 0, why: 'what is paid for is paid' },
   { word: /\b(repair|fix|put it right|renovat)/i, ok: (c) => repairs(c) || spends(c), why: 'a repair clears backlog or costs' },
   { word: /\b(plant|replant)\b(?! and)/i, ok: (c) => (e(c).trees ?? 0) > 0 || (e(c).replant ?? 0) > 0, why: 'planting plants' },
   { word: /\bfell\b/i, ok: (c) => (e(c).trees ?? 0) < 0, why: 'felling fells' },
@@ -229,6 +232,21 @@ function college(): GameState {
   s.catalogue = { pending: [{ instanceId: 'i2', eventId: ev.id, firedWeek: 1, vars: rollVars(s, ev), scale: 1 }], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
   resolveCatalogueEvent(s, 'i2', 'adopt');
   assert(s.self.mascot === 'Swans', `adopting the swan names the teams (${s.self.mascot})`);
+}
+
+// ---- The levers that did not exist (Plan 101G) ----
+{
+  // A gift for the buildings pays the repairs owed, then the building fund.
+  const s = college();
+  const standingNow = s.tech.filter((x) => x.kind !== 'course' && x.status === 'done');
+  for (const b of standingNow) delete b.backlog;
+  standingNow[0].backlog = 500_000;
+  const fund = s.advancement?.restrictedBuilding ?? 0;
+  applyEffects(s, { repairGift: 1_200_000 });
+  assert(standingNow.every((b) => !b.backlog) && s.advancement!.restrictedBuilding === fund + 700_000, `the repairs first, the rest to the building fund (${s.advancement!.restrictedBuilding - fund})`);
+  assert(eventById('anonymous-gift')!.choices.find((c) => c.id === 'buildings')!.effects.repairGift === 1_200_000, 'the bequest for the buildings is that gift');
+  // Told nothing is possible, the professor the event names takes the offer.
+  assert(eventById('two-body')!.choices.find((c) => c.id === 'nothing')!.effects.departs === 1, 'saying nothing is possible loses them');
 }
 
 // ---- Effects that land where they say (Plan 101C) ----

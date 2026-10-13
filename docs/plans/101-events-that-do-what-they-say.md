@@ -413,6 +413,30 @@ Two of the brief's quotes have already moved:
 - **A pass over the whole catalogue** with `event-truth.test.ts`, looking
   for labels that promise what no effect delivers.
 
+**As implemented.**
+
+| Event | What it promised | Now |
+|---|---|---|
+| endowment-manager | *Appoint a proper manager*: better returns | **Read and left.** The game has no investment returns for a manager to raise; the manager's better years are the one sum the answer already adds, and its phrase says so. |
+| two-body | *Say that nothing is possible* | **A hook:** the professor the event names takes the offer elsewhere (`departs`), and the answer says they leave. |
+| anonymous-gift | *Put it into the buildings*: a repair the college might not owe | **A hook:** `repairGift` pays the repairs owed first, and puts the rest in the building fund, so a bequest is never lost to a campus in good repair. |
+| the-reunion-gift | *Install the clock as given*: no clock is drawn | **The label:** *Accept the clock as given*. The class pays for it, and a clock post is below the map's scale. |
+| the-championship-run | *Let the boosters pay for the scoreboard* | **Read and left.** The boosters pay; a scoreboard stands inside a venue, below the map's scale. |
+| the-board-secretary | *Appoint a full-time successor* (from 101D) | **Read and left.** The college has no seat for a board secretary; the answer's cost is the post. |
+| trustee-resigns | *Move quickly on a replacement* (from 101D) | **Read and left.** Its cost is the search; the board has no seats to fill. |
+
+- **The pass over the catalogue:** every answer whose effects move only
+  mood, warmth or quality (124 of them) was read against its label. They
+  say what the college decides (wait, decline, keep, thank), not
+  something built or hired. the-consultants-report's *Implement the
+  recommendations* changes nothing on purpose: the report's one finding is
+  "lean into its distinctiveness", and the answer reads "nothing to speak
+  of".
+- **The lever test** now holds *install* to money spent: the reunion's
+  clock passed before on warmth alone.
+- **Tests:** `event-truth.test.ts` adds the gift for the buildings
+  (repairs, then the fund) and the professor who leaves.
+
 ### PR 101H — Closing a program
 
 Decision 1. This is the largest piece, and it can move to 0.1.2 without

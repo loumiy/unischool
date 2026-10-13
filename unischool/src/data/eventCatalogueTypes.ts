@@ -58,7 +58,8 @@ export type EffectKey =
   | 'boosterGift' // money into this year's athletics department pot, not cash
   | 'paveLine'    // 1: the busiest desire line across the lawn is paved
   | 'ivy'         // 1: ivy grows on the named building ({building}) until its repairs are paid
-  | 'sinkhole';   // 1: a fenced hole stands by the named building until its repairs are paid
+  | 'sinkhole'    // 1: a fenced hole stands by the named building until its repairs are paid
+  | 'repairGift'; // money for the buildings (Plan 101G): the repairs owed first, the rest into the building fund
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
