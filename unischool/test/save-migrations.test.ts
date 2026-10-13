@@ -395,6 +395,16 @@ function testNoFundsYet(): void {
   assert(state.advancement?.funds === undefined && state.finance.endowment === parsed.state.finance.endowment, 'it loads with no named funds, its endowment as it was');
 }
 
+// ---- 102 -> 103 (Plan 101H): closed programs ----
+function testNoClosuresYet(): void {
+  const raw = fixture('save-v102.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  assert(parsed.version === 102, 'the version-102 fixture is version 102');
+  const state = loads(raw, 'the version-102 fixture');
+  if (!state) return;
+  assert(state.closedPrograms === undefined, 'it loads with no program closed');
+}
+
 testLaunchFixture();
 testPlaytestFixture();
 testChain();
@@ -406,6 +416,7 @@ testNoCutsYet();
 testNothingBoughtYet();
 testLegacyStarts();
 testNoFundsYet();
+testNoClosuresYet();
 testGazeboJoins();
 testRoundTrip();
 testRefusals();

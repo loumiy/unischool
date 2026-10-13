@@ -573,6 +573,56 @@ export function relocateProgram(s: GameState, r: Relocation): void {
   });
 }
 
+// ---- Closing a program (Plan 101H) ----
+// The player closes a housed program at once: its slot is freed, its
+// courses are locked (one under development is called off, its spend gone)
+// and their teachers freed. The school it helped found stays founded, a
+// hall may lose its claim or its dedication as on a move, and the program
+// may turn up in the offers again, to be founded from scratch. The alumni
+// give a little less for a few years (alumni/giving.ts). Never the college's
+// last program, and never one whose course another housed program needs.
+export function closeRefusal(s: GameState, programId: string): string | null {
+  const program = programById(programId);
+  if (!program || !isHoused(s, programId)) return 'That program is not taught here.';
+  const housed = Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
+  if (housed <= 1) return 'The college would teach nothing.';
+  // A course of another housed program that needs one of this program's,
+  // taught yet or not (it would wait on it for good).
+  const own = new Set(program.courseIds);
+  for (const t of s.tech) {
+    if (t.kind !== 'course' || own.has(t.id)) continue;
+    const needed = t.prereqs.find((id) => own.has(id));
+    const other = programOfCourse(t.id);
+    if (needed && other && isHoused(s, other)) {
+      const course = s.tech.find((x) => x.id === needed);
+      return `${programById(other)?.name ?? other} needs ${course?.name ?? needed}.`;
+    }
+  }
+  return null;
+}
+
+export function closeProgram(s: GameState, programId: string): boolean {
+  if (closeRefusal(s, programId) !== null) return false;
+  const program = programById(programId)!;
+  const at = slotOf(s, programId)!;
+  s.halls[at.hallId][at.slot] = { programId: null };
+  for (const id of program.courseIds) {
+    const t = s.tech.find((x) => x.id === id);
+    if (!t) continue;
+    if (t.status !== 'locked') t.status = 'locked';
+    delete s.developing[id];
+    delete s.courseFaculty[id];
+  }
+  (s.closedPrograms ??= []).push({ programId, year: s.clock.year });
+  settleClaims(s);
+  refillOffers(s);
+  s.log.unshift({
+    year: s.clock.year, week: s.clock.week, kind: 'bad', topic: 'program', subject: programId,
+    message: `${program.name} is closed. Its courses end and their teachers are free for others.`,
+  });
+  return true;
+}
+
 // One week of every transit. An arrival may complete a hall's dedication,
 // which the milestone pass after this call picks up.
 function tickTransit(s: GameState): void {

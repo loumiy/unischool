@@ -28,6 +28,7 @@ import { collegeRival, mainSport } from '../rivals/collegeRival';
 import { playerRank } from '../rivals/rivalsSystem';
 import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../data/techData';
 import { isSchoolFounded } from '../techtree/schools';
+import { closeProgram, closeRefusal } from '../techtree/techSystem';
 import { inTitleYear, sportById } from '../../data/studentLifeData';
 import { grantCharter } from './charter';
 import { FESTIVAL_EVENT, districtGrowth } from '../../data/downtownData';
@@ -210,7 +211,13 @@ const NEEDS: Record<NeedKey, (s: GameState) => boolean> = {
 // is the only one made.
 export function eligible(s: GameState, e: CatalogueEvent): boolean {
   return conditionsMet(s, e) && (e.needs ?? []).every((n) => NEEDS[n](s))
-    && (e.names?.faculty === undefined || namedFaculty(s, e.names.faculty) !== undefined);
+    && (e.names?.faculty === undefined || namedFaculty(s, e.names.faculty) !== undefined)
+    && (e.names?.program !== 'closable' || closablePrograms(s).length > 0);
+}
+
+// The housed programs the college could close (Plan 101H), in id order.
+function closablePrograms(s: GameState): string[] {
+  return housedPrograms(s).filter((id) => closeRefusal(s, id) === null).sort();
 }
 
 // ---- Variables ----
@@ -315,7 +322,12 @@ export function rollVars(s: GameState, e?: CatalogueEvent): Record<string, strin
   // same.
   const drawnFaculty = pick(s.faculty);
   const faculty = (e?.names?.faculty ? namedFaculty(s, e.names.faculty) : undefined) ?? drawnFaculty;
-  const program = pick(housedPrograms(s));
+  const drawnProgram = pick(housedPrograms(s));
+  // A program it could close, when the event means one (Plan 101H): the one
+  // drawn if it can be, else the first that can.
+  const program = e?.names?.program === 'closable'
+    ? (drawnProgram !== undefined && closeRefusal(s, drawnProgram) === null ? drawnProgram : closablePrograms(s)[0])
+    : drawnProgram;
   const drawn = pick(standing(s).filter(roofed));
   const building = (e?.names?.building ? namedBuilding(s, e.names.building) : undefined) ?? drawn;
   const sport = mainSport(s);
@@ -329,6 +341,8 @@ export function rollVars(s: GameState, e?: CatalogueEvent): Record<string, strin
     // 'departs'): the person named, drawn or read.
     facultyId: faculty ? faculty.id : '',
     program: program ? (programById(program)?.name ?? program) : 'the founding program',
+    // Which it is, for an effect that acts on it ('closeProgram').
+    programId: program ?? '',
     // Names read mid-sentence: "The Chapel" becomes "the Chapel".
     building: building ? building.name.replace(/^The /, 'the ') : 'Founders Hall',
     // Which it is, for an effect that acts on it ('historic').
@@ -530,6 +544,7 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
         break;
       }
       case 'paveLine': if (v > 0) paveLine(s); break;
+      case 'closeProgram': if (v > 0 && vars.programId) closeProgram(s, vars.programId); break; // techtree/techSystem.ts
       case 'repairGift': {
         // Money given for the buildings (Plan 101G): the repairs owed first,
         // the rest kept for building in the building fund.

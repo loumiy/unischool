@@ -59,7 +59,8 @@ const LEVERS: Lever[] = [
   { word: /\b(designation|historic)\b/i, ok: (c) => (e(c).historic ?? 0) > 0 || /object/i.test(c.label), why: 'supporting a designation declares the building historic' },
   { word: /^promise\b/i, ok: (c) => !!c.promise, why: 'a promise is made in the promise system' },
   { word: /\b(cut|stop|lower) (the )?(draw|rate)\b/i, ok: (c) => (e(c).drawRate ?? 0) < 0, why: 'lowering the draw lowers the draw rate (Plan 101C)' },
-  { word: /\bclose (it|the (east end|laborator|labs?\b)|down)/i, ok: () => false, why: 'no event can close a program, a building or a lab' },
+  { word: /\bclose (it|the (east end|laborator|labs?\b)|down)/i, ok: () => false, why: 'no event can close a building or a lab' },
+  { word: /\bclose \{program\}/i, ok: (c) => (e(c).closeProgram ?? 0) > 0, why: 'closing a program closes it (Plan 101H)' },
   { word: /\bsalar(y|ies)\b/i, ok: () => false, why: 'no event can set salaries' },
   { word: /\b(run|launch) (a|the) (capital )?campaign\b/i, ok: (c) => (e(c).campaign ?? 0) > 0, why: 'running a campaign launches one when the Advancement VP can (Plan 101E)' },
 ];

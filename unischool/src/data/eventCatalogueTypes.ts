@@ -59,7 +59,8 @@ export type EffectKey =
   | 'paveLine'    // 1: the busiest desire line across the lawn is paved
   | 'ivy'         // 1: ivy grows on the named building ({building}) until its repairs are paid
   | 'sinkhole'    // 1: a fenced hole stands by the named building until its repairs are paid
-  | 'repairGift'; // money for the buildings (Plan 101G): the repairs owed first, the rest into the building fund
+  | 'repairGift'  // money for the buildings (Plan 101G): the repairs owed first, the rest into the building fund
+  | 'closeProgram'; // 1: the program the event names ({program}) is closed (Plan 101H)
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
@@ -118,6 +119,9 @@ export interface CatalogueEvent {
     building?: 'derelict' | 'worst' | 'listable' | 'founders';
     class?: 'reunion' | 'veteran';
     faculty?: 'researcher' | 'teacher' | 'longest' | 'tenure-track' | 'recent' | 'retiring' | 'founding-retiring';
+    // A program the college could close (Plan 101H, techSystem.ts's
+    // closeRefusal); with none, the event waits.
+    program?: 'closable';
   };
   // A hire (Plan 101D): the event rolls a candidate when it fires, the best
   // of a few, in a field the college teaches or one it does not, and names

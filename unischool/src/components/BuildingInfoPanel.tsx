@@ -21,7 +21,7 @@ import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAs
 import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canRelocateProgram, courseSlotsFree, eligibleInstructors, facultyGate, relocationWeeks,
+  canFoundProgram, canRelocateProgram, closeRefusal, courseSlotsFree, eligibleInstructors, facultyGate, relocationWeeks,
 } from '../systems/techtree/techSystem';
 import { declineRefusal, hostOffers, isHoused, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
@@ -293,6 +293,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
               <RelocateControls program={program} s={s} act={act} />
             </details>
           )}
+          {act && <CloseControls program={program} s={s} act={act} />}
         </div>
       )}
     </div>
@@ -302,6 +303,33 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
 // Relocation: every free slot in every standing hall, with the cost said up
 // front (the program goes dark for relocationWeeks: fewer out of Founders
 // Hall). A program in transit cannot be moved again until it settles.
+// Closing a program (Plan 101H): at once, behind a confirmation, or the
+// reason it cannot be (techSystem.ts's closeRefusal, which the reducer asks
+// too).
+function CloseControls({ program, s, act }: { program: ProgramInfo; s: GameState; act: (a: Action) => void }) {
+  const refusal = closeRefusal(s, program.id);
+  return (
+    <details className="relocate-details">
+      <summary>Close this program…</summary>
+      {refusal ? (
+        <p className="building-info-line relocate-note">It cannot close: {refusal}</p>
+      ) : (
+        <>
+          <p className="building-info-line relocate-note">
+            Its courses end now and their teachers are free for others. The alumni give a little less for a few years, and it may be founded again from the offers.
+          </p>
+          <ConfirmButton
+            className="relocate-slot"
+            label={`Close ${program.name}`}
+            armedLabel={`Confirm — close ${program.name} now`}
+            onConfirm={() => act({ type: 'CLOSE_PROGRAM', programId: program.id })}
+          />
+        </>
+      )}
+    </details>
+  );
+}
+
 function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameState; act?: (a: Action) => void }) {
   const inTransit = transitWeeks(s, program.id);
   const destinations = Object.entries(s.halls)

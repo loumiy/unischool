@@ -1380,6 +1380,11 @@ export interface GameState {
   // for an answer, the year each last fired, and when the last inline event
   // and the last letter fired. Undefined before the first fires.
   catalogue?: CatalogueState;
+  // The academic programs the college has closed (Plan 101H,
+  // techtree/techSystem.ts's closeProgram), oldest first: the program and
+  // the year, for the alumni's dip in giving (alumni/giving.ts). Absent
+  // before the first.
+  closedPrograms?: { programId: string; year: number }[];
   // Lamps and benches the player has placed beside the paths, by tile key,
   // each bench with its facing (components/dressing.tsx). Optional: a
   // campus may have none.
