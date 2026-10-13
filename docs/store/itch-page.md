@@ -1,10 +1,11 @@
-# The itch.io page — a draft
+# The itch.io page
 
 **Status:** published, 8 October 2026, at
 [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool).
-The owner edited it on itch.io, so the live page is the reference; this
-was its draft (Plan 97I). It is built from [`steam-page.md`](steam-page.md), cut to what
-an early playtest page needs. Every line says only what the game does on
+The owner rewrote the description on itch.io; the text below is the live
+page's (13 October), with the changes for 0.1.1. The first draft (Plan
+97I) was built from [`steam-page.md`](steam-page.md), cut to what an early
+playtest page needs. Every line says only what the game does on
 `main` today. "AI" never sits beside "school simulator" (the second
 review's §2).
 
@@ -46,52 +47,102 @@ the fullscreen button and no automatic start.
 
 ## The description
 
-Paste below the line into the page's **Description**. The bold lines are
-its headings.
+The live page's text as of 13 October 2026, with the three changes for
+0.1.1: the events paragraph in *Make the big decisions*, the hall and
+closing sentence in *Grow the institution*, and the save slots in *What to
+expect*, plus "now 0.1.1" in the first line. Paste below the line into the
+page's **Description**. The bold lines are its headings.
 
 ---
 
-**An early playtest build. Free while it's being tested: your feedback decides what changes.**
+**An early playtest build, now 0.1.1. Your feedback will help inform version 1.0.0!**
 
-**UniSchool** is a university management game. You found a small college
-with three programs and build it, over fifty years, into a university.
+UniSchool is a university management simulation about watching a small
+college become a robust institution.
 
-**Choose once.** Prestige is a blend of four pillars: academics, research,
-student life and athletics. A college can be excellent at all four. But
-the first summer it stands in the guide's top 30, or from Year 20 in the
-top 10 of any one pillar, the board offers a single specialization, and
-that choice is kept for good. Your rivals specialize too.
+You begin with one building, a handful of students and a lot of empty
+land. Over the next fifty years, you decide what it will become.
 
-**Price the year blind.** Every summer you set tuition before you see who
-applies, then decide how much of the pool to admit, and live with the
-class those two decisions draw.
+Will you build a great research university? A college known for its
+students and campus life? An athletic powerhouse? A little of everything?
+Your decisions shape the answer.
 
-**A campus through fifty years.** Raise halls, labs, residences, venues and
-landmarks on an isometric map, in one of five architectures and your own
-school colours, through the seasons.
+**Build a campus**
 
-**A faculty of people.** Every professor has a face, a career, a few quirks
-and a record. Hire them, assign them to courses, and watch the good ones
-get poached.
+Start with a single hall. Over the decades, build laboratories, libraries,
+classrooms, residences, dining halls, student centers, health facilities,
+athletic venues and landmarks.
 
-**A legacy, not a score.** In the fiftieth summer the Final Report grades
-the run on six axes and names what the college became. Then play on into
-the Epilogue.
+Lay out the campus yourself on an isometric map. Choose its architecture
+and school colors. Watch familiar places emerge as the years pass: the
+quad, the science buildings, the residential quarter, the stadium, the
+places that eventually become part of the school's identity.
+
+**Grow the institution**
+
+A university is made of people and programs.
+
+Develop your curriculum and decide which fields deserve investment. A hall
+becomes a school's once it holds three of its programs, and a program that
+isn't earning its place can be closed. Hire professors with their own
+strengths, careers and personalities. Give them courses to teach and
+research to pursue. Watch promising faculty become stars, and occasionally
+watch another university come calling.
+
+Create the student experience too. Build the facilities, clubs,
+organizations and athletic programs that make students want to be there.
+
+And when your university starts making discoveries, winning prizes or
+attracting attention, decide what to do with its growing reputation.
+
+**Make the big decisions**
+
+Every summer brings another year of consequences.
+
+How much should you charge for tuition? How many students should you
+admit? Where should the next major investment go? Should you expand into a
+new field or deepen the ones you already have?
+
+You won't always know exactly what those decisions will produce. The
+students who arrive, the professors you attract, the opportunities that
+appear and the reputation you build all feed back into the institution.
+
+Between the summers, the letters come: a donor with conditions, a boiler
+with a cough, a professor with an offer elsewhere. Each answer does what it
+says, and the college remembers how you answered.
+
+Eventually, the university's identity starts to take shape.
+
+At a certain point, the board will ask you to choose what the college will
+become known for. You get one specialization, and your rivals will make
+their own choices. From there, the university's path is increasingly its
+own.
+
+**Fifty years from now**
+
+The fiftieth summer brings the Final Report.
+
+It looks back at the institution you built, evaluates it across six
+dimensions, and gives the university a name for what it became.
+
+There is no single right way to play. A small, exceptional college can be
+a success. So can a sprawling university with a little bit of everything.
+Your campus, your faculty, your students and your reputation are the
+record of the choices you made.
+
+And after the report, you can keep playing.
 
 **What to expect**
 
-- **A full run is fifty years:** roughly two to four hours, depending on
-  the speed you play at, over as many sittings as you like. Growth is slow
-  on purpose, and money paces the first decades.
-- **It plays in the browser, on a computer.** Phones aren't supported
-  yet: the tutorial covers the map on a small screen.
-- **Your run is saved in this browser.** Browsers can clear a site's
-  storage, Safari after seven days without a visit, and a private window
-  when it closes, so keep a copy: **Menu → Download save**, and **Load a
-  save file** on the title screen to carry on. Every fifth summer the game
-  offers a backup too.
-- **The text hasn't had its human edit yet.** It will, after this
-  playtest, with what you tell me.
+- A full run is fifty years: roughly two to four hours, depending on the
+  speed you play at, over as many sittings as you like. Growth is slow on
+  purpose, and money paces the first decades.
+- It plays in the browser, on a computer or a tablet.
+- Your run is saved in this browser, and **Menu → Save slots** keeps up to
+  three more. Browsers can clear a site's storage (Safari after seven days
+  without a visit, a private window when it closes), so keep a copy too:
+  **Menu → Download save**, and **Load a save file** on the title screen to
+  carry on. Every fifth summer the game offers a backup.
 - **Sandbox**, on the title screen: unlimited funds and instant building,
   to lay out a campus without waiting.
 
@@ -113,30 +164,13 @@ unless you say yes, and you can turn it off in Settings. It sends no
 names and nothing you type: every value is a number, a yes or no, or an
 item from a fixed list. No cookies, and no recordings.
 
-**How UniSchool is made**
-
-UniSchool is designed and directed by one developer and built with an AI
-coding assistant, plan by plan. The developer wrote the brief for every
-feature, chose between the designs it produced, and played the game
-between each step to decide the next.
-
-The game's text — letters, events, course descriptions, faculty careers
-and the Final Report — was written with that assistant under the
-developer's direction. The campus, the buildings and the faculty portraits
-are drawn by the game's own code, which was also written with it: no
-picture in the game comes from an image generator. The music and sound are
-synthesized by the game's code. There are no voices.
-
 *Made by Halifax Games.*
 
 ---
 
-The *How UniSchool is made* section is
-[`ai-disclosure.md`](ai-disclosure.md)'s pre-generated text, unchanged, so
-the stores never say different things. It stays on the page even though
-the in-game Credits carry only the short footnote (the owner's decision,
-Plan 97C): the second review's §7 warns that a vague disclosure is read as
-the worst case.
+The live page no longer carries the *How UniSchool is made* section that
+the first draft took from [`ai-disclosure.md`](ai-disclosure.md); that
+text is still there, and the AI form below still answers part by part.
 
 ## itch.io's AI form
 
