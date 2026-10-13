@@ -6,15 +6,15 @@ import { EVENT_VARIANTS } from '../../data/eventVariants';
 import { hashUnit } from '../../data/rivalData';
 import { random } from '../../engine/random';
 import { isPlaceableKind } from '../../state/campusMap';
-import { canDeclareHistoric, conditionOf } from '../estate/estate';
+import { canDeclareHistoric, conditionOf, startLibraryFloor } from '../estate/estate';
 import { campusBeauty } from '../estate/beauty';
 import { changeTrees, treeCount } from '../estate/woodland';
 import { detectQuads } from '../../state/quads';
 import { springTermWeek, winterDepth } from '../../state/winter';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { leaveFaculty } from '../faculty/facultySystem';
-import { distressOf } from '../finance/distress';
-import { debtOutstanding, drawRate, loanPayment } from '../finance/treasury';
+import { constructionFrozen, distressOf } from '../finance/distress';
+import { clampDrawRate, debtOutstanding, drawRate, loanPayment } from '../finance/treasury';
 import { financeBreakdown } from '../finance/financeSystem';
 import { seatPayroll } from '../delegation/seats';
 import { warmthOf } from '../alumni/giving';
@@ -44,7 +44,7 @@ const PRICE_REFERENCE_BUDGET = 15_000_000;
 const PRICE_SCALE_MIN = 0.2;
 const PRICE_SCALE_MAX = 12;
 const PRICE_FIXED_BELOW = 25_000;
-const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog', 'buildingFund']);
+const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog', 'backlogOn', 'buildingFund']);
 
 export function priceScale(s: GameState): number {
   const budget = Math.max(s.finance.weeklyOpEx, 1) * WEEKS_PER_YEAR;
@@ -323,6 +323,8 @@ export function pickTelling(e: CatalogueEvent, year: number, last?: number): num
 // The telling a pending event reads; one fired before Plan 70I reads its
 // first.
 export function eventText(e: CatalogueEvent, p: PendingCatalogueEvent): string {
+  const recalled = p.recall ? e.recalls?.[p.recall] : undefined;
+  if (recalled) return recalled;
   const texts = eventTexts(e);
   return texts[Math.min(p.variant ?? 0, texts.length - 1)];
 }
@@ -347,15 +349,70 @@ function spreadBacklog(s: GameState, raw: number): void {
   }
 }
 
+// The repairs an event's named building takes (Plan 101C). Damage lands on
+// it alone, priced for its size (namedDamage); a repair clears its backlog
+// first and spends what is left on the rest, by spreadBacklog's rule. A
+// firing that named no standing building spreads.
+function backlogOn(s: GameState, raw: number, vars: Readonly<Record<string, string>>): void {
+  const t = standing(s).find((b) => b.id === vars.buildingId);
+  if (!t) { spreadBacklog(s, raw); return; }
+  if (raw > 0) {
+    t.backlog = Math.round((t.backlog ?? 0) + namedDamage(s, raw, t));
+    return;
+  }
+  const done = Math.min(-raw, t.backlog ?? 0);
+  const left = (t.backlog ?? 0) - done;
+  if (left > 0) t.backlog = Math.round(left); else delete t.backlog;
+  if (-raw - done > 0) spreadBacklog(s, raw + done);
+}
+
+// The catalog's damage is priced for a building of the campus's average
+// cost, so the named one takes it in proportion to its own: a roof on a
+// small building costs less to put off than one on a large hall. The
+// campus's mean condition then falls as far as a spread would take it
+// (estate.ts's conditionOf reads backlog against the building's cost).
+// Made smaller by Facilities Management, as any event's damage is.
+export function namedDamage(s: GameState, raw: number, t: Buildable): number {
+  const open = standing(s);
+  const mean = open.reduce((sum, b) => sum + b.cost, 0) / Math.max(1, open.length);
+  return raw * eventDamageFactor(s) * (mean > 0 ? t.cost / mean : 1);
+}
+
+// v2's figures are for its founding body of about two thousand: a change
+// in enrollment is that share of this college's body.
+function enrollmentShare(s: GameState, amount: number): number {
+  return Math.round((amount / 2000) * enrolled(s));
+}
+
 function changeEnrollment(s: GameState, amount: number): void {
-  // v2's figures are for its founding body of about two thousand: the
-  // change is that share of this college's body, taken from or added to
-  // the incoming class, whose cohort mix is kept in proportion.
-  const body = enrolled(s);
+  // Taken from or added to the incoming class.
+  if (enrolled(s) <= 0) return;
+  setClassSize(s, 'freshman', s.students.classes.freshman + enrollmentShare(s, amount));
+}
+
+// From every class by its size (Plan 101C: the essay ring's answer reaches
+// the seniors it caught), the largest remainders rounding first.
+const CLASSES = ['freshman', 'sophomore', 'junior', 'senior'] as const;
+function changeEnrollmentSpread(s: GameState, amount: number): void {
+  const body = CLASSES.reduce((t, k) => t + s.students.classes[k], 0);
   if (body <= 0) return;
-  const fr = s.students.classes.freshman;
-  const next = Math.max(0, fr + Math.round((amount / 2000) * body));
-  const counts = s.students.cohortsByClass.freshman;
+  const change = enrollmentShare(s, amount);
+  const exact = CLASSES.map((k) => ({ k, x: (change * s.students.classes[k]) / body }));
+  const shares = exact.map(({ k, x }) => ({ k, n: Math.trunc(x), rest: x - Math.trunc(x) }));
+  let placed = shares.reduce((t, x) => t + x.n, 0);
+  const step = Math.sign(change - placed);
+  for (const x of [...shares].sort((a, b) => Math.abs(b.rest) - Math.abs(a.rest))) {
+    if (placed === change) break;
+    x.n += step;
+    placed += step;
+  }
+  for (const { k, n } of shares) setClassSize(s, k, s.students.classes[k] + n);
+}
+
+// A class's count set, its cohort mix kept in proportion.
+function setClassSize(s: GameState, cls: (typeof CLASSES)[number], size: number): void {
+  const next = Math.max(0, size);
+  const counts = s.students.cohortsByClass[cls];
   const before = Object.values(counts).reduce((a, b) => a + b, 0);
   const keys = Object.keys(counts) as (keyof typeof counts)[];
   if (before > 0) {
@@ -367,7 +424,7 @@ function changeEnrollment(s: GameState, amount: number): void {
   } else if (next > 0) {
     counts[keys[0]] = next;
   }
-  s.students.classes.freshman = next;
+  s.students.classes[cls] = next;
 }
 
 function changeDebt(s: GameState, amount: number): void {
@@ -418,6 +475,10 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
       case 'charter': grantCharter(s, v > 0); break; // charter.ts
       case 'goodwill': changeGoodwill(s, v); break; // studentlife/downtown.ts
       case 'festival': holdFestival(s, v); break;
+      case 'backlogOn': backlogOn(s, v, vars); break;
+      case 'enrollmentSpread': changeEnrollmentSpread(s, v); break;
+      case 'drawRate': s.finance.drawRate = clampDrawRate(drawRate(s) + v); break; // finance/treasury.ts
+      case 'libraryFloor': if (v > 0 && !constructionFrozen(s)) startLibraryFloor(s); break; // estate/estate.ts
     }
   }
 }

@@ -17,7 +17,7 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream, random } from '../src/engine/random';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
-import { applyEffects, eligible, eventById, rollVars, TENURE_CASE_MAX_YEARS, TENURE_CASE_MIN_YEARS } from '../src/systems/events/catalogue';
+import { applyEffects, eligible, eventById, namedDamage, rollVars, TENURE_CASE_MAX_YEARS, TENURE_CASE_MIN_YEARS } from '../src/systems/events/catalogue';
 import { resolveCatalogueEvent } from '../src/systems/events/catalogueEngine';
 import { springTermWeek, winterDepth } from '../src/state/winter';
 import { promisesOf } from '../src/systems/promises/promises';
@@ -41,20 +41,21 @@ console.log('event truth tests');
 // ---- The lever test ----
 // Each lever a label can name, and what its effects must touch for the
 // label to be true. A label that names a lever the game cannot move from
-// an event (a hire, a closure, a salary, a campaign, the draw rate) fails
+// an event (a hire, a closure, a salary, a campaign) fails
 // outright: it should say what the answer really does.
 type Lever = { word: RegExp; ok: (c: CatalogueChoice) => boolean; why: string };
 const e = (c: CatalogueChoice) => c.effects;
 const spends = (c: CatalogueChoice) => (e(c).cash ?? 0) < 0 || (e(c).endowment ?? 0) < 0;
+const repairs = (c: CatalogueChoice) => (e(c).backlog ?? 0) < 0 || (e(c).backlogOn ?? 0) < 0;
 const LEVERS: Lever[] = [
   { word: /\b(hire|appoint)\b/i, ok: spends, why: 'a hire costs money (and names no one the market did not)' },
-  { word: /\b(fund|pay|buy|install|endow|build|rebuild|replace)\b/i, ok: (c) => spends(c) || (e(c).backlog ?? 0) < 0 || (e(c).buildingFund ?? 0) !== 0 || (e(c).warmth ?? 0) > 0, why: 'what is paid for is paid' },
-  { word: /\b(repair|fix|put it right|renovat)/i, ok: (c) => (e(c).backlog ?? 0) < 0 || spends(c), why: 'a repair clears backlog or costs' },
+  { word: /\b(fund|pay|buy|install|endow|build|rebuild|replace)\b/i, ok: (c) => spends(c) || repairs(c) || (e(c).buildingFund ?? 0) !== 0 || (e(c).warmth ?? 0) > 0, why: 'what is paid for is paid' },
+  { word: /\b(repair|fix|put it right|renovat)/i, ok: (c) => repairs(c) || spends(c), why: 'a repair clears backlog or costs' },
   { word: /\b(plant|replant)\b(?! and)/i, ok: (c) => (e(c).trees ?? 0) > 0 || (e(c).replant ?? 0) > 0, why: 'planting plants' },
   { word: /\bfell\b/i, ok: (c) => (e(c).trees ?? 0) < 0, why: 'felling fells' },
   { word: /\b(designation|historic)\b/i, ok: (c) => (e(c).historic ?? 0) > 0 || /object/i.test(c.label), why: 'supporting a designation declares the building historic' },
   { word: /^promise\b/i, ok: (c) => !!c.promise, why: 'a promise is made in the promise system' },
-  { word: /\b(cut|stop) (the )?draw/i, ok: () => false, why: 'no event can set the draw rate' },
+  { word: /\b(cut|stop|lower) (the )?(draw|rate)\b/i, ok: (c) => (e(c).drawRate ?? 0) < 0, why: 'lowering the draw lowers the draw rate (Plan 101C)' },
   { word: /\bclose (it|the (east end|laborator|labs?\b)|down)/i, ok: () => false, why: 'no event can close a program, a building or a lab' },
   { word: /\bsalar(y|ies)\b/i, ok: () => false, why: 'no event can set salaries' },
   { word: /\b(run|launch) a (capital )?campaign\b/i, ok: () => false, why: 'no event starts a campaign' },
@@ -228,6 +229,71 @@ function college(): GameState {
   s.catalogue = { pending: [{ instanceId: 'i2', eventId: ev.id, firedWeek: 1, vars: rollVars(s, ev), scale: 1 }], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
   resolveCatalogueEvent(s, 'i2', 'adopt');
   assert(s.self.mascot === 'Swans', `adopting the swan names the teams (${s.self.mascot})`);
+}
+
+// ---- Effects that land where they say (Plan 101C) ----
+{
+  // The named building takes the damage, and a repair clears it first.
+  const s = college();
+  const standingNow = s.tech.filter((x) => x.kind !== 'course' && x.status === 'done');
+  const [named, other] = [standingNow[0], standingNow[1]];
+  for (const b of standingNow) delete b.backlog;
+  applyEffects(s, { backlogOn: 300_000 }, { buildingId: named.id });
+  assert((named.backlog ?? 0) > 0 && standingNow.every((b) => b === named || !b.backlog), 'deferred repairs land on the named building alone');
+  assert(named.backlog === Math.round(namedDamage(s, 300_000, named)), 'priced for its size');
+  if (other && other.cost !== named.cost) {
+    const ratio = namedDamage(s, 300_000, named) / namedDamage(s, 300_000, other);
+    assert(Math.abs(ratio - named.cost / other.cost) < 1e-9, `a larger building takes more, in proportion to its cost (${ratio.toFixed(2)})`);
+  }
+  if (other) other.backlog = 500_000;
+  const owed = named.backlog ?? 0;
+  applyEffects(s, { backlogOn: -(owed + 100_000) }, { buildingId: named.id });
+  assert(!named.backlog && (!other || other.backlog === 400_000), `a repair clears the named building, then the rest (${other?.backlog})`);
+  applyEffects(s, { backlogOn: 50_000 }, { buildingId: 'gone' });
+  assert(standingNow.some((b) => (b.backlog ?? 0) > 0 && b !== other) || standingNow.length === 1, 'a building gone spreads it as before');
+  // The ten repair events name their building.
+  for (const id of ['roof-goes', 'boiler-condemned', 'ivy-structural', 'roof-slates', 'derelict-notice', 'asbestos', 'the-burst-pipe', 'the-buckets', 'the-lift', 'the-sinkhole']) {
+    const ev = eventById(id)!;
+    assert(!!ev.names?.building && ev.choices.every((c) => c.effects.backlog === undefined || c.id === 'grout'), `${id}: its repairs land on {building}`);
+  }
+}
+{
+  // The essay ring reaches every class.
+  const s = college();
+  s.students.classes = { freshman: 400, sophomore: 300, junior: 200, senior: 100 };
+  for (const k of ['freshman', 'sophomore', 'junior', 'senior'] as const) s.students.cohortsByClass[k] = { ...s.students.cohortsByClass[k], ...Object.fromEntries(Object.keys(s.students.cohortsByClass[k]).map((c, i) => [c, i === 0 ? s.students.classes[k] : 0])) };
+  applyEffects(s, { enrollmentSpread: -40 });
+  const c = s.students.classes;
+  assert(c.freshman + c.sophomore + c.junior + c.senior === 980 && c.senior === 98 && c.freshman === 392, `forty in two thousand, from every class by size (${JSON.stringify(c)})`);
+  assert((['freshman', 'sophomore', 'junior', 'senior'] as const).every((k) => Object.values(s.students.cohortsByClass[k]).reduce((a, b) => a + b, 0) === c[k]), 'each class\'s cohorts still add up');
+  assert(eventById('the-essay-ring')!.choices.find((x) => x.id === 'rescind')!.effects.enrollmentSpread === -40, 'rescinding the degrees reaches the seniors');
+}
+{
+  // The draw rate moves, within the Treasury's bounds.
+  const s = college();
+  s.finance.drawRate = 0.06;
+  applyEffects(s, { drawRate: -0.005 });
+  assert(s.finance.drawRate === 0.055, `lowering the rate lowers it (${s.finance.drawRate})`);
+  s.finance.drawRate = 0.03;
+  applyEffects(s, { drawRate: -0.005 });
+  assert(s.finance.drawRate === 0.03, 'never below the floor');
+}
+{
+  // The library acquisition raises the library's next floor, at its own price.
+  const s = college();
+  const lib = s.tech.find((x) => x.id === 'LIB-T1');
+  if (lib) {
+    lib.status = 'done';
+    lib.effects = { ...lib.effects, servesPopulation: 1200 };
+    const cash = s.finance.cash;
+    applyEffects(s, { libraryFloor: 1 });
+    assert(lib.floorsAdded === 1 && (lib.status as string) === 'developing' && s.finance.cash === cash, 'a floor goes up, paid for by the answer\'s cash alone');
+    lib.status = 'done'; lib.floorsAdded = 3;
+    applyEffects(s, { libraryFloor: 1 });
+    assert(lib.floorsAdded === 3 && lib.status === 'done', 'none past the top floor');
+  } else {
+    assert(false, 'the library is in the tree');
+  }
 }
 
 console.log(`  ${failures === 0 ? '✓' : '✗'} ${checks - failures} of ${checks} checks passed`);

@@ -45,7 +45,12 @@ export type EffectKey =
   | 'historic'    // the building the event names ({building}) is declared historic (Plan 76D)
   | 'charter'     // the university charter's answer (Plan 78G): 1 takes "University", -1 keeps the name
   | 'goodwill'    // the town's goodwill (Plan 85H, data/downtownData.ts), points
-  | 'festival';   // the spring festival's answer (Plan 85H): 0 none, 1 to 4 its scale, smallest first
+  | 'festival'    // the spring festival's answer (Plan 85H): 0 none, 1 to 4 its scale, smallest first
+  // Effects that land where they say (Plan 101C):
+  | 'backlogOn'   // repairs deferred on, or done to, the building the event names ({building}); money
+  | 'enrollmentSpread' // as 'enrollment', but from every class by its size, not the freshmen alone
+  | 'drawRate'    // the endowment's draw rate, moved by this much within the Treasury's bounds
+  | 'libraryFloor'; // 1: the library's next floor goes up, paid for by the answer's own cash
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
@@ -101,4 +106,9 @@ export interface CatalogueEvent {
   timeoutWeeks: number;
   choices: CatalogueChoice[];
   default: string;
+  // A memory of answers (Plan 101B): the choices that settle the matter,
+  // after which the event never fires again, and a telling for its return
+  // after each answer that did not, which may name {answeredYear}.
+  settles?: string[];
+  recalls?: Record<string, string>;
 }

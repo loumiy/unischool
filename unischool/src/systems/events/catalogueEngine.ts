@@ -44,9 +44,20 @@ function offCooldown(s: GameState, e: CatalogueEvent): boolean {
   return last === undefined || s.clock.year - last >= e.cooldownYears;
 }
 
+// An event whose last answer settled it (Plan 101B) never fires again.
+export function settled(s: GameState, e: CatalogueEvent): boolean {
+  const last = catalogueOf(s).lastAnswer?.[e.id];
+  return last !== undefined && (e.settles ?? []).includes(last.choiceId);
+}
+
+// Whether the draw can take an event now: none of it waiting, off its
+// cooldown, not settled, and its conditions met.
+export function drawable(s: GameState, e: CatalogueEvent): boolean {
+  return !catalogueOf(s).pending.some((p) => p.eventId === e.id) && offCooldown(s, e) && !settled(s, e) && eligible(s, e);
+}
+
 function draw(s: GameState, kind: CatalogueEvent['kind']): CatalogueEvent | null {
-  const pending = new Set(catalogueOf(s).pending.map((p) => p.eventId));
-  const pool = EVENT_CATALOGUE.filter((e) => e.kind === kind && !pending.has(e.id) && offCooldown(s, e) && eligible(s, e));
+  const pool = EVENT_CATALOGUE.filter((e) => e.kind === kind && drawable(s, e));
   const weightOf = (e: CatalogueEvent) => e.weight * ((e.favours ?? []).some((t) => hasTag(s, t)) ? FAVOUR_WEIGHT : 1);
   const total = pool.reduce((t, e) => t + weightOf(e), 0);
   if (total <= 0) return null;
@@ -144,10 +155,17 @@ export function raiseFestival(s: GameState): boolean {
   return true;
 }
 
-function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
+export function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   const c = s.catalogue!;
   const variant = pickTelling(e, s.clock.year, c.lastVariant?.[e.id]);
   const p: PendingCatalogueEvent = { instanceId: newId(), eventId: e.id, firedWeek: absoluteWeek(s), vars: rollVars(s, e), scale: priceScale(s), variant };
+  // Back after an answer that did not settle it (Plan 101B): the telling
+  // that remembers it.
+  const last = c.lastAnswer?.[e.id];
+  if (last && e.recalls?.[last.choiceId]) {
+    p.recall = last.choiceId;
+    p.vars.answeredYear = String(last.year);
+  }
   c.pending.push(p);
   c.lastFired[e.id] = s.clock.year;
   (c.lastVariant ??= {})[e.id] = variant;
@@ -193,6 +211,7 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   if (choice.mascot && !s.self.mascot) s.self.mascot = choice.mascot;
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
   journal(c, e, choiceId, by, s.clock.year);
+  (c.lastAnswer ??= {})[e.id] = { choiceId, year: s.clock.year };
   const title = e.title ?? firstSentence(fill(eventText(e, p), p.vars));
   const who = by === 'seat'
     ? (() => { const seat = handlerFor(s, e.domain)!; return `${seatTitle(seatDef(seat.seatId)!, seat.school)} ${seat.holder} answered`; })()

@@ -6,7 +6,7 @@ Plan 76D relabelled the event choices whose truth needs a system the
 events couldn't reach, so each says what its effect does. This plan builds
 those systems, so the choices can say what a college would really do.*
 
-**Status: Proposed (12 October 2026).**
+**Status: Approved (13 October 2026): every decision as proposed. In progress.**
 
 ---
 
@@ -111,6 +111,41 @@ Two of the brief's quotes have already moved:
 - **A test** for each of the eight: answer, advance past the cooldown, and
   check it doesn't recur, or recurs with the recall telling.
 
+**As implemented.**
+
+- **The record** is `CatalogueState.lastAnswer` (not `settled`, since it
+  holds every last answer, settling or not), written in
+  `resolveCatalogueEvent` whoever answers: the player, a seat or the clock.
+  The charter and the spring festival are recorded too, though neither
+  settles nor recalls. Load drops a malformed entry, or one naming an
+  event the catalog no longer has.
+- **The draw:** `settled(s, e)` reads it against the event's `settles`,
+  and `drawable` (the draw's filter, now exported) skips a settled event.
+- **The recall:** an event back after an answer listed in its `recalls`
+  saves that answer on the firing (`PendingCatalogueEvent.recall`) and
+  reads that telling, with `{answeredYear}` filled, in place of its own.
+- **The eight:**
+
+  | Event | Settles it | Recalled |
+  |---|---|---|
+  | the-boiler | replace | nurse, defer |
+  | the-master-key | key cards | rekey, keep looking |
+  | the-writing-requirement | require | leave it |
+  | the-grade-medians | publish the median | leave them |
+  | the-closing-bell | open all night | keep to midnight |
+  | the-term-limits | adopt | for new trustees only |
+  | the-flood | the defenses | dry out, move upstairs |
+  | the-land-offer | sell, lease | keep |
+
+  Since adopting term limits settles the event, the trustee of
+  twenty-six years is never named again.
+- **Tests:** `event-memory.test.ts` covers each settling answer and each
+  recall, the clock's answer as well as the player's, an event with no
+  memory, and the save.
+- **Balance** (`npm run sim`): every median matches the baseline. The
+  harness's answers rarely settle an event, and a settled one is only
+  absent from a draw that has plenty of others. The baseline is unchanged.
+
 ### PR 101C — Effects that land where they say
 
 - **Backlog on the named building:** an effect `backlogOn: amount` loads
@@ -124,6 +159,60 @@ Two of the brief's quotes have already moved:
 - **The library:** `libraryFloor: true` builds the library's next floor
   (`nextLibraryFloor`) at the acquisition's price, or, at the top floor,
   the event's cash effect as now.
+
+**As implemented.**
+
+- **`backlogOn`** (a money key, scaled like `backlog`) is used by the ten
+  repair events. The sinkhole's *Survey and grout the whole campus* keeps
+  `backlog`, since the campus is what it repairs.
+  - **Damage** lands on the named building, priced for its size: the
+    amount times the building's cost over the campus's mean cost
+    (`namedDamage`), and smaller under Facilities Management as before.
+    The catalog's sums are campus-scale. Unscaled, they sank the
+    worst-kept building, often a small one, and with it the mean
+    condition that prestige reads; the first scorecard lost two targets.
+    Scaled, the mean condition falls as far as the spread took it.
+  - **A repair** clears the named building first and spreads the rest.
+  - A firing that names no standing building spreads, as before.
+  - The answer reads "$X of repairs deferred on {building}" or
+    "$X of repairs done, {building} first".
+- **`enrollmentSpread`:** the essay ring's *Rescind the degrees* takes its
+  forty-in-two-thousand from every class by size, each class's cohort mix
+  kept (`setClassSize`, shared with `enrollment`).
+- **`drawRate`:** draw-questioned's *Put a year's excess draw back* and
+  thin-fund's *Put a year's draw back* now say "and lower the rate", and
+  lower it half a point (one slider step) within the Treasury's bounds.
+  - The plan said "for a year". The rate is the player's slider, so the
+    answer moves the slider and the player can move it back; no hidden
+    timer.
+  - *Defend the rate* holds it, as its effects always did.
+  - The recession's choices already say what they do, so they are
+    unchanged.
+  - The lever test's "cut the draw" check now passes on a `drawRate` cut,
+    where before it always failed.
+- **`libraryFloor`:** *Buy the collection* also raises the library's next
+  floor (estate.ts's `startLibraryFloor`, now shared with
+  `RENOVATE_LIBRARY`), paid for by the answer's own cash. With no library
+  standing, at its top floor or under a construction freeze, it does
+  what it did. The label stays "Buy the collection", since the floor is
+  conditional; the answer's phrase names it when it applies.
+- **Tests:** `event-truth.test.ts` adds the named building (alone, priced
+  for its size, cleared first), the spread over the classes, the draw
+  rate's floor, and the library's floor and top.
+- **Balance** (`npm run sim`): ranks within 2 places and prestige within
+  0.4 points of the baseline. The harness answers these events with their
+  defaults, so only the named building's damage reaches it. The
+  scorecard reads 82 of 115, against 85 on `main`. The lost targets are
+  the Guided and Completionist players' "first #1" and "rank at Y50",
+  each a seed or two away (a #1 in Y49, or never). 102B, which changes
+  nothing in the sim but the random stream, flips the same rows and
+  reads 81, so this is within the scorecard's noise. The baseline is
+  re-recorded.
+- **`archetypes.test.ts`'s variety check** fell to 38 era names in 64,
+  one short of its 60%, on the new stream. Every chronicle opens on its
+  founding era, which reads "The Founding" in each run and says nothing
+  about sameness. The check now counts the eras after the founding: 37
+  names in 56. The 60% bar is unchanged.
 
 ### PR 101D — Hires and retirements
 
