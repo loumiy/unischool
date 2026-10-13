@@ -186,6 +186,29 @@ against `main` at `9cec56b` plus PR #341:
   when its school has a program left.
 - **Checks:** a screenshot of an open, a just-claimed and a full hall.
 
+**As implemented.**
+
+- **The panel** (`BuildingInfoPanel.tsx`):
+  - A claimed hall offers its school's programs and nothing else. "Other
+    schools, from the offers" is gone, and so is the confirmation for
+    founding into another school's claim; `claimCutBy` is no longer read
+    by the panel.
+  - "Not this year" shows only under the global offers, so a claimed hall
+    has none.
+  - Decision 3's empty state reads "Every Science program is housed."
+  - An open purchased hall carries the line "Three programs of one school
+    make this its hall", plus "· Science 2 of 3" when one school leads
+    alone.
+- **The map label** (`campusLayout.ts`): "Elm Hall · Science · 4 of 6" when
+  claimed, and "Elm Hall · 3 of 6" for an open purchased hall.
+- **The offer marker** (`CampusMap.tsx`): a claimed hall shows it while its
+  school has a foundable program, and an open hall shows it while the
+  global offers hold one.
+- **Checks:** `npm run check`. The screenshot shows an open hall (one
+  school short of three), a hall claimed at three, and a full hall:
+
+  ![An open, a claimed and a full hall](../images/hall-claims.png)
+
 ### PR 100D — The harness and the guidance
 
 - **The harness** (`sim/harness/moves.ts`):
