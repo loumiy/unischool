@@ -296,6 +296,54 @@ Two of the brief's quotes have already moved:
   whatever its historic status, both drawn in `ageMarks.tsx` and cleared
   when the backlog is paid.
 
+**As implemented.**
+
+- **A real campaign** (`campaign: 1`): *Run the campaign* (annual-fund-drive)
+  and *Announce the challenge and campaign for it* (the-matching-challenge)
+  launch the endowment campaign the alumni would answer best
+  (`eventCampaign`). This needs a VP of Advancement in the seat and no
+  campaign running. Otherwise the answer does what its other effects say,
+  and its phrase names no campaign. The lever test's "run a campaign" check
+  now passes on this effect.
+- **The statue** (`statue: 1`): *Accept the gift, and promise a statue*
+  puts the statue's price in the building fund, opens the statue if the
+  ladder had not, and records the pledge (`Advancement.statuePledged`).
+  The fund pays for it first when it is built.
+  - The inbox keeps "Place the donor's statue" in the decide tier, with
+    *Open Build*, until it is going up. It never lights the badge.
+  - A statue already going up or standing is not pledged again.
+  - The statue is the catalog's "The Founder's Statue"; a donor's name on
+    it is a note for later.
+- **The booster club** (`boosterGift`, money): both gifts go into the
+  athletics department's pot for the year (`StudentOrgState.boosterGift`,
+  read by `departmentPot`), not into cash.
+- **The desire path** (`paveLine: 1`): *Pave the line they have worn*, in
+  place of *Stop reseeding it*, lays the longest run of lawn the busiest
+  walks cross (`wornLine`, from walkRoutes.ts's `desireLines`, the line
+  the map draws) as path tiles. The simulation reads the map's routes
+  here, which are pure functions of the placements and paths.
+- **The ivy and the sinkhole** (`ivy: 1`, `sinkhole: 1`): ivy-structural's
+  *Leave the ivy* and the-sinkhole's *Fence it* mark the named building
+  (`Buildable.ivy`, `.sinkhole`). `tickEstate` clears both once its
+  backlog is paid.
+  - The ivy is the historic buildings' ivy, now drawn as runners with
+    lobed leaves, not round blobs, and trimmed to about a third of the
+    first redesign's points (3.8 ms a hall to draw, against 1.5 ms before
+    and 6.4 ms for the first redesign). Buildings are kept as drawings, so
+    this is paid only when one is drawn again.
+  - The sinkhole is a pit in a rim of earth with a ring of posts and a
+    rail, out from the front wall beside the steps. It shows while the
+    camera sees that front.
+
+  ![Ivy and a fenced sinkhole](../images/ivy-and-sinkhole.png)
+- **Saves:** the pledge and the gift are optional fields, and load drops
+  a malformed one.
+- **Tests:** `event-gifts.test.ts` covers the campaign (with and without a
+  VP, not while one runs), the statue (fund, inbox, cleared once it is
+  going up, not pledged twice), the booster pot (this year only, summed,
+  sanitized), the worn line on a built campus, and the marks (kept while
+  repairs wait, cleared when paid).
+
 ### PR 101F — Named funds
 
 - `advancement.funds` (decision 2), with a migration.
