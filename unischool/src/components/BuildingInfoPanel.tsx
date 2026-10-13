@@ -15,7 +15,7 @@ import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type Pr
 import { WALKTHROUGH_PROGRAM } from '../data/foundingData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
-import { claimCutBy, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
+import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import { gradeFor } from '../data/courseQuality';
@@ -25,7 +25,7 @@ import {
 } from '../systems/techtree/techSystem';
 import { declineRefusal, hostOffers, isHoused, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
-import { count, countWord, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
+import { count, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
 import { initiativeDepth } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
@@ -352,13 +352,12 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
 // opens the instructor picker, and "Found" is the one button on the map
 // that starts a course. A filled slot shows a ProgramTile.
 //
-// What is on offer (Plan 78D): a purchased hall one school claims offers
-// every program of that school the college can found (programOffers.ts's
-// schoolOffers), then the global offers of other schools; Founders Hall and
-// a hall no school claims offer the global three. Each global offer can be
-// declined, one a year ("Not this year"), and founding another school's
-// program into a claimed hall asks first, since it takes a program slot the
-// school needs.
+// What is on offer (Plans 78D and 100): a purchased hall one school claims
+// (three of its programs) offers every program of that school the college
+// can found (programOffers.ts's schoolOffers), and nothing else; Founders
+// Hall and an open hall offer the global three, and an open hall says how
+// near a school is to claiming it. Each global offer can be declined, one a
+// year ("Not this year").
 //
 // A graduate program's host (Plan 51) is drawn the same way, one slot a
 // program it houses: its offers are the programs it houses that are earned,
@@ -401,12 +400,14 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   }
 
   const host = !isAcademicHall(t);
-  // A claimed purchased hall's own school's programs, then the draw's.
-  const own = host ? [] : schoolOffers(s, t.id);
-  const ownSchool = own.length > 0 ? own[0].school : undefined;
+  // A claimed purchased hall offers its own school's programs, in place of
+  // the draw's (Plan 100); an open hall and Founders Hall, the draw's.
+  const claimed = host ? null : claimedSchool(s, t.id);
+  const own = claimed ? schoolOffers(s, t.id) : [];
+  const ownSchool = claimed?.school;
   const drawn = host
     ? hostOffers(s, t.id)
-    : s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined).filter((p) => p.school !== ownSchool);
+    : claimed ? [] : s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined);
   const offers = [...own, ...drawn];
   // Founders Hall's offices (Plan 89): on offer while the college may hold
   // another; the row of six from the first milestone on.
@@ -429,14 +430,24 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
   const walking = s.events.opening.stage === 'appoint' || s.events.opening.stage === 'found';
   const free = slots.filter(slotFree).length;
   const school = dedicatedSchool(s, t.id);
-  // On its way to a school (Plan 55): every program in it is one school's.
-  const claim = school ? null : claimedSchool(s, t.id);
+  // Claimed by a school (Plan 100: three of its programs), short of a
+  // dedication.
+  const claim = school ? null : claimed;
+  // An open purchased hall: how near a school is to claiming it, when one
+  // leads (the most programs, alone).
+  const lead = (() => {
+    if (host || founders || claimed || school) return null;
+    const counts = new Map<string, number>();
+    for (const slot of slots) {
+      const program = slot.programId ? programById(slot.programId) : undefined;
+      if (program) counts.set(program.school, (counts.get(program.school) ?? 0) + 1);
+    }
+    const ranked = [...counts].sort((a, b) => b[1] - a[1]);
+    return ranked.length > 0 && (ranked.length === 1 || ranked[0][1] > ranked[1][1]) ? { school: ranked[0][0], housed: ranked[0][1] } : null;
+  })();
   // The picked offer's school has a hall of its own elsewhere.
   const pickedHome = picked && !host ? schoolHall(s, picked.school) : undefined;
   const pickedHomeHall = pickedHome && pickedHome !== t.id ? s.tech.find((x) => x.id === pickedHome) : undefined;
-  // Another school's program into this hall's claim (Plan 78D): it takes a
-  // program slot the claiming school needs, so Found asks first.
-  const cut = picked && !host ? claimCutBy(s, t.id, picked.id) : null;
   // A major's entry course is written by the committee (Plan 80B), so
   // founding one waits for room on it; a graduate program's does not.
   const committeeFull = courseSlotsFree(s) === 0;
@@ -501,6 +512,14 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       {claim && (
         <p className="building-info-line building-info-dedication" style={{ color: schoolMark(claim.school).hue }}>
           {schoolMark(claim.school).motif} {claim.school} · {claim.housed} of {claim.slots}
+        </p>
+      )}
+      {claim && own.length === 0 && free > 0 && (
+        <p className="building-info-line">Every {claim.school} program is housed.</p>
+      )}
+      {!host && !founders && !claimed && !school && (
+        <p className="building-info-line hall-claim-note">
+          Three programs of one school make this its hall{lead ? ` · ${lead.school} ${lead.housed} of ${CLAIM_AT}` : ''}.
         </p>
       )}
       {founders && (
@@ -603,12 +622,6 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
             <>
               <h4 className="hall-offer-head">{ownSchool} programs for program slot {openSlot + 1}</h4>
               <div className="hall-offer-tiles">{own.map(offerTile)}</div>
-              {drawn.length > 0 && (
-                <>
-                  <h4 className="hall-offer-head">Other schools, from the offers</h4>
-                  <div className="hall-offer-tiles">{drawn.map(drawnTile)}</div>
-                </>
-              )}
             </>
           ) : (
             <>
@@ -656,16 +669,11 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
                 className={`building-info-jump${s.events.opening.stage === 'found' && canFound ? ' opening-target' : ''}`}
                 disabled={!canFound || !act}
                 title={committeeFull ? 'The curriculum committee is full' : undefined}
-                needsConfirm={cut !== null}
+                needsConfirm={false}
                 label={chosen
                   ? `Found ${picked.name} · ${moneyShort(entry.cost)}`
                   : `Found ${picked.name}`}
-                armedLabel={cut
-                  ? `Confirm — this takes one of the ${countWord(cut.slots)} program slots ${cut.school} needs`
-                  : `Found ${picked.name}`}
-                warning={cut
-                  ? `Takes a slot ${cut.school} needs.`
-                  : undefined}
+                armedLabel={`Found ${picked.name}`}
                 onConfirm={() => {
                   if (founding && act) act({ type: 'FOUND_PROGRAM', ...founding });
                   setOpenSlot(null); setPickedProgram(null); setPickedFaculty(null);

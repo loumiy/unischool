@@ -20,6 +20,7 @@ import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, Develop
 import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { schoolOffers } from '../systems/techtree/programOffers';
+import { claimedSchool } from '../systems/techtree/schools';
 import { SHORTCUTS, isKey, isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
@@ -1105,7 +1106,9 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
   const halls = useMemo(() => layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => ({
     t, p,
     slots: s.halls[t.id],
-    offerWaiting: s.programOffers.length > 0 || schoolOffers(s, t.id).length > 0,
+    // A claimed hall founds only its school's programs, an open hall the
+    // global offers (Plan 100).
+    offerWaiting: claimedSchool(s, t.id) ? schoolOffers(s, t.id).length > 0 : s.programOffers.length > 0,
     blocked: s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId)),
   })), [s, layout]);
   return (
