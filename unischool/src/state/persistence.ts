@@ -1466,9 +1466,9 @@ function looksLikeGameState(value: unknown): value is GameState {
 // name is the catalog's for a course (a course renamed in the catalog is
 // renamed in the save; Plan 95M's moves went through its migration), while a
 // building's may be a donor's (eventData.ts's naming rights) and is kept.
-let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project' | 'duration' | 'effects'>> | null = null;
+let catalogText: Map<string, Pick<Buildable, 'name' | 'description' | 'project' | 'duration' | 'effects' | 'requiresFaculty'>> | null = null;
 function refreshAuthoredText(state: GameState): void {
-  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project, duration: t.duration, effects: t.effects }]));
+  catalogText ??= new Map([...initialTech(), ...initialDorms(), ...initialFacilities()].map((t) => [t.id, { name: t.name, description: t.description, project: t.project, duration: t.duration, effects: t.effects, requiresFaculty: t.requiresFaculty }]));
   for (const t of state.tech) {
     const authored = catalogText.get(t.id);
     if (!authored) continue;
@@ -1488,6 +1488,10 @@ function refreshAuthoredText(state: GameState): void {
     // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
     // was started with, so its progress still reads against them.
     if (t.kind === 'course' && (t.status === 'locked' || t.status === 'available')) t.duration = authored.duration;
+    // So is the field it needs (Plan 102B: MED550, retitled Internal
+    // Medicine, is taught from Clinical Health); one under way or taught
+    // keeps the field its instructor was found in.
+    if (t.kind === 'course' && (t.status === 'locked' || t.status === 'available') && authored.requiresFaculty) t.requiresFaculty = authored.requiresFaculty;
     // What a building feeds and what it costs to keep are the catalog's
     // (Plan 80F: the Sports & Recreation Complex feeds health; a facility's upkeep is
     // a share of its price, its floors and expansions with it; the towers'

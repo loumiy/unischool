@@ -544,7 +544,7 @@ export const GRADUATE_COURSE_DESCRIPTIONS: Record<string, string> = {
   MED520: 'Pairs each disease\'s mechanism with the drugs that interrupt it, so dosing, interactions, and side effects are learned with the illness they treat.',
   MED530: 'Localizes lesions from the bedside examination, then confirms them with imaging, across stroke, seizure, dementia, and disorders of movement.',
   MED540: 'Teaches students to read a trial critically, weigh screening and prevention across a population, and decide when the evidence should change practice.',
-  MED550: 'Compares how countries pay for, staff, and ration health care, and why outcomes differ so widely between systems that spend alike.',
+  MED550: 'Reasons through the adult patient\'s complaint to a diagnosis, across the heart, lungs, kidneys, and gut, and writes the plan a ward team rounds on each morning.',
   MED560: 'Covers how the immune system recognizes and remembers a threat, how pathogens evade it, and how vaccines and antimicrobials tip the balance.',
   MED570: 'Reads inheritance and the genome clinically, through family pedigrees, carrier screening, and exome sequencing, and the counseling each result requires.',
   MED580: 'Diagnoses and treats mental illness alongside the behaviors, from sleep to substance use, that shape every other illness a patient has.',
