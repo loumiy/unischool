@@ -190,6 +190,8 @@ const fresh = () => {
     // An office in Founders Hall (Plan 89): its first slot, whatever held it.
     s.halls[FOUNDERS_HALL_ID][0] = { programId: null, office: { id: 'admissions', openedYear: s.clock.year } };
     (s.finance.loans ??= []).push({ buildingId: 'test', balance: 1_000_000, payment: loanPayment(1_000_000), weeksLeft: LOAN_YEARS * WEEKS_PER_YEAR });
+    // A named scholarship (Plan 101F): its share of the draw is student aid.
+    s.advancement = { ...(s.advancement ?? { running: null, closed: [], restrictedBuilding: 0 }), funds: [{ id: 'fund-test', name: 'The Test Scholarship', purpose: 'scholarship', principal: 1_000_000, year: s.clock.year }] };
     states.push(['save-launch.json, with every line in play', s]);
   }
   const seen = new Set<string>();

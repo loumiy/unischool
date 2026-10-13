@@ -794,7 +794,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A parent has written about tuition. The letter is four pages, entirely reasonable, encloses a photocopy of the viewbook from the year their eldest started, and ends by asking what exactly has been added since.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'aid', label: 'Set up a one-off hardship fund', effects: { cash: -300000, mood: 2, warmth: 2 } },
+      { id: 'aid', label: 'Endow a hardship fund', effects: { cash: -300000, endowment: 300000, mood: 2, warmth: 2 }, fund: { purpose: 'scholarship', name: 'The Hardship Fund' } },
       { id: 'explain', label: 'Send the figures and an explanation', effects: { warmth: -1 } },
     ],
     default: 'explain',
@@ -1484,11 +1484,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { facultyOver: 5 },
     names: { faculty: 'retiring' },
-    text: '{faculty} retires in June, after enough years that two of the current department were once their students. The department would like a dinner, a volume of essays, and her office kept exactly as it is for a year, and has listed these in ascending order of seriousness.',
+    text: '{faculty} retires in June, after enough years that two of the current department were once their students. The department would like a dinner, a volume of essays, and their office kept exactly as it is for a year, and has listed these in ascending order of seriousness.',
     timeoutWeeks: 4,
     choices: [
       { id: 'dinner', label: 'Hold the dinner and fund the volume', effects: { cash: -35000, warmth: 2, mood: 1 } },
-      { id: 'prize', label: 'Give to the endowment in their name', effects: { cash: -150000, endowment: 150000, warmth: 3, mood: 1 } },
+      { id: 'prize', label: 'Endow a scholarship in their name', effects: { cash: -150000, endowment: 150000, warmth: 3, mood: 1 }, fund: { purpose: 'scholarship', name: 'The {faculty} Scholarship' } },
       { id: 'card', label: 'Send a card and reallocate the office', effects: { warmth: -2 } },
     ],
     default: 'card',
@@ -1639,7 +1639,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     timeoutWeeks: 3,
     choices: [
       { id: 'accept', label: 'Accept the gift, and promise a statue', effects: { endowment: 1500000, mood: -2, statue: 1 } },
-      { id: 'plaque', label: 'Offer to name an endowed fund instead', effects: { endowment: 600000, warmth: 1 } },
+      { id: 'plaque', label: 'Offer to name an endowed fund instead', effects: { endowment: 600000, warmth: 1 }, fund: { purpose: 'scholarship', name: 'The Benefactor\'s Scholarship' } },
       { id: 'decline', label: 'Decline the gift', effects: { warmth: -2 } },
     ],
     default: 'plaque',
@@ -2350,7 +2350,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: '{faculty}, the last of the founding faculty, retires this year, having taught in every building the college has put up. The farewell lecture is titled \'Where Things Began\'.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'chair', label: 'Give to the endowment in their name', effects: { cash: -300000, endowment: 300000, warmth: 3, quality: 1 } },
+      { id: 'chair', label: 'Endow a chair in their name', effects: { cash: -300000, endowment: 300000, warmth: 3, quality: 1 }, fund: { purpose: 'chair', name: 'The {faculty} Chair' } },
       { id: 'dinner', label: 'Hold a dinner', effects: { cash: -10000, warmth: 2 } },
     ],
     default: 'dinner',

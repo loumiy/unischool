@@ -11,7 +11,7 @@ import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
-import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
@@ -69,7 +69,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 101; // Plan 99C: the gazebo
+export const SAVE_VERSION = 102; // Plan 101F: the named funds
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -374,6 +374,12 @@ function gazeboJoins(state: GameState): void {
   state.tech.push(gazebo);
 }
 
+// 101 -> 102, Plan 101F: the named funds. A save from before has none; the
+// version moves so a build without them refuses a save that holds some.
+function noFundsYet(state: GameState): void {
+  if (state.advancement) delete state.advancement.funds;
+}
+
 // What money bought (Plan 95X), on every load: the training classes and the
 // autumn festivals a whole year each, once, no later than the save's; the
 // wing and the phase a year, or absent. Anything else is dropped, which only
@@ -634,6 +640,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   98: nothingBoughtYet,
   99: legacyStarts,
   100: gazeboJoins,
+  101: noFundsYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -1186,6 +1193,15 @@ function sanitizeAdvancement(state: GameState): void {
   if (state.advancement!.running && !campaignById(state.advancement!.running.campaignId)) state.advancement!.running = null;
   // A donor's statue pledged (Plan 101E): true, or nothing.
   if (state.advancement!.statuePledged !== undefined && state.advancement!.statuePledged !== true) delete state.advancement!.statuePledged;
+  // The named funds (Plan 101F): a malformed one is dropped, and none, absent.
+  const funds = state.advancement!.funds as unknown;
+  if (funds !== undefined) {
+    const kept = (Array.isArray(funds) ? funds : []).filter((f): f is NamedFund => typeof f === 'object' && f !== null
+      && typeof f.id === 'string' && typeof f.name === 'string' && (f.purpose === 'scholarship' || f.purpose === 'chair')
+      && Number.isFinite(f.principal) && f.principal > 0 && Number.isInteger(f.year)
+      && (f.field === undefined || typeof f.field === 'string') && (f.holderId === undefined || typeof f.holderId === 'string'));
+    if (kept.length > 0) state.advancement!.funds = kept; else delete state.advancement!.funds;
+  }
 }
 
 // The event catalog: a malformed record is dropped whole, and an event

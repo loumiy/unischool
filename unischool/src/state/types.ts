@@ -1251,6 +1251,23 @@ export interface Advancement {
   // A donor's statue pledged (Plan 101E, the-statue-donor): its price is in
   // the building fund, and the inbox asks for it to be placed until it is.
   statuePledged?: boolean;
+  // The named funds (Plan 101F, systems/alumni/funds.ts), oldest first.
+  // Absent before the first.
+  funds?: NamedFund[];
+}
+
+// A named fund (Plan 101F): money given to the endowment for a purpose. Its
+// principal is part of the endowment, and its share of the draw goes to its
+// purpose: student aid for a scholarship, a named professor's salary for a
+// chair.
+export interface NamedFund {
+  id: string;
+  name: string;                 // "The Hardship Fund", "The Okafor Chair"
+  purpose: 'scholarship' | 'chair';
+  principal: number;
+  year: number;                 // endowed
+  field?: string;               // a chair's field: it goes to the strongest professor in it
+  holderId?: string;            // a chair's first holder, while on the roster
 }
 
 // A graduated class, stamped at commencement (systems/alumni/ledger.ts).

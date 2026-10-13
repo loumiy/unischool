@@ -13,6 +13,7 @@ import { trainingUntil } from '../systems/faculty/training';
 import { yearsLeft } from './facultySort';
 import type { Commitment } from './FacultyTile';
 import { money, weeksShort } from '../format';
+import { chairsHeldBy } from '../systems/alumni/funds';
 
 // ---------------------------------------------------------------------
 // The person, expanded (Plan 84E): what a tile opens into, in place on a
@@ -125,6 +126,8 @@ export default function FacultyPerson(
         <p className="faculty-person-joined">
           <strong>{joined}</strong> {W.yearsHere(here)} {W.retires(yearsLeft(f))}
           {isFounder(f) && <span className="outcome-note"> {W.foundingNote}</span>}
+          {/* A named chair (Plan 101F, alumni/funds.ts). */}
+          {chairsHeldBy(s, f.id).map((c) => <span key={c.id} className="outcome-note"> Holds {c.name.replace(/^The /, 'the ')}.</span>)}
         </p>
       ) : (
         <p className="faculty-person-joined candidate">{W.candidate(f.name, college)}</p>

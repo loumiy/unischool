@@ -75,6 +75,10 @@ export interface CatalogueChoice {
   // it adopts.
   promise?: string;
   mascot?: string;
+  // A named fund (Plan 101F): the answer's gift to the endowment endows it,
+  // for its purpose, under this name (it may name {faculty}). A chair goes
+  // to the strongest professor in the field of the one the event names.
+  fund?: { purpose: 'scholarship' | 'chair'; name: string };
 }
 
 export interface CatalogueEvent {
