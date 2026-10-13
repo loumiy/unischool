@@ -81,7 +81,9 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   assert(EVENT_CATALOGUE.every((e) => e.weight > 0 && e.cooldownYears >= 0), 'weights and cooldowns are sane');
   assert(EVENT_CATALOGUE.every((e) => (e.favours ?? []).every((t) => tagById(t) !== undefined)), 'every favored tag exists');
   const vars = rollVars(fresh());
-  const unfilled = EVENT_CATALOGUE.filter((e) => /\{\w+\}/.test(fill(e.text, vars)) || e.choices.some((c) => /\{\w+\}/.test(fill(c.label, vars))));
+  // A hiring event also names the candidate it rolls (Plan 101D).
+  const varsOf = (e: CatalogueEvent) => (e.hires ? { ...vars, candidate: 'A. Candidate', candidateField: 'Biology' } : vars);
+  const unfilled = EVENT_CATALOGUE.filter((e) => eventTexts(e).some((x) => /\{\w+\}/.test(fill(x, varsOf(e)))) || e.choices.some((c) => /\{\w+\}/.test(fill(c.label, varsOf(e)))));
   assert(unfilled.length === 0, `every name in the text is one the game fills (${unfilled.map((e) => e.id).join(', ')})`);
   // Every telling (data/eventVariants.ts), the letters' titles and every answer.
   const text = EVENT_CATALOGUE.map((e) => `${e.title ?? ''} ${eventTexts(e).join(' ')} ${e.choices.map((c) => c.label).join(' ')}`).join(' ');

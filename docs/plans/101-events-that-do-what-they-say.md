@@ -232,6 +232,51 @@ Two of the brief's quotes have already moved:
   an emeritus title, a fund in their name once F lands).
   emeritus-office follows the same notice.
 
+**As implemented.**
+
+- **A hire:** an event with `hires: 'taught' | 'untaught'` rolls its
+  candidate when it fires (`rollCandidate`: the best of five from the
+  market at the college's standing, the rival-passed way). It keeps the
+  candidate on the firing (`PendingCatalogueEvent.candidate`) and names
+  them as `{candidate}` and `{candidateField}`. A choice with `hire: 1`
+  appoints them through `appointFaculty`, logged as any appointment is.
+  The answer reads "appoints {candidate} ({field}), $X/yr" at this
+  college's pay. Load drops a malformed candidate.
+  - **frozen-post** (taught): *Appoint {candidate} to the post*, in place
+    of temporary cover.
+  - **contract-visiting-chair** (taught): *Make the post permanent:
+    appoint {candidate} to the faculty*. The visitor is named in the
+    letter.
+  - **two-body** (untaught): *Appoint {candidate} to a courtesy post*. The
+    spouse is in a field the college does not teach, so they teach
+    nothing until a program in their field is founded.
+  - **Read and left:** the-board-secretary and trustee-resigns. Neither
+    is a faculty post, and the college has no seat for a board
+    secretary or a trustee. Their labels already say what they cost;
+    101G reads them again.
+  - All three tellings of frozen-post and contract-visiting-chair name the
+    candidate.
+- **Retirements:** two new professor kinds. `'retiring'` is the
+  longest-serving professor in the year's notice before retirement
+  (`careerWeeks`). `'founding-retiring'` is that professor when they are
+  the last of the founding faculty (appointed in the first three years)
+  on the roster.
+  - **the-last-lecture** names its retiring professor in place of "the
+    longest-serving teacher in {program}" and loses its year gate.
+  - **founding-faculty-last** names the last founding professor in their
+    notice year, in place of a year 29–31 window.
+  - **emeritus-office** keeps its year gate and adds the retiring
+    professor ("would make five").
+  - The fund in their name waits for 101F.
+- **Tests:** `event-hires.test.ts` covers the three hires (named, field,
+  appointed or not), the save, and the retirement names. `event-catalogue`
+  fills a hiring event's `{candidate}` when it checks every telling.
+- **Balance** (`npm run sim`): ranks within 4 places and prestige within
+  1.3 points of 101C's baseline. Rolling the candidate draws on the run's
+  stream when a hiring event fires; the harness takes the defaults, which
+  hire nobody. The scorecard reads 85 of 115, against 82 under 101C. The
+  baseline is re-recorded.
+
 ### PR 101E — Campaigns, gifts and things on the map
 
 - **A real campaign:** annual-fund-drive and the-matching-challenge call
