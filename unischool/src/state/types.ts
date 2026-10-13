@@ -551,6 +551,9 @@ export interface PendingCatalogueEvent {
   // The answer it returns after (Plan 101B): it reads that answer's recall
   // telling in place of its own.
   recall?: string;
+  // The candidate a hiring event rolled when it fired (Plan 101D), appointed
+  // by the answer that hires.
+  candidate?: Faculty;
 }
 
 export interface CatalogueState {

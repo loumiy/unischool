@@ -11,7 +11,7 @@ import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
-import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
@@ -1226,6 +1226,13 @@ function sanitizeCatalogue(state: GameState): void {
       }
     }
     if (Object.keys(kept).length > 0) cat.lastAnswer = kept; else delete cat.lastAnswer;
+  }
+  // A hiring event's candidate (Plan 101D) that is malformed is dropped, and
+  // the answer that would appoint them appoints nobody.
+  for (const p of cat.pending) {
+    const f = p.candidate as unknown as Partial<Faculty> | undefined;
+    if (f !== undefined && !(typeof f === 'object' && f !== null && typeof f.id === 'string' && typeof f.name === 'string'
+      && typeof f.field === 'string' && [f.teaching, f.research, f.salary, f.tenureWeeks].every((n) => Number.isFinite(n)))) delete p.candidate;
   }
   // A recall naming an answer its event cannot recall reads the event's
   // own telling.
