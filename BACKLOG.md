@@ -12,15 +12,16 @@ it went, is in [`docs/backlog-archive.md`](docs/backlog-archive.md).
 
 *Re-read against the code on 12 October 2026, after Plan 97 (0.1.0 on
 itch.io), and sorted by the owner the same day: what goes into 0.1.1 is
-sequenced in Plans 98–102, what was discarded is in the archive, and what
-is left here waits for later.*
+sequenced in Plans 98–102 and shipped, what was discarded is in the
+archive, and what is left here waits for later.*
 
 ---
 
-## Planned for 0.1.1
+## Shipped in 0.1.1
 
-*Sorted by the owner on 12 October 2026 and sequenced, so they are no longer
-backlog: see the plans for each.*
+*Sorted by the owner on 12 October 2026, sequenced in Plans 98–102 (and
+Plan 103's opening), and landed by 13 October. What players see is in
+[`docs/store/changelog.md`](docs/store/changelog.md).*
 
 - [Plan 98](docs/plans/098-version-0-1-1.md): actuals with an arrow in place
   of targets, a notice when a bonus style unlocks, the Final Report's tags

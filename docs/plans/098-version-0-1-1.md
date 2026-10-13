@@ -5,7 +5,7 @@ is to sequence the small fixes the owner picked for 0.1.1 when they sorted
 the backlog on 12 October 2026, and to cut the 0.1.1 release once this plan
 and Plans 99–102 have landed.*
 
-**Status: Proposed (12 October 2026).**
+**Status: Done (13 October 2026). B–G merged (#345–#350); H, the release, in the PR that carries this line, with the `v0.1.1` tag after it merges.**
 
 ---
 
@@ -471,3 +471,24 @@ After this plan's B–G and Plans 99–102 have landed:
 - **Tag `v0.1.1`.** The release workflow builds the web zip, and it's
   uploaded as `docs/store/itch-release.md` describes.
 - `BACKLOG.md` and this plan's status are updated.
+
+**As implemented.**
+
+- **The version** is 0.1.1 in `package.json` and its lock; the itch.io
+  build names itself `unischool-0.1.1-itch-web.zip`.
+- **The README:** 473 courses; the walkthrough's seven steps (Plan 103);
+  the claimed halls and closing a program, the events' answers and their
+  memory, the named funds, and the save slots.
+- **The changelog** (`docs/store/changelog.md`), for players: 0.1.1 by
+  what's new, the events, what changed and the saves; 0.1.0 in a line.
+- **A devlog draft** (`docs/store/devlog-0.1.1.md`) for the itch.io page,
+  condensing Plans 98–103, for the owner to edit and post with the upload.
+- **The pass, automated:** `npm run check`; the release's itch.io frame
+  check (`npm run itch:frame -- --check`), which continues the 0.1.0
+  playtest save at year 25 in the built game; and the migration test,
+  which plays that save a year. A fresh run to year 10 is the harness's
+  every sim. **The owner's own play of the web build is still theirs to
+  do** before uploading.
+- **`BACKLOG.md`:** the 0.1.1 section points to the changelog.
+- **The tag** `v0.1.1` is pushed once this merges; the Release workflow
+  builds the zip, uploaded as `itch-release.md` describes.
