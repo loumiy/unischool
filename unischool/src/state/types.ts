@@ -676,7 +676,7 @@ export type NewsLetter = { id: string; week: number; unread: boolean } & (
 );
 
 // See state/opening.ts, which owns the order and the meaning.
-export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'await-course' | 'second-course' | 'play';
+export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'await-course' | 'second-course' | 'needs' | 'site-housing' | 'site-dining' | 'play';
 
 // The four pillars of prestige (Plan 85; systems/prestige/prestigeSystem.ts).
 export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';

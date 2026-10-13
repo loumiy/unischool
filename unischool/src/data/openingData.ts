@@ -1,8 +1,9 @@
-import type { GameState, OpeningStage } from '../state/types';
-import { totalEnrolled } from '../state/types';
+import type { Buildable, GameState, OpeningStage } from '../state/types';
+import { servingPopulation, totalEnrolled } from '../state/types';
 import { programById } from './techData';
 import { FOUNDING_MARKET, WALKTHROUGH_PROGRAM, WALKTHROUGH_PROFESSOR } from './foundingData';
-import { countWord, money } from '../format';
+import { NEED_LABELS } from './figureHints';
+import { count, countWord, money, satisfactionFigure } from '../format';
 
 // ---------------------------------------------------------------------
 // The opening walkthrough's copy, one card per stage (state/opening.ts,
@@ -17,7 +18,7 @@ export interface OpeningStep {
   title: string;
   body: (s: GameState) => string;
   next?: string;
-  door?: 'build' | 'hall' | 'curriculum';
+  door?: 'build' | 'hall' | 'curriculum' | 'students';
 }
 
 function list(names: string[]): string {
@@ -60,6 +61,44 @@ export function walkProgram(s: GameState): string | null {
     if (entry && s.tech.find((t) => t.id === entry)?.status === 'done') return id;
   }
   return null;
+}
+
+// The needs steps (Plan 103C): the letter they stand in for, a residence
+// hall and a dining hall, and the next of each the college can site.
+export const NEEDS_LETTER_ID = 'somewhere-to-sleep';
+export const isDorm = (t: Buildable) => t.kind === 'dorm';
+export const isDiningHall = (t: Buildable) => t.facilityType === 'diningHall';
+export function sitedAny(s: GameState, test: (t: Buildable) => boolean): boolean {
+  return s.tech.some((t) => test(t) && t.id in s.placements);
+}
+// The building a site step rings: the next of its kind on offer.
+export function walkBuilding(s: GameState): Buildable | null {
+  const stage = s.events.opening.stage;
+  const test = stage === 'site-housing' ? isDorm : stage === 'site-dining' ? isDiningHall : null;
+  return test ? s.tech.find((t) => test(t) && t.status === 'available') ?? null : null;
+}
+
+// What the students lack, and the figures behind it (Plan 78B), read as the
+// words are shown: the "Somewhere to sleep" letter's, and the needs step's.
+export function campusLack(s: GameState): string {
+  const has = (test: (t: Buildable) => boolean) => s.tech.some((t) => test(t) && t.status === 'done');
+  const wants = [
+    has(isDorm) ? '' : 'most of them go home at night',
+    has(isDiningHall) ? '' : 'there is nowhere on campus to eat',
+    has((t) => t.facilityType === 'library') ? '' : 'there is no library',
+  ].filter((w) => w !== '');
+  return wants.length > 0 ? ` As it stands, ${list(wants)}.` : '';
+}
+export function campusFigures(s: GameState): string {
+  const seats = s.tech.filter(isDiningHall).reduce((n, t) => n + servingPopulation(t), 0);
+  return ` The college has ${count(totalEnrolled(s.students))} students, ${count(s.students.capacity)} beds and ${count(seats)} dining seats.`;
+}
+
+// A site step's card: the building, what it gives, and where it is.
+function siteBody(s: GameState, gives: (t: Buildable) => string, kind: string): string {
+  const t = walkBuilding(s);
+  if (!t) return `Every ${kind} on offer is sited.`;
+  return `${t.name} ${gives(t)} for ${money(t.cost)}, and takes ${weeksAway(t.duration)} to build. It is ringed in the build menu: pick it up and set it down, as Founders Hall was.`;
 }
 
 // A course's title without its code ("ENGL101 · Foundations of …").
@@ -122,5 +161,30 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
       return `${entry ? titleOf(entry.name) : 'The first course'} is taught. ${name} is ${countWord(courses.length)} courses, and ${open.length === 1 ? 'the next is' : `the next ${countWord(open.length)} are`} open now: each is developed the way the first was, by the curriculum committee, with a professor to teach it.${span} Develop one: the ringed button starts the course it names.`;
     },
     door: 'curriculum',
+  },
+  needs: {
+    eyebrow: 'Step five',
+    title: 'Somewhere to sleep, somewhere to eat',
+    body: (s) => {
+      const b = s.students.satisfactionBreakdown;
+      const going = sitedAny(s, isDorm) && sitedAny(s, isDiningHall);
+      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}, and the Students tab shows the needs it is made of: ${NEED_LABELS.housing} is at ${satisfactionFigure(b.housing)} and ${NEED_LABELS.basicNeeds} at ${satisfactionFigure(b.basicNeeds)}.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. ${going
+        ? 'A residence hall and a dining hall are going up: the ratings rise when they open.'
+        : 'A need is met by building for it, from the build menu: a residence hall for housing, a dining hall for dining.'}`;
+    },
+    next: 'Next',
+    door: 'students',
+  },
+  'site-housing': {
+    eyebrow: 'Step six',
+    title: 'Build a residence hall',
+    body: (s) => siteBody(s, (t) => `sleeps ${count(t.effects?.capacityBonus ?? 0)} students`, 'residence hall'),
+    door: 'build',
+  },
+  'site-dining': {
+    eyebrow: 'Step seven',
+    title: 'Build a dining hall',
+    body: (s) => siteBody(s, (t) => `feeds ${count(t.effects?.servesPopulation ?? 0)} students`, 'dining hall'),
+    door: 'build',
   },
 };

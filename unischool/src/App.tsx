@@ -78,6 +78,10 @@ type Front = 'title' | 'hall' | 'settings' | 'credits' | 'found';
 
 const LADDER_TABS: ReadonlySet<TabId> = new Set(MILESTONES.flatMap((m) => m.tabs));
 
+// The walkthrough's stages after the clock first starts: a walk ending from
+// one of them leaves the speed the player chose.
+const CLOCK_STARTED: ReadonlySet<OpeningStage> = new Set(['second-course', 'needs', 'site-housing', 'site-dining']);
+
 export default function App() {
   const { state, act, speed, setSpeed, weekProgress, exportRun, elsewhere, resumed, continueHere, openHere } = useGame();
   const s: GameState = state;
@@ -302,8 +306,10 @@ export default function App() {
   // 'appoint' closes it, drops the pickup and opens Founders Hall's panel
   // (where the first professor is appointed and the first program founded),
   // 'found' opens the panel unless 'appoint' already has, 'await-course'
-  // starts the clock (the game opens paused), and 'second-course' opens the
-  // Curriculum on the walk's program, its row open (Plan 103B). A walk
+  // starts the clock (the game opens paused), 'second-course' opens the
+  // Curriculum on the walk's program, its row open (Plan 103B), 'needs' opens
+  // Students on the satisfaction breakdown, and 'site-housing' and
+  // 'site-dining' the build menu (Plan 103C). A walk
   // skipped before the clock started starts it at 'play'; one that ends
   // after leaves the speed the player chose. On mount, a save resumed
   // mid-walk acts on the door-opening stages but not on the clock. The ref
@@ -325,7 +331,11 @@ export default function App() {
       inspectHall(FOUNDERS_HALL_ID);
     }
     else if (stage === 'second-course') openWalkProgram();
-    else if (prev !== null && (stage === 'await-course' || (stage === 'play' && prev !== 'second-course'))) setSpeed('real');
+    else if (stage === 'needs') openTab('students', 'students.breakdown');
+    // The menu opens on the step's tab (BuildPopup.tsx's initialBuildTab);
+    // already open, it turns to it.
+    else if (stage === 'site-housing' || stage === 'site-dining') setBuildOpen(true);
+    else if (prev !== null && (stage === 'await-course' || (stage === 'play' && !CLOCK_STARTED.has(prev)))) setSpeed('real');
   }, [s.started, stage]);
 
   // A stop opens the inbox on itself (Plan 77), and each new stop or summer
@@ -621,9 +631,12 @@ export default function App() {
         buildOpen={buildOpen}
         hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
         curriculumOpen={overlay?.tab === 'curriculum'}
+        studentsOpen={overlay?.tab === 'students'}
+        placing={placingId !== null}
         onOpenBuild={() => setBuildOpen(true)}
         onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
         onOpenCurriculum={openWalkProgram}
+        onOpenStudents={() => openTab('students', 'students.breakdown')}
       />}
     </>
   );

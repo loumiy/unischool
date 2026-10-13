@@ -7,7 +7,7 @@ player is properly oriented before releasing them to do whatever they
 want." After the three opening steps, a player may ask "now what?" Some
 will find their own way through the tabs; some want more direction.*
 
-**Status: Approved (13 October 2026): every decision as proposed. B built.**
+**Status: Approved (13 October 2026): every decision as proposed. B and C built.**
 
 ---
 
@@ -241,3 +241,48 @@ All of them reuse what the walkthrough already has:
   - the letter not sent in a walked run, and sent at week 9 in a skipped
     one;
   - the build menu opens on Housing, then Dining.
+
+**As implemented.**
+
+- **The letter is counted read when the walk reaches `'needs'`,** in
+  `settleOpening`, not in `fireOpeningLetter`. The stage alone can't tell
+  a walk that finished from one skipped with the letters kept (both end
+  at `'play'` with `skipped` false), and the read list is already saved.
+  So a walk skipped from any needs card doesn't get the letter at week 9
+  (step 5 already showed it), and one skipped before step 5 does.
+- **The letter's figures and complaints are shared:** `campusFigures` and
+  `campusLack` moved to `openingData.ts`, and the letter and step 5 both
+  read them. The letter's id is `NEEDS_LETTER_ID`.
+- **The site steps end when the building can't be put up,** paid any way
+  the build menu would (`financingFor`: a gift, cash, the endowment or a
+  loan), as step 4 ends when no course can be started.
+- **The card's place, measured in the browser:**
+  - **Over Students on a wide screen it sits at the foot.** Below the
+    tab's header it covered the Housing card, the fifth need, on the right.
+  - **On a phone it steps aside while a building is in hand.** The map's
+    touch bar, with its Place button, sits at the top, under the card. The
+    bar's own note says what to do, and the card comes back once the
+    building is set down or put back. This was also true of step 1
+    (Founders Hall) on a phone, which no one had driven by touch before,
+    so the fix covers it too.
+- **Copy:**
+  - **Step 5:** "Satisfaction is 62, and the Students tab shows the needs
+    it is made of: Housing is at 12 and Dining at 12. The college has 350
+    students, 0 beds and 0 dining seats. As it stands, …" then the
+    letter's sentence, then how a need is met, or "A residence hall and a
+    dining hall are going up: the ratings rise when they open" when both
+    are sited.
+  - **Steps 6 and 7:** "Meadow House sleeps 350 students for $350,000, and
+    takes 16 weeks to build. It is ringed in the build menu: pick it up
+    and set it down, as Founders Hall was." The dining hall's reads "feeds".
+- **Tests:** `opening.test.ts` (122 checks): the walk through all ten
+  stages; both, one or neither building already sited; skip from each new
+  card, with and without the letter after; neither building within reach;
+  the needs letter sent at week 9 after a skip from the course step.
+  `build-tab.test.ts`: the menu opens on Housing, then on the dining
+  hall's tab, then Grounds.
+- **Checked in the browser** at 1440 wide (the full walk, Next to both
+  buildings placed) and at 390 wide by touch (both placed through the
+  touch bar); no errors.
+- **Balance:** the sim is unchanged from the baseline after 103B, as
+  expected, since headless runs open at `'play'`.

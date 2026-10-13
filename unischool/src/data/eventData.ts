@@ -1,6 +1,6 @@
 import type { EventDomain } from './seatData';
 import type { Buildable, Coach, FacilityType, Faculty, GameState, GreekChapter, LogEntry, LogTopic, VarsityTeam } from '../state/types';
-import { WEEKS_PER_YEAR, institutionName, servingPopulation, totalEnrolled } from '../state/types';
+import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../state/types';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
 import { FACULTY_FIELDS, generateCandidate, marketRateMultiplier, marketStandingOf, rollSurname } from './facultyData';
 import { appointFaculty } from '../systems/faculty/facultySystem';
@@ -22,6 +22,7 @@ import { schoolOffers } from '../systems/techtree/programOffers';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
 import { count as countOf, money, satisfactionFigure } from '../format';
+import { campusFigures, campusLack, NEEDS_LETTER_ID } from './openingData';
 import { clamp } from '../math';
 import { random } from '../engine/random';
 
@@ -1167,23 +1168,13 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     done: (s) => FIRST_HALL_ID in s.placements,
   },
   {
-    id: 'somewhere-to-sleep',
+    id: NEEDS_LETTER_ID,
     week: 9,
     title: 'Somewhere to sleep, somewhere to eat',
     body: (s) => {
-      // What the students lack as the letter is written: each complaint only
-      // while it is true.
-      const has = (test: (t: Buildable) => boolean) => s.tech.some((t) => test(t) && t.status === 'done');
-      const wants = [
-        has((t) => t.kind === 'dorm') ? '' : 'most of them go home at night',
-        has((t) => t.facilityType === 'diningHall') ? '' : 'there is nowhere on campus to eat',
-        has((t) => t.facilityType === 'library') ? '' : 'there is no library',
-      ].filter((w) => w !== '');
-      const lack = wants.length > 0 ? ` As it stands, ${list(wants)}.` : '';
-      // The figures behind it (Plan 78B), read as the letter is written.
-      const seats = s.tech.filter((t) => t.facilityType === 'diningHall').reduce((n, t) => n + servingPopulation(t), 0);
-      const figures = ` The college has ${countOf(totalEnrolled(s.students))} students, ${countOf(s.students.capacity)} beds and ${countOf(seats)} dining seats.`;
-      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${figures}${lack} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
+      // What the students lack and the figures behind it, read as the letter
+      // is written (openingData.ts, shared with the walkthrough's needs step).
+      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
     },
     ask: (s) => ({
       text: 'Site a residence hall and a dining hall', go: 'build',
