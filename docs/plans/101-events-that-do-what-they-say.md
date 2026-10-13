@@ -439,6 +439,9 @@ Two of the brief's quotes have already moved:
   clock passed before on warmth alone.
 - **Tests:** `event-truth.test.ts` adds the gift for the buildings
   (repairs, then the fund) and the professor who leaves.
+- **Balance** (`npm run sim`): no row moved. The harness takes the
+  defaults, none of which changed. The scorecard reads 85 of 115. The
+  baseline is unchanged.
 
 ### PR 101H — Closing a program
 
