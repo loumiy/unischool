@@ -5,6 +5,7 @@ import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR 
 import { random, newId } from '../../engine/random';
 import { EVENT_CATALOGUE, applyEffects, eligible, eventById, eventText, fill, pickTelling, priceScale, rollCandidate, rollVars, scaledEffects } from './catalogue';
 import { appointFaculty } from '../faculty/facultySystem';
+import { endowFund } from '../alumni/funds';
 import { facultyPay } from '../finance/financeSystem';
 import { money } from '../../format';
 import { hasTag } from '../identity/tags';
@@ -226,6 +227,8 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   }
   // What an answer does beyond the levers (Plan 76D).
   if (choice.promise) makePromise(s, choice.promise);
+  // A named fund (Plan 101F): the answer's gift to the endowment endows it.
+  if (choice.fund) endowFund(s, choice.fund.purpose, fill(choice.fund.name, p.vars), scaledEffects(choice.effects, p.scale).endowment ?? 0, p.vars.facultyId);
   if (choice.mascot && !s.self.mascot) s.self.mascot = choice.mascot;
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
   journal(c, e, choiceId, by, s.clock.year);

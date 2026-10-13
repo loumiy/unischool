@@ -24,6 +24,7 @@ import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
+import { aidPerStudent, netTuition } from '../systems/alumni/funds';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
 import { COHORT_COLOR } from './cohortColors';
@@ -251,7 +252,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   const ceiling = intakeCeiling(s);
   // Live preview of the emergent outcomes, computed with the very function
   // the reducer commits with — so the numbers shown are the numbers applied.
-  const outcome = projectAdmissions(prestige, tuition, capacity, satisfaction, cohortSignals, admitRateChoice, ceiling.seatsLeft);
+  // Applicants read the price net of the scholarship funds' aid (Plan 101F).
+  const outcome = projectAdmissions(prestige, netTuition(s, tuition), capacity, satisfaction, cohortSignals, admitRateChoice, ceiling.seatsLeft);
   // The rate at which the class fills the room: past it the slider buys
   // nothing, so it ends there.
   const maxAdmitRate = outcome.applicants > 0
@@ -267,7 +269,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   // What prestige lets the school charge before demand falls away, shown so
   // a player pricing above their standing can see why the pool shrinks.
   const tolerance = priceTolerance(prestige);
-  const priceTierNow = priceTier(tuition, tolerance);
+  const priceTierNow = priceTier(netTuition(s, tuition), tolerance);
   const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
   // The cards' bars share one scale, the largest count this summer or last
   // (Plan 90); at least 1, so an empty pool divides by nothing.
@@ -292,6 +294,8 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
       <label className="admissions-field">
         <span>
           Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>{money(tuition)}/yr</strong>
+          {/* The scholarship funds' aid (Plan 101F): what applicants read. */}
+          {aidPerStudent(s) > 0 && <span className="stat"> · {money(netTuition(s, tuition))}/yr after aid</span>}
         </span>
         <input type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition}
           disabled={tuitionLocked}

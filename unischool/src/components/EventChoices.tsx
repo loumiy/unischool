@@ -133,6 +133,8 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
         const phrases = [
           ...effectPhrases(s, scaledEffects(c.effects, p.scale), p.vars),
           ...(c.promise ? [`promises: ${(() => { const d = promiseById(c.promise); return d ? promiseTitle(s, d) : c.promise; })()}`] : []),
+          // A named fund (Plan 101F).
+          ...(c.fund ? [`endows ${fill(c.fund.name, p.vars).replace(/^The /, 'the ')}`] : []),
           ...(c.mascot && !s.self.mascot ? [`the ${c.mascot} it is`] : []),
         ];
         return (

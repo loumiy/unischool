@@ -12,6 +12,7 @@ import { EPILOGUE_DECADE, finalReport } from '../../state/finalReport';
 import { summariseYears } from '../chronicle/chronicle';
 import { SEMICENTENNIAL_YEAR } from '../../state/types';
 import { advanceClasses, priceTolerance, projectAdmissions, trailingYearSatisfaction } from './admissionsSystem';
+import { netTuition } from '../alumni/funds';
 import { cohortCounts, crowdingForPool, deriveCohortSignals } from './cohorts';
 import { attritionReasons, summerAttrition } from './consequences';
 import { applyReportCard, gradeYear } from '../prestige/prestigeSystem';
@@ -115,9 +116,11 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // The class is clipped to the seats the housed catalog has left after
   // graduation, from the same function the reveal shows.
   const ceiling = intakeCeiling(s);
+  // Applicants read the price net of the scholarship funds' aid (Plan 101F);
+  // the class is billed the listed price (advanceClasses below).
   const outcome = projectAdmissions(
     s.self.reputation,
-    s.finance.listedTuition,
+    netTuition(s, s.finance.listedTuition),
     s.students.capacity,
     priorYearAvgSatisfaction,
     { ...deriveCohortSignals(s), crowding },

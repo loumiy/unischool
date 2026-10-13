@@ -13,6 +13,7 @@ import { programOfCourse } from '../../data/techData';
 import { isHoused } from '../techtree/programOffers';
 import type { DemandSubject } from '../../data/demandData';
 import { projectAdmissions } from '../admissions/admissionsSystem';
+import { netTuition } from '../alumni/funds';
 import { clamp } from '../../math';
 import { newId } from '../../engine/random';
 import { demandCooldownWeeks, demandDeadlineWeeks } from '../administration/effects';
@@ -93,7 +94,7 @@ export function demandStakes(s: GameState): DemandStakes {
   const ifFailed = clamp(now - DEMAND_FAILED_SATISFACTION_PENALTY, 0, 100);
   const applicantsAt = (satisfaction: number): number => projectAdmissions(
     s.self.reputation,
-    s.finance.listedTuition,
+    netTuition(s, s.finance.listedTuition),
     s.students.capacity,
     satisfaction,
   ).applicants;

@@ -383,6 +383,18 @@ function testGazeboJoins(): void {
   assert(early?.tech.find((t) => t.id === GAZEBO_ID)?.status === 'locked', 'short of the town, it waits locked');
 }
 
+// ---- 101 -> 102 (Plan 101F): the named funds ----
+// The version-101 fixture is the version-100 one carried forward. It loads
+// with no funds, and its endowment as it was.
+function testNoFundsYet(): void {
+  const raw = fixture('save-v101.json');
+  const parsed = JSON.parse(raw) as { version: number; state: GameState };
+  assert(parsed.version === 101, 'the version-101 fixture is version 101');
+  const state = loads(raw, 'the version-101 fixture');
+  if (!state) return;
+  assert(state.advancement?.funds === undefined && state.finance.endowment === parsed.state.finance.endowment, 'it loads with no named funds, its endowment as it was');
+}
+
 testLaunchFixture();
 testPlaytestFixture();
 testChain();
@@ -393,6 +405,7 @@ testBoardLetterWeeks();
 testNoCutsYet();
 testNothingBoughtYet();
 testLegacyStarts();
+testNoFundsYet();
 testGazeboJoins();
 testRoundTrip();
 testRefusals();

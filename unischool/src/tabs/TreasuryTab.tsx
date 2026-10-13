@@ -21,6 +21,7 @@ import { EXPENSE_LINES, INCOME_LINES, shownLines, type StatementLineSpec } from 
 import { RUNG_AUSTERITY, RUNG_FREEZE, RUNG_NAMES, RUNG_RECEIVERSHIP, distressOf } from '../systems/finance/distress';
 import { beyondNeedNote } from '../systems/estate/beyondNeed';
 import { officesNote } from '../systems/administration/offices';
+import { aidPerStudent, chairHolder, chairPays, fundIncome, fundsOf } from '../systems/alumni/funds';
 
 // The Treasury: a weekly income statement built from financeBreakdown, the
 // same breakdown the tick charges, so the two cannot drift. Figures are per
@@ -81,6 +82,7 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
     studentLifeUpkeep: `${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`,
     athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate`,
     athleticScholarships: `the scholarship budgets of ${scholarshipTeams} flagship${scholarshipTeams === 1 ? '' : 's'}`,
+    scholarshipAid: `the scholarship funds' share of the payout, ${money(aidPerStudent(s))} a student off the price`,
     administration: `${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'} · ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of payroll`,
     offices: officesNote(s),
     debtService: `${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`,
@@ -146,6 +148,22 @@ export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action)
               </>}
             />
             <Figure label="Endowment" value={money(s.finance.endowment)} hint={FIGURE_HINTS.endowment} />
+            {/* The named funds (Plan 101F): each with its principal and what
+                it paid its purpose this year. */}
+            {fundsOf(s).length > 0 && (
+              <Figure
+                label="Named funds"
+                hint="Gifts given for a purpose. Each is part of the endowment, and its share of the draw goes to its purpose: aid for a scholarship, its holder's salary for a chair."
+                value={fundsOf(s).map((f, i) => (
+                  <span key={f.id} className="treasury-fund">
+                    {i > 0 && ' · '}
+                    {f.name}, {money(f.principal)}: {f.purpose === 'scholarship'
+                      ? `${money(fundIncome(s, f))}/yr in aid`
+                      : `${money(chairPays(s, f))}/yr of ${chairHolder(s, f)?.name ?? 'its holder'}'s salary`}
+                  </span>
+                ))}
+              />
+            )}
             {/* Grants are one-off arrivals, so they show as a running total
                 rather than a weekly line (see researchSystem.ts). */}
             <Figure label="Research grants" value={`${money(s.research.grantIncome)} across ${s.research.grants}`} hint={FIGURE_HINTS.grants} />
