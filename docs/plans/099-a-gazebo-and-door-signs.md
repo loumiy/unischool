@@ -207,13 +207,15 @@ Read against `main` at `9cec56b` plus PR #341.
   building's own drawing, so it depth-sorts with it and a building in
   front hides it. Both maps draw it: the canvas map walks the same element
   tree. It's not in the build-menu thumbnails.
-- **Where on the wall:** the front wall (`sidesOf(facing).front`, by
-  `wallOf`), only while the camera sees it. It sits half a tile clear of
-  the door's edge, so it clears most porches and portico sides, else just
-  beside the door. It goes on the side toward the screen's right, at the
-  door's mid-height, sheared to the wall's slope like the chapter
-  houses' letters. A wall with no room for it gets none, and a building
-  with no front door (`doorOf`'s null) never does.
+- **Where on the wall:** centred over the front door, just above its head
+  (the owner, 13 October: "over the door, centered"). It goes on the front
+  wall (`sidesOf(facing).front`, by `wallOf`), only while the camera sees
+  it, sheared to the wall's slope like the chapter houses' letters. It's
+  no wider than the door, so it stays in the door's bay, between a
+  portico's middle columns or under a porch's gable. A wall with no room
+  above the door gets none, and a building with no front door (`doorOf`'s
+  null) never does. A first version sat beside the door at a readable
+  size, and was moved.
 - **Zoom** (decision 5): the plates are always in the drawing, and CSS
   hides them below `SIGNS_FROM_ZOOM` (1.4).
   - `CampusMap` puts the `signs` class on the map once the view crosses
@@ -229,7 +231,9 @@ Read against `main` at `9cec56b` plus PR #341.
   budget.
 - **Text** (decision 6): the label the map already uses (`hallDisplayName`,
   a donor's name as it stands), cut to 22 characters with an ellipsis.
-  The letters are a third of the door's height. `door-sign.test.ts` runs
+  The letters are small, at most an eighth of the door's height, and
+  smaller for a long name, so the plate fits over the door. The owner:
+  "it's a detail, not information the player actually needs to read."  `door-sign.test.ts` runs
   every catalogue name and the longest donor name (the longest surname
   with the longest school), and checks which buildings are signed.
 - **The building labels** (Plan 47) are unchanged.
