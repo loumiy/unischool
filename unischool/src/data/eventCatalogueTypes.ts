@@ -51,7 +51,14 @@ export type EffectKey =
   | 'enrollmentSpread' // as 'enrollment', but from every class by its size, not the freshmen alone
   | 'drawRate'    // the endowment's draw rate, moved by this much within the Treasury's bounds
   | 'libraryFloor' // 1: the library's next floor goes up, paid for by the answer's own cash
-  | 'hire';       // 1: the candidate the event rolled ({candidate}) is appointed (Plan 101D)
+  | 'hire'        // 1: the candidate the event rolled ({candidate}) is appointed (Plan 101D)
+  // Campaigns, gifts and things on the map (Plan 101E):
+  | 'campaign'    // 1: an endowment campaign is launched, when the Advancement VP can run one
+  | 'statue'      // 1: a donor pledges the statue: its price into the building fund, to be placed
+  | 'boosterGift' // money into this year's athletics department pot, not cash
+  | 'paveLine'    // 1: the busiest desire line across the lawn is paved
+  | 'ivy'         // 1: ivy grows on the named building ({building}) until its repairs are paid
+  | 'sinkhole';   // 1: a fenced hole stands by the named building until its repairs are paid
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).

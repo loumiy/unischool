@@ -188,7 +188,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     timeoutWeeks: 3,
     choices: [
       { id: 'rebuild', label: 'Take it off and tuckpoint', effects: { cash: -450000, backlogOn: -300000, warmth: -2 } },
-      { id: 'leave', label: 'Leave the ivy where it is', effects: { backlogOn: 180000, warmth: 2 } },
+      { id: 'leave', label: 'Leave the ivy where it is', effects: { backlogOn: 180000, warmth: 2, ivy: 1 } },
     ],
     default: 'leave',
   },
@@ -296,7 +296,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A brown line now runs corner to corner across the quad, worn by everyone who has ever been late. Grounds have reseeded it twice. The CFO has suggested, not entirely as a joke, that the college pave what the students have surveyed for it.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'pave', label: 'Stop reseeding it', effects: { mood: 2 } },
+      { id: 'pave', label: 'Pave the line they have worn', effects: { mood: 2, paveLine: 1 } },
       { id: 'rail', label: 'Rail it off and reseed', effects: { cash: -12000, mood: -2 } },
     ],
     default: 'rail',
@@ -732,7 +732,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The Development Office would like to run a proper telephone campaign: students calling alumni in the evenings, a script, a target. The last one raised fifteen times what it cost and was described in two letters as \'undignified\'.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'run', label: 'Run the campaign', effects: { cash: -60000, endowment: 900000, warmth: -2 } },
+      { id: 'run', label: 'Run the campaign', effects: { cash: -60000, endowment: 900000, warmth: -2, campaign: 1 } },
       { id: 'letter', label: 'Write to them instead', effects: { cash: -15000, endowment: 250000 } },
       { id: 'nothing', label: 'Leave the ledger alone this year', effects: { warmth: 1 } },
     ],
@@ -1638,7 +1638,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A donor has offered a gift to the endowment, on condition that a bronze of himself be placed at the main entrance. The sculptor has already been engaged, and the maquette shows him somewhat taller than the Registrar remembers.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'accept', label: 'Accept the gift, and promise a statue', effects: { endowment: 1500000, mood: -2 } },
+      { id: 'accept', label: 'Accept the gift, and promise a statue', effects: { endowment: 1500000, mood: -2, statue: 1 } },
       { id: 'plaque', label: 'Offer to name an endowed fund instead', effects: { endowment: 600000, warmth: 1 } },
       { id: 'decline', label: 'Decline the gift', effects: { warmth: -2 } },
     ],
@@ -1719,7 +1719,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A trustee has offered to match every alumni gift dollar for dollar, up to about a year of alumni giving, if the challenge is announced and campaigned for. She has done this before, elsewhere, and says it has never once failed.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'announce', label: 'Announce the challenge and campaign for it', effects: { cash: -90000, endowment: 1600000, warmth: -1 } },
+      { id: 'announce', label: 'Announce the challenge and campaign for it', effects: { cash: -90000, endowment: 1600000, warmth: -1, campaign: 1 } },
       { id: 'outright', label: 'Ask her for a smaller gift, no conditions', effects: { endowment: 400000 } },
     ],
     default: 'outright',
@@ -1968,8 +1968,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The {sport} booster club has offered the college a gift, with one request attached: a seat on the committee that appoints the coach. The club\'s president has put the request in the cover letter and the check in the same envelope.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'accept', label: 'Accept the gift and an advisory seat', effects: { cash: 300000, warmth: 2 } },
-      { id: 'unconditional', label: 'Take the money, decline the seat', effects: { cash: 150000, warmth: -1 } },
+      { id: 'accept', label: 'Accept the gift and an advisory seat', effects: { boosterGift: 300000, warmth: 2 } },
+      { id: 'unconditional', label: 'Take the money, decline the seat', effects: { boosterGift: 150000, warmth: -1 } },
       { id: 'decline', label: 'Return the check', effects: { warmth: -2 } },
     ],
     default: 'unconditional',
@@ -2130,7 +2130,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     choices: [
       { id: 'grout', label: 'Survey and grout the whole campus', effects: { cash: -3400000, backlog: -500000, mood: 1 } },
       { id: 'fill', label: 'Fill this one', effects: { cash: -800000, backlogOn: 1600000 } },
-      { id: 'fence', label: 'Fence it and defer the survey', effects: { cash: -120000, backlogOn: 1000000, mood: -3, warmth: -2 } },
+      { id: 'fence', label: 'Fence it and defer the survey', effects: { cash: -120000, backlogOn: 1000000, mood: -3, warmth: -2, sinkhole: 1 } },
     ],
     default: 'fill',
   },

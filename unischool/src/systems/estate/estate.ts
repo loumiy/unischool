@@ -243,4 +243,12 @@ export function tickEstate(s: GameState): void {
     if (next >= BACKLOG_CLEARED_BELOW || (unpaid > 0 && next > 0)) t.backlog = Math.round(next);
     else delete t.backlog;
   }
+  // What an event left on a building (Plan 101E) goes when its repairs are
+  // paid off; and a donor's statue, once it is going up, is no longer owed.
+  for (const t of s.tech) {
+    if (t.backlog) continue;
+    delete t.ivy;
+    delete t.sinkhole;
+  }
+  if (s.advancement?.statuePledged && s.tech.some((t) => t.id === 'AMENITY-STATUE' && (t.status === 'developing' || t.status === 'done'))) delete s.advancement.statuePledged;
 }

@@ -400,6 +400,9 @@ function sanitizeCutPrograms(state: GameState): void {
     typeof c === 'object' && c !== null && typeof c.sport === 'string' && KNOWN_SPORT_IDS.has(c.sport)
       && Number.isInteger(c.year) && c.year >= 1 && c.year <= state.clock.year
   )).map((c) => ({ sport: c.sport, year: c.year }));
+  // A booster club's gift (Plan 101E): a year and a sum, or nothing.
+  const gift = state.orgs.boosterGift as unknown as { year?: unknown; amount?: unknown } | undefined;
+  if (gift !== undefined && !(typeof gift === 'object' && gift !== null && Number.isInteger(gift.year) && Number.isFinite(gift.amount) && (gift.amount as number) >= 0)) delete state.orgs.boosterGift;
 }
 
 // 97 -> 98, Plan 95M (the second review's B2-6): the catalog's shape. Each
@@ -1181,6 +1184,8 @@ function sanitizeAdvancement(state: GameState): void {
       && (a.running.dueWeek === undefined || Number.isInteger(a.running.dueWeek))));
   if (!ok) { delete state.advancement; return; }
   if (state.advancement!.running && !campaignById(state.advancement!.running.campaignId)) state.advancement!.running = null;
+  // A donor's statue pledged (Plan 101E): true, or nothing.
+  if (state.advancement!.statuePledged !== undefined && state.advancement!.statuePledged !== true) delete state.advancement!.statuePledged;
 }
 
 // The event catalog: a malformed record is dropped whole, and an event

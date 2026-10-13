@@ -831,7 +831,9 @@ export function registerGateReader(reader: (s: GameState) => number): void {
 export function departmentPot(s: GameState): DepartmentPot {
   const tier = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget];
   const subsidy = tier.subsidyPerYear;
-  const earned = gateReader ? gateReader(s) : 0;
+  // What the gate earned, and a booster club's gift this year (Plan 101E).
+  const gift = s.orgs.boosterGift?.year === s.clock.year ? s.orgs.boosterGift.amount : 0;
+  const earned = (gateReader ? gateReader(s) : 0) + gift;
   const pot = subsidy + earned;
   // The Athletic Performance Complex's flagships above the subsidy's (Plan
   // 85G), while it stands at a college specialized in athletics.

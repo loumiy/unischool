@@ -6,6 +6,9 @@ import { EVENT_VARIANTS } from '../../data/eventVariants';
 import { hashUnit } from '../../data/rivalData';
 import { random } from '../../engine/random';
 import { isPlaceableKind } from '../../state/campusMap';
+import { launchCampaign, openCampaigns, yearlyResponse } from '../alumni/campaigns';
+import type { CampaignDef } from '../../data/campaignData';
+import { paveLine } from '../estate/paths';
 import { canDeclareHistoric, conditionOf, startLibraryFloor } from '../estate/estate';
 import { campusBeauty } from '../estate/beauty';
 import { changeTrees, treeCount } from '../estate/woodland';
@@ -46,7 +49,7 @@ const PRICE_REFERENCE_BUDGET = 15_000_000;
 const PRICE_SCALE_MIN = 0.2;
 const PRICE_SCALE_MAX = 12;
 const PRICE_FIXED_BELOW = 25_000;
-const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog', 'backlogOn', 'buildingFund']);
+const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog', 'backlogOn', 'buildingFund', 'boosterGift']);
 
 export function priceScale(s: GameState): number {
   const budget = Math.max(s.finance.weeklyOpEx, 1) * WEEKS_PER_YEAR;
@@ -513,8 +516,47 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
       case 'enrollmentSpread': changeEnrollmentSpread(s, v); break;
       case 'drawRate': s.finance.drawRate = clampDrawRate(drawRate(s) + v); break; // finance/treasury.ts
       case 'libraryFloor': if (v > 0 && !constructionFrozen(s)) startLibraryFloor(s); break; // estate/estate.ts
+      case 'campaign': { const def = v > 0 ? eventCampaign(s) : undefined; if (def) launchCampaign(s, def.id); break; } // alumni/campaigns.ts
+      case 'statue': if (v > 0) pledgeStatue(s); break;
+      case 'boosterGift': {
+        const gift = s.orgs.boosterGift;
+        s.orgs.boosterGift = { year: s.clock.year, amount: (gift?.year === s.clock.year ? gift.amount : 0) + v };
+        break;
+      }
+      case 'paveLine': if (v > 0) paveLine(s); break;
+      case 'ivy': case 'sinkhole': {
+        const t = standing(s).find((b) => b.id === vars.buildingId);
+        if (v > 0 && t) t[k] = true;
+        break;
+      }
     }
   }
+}
+
+// The campaign an event launches (Plan 101E): the endowment campaign open
+// now that the alumni would answer best, when the VP of Advancement is in
+// the seat and none is running (campaigns.ts's openCampaigns). None, and
+// the answer does what its other effects say.
+export function eventCampaign(s: GameState): CampaignDef | undefined {
+  return openCampaigns(s).filter((c) => c.kind === 'endowment').sort((a, b) => yearlyResponse(s, b) - yearlyResponse(s, a) || a.id.localeCompare(b.id))[0];
+}
+
+// The donor's statue (Plan 101E): its price goes into the building fund,
+// where it can pay for nothing sooner (treasury.ts's financingFor spends the
+// fund first), and the inbox asks for it to be placed. The donor opens it
+// if the ladder had not; one already standing or going up is not pledged.
+export const STATUE_ID = 'AMENITY-STATUE';
+export function statuePledgeable(s: GameState): boolean {
+  const node = s.tech.find((t) => t.id === STATUE_ID);
+  return node !== undefined && (node.status === 'locked' || node.status === 'available');
+}
+function pledgeStatue(s: GameState): void {
+  const node = s.tech.find((t) => t.id === STATUE_ID);
+  if (!node || !statuePledgeable(s)) return;
+  const adv = s.advancement ??= { running: null, closed: [], restrictedBuilding: 0 };
+  adv.restrictedBuilding += node.cost;
+  adv.statuePledged = true;
+  if (node.status === 'locked') node.status = 'available';
 }
 
 // The named professor leaves (Plan 72B), as anyone leaving does

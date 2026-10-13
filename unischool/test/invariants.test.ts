@@ -233,9 +233,12 @@ function relPath(f: string): string {
 // Plan 26 decided it should, in one place: systems/estate/beauty.ts scores
 // the trees, the quads and the standing buildings, and its score is capped
 // wherever it lands. Plan 32's events plant and fell trees through
-// systems/estate/woodland.ts. Every other system still may not look.
+// systems/estate/woodland.ts, and pave the worn line through
+// systems/estate/paths.ts (Plan 101E). Every other system still may not look.
 // =====================================================================
-const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pairing.ts', 'systems/estate/woodland.ts']);
+// Plan 101E's desire path paves the worn line through systems/estate/paths.ts,
+// as the events plant through woodland.ts.
+const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pairing.ts', 'systems/estate/woodland.ts', 'systems/estate/paths.ts']);
 {
   const systemFiles = ALL_SRC_FILES.filter((f) => relPath(f).startsWith(`systems${'/'}`) && !LAYOUT_READERS.has(relPath(f)));
   const offenders: string[] = [];

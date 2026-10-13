@@ -377,6 +377,11 @@ export interface Buildable {
   // Unpaid maintenance, compounding (systems/estate/estate.ts); what its
   // condition reads. Undefined means none.
   backlog?: number;
+  // What an event left on it (Plan 101E): ivy grown structural, and a
+  // fenced sinkhole by the door. Both go when its backlog is paid off
+  // (estate.ts's tickEstate).
+  ivy?: boolean;
+  sinkhole?: boolean;
   // How a building under construction was paid for, when not from cash
   // (systems/finance/treasury.ts's Financing), so calling it off returns the
   // money where it came from (state/demolition.ts). Cleared when it
@@ -1061,6 +1066,9 @@ export interface StudentOrgState {
   hellenicCouncilOffered: boolean;
   lastFormationWeek: number; // absolute week a club or chapter last formed; 0 = never
   athleticsBudget: AthleticsBudgetTier;
+  // A booster club's gift (Plan 101E), in the department's pot for the year
+  // it was given (studentLifeData.ts's departmentPot).
+  boosterGift?: { year: number; amount: number };
   // Team ids in the player's priority order: the only stored part. The pot,
   // funded line and bands are derived from it (departmentPot), which also
   // drops unknown ids and appends unlisted teams.
@@ -1240,6 +1248,9 @@ export interface Advancement {
   running: RunningCampaign | null;
   closed: { campaignId: string; year: number; raised: number; met: boolean }[];
   restrictedBuilding: number; // raised for buildings, spendable on nothing else
+  // A donor's statue pledged (Plan 101E, the-statue-donor): its price is in
+  // the building fund, and the inbox asks for it to be placed until it is.
+  statuePledged?: boolean;
 }
 
 // A graduated class, stamped at commencement (systems/alumni/ledger.ts).

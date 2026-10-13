@@ -1190,7 +1190,10 @@ button.build-tile { font-family: inherit; }
 /* Weathering (ageMarks.tsx). */
 .campus-age { pointer-events: none; }
 .campus-age-streak { stroke: rgba(40, 36, 30, 0.22); stroke-width: 1.6; stroke-linecap: round; fill: none; }
-.campus-ivy-leaf { fill: #4d7a3a; fill-opacity: 0.82; }
+.campus-ivy-stem { fill: none; stroke: #4b4a2c; stroke-width: 0.6; stroke-linejoin: round; stroke-linecap: round; }
+.campus-ivy-leaf { fill: #4d7a3a; stroke: #2f4d24; stroke-width: 0.25; stroke-linejoin: round; }
+.campus-ivy-leaf.dark { fill: #3b6430; }
+.campus-ivy-leaf.light { fill: #6a9a45; }
 .campus-age-boards { fill: #8a6a42; stroke: #2e2216; stroke-width: 1; }
 .campus-age-plank { stroke: #2e2216; stroke-width: 1; fill: none; }
 .campus-age-grime { fill: rgba(58, 58, 56, 0.4); }

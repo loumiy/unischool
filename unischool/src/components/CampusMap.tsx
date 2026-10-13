@@ -12,7 +12,7 @@ import {
 } from '../state/campusMap';
 import { siteRefusal } from '../state/reach';
 import Walkers from './Walkers';
-import AgeMarks, { type AgeBand } from './ageMarks';
+import AgeMarks, { Sinkhole, type AgeBand } from './ageMarks';
 import { Bench, dressingProps } from './dressing';
 import { facingToCamera, frontWidth, localToGrid } from './facing';
 import { defaultBenchFacing, turnFacing } from '../state/dressing';
@@ -341,7 +341,8 @@ function PlacedBuilding({
         developing={developing} glyphs={glyphs}
         camera={camera}
       />
-      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={vernacular} historic={historic} />}
+      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={vernacular} historic={historic || t.ivy === true} />}
+      {!developing && t.sinkhole && <Sinkhole p={d} />}
       {renovating && motifOf(t) !== 'grounds' && (() => {
         // Scaffolding over the whole of a building under renovation.
         const shell = boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * 1.04);

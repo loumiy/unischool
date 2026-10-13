@@ -131,5 +131,5 @@ export function dueLabel(weeksLeft: number, otherwise: (weeks: number) => string
 // own tier ("The clock waits") pinned above them. A demand once noted is a
 // goal on the list, as on the toolbar's button.
 export function toDecideCount(items: readonly InboxItem[]): number {
-  return items.filter((i) => i.tier === 'decide' && !(i.kind === 'demand' && !i.unread)).length;
+  return items.filter((i) => i.tier === 'decide' && !((i.kind === 'demand' || i.kind === 'gift') && !i.unread)).length;
 }

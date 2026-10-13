@@ -1,7 +1,8 @@
 import type { GameState, PendingCatalogueEvent } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
-import { fill, namedDamage, scaledEffects } from '../systems/events/catalogue';
+import { STATUE_ID, eventCampaign, fill, namedDamage, scaledEffects, statuePledgeable } from '../systems/events/catalogue';
+import { wornLine } from '../systems/estate/paths';
 import { choiceCost } from '../systems/events/catalogueEngine';
 import { money, moneyShort, pct, signed, signedMoney } from '../format';
 import { clampDrawRate, debtOutstanding, drawRate } from '../systems/finance/treasury';
@@ -86,6 +87,17 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       }
       // The candidate the event named (Plan 101D), at this college's pay.
       case 'hire': if (vars.candidate) out.push(`appoints ${vars.candidate} (${vars.candidateField}), ${money(Math.round(facultyPay(s, Number(vars.candidateSalary) || 0)))}/yr`); break;
+      // Plan 101E's campaigns, gifts and marks on the map.
+      case 'campaign': { const def = eventCampaign(s); if (def) out.push(`launches ${def.title}`); break; }
+      case 'statue': {
+        const statue = s.tech.find((t) => t.id === STATUE_ID);
+        if (statue && statuePledgeable(s)) out.push(`${money(statue.cost)} to the building fund for the statue, to place`);
+        break;
+      }
+      case 'boosterGift': out.push(`${money(v)} to the athletics department this year`); break;
+      case 'paveLine': { const n = wornLine(s).length; if (n > 0) out.push(`${n} tiles of path laid`); break; }
+      case 'ivy': out.push(`ivy stays on ${vars.building ?? 'the building'}`); break;
+      case 'sinkhole': out.push(`the hole fenced by ${vars.building ?? 'the building'}`); break;
       case 'libraryFloor': {
         const library = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
         if (library && library.status === 'done' && nextLibraryFloor(library) && !constructionFrozen(s)) out.push('the library\'s next floor goes up');
