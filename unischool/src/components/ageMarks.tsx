@@ -1,7 +1,7 @@
 import type { Buildable, Facing, Vernacular } from '../state/types';
 import { up } from './campusScale';
 import { depthOrder } from './depthSort';
-import { boxFaces, polyPoints, projectedCircle, type Pt } from './isoProjection';
+import { boxFaces, lift, polyPoints, projectedCircle, type Pt } from './isoProjection';
 import { sideSeen, wallOfSide } from './facing';
 import { weatherVolumes } from './weatherVolumes';
 
@@ -294,24 +294,35 @@ export default function AgeMarks({ t, p, band, vernacular, historic = false }: {
   );
 }
 
-// A sinkhole by the door (Plan 101E, the-sinkhole's "Fence it"): the hole,
-// a ring of fencing round it, on the ground out from the front wall and to
-// one side of the steps. Drawn with the building, so only while the camera
-// sees that front: then the hole lies in front of it, never over it.
+// A sinkhole by the door (Plan 101E, the-sinkhole's "Fence it"): a pit in
+// a rim of turned earth, its far wall showing, and a ring of posts and a
+// rail round it, on the ground out from the front wall to one side of the
+// steps. Drawn with the building, so only while the camera sees that
+// front: then the hole lies in front of it, never over it.
+const SINKHOLE_POST = up(1.1);
 export function Sinkhole({ p }: { p: { col: number; row: number; w: number; h: number; facing?: Facing } }) {
   if (!sideSeen(p.facing, 'front')) return null;
   const dir = wallOfSide(p.facing, 'front');
-  const out = 1.7;
-  const along = (span: number) => span * 0.25;
+  const out = 1.25;
+  const along = (span: number) => span * 0.3;
   const c = dir === 'posRow' ? { col: p.col + along(p.w), row: p.row + p.h + out }
-    : dir === 'negRow' ? { col: p.col + along(p.w), row: p.row - out }
-      : dir === 'posCol' ? { col: p.col + p.w + out, row: p.row + along(p.h) }
+    : dir === 'negRow' ? { col: p.col + p.w - along(p.w), row: p.row - out }
+      : dir === 'posCol' ? { col: p.col + p.w + out, row: p.row + p.h - along(p.h) }
         : { col: p.col - out, row: p.row + along(p.h) };
-  const fence = projectedCircle(c.col, c.row, 1.15, 24);
+  const rim = projectedCircle(c.col, c.row, 0.62, 20);
+  const pit = projectedCircle(c.col, c.row, 0.46, 20);
+  // The far wall of the pit: the pit's own outline, dropped a little.
+  const floor = pit.map((q) => ({ x: q.x, y: q.y + 2.2 }));
+  const ring = projectedCircle(c.col, c.row, 0.92, 10);
+  const tops = ring.map((q) => lift(q, SINKHOLE_POST));
+  const rail = [...tops, tops[0]!];
   return (
     <g className="campus-sinkhole" aria-hidden="true">
-      <polygon points={polyPoints(projectedCircle(c.col, c.row, 0.85, 24))} fill="#3b2f25" stroke="#5a4636" strokeWidth={1} />
-      <polygon points={polyPoints(fence)} fill="none" stroke="#c8b27a" strokeWidth={1.2} strokeDasharray="3 2" />
+      <polygon points={polyPoints(rim)} fill="#7a6248" />
+      <polygon points={polyPoints(pit)} fill="#4a3826" />
+      <polygon points={polyPoints(floor)} fill="#20170f" clipPath="none" />
+      {ring.map((q, i) => <line key={i} x1={q.x.toFixed(1)} y1={q.y.toFixed(1)} x2={tops[i]!.x.toFixed(1)} y2={tops[i]!.y.toFixed(1)} stroke="#d9c79a" strokeWidth={0.9} />)}
+      <polyline points={polyPoints(rail)} fill="none" stroke="#e2cf8f" strokeWidth={0.7} />
     </g>
   );
 }

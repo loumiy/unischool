@@ -58,7 +58,7 @@ const LEVERS: Lever[] = [
   { word: /\b(cut|stop|lower) (the )?(draw|rate)\b/i, ok: (c) => (e(c).drawRate ?? 0) < 0, why: 'lowering the draw lowers the draw rate (Plan 101C)' },
   { word: /\bclose (it|the (east end|laborator|labs?\b)|down)/i, ok: () => false, why: 'no event can close a program, a building or a lab' },
   { word: /\bsalar(y|ies)\b/i, ok: () => false, why: 'no event can set salaries' },
-  { word: /\b(run|launch) a (capital )?campaign\b/i, ok: () => false, why: 'no event starts a campaign' },
+  { word: /\b(run|launch) (a|the) (capital )?campaign\b/i, ok: (c) => (e(c).campaign ?? 0) > 0, why: 'running a campaign launches one when the Advancement VP can (Plan 101E)' },
 ];
 for (const ev of EVENT_CATALOGUE) {
   for (const c of ev.choices) {
