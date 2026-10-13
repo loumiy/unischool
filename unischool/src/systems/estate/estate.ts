@@ -138,6 +138,31 @@ export function facilityUpkeepOf(t: Buildable): number {
   return priceUpkeep(facilityPrice(t));
 }
 
+// The library's next floor goes up (RENOVATE_LIBRARY, and Plan 101C's
+// library acquisition, which pays its own price): the node goes back to
+// 'developing' at its placed spot, with its effects raised at the start.
+// renovatingFrom records what it served before, and the satisfaction sums
+// read that while developing (types.ts's servingPopulation), so existing
+// floors keep working during the work. False when there is no standing
+// library to raise, or it is at its top floor; nothing is paid here.
+export function startLibraryFloor(s: GameState): boolean {
+  const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
+  const plan = node ? nextLibraryFloor(node) : null;
+  if (!node || !plan || node.status !== 'done') return false;
+  const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
+  node.renovatingFrom = node.effects?.servesPopulation ?? 0;
+  node.status = 'developing';
+  s.developing[node.id] = plan.weeks;
+  node.floorsAdded = (node.floorsAdded ?? 0) + 1;
+  node.effects = {
+    ...node.effects,
+    servesPopulation,
+    // A share of what it and its floors cost (Plan 80F).
+    upkeepPerWeek: facilityUpkeepOf(node),
+  };
+  return true;
+}
+
 function finishExtension(s: GameState, t: Buildable): void {
   const gain = extensionGain(t);
   t.floorsAdded = (t.floorsAdded ?? 0) + 1;

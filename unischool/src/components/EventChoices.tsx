@@ -1,10 +1,12 @@
 import type { GameState, PendingCatalogueEvent } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
-import { fill, scaledEffects } from '../systems/events/catalogue';
+import { fill, namedDamage, scaledEffects } from '../systems/events/catalogue';
 import { choiceCost } from '../systems/events/catalogueEngine';
-import { money, moneyShort, signed, signedMoney } from '../format';
-import { debtOutstanding } from '../systems/finance/treasury';
+import { money, moneyShort, pct, signed, signedMoney } from '../format';
+import { clampDrawRate, debtOutstanding, drawRate } from '../systems/finance/treasury';
+import { constructionFrozen } from '../systems/finance/distress';
+import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import { promiseById } from '../data/promiseData';
 import { promiseTitle } from '../systems/promises/promises';
 import { festivalPhrases } from '../data/downtownData';
@@ -61,6 +63,31 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       // the college after it).
       case 'charter': out.push(v > 0 ? 'University from now on' : 'College for good'); break;
       case 'goodwill': out.push(`town goodwill ${signed(v)}`); break;
+      // Plan 101C's effects that land where they say.
+      case 'backlogOn': {
+        const building = vars.building ?? 'the building';
+        const owed = s.tech.reduce((t, b) => t + (b.backlog ?? 0), 0);
+        const named = s.tech.find((t) => t.id === vars.buildingId && t.status === 'done');
+        if (v > 0) out.push(`${money(named ? namedDamage(s, v, named) : v)} of repairs deferred on ${building}`);
+        else if (owed > 0) out.push(`${money(Math.min(-v, owed))} of repairs done, ${building} first`);
+        break;
+      }
+      case 'enrollmentSpread': {
+        const n = Math.round((v / 2000) * totalEnrolled(s.students));
+        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'student' : 'students'}, from every class`);
+        break;
+      }
+      case 'drawRate': {
+        const from = drawRate(s);
+        const to = clampDrawRate(from + v);
+        if (to !== from) out.push(`draw rate ${pct(from, 1)} to ${pct(to, 1)}`);
+        break;
+      }
+      case 'libraryFloor': {
+        const library = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
+        if (library && library.status === 'done' && nextLibraryFloor(library) && !constructionFrozen(s)) out.push('the library\'s next floor goes up');
+        break;
+      }
     }
   }
   return out;
