@@ -7,7 +7,8 @@ player is properly oriented before releasing them to do whatever they
 want." After the three opening steps, a player may ask "now what?" Some
 will find their own way through the tabs; some want more direction.*
 
-**Status: Approved (13 October 2026): every decision as proposed. B and C built.**
+**Status: Done (13 October 2026). Every decision as proposed; A, B and C
+merged together (#363).**
 
 ---
 
