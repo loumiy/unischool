@@ -6,8 +6,8 @@ with a note: "I think the catalog size is good, so I don't want to expand
 too much, but if reorganizing seems prudent, let's explore it." This plan
 explores it, and proposes the two changes still worth making.*
 
-**Status: Approved (13 October 2026): every decision as proposed, so the
-ids stay as they are and PR C is not built. B in progress.**
+**Status: Done (13 October 2026). B merged (#361); C not built, since
+decision 1 kept the ids and the numbers as they are.**
 
 ---
 

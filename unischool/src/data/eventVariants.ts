@@ -48,8 +48,8 @@ export const EVENT_VARIANTS: Readonly<Record<string, readonly [string, string]>>
     'The external auditors intend to qualify their opinion. It is one paragraph, and they have offered a meeting to discuss it, with the whole Audit Committee in attendance, as a courtesy.',
   ],
   'frozen-post': [
-    'A vacant teaching post has now been held open longer than it was ever filled. The department has stopped raising it at meetings, which, Academic Affairs says, is how you know it matters.',
-    'Under the construction freeze, a vacant teaching post has become a line in the budget labeled \'held\'. The students on the program would like to know who is teaching them in the spring.',
+    'A vacant teaching post has now been held open longer than it was ever filled. The department has stopped raising it at meetings, which, Academic Affairs says, is how you know it matters. {candidate}, who teaches {candidateField}, has written to ask whether it is still open.',
+    'Under the construction freeze, a vacant teaching post has become a line in the budget labeled \'held\'. The students on the program would like to know who is teaching them in the spring; the department would like it to be {candidate}, who teaches {candidateField}.',
   ],
   'press-inquiry': [
     'A journalist has sent eleven questions and a deadline. The questions are specific in the way that means somebody has already told them the answers. The Communications Officer would like to know what to say, today.',
@@ -224,8 +224,8 @@ export const EVENT_VARIANTS: Readonly<Record<string, readonly [string, string]>>
     'A generous gift from the {sport} booster club, with a single condition: a place on the committee that chooses the coach. The president of the club has signed both the check and the condition.',
   ],
   'contract-visiting-chair': [
-    'The visiting professor has now been renewed nine years running and is the department\'s longest-serving member. They have asked, very courteously, whether they might stop being described as visiting.',
-    'A one-year visiting appointment, renewed every year for nine years. The holder has asked whether, after a decade, the college might consider that they have arrived.',
+    '{candidate}, the visiting professor of {candidateField}, has now been renewed nine years running and is the department\'s longest-serving member. They have asked, very courteously, whether they might stop being described as visiting.',
+    'A one-year visiting appointment in {candidateField}, renewed every year for nine years. {candidate} has asked whether, after a decade, the college might consider that they have arrived.',
   ],
   'contract-summer-sections': [
     'The summer school has twice the students it planned for and the same four instructors, who have each been offered a second section on terms the Provost\'s office calls flexible. The pay is flexible.',

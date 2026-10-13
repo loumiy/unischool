@@ -11,6 +11,7 @@ import { promiseById } from '../data/promiseData';
 import { promiseTitle } from '../systems/promises/promises';
 import { festivalPhrases } from '../data/downtownData';
 import { annualGiving } from '../systems/alumni/giving';
+import { facultyPay } from '../systems/finance/financeSystem';
 
 // An event's text and its answers (Plan 32), shared by the inbox's reading
 // pane (InboxTab.tsx, Plan 77) and the board's letters, which are modal
@@ -83,6 +84,8 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
         if (to !== from) out.push(`draw rate ${pct(from, 1)} to ${pct(to, 1)}`);
         break;
       }
+      // The candidate the event named (Plan 101D), at this college's pay.
+      case 'hire': if (vars.candidate) out.push(`appoints ${vars.candidate} (${vars.candidateField}), ${money(Math.round(facultyPay(s, Number(vars.candidateSalary) || 0)))}/yr`); break;
       case 'libraryFloor': {
         const library = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
         if (library && library.status === 'done' && nextLibraryFloor(library) && !constructionFrozen(s)) out.push('the library\'s next floor goes up');

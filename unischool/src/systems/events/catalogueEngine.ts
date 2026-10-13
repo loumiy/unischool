@@ -3,7 +3,10 @@ import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR } from '../../data/eventData';
 import { random, newId } from '../../engine/random';
-import { EVENT_CATALOGUE, applyEffects, eligible, eventById, eventText, fill, pickTelling, priceScale, rollVars, scaledEffects } from './catalogue';
+import { EVENT_CATALOGUE, applyEffects, eligible, eventById, eventText, fill, pickTelling, priceScale, rollCandidate, rollVars, scaledEffects } from './catalogue';
+import { appointFaculty } from '../faculty/facultySystem';
+import { facultyPay } from '../finance/financeSystem';
+import { money } from '../../format';
 import { hasTag } from '../identity/tags';
 import { makePromise } from '../promises/promises';
 import { handlerFor, seatTitle } from '../delegation/seats';
@@ -161,6 +164,14 @@ export function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   const p: PendingCatalogueEvent = { instanceId: newId(), eventId: e.id, firedWeek: absoluteWeek(s), vars: rollVars(s, e), scale: priceScale(s), variant };
   // Back after an answer that did not settle it (Plan 101B): the telling
   // that remembers it.
+  // A hiring event names its candidate (Plan 101D).
+  if (e.hires) {
+    const candidate = rollCandidate(s, e.hires);
+    p.candidate = candidate;
+    p.vars.candidate = candidate.name;
+    p.vars.candidateField = candidate.field;
+    p.vars.candidateSalary = String(candidate.salary);
+  }
   const last = c.lastAnswer?.[e.id];
   if (last && e.recalls?.[last.choiceId]) {
     p.recall = last.choiceId;
@@ -206,6 +217,13 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   // seat's answer are paid however they can be.
   if (by === 'player' && choiceId !== e.default && choiceCost(e, choiceId, p.scale) > Math.max(0, s.finance.cash)) return false;
   applyEffects(s, scaledEffects(choice.effects, p.scale), p.vars);
+  // The candidate the event named is appointed (Plan 101D), at the market's
+  // rate, as anyone hired is.
+  if ((choice.effects.hire ?? 0) > 0 && p.candidate && !s.faculty.some((f) => f.id === p.candidate!.id)) {
+    const person = p.candidate;
+    appointFaculty(s, person);
+    s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'appointment', subject: person.id, message: `Appointed ${person.name} to the faculty in ${person.field}, at ${money(Math.round(facultyPay(s, person.salary)))}/yr.` });
+  }
   // What an answer does beyond the levers (Plan 76D).
   if (choice.promise) makePromise(s, choice.promise);
   if (choice.mascot && !s.self.mascot) s.self.mascot = choice.mascot;

@@ -12,7 +12,9 @@ import { changeTrees, treeCount } from '../estate/woodland';
 import { detectQuads } from '../../state/quads';
 import { springTermWeek, winterDepth } from '../../state/winter';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
-import { leaveFaculty } from '../faculty/facultySystem';
+import { careerWeeks, leaveFaculty } from '../faculty/facultySystem';
+import { FACULTY_FIELDS, generateCandidate, marketStandingOf } from '../../data/facultyData';
+import { absoluteWeek } from '../../data/eventData';
 import { constructionFrozen, distressOf } from '../finance/distress';
 import { clampDrawRate, debtOutstanding, drawRate, loanPayment } from '../finance/treasury';
 import { financeBreakdown } from '../finance/financeSystem';
@@ -263,9 +265,41 @@ function namedFaculty(s: GameState, which: NonNullable<CatalogueEvent['names']>[
     case 'longest': return best((f) => f.tenureWeeks);
     case 'tenure-track': return best((f) => -f.tenureWeeks, s.faculty.filter((f) => years(f) >= TENURE_CASE_MIN_YEARS && years(f) < TENURE_CASE_MAX_YEARS));
     case 'recent': return best((f) => -f.tenureWeeks, s.faculty.filter((f) => years(f) >= 1));
+    // In the year's notice before they retire (facultySystem.ts's
+    // tickRetirements), the longest-serving first.
+    case 'retiring': return best((f) => f.tenureWeeks, s.faculty.filter(retiring));
+    case 'founding-retiring': {
+      const founding = s.faculty.filter((f) => absoluteWeek(s) - f.tenureWeeks < FOUNDING_FACULTY_YEARS * WEEKS_PER_YEAR);
+      return founding.length === 1 && retiring(founding[0]) ? founding[0] : undefined;
+    }
     default: return undefined;
   }
 }
+// A professor in the year's notice before retirement (Plan 101D).
+function retiring(f: Faculty): boolean {
+  const career = careerWeeks(f.id);
+  return f.tenureWeeks >= career - WEEKS_PER_YEAR && f.tenureWeeks < career;
+}
+// The founding faculty: those appointed in the college's first years.
+const FOUNDING_FACULTY_YEARS = 3;
+
+// A hiring event's candidate (Plan 101D), rolled when it fires: the best of
+// a few from the market, the rival-passed chair's way (eventData.ts), in a
+// field the college teaches or, for a spouse, one it does not.
+const HIRE_CANDIDATE_ROLLS = 5;
+export function rollCandidate(s: GameState, which: NonNullable<CatalogueEvent['hires']>): Faculty {
+  const taught = [...new Set(s.tech.filter((t) => t.kind === 'course' && t.status === 'done' && t.requiresFaculty).map((t) => t.requiresFaculty!))].sort();
+  const among = which === 'taught' ? taught : FACULTY_FIELDS.filter((f) => !taught.includes(f));
+  const field = pick(among.length > 0 ? among : FACULTY_FIELDS)!;
+  const existing = [...s.faculty, ...s.candidates].map((f) => f.name);
+  let best = generateCandidate(field, existing, marketStandingOf(s));
+  for (let i = 1; i < HIRE_CANDIDATE_ROLLS; i += 1) {
+    const next = generateCandidate(field, [...existing, best.name], marketStandingOf(s));
+    if (next.teachingPotential + next.researchPotential > best.teachingPotential + best.researchPotential) best = next;
+  }
+  return best;
+}
+
 // The tenure window (Plan 95AD): a case comes a few years in, and never to
 // a professor of twenty-five years.
 export const TENURE_CASE_MIN_YEARS = 4;

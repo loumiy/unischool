@@ -50,7 +50,8 @@ export type EffectKey =
   | 'backlogOn'   // repairs deferred on, or done to, the building the event names ({building}); money
   | 'enrollmentSpread' // as 'enrollment', but from every class by its size, not the freshmen alone
   | 'drawRate'    // the endowment's draw rate, moved by this much within the Treasury's bounds
-  | 'libraryFloor'; // 1: the library's next floor goes up, paid for by the answer's own cash
+  | 'libraryFloor' // 1: the library's next floor goes up, paid for by the answer's own cash
+  | 'hire';       // 1: the candidate the event rolled ({candidate}) is appointed (Plan 101D)
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
@@ -95,14 +96,22 @@ export interface CatalogueEvent {
   // one twenty or more. And which professor (Plan 79D): 'researcher' the
   // strongest researcher, 'teacher' the strongest teacher, 'longest' the
   // longest-serving; and (Plan 95AD) 'tenure-track' the shortest-serving
-  // in the tenure window, 'recent' the latest hire with a year here.
+  // in the tenure window, 'recent' the latest hire with a year here; and
+  // (Plan 101D) 'retiring' the longest-serving professor in the year's
+  // notice before retirement, 'founding-retiring' that professor when they
+  // are the last of the founding faculty on the roster.
   // Unnamed, {faculty} is anyone on the roster. A professor kind that finds
   // nobody keeps the event from firing that week.
   names?: {
     building?: 'derelict' | 'worst' | 'listable' | 'founders';
     class?: 'reunion' | 'veteran';
-    faculty?: 'researcher' | 'teacher' | 'longest' | 'tenure-track' | 'recent';
+    faculty?: 'researcher' | 'teacher' | 'longest' | 'tenure-track' | 'recent' | 'retiring' | 'founding-retiring';
   };
+  // A hire (Plan 101D): the event rolls a candidate when it fires, the best
+  // of a few, in a field the college teaches or one it does not, and names
+  // them ({candidate}, {candidateField}); a choice with the 'hire' effect
+  // appoints them.
+  hires?: 'taught' | 'untaught';
   timeoutWeeks: number;
   choices: CatalogueChoice[];
   default: string;
