@@ -160,6 +160,55 @@ Two of the brief's quotes have already moved:
   (`nextLibraryFloor`) at the acquisition's price, or, at the top floor,
   the event's cash effect as now.
 
+**As implemented.**
+
+- **`backlogOn`** (a money key, scaled like `backlog`) is used by the ten
+  repair events. The sinkhole's *Survey and grout the whole campus* keeps
+  `backlog`, since the campus is what it repairs.
+  - **Damage** lands on the named building, priced for its size: the
+    amount times the building's cost over the campus's mean cost
+    (`namedDamage`), and smaller under Facilities Management as before.
+    The catalog's sums are campus-scale. Unscaled, they sank the
+    worst-kept building, often a small one, and with it the mean
+    condition that prestige reads; the first scorecard lost two targets.
+    Scaled, the mean condition falls as far as the spread took it.
+  - **A repair** clears the named building first and spreads the rest.
+  - A firing that names no standing building spreads, as before.
+  - The answer reads "$X of repairs deferred on {building}" or
+    "$X of repairs done, {building} first".
+- **`enrollmentSpread`:** the essay ring's *Rescind the degrees* takes its
+  forty-in-two-thousand from every class by size, each class's cohort mix
+  kept (`setClassSize`, shared with `enrollment`).
+- **`drawRate`:** draw-questioned's *Put a year's excess draw back* and
+  thin-fund's *Put a year's draw back* now say "and lower the rate", and
+  lower it half a point (one slider step) within the Treasury's bounds.
+  - The plan said "for a year". The rate is the player's slider, so the
+    answer moves the slider and the player can move it back; no hidden
+    timer.
+  - *Defend the rate* holds it, as its effects always did.
+  - The recession's choices already say what they do, so they are
+    unchanged.
+  - The lever test's "cut the draw" check now passes on a `drawRate` cut,
+    where before it always failed.
+- **`libraryFloor`:** *Buy the collection* also raises the library's next
+  floor (estate.ts's `startLibraryFloor`, now shared with
+  `RENOVATE_LIBRARY`), paid for by the answer's own cash. With no library
+  standing, at its top floor or under a construction freeze, it does
+  what it did. The label stays "Buy the collection", since the floor is
+  conditional; the answer's phrase names it when it applies.
+- **Tests:** `event-truth.test.ts` adds the named building (alone, priced
+  for its size, cleared first), the spread over the classes, the draw
+  rate's floor, and the library's floor and top.
+- **Balance** (`npm run sim`): ranks within 2 places and prestige within
+  0.4 points of the baseline. The harness answers these events with their
+  defaults, so only the named building's damage reaches it. The
+  scorecard reads 82 of 115, against 85 on `main`. The lost targets are
+  the Guided and Completionist players' "first #1" and "rank at Y50",
+  each a seed or two away (a #1 in Y49, or never). 102B, which changes
+  nothing in the sim but the random stream, flips the same rows and
+  reads 81, so this is within the scorecard's noise. The baseline is
+  re-recorded.
+
 ### PR 101D — Hires and retirements
 
 - **A hire** (decision 4): an effect `hire: {field?, strength}`. At fire
