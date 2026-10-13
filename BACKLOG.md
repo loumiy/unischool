@@ -112,3 +112,11 @@ of work with a known shape; none is sequenced.*
   the art assumes two (doors, steps, corner towers, window bays), so each
   motif needs a one-wall view. The projection and depth sort already work
   at any angle.
+- **Switching or mixing architectures.** Decided for now (the owner,
+  10 October 2026): the architecture stays chosen at the founding and kept
+  for the run, because a campus in one style looks better than a mix, and
+  because each style is a reason to play again (a player doesn't see the
+  Gothic library until they found a Gothic college). Kept in mind, not
+  ruled out; a player asked for switching (R6–R7 in
+  `docs/reviews/playtest-1/findings.md`). If the styles multiply, the
+  chooser may need pinned favourites, search or a random pick.

@@ -64,8 +64,8 @@ save is a new run to the statistics, so PostHog will show these too.
 
 ## On other screens
 
-- [ ] **A phone** (the page's *Mobile friendly* embed): the title, a
-      few weeks of play, the menu, the summer.
+- ~~**A phone**~~ — not supported for now (the owner's decision, 9
+      October; see *Known issues* in `README.md`).
 - [ ] **A tablet:** the same, with touch on the map (pan, pinch zoom).
 - [ ] **Another browser:** if you played in Chrome, a few minutes in
       Safari or Firefox: sound starts on the first click, and a reload

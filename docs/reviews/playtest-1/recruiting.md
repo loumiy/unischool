@@ -20,6 +20,7 @@ all. Post as yourself, say it's your game, and answer every comment.
 | **itch.io's community boards** | itch.io players, already on the site. | The *Release Announcements* and *Playtesting* boards. |
 | **Management-game Discords** | Players of Two Point, Football Manager, Civilization, Prison Architect. | Ask a moderator first; a channel for self-promotion usually exists. |
 | **Friends** | Who play those games. | The best feedback, and the first ten players. |
+| **foundplay.io** | Found by the owner, 11 October. | The itch.io link posted there on 11 October. |
 
 **When** (the page went public Thursday 8 October 2026):
 

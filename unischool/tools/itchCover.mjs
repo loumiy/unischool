@@ -7,6 +7,13 @@
 //     --tilt=-2 --zoom=-1 --pan=0,220          # the campus, low in the frame
 //   node tools/itchCover.mjs bg.jpg ../docs/store/itch/cover.jpg
 //
+// --size=W,H draws another shape at twice W by H: --size=960,540 is a
+// 1920 by 1080 wide cover (for sites, like foundplay.io, that want one),
+// from a background shot at 1920,1080.
+//
+// --vivid brightens and saturates the picture (the owner's taste, 11
+// October): a brighter, bluer sky and livelier grass. The name stays white.
+//
 // The mark is Logo.tsx's, and the name is set as the title screen sets it
 // (styles.css's .logo-name: Archivo 800, wide capitals, white, the soft
 // blue shadow). The title screen's art puts them on a blue sky; the campus
@@ -20,9 +27,13 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const [bgPath, outPath] = process.argv.slice(2);
-if (!bgPath || !outPath) {
-  console.error('usage: node tools/itchCover.mjs <background.jpg> <out.jpg>');
+const args = process.argv.slice(2);
+const [bgPath, outPath] = args.filter((a) => !a.startsWith('--'));
+const sizeArg = args.find((a) => a.startsWith('--size='));
+const vivid = args.includes('--vivid');
+const [W, H] = sizeArg ? sizeArg.slice(7).split(',').map(Number) : [630, 500];
+if (!bgPath || !outPath || !(W > 0 && H > 0)) {
+  console.error('usage: node tools/itchCover.mjs <background.jpg> <out.jpg> [--size=W,H]');
   process.exit(2);
 }
 
@@ -33,19 +44,25 @@ const viewBox = logo.match(/viewBox="([^"]+)"/)[1];
 const font = readFileSync(join(ROOT, 'node_modules/@fontsource/archivo/files/archivo-latin-800-normal.woff2')).toString('base64');
 const bg = readFileSync(resolve(bgPath)).toString('base64');
 
+// Vivid: the photo brightened and saturated, and the sky band a clearer, more cyan blue.
+const photoFilter = vivid ? 'filter: brightness(1.22) saturate(1.2) contrast(1.04);' : '';
+const sky = vivid
+  ? 'rgba(40, 165, 250, 0.95) 0%, rgba(70, 180, 250, 0.8) 45%, rgba(120, 200, 245, 0.35) 75%, rgba(150, 210, 240, 0) 100%'
+  : 'rgba(58, 128, 205, 0.92) 0%, rgba(86, 152, 220, 0.78) 45%, rgba(120, 175, 225, 0.35) 75%, rgba(150, 190, 225, 0) 100%';
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: 'Archivo'; font-weight: 800; src: url(data:font/woff2;base64,${font}) format('woff2'); }
-html, body { margin: 0; width: 630px; height: 500px; overflow: hidden; }
-.cover { position: relative; width: 630px; height: 500px; background: url(data:image/jpeg;base64,${bg}) center / cover; }
+html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
+.cover { position: relative; width: ${W}px; height: ${H}px; overflow: hidden; }
+.photo { position: absolute; inset: 0; background: url(data:image/jpeg;base64,${bg}) center / cover; ${photoFilter} }
 /* The title art's sky, fading into the haze above the campus. */
-.sky { position: absolute; inset: 0 0 auto 0; height: 300px;
-  background: linear-gradient(180deg, rgba(58, 128, 205, 0.92) 0%, rgba(86, 152, 220, 0.78) 45%, rgba(120, 175, 225, 0.35) 75%, rgba(150, 190, 225, 0) 100%); }
+.sky { position: absolute; inset: 0 0 auto 0; height: ${Math.round(H * 0.6)}px;
+  background: linear-gradient(180deg, ${sky}); }
 .head { position: absolute; inset: 34px 0 auto 0; display: flex; flex-direction: column; align-items: center; gap: 12px;
   color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
 .mark { width: 92px; height: auto; display: block; filter: drop-shadow(0 2px 10px rgba(10, 50, 110, 0.25)); }
 .name { margin: 0; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 64px; line-height: 1;
   letter-spacing: 0.04em; text-transform: uppercase; }
-</style></head><body><div class="cover"><div class="sky"></div><div class="head">
+</style></head><body><div class="cover"><div class="photo"></div><div class="sky"></div><div class="head">
 <svg class="mark" viewBox="${viewBox}"><g fill="currentColor">${paths.join('')}</g></svg>
 <h1 class="name">UniSchool</h1></div></div></body></html>`;
 
@@ -57,9 +74,9 @@ const dir = mkdtempSync(join(tmpdir(), 'cover-'));
 const page = join(dir, 'cover.html');
 writeFileSync(page, html);
 const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
-const tab = await browser.newPage({ viewport: { width: 630, height: 500 }, deviceScaleFactor: 2 });
+const tab = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
 await tab.goto(`file://${page}`);
 await tab.evaluate(() => document.fonts.ready);
 await tab.locator('.cover').screenshot({ path: outPath, type: 'jpeg', quality: 90 });
 await browser.close();
-console.log(`wrote ${outPath} (1260 by 1000, itch.io's 630 by 500 at twice the density)`);
+console.log(`wrote ${outPath} (${W * 2} by ${H * 2}, ${W} by ${H} at twice the density)`);

@@ -40,7 +40,8 @@ As set on 8 October, in the game's palette (`unischool/src/styles.css`):
 background `#7b1e2b` (the maroon), the column `#f7f2e8` (the cream), text
 `#1b2a4a` (the navy), links `#7b1e2b`; screenshots in the sidebar; no
 page background image; the cover as the embed's background, shown until a
-player clicks *Run game*. The embed is 1440 × 900, mobile friendly, with
+player clicks *Run game*. The embed is 1440 × 900, with *Mobile friendly* unticked (from 9
+October: phones aren't supported), with
 the fullscreen button and no automatic start.
 
 ## The description
@@ -82,8 +83,8 @@ the Epilogue.
 - **A full run is fifty years:** roughly two to four hours, depending on
   the speed you play at, over as many sittings as you like. Growth is slow
   on purpose, and money paces the first decades.
-- **It plays in the browser,** on a computer or a tablet. A phone works,
-  but the map is small.
+- **It plays in the browser, on a computer.** Phones aren't supported
+  yet: the tutorial covers the map on a small screen.
 - **Your run is saved in this browser.** Browsers can clear a site's
   storage, Safari after seven days without a visit, and a private window
   when it closes, so keep a copy: **Menu → Download save**, and **Load a
@@ -174,10 +175,14 @@ production build, at 1920 × 1080 (16:9). In the second review's order
 [`itch/cover.jpg`](itch/cover.jpg): the fall campus of screenshot 1,
 without the game's controls, under the title screen's mark and name
 (Archivo 800 in wide white capitals, the soft blue shadow) on a band of
-the title art's blue sky. It is 1260 × 1000, itch.io's 630 × 500 at twice
+the title art's blue sky, brightened and saturated (`--vivid`, the owner's
+edit of 11 October). It is 1260 × 1000, itch.io's 630 × 500 at twice
 the density, so it stays sharp on a high-density screen; itch.io scales it.
 It stands in until the commissioned capsule art exists (the backlog's
 owner tasks); upload it under **Cover image**.
+
+[`itch/cover-wide.jpg`](itch/cover-wide.jpg) is the same at 1920 × 1080,
+for sites that want a wide cover (foundplay.io, 11 October).
 
 ## Retaking them
 
@@ -190,7 +195,9 @@ npm run scenario -- --player Completionist --year 32 --week 14 --clear-modal --n
 npm run layout -- campus.json campus-laid.json
 npm run shot -- campus-laid.json ../docs/store/itch/1-campus.jpg --size=1920,1080 --tilt=-2 --zoom=-1
 npm run shot -- campus-laid.json cover-bg.jpg --bare --size=1260,1000 --tilt=-2 --zoom=-1 --pan=0,220
-node tools/itchCover.mjs cover-bg.jpg ../docs/store/itch/cover.jpg
+node tools/itchCover.mjs cover-bg.jpg ../docs/store/itch/cover.jpg --vivid
+npm run shot -- campus-laid.json cover-wide-bg.jpg --bare --size=1920,1080 --tilt=-2 --zoom=0 --pan=0,300
+node tools/itchCover.mjs cover-wide-bg.jpg ../docs/store/itch/cover-wide.jpg --size=960,540 --vivid
 npm run scenario -- summer summer.json
 npm run shot -- summer.json ../docs/store/itch/2-admissions.jpg --size=1920,1080 --click=Continue --click="Set tuition for the year"
 npm run scenario -- specialization spec.json
