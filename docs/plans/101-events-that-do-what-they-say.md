@@ -320,8 +320,9 @@ Two of the brief's quotes have already moved:
 - **The desire path** (`paveLine: 1`): *Pave the line they have worn*, in
   place of *Stop reseeding it*, lays the longest run of lawn the busiest
   walks cross (`wornLine`, from walkRoutes.ts's `desireLines`, the line
-  the map draws) as path tiles. The simulation reads the map's routes
-  here, which are pure functions of the placements and paths.
+  the map draws) as path tiles. It lives in `systems/estate/paths.ts`,
+  which joins the invariants test's short list of systems allowed to read
+  the layout, as the events' trees go through `woodland.ts`.
 - **The ivy and the sinkhole** (`ivy: 1`, `sinkhole: 1`): ivy-structural's
   *Leave the ivy* and the-sinkhole's *Fence it* mark the named building
   (`Buildable.ivy`, `.sinkhole`). `tickEstate` clears both once its

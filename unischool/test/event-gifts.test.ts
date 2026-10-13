@@ -11,7 +11,8 @@
 import { readFileSync } from 'node:fs';
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
-import { STATUE_ID, applyEffects, eventById, eventCampaign, wornLine } from '../src/systems/events/catalogue';
+import { STATUE_ID, applyEffects, eventById, eventCampaign } from '../src/systems/events/catalogue';
+import { wornLine } from '../src/systems/estate/paths';
 import { tickEstate } from '../src/systems/estate/estate';
 import { inboxItems } from '../src/systems/inbox/inbox';
 import { departmentPot } from '../src/data/studentLifeData';

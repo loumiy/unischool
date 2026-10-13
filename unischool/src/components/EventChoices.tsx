@@ -1,7 +1,8 @@
 import type { GameState, PendingCatalogueEvent } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
-import { STATUE_ID, eventCampaign, fill, namedDamage, scaledEffects, statuePledgeable, wornLine } from '../systems/events/catalogue';
+import { STATUE_ID, eventCampaign, fill, namedDamage, scaledEffects, statuePledgeable } from '../systems/events/catalogue';
+import { wornLine } from '../systems/estate/paths';
 import { choiceCost } from '../systems/events/catalogueEngine';
 import { money, moneyShort, pct, signed, signedMoney } from '../format';
 import { clampDrawRate, debtOutstanding, drawRate } from '../systems/finance/treasury';
