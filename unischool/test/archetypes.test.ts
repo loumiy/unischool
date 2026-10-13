@@ -59,7 +59,9 @@ function checkChronicle(label: string, s: GameState): void {
   const names = eras.map((e) => e.name);
   assert(new Set(names).size === names.length && names.every((n) => !/\(\d/.test(n)), `${label}: every era its own name (${names.join(' · ')})`);
   assert(kinds.filter((k) => RANK_KINDS.has(k)).length <= 2, `${label}: at most two eras named for the guide (${kinds.join(', ')})`);
-  eraNames.push(...names);
+  // Every chronicle opens on its founding era, so the variety across runs is
+  // read among the eras after it.
+  eraNames.push(...eras.filter((e) => e.kind !== 'founding').map((e) => e.name));
   console.log(`  · ${label}: ${eras.map((e) => `${e.name} (${e.from}–${e.to})`).join(' · ')}`);
 }
 
@@ -129,7 +131,7 @@ for (const seed of SEEDS) {
 // ---- The chronicles' names vary ----
 {
   const distinct = new Set(eraNames).size;
-  assert(distinct >= eraNames.length * 0.6, `the chronicles' eras are not the same few names (${distinct} names for ${eraNames.length} eras)`);
+  assert(distinct >= eraNames.length * 0.6, `the chronicles' eras after the founding are not the same few names (${distinct} names for ${eraNames.length} eras)`);
 }
 
 // ---- Growth isn't optional ----

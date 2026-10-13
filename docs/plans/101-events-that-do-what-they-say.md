@@ -208,6 +208,11 @@ Two of the brief's quotes have already moved:
   nothing in the sim but the random stream, flips the same rows and
   reads 81, so this is within the scorecard's noise. The baseline is
   re-recorded.
+- **`archetypes.test.ts`'s variety check** fell to 38 era names in 64,
+  one short of its 60%, on the new stream. Every chronicle opens on its
+  founding era, which reads "The Founding" in each run and says nothing
+  about sameness. The check now counts the eras after the founding: 37
+  names in 56. The 60% bar is unchanged.
 
 ### PR 101D — Hires and retirements
 
