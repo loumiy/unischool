@@ -26,7 +26,8 @@ import { reducer } from '../src/engine/reducer';
 import { ACADEMIC_HALL_COUNT, FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programs } from '../src/data/techData';
 import { OPENING_LETTERS } from '../src/data/eventData';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS, relocationWeeks } from '../src/systems/techtree/techSystem';
-import { claimedSchool, closestSchool, dedicatedSchool, hallDisplayName, nextSchoolToMove, suggestedMove } from '../src/systems/techtree/schools';
+import { CLAIM_AT, claimedSchool, closestSchool, dedicatedSchool, hallDisplayName, homeSchool, nextSchoolToMove, settleClaims, suggestedMove } from '../src/systems/techtree/schools';
+import { readSave, SAVE_VERSION } from '../src/state/persistence';
 import { establishAsk } from '../src/systems/guidance/establish';
 import { fireOpeningLetter } from '../src/systems/events/eventSystem';
 import { nextStep } from '../src/systems/guidance/nextStep';
@@ -138,8 +139,11 @@ function letter(id: string) {
   assert(suggestedMove(s, 'ENGL') === null, 'English is not: Science moves first');
 
   s = reducer(s, { type: 'RELOCATE_PROGRAM', programId: 'MATH', hallId: 'HALL-01', slot: 0 });
-  const claim = claimedSchool(s, 'HALL-01');
-  assert(claim?.school === 'Science' && claim.housed === 1 && claim.slots === 6, 'a program on its way claims the hall for its school');
+  // One program doesn't claim the hall (Plan 100), but it is that school's
+  // home for the sorting: nothing tells it to move on.
+  assert(claimedSchool(s, 'HALL-01') === null, 'one program on its way leaves the hall open');
+  const home = homeSchool(s, 'HALL-01');
+  assert(home?.school === 'Science' && home.housed === 1 && home.slots === 6, 'and makes it Science\'s home for the sorting');
   assert(suggestedMove(s, 'MATH') === null, 'a program at home stays');
   assert(suggestedMove(s, 'PSYC')?.hallId === 'HALL-01', "Psychology is sent to Science's hall");
   assert(suggestedMove(s, 'ENGL') === null && nextSchoolToMove(s) === 'Social Sciences & Humanities', 'English waits for a hall of its own, and its school is next');
@@ -148,6 +152,42 @@ function letter(id: string) {
   s.halls[FOUNDERS_HALL_ID][0] = { programId: null };
   assert(claimedSchool(s, 'HALL-01') === null, 'a mixed hall is claimed by nobody');
   assert(suggestedMove(s, 'ENGL') === null && suggestedMove(s, 'MATH') === null, 'and with no empty hall nothing in it has anywhere to go');
+}
+
+// --- the claim at three (Plan 100) ----------------------------------------
+{
+  const s = college('Claims');
+  stand(s, 'HALL-01', 20);
+  const put = (slot: number, id: string | null) => { s.halls['HALL-01'][slot] = { programId: id }; settleClaims(s); };
+  put(0, 'PHYS');
+  assert(claimedSchool(s, 'HALL-01') === null, 'one program doesn\'t claim a hall');
+  put(1, 'CHEM');
+  assert(claimedSchool(s, 'HALL-01') === null && CLAIM_AT === 3, 'nor do two');
+  put(2, 'ENGL');
+  put(3, 'BIOL');
+  const three = claimedSchool(s, 'HALL-01');
+  assert(three?.school === 'Science' && three.housed === 3, `three claim it, beside another school's program (${JSON.stringify(three)})`);
+  // 3 + 3: the first to three keeps it.
+  s.clock.week += 1;
+  put(4, 'HIST');
+  put(5, 'SOCY');
+  assert(claimedSchool(s, 'HALL-01')?.school === 'Science', 'at three each, the school that reached three first keeps the hall');
+  assert(s.hallClaims?.['HALL-01']?.school === 'Science', 'as its record says');
+  // Losing it: a Science program leaves, and Social Sciences, at three, claims.
+  put(3, null);
+  assert(claimedSchool(s, 'HALL-01')?.school === 'Social Sciences & Humanities', 'a move under three loses the claim to the other school at three');
+  put(2, null);
+  assert(claimedSchool(s, 'HALL-01') === null, 'and with neither at three the hall is open again');
+  assert(claimedSchool(s, FOUNDERS_HALL_ID) === null, 'Founders Hall is never claimed');
+
+  // A save from before: Elm Hall with one program, which claimed it then,
+  // loads open, with nothing moved.
+  const old = college('Old');
+  stand(old, 'HALL-01', 20);
+  old.halls['HALL-01'][0] = { programId: 'PHYS' };
+  old.started = true;
+  const read = readSave(JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: old }));
+  assert(!('refused' in read) && claimedSchool(read.state, 'HALL-01') === null && read.state.halls['HALL-01'][0].programId === 'PHYS', 'an old save\'s one-program hall loads open, the program where it was');
 }
 
 // --- the next-step line: establish a school, and the step toward it -------
@@ -207,25 +247,37 @@ function letter(id: string) {
   assert(nextStep(s)?.text === first.text && nextStep(s)?.programId === firstId, `NEXT carries it (${nextStep(s)?.text})`);
 
   // The count holds through each move: a program in transit counts toward
-  // the hall it is moving to.
+  // the hall it is moving to. The move to three claims Elm Hall for Science
+  // (Plan 100), even with History beside them, so the next step is a
+  // founding there from Science's own list, not another move.
   let t = s;
   const counts: number[] = [closestSchool(t)!.housed];
-  for (let i = 0; i < 2; i += 1) {
-    const ask = establishAsk(t)!;
-    if (ask.intent.kind !== 'move') break;
+  const ask = establishAsk(t)!;
+  if (ask.intent.kind === 'move') {
     t = reducer(t, { type: 'RELOCATE_PROGRAM', programId: ask.intent.programId, hallId: ask.intent.hallId, slot: ask.intent.slot });
     t.pendingInterrupt = null;
     counts.push(closestSchool(t)!.housed);
   }
-  assert(counts.join(',') === '2,3,4', `the count rises with each move and never falls mid-move (${counts.join(',')})`);
+  assert(counts.join(',') === '2,3', `the count rises with the move (${counts.join(',')})`);
+  assert(claimedSchool(t, 'HALL-01')?.school === 'Science', 'three Science programs, one arriving, claim Elm Hall beside History');
+  const then = establishAsk(t)!;
+  assert(then.intent.kind === 'found' && then.intent.hallId === 'HALL-01', `then the way to six is a founding in Elm Hall (${then.text})`);
 
-  // Nothing left to do but wait: the line says what it waits on.
-  const waiting = establishAsk(t)!;
-  const weeks = Math.min(...t.halls['HALL-01'].map((x) => x.transitWeeks ?? Infinity));
-  const arriving = t.halls['HALL-01'].find((x) => x.transitWeeks === weeks)!.programId!;
-  assert(waiting.intent.kind === 'wait' && waiting.text === `Establish Science (4 of 6): ${name(arriving)} arrives in ${weeks} weeks`, `a wait names the first to arrive (${waiting.text})`);
-  for (const slot of t.halls['HALL-01']) delete slot.transitWeeks;
-  assert(closestSchool(t)?.housed === 4, 'and the count holds on arrival');
+  // Nothing left to do but wait: the line says what it waits on. Elm Hall
+  // with one Science program settled and one arriving (two: still open),
+  // History, and nothing of Science anywhere else or on offer.
+  const w = college('Wait');
+  w.halls[FOUNDERS_HALL_ID][5] = { programId: null, office: { id: 'admissions', openedYear: 1 } };
+  for (const slot of w.halls[FOUNDERS_HALL_ID]) if (slot.programId === 'MATH' || slot.programId === 'PSYC') slot.programId = null;
+  stand(w, 'HALL-01', 20);
+  w.halls['HALL-01'][0] = { programId: 'PHYS' };
+  w.halls['HALL-01'][1] = { programId: 'CHEM', transitWeeks: 7 };
+  w.halls['HALL-01'][2] = { programId: 'HIST' };
+  w.programOffers = [];
+  const waiting = establishAsk(w)!;
+  assert(waiting.intent.kind === 'wait' && waiting.text === `Establish Science (2 of 6): ${name('CHEM')} arrives in 7 weeks`, `a wait names the first to arrive (${waiting.text})`);
+  delete w.halls['HALL-01'][1].transitWeeks;
+  assert(closestSchool(w)?.housed === 2, 'and the count holds on arrival');
 
   // A founding: Elm Hall holding only Science offers its own programs.
   const u = college('Found');

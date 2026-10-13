@@ -1,6 +1,6 @@
 import type { GameState } from '../../state/types';
 import { isAcademicHall, programById, programs } from '../../data/techData';
-import { claimedSchool, closestSchool, hallDisplayName, schoolFoundedKey, type SchoolProgress } from '../techtree/schools';
+import { closestSchool, homeSchool, hallDisplayName, schoolFoundedKey, type SchoolProgress } from '../techtree/schools';
 import { isHoused, isInTransit, offeredIn, slotOf, transitWeeks } from '../techtree/programOffers';
 import type { StepIntent } from './intent';
 import { slotFree } from '../administration/offices';
@@ -123,7 +123,7 @@ function establishIntent(s: GameState, p: SchoolProgress): StepIntent {
         const hall = s.tech.find((t) => t.id === hallId);
         return hallId !== p.hallId && !!hall && isAcademicHall(hall) && hall.status === 'done' && freeSlot(s, hallId) >= 0;
       })
-      .sort((a, b) => Number(claimedSchool(s, b)?.school === program.school) - Number(claimedSchool(s, a)?.school === program.school));
+      .sort((a, b) => Number(homeSchool(s, b)?.school === program.school) - Number(homeSchool(s, a)?.school === program.school));
     if (targets.length > 0) return { kind: 'move', programId: program.id, hallId: targets[0], slot: freeSlot(s, targets[0]) };
   }
   return { kind: 'wait' };

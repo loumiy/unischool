@@ -78,14 +78,15 @@ opened teaching three programs). Three moves (Plan 14) give it its shape:
    refused with its reason. Otherwise the three stand until one is taken,
    and the offer is for Founders Hall and the halls no school claims. **A
    purchased hall one school claims offers every revealed program of that
-   school** besides (Plan 78D, `schoolOffers`), drawn from nothing, so a
-   school that has moved in can always grow; before, its hall waited on the
-   draw, and a player with Founders Hall full could wait a year for the
-   school's next program (the October review's A3-1 and trace 7). The
-   draw's own programs are still offered in such a hall, after the school's
-   own; founding one there asks first ("Confirm — this takes one of the six
-   program slots Science needs"), since it keeps the school from being
-   founded until it moves out (`claimCutBy`). A graduate program is never
+   school in place of the three** (Plans 78D and 100, `schoolOffers`,
+   `offeredIn`), drawn from nothing, so a school that has moved in can
+   always grow; before Plan 78D its hall waited on the draw, and a player
+   with Founders Hall full could wait a year for the school's next program
+   (the October review's A3-1 and trace 7). Another school's program is
+   not founded in a claimed hall; it can still be moved in, which asks
+   first ("Confirm — this takes one of the six program slots Science
+   needs"), since it keeps the school from being founded until it moves
+   out (`claimCutBy`). A graduate program is never
    drawn: its capital project offers it (see
    [graduate-programs.md](graduate-programs.md)).
    **The curriculum committee** (Plan 68; seats since Plan 71) writes a
@@ -164,9 +165,17 @@ where they began is the line of play, not a reshuffle, and the game should
 not tax it at the reshuffle's rate.
 
 **Sorting** (Plan 55) is read, never stored (`systems/techtree/schools.ts`). A
-purchased hall is **claimed** by a school while every program in it, settled
-or arriving, is that school's (`claimedSchool`); a full claim with nothing in
-transit is a dedication. The **next school to move** is the one with no hall of
+purchased hall is **claimed** by a school once it holds **three** of that
+school's programs, settled or arriving, whatever else is in it
+(`claimedSchool`, `CLAIM_AT`, Plan 100). Until then it is open, and founds
+from the global offers. At three each in a six-slot hall, the school that
+reached three first keeps it (`s.hallClaims`, kept by `settleClaims`), and a
+move that takes the school under three loses the claim. Founders Hall is
+never claimed. For the sorting suggestions a hall is a school's **home** if
+the school claims it or is the only school in it (`homeSchool`, the claim
+before Plan 100), so a school's first programs in a hall aren't told to
+move on. A full hall of one school with nothing in transit is a
+dedication. The **next school to move** is the one with no hall of
 its own and the most programs away from home (`nextSchoolToMove`). A program
 away from home has a **suggested move** (`suggestedMove`): a free slot in its
 school's hall, or, for the next school to move, an empty hall. A school

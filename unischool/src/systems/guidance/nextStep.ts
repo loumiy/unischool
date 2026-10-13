@@ -2,7 +2,7 @@ import type { Buildable, GameState, SatisfactionAttributes } from '../../state/t
 import { standsOnCampus } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
-import { claimedHalls, claimedSchool, hallDisplayName, schoolHall } from '../techtree/schools';
+import { claimedHalls, hallDisplayName, homeHalls, homeSchool, schoolHall } from '../techtree/schools';
 import { seatingAsk } from './seating';
 import { establishAsk } from './establish';
 import { isHoused, schoolOffers } from '../techtree/programOffers';
@@ -148,7 +148,7 @@ function freeSlot(s: GameState): NextStep | null {
   }
   const open = Object.keys(s.halls).find((hallId) => {
     const hall = s.tech.find((t) => t.id === hallId);
-    return !!hall && isAcademicHall(hall) && hasRoom(hallId) && claimedSchool(s, hallId) === null;
+    return !!hall && isAcademicHall(hall) && hasRoom(hallId) && homeSchool(s, hallId) === null;
   });
   if (open && s.programOffers.length > 0) {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
@@ -186,7 +186,7 @@ function freeSlot(s: GameState): NextStep | null {
   // Every free program slot is some school's. Founders Hall, once a
   // school's home (Plan 59), still founds from the draw; a purchased hall
   // whose school has nothing left to found is filled only by a move.
-  const claimed = claimedHalls(s).find((c) => hasRoom(c.hallId));
+  const claimed = homeHalls(s).find((c) => hasRoom(c.hallId));
   if (!claimed) return null;
   return claimed.hallId === FOUNDERS_HALL_ID
     ? { text: `${nameOf(FOUNDERS_HALL_ID)} has room for ${claimed.school} when one is on offer`, intent: { kind: 'wait' } }

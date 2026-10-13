@@ -1223,8 +1223,13 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   {
     id: 'a-school-grows',
     week: 1,
-    // Halfway: three programs of one school in one hall.
-    arrives: (s) => standing(s, FIRST_HALL_ID) && (closestSchool(s)?.housed ?? 0) >= 3,
+    // Halfway: three programs of one school in one hall, which is the
+    // moment that school claims it (Plan 100): read off the claim, so the
+    // letter and the hall can't disagree.
+    arrives: (s) => {
+      const p = closestSchool(s);
+      return standing(s, FIRST_HALL_ID) && !!p && claimedSchool(s, p.hallId)?.school === p.school;
+    },
     title: 'A school takes shape',
     body: (s) => {
       const p = closestSchool(s);
@@ -1232,7 +1237,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const hall = hallName(s, p.hallId);
       const claim = claimedSchool(s, p.hallId);
       const offers = claim && claim.school === p.school && schoolOffers(s, p.hallId).length > 0
-        ? ` ${hall} holds nothing but ${p.school}, so it offers every ${p.school} program the college can found, whatever else is on offer.`
+        ? ` ${hall} is ${p.school}'s hall now: it offers every ${p.school} program the college can found, in place of the offers.`
         : '';
       return `${p.school} has ${count(p.housed)} of six in ${hall}.${offers} ${count(6 - p.housed)[0].toUpperCase()}${count(6 - p.housed).slice(1)} more ${p.school} ${6 - p.housed === 1 ? 'program' : 'programs'} there found the School of ${p.school}.`;
     },

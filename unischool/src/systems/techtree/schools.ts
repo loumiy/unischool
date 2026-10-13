@@ -1,4 +1,4 @@
-import type { Buildable, GameState } from '../../state/types';
+import { WEEKS_PER_YEAR, type Buildable, type GameState } from '../../state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../../data/techData';
 import { slotFree } from '../administration/offices';
 
@@ -76,40 +76,89 @@ export function hallDisplayName(s: GameState, t: Buildable): string {
 
 export interface Claim {
   school: string;
-  // Programs housed, settled or arriving, of `slots`.
+  // The school's programs in the hall, settled or arriving, of `slots`.
   housed: number;
   slots: number;
 }
 
-// The school a hall is being sorted into: every program in it, settled or
-// arriving, belongs to that school. Null when it is empty or mixed, and
-// always for Founders Hall: since Plan 89C there is a purchased hall for
-// every school, so Founders Hall is nobody's home and every program in it
-// is away from home. A full claim with nothing in transit is a dedication
-// (dedicatedSchool above), and a school dedicated in Founders Hall is
-// still founded; it is simply never the line of play.
-export function claimedSchool(s: GameState, hallId: string): Claim | null {
-  if (hallId === FOUNDERS_HALL_ID) return null;
-  const hall = s.tech.find((t) => t.id === hallId);
-  const slots = s.halls[hallId];
-  if (!hall || !isAcademicHall(hall) || !slots) return null;
-  let school: string | null = null;
-  let housed = 0;
-  for (const slot of slots) {
-    if (slot.programId === null) continue;
-    const program = programById(slot.programId);
-    if (!program) return null;
-    if (school === null) school = program.school;
-    else if (school !== program.school) return null;
-    housed += 1;
+// Programs of one school in a purchased hall that make it that school's
+// hall (Plan 100, the owner: "halls should continue to offer the 3
+// weighted-random on-offer programs until it has 3 of one school").
+export const CLAIM_AT = 3;
+
+// Each school's programs in a hall, settled or arriving, in slot order of
+// its first.
+function schoolCounts(s: GameState, hallId: string): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const slot of s.halls[hallId] ?? []) {
+    const program = slot.programId ? programById(slot.programId) : undefined;
+    if (program) counts.set(program.school, (counts.get(program.school) ?? 0) + 1);
   }
-  return school === null ? null : { school, housed, slots: slots.length };
+  return counts;
 }
 
-// The claim a founding would cut into (Plan 78D): another school's program
-// founded into a hall one school claims takes a program slot that school
-// needs to be founded. The hall panel asks before it (ConfirmButton). Null
-// when nothing is lost: the hall's own school, or a hall no school claims.
+function isPurchasedHall(s: GameState, hallId: string): boolean {
+  if (hallId === FOUNDERS_HALL_ID) return false;
+  const hall = s.tech.find((t) => t.id === hallId);
+  return !!hall && isAcademicHall(hall) && !!s.halls[hallId];
+}
+
+// The school whose hall this is (Plan 100): one with CLAIM_AT or more
+// programs in a purchased hall, whatever else is in it. Founders Hall is
+// never claimed. Of two at three each (a six-slot hall at 3 + 3), the one
+// that reached three first (s.hallClaims), else the one with more, then
+// the one met first in slot order. Until then a hall is open: it founds
+// from the global offers. A claimed hall founds only its school's
+// programs (programOffers.ts's offeredIn). Derived on every call; a claim
+// is lost when moves take the school under three.
+export function claimedSchool(s: GameState, hallId: string): Claim | null {
+  if (!isPurchasedHall(s, hallId)) return null;
+  const counts = schoolCounts(s, hallId);
+  const candidates = [...counts].filter(([, n]) => n >= CLAIM_AT);
+  if (candidates.length === 0) return null;
+  const recorded = s.hallClaims?.[hallId]?.school;
+  const chosen = candidates.find(([school]) => school === recorded)
+    ?? [...candidates].sort((a, b) => b[1] - a[1])[0]!;
+  return { school: chosen[0], housed: chosen[1], slots: s.halls[hallId].length };
+}
+
+// Keeps s.hallClaims: a school that reaches three in a hall nobody claims
+// is recorded with the week; a record whose school fell under three goes.
+// Run after every founding and move (techSystem.ts) and on load.
+export function settleClaims(s: GameState): void {
+  const week = (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
+  const next: Record<string, { school: string; week: number }> = {};
+  for (const hallId of Object.keys(s.halls)) {
+    if (!isPurchasedHall(s, hallId)) continue;
+    const old = s.hallClaims?.[hallId];
+    const counts = schoolCounts(s, hallId);
+    if (old && (counts.get(old.school) ?? 0) >= CLAIM_AT) { next[hallId] = old; continue; }
+    const claim = claimedSchool({ ...s, hallClaims: {} }, hallId);
+    if (claim) next[hallId] = { school: claim.school, week };
+  }
+  s.hallClaims = next;
+}
+
+// The school a hall is home to, for the sorting suggestions (Plan 55): the
+// school that claims it, else the only school with programs in it (the
+// claim before Plan 100). So a school's first one or two programs in a
+// hall are at home there and are not told to move, while the hall still
+// founds from the global offers.
+export function homeSchool(s: GameState, hallId: string): Claim | null {
+  const claim = claimedSchool(s, hallId);
+  if (claim) return claim;
+  if (!isPurchasedHall(s, hallId)) return null;
+  const counts = schoolCounts(s, hallId);
+  if (counts.size !== 1) return null;
+  const [school, housed] = [...counts][0]!;
+  return { school, housed, slots: s.halls[hallId].length };
+}
+
+// The claim a move would cut into (Plan 78D): another school's program
+// moved into a hall one school claims takes a program slot that school
+// needs to be founded. The hall panel asks before it (ConfirmButton). Since
+// Plan 100 a claimed hall founds only its own school, so only a move can.
+// Null when nothing is lost: the hall's own school, or an open hall.
 export function claimCutBy(s: GameState, hallId: string, programId: string): Claim | null {
   const claim = claimedSchool(s, hallId);
   const program = programById(programId);
@@ -126,9 +175,20 @@ export function claimedHalls(s: GameState): Array<{ hallId: string } & Claim> {
   return out;
 }
 
-// A school's own hall: the hall it claims with the most programs in it.
+// Every hall that is home to a school (homeSchool), for the sorting.
+export function homeHalls(s: GameState): Array<{ hallId: string } & Claim> {
+  const out: Array<{ hallId: string } & Claim> = [];
+  for (const hallId of Object.keys(s.halls)) {
+    const home = homeSchool(s, hallId);
+    if (home) out.push({ hallId, ...home });
+  }
+  return out;
+}
+
+// A school's own hall, for the sorting: the hall it is home to with the
+// most of its programs in it.
 export function schoolHall(s: GameState, school: string): string | undefined {
-  const halls = claimedHalls(s).filter((c) => c.school === school);
+  const halls = homeHalls(s).filter((c) => c.school === school);
   halls.sort((a, b) => b.housed - a.housed);
   return halls[0]?.hallId;
 }
@@ -149,7 +209,7 @@ export function schoolToMerge(s: GameState): Merge | null {
   });
   if (!homeless || emptyHall(s) !== undefined) return null;
   const bySchool = new Map<string, Array<{ hallId: string } & Claim>>();
-  for (const claim of claimedHalls(s)) bySchool.set(claim.school, [...(bySchool.get(claim.school) ?? []), claim]);
+  for (const claim of homeHalls(s)) bySchool.set(claim.school, [...(bySchool.get(claim.school) ?? []), claim]);
   for (const [school, halls] of bySchool) {
     if (halls.length < 2) continue;
     const sorted = [...halls].sort((a, b) => b.housed - a.housed);
@@ -160,8 +220,9 @@ export function schoolToMerge(s: GameState): Merge | null {
   return null;
 }
 
-// The majors not yet at home: housed, settled, and in a hall their school
-// does not claim (Founders Hall, or a mixed hall), in Founders Hall's slot
+// The majors not yet at home: housed, settled, and in a hall that is not
+// their school's home (homeSchool: Founders Hall, or a mixed hall another
+// school does not claim either), in Founders Hall's slot
 // order first; and, while a school is to be merged (schoolToMerge), the
 // programs in its smaller hall.
 export function programsAwayFromHome(s: GameState): Array<{ programId: string; school: string; hallId: string }> {
@@ -171,7 +232,7 @@ export function programsAwayFromHome(s: GameState): Array<{ programId: string; s
   for (const hallId of hallIds) {
     const hall = s.tech.find((t) => t.id === hallId);
     if (!hall || !isAcademicHall(hall)) continue;
-    const claim = claimedSchool(s, hallId);
+    const claim = homeSchool(s, hallId);
     for (const slot of s.halls[hallId]) {
       if (slot.programId === null || (slot.transitWeeks ?? 0) > 0) continue;
       const program = programById(slot.programId);

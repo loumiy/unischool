@@ -3,7 +3,7 @@ import { totalEnrolled } from '../../state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById, programOfCourse } from '../../data/techData';
 import { instructionCapacity, SEATS_PER_COURSE } from '../techtree/instructionCapacity';
 import { isHoused } from '../techtree/programOffers';
-import { claimedSchool } from '../techtree/schools';
+import { homeSchool } from '../techtree/schools';
 import { courseSlotsFree, hasFreeFacultySlot, isUndergraduateCourse } from '../techtree/techSystem';
 import { count } from '../../format';
 import type { StepIntent } from './intent';
@@ -47,7 +47,7 @@ function openHall(s: GameState): string | undefined {
   const halls = Object.keys(s.halls).sort((a, b) => (a === FOUNDERS_HALL_ID ? -1 : b === FOUNDERS_HALL_ID ? 1 : 0));
   return halls.find((hallId) => {
     const hall = s.tech.find((t) => t.id === hallId);
-    return !!hall && isAcademicHall(hall) && claimedSchool(s, hallId) === null && s.halls[hallId].some(slotFree);
+    return !!hall && isAcademicHall(hall) && homeSchool(s, hallId) === null && s.halls[hallId].some(slotFree);
   });
 }
 
