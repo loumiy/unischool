@@ -200,6 +200,42 @@ Read against `main` at `9cec56b` plus PR #341.
   - the canvas and SVG maps agree (the SVG fallback draws the same plates);
   - `tools/keyboardCheck.mjs` still passes.
 
+**As implemented.**
+
+- **Where it's drawn:** `components/doorSign.tsx`'s `DoorSign`, beside the
+  motif in `CampusMap`'s `PlacedBuilding`. The plate is part of the
+  building's own drawing, so it depth-sorts with it and a building in
+  front hides it. Both maps draw it: the canvas map walks the same element
+  tree. It's not in the build-menu thumbnails.
+- **Where on the wall:** the front wall (`sidesOf(facing).front`, by
+  `wallOf`), only while the camera sees it. It sits half a tile clear of
+  the door's edge, so it clears most porches and portico sides, else just
+  beside the door. It goes on the side toward the screen's right, at the
+  door's mid-height, sheared to the wall's slope like the chapter
+  houses' letters. A wall with no room for it gets none, and a building
+  with no front door (`doorOf`'s null) never does.
+- **Zoom** (decision 5): the plates are always in the drawing, and CSS
+  hides them below `SIGNS_FROM_ZOOM` (1.4).
+  - `CampusMap` puts the `signs` class on the map once the view crosses
+    1.4, which re-renders only at the crossing.
+  - The canvas map reads its buildings' rules under that class (the
+    building recorder now gets a root class, as the ground's already did).
+  - A building's canvas signature includes the class, so its drawing is
+    redone once when the class changes.
+  - So the plan's two options came down to one: there's only one drawing.
+- **Cost:** recording the 48 buildings of the launch save with plates
+  against without, best of seven, three runs: 88 more ops on 7,532
+  (+1.2%), and the time is within noise (−6% to +1%). Well inside the 5%
+  budget.
+- **Text** (decision 6): the label the map already uses (`hallDisplayName`,
+  a donor's name as it stands), cut to 22 characters with an ellipsis.
+  The letters are a third of the door's height. `door-sign.test.ts` runs
+  every catalogue name and the longest donor name (the longest surname
+  with the longest school), and checks which buildings are signed.
+- **The building labels** (Plan 47) are unchanged.
+- **Checks:** `tools/keyboardCheck.mjs` passes, and a year-14 campus in
+  each vernacular at zoom 1.75 is in the PR.
+
 ### PR 99E — Walks that draw straight
 
 The staircase bug (A1-7, B1-4): a diagonal walk drawn as edge-joined steps

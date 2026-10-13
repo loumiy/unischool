@@ -13,6 +13,7 @@ import {
 import { siteRefusal } from '../state/reach';
 import Walkers from './Walkers';
 import AgeMarks, { type AgeBand } from './ageMarks';
+import DoorSign, { SIGNS_FROM_ZOOM } from './doorSign';
 import { Bench, dressingProps } from './dressing';
 import { facingToCamera, frontWidth, localToGrid } from './facing';
 import { defaultBenchFacing, turnFacing } from '../state/dressing';
@@ -341,6 +342,8 @@ function PlacedBuilding({
         camera={camera}
       />
       {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={vernacular} historic={historic} />}
+      {/* Its name on a plate by the front door, shown close in (Plan 99D). */}
+      {!developing && !renovating && <DoorSign t={t} p={d} label={label} />}
       {renovating && motifOf(t) !== 'grounds' && (() => {
         // Scaffolding over the whole of a building under renovation.
         const shell = boxFaces(d.col, d.row, d.w, d.h, 0, wallHeightOf(t) * 1.04);
@@ -864,7 +867,7 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
   // college not specialized in student life.
   district?: number; winterLit?: boolean; festive?: number;
   // The season's tokens, as a key, and the map's own classes.
-  season: string; groundClass: string;
+  season: string; groundClass: string; entryClass?: string;
   // The layout the scene before was drawn from, if any: when only the
   // paths differ, the ground changed only round the tiles that did.
   prevLayout?: CampusLayout | null;
@@ -893,7 +896,7 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
       const id = e.t.id;
       entries.push({
         key: se.key, kind: 'mass', box, node, owner: id,
-        sig: `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|${a.crowds.has(id) ? 'crowd' : ''}|${colors}|${a.name}|${layout.vernacular}`,
+        sig: `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|${a.crowds.has(id) ? 'crowd' : ''}|${colors}|${a.name}|${layout.vernacular}|${a.entryClass ?? ""}`,
       });
     }
   }
@@ -926,6 +929,7 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
       return p ? [{ id, pts: boxFaces(p.col - 0.15, p.row - 0.15, p.w + 0.3, p.h + 0.3, 0, 0).top }] : [];
     }),
     groundClass: a.groundClass,
+    entryClass: a.entryClass,
     turning: a.turning,
     groundDirty: pathsChanged(a.prevLayout ?? null, layout),
   };
@@ -1324,6 +1328,7 @@ export default function CampusMap({
   // The land around the campus: a third <svg>, under the map's.
   const ringWorldRef = useRef<SVGGElement>(null);
   const viewRef = useRef({ x: 0, y: 0, zoom: 1 });
+  const [signsOn, setSignsOn] = useState(false);
   // The canvas's size, kept by an observer so the pan's leash never has to
   // measure the scene mid-drag.
   const canvasSizeRef = useRef<{ width: number; height: number } | null>(null);
@@ -1460,6 +1465,9 @@ export default function CampusMap({
       v = { ...v, x: Math.round(v.x * dpr) / dpr, y: Math.round(v.y * dpr) / dpr };
     }
     viewRef.current = v;
+    // The door signs show from SIGNS_FROM_ZOOM in: a render only when the
+    // view crosses it.
+    setSignsOn(v.zoom >= SIGNS_FROM_ZOOM);
     const transform = `translate(${v.x} ${v.y}) scale(${v.zoom})`;
     worldRef.current?.setAttribute('transform', transform);
     ghostWorldRef.current?.setAttribute('transform', transform);
@@ -2242,18 +2250,21 @@ export default function CampusMap({
   const groundGeo = useMemo(() => groundGeometry(), [camera]);
   const seasonKey = useMemo(() => JSON.stringify(season), [season]);
   const groundClass = `${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${highlightId ? 'inspecting' : ''}`;
+  // The buildings' own map class: `signs` once the view is close enough for
+  // the door signs (Plan 99D).
+  const entryClass = signsOn ? 'signs' : '';
   const prevLayoutRef = useRef<CampusLayout | null>(null);
   const canvasScene = useMemo(() => {
     if (!canvasOn()) return null;
     const scene = canvasSceneOf({
       layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners, district, winterLit, festive,
-      inspectedId: highlightId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, prevLayout: prevLayoutRef.current,
+      inspectedId: highlightId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, entryClass, prevLayout: prevLayoutRef.current,
     });
     prevLayoutRef.current = layout;
     return scene;
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
+  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, entryClass, canvasBroke]);
   // The compositor, once its canvas is mounted.
   useLayoutEffect(() => {
     const canvas = sceneCanvasRef.current;
@@ -2342,7 +2353,7 @@ export default function CampusMap({
         )}
         <svg
           ref={svgRef}
-          className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${highlightId ? 'inspecting' : ''}`}
+          className={`campus-map-svg ${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${highlightId ? 'inspecting' : ''} ${signsOn ? 'signs' : ''}`}
           // No viewBox: 1 user unit is 1 CSS px, so the pan/zoom transform
           // needs no conversion.
           width="100%"

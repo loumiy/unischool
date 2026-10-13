@@ -74,6 +74,9 @@ export interface CanvasScene {
   // The map's own classes for the ground (placing, a path tool,
   // inspecting).
   groundClass: string;
+  // The buildings' map class (`signs`, Plan 99D): their rules are read
+  // under it, and every building is drawn again when it changes.
+  entryClass?: string;
   // A quarter turn is being animated.
   turning: boolean;
   // Where the ground changed since the scene before, if the map knows (a
@@ -553,6 +556,7 @@ export class MapCanvas implements CrowdSink {
       this.gold = this.entryRules.color('var(--gold)');
     }
     this.groundRules.setRootClass(scene.groundClass);
+    this.entryRules.setRootClass(scene.entryClass ?? '');
 
     // The scale drawings are made at: the view's, once a zoom rests. Those
     // made at another stand in, scaled, until they are made again.

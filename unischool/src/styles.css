@@ -1545,6 +1545,11 @@ button.build-tile { font-family: inherit; }
 .campus-lab-electron { fill: #f6f1e2; }
 .campus-label { pointer-events: none; opacity: 0; transition: opacity 90ms linear; }
 .campus-label-plate { fill: rgba(20, 26, 16, 0.5); }
+/* Door signs (Plan 99D): a plate by each front door, shown close in. The
+   canvas map reads these rules under the map's classes too. */
+.campus-map-svg:not(.signs) .door-sign { display: none; }
+.door-sign-plate { fill: #f4efe2; stroke: rgba(30, 30, 30, 0.55); stroke-width: 0.3; }
+.door-sign-text { fill: #23262b; font-family: var(--sans); font-weight: 700; letter-spacing: 0.02em; }
 .campus-label-text { fill: #f6f1e2; font-family: var(--display); text-anchor: middle; dominant-baseline: middle; user-select: none; }
 
 /* ---------- Tab overlays ---------- */
