@@ -508,7 +508,7 @@ const GRADUATE_PROGRAMS: GraduateProgramSeed[] = [
       { num: 520, title: 'Pathophysiology & Pharmacotherapy', field: 'Clinical Health' },
       { num: 530, title: 'Clinical Neurology', field: 'Neuroscience' },
       { num: 540, title: 'Evidence-Based Practice & Population Medicine', field: 'Public Health' },
-      { num: 550, title: 'Global & Public Health Systems', field: 'Public Health' },
+      { num: 550, title: 'Internal Medicine', field: 'Clinical Health' },
       { num: 560, title: 'Immunology & Infectious Disease', field: 'Biology' },
       { num: 570, title: 'Medical Genetics & Genomics', field: 'Biology' },
       { num: 580, title: 'Psychiatry & Behavioral Medicine', field: 'Neuroscience' },

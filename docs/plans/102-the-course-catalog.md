@@ -6,8 +6,8 @@ with a note: "I think the catalog size is good, so I don't want to expand
 too much, but if reorganizing seems prudent, let's explore it." This plan
 explores it, and proposes the two changes still worth making.*
 
-**Status: Proposed (12 October 2026). Decisions 1 and 2 are the owner's
-before any PR starts.**
+**Status: Approved (13 October 2026): every decision as proposed, so the
+ids stay as they are and PR C is not built. B in progress.**
 
 ---
 
@@ -150,7 +150,30 @@ of the title at the time it was taught.
 - Check the career record's title (§1), and the Curriculum's MD row.
 - `docs/design/curriculum.md`'s MD list.
 
+**As implemented.**
+
+- **MED550 is *Internal Medicine*,** taught from **Clinical Health** (it was
+  Public Health), at the same id and prereqs. Its sentence: "Reasons
+  through the adult patient's complaint to a diagnosis, across the heart,
+  lungs, kidneys, and gut, and writes the plan a ward team rounds on each
+  morning." MED610's sentence still names pediatrics and obstetrics as
+  its rotations.
+- **A saved run:** `refreshAuthoredText` already gives every course the
+  catalog's title on load. It now gives a course not yet started
+  (locked or available) the catalog's field too, by the rule it already
+  keeps for weeks. A MED550 under way or taught keeps Public Health, so
+  its instructor isn't orphaned.
+- **The career record** keeps course ids, not titles, so a professor who
+  taught MED550 before now reads as having taught Internal Medicine. The
+  record is read only by the Faculty tab, and the MD opens late, so the
+  record keeps no copy of the old title.
+- `docs/design/curriculum.md` has no MD list, so nothing changes there.
+- **Tests:** `internal-medicine.test.ts` covers a new run and a saved
+  MED550, both available and under way. The catalog stays at 473.
+
 ### PR 102C — Display numbers by tier
+
+*Not built: decision 1 kept the numbers as they are.*
 
 - `courseCode(id)` shows a course's code from its tier: 101, 1x0, 3x0 and
   410.
