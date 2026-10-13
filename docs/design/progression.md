@@ -44,7 +44,7 @@ the nearest one and its progress, and clicking it opens the whole ladder.
 | Growing | A town's worth | 1,500 students | Health & Counseling Center |
 | Growing | A regional name | prestige 55 | Sports & Recreation Complex, Student Union Expansion, Grand Quad & Gardens |
 | Growing | Four schools | four schools founded | an office |
-| Established | A small city | 6,000 students | University Clinic |
+| Established | A small city | 6,000 students | University Clinic, the Japanese Garden |
 | Established | A research reputation | prestige 70 | The Bell Tower; an office |
 | Established | A market of its own | 8,000 students | Campus Grocery Store |
 | National | A university town | 20,000 students | Medical Center |
