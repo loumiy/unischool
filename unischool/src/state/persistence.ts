@@ -1212,6 +1212,26 @@ function sanitizeCatalogue(state: GameState): void {
       && Number.isInteger(a.year) && [a.player, a.seat, a.timeout].every((n) => Number.isInteger(n) && n >= 0)) : [];
     if (cat.answered.length === 0) delete cat.answered;
   }
+  // The last answers (Plan 101B), the charter's and the festival's among
+  // them: a malformed one, or one naming an event the catalog no longer
+  // has, is dropped.
+  if (cat.lastAnswer !== undefined) {
+    const raw = cat.lastAnswer as unknown;
+    const kept: NonNullable<CatalogueState['lastAnswer']> = {};
+    if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+      for (const [id, a] of Object.entries(raw as Record<string, unknown>)) {
+        const x = a as { choiceId?: unknown; year?: unknown } | null;
+        if (typeof x === 'object' && x !== null && typeof x.choiceId === 'string' && Number.isInteger(x.year)
+          && (id === CHARTER_EVENT.id || id === FESTIVAL_EVENT.id || EVENT_CATALOGUE.some((e) => e.id === id))) kept[id] = { choiceId: x.choiceId, year: x.year as number };
+      }
+    }
+    if (Object.keys(kept).length > 0) cat.lastAnswer = kept; else delete cat.lastAnswer;
+  }
+  // A recall naming an answer its event cannot recall reads the event's
+  // own telling.
+  for (const p of cat.pending) {
+    if (p.recall !== undefined && !(typeof p.recall === 'string' && EVENT_CATALOGUE.find((e) => e.id === p.eventId)?.recalls?.[p.recall])) delete p.recall;
+  }
 }
 
 // The ending: a report missing its grades or its title is dropped whole,

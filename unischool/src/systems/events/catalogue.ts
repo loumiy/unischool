@@ -323,6 +323,8 @@ export function pickTelling(e: CatalogueEvent, year: number, last?: number): num
 // The telling a pending event reads; one fired before Plan 70I reads its
 // first.
 export function eventText(e: CatalogueEvent, p: PendingCatalogueEvent): string {
+  const recalled = p.recall ? e.recalls?.[p.recall] : undefined;
+  if (recalled) return recalled;
   const texts = eventTexts(e);
   return texts[Math.min(p.variant ?? 0, texts.length - 1)];
 }

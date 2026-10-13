@@ -101,4 +101,9 @@ export interface CatalogueEvent {
   timeoutWeeks: number;
   choices: CatalogueChoice[];
   default: string;
+  // A memory of answers (Plan 101B): the choices that settle the matter,
+  // after which the event never fires again, and a telling for its return
+  // after each answer that did not, which may name {answeredYear}.
+  settles?: string[];
+  recalls?: Record<string, string>;
 }

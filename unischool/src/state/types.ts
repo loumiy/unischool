@@ -548,6 +548,9 @@ export interface PendingCatalogueEvent {
   // Which telling it reads (Plan 70I, systems/events/catalogue.ts's
   // pickTelling). Absent before then: the first.
   variant?: number;
+  // The answer it returns after (Plan 101B): it reads that answer's recall
+  // telling in place of its own.
+  recall?: string;
 }
 
 export interface CatalogueState {
@@ -561,6 +564,10 @@ export interface CatalogueState {
   // events by who answered them. Absent before the first.
   letters?: { eventId: string; choiceId: string; year: number }[];
   answered?: { year: number; player: number; seat: number; timeout: number }[];
+  // The last answer to each event (Plan 101B), by whoever gave it: one that
+  // settles the event retires it, and one that doesn't is recalled when it
+  // returns. Absent before the first.
+  lastAnswer?: Record<string, { choiceId: string; year: number }>;
 }
 
 // While `pendingInterrupt` is set the clock halts; the UI renders a modal by
