@@ -12,3 +12,9 @@ export function useCollapse(key: string, foldedByDefault: boolean): [boolean, ()
   const collapsed = collapseOverrides.get(key) ?? foldedByDefault;
   return [collapsed, () => { collapseOverrides.set(key, !collapsed); bump((n) => n + 1); }];
 }
+
+// Opens or folds a section from outside it: the walkthrough opens the row
+// its step points at (Plan 103B). Takes effect on the section's next render.
+export function setCollapsed(key: string, collapsed: boolean): void {
+  collapseOverrides.set(key, collapsed);
+}
