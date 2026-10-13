@@ -282,7 +282,7 @@ function college(): GameState {
     lib.effects = { ...lib.effects, servesPopulation: 1200 };
     const cash = s.finance.cash;
     applyEffects(s, { libraryFloor: 1 });
-    assert(lib.floorsAdded === 1 && lib.status === 'developing' && s.finance.cash === cash, 'a floor goes up, paid for by the answer\'s cash alone');
+    assert(lib.floorsAdded === 1 && (lib.status as string) === 'developing' && s.finance.cash === cash, 'a floor goes up, paid for by the answer\'s cash alone');
     lib.status = 'done'; lib.floorsAdded = 3;
     applyEffects(s, { libraryFloor: 1 });
     assert(lib.floorsAdded === 3 && lib.status === 'done', 'none past the top floor');
