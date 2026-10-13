@@ -53,13 +53,14 @@ const HOARDING = up(2.4);
 // now and then puts out a side shoot, with small lobed leaves alternating
 // along it. Laid out in the wall's own plane, so it climbs the wall at any
 // camera; drawn as one path per shade, however many leaves.
-const IVY_STEP_PX = 3.4;       // between leaf nodes up a stem, on screen
-const IVY_LEAF_PX = 1.9;       // a leaf's half-width, on screen
+const IVY_STEP_PX = 4.6;       // between leaf nodes up a stem, on screen
+const IVY_LEAF_PX = 2.2;       // a leaf's half-width, on screen
 
-// One ivy leaf: a pointed tip, two side lobes, a notch at the stalk; s is
+// One ivy leaf: a pointed tip, two side lobes, a notch at the stalk, in six
+// points (a map can hold many ivied buildings); s is
 // its half-width, a its turn.
 function leafPath(c: Pt, s: number, a: number): string {
-  const shape: [number, number][] = [[0, -1.15], [0.45, -0.45], [1, -0.3], [0.62, 0.35], [0.5, 0.75], [0, 0.45], [-0.5, 0.75], [-0.62, 0.35], [-1, -0.3], [-0.45, -0.45]];
+  const shape: [number, number][] = [[0, -1.15], [1, -0.25], [0.5, 0.75], [0, 0.4], [-0.5, 0.75], [-1, -0.25]];
   const cos = Math.cos(a); const sin = Math.sin(a);
   return shape.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${(c.x + (x * cos - y * sin) * s).toFixed(1)},${(c.y + (x * sin + y * cos) * s).toFixed(1)}`).join('') + 'Z';
 }
@@ -93,7 +94,7 @@ function Ivy({ t, f, salt = 0 }: { t: Buildable; f: ReturnType<typeof boxFaces>;
         q = at(u, v0 + ((vMax - v0) * i) / steps);
         d += `L${q.x.toFixed(1)},${q.y.toFixed(1)}`;
         leafAt(q, i % 2 === 0 ? 1 : -1, 0);
-        if (r(seq++) < 0.45) leafAt(q, i % 2 === 0 ? -1 : 1, 0.3);
+        if (r(seq++) < 0.2) leafAt(q, i % 2 === 0 ? -1 : 1, 0.3);
         // A side shoot, now and then, a few nodes up and away.
         if (depth === 0 && i > 1 && i < steps - 1 && r(seq++) < 0.18) {
           const v = v0 + ((vMax - v0) * i) / steps;
@@ -106,7 +107,7 @@ function Ivy({ t, f, salt = 0 }: { t: Buildable; f: ReturnType<typeof boxFaces>;
       stems.push(d);
     };
     // Runners by the wall's length, most at the corners.
-    const runners = Math.max(3, Math.round(wide / 14));
+    const runners = Math.max(3, Math.round(wide / 17));
     for (let i = 0; i < runners; i++) {
       const x = r(seq++);
       // Clear of the door at the wall's middle (buildingMotifs.tsx's doors).
