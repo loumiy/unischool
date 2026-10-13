@@ -6,7 +6,7 @@ Plan 76D relabelled the event choices whose truth needs a system the
 events couldn't reach, so each says what its effect does. This plan builds
 those systems, so the choices can say what a college would really do.*
 
-**Status: Proposed (12 October 2026).**
+**Status: Approved (13 October 2026): every decision as proposed. In progress.**
 
 ---
 
@@ -110,6 +110,41 @@ Two of the brief's quotes have already moved:
   years" once term limits are adopted.
 - **A test** for each of the eight: answer, advance past the cooldown, and
   check it doesn't recur, or recurs with the recall telling.
+
+**As implemented.**
+
+- **The record** is `CatalogueState.lastAnswer` (not `settled`, since it
+  holds every last answer, settling or not), written in
+  `resolveCatalogueEvent` whoever answers: the player, a seat or the clock.
+  The charter and the spring festival are recorded too, though neither
+  settles nor recalls. Load drops a malformed entry, or one naming an
+  event the catalog no longer has.
+- **The draw:** `settled(s, e)` reads it against the event's `settles`,
+  and `drawable` (the draw's filter, now exported) skips a settled event.
+- **The recall:** an event back after an answer listed in its `recalls`
+  saves that answer on the firing (`PendingCatalogueEvent.recall`) and
+  reads that telling, with `{answeredYear}` filled, in place of its own.
+- **The eight:**
+
+  | Event | Settles it | Recalled |
+  |---|---|---|
+  | the-boiler | replace | nurse, defer |
+  | the-master-key | key cards | rekey, keep looking |
+  | the-writing-requirement | require | leave it |
+  | the-grade-medians | publish the median | leave them |
+  | the-closing-bell | open all night | keep to midnight |
+  | the-term-limits | adopt | for new trustees only |
+  | the-flood | the defenses | dry out, move upstairs |
+  | the-land-offer | sell, lease | keep |
+
+  Since adopting term limits settles the event, the trustee of
+  twenty-six years is never named again.
+- **Tests:** `event-memory.test.ts` covers each settling answer and each
+  recall, the clock's answer as well as the player's, an event with no
+  memory, and the save.
+- **Balance** (`npm run sim`): every median matches the baseline. The
+  harness's answers rarely settle an event, and a settled one is only
+  absent from a draw that has plenty of others. The baseline is unchanged.
 
 ### PR 101C — Effects that land where they say
 

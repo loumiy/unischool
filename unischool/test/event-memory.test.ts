@@ -102,12 +102,14 @@ for (const id of MEMORY) {
   answer(s, 'the-boiler', 'nurse');
   const p = fire(s, eventById('the-boiler')!);
   s.catalogue!.lastAnswer!['gone-event'] = { choiceId: 'x', year: 3 };
+  s.catalogue!.lastAnswer!['university-charter'] = { choiceId: 'university', year: 20 };
   s.catalogue!.lastAnswer!['the-flood'] = { choiceId: 'repair', year: 'soon' as unknown as number };
   const read = readSave(exportSave(s).text);
   assert('state' in read, 'it saves and loads');
   if ('state' in read) {
     const c = read.state.catalogue!;
     assert(c.lastAnswer?.['the-boiler']?.choiceId === 'nurse', 'the last answer is kept');
+    assert(c.lastAnswer?.['university-charter'] !== undefined, 'the charter\'s too, raised rather than drawn');
     assert(c.lastAnswer?.['gone-event'] === undefined && c.lastAnswer?.['the-flood'] === undefined, 'one naming a lost event, or malformed, is dropped');
     assert(c.pending.find((x) => x.instanceId === p.instanceId)?.recall === 'nurse', 'a waiting recall is kept');
   }
