@@ -63,6 +63,8 @@ export type Action =
   | { type: 'DECLINE_OFFER'; programId: string }
   // Free, but the program goes dark for RELOCATION_WEEKS.
   | { type: 'RELOCATE_PROGRAM'; programId: string; hallId: string; slot: number }
+  // Plan 101H: close a housed program at once (techSystem.ts's closeProgram).
+  | { type: 'CLOSE_PROGRAM'; programId: string }
   // An office of the administration into a free slot of Founders Hall, for
   // its price (Plan 89, systems/administration/offices.ts); closing one
   // leaves its slot dark for OFFICE_CLOSING_WEEKS.

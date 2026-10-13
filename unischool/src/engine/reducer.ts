@@ -25,6 +25,7 @@ import {
   eligibleInstructors,
   foundProgram,
   relocateProgram,
+  closeProgram,
   swapInstructors,
 } from '../systems/techtree/techSystem';
 import { postSearch } from '../systems/faculty/facultySearch';
@@ -252,6 +253,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       relocateProgram(s, { programId: action.programId, hallId: action.hallId, slot: action.slot });
       return s;
     }
+
+    // The refusal lives in techSystem.ts, so the hall panel asks the same
+    // one before offering the button.
+    case 'CLOSE_PROGRAM':
+      return closeProgram(s, action.programId) ? s : state;
 
     // Plan 89: the gates and the mutations live in offices.ts, so the hall
     // panel asks the same refusal before offering the button.

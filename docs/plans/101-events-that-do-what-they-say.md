@@ -454,3 +454,48 @@ holding the rest.
   only for a program with no students in their final year.
 - **A migration** for the closed-program record. The harness never
   closes a program.
+
+**The owner's answers (13 October 2026).** Students are not tracked by
+program, so the plan's teach-out could not be read off them:
+
+| Question | Answer |
+|---|---|
+| How a closing plays out | **At once:** the slot frees, the courses lock and their teachers are freed that week. |
+| A course another program needs | **Refused** while a housed program needs it, naming who needs what. |
+| The school it helped found | **Stays founded.** |
+| Coming back | **Yes, from the offers,** its courses developed anew. |
+
+**As implemented.**
+
+- **`CLOSE_PROGRAM`** (`techSystem.ts`'s `closeProgram`, refused by
+  `closeRefusal`, which the hall panel asks too):
+  - frees the slot;
+  - locks every course of the program, calling one under development off
+    (its spend gone) and freeing its teacher;
+  - records `{ programId, year }` in `GameState.closedPrograms`;
+  - settles the hall claims and refills the offers, where the program may
+    turn up again;
+  - logs it.
+- **It never closes** a program not taught here, the college's last, or one
+  whose course a housed program's course needs, taught yet or not.
+- **The cost:** a closing dips the alumni's giving as a cut team does (6%
+  the year it goes, easing to nothing over five years, the two kinds
+  together capped at 20%). Prestige falls as it would: the courses are
+  gone.
+- **The hall panel** gives a housed program *Close this program…* under
+  *Move to another hall…*. It shows the refusal, or what closing does,
+  behind a confirmation.
+- **program-thin** names a program it could close
+  (`names.program: 'closable'`, and waits when there is none). Its new
+  answer *Close {program}* closes it. Its default, *Freeze its budget*, is
+  unchanged, so the harness never closes a program.
+- **The lever test** now allows *close {program}* only with the effect; a
+  building or a lab still cannot be closed from an event.
+- **Saves:** version 103, with a no-op migration (`noClosuresYet`). Load
+  drops a closing that names no program the game knows, or a year past
+  the save's. `test/fixtures/save-v102.json` is the version-101 fixture
+  carried forward.
+- **Tests:** `close-program.test.ts` covers the refusals, closing (slot,
+  courses, teachers, milestones, record, offers, log, giving), a refused
+  closing that changes nothing, program-thin's answer and its waiting, and
+  the save. `save-migrations` loads the version-102 fixture.

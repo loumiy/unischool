@@ -587,11 +587,13 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     weight: 3,
     cooldownYears: 5,
     when: { programsOver: 2, teachingUnder: 34, yearAtLeast: 6, enrolledOver: 200 },
+    names: { program: 'closable' },
     text: 'Enrollment in {program} is down for the fourth year. The department\'s case for keeping it is that it is the kind of thing a university should teach, which is true, and that it will recover, which is where the case becomes thinner.',
     timeoutWeeks: 4,
     choices: [
       { id: 'invest', label: 'Fund it properly', effects: { cash: -200000, quality: 1, mood: 1 } },
       { id: 'teach-out', label: 'Freeze its budget', effects: { mood: -2, warmth: -2 } },
+      { id: 'close', label: 'Close {program}', effects: { mood: -3, warmth: -2, closeProgram: 1 } },
     ],
     default: 'teach-out',
   },

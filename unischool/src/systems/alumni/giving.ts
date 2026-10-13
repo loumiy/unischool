@@ -48,7 +48,9 @@ export const CUT_GIVING_DIP_MAX = 0.2;
 
 export function cutGivingDip(s: GameState, year = s.clock.year): number {
   let dip = 0;
-  for (const c of s.orgs.cutPrograms ?? []) {
+  // A varsity program cut, or an academic one closed (Plan 101H): each dips
+  // the giving the same way.
+  for (const c of [...(s.orgs.cutPrograms ?? []), ...(s.closedPrograms ?? [])]) {
     const age = year - c.year;
     if (age < 0 || age >= CUT_GIVING_YEARS) continue;
     dip += CUT_GIVING_DIP * (1 - age / CUT_GIVING_YEARS);

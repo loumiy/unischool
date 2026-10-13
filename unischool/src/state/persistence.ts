@@ -25,7 +25,7 @@ import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } fr
 import { fellTrees } from '../data/treeData';
 import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
-import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes } from '../data/techData';
+import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes, programById } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS, LEGACY_START_FRACTION } from '../data/facultyData';
@@ -69,7 +69,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 102; // Plan 101F: the named funds
+export const SAVE_VERSION = 103; // Plan 101H: closed programs
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -380,6 +380,13 @@ function noFundsYet(state: GameState): void {
   if (state.advancement) delete state.advancement.funds;
 }
 
+// 102 -> 103, Plan 101H: a program can be closed. A save from before has
+// closed none; the version moves so a build that cannot close one refuses a
+// save that has.
+function noClosuresYet(state: GameState): void {
+  delete state.closedPrograms;
+}
+
 // What money bought (Plan 95X), on every load: the training classes and the
 // autumn festivals a whole year each, once, no later than the save's; the
 // wing and the phase a year, or absent. Anything else is dropped, which only
@@ -406,6 +413,16 @@ function sanitizeCutPrograms(state: GameState): void {
     typeof c === 'object' && c !== null && typeof c.sport === 'string' && KNOWN_SPORT_IDS.has(c.sport)
       && Number.isInteger(c.year) && c.year >= 1 && c.year <= state.clock.year
   )).map((c) => ({ sport: c.sport, year: c.year }));
+  // The academic programs closed (Plan 101H): a program the game knows and
+  // a year no later than the save's, or nothing.
+  if (state.closedPrograms !== undefined) {
+    const raw = state.closedPrograms as unknown;
+    const kept = (Array.isArray(raw) ? raw : []).filter((c): c is { programId: string; year: number } => (
+      typeof c === 'object' && c !== null && typeof c.programId === 'string' && programById(c.programId) !== undefined
+        && Number.isInteger(c.year) && c.year >= 1 && c.year <= state.clock.year
+    )).map((c) => ({ programId: c.programId, year: c.year }));
+    if (kept.length > 0) state.closedPrograms = kept; else delete state.closedPrograms;
+  }
   // A booster club's gift (Plan 101E): a year and a sum, or nothing.
   const gift = state.orgs.boosterGift as unknown as { year?: unknown; amount?: unknown } | undefined;
   if (gift !== undefined && !(typeof gift === 'object' && gift !== null && Number.isInteger(gift.year) && Number.isFinite(gift.amount) && (gift.amount as number) >= 0)) delete state.orgs.boosterGift;
@@ -641,6 +658,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   99: legacyStarts,
   100: gazeboJoins,
   101: noFundsYet,
+  102: noClosuresYet,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a

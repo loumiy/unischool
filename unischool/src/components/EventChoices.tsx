@@ -95,6 +95,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
         break;
       }
       case 'boosterGift': out.push(`${money(v)} to the athletics department this year`); break;
+      case 'closeProgram': out.push(`${vars.program ?? 'the program'} closes, its courses ended`); break;
       case 'repairGift': {
         const repairs = repairsOf(s, v);
         if (repairs > 0) out.push(`${money(repairs)} of repairs done`);
