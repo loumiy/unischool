@@ -50,6 +50,15 @@ Read against `main` at `9cec56b` plus PR #341.
   - **Text on the map:** building labels are an SVG layer (`BuildingLabel`, `CampusMap.tsx:420`, Plan 47). Wall lettering exists, slanted to the wall (chapter houses, `buildingMotifs.tsx:6015`; the gate's `Inscription`, `landmarks.tsx:960`), and canvas text goes through `drawText` (`canvasPaint.ts:1339`).
   - **Zoom** is `view.zoom` from 0.22 to 2.5. Nothing changes what is drawn by zoom today. "Zoom 3" in the old note meant three presses of + in the review tool, not a game value.
 
+- **Walks** (`components/pathways.tsx`, `buildPathGeometry`) are drawn
+  tile by tile. An exposed outer corner is rounded, and two tiles that meet
+  only at a corner are bridged across it (Plan 24F), so a corner-joined
+  diagonal already draws straight. A run drawn as **edge-joined steps**
+  (east, south, east, south…) still draws as a staircase: the October
+  reviews' A1-7 and B1-4. The owner discarded it on 12 October as
+  *Walks that draw straight* and brought it back on 13 October as this
+  plan's PR E.
+
 ## 1. Decisions for the owner
 
 | # | Question | Proposed |
@@ -60,6 +69,7 @@ Read against `main` at `9cec56b` plus PR #341.
 | 4 | The gazebo's numbers | 250k, 12 weeks, upkeep 400/wk, beauty 0.8, a 3×3 footprint. Between the statue and the fountain. |
 | 5 | How close the camera is before door signs show | **From `view.zoom` ≥ 1.4**, about three presses of + from the default, matching the old note. |
 | 6 | What a sign says | The building's display name, shortened to fit the plate. A donor's name shows as the building's name does today. |
+| 7 | How a stepped walk is smoothed (added 13 October, PR E) | **Chamfer the steps:** fill the inner corner of each step and trim its outer corner, so the edge runs straight at 45°. It keeps the walk a tile wide and keeps the tiles as the data. The other option, a polyline drawn over the tiles, would change every walk's look, not just the stepped ones. |
 
 ## Rules for every PR in this plan
 
@@ -78,7 +88,8 @@ Read against `main` at `9cec56b` plus PR #341.
 | A | This plan | — |
 | B | The garden at a later milestone | — |
 | C | The gazebo | B (the ladder lines) |
-| D | Door signs | — |
+| D | Door signs — **dropped** (13 October) | — |
+| E | Walks that draw straight (the staircase bug, added 13 October) | — |
 
 ### PR 99B — The garden at a later milestone
 
@@ -128,7 +139,47 @@ Read against `main` at `9cec56b` plus PR #341.
 - **Optional, if it fits:** the gazebo as an event's promise target in
   Plan 101's statue PR (a donor's gazebo). Noted there, not built here.
 
-### PR 99D — Door signs
+**As implemented.**
+
+- **Data:** `AMENITY-GAZEBO` as decision 4 sets it, a 3×3 footprint, and
+  `town`'s buildables and `opens` line. Its build-menu sentence: "An open
+  eight-sided pavilion with a railing and a pointed roof: where the band
+  plays on summer evenings, and where half the campus has been proposed to."
+- **Art:**
+  - The ground is a lawn, a paved ring the footprint's size, and a paved
+    step to the front edge. The step faces the front edge, not the
+    nearest walk: the ground paint has no path context.
+  - The raised part is a stone floor, eight posts and a railing in the
+    style's trim (white where a style has none, as Modern), and an
+    octagonal roof to a finial. The roof is the style's pitched roof
+    where it sets one (Gothic slate, Mission tile), else its brick halls'
+    roof. Far posts and rails are drawn before near ones.
+  - `groundProps` takes the vernacular, and the map, the build-menu
+    thumbnails and the contact sheet pass it.
+  - **No fall-through:** both switches name each amenity, and an unknown
+    one draws nothing raised. `amenity-art.test.ts` checks that every
+    open-ground amenity has a branch and isn't drawn as the fountain.
+  - The contact sheet's headroom for open ground goes from 40 to 90, so
+    the gazebo isn't clipped. The asset gallery is regenerated (the
+    gazebo is in `docs/assets/grounds-2.jpg`, every vernacular).
+- **Migration:** `SAVE_VERSION` 101 (`gazeboJoins`) adds the gazebo to an
+  older save, open if it's past A town's worth, else locked.
+  `save-v100.json` is a Guided run in year 7, past the town and short of
+  the city, written before the bump. `save-migrations.test.ts` checks
+  that the gazebo arrives open, once, and arrives locked short of the
+  town.
+- **Balance:** the plan expected no move, but the Completionist builds the
+  cheapest amenity on the menu, so it builds the gazebo at the town. Year
+  50: 2nd (3rd after 99B), prestige 116.1 (+4.3 on 99B's baseline). No other
+  player moves. The baseline is re-recorded.
+
+### PR 99D — Door signs (dropped)
+
+**Dropped by the owner on 13 October.** It was built (#353): a plate centred
+over each front door, from zoom 1.4. The owner looked at it and decided
+against it, and the PR was closed without merging. The section below is
+the plan as it stood.
+
 
 - **What:** a small plate on the wall beside each building's front door,
   with its name. Buildings with no door get none (grounds, stadium,
@@ -154,3 +205,27 @@ Read against `main` at `9cec56b` plus PR #341.
   - a review-tool view at zoom 1.5 in each vernacular, in the PR;
   - the canvas and SVG maps agree (the SVG fallback draws the same plates);
   - `tools/keyboardCheck.mjs` still passes.
+
+### PR 99E — Walks that draw straight
+
+The staircase bug (A1-7, B1-4): a diagonal walk drawn as edge-joined steps
+reads as a zigzag.
+
+- **What:** in `buildPathGeometry`, find each step, an L of three tiles
+  where the walk turns one way and then back. Fill the triangle in the
+  step's inner corner and trim the triangle off its outer corner, so a run
+  of steps has two straight 45° edges (decision 7). A single turn, where
+  the walk turns and goes on, keeps its rounded corner. Corner-joined runs
+  keep their bridges.
+- **The tiles stay the data.** Quads, reachability, walkers and the path
+  tools read the same squares. It's drawing only, so no save change.
+- **Both maps:** the canvas map draws the same geometry
+  (`canvasArt.ts` via `buildPathGeometry`), so one change covers both.
+- **Checks:**
+  - a geometry test: an edge-joined 45° run draws edges that are straight
+    lines (each step's chamfer points collinear), a single turn is
+    unchanged, and a corner-joined run is unchanged;
+  - before/after shots of the review tool's `diagonal` and `curve`
+    arrangements, in the PR;
+  - the walkers still keep to the paving (`walk-routes.test.ts`).
+- The backlog archive's *Walks that draw straight* says it landed.

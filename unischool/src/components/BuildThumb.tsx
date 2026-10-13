@@ -37,7 +37,7 @@ export function ThumbDrawing({ t, vernacular }: { t: Buildable; vernacular: Vern
   const grounds = motifOf(t) === 'grounds';
   const lift = drawnHeightOf(t, developing, vernacular);
   const props = grounds
-    ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0))
+    ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, vernacular))
     : [];
   return (
     <svg className="campus-map-svg" xmlns="http://www.w3.org/2000/svg">
