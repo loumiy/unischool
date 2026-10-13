@@ -361,6 +361,48 @@ Two of the brief's quotes have already moved:
 - **The Treasury** lists the funds, each with its name, principal and
   what it paid this year.
 
+**As implemented.**
+
+- **The record:** `Advancement.funds`, each `{ id, name, purpose, principal,
+  year, field?, holderId? }` (`systems/alumni/funds.ts`). An answer
+  declares `fund: { purpose, name }`. The gift its effects already put into
+  the endowment becomes the principal, so the money is not counted twice.
+- **What a fund pays:** its principal times the draw rate a year. When the
+  endowment falls below the funds' principal, they pay in proportion
+  (`fundShare`).
+  - **A scholarship's income is student aid:** a new expense line, *Student
+    aid*, spent rather than reaching cash. Applicants read the price net of
+    it (`netTuition`, the aid a year over the students enrolled) in the
+    funnel, the summer's preview and the demand's what-if. The summer shows
+    "$X/yr after aid", and its price tier reads the net price. The class is
+    still billed the listed price.
+  - **A chair's income** pays toward its holder's salary, which the
+    college would have paid anyway, so the cash is unchanged. It goes to
+    the strongest professor in the field of the one it is named for (not
+    them, as they are retiring), and on to the next by the same rule when
+    they leave. The holder is read, never stored after the first.
+- **The Treasury** lists each fund under the endowment: its name, its
+  principal, and its aid a year or the part of its holder's salary it
+  pays. The person page says "Holds the X Chair".
+- **The events:**
+  - tuition-letter: *Endow a hardship fund*, in place of a one-off fund.
+  - the-statue-donor: *Offer to name an endowed fund instead* endows
+    "The Benefactor's Scholarship".
+  - the-last-lecture: *Endow a scholarship in their name*. Its text's "her
+    office" now reads "their office", as the professor is named.
+  - founding-faculty-last: *Endow a chair in their name*.
+  - **Read and left:** the-name-on-the-prize. The prize in its text is not
+    a fund the college holds, and its answers already move the endowment.
+- **Saves:** version 102, with a no-op migration (`noFundsYet`), so a build
+  without funds refuses a save that holds some. Load drops a malformed
+  fund. `test/fixtures/save-v101.json` is the version-100 fixture carried
+  forward.
+- **Tests:** `event-funds.test.ts` covers the scholarship (principal, aid,
+  the statement, the net price, a short endowment), the chair (named,
+  field, holder, its successor), no fund without a gift, and the save. The
+  treasury test's every-line state holds a scholarship. `save-migrations`
+  loads the version-101 fixture.
+
 ### PR 101G — The levers and clocks that don't exist
 
 - **Each of endowment-manager, two-body's "nothing is possible",
