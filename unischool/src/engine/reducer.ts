@@ -10,7 +10,7 @@ import { appointSeat, setSeatPolicy, tickStaffing } from '../systems/delegation/
 import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, dropBoardLetters, shiftBoardLetter, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
-  RENOVATION_WEEKS, canDeclareHistoric, facilityUpkeepOf, isPriceUpkept, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
+  RENOVATION_WEEKS, canDeclareHistoric, facilityUpkeepOf, isPriceUpkept, startLibraryFloor, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
 } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
 import { CAMPUS_GRID_WIDTH, COLLEGE_NAME_MAX, LOG_CAP, SUMMER_LAST_BEAT, bareSchoolName, institutionName } from '../state/types';
@@ -896,27 +896,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Renovates the tier-1 library in place (see nextLibraryFloor): the same
-    // node goes back to 'developing' at its placed spot, with its effects
-    // raised at the start. renovatingFrom records what it served before, and
-    // the satisfaction sums read that while developing (see types.ts's
-    // servingPopulation), so existing floors keep working during the work.
+    // Renovates the tier-1 library in place (see nextLibraryFloor), once
+    // paid for (estate.ts's startLibraryFloor).
     case 'RENOVATE_LIBRARY': {
       const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
       const plan = node && !constructionFrozen(s) ? nextLibraryFloor(node) : null;
-      if (node && plan && node.status === 'done' && payForWorks(s, plan.cost)) {
-        const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
-        node.renovatingFrom = node.effects?.servesPopulation ?? 0;
-        node.status = 'developing';
-        s.developing[node.id] = plan.weeks;
-        node.floorsAdded = (node.floorsAdded ?? 0) + 1;
-        node.effects = {
-          ...node.effects,
-          servesPopulation,
-          // A share of what it and its floors cost (Plan 80F).
-          upkeepPerWeek: facilityUpkeepOf(node),
-        };
-      }
+      if (node && plan && node.status === 'done' && payForWorks(s, plan.cost)) startLibraryFloor(s);
       return s;
     }
 

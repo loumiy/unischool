@@ -29,8 +29,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A section of roof has come off {building} in the night. Facilities has cordoned off the ground beneath it and described the timber, in writing, as \'no longer load-bearing in the usual sense\'.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'fix', label: 'Fix it properly now', effects: { cash: -900000, backlog: -900000, mood: 2 } },
-      { id: 'tarpaulin', label: 'Tarp it and wait', effects: { cash: -60000, backlog: 250000, mood: -3 } },
+      { id: 'fix', label: 'Fix it properly now', effects: { cash: -900000, backlogOn: -900000, mood: 2 } },
+      { id: 'tarpaulin', label: 'Tarp it and wait', effects: { cash: -60000, backlogOn: 250000, mood: -3 } },
     ],
     default: 'tarpaulin',
   },
@@ -171,8 +171,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The inspector has condemned the boiler in {building} and left a notice on it in a color the college has not seen before. The boiler room has been locked and the key is with Facilities, who would like it on record that they have mentioned the boiler twice.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'replace', label: 'Replace the boiler', effects: { cash: -700000, backlog: -200000, mood: 1 } },
-      { id: 'space-heaters', label: 'Space heaters for the term', effects: { cash: -40000, mood: -2, backlog: 120000 } },
+      { id: 'replace', label: 'Replace the boiler', effects: { cash: -700000, backlogOn: -200000, mood: 1 } },
+      { id: 'space-heaters', label: 'Space heaters for the term', effects: { cash: -40000, mood: -2, backlogOn: 120000 } },
     ],
     default: 'space-heaters',
   },
@@ -187,8 +187,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The surveyor\'s report on {building} notes, in passing, that the ivy on the west face is now doing some of the work the west face used to do. The Alumni Office has asked whether the ivy could be declared historic too.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'rebuild', label: 'Take it off and tuckpoint', effects: { cash: -450000, backlog: -300000, warmth: -2 } },
-      { id: 'leave', label: 'Leave the ivy where it is', effects: { backlog: 180000, warmth: 2 } },
+      { id: 'rebuild', label: 'Take it off and tuckpoint', effects: { cash: -450000, backlogOn: -300000, warmth: -2 } },
+      { id: 'leave', label: 'Leave the ivy where it is', effects: { backlogOn: 180000, warmth: 2 } },
     ],
     default: 'leave',
   },
@@ -203,8 +203,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'Slates have been coming off {building} in ones and twos for a month. Nobody has been hit. The facilities office has begun describing this as the college\'s good fortune rather than its policy.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'reslate', label: 'Re-roof that side', effects: { cash: -350000, backlog: -400000 } },
-      { id: 'netting', label: 'Netting and a cordon', effects: { cash: -25000, backlog: 150000, mood: -1 } },
+      { id: 'reslate', label: 'Re-roof that side', effects: { cash: -350000, backlogOn: -400000 } },
+      { id: 'netting', label: 'Netting and a cordon', effects: { cash: -25000, backlogOn: 150000, mood: -1 } },
     ],
     default: 'netting',
   },
@@ -219,7 +219,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The town has written about {building}. The letter is courteous for two paragraphs and then uses the word \'eyesore\', which the secretary has underlined. A photograph is enclosed, taken from the road, in the rain.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'repair', label: 'Put it right', effects: { cash: -1200000, backlog: -900000 } },
+      { id: 'repair', label: 'Put it right', effects: { cash: -1200000, backlogOn: -900000 } },
       { id: 'hoarding', label: 'A construction fence and a sign about future plans', effects: { cash: -50000, mood: -1 } },
     ],
     default: 'hoarding',
@@ -235,8 +235,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A survey of {building} ahead of any renovation has found asbestos in the ceiling voids, the pipe insulation and, unexpectedly, the stage curtain of the lecture theater. The contractor is being very calm about it, which is worse.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'strip', label: 'Strip it out properly', effects: { cash: -1600000, backlog: -200000, mood: -1 } },
-      { id: 'seal', label: 'Seal and manage in place', effects: { cash: -300000, backlog: 400000 } },
+      { id: 'strip', label: 'Strip it out properly', effects: { cash: -1600000, backlogOn: -200000, mood: -1 } },
+      { id: 'seal', label: 'Seal and manage in place', effects: { cash: -300000, backlogOn: 400000 } },
     ],
     default: 'seal',
   },
@@ -402,7 +402,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The Finance Committee has noticed the draw. One member has prepared a chart showing what the fund would be worth in thirty years at the current rate and has brought copies, which is the part the CFO objects to.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'cut', label: 'Put a year\'s excess draw back', effects: { cash: -600000, endowment: 600000 } },
+      { id: 'cut', label: 'Put a year\'s excess draw back and lower the rate', effects: { cash: -600000, endowment: 600000, drawRate: -0.005 } },
       { id: 'defend', label: 'Defend the rate', effects: {} },
     ],
     default: 'defend',
@@ -603,7 +603,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A private library is coming up: eleven thousand volumes, a working collection rather than a beautiful one, from a scholar who taught here briefly and disliked it. The heirs would prefer it went somewhere it would be used.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'buy', label: 'Buy the collection', effects: { cash: -400000, quality: 2 } },
+      { id: 'buy', label: 'Buy the collection', effects: { cash: -400000, quality: 2, libraryFloor: 1 } },
       { id: 'selective', label: 'Take what the programs need', effects: { cash: -80000, quality: 1 } },
       { id: 'pass', label: 'Pass on it', effects: { quality: -1 } },
     ],
@@ -936,7 +936,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     timeoutWeeks: 3,
     choices: [
       { id: 'campaign', label: 'Ask the major donors', effects: { cash: -250000, endowment: 3000000, warmth: -1 } },
-      { id: 'restraint', label: 'Put a year\'s draw back', effects: { cash: -500000, endowment: 900000 } },
+      { id: 'restraint', label: 'Put a year\'s draw back and lower the rate', effects: { cash: -500000, endowment: 900000, drawRate: -0.005 } },
       { id: 'nothing', label: 'Leave it', effects: {} },
     ],
     default: 'nothing',
@@ -1275,7 +1275,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'A pipe above the second floor of {building} burst on Saturday and ran until Monday, when the first seminar of the week found it. The ceiling tiles are drying in the corridor, stacked and numbered by somebody from the security desk, which Facilities describes as the most useful thing done all weekend.',
     timeoutWeeks: 2,
     choices: [
-      { id: 'replace', label: 'Replace the whole run of pipe', effects: { cash: -220000, backlog: -250000, mood: 1 } },
+      { id: 'replace', label: 'Replace the whole run of pipe', effects: { cash: -220000, backlogOn: -250000, mood: 1 } },
       { id: 'patch', label: 'Repair the burst and dry it out', effects: { cash: -18000, mood: -2 } },
     ],
     default: 'patch',
@@ -1328,9 +1328,9 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'Rain has been getting into {building} along the valley gutter, and there are now nine buckets in the top-floor corridor. The custodians empty them twice a day and have begun logging the volumes in a notebook, which they would like someone senior to read, because the numbers are going up.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'reroof', label: 'Reroof the building', effects: { cash: -500000, backlog: -450000, mood: 1 } },
-      { id: 'gutter', label: 'Reline the gutter', effects: { cash: -45000, backlog: 120000 } },
-      { id: 'buckets', label: 'Keep emptying the buckets', effects: { backlog: 300000, mood: -2 } },
+      { id: 'reroof', label: 'Reroof the building', effects: { cash: -500000, backlogOn: -450000, mood: 1 } },
+      { id: 'gutter', label: 'Reline the gutter', effects: { cash: -45000, backlogOn: 120000 } },
+      { id: 'buckets', label: 'Keep emptying the buckets', effects: { backlogOn: 300000, mood: -2 } },
     ],
     default: 'buckets',
   },
@@ -1345,8 +1345,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The elevator in {building} has stopped between floors for the fourth time this term, most recently for fifty minutes with a department chair inside it. The chair used the time to draft a memo about the elevator, which has now arrived, and which notes that for some students the stairs are not an alternative.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'replace', label: 'Replace the elevator', effects: { cash: -280000, backlog: -150000, mood: 2 } },
-      { id: 'service', label: 'Service it and post a notice', effects: { cash: -12000, backlog: 80000, mood: -2 } },
+      { id: 'replace', label: 'Replace the elevator', effects: { cash: -280000, backlogOn: -150000, mood: 2 } },
+      { id: 'service', label: 'Service it and post a notice', effects: { cash: -12000, backlogOn: 80000, mood: -2 } },
     ],
     default: 'service',
   },
@@ -2020,7 +2020,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'An outside reader in {program} noticed that four senior theses shared a bibliography, down to the same misspelled author. The inquiry that followed has found a paid essay service run from an apartment off campus, a customer list of a hundred and forty names, and a price list the Registrar describes as \'competitive\'. Some of the names have already graduated.\n\nMost of the students on the list were frightened of failing, and Student Affairs would like that to count. The Senate would like the degrees to mean what they say. Both are right, which is why it has come to the President.',
     timeoutWeeks: 5,
     choices: [
-      { id: 'rescind', label: 'Rescind the degrees and fail the rest', effects: { cash: -300000, quality: 2, mood: -5, enrollment: -40, warmth: -2 } },
+      { id: 'rescind', label: 'Rescind the degrees and fail the rest', effects: { cash: -300000, quality: 2, mood: -5, enrollmentSpread: -40, warmth: -2 } },
       { id: 'resit', label: 'Require retakes and note it on the record', effects: { cash: -250000, quality: 1, mood: -2 } },
       { id: 'quiet', label: 'Close the service and move on', effects: { quality: -2 } },
     ],
@@ -2125,8 +2125,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     timeoutWeeks: 5,
     choices: [
       { id: 'grout', label: 'Survey and grout the whole campus', effects: { cash: -3400000, backlog: -500000, mood: 1 } },
-      { id: 'fill', label: 'Fill this one', effects: { cash: -800000, backlog: 1600000 } },
-      { id: 'fence', label: 'Fence it and defer the survey', effects: { cash: -120000, backlog: 1000000, mood: -3, warmth: -2 } },
+      { id: 'fill', label: 'Fill this one', effects: { cash: -800000, backlogOn: 1600000 } },
+      { id: 'fence', label: 'Fence it and defer the survey', effects: { cash: -120000, backlogOn: 1000000, mood: -3, warmth: -2 } },
     ],
     default: 'fill',
   },
