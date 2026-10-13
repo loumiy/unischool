@@ -2,7 +2,7 @@ import type { Buildable, GameState, SatisfactionAttributes } from '../../state/t
 import { standsOnCampus } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
-import { claimedHalls, hallDisplayName, homeHalls, homeSchool, schoolHall } from '../techtree/schools';
+import { CLAIM_AT, claimedHalls, claimedSchool, hallDisplayName, homeSchool, schoolHall } from '../techtree/schools';
 import { seatingAsk } from './seating';
 import { establishAsk } from './establish';
 import { isHoused, schoolOffers } from '../techtree/programOffers';
@@ -14,7 +14,7 @@ import { eventById, eventText, fill } from '../events/catalogue';
 import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
-import { pct, satisfactionFigure, weeksProse } from '../../format';
+import { countWord, pct, satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
 import { PARK_WORDS, parkStands } from '../../data/researchParkData';
 import { specializationOf } from '../prestige/specialization';
@@ -143,7 +143,13 @@ function freeSlot(s: GameState): NextStep | null {
     const program = programById(id);
     const home = program ? schoolHall(s, program.school) : undefined;
     if (program && home && hasRoom(home)) {
-      return { text: `${nameOf(home)} has room for ${program.name}, on offer — it teaches ${program.school}`, go: 'hall', hallId: home, intent: { kind: 'found', hallId: home, programId: program.id } };
+      // Short of three, the line says how many more make it the school's
+      // hall (Plan 100): until then the hall founds from the offers.
+      const short = claimedSchool(s, home) ? 0 : CLAIM_AT - (homeSchool(s, home)?.housed ?? 0);
+      const tail = short > 0
+        ? ` — found ${countWord(short)} more ${program.school} ${short === 1 ? 'program' : 'programs'} here to make it ${program.school}'s hall`
+        : ` — it teaches ${program.school}`;
+      return { text: `${nameOf(home)} has room for ${program.name}, on offer${tail}`, go: 'hall', hallId: home, intent: { kind: 'found', hallId: home, programId: program.id } };
     }
   }
   const open = Object.keys(s.halls).find((hallId) => {
@@ -186,7 +192,9 @@ function freeSlot(s: GameState): NextStep | null {
   // Every free program slot is some school's. Founders Hall, once a
   // school's home (Plan 59), still founds from the draw; a purchased hall
   // whose school has nothing left to found is filled only by a move.
-  const claimed = homeHalls(s).find((c) => hasRoom(c.hallId));
+  // A hall short of a claim takes the offers, so only a claimed hall can be
+  // waiting on its own school (Plan 100).
+  const claimed = claimedHalls(s).find((c) => hasRoom(c.hallId));
   if (!claimed) return null;
   return claimed.hallId === FOUNDERS_HALL_ID
     ? { text: `${nameOf(FOUNDERS_HALL_ID)} has room for ${claimed.school} when one is on offer`, intent: { kind: 'wait' } }

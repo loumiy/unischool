@@ -1,12 +1,12 @@
 import type { GameState } from '../../state/types';
-import { isAcademicHall, programById, programs } from '../../data/techData';
-import { closestSchool, homeSchool, hallDisplayName, schoolFoundedKey, type SchoolProgress } from '../techtree/schools';
+import { FOUNDERS_HALL_ID, isAcademicHall, programById, programs } from '../../data/techData';
+import { CLAIM_AT, claimedSchool, closestSchool, homeSchool, hallDisplayName, schoolFoundedKey, type SchoolProgress } from '../techtree/schools';
 import { isHoused, isInTransit, offeredIn, slotOf, transitWeeks } from '../techtree/programOffers';
 import type { StepIntent } from './intent';
 import { slotFree } from '../administration/offices';
 import { eligibleInstructors } from '../techtree/techSystem';
 import { searchWeeksLeft } from '../faculty/facultySearch';
-import { weeksProse } from '../../format';
+import { countWord, weeksProse } from '../../format';
 
 // Establishing a school (Plan 80D), the line the letters and the next-step
 // line give once a second academic hall stands: "Establish a school: six
@@ -74,7 +74,12 @@ function stepText(s: GameState, p: SchoolProgress, intent: StepIntent): string |
         const left = searchWeeksLeft(s, field);
         return left > 0 ? `the search in ${field} has ${weeksProse(left)} to run` : `post a search in ${field}`;
       }
-      return `found ${programName(intent.programId)} in ${hallName(intent.hallId)}`;
+      // A purchased hall short of three: how many more make it the
+      // school's (Plan 100).
+      const short = intent.hallId !== FOUNDERS_HALL_ID && !claimedSchool(s, intent.hallId) ? CLAIM_AT - p.housed : 0;
+      const tail = short === 1 ? ` to make it ${p.school}'s hall`
+        : short > 1 ? `, one of ${countWord(short)} more ${p.school} programs that make it ${p.school}'s hall` : '';
+      return `found ${programName(intent.programId)} in ${hallName(intent.hallId)}${tail}`;
     }
     case 'wait': {
       // The first of the school's programs to arrive in the hall.

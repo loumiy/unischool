@@ -24,7 +24,7 @@ import {
 import { courseQuality, facultyLoads, projectedQuality } from '../../src/systems/faculty/facultyAssignment';
 import { GRADE_A, qualityOf, tierOf } from '../../src/data/courseQuality';
 import { CROWDING_GRACE, crowdingCoverages } from '../../src/systems/prestige/prestigeSystem';
-import { claimedHalls, claimedSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
+import { claimedHalls, claimedSchool, homeSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
 import { declineRefusal, schoolOffers } from '../../src/systems/techtree/programOffers';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
 import { bedsWithDowntown } from '../../src/systems/satisfaction/satisfactionSystem';
@@ -52,22 +52,40 @@ function freeSlotIn(s: GameState, hallId: string): number {
   return s.halls[hallId]?.findIndex(slotFree) ?? -1;
 }
 
-// Where a new major belongs (Plan 55's line of play): its school's hall if
-// that has room; else a hall no school claims — Founders Hall first, then
-// a mixed one, then an empty one.
+// Where a new major belongs (Plan 55's line of play, Plan 100's claim):
+// its school's hall if that has room; else a purchased hall its school
+// leads (the most programs there, no school at three); else a hall that is
+// no school's: Founders Hall first, then a mixed one, then an empty one.
+// Never a hall another school claims, which founds only its own.
 export function homeFor(s: GameState, program: ProgramInfo): { hallId: string; slot: number } | null {
   const own = schoolHall(s, program.school);
   if (own !== undefined) {
     const slot = freeSlotIn(s, own);
     if (slot >= 0) return { hallId: own, slot };
   }
+  const academic = (hallId: string) => {
+    const hall = s.tech.find((t) => t.id === hallId);
+    return !!hall && isAcademicHall(hall) && freeSlotIn(s, hallId) >= 0;
+  };
+  const led = Object.keys(s.halls).find((hallId) => academic(hallId) && hallId !== FOUNDERS_HALL_ID
+    && claimedSchool(s, hallId) === null && leadOf(s, hallId) === program.school);
+  if (led !== undefined) return { hallId: led, slot: freeSlotIn(s, led) };
   const open = Object.keys(s.halls)
-    .filter((hallId) => {
-      const hall = s.tech.find((t) => t.id === hallId);
-      return !!hall && isAcademicHall(hall) && claimedSchool(s, hallId) === null && freeSlotIn(s, hallId) >= 0;
-    })
+    .filter((hallId) => academic(hallId) && homeSchool(s, hallId) === null && claimedSchool(s, hallId) === null)
     .sort((a, b) => (a === FOUNDERS_HALL_ID ? -1 : b === FOUNDERS_HALL_ID ? 1 : 0));
   return open.length > 0 ? { hallId: open[0], slot: freeSlotIn(s, open[0]) } : null;
+}
+
+// The school with the most programs in a hall, alone; undefined on a tie or
+// an empty hall.
+function leadOf(s: GameState, hallId: string): string | undefined {
+  const counts = new Map<string, number>();
+  for (const slot of s.halls[hallId] ?? []) {
+    const program = slot.programId ? programById(slot.programId) : undefined;
+    if (program) counts.set(program.school, (counts.get(program.school) ?? 0) + 1);
+  }
+  const ranked = [...counts].sort((a, b) => b[1] - a[1]);
+  return ranked.length > 0 && (ranked.length === 1 || ranked[0][1] > ranked[1][1]) ? ranked[0][0] : undefined;
 }
 
 // What can be founded now, and where it belongs (Plan 78D): each claimed
@@ -160,8 +178,18 @@ export function buildable(s: GameState, reserve = 0): Buildable[] {
 }
 
 // Site the next academic hall in the chain.
+// The next academic hall, when no open purchased hall (one no school
+// claims or is home to) has a free slot (Plan 100): a hall still open takes
+// the global offers, so a new one would only stand empty.
 export function siteNextHall(g: Game, { reserve = 0 }: MoveOptions = {}): boolean {
-  const hall = buildable(g.s, reserve).find((t) => isAcademicHall(t));
+  const s = g.s;
+  const openRoom = Object.keys(s.halls).some((hallId) => {
+    if (hallId === FOUNDERS_HALL_ID) return false;
+    const hall = s.tech.find((t) => t.id === hallId);
+    return !!hall && isAcademicHall(hall) && hall.status === 'done' && homeSchool(s, hallId) === null && freeSlotIn(s, hallId) >= 0;
+  });
+  if (openRoom) return false;
+  const hall = buildable(s, reserve).find((t) => isAcademicHall(t));
   return hall ? site(g, hall) : false;
 }
 
