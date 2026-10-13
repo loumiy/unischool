@@ -33,7 +33,7 @@ import { GRADUATE_HOSTS } from '../../src/data/projectData';
 import { initiativeOffers } from '../../src/data/researchData';
 import { canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, hasFreeFacultySlot } from '../../src/systems/techtree/techSystem';
 import { hostOffers } from '../../src/systems/techtree/programOffers';
-import { claimedSchool, schoolFoundedKey } from '../../src/systems/techtree/schools';
+import { homeSchool, schoolFoundedKey } from '../../src/systems/techtree/schools';
 import { financeBreakdown, weeklyNet } from '../../src/systems/finance/financeSystem';
 import { priceTolerance } from '../../src/systems/admissions/admissionsSystem';
 import { playerRank } from '../../src/systems/rivals/rivalsSystem';
@@ -296,7 +296,7 @@ export function createGuidedPlayer(): Player & { record: GuidedRecord } {
       if (s.milestones[schoolFoundedKey(school.schoolName)] && record.schools[school.schoolName] === undefined) record.schools[school.schoolName] = s.clock.year;
     }
     const housed = (s.halls[FOUNDERS_HALL_ID] ?? []).filter((x) => x.programId !== null).length;
-    if (record.foundersHome === null && claimedSchool(s, FOUNDERS_HALL_ID) !== null) record.foundersHome = s.clock.year;
+    if (record.foundersHome === null && homeSchool(s, FOUNDERS_HALL_ID) !== null) record.foundersHome = s.clock.year;
     if (s.clock.year !== lastYear) {
       lastYear = s.clock.year;
       record.years.push({
