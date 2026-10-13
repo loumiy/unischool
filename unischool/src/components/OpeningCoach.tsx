@@ -1,7 +1,7 @@
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
 import { OPENING_STEPS } from '../data/openingData';
-import { isActivationTarget, useHotkeys } from './hotkeys';
+import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 
 // The opening walkthrough's card. state/opening.ts owns the stages and
 // data/openingData.ts the copy; this only draws the current step. The
@@ -26,7 +26,7 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, onOpenBuild,
   const step = stage === 'play' ? null : OPENING_STEPS[stage];
 
   useHotkeys((e) => {
-    if (e.key !== 'Enter' || !step?.next || isActivationTarget(e.target)) return;
+    if (!isKey(e, 'answer') || !step?.next || isActivationTarget(e.target)) return;
     e.preventDefault();
     act({ type: 'ADVANCE_OPENING' });
   }, step !== null && step.next !== undefined);

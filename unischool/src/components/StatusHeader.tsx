@@ -12,9 +12,12 @@ import { isSandbox } from '../systems/sandbox/sandbox';
 import { SPEEDS, SANDBOX_SPEEDS, type Speed } from '../engine/useGame';
 import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
+import { PRESTIGE_TREND, SATISFACTION_TREND, TrendArrow } from './TrendFigure';
+import { prestigeWeeklyChange } from '../systems/prestige/prestigeSystem';
+import { satisfactionWeeklyChange } from '../systems/satisfaction/satisfactionSystem';
 import { FigureBox } from './Figure';
 import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
-import { isActivationTarget, useHotkeys } from './hotkeys';
+import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
 import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason, weekOfTerm } from '../format';
 import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
@@ -41,12 +44,12 @@ function useSpeedHotkeys(
   }, [speed]);
 
   useHotkeys((e) => {
-    if (e.key === '1') setSpeed('real');
-    else if (e.key === '2') setSpeed('double');
-    else if (e.key === '3') tryLocked('quad');
-    else if (e.key === '4') tryLocked('octo');
-    else if (e.key === '5' && sandboxAllowed) setSpeed('fast');
-    else if (e.key === ' ') {
+    if (isKey(e, 'speed1')) setSpeed('real');
+    else if (isKey(e, 'speed2')) setSpeed('double');
+    else if (isKey(e, 'speed3')) tryLocked('quad');
+    else if (isKey(e, 'speed4')) tryLocked('octo');
+    else if (isKey(e, 'speed5') && sandboxAllowed) setSpeed('fast');
+    else if (isKey(e, 'pause')) {
       // A Tab-focused button's native Space click wins. preventDefault stops
       // the page scrolling.
       if (isActivationTarget(e.target)) return;
@@ -153,7 +156,11 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
         <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.prestige} door={door('prestige', prestigeFigure(s.self.reputation))}>
           <PrestigeIcon />
           {word('prestige')}
-          <span className="stat-value gold"><AnimatedNumber value={s.self.reputation} format={prestigeFigure} /></span>
+          <span className="stat-value gold">
+            <AnimatedNumber value={s.self.reputation} format={prestigeFigure} />
+            {/* Which way it is moving (Plan 98B). */}
+            <TrendArrow change={prestigeWeeklyChange(s)} {...PRESTIGE_TREND} />
+          </span>
         </FigureBox>
         <FigureBox className="toolbar-stat" above hint={satisfactionHint(s)} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
           <SatisfactionIcon />
@@ -162,6 +169,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
               own red is tuned for the dark band. */}
           <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'stat-warn' : ''}`}>
             <AnimatedNumber value={s.students.satisfaction} format={satisfactionFigure} />
+            <TrendArrow change={satisfactionWeeklyChange(s)} {...SATISFACTION_TREND} />
           </span>
         </FigureBox>
       </div>

@@ -145,7 +145,7 @@ function cell(sample: Sample, v: Vernacular) {
   const developing = !!sample.developing;
   const grounds = motifOf(t) === 'grounds';
   const lift = drawnHeightOf(t, developing, v);
-  const headroom = grounds ? 40 : lift + 150;
+  const headroom = grounds ? 90 : lift + 150;
   const minX = Math.min(...xs); const maxX = Math.max(...xs);
   const minY = Math.min(...ys) - headroom; const maxY = Math.max(...ys);
   const W = (maxX - minX) * SCALE; const H = (maxY - minY) * SCALE;
@@ -155,7 +155,7 @@ function cell(sample: Sample, v: Vernacular) {
   // The building's id and expansions, as the map passes them (Plan 87A):
   // the garden's and the statue's own props, a venue's stands.
   const props = grounds
-    ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0))
+    ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, v))
     : [];
   const svg = (
     <svg className="campus-map-svg" width={W} height={H} viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} xmlns="http://www.w3.org/2000/svg">

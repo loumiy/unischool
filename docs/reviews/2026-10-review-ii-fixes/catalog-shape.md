@@ -1,6 +1,6 @@
 # The course catalog's shape: the table
 
-*Plan 95, PR L ([the plan](../../plans/95-second-review-worked-through.md)).
+*Plan 95, PR L ([the plan](../../plans/095-second-review-worked-through.md)).
 Finding B2-6, from [`2a`](../2026-10-game-review-ii/2a-course-descriptions.md)'s
 "The catalog's shape: still open". Read on `main` after Plan 95A.*
 

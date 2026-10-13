@@ -11,6 +11,7 @@ import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
 import { AMENITIES } from '../src/data/facilitiesData';
 import { milestoneForBuildable } from '../src/data/ladderData';
+import { unlockAvailable } from '../src/systems/techtree/techSystem';
 import { PAIRING_POINTS, pairingBumps } from '../src/systems/estate/pairing';
 
 bindScriptStream(2627);
@@ -85,6 +86,24 @@ const fresh = (): GameState => createInitialState('Beauty');
   statue.status = 'done';
   s.placements[statue.id] = { row: 30, col: 30, w: 2, h: 2 };
   assert(campusBeauty(s) > base, 'a statue adds a little beauty');
+}
+
+// ---- The garden waits on a small city (Plan 99B) ----
+{
+  assert(milestoneForBuildable('AMENITY-GARDEN') === 'city', 'the Japanese Garden opens at A small city');
+  const s = fresh();
+  s.ladder.reached.town = 5;
+  const garden = () => s.tech.find((t) => t.id === 'AMENITY-GARDEN')!;
+  unlockAvailable(s);
+  assert(garden().status === 'locked', 'a college at A town\'s worth waits for it');
+  // A save from before, which opened it at the town: it stays open.
+  garden().status = 'available';
+  unlockAvailable(s);
+  assert(garden().status === 'available', 'a garden a save already opened stays open');
+  s.ladder.reached.city = 12;
+  garden().status = 'locked';
+  unlockAvailable(s);
+  assert(garden().status === 'available', 'and a small city opens it');
 }
 
 // ---- Pairing bumps ----

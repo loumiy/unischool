@@ -581,7 +581,13 @@ function rollBio(field: string): string {
 const MARKET_CENTER_AT_FOUNDING = 50;   // a candidate's typical potential at founding standing
 const MARKET_CENTER_AT_TOP = 80;        // ... and at the top of the table
 const MARKET_PRESTIGE_FOUNDING = 50;    // the founding pool's standing: a college at or below it draws the founding market (Plan 95N opened colleges at 42)
-const MARKET_RESEARCH_FOUNDING = 18;    // research standing at founding (prestigeSystem.ts's RESEARCH_STANDING_BASELINE)
+// Research is read from the live pillar since Plan 98E. The stock it
+// replaced trailed the pillar (by 10 to 50 points through years 10 to 30),
+// so the scale is moved half-way to a least-squares fit of the stock on the
+// pillar (34 to 171): the full fit held the guided player off first place,
+// none let research grants run to 2.5 times their funding.
+const MARKET_RESEARCH_FOUNDING = 26;    // the research pillar a market reads as founding standing
+const MARKET_RESEARCH_TOP = 160;        // ... and as the top; past the pillar's 150, so the top stays a reach
 const MARKET_STANDING_TOP = 150;        // the top of both scales (rivalData.ts's STANDING_MAX)
 const MARKET_RESEARCH_WEIGHT = 0.7;     // research potential's center: this much research standing, the rest prestige
 const MARKET_SPREAD = 20;               // most candidates within this of the center (a triangular spread)
@@ -600,7 +606,7 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 // The typical candidate's potentials at a standing, before quirks.
 export function marketCenters(standing: MarketStanding): { teaching: number; research: number } {
   const prestige = clamp01((standing.prestige - MARKET_PRESTIGE_FOUNDING) / (MARKET_STANDING_TOP - MARKET_PRESTIGE_FOUNDING));
-  const research = clamp01((standing.research - MARKET_RESEARCH_FOUNDING) / (MARKET_STANDING_TOP - MARKET_RESEARCH_FOUNDING));
+  const research = clamp01((standing.research - MARKET_RESEARCH_FOUNDING) / (MARKET_RESEARCH_TOP - MARKET_RESEARCH_FOUNDING));
   const at = (u: number) => MARKET_CENTER_AT_FOUNDING + (MARKET_CENTER_AT_TOP - MARKET_CENTER_AT_FOUNDING) * u;
   return {
     teaching: at(prestige),

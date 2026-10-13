@@ -68,7 +68,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 100; // Plan 96H: each professor's own start
+export const SAVE_VERSION = 101; // Plan 99C: the gazebo
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -360,6 +360,19 @@ function legacyStarts(state: GameState): void {
   }
 }
 
+// 100 -> 101, Plan 99C: the Gazebo joins the catalog (a save keeps the
+// catalog it was founded with). It opens at A town's worth, so a save past
+// it gets it open, as a new run would have; otherwise locked, and the ladder
+// opens it when the town is reached.
+export const GAZEBO_ID = 'AMENITY-GAZEBO';
+function gazeboJoins(state: GameState): void {
+  if (!Array.isArray(state.tech) || state.tech.some((t) => t.id === GAZEBO_ID)) return;
+  const gazebo = initialFacilities().find((t) => t.id === GAZEBO_ID);
+  if (!gazebo) return;
+  if (state.ladder?.reached?.town !== undefined) gazebo.status = 'available';
+  state.tech.push(gazebo);
+}
+
 // What money bought (Plan 95X), on every load: the training classes and the
 // autumn festivals a whole year each, once, no later than the save's; the
 // wing and the phase a year, or absent. Anything else is dropped, which only
@@ -616,6 +629,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   97: catalogShape,
   98: nothingBoughtYet,
   99: legacyStarts,
+  100: gazeboJoins,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a

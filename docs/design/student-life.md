@@ -107,7 +107,7 @@ than adding a parallel sport simulation: a varsity team is mechanically
 close to a Greek chapter that needs a venue. Athletics V2 (below) added a
 real coaching-staff hiring pool, team quality, and standings against
 rivals' own athletic strength; Athletics V3 added per-sport standings, an
-athletic director and a year-end postseason; [Plan 21](../plans/21-the-department.md)
+athletic director and a year-end postseason; [Plan 21](../plans/021-the-department.md)
 re-aimed the whole department — connected its outputs, gave it something to
 decide, made the market scarce in the right thing, and gave it a season of
 four dated occasions (see "The season"). There is still **no match simulation
@@ -518,7 +518,7 @@ exactly that, gets there by about Year 7, a year or two after choosing (its
 "Flagships on full scholarships" table).
 
 **A title is rare without the athletics specialization** ([Plan
-85](../plans/85-specializations.md) PR C, by the owner's decision). Before
+85](../plans/085-specializations.md) PR C, by the owner's decision). Before
 it, the championships player won its first title by about Year 8 and dozens
 by Year 50. Two levers now stand against a college that has not specialized
 in athletics; the athletics specialization takes the first away and shrinks
@@ -547,7 +547,7 @@ run higher in every sport (see [progression.md](progression.md)), make the
 field it meets stronger as the run goes on.
 
 **The athletic performance complex** ([Plan
-85](../plans/85-specializations.md) PR G; `data/athleticsComplexData.ts`).
+85](../plans/085-specializations.md) PR G; `data/athleticsComplexData.ts`).
 The Athletic Performance Complex (`projectData.ts`'s
 `PROJ-ATHLETICS-COMPLEX`) is a capital project only a college specialized in
 athletics may build: $30M over 104 weeks and $35,000 a week, the Faculty
@@ -690,7 +690,7 @@ there are no organisations.
 ### Needs: food and fitness (Plan 80F)
 
 Two of the five needs changed what feeds them, the owner's calls from the
-September 2026 playtest ([Plan 80](../plans/80-the-owners-playtest.md)):
+September 2026 playtest ([Plan 80](../plans/080-the-owners-playtest.md)):
 
 - **Food is mostly the dining halls.** The Campus Grocery Store and the
   residential towers' shops still feed students, but together they count for
@@ -719,7 +719,7 @@ September 2026 playtest ([Plan 80](../plans/80-the-owners-playtest.md)):
 ### The downtown and the festival (Plan 85H)
 
 The student-life specialization's mechanic ([Plan
-85](../plans/85-specializations.md) PR H; the numbers and words are
+85](../plans/085-specializations.md) PR H; the numbers and words are
 `data/downtownData.ts`'s, the rules `systems/studentlife/downtown.ts`'s).
 Once a college specializes in student life, and only then:
 

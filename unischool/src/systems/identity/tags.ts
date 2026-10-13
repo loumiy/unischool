@@ -7,6 +7,7 @@ import { programById } from '../../data/techData';
 import { campusAverageCourseQuality } from '../faculty/facultyAssignment';
 import { beautyTerms } from '../estate/beauty';
 import { priceTolerance } from '../admissions/admissionsSystem';
+import { pillarValue } from '../prestige/prestigeSystem';
 
 // PERCEIVED IDENTITY (Plan 31, from v2's tags.ts): what the guidebooks say.
 // Each tag has an indicator from 0 to 1, read at the turn of the year; two
@@ -56,8 +57,10 @@ export function tagIndicators(s: GameState): Record<string, number> {
   const quality = s.students.incomingQuality;
   const satisfaction = s.students.satisfaction;
   const teaching = campusAverageCourseQuality(s) ?? 0;
-  const research = s.self.researchStanding;
-  const academics = s.self.reputation;
+  // The research and academics pillars as they stand (Plan 98E). Until
+  // then research read its lagging stock and "academics" read prestige.
+  const research = pillarValue(s, 'research');
+  const academics = pillarValue(s, 'academics');
   const housed = Object.values(s.halls).flat().map((slot) => slot.programId).filter((id): id is string => id !== null);
   const arts = housed.filter((id) => programById(id)?.school === 'Arts & Media').length;
   const artsClubs = s.orgs.clubs.filter((c) => /\bart|music|theat|film|dance|choir|design|writ|poet|photo|comic|anime|jazz|orchestra|cappella|drama|improv|ceramic|band|ballroom/i.test(c.name)).length;
@@ -77,7 +80,10 @@ export function tagIndicators(s: GameState): Record<string, number> {
     // fewer beds than that.
     commuter: clamp01((0.35 * students - s.students.capacity) / (0.35 * students) / 0.5),
     'country-club': clamp01((priceRatio - 1.05) / 0.25) * clamp01((beauty - 55) / 20),
-    'pressure-cooker': withCohort(clamp01((0.25 - s.students.admitRate) / 0.15) * clamp01((62 - satisfaction) / 12), shares.highAchievers),
+    // Hard to get into and hard on its students, at a college serious about
+    // its academics (Plan 98F: the academics pillar, which the tag claims,
+    // in place of the high achievers' share).
+    'pressure-cooker': clamp01((0.25 - s.students.admitRate) / 0.15) * clamp01((62 - satisfaction) / 12) * (0.5 + 0.5 * clamp01((academics - 60) / 40)),
     'the-bargain': withCohort(clamp01((0.85 - priceRatio) / 0.25) * (quality >= 45 ? 1 : 0.4), shares.priceSensitive),
     'old-money': clamp01((perStudent - 30_000) / 50_000) * clamp01(s.clock.year / 25),
   };

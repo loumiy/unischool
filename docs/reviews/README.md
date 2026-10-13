@@ -55,5 +55,5 @@ Each was kept as the measurement a plan was judged by.
 | [`2026-10-faculty/`](2026-10-faculty/) | 84 |
 | [`2026-10-pillars/`](2026-10-pillars/) | 85 |
 
-Plans 51, 52 and 54 keep their few images in `docs/plans/NN-subject/`
+Plans 51, 52 and 54 keep their few images in `docs/plans/NNN-subject/`
 instead.

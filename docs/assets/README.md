@@ -2,7 +2,7 @@
 
 Every buildable asset in all nine vernaculars (the five founding sets, then the four a run unlocks), drawn by the game itself from the opening camera (azimuth 45°). Vernaculars run down each image and assets across it. Written by `npm run gallery:assets` (unischool/tools/assetGallery.mjs, Plan 75C); run it again after any change to how a building is drawn.
 
-112 assets in 27 images.
+113 assets in 27 images.
 
 ## Academic halls and the school signature halls
 
@@ -114,7 +114,7 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 
 ![Blocks: labs, clinics, the Medical Center](block-2.jpg)
 
-- **The Business School**: PROJ-BUSINESS · 9x8
+- **The Graduate Business School**: PROJ-BUSINESS · 9x8
 - **The Athletic Performance Complex**: PROJ-ATHLETICS-COMPLEX · 13x9
 - **Science hall**: a hall given over to one school · 7x5
 - **Health Science hall**: a hall given over to one school · 7x5
@@ -182,12 +182,13 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 
 - **Grand Quad & Gardens**: QUAD-T2 · 13x13
 - **The Founder's Statue**: AMENITY-STATUE · 2x2
+- **The Gazebo**: AMENITY-GAZEBO · 3x3
 - **The Fountain**: AMENITY-FOUNTAIN · 3x3
 - **The Japanese Garden**: AMENITY-GARDEN · 6x6
-- **Multi-Sport Field**: ATH-FIELD expanded 1× · 22x13
 
 ![Open ground: fields, courts, quads, gardens, amenities](grounds-3.jpg)
 
+- **Multi-Sport Field**: ATH-FIELD expanded 1× · 22x13
 - **Multi-Sport Field**: ATH-FIELD expanded 2× · 22x13
 - **Baseball & Softball Diamond**: ATH-DIAMOND expanded 1× · 14x14
 - **Baseball & Softball Diamond**: ATH-DIAMOND expanded 2× · 14x14

@@ -9,6 +9,7 @@ import { REVIEW_LIST_CAP, buildYearInReview } from '../state/yearInReview';
 import type { ReviewLine } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
 import { hallEntryFor, hangInHall } from '../state/hall';
+import { unlockLabel } from '../state/unlocks';
 import { runFinished, saveExported } from '../analytics/analytics';
 import { exportSave } from '../state/persistence';
 import { downloadFile } from './download';
@@ -42,15 +43,15 @@ import AnimatedNumber from './AnimatedNumber';
 import Figure from './Figure';
 import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
 import { FIGURE_HINTS } from '../data/figureHints';
-import { isActivationTarget, useHotkeys } from './hotkeys';
+import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
-import { currentEra } from '../systems/chronicle/chronicle';
+import { currentEra, listOf } from '../systems/chronicle/chronicle';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
-import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
+import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
 import { promisesOf } from '../systems/promises/promises';
 import { admissionsRange } from '../systems/administration/effects';
 
@@ -431,9 +432,10 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 label="Satisfaction"
                 hint={FIGURE_HINTS.projectedSatisfaction}
                 value={<>
-                  <AnimatedNumber value={consequence.satisfactionTarget} format={satisfactionFigure} />
+                  {/* The change this class makes, not the target it sets
+                      (Plan 98B). */}
                   <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
-                    {signed(moodDelta)}
+                    {moodDelta > 0 ? '▲ ' : moodDelta < 0 ? '▼ ' : ''}{moodDelta === 0 ? 'no change' : `${signed(moodDelta)} points`}
                   </span>
                 </>}
               />
@@ -592,6 +594,12 @@ function FinalReportBeat({ s, onContinue, onNewCollege, onSave }: { s: GameState
       <div className="final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
       <h2>{REPORT_WORDS.title}</h2>
       <FinalReportView s={s} report={report} />
+      {/* What this run earned for the next college (Plan 98C). */}
+      {(s.events.unlocksEarned?.length ?? 0) > 0 && (
+        <p className="final-report-unlocks">
+          New for your next college: {listOf(s.events.unlocksEarned!.map(unlockLabel))} architecture.
+        </p>
+      )}
       <ReportCardActions entry={hallEntryFor(s, report)} />
       <FeedbackPrompt s={s} prompt="final-report" text="Fifty years. How was it? Two minutes of feedback helps the playtest." onSave={onSave} />
       <p className="review-empty">{REPORT_WORDS.epilogue}</p>
@@ -842,12 +850,10 @@ export function MilestoneCelebrationView({ s, payload, onDismiss }: {
       )}
 
       <dl className="admissions-outcomes">
+        {/* What the milestones add to where prestige is heading, not the
+            target itself (Plan 98B). */}
         <div>
-          <dt>Prestige target <span className="outcome-note">(what this changed)</span></dt>
-          <dd>{prestigeFigure(withoutThese)} → {prestigeFigure(target)}</dd>
-        </div>
-        <div>
-          <dt>Contribution</dt>
+          <dt>Adds to where prestige is heading</dt>
           <dd className={delta > 0 ? 'milestone-gain' : ''}>{signed(delta, 1)}</dd>
         </div>
         <div>
@@ -900,7 +906,7 @@ export function ResearchReportView({ s, report, onDismiss }: {
           <dd>{report.publications}</dd>
         </div>
         <div>
-          <dt>Breakthroughs <span className="outcome-note">(feeds the prestige target)</span></dt>
+          <dt>Breakthroughs <span className="outcome-note">(adds to prestige)</span></dt>
           <dd>{report.breakthroughs}</dd>
         </div>
         <div>
@@ -918,7 +924,7 @@ export function ResearchReportView({ s, report, onDismiss }: {
               <dd>{signedPct(ACCLAIM_SALARY_PREMIUM)}</dd>
             </div>
             <div>
-              <dt>Prizes to date <span className="outcome-note">(feeds the prestige target)</span></dt>
+              <dt>Prizes to date <span className="outcome-note">(adds to prestige)</span></dt>
               <dd>{s.research.prizes}</dd>
             </div>
           </>
@@ -1001,7 +1007,7 @@ function ChampionshipView({ s, result, onDismiss }: {
           <dt>Athletics</dt>
           {/* The athletics pillar (Plan 85B), which titles lift: what it
               moved by. */}
-          <dd>{worth >= 0.05 ? `${signed(worth, 1)} to the target` : 'already at its limit'}</dd>
+          <dd>{worth >= 0.05 ? `${signed(worth, 1)} to where it is heading` : 'already at its limit'}</dd>
         </div>
       </dl>
 
@@ -1308,12 +1314,12 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 // Enter key for the read-and-continue stops, and the Final Report's page.
 // Every other stop is answered in the inbox (InterruptContent, below).
 // The summer's crowding line in words (Plan 96E): the worst-covered need,
-// its coverage, and what it takes off the prestige target ("Dining feeds
-// only 51% of this class: prestige target −9.9").
+// its coverage, and what it holds prestige back by ("Dining feeds only 51%
+// of this class: holds prestige back by 9.9"; Plan 98B).
 const CROWDING_VERB: Record<string, string> = { dining: 'feeds', housing: 'houses' };
 export function crowdingSentence(label: string, coverage: number, points: number): string {
   const need = label.charAt(0).toUpperCase() + label.slice(1);
-  return `${need} ${CROWDING_VERB[label] ?? 'covers'} only ${pct(coverage)} of this class: prestige target ${signed(-points, 1)}`;
+  return `${need} ${CROWDING_VERB[label] ?? 'covers'} only ${pct(coverage)} of this class: holds prestige back by ${Math.abs(points).toFixed(1)}`;
 }
 
 export default function InterruptModal({ s, act, onNewCollege }: { s: GameState; act: (a: Action) => void; onNewCollege?: () => void }) {
@@ -1326,7 +1332,7 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
   // athletic director (both). useHotkeys ignores Enter on a focused button
   // or input, so those keep their native behavior.
   useHotkeys((e) => {
-    if (e.key !== 'Enter' || !interrupt) return;
+    if (!isKey(e, 'answer') || !interrupt) return;
     if (isActivationTarget(e.target)) return;
 
     switch (interrupt.type) {

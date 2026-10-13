@@ -364,8 +364,8 @@ function neighboursOf(list: ReturnType<typeof sportRankedList>, place: number): 
   const above = list[place - 2];
   const below = list[place];
   return [
-    above ? `↑ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
-    below ? `↓ ${below.name} ${below.mascot}` : '',
+    above ? `▲ ${above.name} ${above.mascot}` : 'nobody in the country is ahead',
+    below ? `▼ ${below.name} ${below.mascot}` : '',
   ].filter(Boolean).join('\n');
 }
 

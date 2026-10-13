@@ -921,6 +921,24 @@ function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
   );
 }
 
+// Tread i of n (from the bottom) of a flight before a door at
+// (centreCol, centreRow) on the wall's plane, facing (outCol, outRow):
+// (n - i) tread-depths out from the wall, halfW either side of the door.
+// It starts on the wall's plane and runs outward whichever way the wall
+// faces (Plan 99E): on a wall facing -col or -row it once ran into the
+// building, so a turned camera saw the flight climbing away from the door.
+export function treadBox(
+  n: number, i: number, centreCol: number, centreRow: number, outCol: number, outRow: number, halfW: number,
+): { col: number; row: number; w: number; h: number } {
+  const depth = (n - i) * TREAD_DEPTH;
+  return {
+    col: outCol > 0 ? centreCol : outCol < 0 ? centreCol - depth : centreCol - halfW,
+    row: outRow > 0 ? centreRow : outRow < 0 ? centreRow - depth : centreRow - halfW,
+    w: outCol !== 0 ? depth : halfW * 2,
+    h: outRow !== 0 ? depth : halfW * 2,
+  };
+}
+
 // The flight of steps before a door, as grid boxes: each tread one rise
 // higher and one tread-depth shallower, climbing toward the wall.
 // `outCol`/`outRow` point away from the building. Drawn top down so the
@@ -937,12 +955,7 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }:
   const rise = d.threshold / d.treads;
   const out: React.JSX.Element[] = [];
   for (let i = d.treads - 1; i >= 0; i--) {
-    // Tread i (from the bottom): (i + 1) rises high, (d.treads - i) depths out.
-    const depth = (d.treads - i) * TREAD_DEPTH;
-    const col = outCol !== 0 ? centreCol : centreCol - halfW;
-    const row = outRow !== 0 ? centreRow : centreRow - halfW;
-    const w = outCol !== 0 ? depth : halfW * 2;
-    const h = outRow !== 0 ? depth : halfW * 2;
+    const { col, row, w, h } = treadBox(d.treads, i, centreCol, centreRow, outCol, outRow, halfW);
     const f = boxFaces(col, row, w, h, 0, (i + 1) * rise);
     out.push(
       <g key={i}>

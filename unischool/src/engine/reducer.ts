@@ -43,7 +43,7 @@ import { tickFaculty } from '../systems/faculty/facultySystem';
 import { tickResearch } from '../systems/research/researchSystem';
 import { setPrestigeForPlaytest, tickPrestige } from '../systems/prestige/prestigeSystem';
 import { tickSatisfaction } from '../systems/satisfaction/satisfactionSystem';
-import { fireMilestoneCelebration, tickEvents } from '../systems/events/eventSystem';
+import { fileNews, fireMilestoneCelebration, tickEvents } from '../systems/events/eventSystem';
 import { tickStudentLife } from '../systems/studentlife/studentLifeSystem';
 import { tickDowntown } from '../systems/studentlife/downtown';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
@@ -773,6 +773,21 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'READ_MILESTONE':
       s.ladder.unread = s.ladder.unread.filter((id) => id !== action.id);
       return s;
+
+    // A bonus architecture earned for the next college (Plan 98C): a letter
+    // the week it is earned, and the run's own list for its Final Report.
+    // Banking it is the game loop's (useGame.ts), which only dispatches this
+    // for a set no run had earned before.
+    case 'UNLOCK_EARNED': {
+      if (s.sandbox || action.ids.length === 0) return state;
+      const week = absoluteWeek(s);
+      for (const id of action.ids) {
+        if (s.events.unlocksEarned?.includes(id)) continue;
+        fileNews(s, { id: `unlock:${id}`, week, unread: true, type: 'unlock', payload: { vernacular: id } });
+        s.events.unlocksEarned = [...(s.events.unlocksEarned ?? []), id];
+      }
+      return s;
+    }
 
     case 'READ_NEWS': {
       const letter = s.events.news?.find((n) => n.id === action.id);

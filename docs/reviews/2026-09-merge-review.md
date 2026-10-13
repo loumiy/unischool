@@ -1,6 +1,6 @@
 # UniSchool: the merged game, reviewed
 
-*Written at the end of Phase N of the v2 merge ([Plan 35](../plans/35-balance-and-playtest.md)). It covers `main` after Plan 34, with Plan 35's fixes on top. It follows the shape of v2's release review so the merged game can be compared with both. Like [design review II](2026-09-design-review-ii.md), it reviews the design and the player's experience, not the code.*
+*Written at the end of Phase N of the v2 merge ([Plan 35](../plans/035-balance-and-playtest.md)). It covers `main` after Plan 34, with Plan 35's fixes on top. It follows the shape of v2's release review so the merged game can be compared with both. Like [design review II](2026-09-design-review-ii.md), it reviews the design and the player's experience, not the code.*
 
 ## How it was tested
 

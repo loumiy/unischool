@@ -186,8 +186,8 @@ key is also an input's. `test/standing-readings.test.ts` pins each term's
 arithmetic; `test/report-card.test.ts` pins the summer step that grades them.
 
 **Grades.** Since Plan 15's PR B prestige carries a *summer
-model*: the panel's note says what the year is grading toward and what the
-summer step would move, and each row shows last summer's grade beside what it
+model*: the panel's note says which way the year's grade is pulling (until
+Plan 98B it named the figure), and each row shows last summer's grade beside what it
 is worth now. A penalty row (crowding) is drawn in the bad colour and reads as
 a subtraction. Both are data on the breakdown (`summer`, `penalty`), so the
 view still names no row.

@@ -7,7 +7,7 @@ import { officeStrength } from './offices';
 // ---------------------------------------------------------------------
 // The Office of Institutional Research (Plan 89E): where the summer's
 // grade would leave the college in the guide, were the year graded today.
-// The History tab already says what the year is grading toward; what the
+// The History tab says which way the year's grade is pulling; what the
 // college cannot see is the rank that grade buys against the field, and
 // that is what this office reads. The rivals are taken as they stand (they
 // move at the summer too), so it is a forecast, not a promise.

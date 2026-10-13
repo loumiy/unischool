@@ -157,7 +157,7 @@ part by part, as the disclosure doc advises.
 
 ## The screenshots
 
-Taken from this build (`main` after Plan 97J) with the repository's own
+Retaken on 12 October 2026 (`main` after PR #341, the tinted shadows and 8px corners) with the repository's own
 tools (`npm run scenario`, `npm run layout`, `npm run shot`), on the
 production build, at 1920 × 1080 (16:9). In the second review's order
 (§4). Upload them in this order, under **Screenshots**.

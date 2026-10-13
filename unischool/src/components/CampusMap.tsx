@@ -20,7 +20,7 @@ import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, Develop
 import { desireLines, walkGrid } from './walkRoutes';
 import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
 import { schoolOffers } from '../systems/techtree/programOffers';
-import { isTypingTarget, useHotkeys } from './hotkeys';
+import { SHORTCUTS, isKey, isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
 import { isAcademicHall, programById } from '../data/techData';
@@ -143,10 +143,10 @@ const TOUCH_MOUSE_GRACE_MS = 800; // how long after a touch the emulated mouse e
 // Keyboard panning (W/A/S/D and arrows) matters because the mouse is often
 // busy holding a path stroke or carrying a building. Offsets are what the
 // view translate moves by, so they read inverted against the key.
-const PAN_KEYS: Record<string, readonly [number, number]> = {
-  w: [0, 1], a: [1, 0], s: [0, -1], d: [-1, 0],
-  arrowup: [0, 1], arrowleft: [1, 0], arrowdown: [0, -1], arrowright: [-1, 0],
-};
+const PAN_KEYS: Record<string, readonly [number, number]> = Object.fromEntries(
+  ([['panUp', [0, 1]], ['panLeft', [1, 0]], ['panDown', [0, -1]], ['panRight', [-1, 0]]] as const)
+    .flatMap(([id, dir]) => SHORTCUTS[id].keys.map((key) => [key, dir])),
+);
 // Screen pixels per second, not scaled by zoom.
 const KEY_PAN_SPEED = 1100;
 // Longest frame gap a single pan step integrates, so a backgrounded tab
@@ -655,7 +655,7 @@ export function sceneEntries(layout: CampusLayout): SceneEntry[] {
       const d = drawnFootprint(p);
       // A venue expanding in place keeps its props (Plan 54), and they
       // grow with its expansions.
-      for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0)) {
+      for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, layout.vernacular)) {
         entries.push({
           kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id, shadows: prop.shadows,
           col: prop.col, row: prop.row, w: prop.w, h: prop.h,
@@ -2019,22 +2019,21 @@ export default function CampusMap({
   // the draw tool or puts it away (setPathTool toggles, so P with erase armed
   // swaps to draw). Live under the build menu, where these tools are reached.
   useHotkeys((e) => {
-    const key = e.key.toLowerCase();
-    if (key === 'r' && canRotateSelected) setFacing(nextFacing);
+    if (isKey(e, 'rotate') && canRotateSelected) setFacing(nextFacing);
     // R with the bench tool turns the bench about to be set, a quarter at a time.
-    if (key === 'r' && pathTool === 'bench') setBenchTurn(turnFacing(benchFacingAt(hover)));
-    if (key === 'p') onSetPathTool('draw');
-    if (key === 'q') turnBy(1);
-    if (key === 'e') turnBy(-1);
-    if (key === 'z') tiltBy(-1);
-    if (key === 'x') tiltBy(1);
-    if (key === 'home') resetCamera();
+    if (isKey(e, 'rotate') && pathTool === 'bench') setBenchTurn(turnFacing(benchFacingAt(hover)));
+    if (isKey(e, 'path')) onSetPathTool('draw');
+    if (isKey(e, 'turnLeft')) turnBy(1);
+    if (isKey(e, 'turnRight')) turnBy(-1);
+    if (isKey(e, 'tiltDown')) tiltBy(-1);
+    if (isKey(e, 'tiltUp')) tiltBy(1);
+    if (isKey(e, 'camera')) resetCamera();
   }, controlsEnabled);
 
   // Escape backs out one layer at a time (path tool, pickup, info panel), on
   // its own gate because App.tsx's ladder hands off to it.
   useHotkeys((e) => {
-    if (e.key === 'Escape') {
+    if (isKey(e, 'back')) {
       if (pathTool) onSetPathTool(pathTool);
       else if (selected) selectBuilding(null);
       else if (inspectedId) setInspectedId(null);

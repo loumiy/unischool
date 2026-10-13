@@ -151,6 +151,8 @@ export type Action =
   // Puts down a celebration's or a report's letter (Plan 95T). Never holds
   // the clock.
   | { type: 'READ_NEWS'; id: string }
+  // The game loop found bonus architectures newly earned (Plan 98C).
+  | { type: 'UNLOCK_EARNED'; ids: string[] }
   | { type: 'RESOLVE_MILESTONE' }
   | { type: 'RESOLVE_RESEARCH_REPORT' }
   // A demand is answered only by building what it asks for before the
