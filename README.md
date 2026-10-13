@@ -23,8 +23,9 @@ there is a legacy, and more than one way to earn a good one.
 
 - 🏫 **Expand the campus** with academic buildings, dormitories, dining,
   recreation, health facilities and athletics venues.
-- 📚 **Develop the curriculum** across 427 courses, 42 majors and seven
-  schools.
+- 📚 **Develop the curriculum** across 473 courses, 42 majors, graduate
+  programs and seven schools: a hall becomes a school's once it holds three
+  of its programs, and a program that isn't earning its place can be closed.
 - 👩‍🏫 **Hire faculty** with different teaching and research strengths — and
   decide who teaches what.
 - 🔬 **Conduct research** by commissioning a topic, a team and a depth out of a
@@ -44,7 +45,9 @@ there is a legacy, and more than one way to earn a good one.
 - 🧪 **Sandbox mode**, from the title screen: unlimited funds and instant
   building, every building open, to lay out a campus without waiting.
 - ⚖️ **Deal with the unexpected** — donor offers, faculty departures, facility
-  failures, chapter scandals and student demands.
+  failures, chapter scandals and student demands. Every answer does what it
+  says (a hire, a named scholarship, a campaign, a repair on the building
+  in question), and the college remembers how it answered.
 
 ## The core loop
 
@@ -99,7 +102,8 @@ implemented: curriculum development and the milestone chain, campus
 construction on a tile map, faculty hiring and course assignment, annual
 admissions, finances, student life and athletics, research, prestige (its four
 pillars and the specialization) and
-rankings, decision events, graduate programs, and save/load.
+rankings, decision events, graduate programs, and save/load (three named
+slots beside the autosave).
 
 The current focus is presentation and player experience — the campus map,
 the management interfaces, curriculum presentation, faculty interaction and
@@ -159,7 +163,7 @@ different pair of school colours.
 | ![The Athletics tab: the department at the side, and every varsity program folded to one line with its rank, its last season and its quality](docs/images/tab-athletics.png) | ![The History tab on its Prestige view: the four pillars, each on its own scale, and every input that grades prestige](docs/images/tab-history.png) |
 | **Athletics** — the director, the subsidy and the gate at the side; every program one line, its rank in its sport and its last season, opening to its staff and money. | **History** — three views: prestige with its four pillars and every input that grades them, the record and the legacy once sealed, and the guide. |
 | ![The Treasury tab: the weekly income statement, advancement and the balance](docs/images/tab-treasury.png) | |
-| **Treasury** — the weekly income statement, the endowment campaign and the balance sheet, reached through the funds figure. | |
+| **Treasury** — the weekly income statement, the endowment campaign, the named funds and the balance sheet, reached through the funds figure. | |
 
 ## Run it
 
@@ -171,8 +175,9 @@ npm run dev
 
 Open the printed localhost URL. Name your school, pick its architecture and
 its colours, and a short walkthrough takes you through the first clicks —
-raise Founders Hall, see the three programs it already teaches, found a
-fourth — before the clock starts.
+raise Founders Hall, appoint the first professor, found the first program,
+develop its next course, then house and feed the students — before the
+college is yours to run.
 
 ## Controls
 
