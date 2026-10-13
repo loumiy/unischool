@@ -10,8 +10,8 @@ claims more than the build does.*
 ## UniSchool 0.1.1: halls with a school, events that keep their word
 
 Thank you to everyone who played 0.1.0 and wrote in. This update takes the
-first round of what you told us, and a list of things that were bothering
-us too. Your saves come with you: a 0.1.0 college opens in 0.1.1.
+first round of what you told me, and a list of things that were bothering
+me too. Your saves come with you: a 0.1.0 college opens in 0.1.1.
 
 ### A better first hour
 
@@ -79,8 +79,8 @@ something the game didn't do. Now:
 
 ### What's next
 
-The next stretch is toward Steam Next Fest. As before, the comments here
-are read, and what you write decides what changes next. If something
-confused you, felt unfair, or simply didn't do what it said, tell us.
+The next stretch is toward Steam Next Fest. As before, I read every
+comment here, and what you write decides what changes next. If something
+confused you, felt unfair, or simply didn't do what it said, tell me.
 
 *The full list of changes is in the changelog.*
