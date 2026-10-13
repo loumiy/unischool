@@ -17,7 +17,7 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream, random } from '../src/engine/random';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
-import { applyEffects, eligible, eventById, rollVars, TENURE_CASE_MAX_YEARS, TENURE_CASE_MIN_YEARS } from '../src/systems/events/catalogue';
+import { applyEffects, eligible, eventById, namedDamage, rollVars, TENURE_CASE_MAX_YEARS, TENURE_CASE_MIN_YEARS } from '../src/systems/events/catalogue';
 import { resolveCatalogueEvent } from '../src/systems/events/catalogueEngine';
 import { springTermWeek, winterDepth } from '../src/state/winter';
 import { promisesOf } from '../src/systems/promises/promises';
@@ -240,6 +240,11 @@ function college(): GameState {
   for (const b of standingNow) delete b.backlog;
   applyEffects(s, { backlogOn: 300_000 }, { buildingId: named.id });
   assert((named.backlog ?? 0) > 0 && standingNow.every((b) => b === named || !b.backlog), 'deferred repairs land on the named building alone');
+  assert(named.backlog === Math.round(namedDamage(s, 300_000, named)), 'priced for its size');
+  if (other && other.cost !== named.cost) {
+    const ratio = namedDamage(s, 300_000, named) / namedDamage(s, 300_000, other);
+    assert(Math.abs(ratio - named.cost / other.cost) < 1e-9, `a larger building takes more, in proportion to its cost (${ratio.toFixed(2)})`);
+  }
   if (other) other.backlog = 500_000;
   const owed = named.backlog ?? 0;
   applyEffects(s, { backlogOn: -(owed + 100_000) }, { buildingId: named.id });

@@ -1,7 +1,7 @@
 import type { GameState, PendingCatalogueEvent } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
-import { fill, scaledEffects } from '../systems/events/catalogue';
+import { fill, namedDamage, scaledEffects } from '../systems/events/catalogue';
 import { choiceCost } from '../systems/events/catalogueEngine';
 import { money, moneyShort, pct, signed, signedMoney } from '../format';
 import { clampDrawRate, debtOutstanding, drawRate } from '../systems/finance/treasury';
@@ -67,7 +67,8 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       case 'backlogOn': {
         const building = vars.building ?? 'the building';
         const owed = s.tech.reduce((t, b) => t + (b.backlog ?? 0), 0);
-        if (v > 0) out.push(`${money(v)} of repairs deferred on ${building}`);
+        const named = s.tech.find((t) => t.id === vars.buildingId && t.status === 'done');
+        if (v > 0) out.push(`${money(named ? namedDamage(s, v, named) : v)} of repairs deferred on ${building}`);
         else if (owed > 0) out.push(`${money(Math.min(-v, owed))} of repairs done, ${building} first`);
         break;
       }

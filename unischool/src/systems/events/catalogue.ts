@@ -350,20 +350,32 @@ function spreadBacklog(s: GameState, raw: number): void {
 }
 
 // The repairs an event's named building takes (Plan 101C). Damage lands on
-// it alone, made smaller by Facilities Management as any event's is; a
-// repair clears its backlog first and spends what is left on the rest, by
-// spreadBacklog's rule. A firing that named no standing building spreads.
+// it alone, priced for its size (namedDamage); a repair clears its backlog
+// first and spends what is left on the rest, by spreadBacklog's rule. A
+// firing that named no standing building spreads.
 function backlogOn(s: GameState, raw: number, vars: Readonly<Record<string, string>>): void {
   const t = standing(s).find((b) => b.id === vars.buildingId);
   if (!t) { spreadBacklog(s, raw); return; }
   if (raw > 0) {
-    t.backlog = Math.round((t.backlog ?? 0) + raw * eventDamageFactor(s));
+    t.backlog = Math.round((t.backlog ?? 0) + namedDamage(s, raw, t));
     return;
   }
   const done = Math.min(-raw, t.backlog ?? 0);
   const left = (t.backlog ?? 0) - done;
   if (left > 0) t.backlog = Math.round(left); else delete t.backlog;
   if (-raw - done > 0) spreadBacklog(s, raw + done);
+}
+
+// The catalog's damage is priced for a building of the campus's average
+// cost, so the named one takes it in proportion to its own: a roof on a
+// small building costs less to put off than one on a large hall. The
+// campus's mean condition then falls as far as a spread would take it
+// (estate.ts's conditionOf reads backlog against the building's cost).
+// Made smaller by Facilities Management, as any event's damage is.
+export function namedDamage(s: GameState, raw: number, t: Buildable): number {
+  const open = standing(s);
+  const mean = open.reduce((sum, b) => sum + b.cost, 0) / Math.max(1, open.length);
+  return raw * eventDamageFactor(s) * (mean > 0 ? t.cost / mean : 1);
 }
 
 // v2's figures are for its founding body of about two thousand: a change
