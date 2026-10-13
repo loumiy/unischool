@@ -19,7 +19,12 @@
 // the walk on; appointing Dr. Grace Bennett from the founding market moves
 // it on again; founding English, its entry course to the committee, frees
 // the clock. The first letter is counted read, so its ask — seat the
-// students — is the next-step line the moment the walk ends. Skipping at
+// students — is the next-step line while that course is written. Once it
+// is taught the clock is held again on the course step (Plan 103B), until
+// a second course is started, skipped, or can't be; then on the needs
+// (Plan 103C): Students' Housing and Dining, a residence hall sited, a
+// dining hall sited. Those three steps are the "Somewhere to sleep" letter,
+// which a walk that reaches them never sends. Skipping at
 // any step never sites the hall: an unsited Founders Hall holds the clock
 // and the line says to site it. A headless founding is untouched by all of
 // it, and the hold survives a save.
@@ -38,7 +43,8 @@ import { STARTING_DORM_CAPACITY, STARTING_DORM_ID } from '../src/data/campusData
 import { teachPillars } from './fixtures/teaching';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
-import { awaitsSite, centredPlacement, footprintOf } from '../src/state/campusMap';
+import { NEEDS_LETTER_ID, walkBuilding, walkProgram } from '../src/data/openingData';
+import { awaitsSite, centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { loadGame, saveGame } from '../src/state/persistence';
@@ -198,6 +204,26 @@ const siteHall = (s: GameState) => {
   const spot = centredPlacement(footprintOf(hall));
   return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
 };
+// Plays weeks, answering stops with the shared defaults, until the walk
+// reaches `stage`.
+const untilStage = (start: GameState, stage: GameState['events']['opening']['stage']) => {
+  let s = start;
+  for (let i = 0; i < 60 && s.events.opening.stage !== stage; i += 1) {
+    s = s.pendingInterrupt ? reducer(s, defaultAnswer(s)!) : reducer(s, { type: 'TICK' });
+  }
+  return s;
+};
+// Sites a building on the first free ground (campusMap.ts's firstFreeSpot).
+const siteAnywhere = (s: GameState, id: string) => {
+  const t = s.tech.find((x) => x.id === id)!;
+  const spot = firstFreeSpot(s, t, footprintOf(t))!;
+  return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: id, row: spot.row, col: spot.col, facing: 0 });
+};
+// A guided walk done to its program founded: English, with Bennett.
+const walkToCourse = (name: string) => reducer(
+  reducer(siteHall(reducer(foundWalk(name), { type: 'ADVANCE_OPENING' })), { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR }),
+  { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR },
+);
 {
   // Headless: the hall pre-placed, the walk behind it; nothing to teach.
   const headless = foundWalk('Walk', false);
@@ -253,15 +279,50 @@ const siteHall = (s: GameState) => {
   s = reducer(s, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
   assert(s.halls[FOUNDERS_HALL_ID][0].programId === WALKTHROUGH_PROGRAM, 'English is founded into Founders Hall');
   assert(s.tech.find((t) => t.id === entry)?.status === 'developing' && s.courseFaculty[entry] === WALKTHROUGH_PROFESSOR, 'its entry course is with the committee, Bennett to teach it');
-  assert(s.events.opening.stage === 'play' && !openingHoldsClock(s), 'and the walk is over');
+  assert(s.events.opening.stage === 'await-course' && !openingHoldsClock(s), 'and the clock runs while it is written, no card showing');
   const line = nextStep(s);
   assert(line !== null && line.text.startsWith('Places for 80 of 350 students') && line.text === OPENING_LETTERS[0].ask(s).text, `the line is the first letter's ask: seat the students (${line?.text})`);
+
+  // Plan 103B: the entry course taught, the walk asks for the next one.
+  s = untilStage(s, 'second-course');
+  assert(s.tech.find((t) => t.id === entry)?.status === 'done', `${entry} is taught when the course step opens (week ${s.clock.week})`);
+  assert(walkProgram(s) === WALKTHROUGH_PROGRAM && openingHoldsClock(s), 'the step points at English, and the clock is held');
+  assert(nextStep(s) === null, 'the card speaks, not the line');
+  const held = s.clock.week;
+  s = reducer(s, { type: 'TICK' });
+  assert(s.clock.week === held, 'TICK is a no-op on the course step');
+  const card = OPENING_STEPS['second-course'].body(s);
+  assert(card.includes('English') && card.includes('ten courses, and the next four are open now'), `the card names the program and its open courses (${card})`);
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  assert(s.events.opening.stage === 'second-course', 'Next does nothing: the step ends on a course started');
+  const second = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => s.tech.find((t) => t.id === id)?.status === 'available')!;
+  s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: second, facultyId: WALKTHROUGH_PROFESSOR });
+  assert(s.tech.find((t) => t.id === second)?.status === 'developing', `${second} is under way`);
+
+  // Plan 103C: the needs, then a residence hall and a dining hall.
+  assert(s.events.opening.stage === 'needs' && openingHoldsClock(s), 'the walk moves on to the needs, the clock still held');
+  assert(s.events.opening.read.includes(NEEDS_LETTER_ID), 'and counts the letter the needs steps stand in for read');
+  const needs = OPENING_STEPS.needs.body(s);
+  assert(/Housing is at \d+ and Dining at \d+\./.test(needs) && needs.includes('0 beds and 0 dining seats') && needs.includes('a residence hall for housing'), `the card reads the two needs and the figures behind them (${needs})`);
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  assert(s.events.opening.stage === 'site-housing' && openingHoldsClock(s), 'Next asks for a residence hall');
+  const dorm = walkBuilding(s)!;
+  assert(dorm?.kind === 'dorm' && OPENING_STEPS['site-housing'].body(s).startsWith(`${dorm.name} sleeps `), `the card names it (${OPENING_STEPS['site-housing'].body(s)})`);
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  assert(s.events.opening.stage === 'site-housing', 'Next does nothing: the step ends on a building sited');
+  s = siteAnywhere(s, dorm.id);
+  assert(dorm.id in s.placements && s.events.opening.stage === 'site-dining', 'the residence hall sited, the walk asks for a dining hall');
+  const dining = walkBuilding(s)!;
+  assert(dining?.facilityType === 'diningHall' && OPENING_STEPS['site-dining'].body(s).startsWith(`${dining.name} feeds `), `the card names it (${OPENING_STEPS['site-dining'].body(s)})`);
+  s = siteAnywhere(s, dining.id);
+  assert(dining.id in s.placements && s.events.opening.stage === 'play' && !openingHoldsClock(s), 'the dining hall sited, the walk is over');
 
   // The letters carry on from the second, on their weeks.
   const { letters, s: after } = playYear(s);
   assert(!letters.some((l) => l.id === OPENING_LETTERS[0].id), 'the first letter is never sent — the welcome was it');
   const calendar = letters.filter((l) => CALENDAR.some((c) => c.id === l.id));
-  assert(calendar.map((l) => l.id).join(',') === CALENDAR.slice(1).map((l) => l.id).join(','), `the rest of the calendar arrives in order (${letters.map((l) => l.id).join(',')})`);
+  assert(!letters.some((l) => l.id === NEEDS_LETTER_ID), 'nor the needs letter — the walk was it');
+  assert(calendar.map((l) => l.id).join(',') === CALENDAR.slice(1).filter((l) => l.id !== NEEDS_LETTER_ID).map((l) => l.id).join(','), `the rest of the calendar arrives in order (${letters.map((l) => l.id).join(',')})`);
   assert(after.clock.year === 2, 'and the year turns over');
 }
 
@@ -313,6 +374,90 @@ const siteHall = (s: GameState) => {
   f = reducer(f, { type: 'SKIP_OPENING', keepLetters: true });
   assert(f.events.opening.stage === 'play' && !openingHoldsClock(f), 'skipped, the clock runs');
   assert(f.faculty.length === 1 && Object.values(f.halls).flat().every((slot) => slot.programId === null), 'with Bennett appointed and nothing founded');
+}
+
+// --- the course step (Plan 103B): skipped, and when it can't be done ------
+{
+  // Skipped: the letters kept, the clock runs.
+  let s = untilStage(walkToCourse('Skip course'), 'second-course');
+  assert(s.events.opening.stage === 'second-course', 'on the course step');
+  s = reducer(s, { type: 'SKIP_OPENING', keepLetters: true });
+  assert(s.events.opening.stage === 'play' && !s.events.opening.skipped && !openingHoldsClock(s), 'skipped, the letters are kept and the clock runs');
+  const kept = playYear(s).letters.map((l) => l.id);
+  assert(kept.includes(NEEDS_LETTER_ID), `skipped before the needs steps, their letter comes at week 9 (${kept.join(',')})`);
+
+  // No program housed any more while the course is written: the walk ends
+  // without the step.
+  let gone = walkToCourse('Gone');
+  gone.halls[FOUNDERS_HALL_ID][0].programId = null;
+  gone = reducer(gone, { type: 'TICK' });
+  assert(gone.events.opening.stage === 'needs', `a walk with no program left goes on to the needs at the next week (${gone.events.opening.stage})`);
+
+  // Nothing the college can start (no cash for a course): the step is never
+  // shown, so it can't hold the clock on what can't be done.
+  let poor = walkToCourse('Poor');
+  const entry = programById(WALKTHROUGH_PROGRAM)!.entryCourseId;
+  for (let i = 0; i < 60 && poor.tech.find((t) => t.id === entry)?.status !== 'done'; i += 1) {
+    poor = poor.pendingInterrupt ? reducer(poor, defaultAnswer(poor)!) : reducer(poor, { type: 'TICK' });
+  }
+  assert(poor.events.opening.stage === 'await-course', 'the course is taught, the step not yet settled');
+  poor.finance.cash = 0;
+  poor = reducer(poor, { type: 'TICK' });
+  assert(poor.events.opening.stage === 'needs', `with no course it can afford, the walk goes on to the needs without the step (${poor.events.opening.stage})`);
+
+  // A save at 'play' (an old save, or a headless run) never gets the step.
+  let headless = foundWalk('No step', false);
+  headless = reducer(headless, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  headless = reducer(headless, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
+  for (let i = 0; i < 10; i += 1) headless = headless.pendingInterrupt ? reducer(headless, defaultAnswer(headless)!) : reducer(headless, { type: 'TICK' });
+  assert(headless.tech.find((t) => t.id === entry)?.status === 'done' && headless.events.opening.stage === 'play', 'a run at play stays at play when its first course is taught');
+
+  // A save on the step resumes on it.
+  const step = untilStage(walkToCourse('Resume'), 'second-course');
+  assert(saveGame(step) && loadGame()?.events.opening.stage === 'second-course', 'a save on the course step resumes on it');
+}
+
+// --- the needs steps (Plan 103C): already done, skipped, and when they can't be ---
+{
+  // Both already sited before the needs: the card says so, and Next ends the walk.
+  let both = untilStage(walkToCourse('Both'), 'second-course');
+  both = siteAnywhere(both, both.tech.find((t) => t.kind === 'dorm' && t.status === 'available')!.id);
+  both = siteAnywhere(both, both.tech.find((t) => t.facilityType === 'diningHall' && t.status === 'available')!.id);
+  assert(both.events.opening.stage === 'second-course', 'siting both on the course step leaves it standing');
+  const course = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => both.tech.find((t) => t.id === id)?.status === 'available')!;
+  both = reducer(both, { type: 'START_DEVELOPMENT', nodeId: course, facultyId: WALKTHROUGH_PROFESSOR });
+  assert(both.events.opening.stage === 'needs' && OPENING_STEPS.needs.body(both).includes('are going up'), `the needs card says both are going up (${OPENING_STEPS.needs.body(both).slice(-90)})`);
+  both = reducer(both, { type: 'ADVANCE_OPENING' });
+  assert(both.events.opening.stage === 'play' && !openingHoldsClock(both), 'and Next ends the walk, both site steps already done');
+
+  // Only the residence hall sited: Next goes straight to the dining hall.
+  let one = untilStage(walkToCourse('One'), 'second-course');
+  one = siteAnywhere(one, one.tech.find((t) => t.kind === 'dorm' && t.status === 'available')!.id);
+  one = reducer(one, { type: 'START_DEVELOPMENT', nodeId: course, facultyId: WALKTHROUGH_PROFESSOR });
+  one = reducer(one, { type: 'ADVANCE_OPENING' });
+  assert(one.events.opening.stage === 'site-dining', `with a residence hall sited, Next asks only for the dining hall (${one.events.opening.stage})`);
+
+  // Skipped from each needs card: the letters kept, the needs letter not sent.
+  for (const stage of ['needs', 'site-housing', 'site-dining'] as const) {
+    let k = untilStage(walkToCourse(`Skip ${stage}`), 'second-course');
+    k = reducer(k, { type: 'START_DEVELOPMENT', nodeId: course, facultyId: WALKTHROUGH_PROFESSOR });
+    if (stage !== 'needs') k = reducer(k, { type: 'ADVANCE_OPENING' });
+    if (stage === 'site-dining') k = siteAnywhere(k, walkBuilding(k)!.id);
+    assert(k.events.opening.stage === stage, `on the ${stage} step (${k.events.opening.stage})`);
+    k = reducer(k, { type: 'SKIP_OPENING', keepLetters: true });
+    assert(k.events.opening.stage === 'play' && !k.events.opening.skipped && !openingHoldsClock(k), `skipped from ${stage}, the clock runs and the letters are kept`);
+    const sent = playYear(k).letters.map((l) => l.id);
+    assert(!sent.includes(NEEDS_LETTER_ID), `and the needs letter is not sent: the step showed it (${sent.join(',')})`);
+  }
+
+  // Nothing the college can put up (no cash, no loan): the site steps pass.
+  let broke = untilStage(walkToCourse('Broke'), 'second-course');
+  broke = reducer(broke, { type: 'START_DEVELOPMENT', nodeId: course, facultyId: WALKTHROUGH_PROFESSOR });
+  broke.finance.cash = 0;
+  broke.finance.loans = [];
+  for (const t of broke.tech) if (t.kind === 'dorm' || t.facilityType === 'diningHall') t.cost = 1e12;
+  broke = reducer(broke, { type: 'ADVANCE_OPENING' });
+  assert(broke.events.opening.stage === 'play' && !openingHoldsClock(broke), `with neither building within reach, Next ends the walk (${broke.events.opening.stage})`);
 }
 
 if (failures === 0) {

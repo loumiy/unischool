@@ -2,7 +2,9 @@
 // The tab the build menu opens on (Plan 92, BuildPopup.tsx's
 // initialBuildTab): Grounds, its first tab, except while Founders Hall waits
 // for its ground in a guided founding; then the tab that holds the hall,
-// where the walkthrough points, and Grounds again once it stands.
+// where the walkthrough points, and Grounds again once it stands. The
+// walkthrough's site steps (Plan 103C) open it on Housing, then on the
+// dining hall's tab.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -52,6 +54,17 @@ console.log('build tab tests');
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
   assert(FOUNDERS_HALL_ID in s.placements, 'the hall is set down');
   assert(initialBuildTab(s) === 'campus-tools', `and the menu opens on Grounds again (${initialBuildTab(s)})`);
+
+  // The walkthrough's site steps (Plan 103C): Housing, then the dining hall's tab.
+  s.events.opening.stage = 'site-housing';
+  const dorm = s.tech.find((t) => t.kind === 'dorm' && t.status === 'available')!;
+  assert(buildTabOf(s, dorm.id) === 'housing' && initialBuildTab(s) === 'housing', `the residence hall step opens the menu on Housing (${initialBuildTab(s)})`);
+  s.events.opening.stage = 'site-dining';
+  const dining = s.tech.find((t) => t.facilityType === 'diningHall' && t.status === 'available')!;
+  const diningTab = buildTabOf(s, dining.id);
+  assert(diningTab !== undefined && diningTab !== 'housing' && initialBuildTab(s) === diningTab, `the dining hall step opens it on the dining hall's tab (${initialBuildTab(s)})`);
+  s.events.opening.stage = 'play';
+  assert(initialBuildTab(s) === 'campus-tools', 'and Grounds once the walk is over');
 }
 
 if (failures > 0) {
