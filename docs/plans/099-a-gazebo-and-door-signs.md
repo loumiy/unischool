@@ -6,7 +6,7 @@ gazebo, a plate by each building's door naming it, and the Japanese Garden
 moved to a later milestone. The rest of the October review's decorative
 list stays in the backlog.*
 
-**Status: Approved (12 October 2026): every decision as proposed. In progress.**
+**Status: Done (13 October 2026). B, C and E merged (#351, #352, #354); D, the door signs, dropped by the owner (#353 closed).**
 
 ---
 

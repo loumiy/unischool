@@ -7,7 +7,7 @@ hall keeps offering the three weighted-random programs until it holds three
 programs of one school. Then it is that school's hall, and it offers the
 rest of that school's programs in place of the random offers.*
 
-**Status: Approved (13 October 2026): every decision as proposed. In progress.**
+**Status: Done (13 October 2026). B and C merged (#355, #357); D in the PR that carries this line.**
 
 ---
 
@@ -223,3 +223,30 @@ against `main` at `9cec56b` plus PR #341:
 - **The opening walkthrough and Plan 78's school letters** are read for
   the old rule ("a hall is claimed by its first program") and rewritten.
 - `docs/design/curriculum.md` (:7–90, 165–177) gets the rule.
+
+**As implemented.**
+
+- **The harness** (`sim/harness/moves.ts`):
+  - `homeFor` sends a new program to its school's own hall, then to a hall
+    the school leads, then to an open hall (no claim and no home).
+  - `foundable` and `offersFor` read `offeredIn`.
+  - `siteNextHall` waits while an open purchased hall has a free slot.
+  - `guided.ts`'s "last school home in Founders Hall" reads `homeSchool`,
+    since Founders Hall is never claimed.
+- **The guidance:**
+  - The next-step line for a school's hall short of three adds "— found
+    two more Science programs here to make it Science's hall".
+  - `establish`'s founding step says the program makes the hall the
+    school's, or is one of the programs that will.
+  - The closing step counts claimed halls.
+- **The letters:** the Elm Hall letter states the rule, and "A school takes
+  shape" (from 100B) says the hall is now the school's. The opening
+  walkthrough never spoke of claims, so it is unchanged.
+- **Tests:** `sorting.test.ts` adds a hall short of a claim: the next step
+  says how many more programs claim it, and names the last of them.
+- **Balance** (`npm run sim`, against 100B's baseline): ranks within 3
+  places, prestige within 3.6 points. Lean founds five schools by year 50
+  again, one more than under 100B. The scorecard: 85 of 115 met, against 79
+  under 100B. The natural player founds its first school in years 9–10;
+  its fourth, in years 11–13, runs early of its target (14–23). The
+  baseline is re-recorded and `npm run test:slow` passes.
