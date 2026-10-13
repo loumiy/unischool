@@ -60,7 +60,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'An alumna of the {class} has left the college a bequest, on the single condition that it never be spent on administration. Her lawyer was firm about this and appears to have enjoyed saying it.',
     timeoutWeeks: 4,
     choices: [
-      { id: 'buildings', label: 'Put it into the buildings', effects: { backlog: -1200000, mood: 2 } },
+      { id: 'buildings', label: 'Put it into the buildings', effects: { repairGift: 1200000, mood: 2 } },
       { id: 'endowment', label: 'Put it into the endowment', effects: { endowment: 1200000 } },
     ],
     default: 'endowment',
@@ -514,7 +514,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     choices: [
       { id: 'line', label: 'Appoint {candidate} to a courtesy post', effects: { cash: -90000, quality: 2, mood: 1, hire: 1 } },
       { id: 'courses', label: 'Offer a one-term stipend', effects: { cash: -30000, quality: 1 } },
-      { id: 'nothing', label: 'Say that nothing is possible', effects: { quality: -1, mood: -1 } },
+      { id: 'nothing', label: 'Say that nothing is possible', effects: { quality: -1, mood: -1, departs: 1 } },
     ],
     default: 'courses',
   },
@@ -1655,7 +1655,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     text: 'The {class} has raised a reunion gift and would like it spent on a clock for the main walk, with the class year on its face. The committee has chosen the clock, the typeface, and the year, which is off by one.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'clock', label: 'Install the clock as given', effects: { warmth: 3 } },
+      { id: 'clock', label: 'Accept the clock as given', effects: { warmth: 3 } },
       { id: 'redirect', label: 'Ask them to give it to the endowment instead', effects: { endowment: 250000, warmth: -1, mood: 1 } },
     ],
     default: 'clock',

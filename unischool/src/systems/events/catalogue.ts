@@ -49,7 +49,7 @@ const PRICE_REFERENCE_BUDGET = 15_000_000;
 const PRICE_SCALE_MIN = 0.2;
 const PRICE_SCALE_MAX = 12;
 const PRICE_FIXED_BELOW = 25_000;
-const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog', 'backlogOn', 'buildingFund', 'boosterGift']);
+const MONEY: ReadonlySet<EffectKey> = new Set(['cash', 'endowment', 'debt', 'backlog', 'backlogOn', 'buildingFund', 'boosterGift', 'repairGift']);
 
 export function priceScale(s: GameState): number {
   const budget = Math.max(s.finance.weeklyOpEx, 1) * WEEKS_PER_YEAR;
@@ -371,6 +371,12 @@ export function fill(text: string, vars: Record<string, string>): string {
 }
 
 // ---- Effects ----
+// What a gift for the buildings spends on repairs (Plan 101G): the backlog
+// owed, at most the gift.
+export function repairsOf(s: GameState, gift: number): number {
+  return Math.max(0, Math.min(gift, standing(s).reduce((t, b) => t + (b.backlog ?? 0), 0)));
+}
+
 function spreadBacklog(s: GameState, raw: number): void {
   const open = standing(s);
   if (open.length === 0) return;
@@ -524,6 +530,17 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
         break;
       }
       case 'paveLine': if (v > 0) paveLine(s); break;
+      case 'repairGift': {
+        // Money given for the buildings (Plan 101G): the repairs owed first,
+        // the rest kept for building in the building fund.
+        const repairs = repairsOf(s, v);
+        if (repairs > 0) spreadBacklog(s, -repairs);
+        if (v - repairs > 0) {
+          const adv = s.advancement ??= { running: null, closed: [], restrictedBuilding: 0 };
+          adv.restrictedBuilding += v - repairs;
+        }
+        break;
+      }
       case 'ivy': case 'sinkhole': {
         const t = standing(s).find((b) => b.id === vars.buildingId);
         if (v > 0 && t) t[k] = true;
