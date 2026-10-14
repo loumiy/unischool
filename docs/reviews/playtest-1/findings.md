@@ -3,7 +3,8 @@
 *Filed weekly from the form, the page's comments and the statistics, under
 the reviews' areas ([`README.md`](README.md), the triage rule). One line a
 finding, with how many players said it and where it came from: `form`,
-`comment` (the itch.io page), `reddit` or `stats`. Every reply read is
+`comment` (the itch.io page), `reddit`, `live` (a session the owner
+watched) or `stats`. Every reply read is
 logged under *The replies* at the bottom, with its link, so a count can be
 checked against what was said. A finding that loses a save or blocks a run is also
 marked **0.1.x** and fixed in a patch.*
@@ -14,7 +15,7 @@ marked **0.1.x** and fixed in a patch.*
 |---|---|
 | How long is a first run, and where do people stop? | Half of the desktop runs stop before the first summer; of those past it, most reach year 10 (PostHog, 11 October, below). A run's length depends on the speed played: at mostly 1× the clock is near the design's 3.6 hours (year 35 at 119 minutes, year 20 at 83: about 2.5–3.5 hours to year 50); players who use 4× and 8× reach year 50 in about an hour (59 and 71 minutes). Played minutes are cumulative per run and count only the running clock; in real time the one full run in a single sitting took nearly 6 hours (re-checked 11 October). One player: 4+ hours in a first sitting, with a partner (R3). |
 | Do players reach the specialization? | Every player who reached year 21 was offered it; 4 chose, all in years 21–24 (PostHog). |
-| The opening, the summer and the Final Report | The opening: one player lost after the tutorial ends (R2). |
+| The opening, the summer and the Final Report | The opening: one player lost after the tutorial ends (R2); one who skimmed the walkthrough and missed that programs need their courses developed in the Curriculum (T1). The summer: T1 admitted 1% three years running into debt. |
 
 ## 1 · Aesthetics
 
@@ -24,7 +25,10 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8), comment (I1, I2).*
+  R3, R4, R8), comment (I1, I2), live (T1).*
+  T1, a streamer who doesn't usually play these games: "this reminds me
+  of games I used to play" and "I've spent money on Steam for games way
+  worse than this"; past an hour, when the owner left, he kept playing.
   **A line for the store page:** "this feels like the football manager of
   universities" (R8, a Football Manager fan; the marketability memo had
   named FM players as the audience).
@@ -45,6 +49,12 @@ marked **0.1.x** and fixed in a patch.*
 
 ## 2 · UI and text
 
+- **The letters that stop the clock are too quiet.** The player didn't
+  notice that time had stopped, or that something was waiting for him.
+  *1 player · live (T1).*
+- **The walkthrough is skipped by players who don't read.** T1 skimmed
+  it and was a little overwhelmed. *1 player · live (T1).*
+
 ## 3 · Intuitive gameplay
 
 - **The tutorial ends too soon.** After the first course (English) is
@@ -53,7 +63,24 @@ marked **0.1.x** and fixed in a patch.*
   there), but the hand-off reads as the tutorial breaking. The owner's
   reply: maybe stretch the tutorial out longer. *1 player · reddit (R2).*
 
+- **Programs on the map, courses in the Curriculum.** The most
+  confusing part, in T1's words: a program is offered and placed in the
+  map view, but its courses are developed in the Curriculum tab. He
+  thought you just keep adding programs, and didn't realize they need
+  developing further. This is the same seam as R2 (lost after the first
+  course) from the other side. *2 players · live (T1), reddit (R2).*
+
 ## 4 · Strategy
+
+- **Admitting 1% three summers running put the college in debt,** and
+  the player didn't connect the one to the other. Nothing in the summer
+  stopped or warned him. *1 player · live (T1).*
+
+## Asked for in play
+
+- **Benches on a quad.** T1 tried to put benches on top of a quad, and
+  enjoyed placing benches more than almost anything else. *1 player ·
+  live (T1).*
 
 ## 7 · Bugs
 
@@ -250,6 +277,27 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
 ### foundplay.io — the owner's post (11 October)
 
 - No replies logged yet.
+
+### Live — Twitch, a streamer the owner found (13 October)
+
+- **T1** · @dea066 on Twitch, a small channel with no viewers, asked by
+  the owner to play. Not the target audience, by the owner's read. He
+  played at least an hour on stream, with the owner watching and asking
+  questions in chat. The owner's notes:
+  - a little overwhelmed; not big on reading the walkthrough;
+  - "This reminds me of games I used to play";
+  - wanted to put benches on top of a quad; really likes placing
+    benches;
+  - the clock-stopping letters are too subtle: he didn't realize time
+    had stopped and there was something he had to do;
+  - set admissions to 1% three summers in a row, and is now in debt;
+  - "I've spent money on Steam for games way worse than this";
+  - asked what was most confusing: going from developing programs in
+    the map view to developing courses in the Curriculum. He thought you
+    just keep adding programs, not realizing they need developing more;
+  - after about an hour the owner said they had to go, and he said he
+    was going to keep playing. Even without fully understanding what to
+    do, he was hooked.
 
 ### itch.io — the page's comments and ratings
 
