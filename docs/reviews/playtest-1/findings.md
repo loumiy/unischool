@@ -74,6 +74,15 @@ marked **0.1.x** and fixed in a patch.*
   accidentally)": not a problem for them, but they expect it would be
   for a new player. With R2 and T1, the third player to find the start
   hard to read. *1 player (with a partner) · reddit (R9).*
+- **Too much on screen during the walkthrough.** "The next action is
+  clear in the walkthrough, but all the stats and menus are competing
+  with it." The suggestion: keep the opening to hall → professor → first
+  course, with the other tabs dimmed until those are done ("could help
+  without cutting any depth"). Holding the clock during those steps was
+  called "a good call". Today the walkthrough holds the clock but leaves
+  every tab and the top bar live (the toolbar dims only for a board
+  letter, `App.tsx`'s `holding`). In Plan 104 as F. *1 player · reddit
+  (R10, R11).*
 
 ## 4 · Strategy
 
@@ -287,6 +296,21 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
 ### foundplay.io — the owner's post (11 October)
 
 - No replies logged yet.
+
+### Reddit, r/WebGames — [the owner's post](https://www.reddit.com/r/WebGames/s/j0w5eKdcbi) (14 October)
+
+- **R10** · No-Giraffe-3838 — "350 students and zero professors is an
+  alarmingly believable university simulator lol. holding the clock during
+  the first building/hiring steps is a good call though, theres a lot of
+  menus to take in at the start."
+  *Owner:* "It gets fairly complex, so I tried slowly layering in
+  features, but it still seems a bit overwhelming for new players at the
+  start."
+- **R11** · No-Giraffe-3838 (the same player as R10) — "maybe keep the
+  opening focused on just the hall > professor > first course, with the
+  other tabs dimmed until those are done. the next action is clear in the
+  walkthrough, but all the stats and menus are competing with it. could
+  help without cutting any depth."
 
 ### Reddit, a message from a composer (14 October)
 

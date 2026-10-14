@@ -25,6 +25,8 @@ Three players since then, or just before, found the start hard to read:
 - **R9**, a composer who played with their partner, loved the detail but
   found it "a little hard to figure things out (maybe there was a tutorial
   I skipped accidentally)".
+- **R10–R11**, on r/WebGames: the clock held at the start is "a good
+  call", but "all the stats and menus are competing" with the walkthrough.
 
 T1 and R9 may have played 0.1.0, before Plan 103; the version their runs
 were on is not known. What follows is what Plan 103 doesn't cover.
@@ -144,6 +146,29 @@ itself, where the program was placed.
   players who pile up at one stage are stuck there; players who skip and
   then stop early tell whether the skip (C) mattered.
 
+### F — A quieter screen for the first three steps
+
+From r/WebGames (R10–R11, 14 October): "the next action is clear in the
+walkthrough, but all the stats and menus are competing with it … keep the
+opening focused on just the hall > professor > first course, with the
+other tabs dimmed until those are done."
+
+- **Today** the walkthrough holds the clock (`openingHoldsClock`) but the
+  toolbar stays live: `App.tsx` passes the Toolbar `held={holding}`, which
+  is set only by a board letter (`pendingInterrupt`), not by the walk.
+- **The change:** while the stage is `site-hall`, `appoint` or `found`,
+  every toolbar tab but the one the step needs is dimmed and disabled (the
+  same `disabled` look the toolbar already has for a letter). The top
+  bar's figures (cash, prestige, enrollment, satisfaction) are dimmed too,
+  still readable. The step's own door (the build menu, Founders Hall) is
+  untouched.
+- **From `await-course` on**, everything is live again, as now: Plan
+  103's later steps send the player into the Curriculum, Students and the
+  build menu on purpose.
+- **Skipping the walkthrough** lifts the dimming at once.
+- **Tests:** a shell test that the tabs are disabled at `site-hall` and
+  live at `await-course` and after a skip.
+
 ### E — 0.1.2
 
 - `package.json` to 0.1.2, the Release workflow, the itch.io upload, a
@@ -157,6 +182,7 @@ itself, where the program was placed.
 | 2 | The band's place | **Beside the speed control**, where the eye goes when the clock stops. The alternative is a strip across the top of the map. |
 | 3 | Does the welcome card keep a skip at all? | **Yes, behind the confirmation.** A returning player on a second run wants it. |
 | 4 | Is B worth doing before more players say it? | **Yes.** It is one player (T1), but it isn't a decision being punished: a player who doesn't know a decision is waiting can't make it, however carefully they play. |
+| 5 | How far does F dim? | **Tabs disabled, top-bar figures dimmed but readable**, for the first three steps only. Hiding the figures entirely would make the first summer's numbers arrive from nowhere. |
 
 ## Rules for every PR in this plan
 
@@ -174,4 +200,5 @@ itself, where the program was placed.
 | B | A clock that says why it stopped | — |
 | C | A skip that's hard to hit by accident | — |
 | D | The opening, measured | — (C's confirmation fires D's `opening_skipped` once both are in) |
-| E | 0.1.2 | A–D |
+| F | A quieter screen for the first three steps | — |
+| E | 0.1.2 | A–D, F |
