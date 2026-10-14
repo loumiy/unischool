@@ -25,7 +25,7 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8), comment (I1, I2), live (T1).*
+  R3, R4, R8, R9), comment (I1, I2), live (T1).*
   T1, a streamer who doesn't usually play these games: "this reminds me
   of games I used to play" and "I've spent money on Steam for games way
   worse than this"; past an hour, when the owner left, he kept playing.
@@ -69,6 +69,11 @@ marked **0.1.x** and fixed in a patch.*
   thought you just keep adding programs, and didn't realize they need
   developing further. This is the same seam as R2 (lost after the first
   course) from the other side. *2 players · live (T1), reddit (R2).*
+- **Overwhelming at first, and the tutorial easy to miss.** "A little
+  hard to figure things out (maybe there was a tutorial I skipped
+  accidentally)": not a problem for them, but they expect it would be
+  for a new player. With R2 and T1, the third player to find the start
+  hard to read. *1 player (with a partner) · reddit (R9).*
 
 ## 4 · Strategy
 
@@ -282,6 +287,19 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
 ### foundplay.io — the owner's post (11 October)
 
 - No replies logged yet.
+
+### Reddit, a message from a composer (14 October)
+
+*A musician the owner is talking to about commissioning the background
+music; they played to hear what the game needs. Weigh the praise with
+that in mind.*
+
+- **R9** — "We tried the game with my girlfriend! We loved the detail and
+  the many things you have to pay attention to, we already want to build
+  a new university. One problem I realised, for us it wasn't a problem
+  though, but I can imagine that it is overwhelming for a new player
+  because it was a little hard to figure things out (maybe there was a
+  tutorial I skipped accidentally)."
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
