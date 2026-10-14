@@ -75,6 +75,11 @@ marked **0.1.x** and fixed in a patch.*
 - **Admitting 1% three summers running put the college in debt,** and
   the player didn't connect the one to the other. Nothing in the summer
   stopped or warned him. *1 player · live (T1).*
+  **Decided: no change** (the owner, 14 October). He wasn't reading or
+  deciding with care, and a good strategy game should punish that. Once
+  he worked out what had happened he fixed it, got money back above zero
+  and made progress: the cause could be found and the hole climbed out
+  of, which is what matters.
 
 ## Asked for in play
 
