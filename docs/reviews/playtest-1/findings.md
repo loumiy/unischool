@@ -4,7 +4,7 @@
 the reviews' areas ([`README.md`](README.md), the triage rule). One line a
 finding, with how many players said it and where it came from: `form`,
 `comment` (the itch.io page), `reddit`, `live` (a session the owner
-watched), `form` (the in-game feedback form) or `stats`. Every reply read is
+watched), `form` (the in-game feedback form), `discord` or `stats`. Every reply read is
 logged under *The replies* at the bottom, with its link, so a count can be
 checked against what was said. A finding that loses a save or blocks a run is also
 marked **0.1.x** and fixed in a patch.*
@@ -25,7 +25,9 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1).*
+  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1), discord (D1).*
+  D1, a first look: "giving proper throwback to the original Sims vibes",
+  and "really liked [the] visual style on the buildings/scene".
   F1, who finished a run: best moment "unlocking and expanding the
   campus"; would play again, "a good pathway for replay ability"; would
   pay $10–15.
@@ -51,6 +53,14 @@ marked **0.1.x** and fixed in a patch.*
   in `BACKLOG.md`.
 
 ## 2 · UI and text
+
+- **The screens after the first course are text-heavy.** "After setting up
+  an English literature course, the next few screens were quite
+  overwhelmingly text heavy." Those are Plan 103's new steps (the next
+  course, the needs, the residence and dining halls) on 0.1.1, or the
+  board's letters on 0.1.0. A quick first impression, by the player's
+  own account; with T1 skimming the walkthrough, the second hint that its
+  cards are long. *1 player · discord (D1).*
 
 - **The letters that stop the clock are too quiet.** The player didn't
   notice that time had stopped, or that something was waiting for him.
@@ -318,6 +328,23 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
 ### foundplay.io — the owner's post (11 October)
 
 - No replies logged yet.
+
+### Discord — a playtesting server (14 October)
+
+*Someone posted an offer of free playtesting; the owner joined their
+Discord. A fuller review may follow.*
+
+- **D1** · nostalgicbear — "Just had a quick glance at this. Its giving
+  proper throughback to the original Sims vibes 😬 I've just very quickly
+  gone through part of the onboarding. I'll gather some proper thoughts
+  later. Have you had any feedback so far?"
+  *Owner (lou2429):* a lot of menus, a bit overwhelming at first, so the
+  intro phase will be slowed down to layer things in one at a time.
+  *D1:* "That was one of my first impressions initially. After setting up
+  an English literature course, the next few screens were quite
+  overwhelmingly text heavy, but that was just a very quick impression,
+  and not one to give much weight to yet. Also really liked visual style
+  on the buildings/scene initially."
 
 ### The feedback form
 
