@@ -4,7 +4,7 @@
 the reviews' areas ([`README.md`](README.md), the triage rule). One line a
 finding, with how many players said it and where it came from: `form`,
 `comment` (the itch.io page), `reddit`, `live` (a session the owner
-watched) or `stats`. Every reply read is
+watched), `form` (the in-game feedback form) or `stats`. Every reply read is
 logged under *The replies* at the bottom, with its link, so a count can be
 checked against what was said. A finding that loses a save or blocks a run is also
 marked **0.1.x** and fixed in a patch.*
@@ -25,7 +25,10 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8, R9), comment (I1, I2), live (T1).*
+  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1).*
+  F1, who finished a run: best moment "unlocking and expanding the
+  campus"; would play again, "a good pathway for replay ability"; would
+  pay $10–15.
   T1, a streamer who doesn't usually play these games: "this reminds me
   of games I used to play" and "I've spent money on Steam for games way
   worse than this"; past an hour, when the owner left, he kept playing.
@@ -86,6 +89,11 @@ marked **0.1.x** and fixed in a patch.*
 
 ## 4 · Strategy
 
+- **Finding a decent teacher, and waiting to add more classes,** were the
+  most frustrating part of a full run. The faculty market and the pace of
+  new courses (the second review's B4-5 and the catalogue's pacing).
+  *1 player · form (F1).*
+
 - **Admitting 1% three summers running put the college in debt,** and
   the player didn't connect the one to the other. Nothing in the summer
   stopped or warned him. *1 player · live (T1).*
@@ -96,6 +104,9 @@ marked **0.1.x** and fixed in a patch.*
   of, which is what matters.
 
 ## Asked for in play
+
+- **An ordinance system "like in the SimCity series"**: standing policies
+  for the college. *1 player · form (F1).*
 
 - **Benches on a quad.** T1 tried to put benches on top of a quad, and
   enjoyed placing benches more than almost anything else. *1 player ·
@@ -296,6 +307,24 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
 ### foundplay.io — the owner's post (11 October)
 
 - No replies logged yet.
+
+### The feedback form
+
+- **F1** · 14 October, 06:46 UTC · 0.1.1 (build `f57916d`, itch.io),
+  sent from year 50 week 52, rank 14. PostHog (install id matched): first
+  seen 13 October on 0.1.0, then 0.1.1; three runs, specialized in year
+  21, one Final Report finished, 74 played minutes to year 45, on a
+  laptop.
+  - *How long:* 4+ hours.
+  - *A moment you didn't know what to do next?* "It was pretty simple."
+  - *Best moment:* "Unlocking and expanding the campus."
+  - *Most frustrating:* "Either trying to find a decent teacher or
+    waiting to add in more classes."
+  - *Play again?* "Yes, I think there is a good pathway for replay
+    ability."
+  - *Would pay:* $10–15.
+  - *Anything else:* "You should add in an ordinance system like in the
+    sim city series."
 
 ### Reddit, r/WebGames — [the owner's post](https://www.reddit.com/r/WebGames/s/j0w5eKdcbi) (14 October)
 
