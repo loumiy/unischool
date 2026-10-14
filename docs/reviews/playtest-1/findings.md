@@ -161,6 +161,16 @@ Daily plays: about 20, 60, 40, 60 from 8 to 11 October, a second peak on
 11 October (foundplay.io and the r/gamedevscreens post). PostHog saw 37
 of the 209 plays, about one in six.
 
+On 14 October (top referrers, 30 days; change since 12 October):
+Google 38 (+6), **foundplay.io 30 (+19)**, reddit.com 24 (+7, and 8 from
+the Reddit Android app, unchanged), itch.io's front page 21 (+6), then
+itch.io's browse pages: *new and popular* for web 14, management 13 (and
+6), tycoon 10, 8, 7 and 7, city builder 7, 7, 7 and 5, strategy 6, and
+the studio page halifaxgames.itch.io 5. foundplay.io's free boost (10
+plays from 368 sponsored views, a 2.7% play rate) made it the
+second-largest outside source. The r/WebGames post (14 October) added at
+most 7 Reddit visits by this snapshot.
+
 ### PostHog, 11 October
 
 *Only players who allow statistics, and whose ad blocker lets them
