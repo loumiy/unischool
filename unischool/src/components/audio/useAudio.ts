@@ -8,7 +8,8 @@ import type { AudioSettings } from './settings';
 // starts on the first gesture anywhere on the page; after that every new
 // state sets the theme and the ambience, and new log lines cue their
 // effects. A loaded save or a new run is heard from where it stands, not
-// replayed from its first week.
+// replayed from its first week. With no run to hear (the title screen and
+// the screens around it), the title's recorded theme plays instead.
 
 // More than this many new lines at once is a load, not a week.
 const CATCH_UP = 60;
@@ -35,6 +36,7 @@ export function useAudioDirector(s: GameState | null): void {
   }, []);
 
   useEffect(() => {
+    audio.setTitle(s === null);
     audio.setTheme(themeFor(s));
     audio.setAmbience(ambienceFor(s));
     const before = last.current;

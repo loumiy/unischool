@@ -5,6 +5,7 @@ import {
   midiToHz,
   sfxById,
   themeById,
+  TITLE_MUSIC,
   type ThemeDef,
   type ThemeId,
   type VoiceDef,
@@ -25,12 +26,22 @@ import {
 // the ambience is looped noise through filters whose gains follow the
 // campus, and an effect is a few enveloped oscillators. Where there is no
 // Web Audio (tests, old browsers) every call is a no-op.
+//
+// One exception to "everything synthesised": the title screen plays a
+// recorded theme (assets/title-theme.mp3), looped with a crossfade, and the
+// synthesised music waits under it. If the recording can't be fetched or
+// decoded, the title plays the founding theme as before.
+
+// Vite emits the file and rewrites this to its built URL; elsewhere (the
+// tests) it is only a string nobody fetches.
+const TITLE_URL = new URL('../../assets/title-theme.mp3', import.meta.url).href;
 
 type Listener = () => void;
 
 const LOOKAHEAD_S = 0.25;
 const SCHEDULE_MS = 60;
 const FADE_S = 0.4;
+const REST_S = 0.125;
 
 type Ctx = AudioContext;
 
@@ -38,6 +49,9 @@ export class AudioEngine {
   private ctx: Ctx | null = null;
   private buses: { master: GainNode; music: GainNode; ambience: GainNode; sfx: GainNode } | null =
     null;
+  // The synthesised themes' own level under the music bus, so the title's
+  // recording can fade them out and back.
+  private synth: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private settings: AudioSettings = { ...DEFAULT_AUDIO };
   private listeners = new Set<Listener>();
@@ -48,6 +62,15 @@ export class AudioEngine {
   private step = 0; // eighths since the theme began
   private nextAt = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
+
+  // The title's recording
+  private titleOn = false;
+  private titleBytes: Promise<ArrayBuffer | null> | null = null;
+  private titleBuffer: AudioBuffer | null = null;
+  private titleFailed = false;
+  private titleOut: GainNode | null = null; // this visit's level; replaced on each
+  private titleSources: AudioBufferSourceNode[] = [];
+  private titleNext = 0; // when the next pass begins
 
   // Ambience
   private crowd: GainNode | null = null;
@@ -105,9 +128,12 @@ export class AudioEngine {
       return g;
     };
     this.buses = { master, music: bus(), ambience: bus(), sfx: bus() };
+    this.synth = ctx.createGain();
+    this.synth.connect(this.buses.music);
     this.noise = makeNoise(ctx);
     this.applyLevels();
     this.startAmbience();
+    if (this.titleOn) void this.startTitle();
     this.nextAt = ctx.currentTime + 0.1;
     this.timer = setInterval(() => this.schedule(), SCHEDULE_MS);
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -121,6 +147,9 @@ export class AudioEngine {
     void this.ctx?.close();
     this.ctx = null;
     this.buses = null;
+    this.synth = null;
+    this.titleOut = null;
+    this.titleSources = [];
   }
 
   private onVisibility = () => {
@@ -149,7 +178,17 @@ export class AudioEngine {
   private schedule(): void {
     const ctx = this.ctx;
     if (!ctx || !this.buses) return;
+    if (this.titleOut && this.titleBuffer && this.titleNext < ctx.currentTime + 1) this.titlePass(this.titleBuffer);
     while (this.nextAt < ctx.currentTime + LOOKAHEAD_S) {
+      // On the title, the themes rest (the birds don't) and begin again
+      // from their first phrase when the player leaves it.
+      if (this.titleOn && !this.titleFailed) {
+        this.step = 0;
+        this.playing = null;
+        this.nextAt += REST_S;
+        this.maybeBird(this.nextAt, REST_S);
+        continue;
+      }
       // Themes change on a chord boundary, so a switch is a new phrase
       // rather than a cut: the old pad rings out under the new one.
       if (this.step % 16 === 0 && this.playing?.id !== this.theme) {
@@ -193,7 +232,7 @@ export class AudioEngine {
     env.gain.linearRampToValueAtTime(peak, at + theme.pad.attack);
     env.gain.setValueAtTime(peak, at + length - FADE_S);
     env.gain.linearRampToValueAtTime(0, at + length + theme.pad.attack);
-    filter.connect(env).connect(this.buses!.music);
+    filter.connect(env).connect(this.synth!);
     for (const detune of [-6, 6]) {
       const osc = ctx.createOscillator();
       osc.type = theme.pad.wave;
@@ -214,9 +253,93 @@ export class AudioEngine {
     env.gain.setValueAtTime(0, at);
     env.gain.linearRampToValueAtTime(gain, at + 0.01);
     env.gain.exponentialRampToValueAtTime(0.0001, at + decay);
-    osc.connect(env).connect(this.buses!.music);
+    osc.connect(env).connect(this.synth!);
     osc.start(at);
     osc.stop(at + decay + 0.05);
+  }
+
+  // ---------- the title's recording ----------
+
+  // On the title screen or off it. The file is fetched the first time it is
+  // asked for, before any gesture, so the recording is ready when sound is.
+  setTitle(on: boolean): void {
+    if (on === this.titleOn) return;
+    this.titleOn = on;
+    if (on && !this.titleBytes && this.available && typeof fetch === 'function') {
+      this.titleBytes = fetch(TITLE_URL)
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .catch(() => null);
+    }
+    if (!this.ctx) return;
+    if (on) void this.startTitle();
+    else this.stopTitle();
+  }
+
+  private async startTitle(): Promise<void> {
+    const ctx = this.ctx;
+    if (!ctx || !this.buses || this.titleOut) return;
+    if (!this.titleBuffer) {
+      const bytes = await this.titleBytes;
+      try {
+        if (!bytes) throw new Error('no title music');
+        // decodeAudioData detaches its argument; the copy keeps the bytes
+        // for a context made later.
+        this.titleBuffer = await ctx.decodeAudioData(bytes.slice(0));
+      } catch {
+        this.titleFailed = true;
+        return;
+      }
+    }
+    // Still on the title, in the same context, and not started meanwhile.
+    if (!this.titleOn || this.ctx !== ctx || !this.buses || this.titleOut) return;
+    const now = ctx.currentTime;
+    const out = ctx.createGain();
+    out.gain.value = TITLE_MUSIC.gain;
+    out.connect(this.buses.music);
+    this.titleOut = out;
+    this.titleNext = now + 0.05;
+    this.synth?.gain.setTargetAtTime(0, now, 0.3);
+    this.titlePass(this.titleBuffer, true);
+  }
+
+  // One pass through the recording, overlapping the last by the crossfade:
+  // the recording ends at full strength, so each pass fades out as the
+  // next fades in.
+  private titlePass(buffer: AudioBuffer, first = false): void {
+    const ctx = this.ctx!;
+    const xf = Math.min(TITLE_MUSIC.crossfade, buffer.duration / 4);
+    const at = this.titleNext;
+    const end = at + buffer.duration;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(first ? 1 : 0, at);
+    if (!first) env.gain.linearRampToValueAtTime(1, at + xf);
+    env.gain.setValueAtTime(1, end - xf);
+    env.gain.linearRampToValueAtTime(0, end);
+    env.connect(this.titleOut!);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(env);
+    src.start(at);
+    src.stop(end);
+    src.onended = () => {
+      this.titleSources = this.titleSources.filter((s) => s !== src);
+    };
+    this.titleSources.push(src);
+    this.titleNext = end - xf;
+  }
+
+  // Off the title: the recording fades out and the themes fade back in.
+  private stopTitle(): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    this.synth?.gain.setTargetAtTime(1, now, 0.3);
+    const out = this.titleOut;
+    if (!out) return;
+    out.gain.setTargetAtTime(0, now, TITLE_MUSIC.fadeOut / 4);
+    for (const src of this.titleSources) src.stop(now + TITLE_MUSIC.fadeOut);
+    this.titleSources = [];
+    this.titleOut = null;
   }
 
   // ---------- ambience ----------
