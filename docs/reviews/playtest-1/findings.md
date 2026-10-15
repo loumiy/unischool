@@ -25,7 +25,13 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1), discord (D1).*
+  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1, F2), discord (D1).*
+  F2, after 1–2 hours: "I've been looking for exactly this type of game
+  for a long time"; "I reeeally enjoyed playing and love the concept as
+  well as the execution"; best moment "seeing the money amount
+  increasing and being able to buy everything that the students would
+  want"; would play again "every once in a while absolutely"; would pay
+  $5–10.
   D1, a first look: "giving proper throwback to the original Sims vibes",
   and "really liked [the] visual style on the buildings/scene".
   F1, who finished a run: best moment "unlocking and expanding the
@@ -65,6 +71,10 @@ marked **0.1.x** and fixed in a patch.*
 - **The letters that stop the clock are too quiet.** The player didn't
   notice that time had stopped, or that something was waiting for him.
   *1 player · live (T1).*
+- **What the grades and ranks on a teacher mean.** F2 didn't understand
+  the letter grades (A, B, C) or the ranks (assistant, associate…), nor
+  how they affect teaching, courses or students, and asked for each
+  attribute and its effect to be explained. *1 player · form (F2).*
 - **The walkthrough is skipped by players who don't read.** T1 skimmed
   it and was a little overwhelmed. *1 player · live (T1).*
 
@@ -97,6 +107,16 @@ marked **0.1.x** and fixed in a patch.*
   letter, `App.tsx`'s `holding`). In Plan 104 as F. *1 player · reddit
   (R10, R11).*
 
+- **Past the walkthrough, the systems aren't introduced.** F2 (1–2
+  hours, sent from year 12) saw the milestones and objectives in the
+  bottom banner but often didn't know what to do to reach them, wasn't
+  sure what athletics was for, and found research projects confusing.
+  Asked for "a more comprehensive introduction" that brings in the main
+  systems gradually, so a player knows what to prioritize and doesn't
+  miss a feature for not knowing it exists. With R2, T1, R9 and D1, the
+  fifth player to find the game hard to read, and the first to name the
+  systems after the opening. *1 player · form (F2).*
+
 ## 4 · Strategy
 
 - **Finding a decent teacher, and waiting to add more classes,** were the
@@ -117,6 +137,17 @@ marked **0.1.x** and fixed in a patch.*
 
 - **An ordinance system "like in the SimCity series"**: standing policies
   for the college. *1 player · form (F1).*
+
+- **More ways to make the campus its own.** More than benches and
+  trees: decorative options, architectural styles, elements that carry
+  the university's identity, so each campus feels personal. *1 player ·
+  form (F2).*
+
+- **A skill tree** beside research and the specialization: invest in
+  arts and culture to unlock cultural facilities or events, in finance
+  for economic advantages, in research for efficiency, each branch
+  opening further ones, so progress isn't mostly buying more buildings.
+  The player knows it's a big feature. *1 player · form (F2).*
 
 - **Benches on a quad.** T1 tried to put benches on top of a quad, and
   enjoyed placing benches more than almost anything else. *1 player ·
@@ -379,6 +410,38 @@ Discord. A fuller review may follow.*
   - *Would pay:* $10–15.
   - *Anything else:* "You should add in an ordinance system like in the
     sim city series."
+
+- **F2** · 15 October, 20:30 UTC · 0.1.1 (build `f57916d`, itch.io),
+  sent from year 12 week 1, rank 55. No install id: statistics were off,
+  so PostHog has no matching run. Left an email for updates (kept in
+  Tally, not here).
+  - *How long:* 1–2 hours.
+  - *A moment you didn't know what to do next?* Enjoyed it, but found the
+    learning curve hard for lack of guidance at the start. The milestones
+    and objectives in the bottom banner didn't say what to actually do to
+    reach them. Unsure what athletics was for; research projects somewhat
+    confusing. Didn't understand the teachers' grades (A, B, C) or ranks
+    (assistant, associate), or how they affect teaching, courses and
+    students. Wanted "a more comprehensive introduction or tutorial at the
+    start of the game, gradually introducing its main mechanics", to know
+    what to prioritize and not miss features. "(but don't misunderstand
+    me, I reeeally enjoyed playing and love the concept as well as the
+    execution, just had some trouble)"
+  - *Best moment:* "Seeing the money amount increasing and being able to
+    buy everything that the students would want to have the maximum
+    satisfaction."
+  - *Most frustrating:* being somewhat lost in those parts; "besides
+    that, no frustration at all."
+  - *Play again?* "Yes, maybe not everyday but every once in a while
+    absolutely."
+  - *Would pay:* $5–10.
+  - *Anything else:* "I've been looking for exactly this type of game for
+    a long time." The game feels "quite general": wants more
+    customization and personality (decorations, architectural styles,
+    the university's identity), and a skill tree to complement research
+    and specialization (arts and culture, finance, research, branches
+    unlocking further branches), so progress isn't only buying buildings.
+    "These are just ideas … I really like the concept behind the game."
 
 ### Reddit, r/WebGames — [the owner's post](https://www.reddit.com/r/WebGames/s/j0w5eKdcbi) (14 October)
 
