@@ -412,8 +412,8 @@ Discord. A fuller review may follow.*
     sim city series."
 
 - **F2** · 15 October, 20:30 UTC · 0.1.1 (build `f57916d`, itch.io),
-  sent from year 12 week 1, rank 55. No install id: statistics were off,
-  so PostHog has no matching run. Left an email for updates (kept in
+  sent from year 12 week 1, rank 55. No install id (statistics probably turned off),
+  so no PostHog run to match. Left an email for updates (kept in
   Tally, not here).
   - *How long:* 1–2 hours.
   - *A moment you didn't know what to do next?* Enjoyed it, but found the
