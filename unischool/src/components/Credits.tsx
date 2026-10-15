@@ -21,7 +21,7 @@ export default function Credits({ onClose }: { onClose: () => void }) {
           <dt>Design and direction</dt>
           <dd>Halifax Games<sup className="credits-mark" aria-hidden="true">*</sup></dd>
           <dt>Title theme</dt>
-          <dd>Fit_Championship_268</dd>
+          <dd>Alejandro Tóth</dd>
           <dt>Made with</dt>
           <dd>React, TypeScript, Vite and the Web Audio API</dd>
           <dt>This build</dt>
