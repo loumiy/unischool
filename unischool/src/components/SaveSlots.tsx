@@ -19,13 +19,10 @@ import { calendarDate } from '../format';
 const STORAGE_FULL = 'Not saved: this browser\'s storage is full. Delete a slot, or use Download save to keep the run as a file.';
 
 
-// `startOpen` shows the slots at once, for a caller that already asked for
-// them (the title screen's Saves & files); its `onClose` then folds that
-// caller's own disclosure instead of this button's.
-export default function SaveSlots({ current, canSave, className = 'menu-btn', startOpen = false, onClose }: {
-  current: GameState; canSave: boolean; className?: string; startOpen?: boolean; onClose?: () => void;
+export default function SaveSlots({ current, canSave, className = 'menu-btn' }: {
+  current: GameState; canSave: boolean; className?: string;
 }) {
-  const [open, setOpen] = useState(startOpen);
+  const [open, setOpen] = useState(false);
   const [slots, setSlots] = useState<(SlotInfo | null)[]>(listSlots);
   const [note, setNote] = useState<string | null>(null);
   const refresh = () => setSlots(listSlots());
@@ -113,7 +110,7 @@ export default function SaveSlots({ current, canSave, className = 'menu-btn', st
         })}
       </ul>
       {note && <p className="import-save-note" role="status">{note}</p>}
-      <button type="button" className={`${className} btn-quiet`} onClick={() => (onClose ? onClose() : setOpen(false))}>Close slots</button>
+      <button type="button" className={`${className} btn-quiet`} onClick={() => setOpen(false)}>Close slots</button>
     </div>
   );
 }
