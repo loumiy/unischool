@@ -1,7 +1,8 @@
 import type { Species } from '../data/treeData';
 import type { DemandSubject } from '../data/demandData';
+import type { PathSurface } from './paving';
 import type {
-  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, Facing, GameState, InitiativeDepth, Pillar, Placements, ScholarshipLevel, SchoolColors, SpeedUpKind, SummerDecision, TileCoord, Vernacular,
+  AthleticsBudgetTier, BenchFacing, Coach, DressingKind, Facing, GameState, InitiativeDepth, PathMaterial, Pillar, Placements, ScholarshipLevel, SchoolColors, SpeedUpKind, SummerDecision, TileCoord, Vernacular,
 } from './types';
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import { emptyDowntown } from '../data/downtownData';
@@ -41,7 +42,10 @@ import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSyste
 export const STARTING_INSTITUTION_SUFFIX = 'College';
 
 // The map's campus tools; the right button applies the armed tool's opposite.
-export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'lamp' | 'bench';
+// `draw` paves with the material the build menu's path tiles chose
+// (components/pathChoice.ts); `flowerbed` is painted in strokes like a
+// path, and `clear` lifts whatever decoration stands on a tile.
+export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'lamp' | 'bannerLamp' | 'bench' | 'flowerbed' | 'clear';
 
 // All the ways a player can change the world. The reducer is the only thing
 // that interprets these; UI dispatches them, systems never do.
@@ -91,16 +95,28 @@ export type Action =
   // START_DEVELOPMENT, and its footprint, turned to its facing, is reserved
   // from week one, so it may not overlap anything done or under
   // construction. Effects still apply only on completion.
-  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; facing: Facing; borrow?: boolean; gift?: boolean; endowment?: boolean }
-  // Decorative; the only check is that the tile is on the grid.
-  | { type: 'ADD_PATH_TILE'; tile: TileCoord }
+  // `vernacular`: a sandbox run's choice of style for this building
+  // (Placement's); ignored outside a sandbox.
+  | { type: 'PLACE_BUILDABLE'; buildableId: string; row: number; col: number; facing: Facing; borrow?: boolean; gift?: boolean; endowment?: boolean; vernacular?: Vernacular }
+  // A sandbox run only (state/sandboxMoves.ts): a placed building
+  // picked up and set down elsewhere, or turned, on a site siteRefusal
+  // accepts with the building itself lifted out of the way.
+  | { type: 'MOVE_BUILDABLE'; id: string; row: number; col: number; facing: Facing }
+  // A sandbox run only: one building redrawn in another architecture, or
+  // (null) back in the college's own.
+  | { type: 'SET_BUILDING_STYLE'; id: string; vernacular: Vernacular | null }
+  // Decorative; the only check is that the tile is on the grid. A tile
+  // already paved takes the new surface (omitted: the flagged walk).
+  | { type: 'ADD_PATH_TILE'; tile: TileCoord; surface?: PathSurface }
   | { type: 'REMOVE_PATH_TILE'; tile: TileCoord }
   // Decorative; nothing is planted under a building or a path.
   // `species` asks for a kind (Plan 37); omitted, whatever the dice say.
   | { type: 'PLANT_TREE'; tile: TileCoord; species?: Species }
   | { type: 'FELL_TREE'; tile: TileCoord }
-  // A straight run of path, laid and adjusted in one step (the Shift-held draw).
-  | { type: 'PAINT_PATH_TILES'; add: TileCoord[]; remove: TileCoord[] }
+  // A straight run of path, laid and adjusted in one step (the Shift-held
+  // draw): `add` paved with `surface`, `remove` lifted, and `restore` put
+  // back as they were before the run crossed them.
+  | { type: 'PAINT_PATH_TILES'; add: TileCoord[]; remove: TileCoord[]; surface?: PathSurface; restore?: { tile: TileCoord; paving: true | PathMaterial }[] }
   // The estate (systems/estate): how much of the upkeep to pay, and paying
   // off one building's backlog under scaffolding.
   | { type: 'SET_MAINTENANCE_FUNDING'; level: number }
@@ -123,8 +139,9 @@ export type Action =
   // a standing one pulled down, for nothing and with nothing back.
   | { type: 'CANCEL_CONSTRUCTION'; id: string }
   | { type: 'DEMOLISH_BUILDING'; id: string }
-  // A lamp or a bench beside a path, or lifted (components/dressing.tsx). A
-  // bench takes the facing the player turned it to, or faces the path.
+  // A lamp, a bench, a banner lamp or a flower bed anywhere on open land, or
+  // lifted (components/dressing.tsx). A bench takes the facing the player
+  // turned it to, or faces the path beside it.
   | { type: 'PLACE_DRESSING'; tile: TileCoord; kind: DressingKind; facing?: BenchFacing }
   | { type: 'REMOVE_DRESSING'; tile: TileCoord }
   // Launches an advancement campaign (systems/alumni/campaigns.ts), which

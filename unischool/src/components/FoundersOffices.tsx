@@ -13,7 +13,7 @@ import {
 import { admissionsRange, candidateListingWeeks, candidatePoolTarget, demandCooldownWeeks } from '../systems/administration/effects';
 import { charterRefusal, charterWait, foundTeamCost } from '../systems/administration/officeActions';
 import { rankForecast } from '../systems/administration/forecast';
-import { committeeSeats } from '../systems/techtree/techSystem';
+import { committeeSeats, committeeSetAside } from '../systems/techtree/techSystem';
 import { count, moneyShort, prestigeFigure, weeksShort } from '../format';
 
 // ---------------------------------------------------------------------
@@ -43,7 +43,7 @@ export function officeStatusLine(s: GameState, officeId: string): string | null 
       const range = pool ? admissionsRange(s, pool) : null;
       return range ? `At last year's pool, a range of ${count(range.low)}–${count(range.high)}.` : 'The summer shows its range at the price the college sets.';
     }
-    case 'curriculum': return `The committee writes ${committeeSeats(s)} courses at once, one of them this office's.`;
+    case 'curriculum': return committeeSetAside(s) ? 'A sandbox has no committee: courses are written as fast as they are started.' : `The committee writes ${committeeSeats(s)} courses at once, one of them this office's.`;
     case 'faculty-recruitment': return `The market holds up to ${candidatePoolTarget(s)}, each listed ${candidateListingWeeks(s)} weeks.`;
     case 'student-activities': {
       const refusal = charterRefusal(s);

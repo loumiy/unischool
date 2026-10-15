@@ -117,6 +117,10 @@ opened teaching three programs). Three moves (Plan 14) give it its shape:
    and some course could start now (`committeeStatus`: a free seat with
    nothing startable, for want of cash or a professor or because nothing is
    left, stays dark, so the light always means something to do).
+   **A sandbox has no committee** (`committeeSetAside`): it writes as many
+   courses at once as the player starts, the Curriculum tab shows no seats
+   and the dock no lamps. A course still needs a professor in its field
+   with room to teach it.
 3. **A school is founded, not unlocked.** Nothing is called "the School of
    Engineering" until six Engineering programs sit in one hall. A hall whose
    six slots hold one school's programs is **dedicated**; the first

@@ -8,7 +8,7 @@ import { FundsAndStats, SchoolAndClock } from './StatusHeader';
 import type { Speed } from '../engine/useGame';
 import { visibleCourseIds } from '../tabs/CurriculumTab';
 import type { InboxBadge } from '../systems/inbox/inbox';
-import { committeeStatus } from '../systems/techtree/techSystem';
+import { committeeSetAside, committeeStatus } from '../systems/techtree/techSystem';
 import { FIGURE_HINTS } from '../data/figureHints';
 import CommitteeLamps from './CommitteeLamps';
 import {
@@ -132,7 +132,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
                 : inbox.unreadLetters > 0 ? `Inbox, ${inbox.unreadLetters} unread` : 'Inbox';
             // Curriculum's lamps are drawn only: their sentence describes the
             // button, whose name stays the tab's.
-            const hint = id === 'curriculum' ? FIGURE_HINTS.committee(committee.writing, committee.seats, committee.ready) : null;
+            const hint = id === 'curriculum' && !committeeSetAside(s) ? FIGURE_HINTS.committee(committee.writing, committee.seats, committee.ready) : null;
             return (
               <button
                 key={id}

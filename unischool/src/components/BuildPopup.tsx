@@ -20,9 +20,15 @@ import { BUILD_WORDS } from '../data/buildWords';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
 import { setPlantingSpecies, usePlantingSpecies } from './plantingChoice';
+import { buildStyle, setBuildStyle, setPathSurface, useBuildStyle, usePathSurface } from './pathChoice';
+import type { PathSurface } from '../state/paving';
 import type { Species } from '../data/treeData';
+import { isSandbox } from '../systems/sandbox/sandbox';
+import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
 import {
-  DrawPathIcon, EraseIcon, FellIcon, LampIcon, BenchIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
+  EraseIcon, FellIcon, LampIcon, BenchIcon, BuildIcon,
+  PavingIcon, CobbleIcon, BrickIcon, BannerLampIcon, FlowerbedIcon, ClearDecorIcon,
+  AnyTreeIcon, BroadleafIcon, OrnamentalIcon, BirchIcon, WillowIcon, CherryIcon, PalmIcon, HousingIcon, DiningIcon, LibraryIcon,
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, DisclosureIcon,
 } from './icons';
@@ -394,6 +400,13 @@ function TilePlan({ Icon, stamp, t, vernacular }: {
   );
 }
 
+// The architecture a tile draws its building in: a standing one's own (a
+// sandbox may have given it one), and in a sandbox the style chosen for
+// the next building; otherwise the college's.
+function tileStyle(s: GameState, t: Buildable): Vernacular {
+  return s.placements[t.id]?.vernacular ?? (isSandbox(s) && !(t.id in s.placements) ? buildStyle() : null) ?? s.self.vernacular;
+}
+
 // Which of loanFor's conditions stopped a loan for a building the cash
 // cannot cover (finance/treasury.ts's loanBar), in words; nothing when a
 // loan is offered or none is needed.
@@ -449,7 +462,7 @@ function BuildTile({
             : `Adds ${count(rung.seatsGain)} seats and ${count(rung.servesGain)} social capacity.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
-          <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+          <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
           <span className="build-tile-name">{t.name}</span>
           <TileLines lines={lines} />
           <span className="build-tile-foot">expand · {moneyShort(rung.cost)} · {weeksShort(rung.weeks)}</span>
@@ -463,7 +476,7 @@ function BuildTile({
     }
     return (
       <div className="build-tile done" title={[t.name, ...lines].join(' · ')}>
-        <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
         <span className="build-tile-name">{t.name}</span>
         <TileLines lines={lines} />
       </div>
@@ -495,7 +508,7 @@ function BuildTile({
         }}
         onClick={() => onArmPlacement(armed ? null : t.id)}
       >
-        <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <TileLines lines={lines} />
         <span className="build-tile-foot">{armed ? 'placing…' : 'site · no charge'}</span>
@@ -508,7 +521,7 @@ function BuildTile({
     const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
     return (
       <div className="build-tile developing" title={`${t.name} · ${t.duration - weeksLeft} of ${t.duration} weeks built`}>
-        <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <span className="build-tile-progress">
           <ProgressBar
@@ -563,7 +576,7 @@ function BuildTile({
       }}
       onClick={() => onArmPlacement(armed ? null : t.id)}
     >
-      <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} stamp={marker} />
+      <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker} />
       <span className="build-tile-name">{t.name}</span>
       <TileLines lines={lines} />
       <span className="build-tile-foot">
@@ -657,7 +670,7 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), specializationOfferRule());
   return (
     <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
-      <TilePlan Icon={Icon} t={t} vernacular={s.self.vernacular} />
+      <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} />
       <span className="build-tile-name">{t.name}</span>
       <span className="build-tile-sub">{CLOSED_BUILD_WORDS.sub(pillar)}</span>
       <span className="build-tile-foot">{CLOSED_BUILD_WORDS.foot}</span>
@@ -665,35 +678,64 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   );
 }
 
-// Draw path / erase path / trees: campus-editing tools as tiles in their own
-// tab. `pathTool` is lifted to App.tsx.
+// The grounds' tools (paths, trees, decoration): quarter tiles, four to the
+// space of one building's tile, in clusters two high, so a long row of small
+// repeatable things stays short. `pathTool` is lifted to App.tsx; which
+// surface the draw tool paves with and which tree the plant tool plants are
+// the session's choices (pathChoice.ts, plantingChoice.ts), so a surface's
+// or a species' tile arms the one tool with that choice.
+interface MiniTool {
+  key: string; label: string; title: string; Icon: () => React.JSX.Element;
+  armed: boolean; onClick: () => void;
+}
 
-// Which tree the plant tool plants (Plan 37, from v2's): whatever grows,
-// or one kind. A row under the tile while the tool is armed.
-const SPECIES_CHIPS: readonly { id: Species | null; label: string }[] = [
-  { id: null, label: 'Whatever grows' },
-  { id: 'canopy', label: 'Broadleaf' },
-  { id: 'conifer', label: 'Conifer' },
-  { id: 'ornamental', label: 'Ornamental' },
-];
-function SpeciesChips() {
-  const chosen = usePlantingSpecies();
+function MiniTile({ tool }: { tool: MiniTool }) {
+  const { label, title, Icon, armed, onClick } = tool;
   return (
-    <div className="species-chips segmented" role="group" aria-label="Which tree to plant">
-      {SPECIES_CHIPS.map((c) => (
-        <button
-          key={c.label}
-          type="button"
-          className={`species-chip ${chosen === c.id ? 'active' : ''}`}
-          aria-pressed={chosen === c.id}
-          onClick={() => setPlantingSpecies(c.id)}
-        >
-          {c.label}
-        </button>
-      ))}
+    <button
+      type="button"
+      className={`build-mini-tile ${armed ? 'placing' : ''}`}
+      aria-pressed={armed}
+      title={title}
+      onClick={onClick}
+    >
+      <span className="build-mini-icon"><Icon /></span>
+      <span className="build-mini-name">{label}</span>
+    </button>
+  );
+}
+
+// A labelled cluster of quarter tiles, filled down each column of two.
+function MiniCluster({ label, tools }: { label: string; tools: MiniTool[] }) {
+  return (
+    <div className="build-mini-cluster" role="group" aria-label={label}>
+      <span className="build-mini-label">{label}</span>
+      <div className="build-mini-grid">
+        {tools.map((tool) => <MiniTile key={tool.key} tool={tool} />)}
+      </div>
     </div>
   );
 }
+
+const SURFACE_TOOLS: readonly { id: PathSurface; label: string; title: string; Icon: () => React.JSX.Element }[] = [
+  { id: 'paving', label: 'Paving', title: 'Draw flagstone paths (P). Drag to pave; hold Shift for a straight line; right-drag lifts.', Icon: PavingIcon },
+  { id: 'cobble', label: 'Cobbles', title: 'Draw cobblestone paths. Drag to pave or repave; hold Shift for a straight line; right-drag lifts.', Icon: CobbleIcon },
+  { id: 'brick', label: 'Brick', title: 'Draw brick paths. Drag to pave or repave; hold Shift for a straight line; right-drag lifts.', Icon: BrickIcon },
+];
+
+// Which tree the plant tool plants (Plan 37, from v2's): whatever grows,
+// or one kind.
+const SPECIES_TOOLS: readonly { id: Species | null; label: string; Icon: () => React.JSX.Element }[] = [
+  { id: null, label: 'Any tree', Icon: AnyTreeIcon },
+  { id: 'canopy', label: 'Broadleaf', Icon: BroadleafIcon },
+  { id: 'conifer', label: 'Conifer', Icon: TreeIcon },
+  { id: 'ornamental', label: 'Ornamental', Icon: OrnamentalIcon },
+  { id: 'birch', label: 'Birch', Icon: BirchIcon },
+  { id: 'willow', label: 'Willow', Icon: WillowIcon },
+  { id: 'cherry', label: 'Cherry', Icon: CherryIcon },
+  { id: 'palm', label: 'Palm', Icon: PalmIcon },
+];
+
 function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArmPlacement, act }: {
   s: GameState;
   pathTool: CampusTool | null;
@@ -702,82 +744,65 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
   groups: TypeGroup[];
   placingId: string | null; onArmPlacement: (id: string | null) => void; act: (a: Action) => void;
 }) {
+  const surface = usePathSurface();
+  const species = usePlantingSpecies();
+  // A tool's tile: arms it, or puts it away if it is already armed.
+  const tool = (key: CampusTool, label: string, title: string, Icon: () => React.JSX.Element): MiniTool => ({
+    key, label, title, Icon, armed: pathTool === key, onClick: () => onSetPathTool(key),
+  });
+  // A choice's tile: arms its tool with that choice, or, already armed with
+  // it, puts the tool away.
+  const chosen = (key: string, armed: boolean, label: string, title: string, Icon: () => React.JSX.Element, choose: () => void, mode: CampusTool): MiniTool => ({
+    key, label, title, Icon, armed,
+    onClick: () => {
+      if (armed) { onSetPathTool(mode); return; }
+      choose();
+      if (pathTool !== mode) onSetPathTool(mode);
+    },
+  });
+  const paths: MiniTool[] = [
+    ...SURFACE_TOOLS.map((t) => chosen(`path-${t.id}`, pathTool === 'draw' && surface === t.id, t.label, t.title, t.Icon, () => setPathSurface(t.id), 'draw')),
+    tool('erase', 'Erase', 'Erase paths (right-drag with a path tool also erases)', EraseIcon),
+  ];
+  const trees: MiniTool[] = [
+    ...SPECIES_TOOLS.map((t) => chosen(`tree-${t.id ?? 'any'}`, pathTool === 'plant' && species === t.id, t.label,
+      t.id ? `Plant ${t.label.toLowerCase()} trees: drag to plant; right-drag fells` : 'Plant whatever grows: drag to plant; right-drag fells',
+      t.Icon, () => setPlantingSpecies(t.id), 'plant')),
+    tool('fell', 'Fell', 'Fell trees (right-drag with a tree tool also fells)', FellIcon),
+  ];
+  const decor: MiniTool[] = [
+    tool('lamp', 'Lamp', 'Place a lamp, one a click (right-click lifts one)', LampIcon),
+    tool('bannerLamp', 'Banner lamp', 'Place a lamp post hung with banners in the college colors (right-click lifts one)', BannerLampIcon),
+    tool('bench', 'Bench', 'Place a bench, one a click: R turns it (right-click lifts one)', BenchIcon),
+    tool('flowerbed', 'Flower bed', 'Plant flower beds: drag to plant a border; right-drag lifts', FlowerbedIcon),
+    tool('clear', 'Remove', 'Lift lamps, benches and flower beds: drag across them', ClearDecorIcon),
+  ];
   return (
     <div className="build-tile-row">
-      <button
-        type="button"
-        className={`build-tile tool ${pathTool === 'draw' ? 'placing' : ''}`}
-        aria-pressed={pathTool === 'draw'}
-        onClick={() => onSetPathTool('draw')}
-        title="Draw pathways (P)"
-      >
-        <TilePlan Icon={DrawPathIcon} />
-        <span className="build-tile-name">Draw path</span>
-        <span className="build-tile-foot">fills in tiles · P</span>
-      </button>
-      <button
-        type="button"
-        className={`build-tile tool ${pathTool === 'erase' ? 'placing' : ''}`}
-        aria-pressed={pathTool === 'erase'}
-        onClick={() => onSetPathTool('erase')}
-        title="Erase pathways (right-click also erases)"
-      >
-        <TilePlan Icon={EraseIcon} />
-        <span className="build-tile-name">Erase path</span>
-        <span className="build-tile-foot">remove a path</span>
-      </button>
-      {/* Trees: planted and felled by tile with the path tools' stroke and
-          right-button opposite. Free, like a path. */}
-      <button
-        type="button"
-        className={`build-tile tool ${pathTool === 'plant' ? 'placing' : ''}`}
-        aria-pressed={pathTool === 'plant'}
-        onClick={() => onSetPathTool('plant')}
-        title="Plant trees"
-      >
-        <TilePlan Icon={TreeIcon} />
-        <span className="build-tile-name">Plant trees</span>
-        <span className="build-tile-foot">fills in tiles</span>
-      </button>
-      {pathTool === 'plant' && <SpeciesChips />}
-      <button
-        type="button"
-        className={`build-tile tool ${pathTool === 'fell' ? 'placing' : ''}`}
-        aria-pressed={pathTool === 'fell'}
-        onClick={() => onSetPathTool('fell')}
-        title="Fell trees (right-click also fells)"
-      >
-        <TilePlan Icon={FellIcon} />
-        <span className="build-tile-name">Fell trees</span>
-        <span className="build-tile-foot">clear woodland</span>
-      </button>
-      {/* Lamps and benches: free, on or beside a path, one a click. */}
-      <button
-        type="button"
-        className={`build-tile tool ${pathTool === 'lamp' ? 'placing' : ''}`}
-        aria-pressed={pathTool === 'lamp'}
-        onClick={() => onSetPathTool('lamp')}
-        title="Place a lamp (free)"
-      >
-        <TilePlan Icon={LampIcon} />
-        <span className="build-tile-name">Lamps</span>
-        <span className="build-tile-foot">beside a path</span>
-      </button>
-      <button
-        type="button"
-        className={`build-tile tool ${pathTool === 'bench' ? 'placing' : ''}`}
-        aria-pressed={pathTool === 'bench'}
-        onClick={() => onSetPathTool('bench')}
-        title="Place a bench (R to rotate)"
-      >
-        <TilePlan Icon={BenchIcon} />
-        <span className="build-tile-name">Benches</span>
-        <span className="build-tile-foot">beside a path</span>
-      </button>
+      <MiniCluster label="Paths · free" tools={paths} />
+      <MiniCluster label="Trees · free" tools={trees} />
+      <MiniCluster label="Decoration · free" tools={decor} />
       {groups.map((group) => (
         <BuildGroupTiles key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}
     </div>
+  );
+}
+
+// A sandbox's choice of architecture for the next building (pathChoice.ts's
+// buildStyle): the college's own, or any of the nine.
+function StylePicker({ s }: { s: GameState }) {
+  const style = useBuildStyle();
+  if (!isSandbox(s)) return null;
+  const choices = [...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES];
+  return (
+    <label className="build-style-picker" title="Sandbox: the architecture the next building goes up in. A standing building's style is changed from its panel.">
+      <span>Style</span>
+      <select value={style ?? ''} onChange={(e) => setBuildStyle(e.target.value === '' ? null : e.target.value as Vernacular)}>
+        <option value="">College's own ({choices.find((c) => c.id === s.self.vernacular)?.label ?? s.self.vernacular})</option>
+        {choices.filter((c) => c.id !== s.self.vernacular).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+      </select>
+    </label>
   );
 }
 
@@ -797,6 +822,9 @@ export default function BuildPopup({
   onClose: () => void;
 }) {
   const sections = buildSections(s);
+  // The tiles draw in a sandbox's chosen style (tileStyle), so they redraw
+  // when it changes.
+  useBuildStyle();
   // Sections are recomputed every render; if the active tab has vanished
   // (built out), fall back to the first.
   const [activeId, setActiveId] = useState<string>(() => initialBuildTab(s));
@@ -835,6 +863,7 @@ export default function BuildPopup({
               .replace('{pay}', BUILD_WORDS.pay[financing ?? 'none'])}
           </span>
           <span className="build-holding-keys">{BUILD_WORDS.holdingKeys}</span>
+          <StylePicker s={s} />
           <button type="button" className="menu-btn btn-quiet" onClick={() => onArmPlacement(null)}>{BUILD_WORDS.putDown}</button>
         </div>
       </ToolbarPopup>
@@ -854,6 +883,7 @@ export default function BuildPopup({
             {count(s.students.capacity)} beds{offCampusBeds > 0 && <span title={DOWNTOWN_WORDS.offCampusHint}> · {DOWNTOWN_WORDS.offCampusBeds(count(offCampusBeds))}</span>} · {count(totalEnrolled(s.students))} enrolled
           </span>
           <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>
+          <StylePicker s={s} />
         </div>
 
         {constructionFrozen(s) && (

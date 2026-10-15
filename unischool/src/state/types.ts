@@ -500,6 +500,10 @@ export type Facing = 0 | 1 | 2 | 3;
 // can never reshape a saved layout into overlaps. `facing` absent is 0.
 export interface Placement extends TileCoord, Footprint {
   facing?: Facing;
+  // A sandbox run's own choice of architecture for this one building
+  // (systems/sandbox): drawn in it rather than the college's vernacular.
+  // Absent everywhere else, and in a sandbox until a style is picked.
+  vernacular?: Vernacular;
 }
 
 // Placed Buildable id -> its placement; absent means not placed. GameState
@@ -507,8 +511,12 @@ export interface Placement extends TileCoord, Footprint {
 export type Placements = Record<string, Placement>;
 
 // Decorative walkway tiles keyed by campusMap.ts's pathTileKey(); read by
-// no system. A record rather than a Set, for JSON.
-export type Pathways = Record<string, true>;
+// no system. A record rather than a Set, for JSON. The value is the
+// paving: `true` the plain flagged walk every path had before materials,
+// or a material the player chose (state/pathSurface.ts). Only the drawing
+// reads which; everything else asks whether a tile is paved at all.
+export type PathMaterial = 'cobble' | 'brick';
+export type Pathways = Record<string, true | PathMaterial>;
 
 // Trees on the founding land, one per tile, keyed by pathTileKey().
 // Building over a tree fells it permanently (PLACE_BUILDABLE); a path over
@@ -516,12 +524,13 @@ export type Pathways = Record<string, true>;
 // components/trees.tsx derives species, size and offset. Visual only.
 export type Trees = Record<string, number>;
 
-// A lamp or a bench, by the tile it stands on. A bench is set against one
-// edge of its tile and faces out across it (Plan 80I), so it carries which:
-// 'n' faces -row, 'e' +col, 's' +row, 'w' -col (state/dressing.ts).
-export type DressingKind = 'lamp' | 'bench';
+// A lamp, a bench, a lamp hung with the college's banners or a flower bed,
+// by the tile it stands on. A bench is set against one edge of its tile and
+// faces out across it (Plan 80I), so it carries which: 'n' faces -row, 'e'
+// +col, 's' +row, 'w' -col (state/dressing.ts).
+export type DressingKind = 'lamp' | 'bench' | 'bannerLamp' | 'flowerbed';
 export type BenchFacing = 'n' | 'e' | 's' | 'w';
-export type DressingItem = 'lamp' | `bench-${BenchFacing}`;
+export type DressingItem = 'lamp' | 'bannerLamp' | 'flowerbed' | `bench-${BenchFacing}`;
 export type Dressing = Record<string, DressingItem>;
 
 export interface Ending {
@@ -1114,6 +1123,13 @@ export interface StudentOrgState {
 export type Vernacular = 'georgian' | 'gothic' | 'classical' | 'mission' | 'modern'
   // Bonus sets: offered at founding once a run has unlocked them (state/unlocks.ts).
   | 'tudor' | 'italianate' | 'secondEmpire' | 'artDeco';
+// Every vernacular, for a save's hygiene and a sandbox's style picker.
+export const VERNACULAR_IDS: readonly Vernacular[] = [
+  'georgian', 'gothic', 'classical', 'mission', 'modern', 'tudor', 'italianate', 'secondEmpire', 'artDeco',
+];
+export function isVernacular(v: unknown): v is Vernacular {
+  return (VERNACULAR_IDS as readonly unknown[]).includes(v);
+}
 
 // A color pair, presentation only. The player's pair is the game's theme
 // (components/theme.ts).

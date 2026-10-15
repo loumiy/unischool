@@ -15,7 +15,7 @@ import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
 import {
-  canStartDevelopment, committeeOfficeSeats, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, committeeOfficeSeats, committeeSetAside, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -1125,7 +1125,8 @@ function CommitteeBox({ s, lookup, onOpenFaculty }: {
     .sort((a, b) => b.n - a.n || a.field.localeCompare(b.field));
   return (
     <div className="next-up committee-box">
-      <CommitteePanel s={s} />
+      {/* A sandbox has no committee (techSystem.ts's committeeSetAside). */}
+      {!committeeSetAside(s) && <CommitteePanel s={s} />}
       {fields.length > 0 && (
         <p className="committee-faculty">
           <span className="committee-faculty-label">Waiting on faculty:</span>{' '}

@@ -340,10 +340,36 @@ perimeter walk, cross walks and the round plaza they meet at, going round
 the fountain; its hedged lawn panels are kept off (Plan 87K). A path drawn tile by tile replans their routes once it has
 stood still for a moment, not at every tile.
 Desire lines wear the lawn where the busiest routes cross it. The player's
-lamps and benches (`GameState.dressing`), bike racks by the doors of a big
-college, and the flag at Founders Hall are props in the depth-sorted scene.
+lamps, banner lamps, benches and flower beds (`GameState.dressing`), bike
+racks by the doors of a big college, and the flag at Founders Hall are props
+in the depth-sorted scene. The player's may stand anywhere on open land, off
+the buildings and the road (`PLACE_DRESSING`; until the decoration that
+followed Plan 99 they had to touch a path). A **banner lamp** is a lamp post
+hung for good with a pair of banners in the college's colors, one each side
+of the post (`dressing.tsx`'s `BannerLamp`; the lamps' commencement banner is
+the same drawing, one-sided and for a week). A **flower bed** is painted in
+strokes like a path: turned soil inside a low stone edge, set with blooms
+whose colors and places are rolled off the tile, and beds side by side run
+together as one border, the edge only where the bed stops. They take the
+gardens' season (`--bed`, `--bloom-opacity`). The decoration eraser (the
+`clear` tool) lifts any of them by stroke, as the right button does.
 Weathering (`ageMarks.tsx`) reads `Buildable.builtYear`. All of it is
 drawing only.
+
+**Paths have three surfaces** (`state/paving.ts`): the flagged walk every
+path had before materials, cobbles and brick. A saved tile stores `true` for
+the flagged walk, so a campus drawn before them loads unchanged, and the
+material's name otherwise. The build menu's three path tiles arm the one
+draw tool with a surface; drawing over a paved tile repaves it, and a Shift
+run that crosses another surface repaves it and puts it back if the run moves
+off it (`PAINT_PATH_TILES`'s `restore`). Only the drawing reads the surface:
+reach, the quads, the walkers and beauty ask whether a tile is paved, never
+with what. `pathways.tsx` rounds every tile's corners against every paved
+neighbor whatever its surface, so a brick walk running into a flagged one is
+one walk under one curb; each surface has its own fill, and cobbles and brick
+their coursing over it (setts in a grid of three, every other row shifted;
+four stretcher courses with staggered joints), cut back short of a rounded
+corner so a joint never crosses the curb.
 
 **Benches** (Plan 80I) are the one prop with a direction. A bench is set
 against one edge of its tile and faces out across it, its back to the lawn,
@@ -359,6 +385,32 @@ so the back hides the seat when it faces away. A save from before it kept
 each bench's old facing (east where paving ran beside it east or west, else
 south; `legacyBenchFacing`). There is no touch control for the turn: a tap
 sets a bench at its default facing.
+
+## A sandbox's hand: moving and restyling
+
+A sandbox run (`systems/sandbox`) may do two things to a standing building
+that a normal run may not (`state/sandboxMoves.ts`). Neither touches the
+simulation: a building keeps its programs, condition and history wherever it
+stands and whatever it looks like.
+
+- **Move.** The building's panel carries a Move button. The building rides
+  the pickup's ghost as a new one does, R turns it, and a click sets it down
+  (`MOVE_BUILDABLE`), on a site the same rules allow as for a new building
+  (`siteRefusal`: clear land, a walk from the road, nothing walled off),
+  checked with the building itself lifted out of the way so it never blocks
+  its own new site. As siting does, the new ground's trees are felled for
+  good, and decoration under the new footprint is lifted.
+- **Mixed architectures.** The building's panel carries a Style picker
+  (`SET_BUILDING_STYLE`), and the build menu one for the next building
+  (`PLACE_BUILDABLE`'s `vernacular`). The choice is stored on the placement
+  (`Placement.vernacular`, absent for the college's own), and everything that
+  draws a building, its shadow, its label's height or its grounds' props
+  reads it before the college's (`p.vernacular ?? layout.vernacular`). It is
+  in `entryKey`, so a restyle redraws the building on the canvas map. All
+  nine vernaculars are offered, the bonus sets included. A normal run's
+  architecture stays the founding's, for good (see the backlog's
+  *Switching or mixing architectures*); the reducer ignores the style on a
+  normal run's actions and the loader drops one from its save.
 
 ## Footprints
 
@@ -405,6 +457,17 @@ keyed by the same `pathTileKey()` `pathways` uses, and its value is a single
 integer SEED: `components/trees.tsx` derives species, size and the tree's
 offset within its own tile from it, so a wood is varied without storing
 anything per tree and a given tree looks the same forever.
+
+**Seven species.** The dice's three (canopy, conifer, ornamental) are rolled
+off the seed. Four more can only be planted (`treeData.ts`'s
+`PLANTED_SPECIES`): a slender birch with pale bark, a willow whose crown
+hangs in a curtain nearly to the ground, a small spreading cherry that
+flowers pink in the spring before it leafs, and an evergreen palm. A planted
+species is carried in a band of seeds above `TREE_SEED_RANGE`, `(k + 1) *
+TREE_SEED_RANGE + base`, so no seed the dice can give means one: every tree
+already in a save keeps its species, and a planted tree still rolls its size
+and place off `base`. Their colors follow the year as the others' do
+(`seasons.ts`'s `--leaf-birch`, `--leaf-willow`, `--leaf-cherry`).
 
 **Two rules, and the difference between them is the whole feature:**
 

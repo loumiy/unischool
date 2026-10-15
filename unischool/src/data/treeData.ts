@@ -29,11 +29,15 @@ export const TREE_SEED_RANGE = 1 << 20;
 // moved here from the renderer, byte for byte, so the reducer can honor a
 // planting choice without widening the save: a tree is still one integer,
 // and a seed is found that already means the species asked for.
-export type Species = 'canopy' | 'conifer' | 'ornamental';
+export type Species = 'canopy' | 'conifer' | 'ornamental' | PlantedSpecies;
+// The species only a planting asks for: never in the founding woodland or
+// the dice's mix, so every tree already standing keeps the species it had.
+export type PlantedSpecies = 'birch' | 'willow' | 'cherry' | 'palm';
 // The mix a random seed draws from: mostly canopy, some conifer, the
 // ornamentals sparse enough to read as deliberate when one appears.
 export const SPECIES_MIX: readonly Species[] = ['canopy', 'canopy', 'canopy', 'conifer', 'conifer', 'ornamental'];
-export const SPECIES: readonly Species[] = ['canopy', 'conifer', 'ornamental'];
+export const PLANTED_SPECIES: readonly PlantedSpecies[] = ['birch', 'willow', 'cherry', 'palm'];
+export const SPECIES: readonly Species[] = ['canopy', 'conifer', 'ornamental', ...PLANTED_SPECIES];
 
 // Integer hash so each roll off one seed is independent; `seed % n` would
 // correlate species with position and show as banding.
@@ -44,7 +48,14 @@ export function roll(seed: number, salt: number): number {
   return ((h ^ (h >>> 16)) >>> 0) / 0x100000000;
 }
 
+// A seed below TREE_SEED_RANGE is the dice's: its species is rolled from
+// the mix. A planted species is carried above it, in the band of seeds
+// (k + 1) * TREE_SEED_RANGE + base for the k-th planted species, so the
+// seed still rolls its size and offset from `base` and no seed already
+// saved changes meaning.
 export function speciesOf(seed: number): Species {
+  const band = Math.floor(seed / TREE_SEED_RANGE);
+  if (band >= 1 && band <= PLANTED_SPECIES.length) return PLANTED_SPECIES[band - 1]!;
   return SPECIES_MIX[Math.floor(roll(seed, 1) * SPECIES_MIX.length)];
 }
 
@@ -52,10 +63,12 @@ export function speciesOf(seed: number): Species {
 // the one the dice gave rather than drawing again: planting consumes exactly
 // one number from the stream either way, so replays and older saves are
 // unaffected. Bounded, so a species the mix no longer holds degrades to
-// "whatever the dice said".
+// "whatever the dice said". A planted species is put in its band.
 const SPECIES_SEARCH_CAP = 256;
 export function seedForSpecies(seed: number, species: Species | null | undefined): number {
   if (!species) return seed;
+  const planted = (PLANTED_SPECIES as readonly Species[]).indexOf(species);
+  if (planted >= 0) return (planted + 1) * TREE_SEED_RANGE + (seed % TREE_SEED_RANGE);
   for (let i = 0; i < SPECIES_SEARCH_CAP; i++) {
     const candidate = (seed + i) % TREE_SEED_RANGE;
     if (speciesOf(candidate) === species) return candidate;

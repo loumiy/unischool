@@ -8,7 +8,7 @@ import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { bindScriptStream } from '../src/engine/random';
-import { canStartDevelopment } from '../src/systems/techtree/techSystem';
+import { canStartDevelopment, committeeLamps, committeeSeats, committeeSetAside, courseSlotsFree } from '../src/systems/techtree/techSystem';
 import { SANDBOX_CASH } from '../src/systems/sandbox/sandbox';
 import { createPreStartState } from '../src/state/actions';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -75,6 +75,29 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
 
   s = reducer(s, { type: 'TICK' });
   assert(s.finance.cash >= SANDBOX_CASH && s.finance.weeksInTheRed === 0, `a week never draws the funds down (${s.finance.cash})`);
+}
+
+// ---- No curriculum committee ----
+{
+  // A course that could start, then every seat taken, and more, by others
+  // being written.
+  const fill = (sandbox: boolean) => {
+    const s: GameState = teachingCollege('Committee');
+    s.pendingInterrupt = null;
+    s.finance.cash = 1e9;
+    if (sandbox) s.sandbox = true;
+    const next = s.tech.find((t) => t.kind === 'course' && t.status === 'available' && canStartDevelopment(s, t))!;
+    const writing = s.tech.filter((t) => t.kind === 'course' && t.status === 'available' && t !== next && t.requiresFaculty !== next.requiresFaculty).slice(0, committeeSeats(s) + 2);
+    for (const t of writing) { t.status = 'developing'; s.developing[t.id] = t.duration; }
+    return { s, next };
+  };
+  const normal = fill(false);
+  assert(normal.next !== undefined && courseSlotsFree(normal.s) === 0, 'a normal run with every seat taken has no room');
+  assert(!canStartDevelopment(normal.s, normal.next), 'and its next course waits on the committee');
+  const sand = fill(true);
+  assert(committeeSetAside(sand.s) && courseSlotsFree(sand.s) > 1000, 'a sandbox has no committee to wait on');
+  assert(committeeLamps(sand.s).length === 0 && committeeLamps(normal.s).length > 0, 'and no seats to light');
+  assert(canStartDevelopment(sand.s, sand.next), 'so a course can start however many are being written');
 }
 
 // ---- A normal run waits ----
