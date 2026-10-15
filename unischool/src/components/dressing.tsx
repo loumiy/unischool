@@ -2,20 +2,21 @@ import { useContext } from 'react';
 import type { CampusLayout } from './campusLayout';
 import { BannerContext } from './mapOccasions';
 import { FOUNDERS_HALL_ID } from '../data/techData';
-import type { BenchFacing, Dressing, SchoolColors } from '../state/types';
+import type { BenchFacing, Dressing, DressingItem, SchoolColors } from '../state/types';
 import { isLand, parsePathTileKey } from '../state/campusMap';
 import { FACING_STEP, benchFacingOf } from '../state/dressing';
+import { roll } from '../data/treeData';
 import { isAcademicHall } from '../data/techData';
-import { groundSquash, lift, polyPoints, project, type Pt } from './isoProjection';
+import { boxFaces, groundSquash, lift, polyPoints, project, projectedCircle, type Pt } from './isoProjection';
 import { depthOrder, type DepthBox } from './depthSort';
 import { castShadow } from './light';
 import { up } from './campusScale';
 import { downwind, flagCloth } from './wind';
 
-// The small things along the walks: lamps and benches the player places
-// beside the paths, and bike racks that appear beside the halls and dorms
-// once the college is big enough to cycle. Each is a prop in the depth-sorted
-// scene (CampusMap.tsx), drawn once per layout.
+// The small things on the grounds: lamps, banner lamps, benches and flower
+// beds the player places, and bike racks that appear beside the halls and
+// dorms once the college is big enough to cycle. Each is a prop in the
+// depth-sorted scene (CampusMap.tsx), drawn once per layout.
 
 // Racks appear at this enrollment (campusLayout.ts carries the flag).
 export const BIKE_RACK_ENROLMENT = 2_000;
@@ -40,19 +41,26 @@ const BANNER_TILES = 0.126;           // 5.5 units
 export function Lamp({ at }: { at: Pt }) {
   return lampArt({ at }, useContext(BannerContext));
 }
+// A lamp post hung for good with a pair of banners in the college's colors,
+// one each side of the post. Reads no occasion: its banners are its own.
+export function BannerLamp({ at, colors }: { at: Pt; colors: SchoolColors }) {
+  return lampArt({ at }, colors, true);
+}
 // The lamp given commencement's banner, if any: what the canvas map draws.
-export function lampArt({ at }: { at: Pt }, banner: SchoolColors | null): React.JSX.Element {
+// `twin` hangs a second banner on the far side of the post.
+export function lampArt({ at }: { at: Pt }, banner: SchoolColors | null, twin = false): React.JSX.Element {
   const top = lift(at, LAMP_HEIGHT);
   const hang = lift(at, LAMP_HEIGHT * 0.82);
   const foot = lift(at, LAMP_HEIGHT * 0.42);
   const b = downwind(BANNER_BRACKET_TILES);
   const w = downwind(BANNER_TILES);
   // A band of the banner, `v0` to `v1` of the way down it.
-  const band = (v0: number, v1: number) => {
+  const band = (v0: number, v1: number, side = 1) => {
     const y0 = hang.y + (foot.y - hang.y) * v0; const y1 = hang.y + (foot.y - hang.y) * v1;
-    const x = hang.x + b.x; const dy = b.y;
+    const x = hang.x + b.x * side; const dy = b.y * side;
+    const wx = w.x * side; const wy = w.y * side;
     return polyPoints([
-      { x, y: y0 + dy }, { x: x + w.x, y: y0 + dy + w.y }, { x: x + w.x, y: y1 + dy + w.y }, { x, y: y1 + dy },
+      { x, y: y0 + dy }, { x: x + wx, y: y0 + dy + wy }, { x: x + wx, y: y1 + dy + wy }, { x, y: y1 + dy },
     ]);
   };
   return (
@@ -64,6 +72,12 @@ export function lampArt({ at }: { at: Pt }, banner: SchoolColors | null): React.
         <g className="campus-lamp-banner">
           <polygon points={band(0, 1)} fill={banner.primary} />
           <polygon points={band(0.62, 0.78)} fill={banner.secondary} />
+          {twin && (
+            <>
+              <polygon points={band(0, 1, -1)} fill={banner.primary} />
+              <polygon points={band(0.62, 0.78, -1)} fill={banner.secondary} />
+            </>
+          )}
         </g>
       )}
     </g>
@@ -178,6 +192,56 @@ export function Bench({ col, row, facing, ghost = false }: { col: number; row: n
   );
 }
 
+// A flower bed: a tile of turned soil inside a low stone edge, set with
+// blooms. Beds side by side run together as one border: the edge and the
+// inset are only on the sides with no bed beyond them. The blooms' colors
+// and places are rolled off the tile, so a bed never changes; they go with
+// the season (styles.css's --bed and --bloom-opacity, seasons.ts).
+const BED_INSET = 0.1;
+const BED_RISE = up(0.25);
+const BLOOMS_PER_BED = 7;
+export function Flowerbed({ col, row, open }: {
+  col: number; row: number;
+  // Whether each side, [N, E, S, W], has no bed beyond it.
+  open: readonly [boolean, boolean, boolean, boolean];
+}) {
+  const [n, e, s, w] = open;
+  const c0 = col + (w ? BED_INSET : 0); const c1 = col + 1 - (e ? BED_INSET : 0);
+  const r0 = row + (n ? BED_INSET : 0); const r1 = row + 1 - (s ? BED_INSET : 0);
+  const f = boxFaces(c0, r0, c1 - c0, r1 - r0, 0, BED_RISE);
+  const seed = (row * 131 + col) * 2654435761 >>> 0;
+  const blooms = [];
+  for (let i = 0; i < BLOOMS_PER_BED; i++) {
+    const bc = c0 + 0.08 + roll(seed, 10 + i) * (c1 - c0 - 0.16);
+    const br = r0 + 0.08 + roll(seed, 30 + i) * (r1 - r0 - 0.16);
+    const hue = Math.floor(roll(seed, 50 + Math.floor(i / 3)) * 4);
+    const disc = projectedCircle(bc, br, 0.09 + roll(seed, 70 + i) * 0.05, 8).map((p) => lift(p, BED_RISE));
+    blooms.push({ disc, y: project(bc, br).y, hue, key: i });
+  }
+  // Painted back to front, so a near bloom covers a far one.
+  blooms.sort((a, b) => a.y - b.y);
+  return (
+    <g className="campus-flowerbed">
+      <polygon className="campus-bed-edge" points={polyPoints(f.left)} />
+      <polygon className="campus-bed-edge side" points={polyPoints(f.right)} />
+      <polygon className="ground-bed" points={polyPoints(f.top)} />
+      {blooms.map((b) => <polygon key={b.key} className={`ground-bloom-${b.hue}`} points={polyPoints(b.disc)} />)}
+    </g>
+  );
+}
+
+// The node for one placed item.
+function dressingNode(item: DressingItem, col: number, row: number, dressing: Dressing, colors: SchoolColors): React.JSX.Element {
+  const facing = benchFacingOf(item);
+  if (facing !== null) return <Bench col={col} row={row} facing={facing} />;
+  if (item === 'flowerbed') {
+    const bedAt = (r: number, c: number) => dressing[`${r},${c}`] === 'flowerbed';
+    return <Flowerbed col={col} row={row} open={[!bedAt(row - 1, col), !bedAt(row, col + 1), !bedAt(row + 1, col), !bedAt(row, col - 1)]} />;
+  }
+  const at = project(col + 0.5, row + 0.5);
+  return item === 'bannerLamp' ? <BannerLamp at={at} colors={colors} /> : <Lamp at={at} />;
+}
+
 // A row of hoops beside a door.
 function Rack({ col, row }: { col: number; row: number }) {
   const hoops = [];
@@ -191,14 +255,11 @@ function Rack({ col, row }: { col: number; row: number }) {
 
 export function dressingProps(layout: CampusLayout): DressingProp[] {
   const out: DressingProp[] = [];
-  for (const [key, item] of Object.entries(layout.dressing ?? ({} as Dressing))) {
+  const dressing = layout.dressing ?? ({} as Dressing);
+  for (const [key, item] of Object.entries(dressing)) {
     const t = parsePathTileKey(key);
     if (!t) continue;
-    const facing = benchFacingOf(item);
-    const node = facing === null
-      ? <Lamp at={project(t.col + 0.5, t.row + 0.5)} />
-      : <Bench col={t.col} row={t.row} facing={facing} />;
-    out.push({ key: `d-${key}`, col: t.col, row: t.row, w: 1, h: 1, node });
+    out.push({ key: `d-${key}`, col: t.col, row: t.row, w: 1, h: 1, node: dressingNode(item, t.col, t.row, dressing, layout.colors) });
   }
   // The flag, just off Founders Hall's front corner, on whichever of two
   // spots is open land.

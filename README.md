@@ -43,7 +43,12 @@ there is a legacy, and more than one way to earn a good one.
 - ⏩ **Play on after the Final Report**: the college keeps running into the
   Epilogue, and every tenth summer adds a decade to the record.
 - 🧪 **Sandbox mode**, from the title screen: unlimited funds and instant
-  building, every building open, to lay out a campus without waiting.
+  building, every building open and no curriculum committee, to lay out a
+  campus without waiting; a standing building can be moved, and any building
+  drawn in any of the nine architectures.
+- 🌷 **Decorate the grounds** for free: paths in flagstone, cobbles or brick
+  (hold Shift for a straight run), seven kinds of tree, lamps, banner lamps
+  in the school colours, benches and flower beds, anywhere on open ground.
 - ⚖️ **Deal with the unexpected** — donor offers, faculty departures, facility
   failures, chapter scandals and student demands. Every answer does what it
   says (a hire, a named scholarship, a campaign, a repair on the building

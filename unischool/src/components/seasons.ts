@@ -58,6 +58,19 @@ const CANOPY_TOP = '#679a4c';
 const ORNAMENTAL = '#7d9e4a';
 const ORNAMENTAL_TOP = '#9ab85f';
 const CONIFER_TOP = '#467c4f';
+// The planted species: a birch's light leaf turns butter yellow, a
+// willow's yellow-green turns gold, and a cherry flowers pink in the spring
+// before it leafs.
+const BIRCH = '#7fa54a';
+const BIRCH_TOP = '#9cc062';
+const BUTTER = '#e2c24a';
+const BUTTER_TOP = '#efd56a';
+const WILLOW = '#8aa94c';
+const WILLOW_TOP = '#a6c265';
+const CHERRY = '#5f8a3e';
+const CHERRY_TOP = '#78a352';
+const CHERRY_BLOOM = '#eda3bf';
+const CHERRY_BLOOM_TOP = '#f9cadb';
 const STRAW = '#a9a36a';
 const SNOW = '#eef2f4';
 const TWIG = '#7d6c5a';
@@ -129,6 +142,13 @@ export function seasonStyle(week: number): CSSProperties {
     '--leaf-canopy-top': leaf(CANOPY_TOP, GOLD_TOP),
     '--leaf-ornamental': leaf(ORNAMENTAL, RUST),
     '--leaf-ornamental-top': leaf(ORNAMENTAL_TOP, RUST_TOP),
+    '--leaf-birch': leaf(BIRCH, BUTTER),
+    '--leaf-birch-top': leaf(BIRCH_TOP, BUTTER_TOP),
+    '--leaf-willow': leaf(WILLOW, GOLD),
+    '--leaf-willow-top': leaf(WILLOW_TOP, GOLD_TOP),
+    // The cherry's blossom comes with the buds and goes as the leaves come.
+    '--leaf-cherry': mixColor(leaf(CHERRY, RUST), CHERRY_BLOOM, Math.min(1, s.bud * 1.6)),
+    '--leaf-cherry-top': mixColor(leaf(CHERRY_TOP, RUST_TOP), CHERRY_BLOOM_TOP, Math.min(1, s.bud * 1.6)),
     // Bare crowns thin to a haze of twigs over the trunk.
     '--leaf-opacity': String(Number((1 - s.bare * 0.6).toFixed(3))),
     '--conifer-top': mixColor(CONIFER_TOP, SNOW, s.snow * 0.6),

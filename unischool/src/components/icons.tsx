@@ -176,6 +176,156 @@ export function BenchIcon() {
   );
 }
 
+// The grounds' smaller tools, for the build menu's quarter tiles: the
+// three path surfaces as swatches, the banner lamp, the flower bed, the
+// decoration eraser, and each tree a planting can ask for.
+export function PavingIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <rect x="4" y="4" width="16" height="16" rx="1.5" />
+      <path d="M4 12h16" />
+      <path d="M12 4v16" />
+    </svg>
+  );
+}
+
+export function CobbleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <rect x="4" y="4" width="16" height="16" rx="1.5" />
+      <path d="M4 9.3h16M4 14.7h16" />
+      <path d="M9.3 4v5.3M14.7 4v5.3M6.7 9.3v5.4M12 9.3v5.4M17.3 9.3v5.4M9.3 14.7V20M14.7 14.7V20" />
+    </svg>
+  );
+}
+
+export function BrickIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <rect x="4" y="4" width="16" height="16" rx="1.5" />
+      <path d="M4 8h16M4 12h16M4 16h16" />
+      <path d="M10 4v4M16 8v4M10 12v4M16 16v4" />
+    </svg>
+  );
+}
+
+export function BannerLampIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 7v14" />
+      <path d="M9 21h6" />
+      <path d="M10 7h4l-.8-3h-2.4Z" />
+      <path d="M12 9h-5v8l2.5-1.5L12 17" />
+      <path d="M12 9h5v8l-2.5-1.5L12 17" />
+    </svg>
+  );
+}
+
+export function FlowerbedIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M3 17h18v3H3Z" />
+      <circle cx="7" cy="10" r="2" />
+      <circle cx="12" cy="7" r="2" />
+      <circle cx="17" cy="10" r="2" />
+      <path d="M7 12v5M12 9v8M17 12v5" />
+    </svg>
+  );
+}
+
+export function ClearDecorIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M3 17h12v3H3Z" />
+      <circle cx="9" cy="10" r="2" />
+      <path d="M9 12v5" />
+      <path d="M15 4l6 6M21 4l-6 6" />
+    </svg>
+  );
+}
+
+export function AnyTreeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="8" cy="9" r="4" />
+      <path d="M8 13v7" />
+      <path d="M16 5l-4 8h8Z" />
+      <path d="M16 13v7" />
+      <path d="M4 20h16" />
+    </svg>
+  );
+}
+
+export function BroadleafIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10 0 4 4 0 0 1 0 8Z" />
+      <path d="M12 14v7" />
+    </svg>
+  );
+}
+
+export function OrnamentalIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="12" cy="9" r="5" />
+      <path d="M12 14v7" />
+    </svg>
+  );
+}
+
+export function BirchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <ellipse cx="12" cy="8" rx="3.5" ry="5.5" />
+      <path d="M12 13.5V21" />
+      <path d="M11 16.5h2M11 19h2" />
+    </svg>
+  );
+}
+
+export function WillowIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M4 17V11a8 6 0 0 1 16 0v6" />
+      <path d="M8 9v9M12 7v9M16 9v9" />
+      <path d="M12 16v5" />
+    </svg>
+  );
+}
+
+export function CherryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <ellipse cx="12" cy="9" rx="8" ry="4.5" />
+      <path d="M12 13.5V21" />
+      <circle cx="9" cy="8.5" r="1" />
+      <circle cx="14.5" cy="9.5" r="1" />
+    </svg>
+  );
+}
+
+export function PalmIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 8c-.5 5 .5 9 0 13" />
+      <path d="M12 8C10 5 6 5 4 7" />
+      <path d="M12 8c2-3 6-3 8-1" />
+      <path d="M12 8c-3 0-5 2-6 5" />
+      <path d="M12 8c3 0 5 2 6 5" />
+    </svg>
+  );
+}
+
+export function MoveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 3v18M3 12h18" />
+      <path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3" />
+    </svg>
+  );
+}
+
 // ---------- build-mode category / facility glyphs ----------
 // Same convention as the toolbar icons. One per build-popup category
 // (BuildPopup.tsx's SECTION_ICON), so a category is recognisable by glyph.

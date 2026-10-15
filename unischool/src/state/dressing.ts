@@ -1,6 +1,7 @@
 import type { BenchFacing, DressingItem, DressingKind, Pathways } from './types';
 
-// Lamps and benches (Plan 80I): what a stored item is, and which way a
+// Lamps, benches, banner lamps and flower beds (Plan 80I, and the
+// decoration that followed it): what a stored item is, and which way a
 // bench faces. A bench is set against one edge of its tile and faces out
 // across it, toward the path beside it; R turns it while it is being
 // placed (CampusMap.tsx). Grid compass: north is -row, east +col.
@@ -17,18 +18,22 @@ export function benchItem(facing: BenchFacing): DressingItem {
   return `bench-${facing}`;
 }
 
+// The items that are only their kind: everything but a bench.
+const PLAIN_ITEMS: readonly DressingItem[] = ['lamp', 'bannerLamp', 'flowerbed'];
+
 export function dressingKindOf(item: DressingItem): DressingKind {
-  return item === 'lamp' ? 'lamp' : 'bench';
+  return item.startsWith('bench-') ? 'bench' : item as DressingKind;
 }
 
-// A bench's facing, or null for a lamp.
+// A bench's facing, or null for anything else.
 export function benchFacingOf(item: DressingItem): BenchFacing | null {
-  return item === 'lamp' ? null : item.slice(6) as BenchFacing;
+  return item.startsWith('bench-') ? item.slice(6) as BenchFacing : null;
 }
 
 // Whether a stored value is an item this version draws (a save's hygiene).
 export function isDressingItem(v: unknown): v is DressingItem {
-  return v === 'lamp' || (typeof v === 'string' && v.startsWith('bench-') && (BENCH_FACINGS as readonly string[]).includes(v.slice(6)));
+  if ((PLAIN_ITEMS as readonly unknown[]).includes(v)) return true;
+  return typeof v === 'string' && v.startsWith('bench-') && (BENCH_FACINGS as readonly string[]).includes(v.slice(6));
 }
 
 // A quarter turn clockwise.

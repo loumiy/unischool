@@ -449,14 +449,26 @@ category holds a tile the player has not seen, because the category has not
 been opened since the tile appeared (`s.seen.buildableIds`). Opening the
 category marks its tiles seen and clears it; the toolbar's Build button
 carries the same mark while any category does. The menu's help says so
-(Plan 78F). Its first tab is **Grounds** (the path and tree tools, the quads
-and monuments; "Campus tools" until Plan 80B, its id kept); the rest are
+(Plan 78F). Its first tab is **Grounds** (the path, tree and decoration
+tools, the quads and monuments; "Campus tools" until Plan 80B, its id kept);
+the rest are
 categories (`facilitiesData.ts`'s `FACILITY_CATEGORY_OF`), and the gym, pool
 and tennis courts sit under **Health** with the health chain, where their
 capacity goes (Plan 80B). The menu opens on Grounds (`BuildPopup.tsx`'s `initialBuildTab`,
 Plan 92), except while Founders Hall waits for its ground in a guided
 founding: then it opens on the tab holding the hall, where the walkthrough
-points. Each building's tile shows the building itself (Plan 94,
+points. The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
+`MiniCluster`): four to the space of one building's tile, in labelled
+clusters two high (Paths, Trees, Decoration), so the row of small, repeatable
+things stays short as it grows. A surface's tile (Paving, Cobbles, Brick)
+arms the one draw tool with that surface, and a species' tile the one plant
+tool with that species: both are the session's choices, not the run's
+(`pathChoice.ts`, `plantingChoice.ts`). While a grounds tool is armed, a strip
+at the top of the map says what it does (`CampusMap.tsx`'s `ToolHint`), so
+the second button and Shift's straight run are found without the help: on a
+touch screen it says only what a drag or a tap does. In a sandbox the menu
+carries a **Style** picker for the architecture the next building goes up in
+(the college's own by default). Each building's tile shows the building itself (Plan 94,
 `BuildThumb.tsx`): drawn by the map's own `BuildingMotif` in the college's
 vernacular, as a building site while it goes up, always from the default
 camera so it does not turn with the map, and kept as markup once drawn, so

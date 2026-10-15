@@ -266,7 +266,14 @@ export const isUndergraduateCourse = (t: Buildable) => t.kind === 'course' && t.
 export function coursesInDevelopment(s: GameState): Buildable[] {
   return s.tech.filter((t) => t.kind === 'course' && t.status === 'developing');
 }
+// A sandbox run (systems/sandbox) sets the committee aside: it writes as
+// many courses at once as the player starts, so nothing waits on a seat.
+// Read off the flag, as sandboxOpens is: systems/sandbox imports this file.
+export function committeeSetAside(s: GameState): boolean {
+  return s.sandbox === true;
+}
 export function courseSlotsFree(s: GameState): number {
+  if (committeeSetAside(s)) return Number.POSITIVE_INFINITY;
   return Math.max(0, committeeSeats(s) - coursesInDevelopment(s).length);
 }
 
@@ -292,6 +299,8 @@ export interface CommitteeLamp {
   progress: number;
 }
 export function committeeLamps(s: GameState): CommitteeLamp[] {
+  // No committee, no seats to show.
+  if (committeeSetAside(s)) return [];
   const lamps: CommitteeLamp[] = coursesInDevelopment(s).map((t) => {
     const weeksLeft = s.developing[t.id] ?? t.duration;
     return { course: t, weeksLeft, progress: t.duration > 0 ? Math.min(1, Math.max(0, 1 - weeksLeft / t.duration)) : 1 };

@@ -1,7 +1,8 @@
-// Lamps, benches and bike racks (src/components/dressing.tsx, the reducer's
-// PLACE_DRESSING and REMOVE_DRESSING): placed by the player on or beside a
-// path, never on a building or the road, kept by a save; racks appear on
-// their own once the college is big enough.
+// Lamps, banner lamps, benches, flower beds and bike racks
+// (src/components/dressing.tsx, the reducer's PLACE_DRESSING and
+// REMOVE_DRESSING): placed by the player anywhere on open land, never on a
+// building or the road, kept by a save; racks appear on their own once the
+// college is big enough.
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
@@ -48,7 +49,7 @@ function fresh(): GameState {
   return s;
 }
 
-// ---- Placed beside a path, and only there ----
+// ---- Placed on open land, off the buildings and the road ----
 {
   let s = fresh();
   s.pathways['10,10'] = true;
@@ -57,7 +58,7 @@ function fresh(): GameState {
   s = reducer(s, { type: 'PLACE_DRESSING', tile: { row: 10, col: 10 }, kind: 'bench' });
   assert(s.dressing?.['10,10'] !== undefined && dressingKindOf(s.dressing['10,10']) === 'bench', 'a bench on one');
   s = reducer(s, { type: 'PLACE_DRESSING', tile: { row: 12, col: 12 }, kind: 'lamp' });
-  assert(!('12,12' in (s.dressing ?? {})), 'but not out on the lawn');
+  assert(s.dressing?.['12,12'] === 'lamp', 'and out on the lawn, no path near it');
   const [hallId, hall] = Object.entries(s.placements)[0];
   s.pathways[`${hall.row},${hall.col - 1}`] = true;
   s = reducer(s, { type: 'PLACE_DRESSING', tile: { row: hall.row, col: hall.col }, kind: 'lamp' });
@@ -68,6 +69,33 @@ function fresh(): GameState {
   s = reducer(s, { type: 'REMOVE_DRESSING', tile: { row: 10, col: 11 } });
   assert(!('10,11' in (s.dressing ?? {})), 'and a lamp can be lifted');
   assert(dressingProps(campusLayout(s)).some((p) => p.key === 'd-10,10'), 'what stands is drawn');
+}
+
+// ---- Banner lamps and flower beds ----
+{
+  let s = fresh();
+  s = reducer(s, { type: 'PLACE_DRESSING', tile: { row: 30, col: 30 }, kind: 'bannerLamp' });
+  assert(s.dressing?.['30,30'] === 'bannerLamp' && dressingKindOf(s.dressing['30,30']) === 'bannerLamp', 'a banner lamp stands on the lawn');
+  for (let c = 31; c <= 33; c++) s = reducer(s, { type: 'PLACE_DRESSING', tile: { row: 32, col: c }, kind: 'flowerbed' });
+  assert(['32,31', '32,32', '32,33'].every((k) => s.dressing?.[k] === 'flowerbed'), 'flower beds plant a border');
+  assert(benchFacingOf('flowerbed') === null && benchFacingOf('bannerLamp') === null, 'neither has a facing');
+  const props = dressingProps(campusLayout(s));
+  assert(['d-30,30', 'd-32,31', 'd-32,32', 'd-32,33'].every((k) => props.some((p) => p.key === k)), 'and each is drawn');
+  // A banner lamp flies the college's colors without an occasion; a lamp
+  // does not.
+  setCamera({ azimuth: Math.PI / 4, pitch: DEFAULT_PITCH });
+  const markup = (key: string) => renderToStaticMarkup(createElement('svg', null, props.find((p) => p.key === key)!.node));
+  assert(markup('d-30,30').includes(s.self.colors.primary) && markup('d-30,30').includes(s.self.colors.secondary), "a banner lamp's banners are the college's colors");
+  // A bed meets its neighbor without an edge between them: the middle one
+  // of three runs the full width of its tile along the row.
+  assert(markup('d-32,32') !== markup('d-32,31'), 'a bed in a border is drawn as one of a run');
+  // Saved and loaded.
+  store.clear();
+  localStorage.setItem(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: s }));
+  const loaded = loadGame();
+  assert(loaded?.dressing?.['30,30'] === 'bannerLamp' && loaded?.dressing?.['32,32'] === 'flowerbed', 'a save keeps both');
+  s = reducer(s, { type: 'REMOVE_DRESSING', tile: { row: 32, col: 32 } });
+  assert(!('32,32' in (s.dressing ?? {})), 'and a bed can be lifted');
 }
 
 // ---- A bench faces out across one edge of its tile (Plan 80I) ----

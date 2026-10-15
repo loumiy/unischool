@@ -37,7 +37,7 @@ const shapes = (d: string) => d.split('M').filter(Boolean).map((part) => part.sp
 // ---- A lone tile has four rounded corners ----
 {
   const g = buildPathGeometry(paths([10, 10]));
-  const s = shapes(g.fill);
+  const s = shapes(g.outline);
   assert(s.length === 1 && s[0] === 20, `one shape, each corner an arc of five points (${s.join(',')})`);
   assert(g.joints === '', 'and no joints');
 }
@@ -46,22 +46,22 @@ const shapes = (d: string) => d.split('M').filter(Boolean).map((part) => part.sp
 {
   const g = buildPathGeometry(paths([10, 10], [10, 11], [10, 12]));
   assert(shapes(g.joints).length === 2, 'two joints between three tiles');
-  assert(shapes(g.fill).length === 3, 'no bridges on a straight run');
+  assert(shapes(g.outline).length === 3, 'no bridges on a straight run');
 }
 
 // ---- A diagonal run is bridged into one band, with straight edges ----
 {
   const g = buildPathGeometry(paths([10, 10], [11, 11], [12, 12]));
-  const s = shapes(g.fill);
+  const s = shapes(g.outline);
   assert(s.length === 3 + 4, `three tiles and two triangles per corner they share (${s.length})`);
   assert(s.filter((n) => n === 3).length === 4, 'the bridges are triangles');
   // The middle tile's corners all lie on the run's edges or its joins, so
   // none is rounded: it stays a square.
   assert(s.filter((n) => n !== 3).includes(4), 'the middle tile stays square');
   const sw = buildPathGeometry(paths([10, 10], [11, 9]));
-  assert(shapes(sw.fill).filter((n) => n === 3).length === 2, 'a run the other way is bridged too');
+  assert(shapes(sw.outline).filter((n) => n === 3).length === 2, 'a run the other way is bridged too');
   const closed = buildPathGeometry(paths([10, 10], [11, 11], [10, 11]));
-  assert(shapes(closed.fill).every((n) => n !== 3), 'no bridge where an orthogonal tile already joins the pair');
+  assert(shapes(closed.outline).every((n) => n !== 3), 'no bridge where an orthogonal tile already joins the pair');
 }
 
 // ---- A straight run laid in one step, and moved ----

@@ -1,5 +1,7 @@
 import type { Financing } from '../systems/finance/treasury';
 import type { GameState } from './types';
+import { isVernacular } from './types';
+import { isSandbox } from '../systems/sandbox/sandbox';
 import type { Action } from './actions';
 import { fellTrees } from '../data/treeData';
 import { awaitsSite, canPlace, orientedFootprint, placementFor } from './campusMap';
@@ -26,6 +28,8 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
       // Siting fells every tree under the footprint, permanently. Paths do
       // not: paving only hides a tree at render time.
       const placement = placementFor(action.row, action.col, fp, facing);
+      // A sandbox's own style for the building (Placement's vernacular).
+      if (isSandbox(s) && isVernacular(action.vernacular) && action.vernacular !== s.self.vernacular) placement.vernacular = action.vernacular;
       if (node.status === 'done') {
         if (awaitsSite(s, node)) {
           s.placements[node.id] = placement;

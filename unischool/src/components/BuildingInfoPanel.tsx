@@ -8,7 +8,9 @@ import type { Action } from '../state/actions';
 import { venueSeatsOf } from '../data/facilitiesData';
 import { teamQuality } from '../data/studentLifeData';
 import { attendanceFor } from '../systems/athletics/gate';
-import type { Buildable, FacilityType, GameState } from '../state/types';
+import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
+import { isSandbox } from '../systems/sandbox/sandbox';
+import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
 import { NEED_WORD } from '../data/needWords';
 import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
@@ -29,7 +31,7 @@ import { count, fraction, money, moneyShort, pct, signedPct, weeksShort } from '
 import { initiativeDepth } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
 import { canCancelConstruction, demolitionBlock } from '../state/demolition';
-import { CloseIcon } from './icons';
+import { CloseIcon, MoveIcon } from './icons';
 import { heldOffices, officeAllowance, slotFree } from '../systems/administration/offices';
 import { AllowanceRow, OfficeOffers, OfficeTile } from './FoundersOffices';
 import { OFFICES } from '../data/officeData';
@@ -807,8 +809,35 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
   );
 }
 
-export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum, onOpenResearch, focusProgramId }: {
+// A sandbox's hand on a standing building (state/sandboxMoves.ts):
+// pick it up to set down elsewhere, and draw it in another architecture.
+function SandboxLine({ t, s, act, onMove }: { t: Buildable; s: GameState; act?: (a: Action) => void; onMove?: () => void }) {
+  if (!isSandbox(s) || !(t.id in s.placements)) return null;
+  const style = s.placements[t.id]!.vernacular ?? s.self.vernacular;
+  const choices = [...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES];
+  return (
+    <div className="building-info-sandbox">
+      {onMove && (
+        <button type="button" className="building-info-jump" onClick={onMove} title="Pick it up, then click where it goes; R turns it.">
+          <MoveIcon /> Move
+        </button>
+      )}
+      {act && (
+        <label className="building-info-style">
+          <span>Style</span>
+          <select value={style} onChange={(e) => act({ type: 'SET_BUILDING_STYLE', id: t.id, vernacular: e.target.value as Vernacular })}>
+            {choices.map((c) => <option key={c.id} value={c.id}>{c.label}{c.id === s.self.vernacular ? ' (college)' : ''}</option>)}
+          </select>
+        </label>
+      )}
+    </div>
+  );
+}
+
+export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum, onOpenResearch, focusProgramId, onMove }: {
   t: Buildable; s: GameState; onClose: () => void;
+  // A sandbox's Move: picks the building up on the map (CampusMap.tsx).
+  onMove?: () => void;
   // A housed program whose tile opens with the panel (the next-step line's
   // move, Plan 78D).
   focusProgramId?: string;
@@ -850,6 +879,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       {t.kind === 'facility' && <NeedUseLine t={t} s={s} />}
       {t.kind === 'facility' && isGraduateHost(t.id) && t.status === 'done' && <HallSlots t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} />}
       {t.kind === 'building' && <BuildingHallInfo t={t} s={s} act={act} onOpenCurriculum={onOpenCurriculum} focusProgramId={focusProgramId} />}
+      <SandboxLine t={t} s={s} act={act} onMove={onMove} />
       {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}
     </div>
   );

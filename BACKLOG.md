@@ -120,4 +120,7 @@ of work with a known shape; none is sequenced.*
   Gothic library until they found a Gothic college). Kept in mind, not
   ruled out; a player asked for switching (R6–R7 in
   `docs/reviews/playtest-1/findings.md`). If the styles multiply, the
-  chooser may need pinned favourites, search or a random pick.
+  chooser may need pinned favourites, search or a random pick. A sandbox
+  run already mixes them, building by building (the owner, 15 October 2026;
+  `docs/architecture/campus-map.md`, *A sandbox's hand*); this item is
+  about a normal run.

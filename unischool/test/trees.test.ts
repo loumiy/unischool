@@ -7,7 +7,7 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
-import { SPECIES, TREE_SEED_RANGE, seedForSpecies, speciesOf } from '../src/data/treeData';
+import { PLANTED_SPECIES, SPECIES, TREE_SEED_RANGE, seedForSpecies, speciesOf } from '../src/data/treeData';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CONIFER_FLOOR, CROWN_SPREAD, TreeAt, treeShape, treeStanding } from '../src/components/trees';
@@ -33,11 +33,21 @@ console.log('tree tests');
   for (let seed = 0; seed < 200; seed += 7) {
     for (const species of SPECIES) {
       const found = seedForSpecies(seed, species);
-      assert(speciesOf(found) === species && found >= 0 && found < TREE_SEED_RANGE, `a ${species} seed from ${seed}`);
+      assert(speciesOf(found) === species && found >= 0, `a ${species} seed from ${seed}`);
+      // The dice's species stay among the dice's seeds; a planted species
+      // is carried in its own band above them, and rolls its size and
+      // place off the seed it came from.
+      const planted = (PLANTED_SPECIES as readonly string[]).includes(species);
+      assert(planted ? found >= TREE_SEED_RANGE && found % TREE_SEED_RANGE === seed : found < TREE_SEED_RANGE, `a ${species} seed is in its band (${seed})`);
     }
     assert(seedForSpecies(seed, null) === seed && seedForSpecies(seed, undefined) === seed, 'no species leaves the seed alone');
   }
   assert(treeShape(12345).species === speciesOf(12345), 'the renderer reads the same hash');
+  // No seed the dice can give means a planted species, so no tree already
+  // standing in a save changes.
+  let planted = 0;
+  for (let seed = 0; seed < TREE_SEED_RANGE; seed += 997) if ((PLANTED_SPECIES as readonly string[]).includes(speciesOf(seed))) planted += 1;
+  assert(planted === 0, 'the founding mix never rolls a planted species');
 }
 
 // ---- Planting ----

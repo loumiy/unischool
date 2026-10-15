@@ -2,7 +2,7 @@ import { financingFor } from '../systems/finance/treasury';
 import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
-import type { BenchFacing, Buildable, Facing, GameState, HallSlot, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
+import type { BenchFacing, Buildable, Facing, GameState, HallSlot, Initiative, PathMaterial, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { entryKey, useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -40,6 +40,10 @@ import { clampView, districtCentre, ringZoomFloor } from './ringLand';
 import { districtLookDue, districtSeen, type DistrictSeen } from './districtLook';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
+import { buildStyle, pathSurface } from './pathChoice';
+import { isSandbox } from '../systems/sandbox/sandbox';
+import { moveRefusal } from '../state/sandboxMoves';
+import { surfaceOf } from '../state/paving';
 import { castShadow } from './light';
 import {
   DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
@@ -209,9 +213,53 @@ function otherPathTool(tool: CampusTool): CampusTool {
     case 'erase': return 'draw';
     case 'plant': return 'fell';
     case 'fell': return 'plant';
+    case 'flowerbed': return 'clear';
+    case 'clear': return 'clear';
     case 'lamp': return 'lamp';
+    case 'bannerLamp': return 'bannerLamp';
     case 'bench': return 'bench';
   }
+}
+
+// What the armed tool does, shown over the map while it is armed, so the
+// mouse's other button and Shift's straight run are found without the help
+// text. Pieces in <kbd> are keys or buttons. A touch screen has neither a
+// second button nor Shift: it is told only what a drag or a tap does.
+const TOOL_HINTS: Record<CampusTool, { mouse: string[]; touch: string }> = {
+  draw: { mouse: ['Drag to pave', '[Shift]+drag for a straight line', '[Right]-drag lifts'], touch: 'Drag to pave' },
+  erase: { mouse: ['Drag to lift paths', '[Right]-drag paves'], touch: 'Drag to lift paths' },
+  plant: { mouse: ['Drag to plant', '[Right]-drag fells'], touch: 'Drag to plant' },
+  fell: { mouse: ['Drag to fell', '[Right]-drag plants'], touch: 'Drag to fell' },
+  lamp: { mouse: ['Click to place', '[Right]-click lifts'], touch: 'Tap to place' },
+  bannerLamp: { mouse: ['Click to place', '[Right]-click lifts'], touch: 'Tap to place' },
+  bench: { mouse: ['Click to place', '[R] turns it', '[Right]-click lifts'], touch: 'Tap to place' },
+  flowerbed: { mouse: ['Drag to plant a border', '[Right]-drag lifts'], touch: 'Drag to plant a border' },
+  clear: { mouse: ['Drag across lamps, benches and beds to lift them'], touch: 'Drag across decoration to lift it' },
+};
+// A screen whose main pointer is a finger: the hint speaks of taps before
+// the map has been touched (touchUi is only set by a touch on the map).
+function coarsePointer(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+}
+function ToolHint({ tool, touch }: { tool: CampusTool; touch: boolean }) {
+  const hint = TOOL_HINTS[tool];
+  const parts = touch ? [hint.touch] : [...hint.mouse, '[Esc] puts it away'];
+  return (
+    <div className="map-tool-hint" role="status">
+      {parts.map((part, i) => (
+        <span key={i} className="map-tool-hint-part">
+          {part.split(/(\[[^\]]+\])/).filter(Boolean).map((bit, j) => (bit.startsWith('[') ? <kbd key={j}>{bit.slice(1, -1)}</kbd> : bit))}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// The tools that set one thing down a click (the right button lifts it),
+// rather than painting a stroke.
+type ClickTool = 'lamp' | 'bannerLamp' | 'bench';
+function isClickTool(tool: CampusTool | null): tool is ClickTool {
+  return tool === 'lamp' || tool === 'bannerLamp' || tool === 'bench';
 }
 
 // Color comes from materialOf (buildingSpec.ts); the kind class only
@@ -232,7 +280,8 @@ function drawnFootprint(p: Placement) {
 
 // Where a building's label sits and how big. `centre` is the center of the
 // plate, not a text baseline.
-function labelLayout(label: string, t: Buildable, p: Placement, v: Vernacular) {
+function labelLayout(label: string, t: Buildable, p: Placement, college: Vernacular) {
+  const v = p.vernacular ?? college;
   const size = Math.max(
     LABEL_MIN_FONT_SIZE,
     Math.min(LABEL_MAX_FONT_SIZE, (p.w + p.h) * LABEL_SIZE_PER_TILE),
@@ -336,12 +385,12 @@ function PlacedBuilding({
     >
       <BuildingMotif
         t={t} p={d}
-        material={materialOf(t, vernacular)}
-        vernacular={vernacular}
+        material={materialOf(t, p.vernacular ?? vernacular)}
+        vernacular={p.vernacular ?? vernacular}
         developing={developing} glyphs={glyphs}
         camera={camera}
       />
-      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={vernacular} historic={historic || t.ivy === true} />}
+      {!developing && motifOf(t) !== 'grounds' && <AgeMarks t={t} p={d} band={renovating ? 0 : age} vernacular={p.vernacular ?? vernacular} historic={historic || t.ivy === true} />}
       {!developing && t.sinkhole && <Sinkhole p={d} />}
       {renovating && motifOf(t) !== 'grounds' && (() => {
         // Scaffolding over the whole of a building under renovation.
@@ -393,7 +442,7 @@ function castShadowPaths(placed: CampusLayout['placed'], scene: readonly SceneEn
   const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
   const buildings: string[] = [];
   for (const { t, p, developing } of placed) {
-    const height = drawnHeightOf(t, developing, vernacular);
+    const height = drawnHeightOf(t, developing, p.vernacular ?? vernacular);
     if (height <= 0) continue;
     const f = drawnFootprint(p);
     buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
@@ -657,7 +706,7 @@ export function sceneEntries(layout: CampusLayout): SceneEntry[] {
       const d = drawnFootprint(p);
       // A venue expanding in place keeps its props (Plan 54), and they
       // grow with its expansions.
-      for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, layout.vernacular)) {
+      for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, p.vernacular ?? layout.vernacular)) {
         entries.push({
           kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id, shadows: prop.shadows,
           col: prop.col, row: prop.row, w: prop.w, h: prop.h,
@@ -941,7 +990,7 @@ function pathsChanged(prev: CampusLayout | null, next: CampusLayout): [number, n
   const keys = new Set([...Object.keys(prev.pathways), ...Object.keys(next.pathways)]);
   let box: [number, number, number, number] | null = null;
   for (const k of keys) {
-    if ((k in prev.pathways) === (k in next.pathways)) continue;
+    if (prev.pathways[k] === next.pathways[k]) continue;
     const t = parsePathTileKey(k);
     if (!t) continue;
     for (const [c, r] of [[t.col - 1, t.row - 1], [t.col + 2, t.row - 1], [t.col + 2, t.row + 2], [t.col - 1, t.row + 2]] as const) {
@@ -1209,6 +1258,14 @@ export default function CampusMap({
   // `selectedId`/`pathTool`: selectBuilding and the pathTool effect clear
   // it, and inspectBuilding refuses while either is active.
   const [inspectedId, setInspectedId] = useState<string | null>(null);
+  // A standing building picked up to move (a sandbox's, from its panel's
+  // Move): it rides the pickup's ghost as a new one does, and a click sets
+  // it down there (MOVE_BUILDABLE). Kept here, not in App.tsx: nothing but
+  // the map and its panel reach it.
+  const [movingId, setMovingId] = useState<string | null>(null);
+  useEffect(() => {
+    if (selectedId !== null || pathTool !== null) setMovingId(null);
+  }, [selectedId, pathTool]);
   // The program tile to open in that panel, while it is the hall asked for.
   const [focus, setFocus] = useState<{ hallId: string; programId: string } | null>(null);
   useEffect(() => {
@@ -1314,6 +1371,7 @@ export default function CampusMap({
   // The one place selection changes: resets rotation and closes the info
   // panel.
   function selectBuilding(id: string | null) {
+    if (id === null) setMovingId(null);
     onSelect(id);
     setFacing(facingToCamera());
     setInspectedId(null);
@@ -1370,7 +1428,7 @@ export default function CampusMap({
   const pathLastRef = useRef<TileCoord | null>(null);
   // Where the current stroke began and the tiles it has laid, for the
   // Shift-held straight run.
-  const strokeRef = useRef<{ anchor: TileCoord; laid: Set<string> } | null>(null);
+  const strokeRef = useRef<{ anchor: TileCoord; laid: Set<string>; prior: Map<string, true | PathMaterial> } | null>(null);
   // Touch (Plan 70F), read from pointer events of type 'touch' only, so the
   // mouse keeps exactly the handlers above. One finger pans, moves the
   // ghost while a building is picked up, or paints with a path tool; two
@@ -1780,13 +1838,27 @@ export default function CampusMap({
     if (!here) return;
     const stroke = strokeRef.current;
     if (e.shiftKey && tool === 'draw' && stroke) {
+      // Tiles the run crosses that were paved with something else are
+      // repaved, and put back as they were if the run moves off them.
+      const surface = pathSurface();
       const line = tilesBetween(stroke.anchor, here);
       const onLine = new Set(line.map(pathTileKey));
-      const add = line.filter((t) => !(pathTileKey(t) in s.pathways));
-      const remove = [...stroke.laid].filter((key) => !onLine.has(key)).map((key) => parsePathTileKey(key)!);
-      for (const key of remove.map(pathTileKey)) stroke.laid.delete(key);
-      for (const t of add) stroke.laid.add(pathTileKey(t));
-      if (add.length > 0 || remove.length > 0) act({ type: 'PAINT_PATH_TILES', add, remove });
+      const add = line.filter((t) => {
+        const key = pathTileKey(t);
+        return !(key in s.pathways) || (!stroke.laid.has(key) && surfaceOf(s.pathways[key]) !== surface);
+      });
+      const off = [...stroke.laid].filter((key) => !onLine.has(key));
+      const remove = off.filter((key) => !stroke.prior.has(key)).map((key) => parsePathTileKey(key)!);
+      const restore = off.filter((key) => stroke.prior.has(key)).map((key) => ({ tile: parsePathTileKey(key)!, paving: stroke.prior.get(key)! }));
+      for (const key of off) { stroke.laid.delete(key); stroke.prior.delete(key); }
+      for (const t of add) {
+        const key = pathTileKey(t);
+        if (key in s.pathways) stroke.prior.set(key, s.pathways[key]!);
+        stroke.laid.add(key);
+      }
+      if (add.length > 0 || off.length > 0) {
+        act({ type: 'PAINT_PATH_TILES', add, remove, ...(surface === 'paving' ? {} : { surface }), ...(restore.length > 0 ? { restore } : {}) });
+      }
       pathLastRef.current = here;
       return;
     }
@@ -1832,7 +1904,7 @@ export default function CampusMap({
     // A path tool owns the gesture and never arms the pan. Left paints with
     // the armed tool, right with its opposite (so left draws, right erases).
     // Lamps and benches: one a click, the right button lifts.
-    if ((pathTool === 'lamp' || pathTool === 'bench') && (e.button === 0 || e.button === 2)) {
+    if (isClickTool(pathTool) && (e.button === 0 || e.button === 2)) {
       const tile = tileFromEvent(e);
       if (tile) act(e.button === 0 ? placeDressing(tile, pathTool) : { type: 'REMOVE_DRESSING', tile });
       return;
@@ -1843,7 +1915,7 @@ export default function CampusMap({
       if (tile) {
         pathDragRef.current = tool;
         pathLastRef.current = null;   // a new stroke never interpolates from where the last one ended
-        strokeRef.current = { anchor: tile, laid: new Set() };
+        strokeRef.current = { anchor: tile, laid: new Set(), prior: new Map() };
         paintStroke(e, tool);
         return;
       }
@@ -1880,13 +1952,13 @@ export default function CampusMap({
     }
     if (touches.size > 2) return;
     const tile = tileFromEvent(e);
-    const strokeTool = pathTool !== null && pathTool !== 'lamp' && pathTool !== 'bench';
+    const strokeTool = pathTool !== null && !isClickTool(pathTool);
     const mode = strokeTool ? 'paint' : pathTool ? 'tap-tool' : selected ? 'ghost' : 'pan';
     gestureRef.current = { mode, start: canvasPoint(e), startView: { ...viewRef.current }, moved: false };
     if (mode === 'paint' && tile && pathTool) {
       pathDragRef.current = pathTool;
       pathLastRef.current = null;
-      strokeRef.current = { anchor: tile, laid: new Set() };
+      strokeRef.current = { anchor: tile, laid: new Set(), prior: new Map() };
       paintStroke({ clientX: e.clientX, clientY: e.clientY, shiftKey: false }, pathTool);
     }
     if (mode === 'ghost' && tile) setHover(tile);
@@ -1941,7 +2013,7 @@ export default function CampusMap({
     // A tap with the lamp or bench tool, which act on a tap, not a stroke.
     if (g?.mode === 'tap-tool' && !g.moved && e.type === 'pointerup') {
       const tile = tileFromEvent(e);
-      if (tile && (pathTool === 'lamp' || pathTool === 'bench')) act(placeDressing(tile, pathTool));
+      if (tile && isClickTool(pathTool)) act(placeDressing(tile, pathTool));
     }
     endStroke();
     gestureRef.current = null;
@@ -2011,7 +2083,9 @@ export default function CampusMap({
   // (awaitsSite); placeById branches the gate/cost on which one it is.
   const pickable = s.tech.filter((t) => isPlaceableKind(t) && !(t.id in s.placements) && (t.status === 'available' || t.status === 'done'));
   // A pickable entry can vanish between renders, so re-check the stored id.
-  const selected = pickable.find((t) => t.id === selectedId) ?? null;
+  // A building being moved is the pickup while it is.
+  const moving = movingId !== null && isSandbox(s) && movingId in s.placements ? s.tech.find((t) => t.id === movingId) ?? null : null;
+  const selected = moving ?? pickable.find((t) => t.id === selectedId) ?? null;
 
   const selectedFootprint = selected ? orientedFootprint(selected, facing) : null;
 
@@ -2049,6 +2123,13 @@ export default function CampusMap({
   // pickup (awaitsSite) is Founders Hall being sited: no cost, mirroring the
   // reducer.
   const placeById = (id: string, row: number, col: number) => {
+    if (moving && id === moving.id) {
+      if (moveRefusal(s, id, row, col, facing) !== null) return;
+      act({ type: 'MOVE_BUILDABLE', id, row, col, facing });
+      selectBuilding(null);
+      setHover(null);
+      return;
+    }
     const t = pickable.find((x) => x.id === id);
     if (!t) return;
     const fp = orientedFootprint(t, facing);
@@ -2057,7 +2138,9 @@ export default function CampusMap({
     // cash, then a loan for the shortfall (finance/treasury.ts).
     const financing = t.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, t, undefined, f));
     if (t.status === 'done' ? !awaitsSite(s, t) : financing === null) return;
-    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, facing, ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : financing === 'endowment' ? { endowment: true } : {}) });
+    // A sandbox's chosen style for it (pathChoice.ts's buildStyle).
+    const style = isSandbox(s) ? buildStyle() : null;
+    act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, facing, ...(style ? { vernacular: style } : {}), ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : financing === 'endowment' ? { endowment: true } : {}) });
     selectBuilding(null);
     setHover(null);
   };
@@ -2125,18 +2208,30 @@ export default function CampusMap({
   // Which way a bench set on this tile would face: as R turned it, or
   // toward the path beside it.
   const benchFacingAt = (tile: TileCoord | null): BenchFacing => benchTurn ?? (tile ? defaultBenchFacing(s.pathways, tile.row, tile.col) : 's');
-  const placeDressing = (tile: TileCoord, kind: 'lamp' | 'bench'): Action => (kind === 'bench'
+  const placeDressing = (tile: TileCoord, kind: ClickTool): Action => (kind === 'bench'
     ? { type: 'PLACE_DRESSING', tile, kind, facing: benchFacingAt(tile) }
     : { type: 'PLACE_DRESSING', tile, kind });
 
   const paintTile = (tile: TileCoord, tool: CampusTool) => {
-    act(
-      tool === 'draw' ? { type: 'ADD_PATH_TILE', tile }
-        : tool === 'erase' ? { type: 'REMOVE_PATH_TILE', tile }
+    const key = pathTileKey(tile);
+    // A tile already as the stroke would leave it is passed over, so a
+    // stroke dispatches only what it changes.
+    if (tool === 'draw') {
+      const surface = pathSurface();
+      if (key in s.pathways && surfaceOf(s.pathways[key]) === surface) return;
+      act({ type: 'ADD_PATH_TILE', tile, ...(surface === 'paving' ? {} : { surface }) });
+    } else if (tool === 'flowerbed') {
+      if (s.dressing?.[key] !== 'flowerbed') act({ type: 'PLACE_DRESSING', tile, kind: 'flowerbed' });
+    } else if (tool === 'clear') {
+      if (s.dressing && key in s.dressing) act({ type: 'REMOVE_DRESSING', tile });
+    } else {
+      act(
+        tool === 'erase' ? { type: 'REMOVE_PATH_TILE', tile }
           : tool === 'plant' ? { type: 'PLANT_TREE', tile, species: plantingSpecies() ?? undefined }
             : tool === 'fell' ? { type: 'FELL_TREE', tile }
-              : { type: 'PLACE_DRESSING', tile, kind: tool },
-    );
+              : placeDressing(tile, tool),
+      );
+    }
   };
 
   // Re-resolved every render: a placement can vanish (e.g. demolition).
@@ -2151,10 +2246,10 @@ export default function CampusMap({
   // the tile, since the walk check floods the parcel.
   const refusal = useMemo(
     () => (selected && hover && selectedFootprint
-      ? siteRefusal(s, selected, hover.row, hover.col, selectedFootprint)
+      ? (moving ? moveRefusal(s, moving.id, hover.row, hover.col, facing) : siteRefusal(s, selected, hover.row, hover.col, selectedFootprint))
       : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selected?.id, hover?.row, hover?.col, selectedFootprint?.w, selectedFootprint?.h, s.placements],
+    [selected?.id, moving?.id, facing, hover?.row, hover?.col, selectedFootprint?.w, selectedFootprint?.h, s.placements],
   );
   const preview = selected && hover && selectedFootprint
     ? {
@@ -2162,7 +2257,7 @@ export default function CampusMap({
         ...selectedFootprint,
         refusal,
         ok: refusal === null
-          && (selected.status === 'done' ? awaitsSite(s, selected) : canStartDevelopment(s, selected)),
+          && (moving !== null || (selected.status === 'done' ? awaitsSite(s, selected) : canStartDevelopment(s, selected))),
       }
     : null;
 
@@ -2512,6 +2607,11 @@ export default function CampusMap({
             t={inspected.t}
             s={s}
             act={act}
+            onMove={isSandbox(s) ? () => {
+              setInspectedId(null);
+              setFacing(inspected.p.facing ?? 0);
+              setMovingId(inspected.t.id);
+            } : undefined}
             onClose={() => setInspectedId(null)}
             onOpenCurriculum={(key) => { setInspectedId(null); onOpenCurriculum(key); }}
             onOpenResearch={onOpenResearch ? (target) => { setInspectedId(null); onOpenResearch(target); } : undefined}
@@ -2524,6 +2624,7 @@ export default function CampusMap({
             without a wheel. */}
         {/* Placing on touch (Plan 70F): a tap or a drag sets the ghost
             down, and nothing is built without Place. */}
+        {pathTool && <ToolHint tool={pathTool} touch={touchUi || coarsePointer()} />}
         {touchUi && selected && (
           <div className="map-touch-bar" role="toolbar" aria-label={`Place ${selected.name}`}>
             <span className="map-touch-bar-name">
@@ -2551,7 +2652,7 @@ export default function CampusMap({
             <>
               <HelpHint
                 align="end"
-                text="Where the college physically grows. Pick a building from the build menu (the toolbar's Build button) and place it here: the cost is charged at once, and it goes up where it is put. Press R, or click the ⟳ on the ghost, to turn it 90 degrees; with the bench tool, R turns the bench. A building needs empty ground for its whole footprint and a way to walk to it from the road along the south edge; when one is refused, the ghost says why. Press P (or use the Build menu's Draw path tile) to lay walkways, free: drag with the left button to pave, the right to lift, and hold Shift for a straight run. Paths shape the quads and count toward campus beauty. Every tab opens as a full screen over this one; the Campus button, the tab's Close, or Escape returns here. Keys: W/A/S/D or the arrows pan; Q/E turn the view, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses, 1 to 4 set the speed, M mutes. Drag the map (or hold the scroll wheel) to pan; scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the curved-arrow buttons turn the view, ⤓ ⤒ tilt it, and ⌂ brings back the opening view."
+                text="Where the college physically grows. Pick a building from the build menu (the toolbar's Build button) and place it here: the cost is charged at once, and it goes up where it is put. Press R, or click the ⟳ on the ghost, to turn it 90 degrees; with the bench tool, R turns the bench. A building needs empty ground for its whole footprint and a way to walk to it from the road along the south edge; when one is refused, the ghost says why. Press P (or use the Build menu's Paving, Cobbles or Brick tiles) to lay walkways, free: drag with the left button to pave, the right to lift, and hold Shift for a straight run. The Build menu's Grounds tab also plants trees by species, and sets lamps, banner lamps, benches and flower beds anywhere on open ground. Paths shape the quads and count toward campus beauty. Every tab opens as a full screen over this one; the Campus button, the tab's Close, or Escape returns here. Keys: W/A/S/D or the arrows pan; Q/E turn the view, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses, 1 to 4 set the speed, M mutes. Drag the map (or hold the scroll wheel) to pan; scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the curved-arrow buttons turn the view, ⤓ ⤒ tilt it, and ⌂ brings back the opening view."
               />
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

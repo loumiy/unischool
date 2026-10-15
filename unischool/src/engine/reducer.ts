@@ -68,6 +68,8 @@ import { buySpeedUp } from '../systems/prestige/speedUps';
 import { tickLadder } from '../systems/ladder/ladderSystem';
 import { cancelConstruction, demolish } from '../state/demolition';
 import { isSandbox, settleSandbox } from '../systems/sandbox/sandbox';
+import { moveBuildable, setBuildingStyle } from '../state/sandboxMoves';
+import { pavingValue } from '../state/paving';
 
 // The systems run in a fixed order each week; each placement comment says
 // what it must read fresh.
@@ -335,8 +337,16 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       placeBuildable(s, action);
       return s;
 
+    case 'MOVE_BUILDABLE':
+      moveBuildable(s, action.id, action.row, action.col, action.facing);
+      return s;
+
+    case 'SET_BUILDING_STYLE':
+      setBuildingStyle(s, action.id, action.vernacular);
+      return s;
+
     case 'ADD_PATH_TILE': {
-      if (isLand(action.tile.row, action.tile.col)) s.pathways[pathTileKey(action.tile)] = true;
+      if (isLand(action.tile.row, action.tile.col)) s.pathways[pathTileKey(action.tile)] = pavingValue(action.surface);
       return s;
     }
 
@@ -347,7 +357,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'PAINT_PATH_TILES': {
       for (const tile of action.remove) delete s.pathways[pathTileKey(tile)];
-      for (const tile of action.add) if (isLand(tile.row, tile.col)) s.pathways[pathTileKey(tile)] = true;
+      for (const { tile, paving } of action.restore ?? []) if (isLand(tile.row, tile.col)) s.pathways[pathTileKey(tile)] = paving;
+      for (const tile of action.add) if (isLand(tile.row, tile.col)) s.pathways[pathTileKey(tile)] = pavingValue(action.surface);
       return s;
     }
 
@@ -451,13 +462,11 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'PLACE_DRESSING': {
-      // On the land, off the buildings, and on or beside a path.
+      // Anywhere on the land, off the buildings.
       const { row, col } = action.tile;
       if (!isLand(row, col) || occupantAt(s.placements, row, col) !== undefined) return s;
-      const nearPath = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => `${row + dr},${col + dc}` in s.pathways);
-      if (!nearPath) return s;
       // A bench faces the way the player turned it, or the path beside it.
-      const item = action.kind === 'lamp' ? 'lamp' : benchItem(action.facing ?? defaultBenchFacing(s.pathways, row, col));
+      const item = action.kind === 'bench' ? benchItem(action.facing ?? defaultBenchFacing(s.pathways, row, col)) : action.kind;
       s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: item };
       return s;
     }

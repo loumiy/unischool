@@ -11,6 +11,7 @@ import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
+import { isPavingValue } from './paving';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
@@ -21,7 +22,7 @@ import {
   ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
-import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, standsOnCampus } from './types';
+import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, isVernacular, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
 import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
@@ -946,6 +947,8 @@ function sanitizePlacements(state: GameState): void {
     }
 
     clean[id] = { row, col, ...fp, facing: facingFor(node, fp, p.facing) };
+    // A sandbox's own style for the building, if it is one this version draws.
+    if (state.sandbox === true && isVernacular(p.vernacular)) clean[id].vernacular = p.vernacular;
   }
   state.placements = clean;
 }
@@ -960,10 +963,10 @@ function sanitizePathways(state: GameState): void {
   }
   const clean: Pathways = {};
   for (const [key, value] of Object.entries(state.pathways)) {
-    if (value !== true) continue;
+    if (!isPavingValue(value)) continue;
     const tile = parsePathTileKey(key);
     if (!tile || !isLand(tile.row, tile.col)) continue;
-    clean[pathTileKey(tile)] = true;
+    clean[pathTileKey(tile)] = value;
   }
   state.pathways = clean;
 }
@@ -988,8 +991,9 @@ function sanitizeTrees(state: GameState): void {
   state.trees = clean;
 }
 
-// Dressing hygiene, run on every load: lamps and benches (each with a
-// facing) on the land, off the buildings; anything else is dropped.
+// Dressing hygiene, run on every load: lamps, banner lamps, flower beds and
+// benches (each with a facing) on the land, off the buildings; anything
+// else is dropped.
 function sanitizeDressing(state: GameState): void {
   const raw = state.dressing as unknown;
   if (raw === undefined) return;

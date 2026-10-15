@@ -147,3 +147,11 @@ safe precisely because placement is visual-only — a dropped `done` placement
 just stops rendering, keeping every effect it already granted; a dropped
 `developing` one keeps counting down in `developing` regardless (`tickTech`
 never reads `placements`), it just won't render anywhere until it finishes.
+A placement's own architecture (`Placement.vernacular`, which only a sandbox
+sets; see [campus-map.md](campus-map.md#a-sandboxs-hand-moving-and-restyling))
+is kept on a sandbox run's load when it is a vernacular this version draws,
+and dropped otherwise. Path hygiene likewise keeps a tile's surface (`true`
+for the flagged walk, `'cobble'` or `'brick'`) and drops any other value;
+dressing hygiene keeps lamps, banner lamps, flower beds and faced benches.
+None of these needed a `SAVE_VERSION` bump: every older save already holds
+only values the new shapes accept.
