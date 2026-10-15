@@ -190,6 +190,13 @@ brought about 16 visits in its first day. Daily plays were tapering:
 about 60 on 11 and 12 October, 50 on 13, 40 on 14, and the 7-day
 impressions fell for the first time (5,069 to 4,721).
 
+Later on 15 October, by domain: itch.io itself 338, reddit.com 44 (+6),
+Google 40, foundplay.io 35, the Reddit Android app 10, Bing 1, and the
+first visit from **chatgpt.com** (1). ChatGPT finds pages by searching the
+web live, through an index like Bing's, so someone asked it something the
+itch.io page answers, probably about a university or campus management
+game.
+
 ### PostHog, 11 October
 
 *Only players who allow statistics, and whose ad blocker lets them
