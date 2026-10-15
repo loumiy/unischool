@@ -44,8 +44,10 @@ Checked on `main` on 6 October 2026.
     was written with the assistant. No picture in the game comes from an
     image generator.
   - The music and sound, synthesized live by the game's code through the
-    Web Audio API (`unischool/src/components/audio/`). No recorded or
-    generated audio, and no voices.
+    Web Audio API (`unischool/src/components/audio/`), except the title
+    screen's theme, which is composed and recorded by a human composer
+    (`unischool/src/assets/title-theme.mp3`). No generated audio, and no
+    voices.
 - **What is not generated.** The typefaces (Archivo, Bricolage Grotesque,
   Azeret Mono) are open fonts by their designers. The share image
   (`unischool/public/og-image.jpg`) is a screenshot of the game.
@@ -85,8 +87,9 @@ player-facing content made with one, text included, is to be disclosed.
 > and the Final Report — was written with that assistant under the
 > developer's direction. The campus, the buildings and the faculty portraits
 > are drawn by the game's own code, which was also written with it: no
-> picture in the game comes from an image generator. The music and sound are
-> synthesized by the game's code. There are no voices.
+> picture in the game comes from an image generator. The title theme is by a
+> human composer; the rest of the music and sound is synthesized by the
+> game's code. There are no voices.
 >
 > The store's capsule art and the logo are made by a human artist.
 
@@ -111,7 +114,7 @@ answers:
 | Text and dialogue | **Yes** | Every player-facing word was written with the assistant. |
 | Code | **Yes** | All of it. |
 | Graphics | **Yes, with the note** | No image generator, but the code that draws every picture was written with the assistant. A *no* invites the reading the review warns about; a *yes* with the note says what happened. The owner decides. |
-| Sound and music | **No**, if the form means generated audio | The sound is synthesized live by code; the same note covers it. |
+| Sound and music | **No**, if the form means generated audio | The title theme is by a human composer; the rest is synthesized live by code, and the same note covers it. |
 
 The page's description carries the same text as Steam's pre-generated
 section, unchanged, so the two stores never say different things.
@@ -124,7 +127,8 @@ For the README, the game's own site and a press kit:
 > coding assistant (Claude Code) writes the code and the text from the
 > developer's briefs, plan by plan, and the developer chooses between the
 > designs and plays the game between plans. The campus and the portraits are drawn by
-> that code, and the music is synthesized by it. No image, sound or voice
+> that code, and the music is synthesized by it, but for a title theme by a
+> human composer. No image, sound or voice
 > comes from a generator, and nothing is generated while you play.
 
 ## What to keep out of any copy

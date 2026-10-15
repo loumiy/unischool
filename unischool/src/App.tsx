@@ -148,9 +148,11 @@ export default function App() {
   const holding = s.pendingInterrupt !== null && !finalReportUp(s);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
-  // Sound (Plan 34): the director hears the run, not the title screen; M
-  // mutes wherever the player is.
-  useAudioDirector(s.started && front !== 'title' && front !== 'found' ? s : null);
+  // Sound (Plan 34): the director hears the run, not the title screen or
+  // the screens opened from it, which play the title's theme; M mutes
+  // wherever the player is.
+  const onTitle = !s.started || front === 'title' || front === 'found' || (front !== null && frontBack === 'title');
+  useAudioDirector(onTitle ? null : s);
   useHotkeys((e) => { if (isKey(e, 'mute')) audio.toggleMute(); });
 
   // A front screen covers the whole game, so nothing behind it answers a

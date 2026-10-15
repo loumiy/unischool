@@ -4,7 +4,7 @@
 the reviews' areas ([`README.md`](README.md), the triage rule). One line a
 finding, with how many players said it and where it came from: `form`,
 `comment` (the itch.io page), `reddit`, `live` (a session the owner
-watched), `form` (the in-game feedback form) or `stats`. Every reply read is
+watched), `form` (the in-game feedback form), `discord` or `stats`. Every reply read is
 logged under *The replies* at the bottom, with its link, so a count can be
 checked against what was said. A finding that loses a save or blocks a run is also
 marked **0.1.x** and fixed in a patch.*
@@ -25,7 +25,9 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1).*
+  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1), discord (D1).*
+  D1, a first look: "giving proper throwback to the original Sims vibes",
+  and "really liked [the] visual style on the buildings/scene".
   F1, who finished a run: best moment "unlocking and expanding the
   campus"; would play again, "a good pathway for replay ability"; would
   pay $10–15.
@@ -51,6 +53,14 @@ marked **0.1.x** and fixed in a patch.*
   in `BACKLOG.md`.
 
 ## 2 · UI and text
+
+- **The screens after the first course are text-heavy.** "After setting up
+  an English literature course, the next few screens were quite
+  overwhelmingly text heavy." Those are Plan 103's new steps (the next
+  course, the needs, the residence and dining halls) on 0.1.1, or the
+  board's letters on 0.1.0. A quick first impression, by the player's
+  own account; with T1 skimming the walkthrough, the second hint that its
+  cards are long. *1 player · discord (D1).*
 
 - **The letters that stop the clock are too quiet.** The player didn't
   notice that time had stopped, or that something was waiting for him.
@@ -144,6 +154,8 @@ how often the form is opened, `feedback_opened`).*
 |---|---|---|---|---|---|---|---|
 | 10 October | 230 | 113 | 1 (★★★★★) | 2 | 4 | 2,469 | 2.84% |
 | 12 October | 389 | 209 | 1 (★★★★★) | 2 | 6 | 4,091 | 3.37% |
+| 14 October | 548 | 304 | 1 (★★★★★) | 2 | 7 | 5,069 | 3.59% |
+| 15 October | 615 | 341 | 1 (★★★★★) | 2 | 7 | 4,721 | 3.73% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
@@ -159,6 +171,31 @@ itch.io's browse pages for management (11, plus 5 and 5), tycoon (8, 6,
 Daily plays: about 20, 60, 40, 60 from 8 to 11 October, a second peak on
 11 October (foundplay.io and the r/gamedevscreens post). PostHog saw 37
 of the 209 plays, about one in six.
+
+On 14 October (top referrers, 30 days; change since 12 October):
+Google 38 (+6), **foundplay.io 30 (+19)**, reddit.com 24 (+7, and 8 from
+the Reddit Android app, unchanged), itch.io's front page 21 (+6), then
+itch.io's browse pages: *new and popular* for web 14, management 13 (and
+6), tycoon 10, 8, 7 and 7, city builder 7, 7, 7 and 5, strategy 6, and
+the studio page halifaxgames.itch.io 5. foundplay.io's free boost (10
+plays from 368 sponsored views, a 2.7% play rate) made it the
+second-largest outside source. The r/WebGames post (14 October) added at
+most 7 Reddit visits by this snapshot.
+
+On 15 October: Google 40, **reddit.com 38 (+14 since 14 October, and 10
+from the Android app, +2)**, foundplay.io 35, itch.io's front page 24,
+then the browse pages (management 14, *new and popular* for web 14,
+tycoon 12, 9, 9 and 7, city builder 8, 7 and 7). The r/WebGames post
+brought about 16 visits in its first day. Daily plays were tapering:
+about 60 on 11 and 12 October, 50 on 13, 40 on 14, and the 7-day
+impressions fell for the first time (5,069 to 4,721).
+
+Later on 15 October, by domain: itch.io itself 338, reddit.com 44 (+6),
+Google 40, foundplay.io 35, the Reddit Android app 10, Bing 1, and the
+first visit from **chatgpt.com** (1). ChatGPT finds pages by searching the
+web live, through an index like Bing's, so someone asked it something the
+itch.io page answers, probably about a university or campus management
+game.
 
 ### PostHog, 11 October
 
@@ -307,6 +344,23 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
 ### foundplay.io — the owner's post (11 October)
 
 - No replies logged yet.
+
+### Discord — a playtesting server (14 October)
+
+*Someone posted an offer of free playtesting; the owner joined their
+Discord. A fuller review may follow.*
+
+- **D1** · nostalgicbear — "Just had a quick glance at this. Its giving
+  proper throughback to the original Sims vibes 😬 I've just very quickly
+  gone through part of the onboarding. I'll gather some proper thoughts
+  later. Have you had any feedback so far?"
+  *Owner (lou2429):* a lot of menus, a bit overwhelming at first, so the
+  intro phase will be slowed down to layer things in one at a time.
+  *D1:* "That was one of my first impressions initially. After setting up
+  an English literature course, the next few screens were quite
+  overwhelmingly text heavy, but that was just a very quick impression,
+  and not one to give much weight to yet. Also really liked visual style
+  on the buildings/scene initially."
 
 ### The feedback form
 

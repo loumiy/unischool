@@ -1,8 +1,9 @@
 // The sound of the place (Plan 34, from v2's content/audio.json): four
 // themes the music switches between on the college's fortunes, the effects
 // new log lines cue by topic, and the levels of the campus's ambience.
-// Everything is synthesised at run time (components/audio/engine.ts); no
-// recordings ship. A theme is a key, a tempo, a progression of scale
+// Everything is synthesised at run time (components/audio/engine.ts) but
+// the title screen's theme, the one recording that ships
+// (assets/title-theme.mp3, TITLE_MUSIC below). A theme is a key, a tempo, a progression of scale
 // degrees and two voices; an effect is a handful of enveloped oscillators
 // or a burst of filtered noise. The levels are v2's, to be tuned by ear.
 
@@ -661,6 +662,12 @@ export const SFX: readonly SfxDef[] = AUDIO.sfx;
 export const CUES = AUDIO.cues;
 export const AMBIENCE = AUDIO.ambience;
 export const AUDIO_WORDS = AUDIO.words;
+
+// The title screen's recorded theme: its level under the music bus (the
+// file peaks at −1.6 dB, so 1 is the recording as mastered), how long each
+// pass overlaps the next, and how long it takes to fade when a run begins.
+// To be tuned by ear against the synthesised themes.
+export const TITLE_MUSIC = { gain: 0.8, crossfade: 4, fadeOut: 1.5 };
 
 export function themeById(id: ThemeId): ThemeDef {
   return THEMES.find((t) => t.id === id)!;
