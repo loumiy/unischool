@@ -3,12 +3,13 @@
 
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
-import { CUES, SFX, THEMES, audioProblems, chordNotes, midiToHz, sectionAt, themeById } from '../src/data/audioData';
+import { CUES, SFX, THEMES, TITLE_MUSIC, audioProblems, chordNotes, midiToHz, sectionAt, themeById } from '../src/data/audioData';
 import { CEREMONIAL_FROM, SILENT_TOPICS, ambienceFor, cuesFor, linesSince, stateCues, themeFor, winterDepth } from '../src/components/audio/director';
 import { DEFAULT_AUDIO, normaliseAudio } from '../src/components/audio/settings';
 import { AudioEngine } from '../src/components/audio/engine';
 import { RUNG_FREEZE, RUNG_TIGHT, foundingDistress } from '../src/systems/finance/distress';
 import { OCCASIONS } from '../src/systems/athletics/season';
+import { statSync } from 'node:fs';
 import { LOG_TOPICS, type GameState, type LogEntry, type VarsityTeam } from '../src/state/types';
 
 bindScriptStream(3340);
@@ -49,6 +50,14 @@ function at(year: number, week = 10): GameState {
   const growth = chordNotes(themeById('growth'), 0);
   assert(distress[1] - distress[0] === 3 && growth[1] - growth[0] === 4, 'the undertone is minor, growth major');
   assert(Object.values(CUES).every((id) => SFX.some((s) => s.id === id)), 'every cue names an effect that exists');
+}
+
+// ---- The title's recording ----
+{
+  const bytes = statSync('src/assets/title-theme.mp3').size;
+  assert(bytes > 100_000 && bytes < 4_000_000, `the title theme ships, compressed (${bytes} bytes)`);
+  assert(TITLE_MUSIC.gain > 0 && TITLE_MUSIC.gain <= 1, 'the title theme is never boosted past its master');
+  assert(TITLE_MUSIC.crossfade >= 1 && TITLE_MUSIC.fadeOut > 0, 'the title theme loops and leaves with a fade, not a cut');
 }
 
 // ---- Four hours of a theme never plays the same eight bars more than twice running ----
