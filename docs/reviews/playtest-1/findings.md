@@ -155,6 +155,7 @@ how often the form is opened, `feedback_opened`).*
 | 10 October | 230 | 113 | 1 (★★★★★) | 2 | 4 | 2,469 | 2.84% |
 | 12 October | 389 | 209 | 1 (★★★★★) | 2 | 6 | 4,091 | 3.37% |
 | 14 October | 548 | 304 | 1 (★★★★★) | 2 | 7 | 5,069 | 3.59% |
+| 15 October | 615 | 341 | 1 (★★★★★) | 2 | 7 | 4,721 | 3.73% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
@@ -180,6 +181,14 @@ the studio page halifaxgames.itch.io 5. foundplay.io's free boost (10
 plays from 368 sponsored views, a 2.7% play rate) made it the
 second-largest outside source. The r/WebGames post (14 October) added at
 most 7 Reddit visits by this snapshot.
+
+On 15 October: Google 40, **reddit.com 38 (+14 since 14 October, and 10
+from the Android app, +2)**, foundplay.io 35, itch.io's front page 24,
+then the browse pages (management 14, *new and popular* for web 14,
+tycoon 12, 9, 9 and 7, city builder 8, 7 and 7). The r/WebGames post
+brought about 16 visits in its first day. Daily plays were tapering:
+about 60 on 11 and 12 October, 50 on 13, 40 on 14, and the 7-day
+impressions fell for the first time (5,069 to 4,721).
 
 ### PostHog, 11 October
 
