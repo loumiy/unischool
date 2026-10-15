@@ -367,18 +367,120 @@ button, input, select, textarea { font-size: inherit; }
   background: #4f9be0 url('./assets/campus-quad.webp') center 62% / cover no-repeat fixed; }
 /* A front screen opened from the title (App.tsx): its card over the art. */
 .front-art { display: contents; }
-.title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) 40px; }
-.title-head { text-align: center; color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
 .logo { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
 .logo-mark { width: clamp(88px, 13vw, 150px); height: auto; display: block; color: #fff;
   filter: drop-shadow(0 2px 10px rgba(10, 50, 110, 0.25)); }
 /* The game's own name: Archivo at its heaviest, in wide capitals. */
 .logo-name { margin: 0; font-family: var(--sans); font-weight: 800; font-size: clamp(40px, 8vw, 96px); line-height: 1;
   letter-spacing: 0.04em; text-transform: uppercase; color: #fff; }
-.title-tagline { margin: var(--space-12) 0 0; font-family: var(--sans); font-weight: 600; font-size: var(--text-xl); color: #fff; }
-/* The menu: the game's own front-screen card and buttons over the art,
-   narrower so the quad shows round it. */
-.title-screen .title-card { width: min(460px, 100%); margin-top: auto; }
+
+/* THE TITLE (TitleScreen.tsx): the college's banner hangs on the right; the
+   hall and its clock tower stand centred in the open quad beside it; the hall
+   of fame hangs on the lawn, bottom left.
+   The art is sized and placed so its focus (the tower, which stands over the
+   hall's door, --title-focus of the way across the painting) lands at the
+   centre of the space left of the banner. It is drawn only as wide as that
+   needs: wide enough that the painting right of the tower still reaches the
+   screen's right edge (so the shift never bares an edge, and as much of the
+   tree on the left shows as can), and tall enough to cover the screen. */
+.title-screen { --title-focus: 0.4246; --title-banner-w: 340px; --title-edge: clamp(16px, 3.5vw, 56px);
+  --title-art-w: max(100vw, 178vh, calc((50vw + (var(--title-banner-w) + var(--title-edge)) / 2) / (1 - var(--title-focus)) + 8px));
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "version banner" ". banner" "hall banner"; align-items: start; gap: 0 var(--space-24);
+  padding: 0 var(--title-edge) clamp(16px, 3vh, 32px) clamp(16px, 3vw, 40px);
+  background-size: var(--title-art-w) auto;
+  background-position: calc((100vw - var(--title-banner-w) - var(--title-edge)) / 2 - var(--title-focus) * var(--title-art-w)) 62%; }
+/* A shade from the right, so the banner's edges read over the leaves, and
+   along the foot for the lawn's frames; both gone before the hall. */
+.title-screen::before { content: ""; position: fixed; inset: 0; pointer-events: none;
+  background: linear-gradient(270deg, rgba(43, 10, 18, 0.5) 0%, rgba(43, 10, 18, 0.2) 24%, transparent 40%),
+    linear-gradient(0deg, rgba(20, 40, 20, 0.35) 0%, transparent 24%); }
+.title-banner { grid-area: banner; position: relative; width: min(var(--title-banner-w), 100%); min-height: min(70vh, 600px);
+  display: flex; flex-direction: column; padding: clamp(24px, 5vh, 44px) 28px 76px;
+  background: var(--school-primary); color: var(--school-on-primary); border-top: 6px solid var(--school-secondary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 36px), 0 100%); }
+/* A gold hairline inside the edge, stopping above the tail. */
+.title-banner::after { content: ""; position: absolute; inset: 8px 8px 44px; pointer-events: none;
+  border: 1.5px solid color-mix(in srgb, var(--school-secondary) 55%, transparent); border-bottom: 0; }
+.title-banner > * { position: relative; z-index: 1; }
+.title-head { text-align: center; }
+.title-head .logo { align-items: center; gap: var(--space-12); }
+.title-head .logo-mark { width: 64px; color: var(--school-secondary); filter: none; }
+.title-head .logo-name { font-size: 40px; color: var(--school-on-primary); }
+.title-tagline { margin: var(--space-8) 0 0; font-family: var(--sans); font-weight: 600; font-size: var(--text-md);
+  color: color-mix(in srgb, var(--school-on-primary) 82%, transparent); }
+.title-body { flex: 1; display: flex; flex-direction: column; gap: var(--space-16); margin-top: var(--space-24); }
+.title-actions { display: flex; flex-direction: column; }
+.title-actions .title-primary { margin-bottom: var(--space-12); }
+.title-primary { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-lg); font-size: var(--text-xl); }
+.title-sub { font-family: var(--sans); font-weight: 600; font-size: var(--text-sm); opacity: 0.85; }
+/* The quiet rows under it: words on the banner, a rule between them. */
+.title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 11px 2px;
+  background: none; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--school-on-primary) 20%, transparent);
+  color: var(--school-on-primary); font-family: var(--display); font-weight: 800; font-size: var(--text-lg); text-align: left; cursor: pointer; }
+.title-row::after { content: "›"; font-size: 1.5em; line-height: 1; opacity: 0.7; transition: transform 0.15s; }
+.title-row[aria-expanded="true"]::after { transform: rotate(90deg); }
+.title-row:hover:not(:disabled) { color: var(--school-secondary); }
+.title-row:focus-visible { outline: 2px solid var(--school-secondary); outline-offset: 2px; }
+.title-row.confirm-armed { padding-inline: var(--space-12); border-radius: var(--radius-sm); }
+.title-row.confirm-armed::after { content: none; }
+.title-banner .confirm-warning { color: var(--school-secondary); padding: var(--space-4) 2px; }
+.title-drawer { display: flex; flex-direction: column; gap: var(--space-8); margin: var(--space-8) 0;
+  padding: var(--space-8); background: var(--cream-hi); color: var(--ink); border-radius: var(--radius-lg); }
+/* Settings, Credits, Feedback: small words at the foot of the banner. */
+.title-utility { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-16); margin-top: auto; }
+.title-link { padding: var(--space-4) 0; background: none; border: 0; cursor: pointer;
+  font-family: var(--sans); font-weight: 600; font-size: var(--text-sm); color: color-mix(in srgb, var(--school-on-primary) 78%, transparent); }
+.title-link:hover { color: var(--school-secondary); text-decoration: underline; }
+.title-link:focus-visible { outline: 2px solid var(--school-secondary); outline-offset: 2px; }
+/* A notice (the statistics question, a set-aside save): a cream note on the banner. */
+.title-note { background: var(--cream-hi); color: var(--ink); }
+.title-version { grid-area: version; justify-self: start; position: relative; margin: var(--space-12) 0 0; font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 6px rgba(10, 30, 60, 0.45); font-variant-numeric: tabular-nums; }
+/* The hall of fame on the lawn: the newest frames, small. */
+.title-hall { grid-area: hall; justify-self: start; align-self: end; position: relative; display: grid; justify-items: start;
+  gap: var(--space-8); max-width: min(460px, 100%); }
+.title-screen .title-hall-head { margin: 0; font-family: var(--sans); font-size: var(--text-sm); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #fff; text-shadow: 0 1px 6px rgba(10, 30, 20, 0.5); }
+.title-hall .hall-frames { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: var(--space-12); }
+.title-hall .hall-frames > li { width: 132px; }
+.title-hall .hall-frame { padding: var(--space-6); box-shadow: inset 0 0 0 3px var(--frame-wood-light), 0 8px 18px -8px rgba(0, 0, 0, 0.55); }
+.title-hall .hall-plaque { margin-top: var(--space-6); padding: var(--space-4) var(--space-6); }
+.title-hall-empty { width: 200px; margin: 0; padding: var(--space-12); border: 2px dashed rgba(255, 255, 255, 0.85); border-radius: var(--radius-xs);
+  background: rgba(255, 253, 248, 0.2); color: #fff; font-size: var(--text-sm); line-height: 1.4; text-shadow: 0 1px 4px rgba(10, 30, 20, 0.6); }
+.title-hall-all { color: #fff; text-shadow: 0 1px 6px rgba(10, 30, 20, 0.6); }
+.title-hall-all:hover { color: #fff; }
+
+/* On a phone there is no room beside the hall: the art, 70vh tall (so
+   124.4vh wide), is centred on the tower across the top, the banner's head sits in its sky, and its body is
+   a sheet over the grass that carries the menu, the hall and the version.
+   A portrait tablet too: the space beside the banner is narrower than the
+   hall. The sheet's words keep to a phone's measure in the middle. */
+@media (max-width: 640px), (orientation: portrait) and (max-width: 1024px) {
+  .title-screen { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0;
+    background-size: auto 70vh; background-position: calc(50% + (0.5 - var(--title-focus)) * 124.4vh) 0; background-attachment: scroll; }
+  .title-screen::before { content: none; }
+  .title-banner { width: auto; min-height: 0; flex: 1 0 auto; padding: 0; background: none; border-top: 0; clip-path: none; }
+  .title-banner::after { content: none; }
+  .title-head { min-height: 52vh; padding: max(20px, env(safe-area-inset-top, 0px)) 16px 16px; text-align: center;
+    text-shadow: 0 2px 14px rgba(10, 50, 110, 0.35); }
+  .title-head .logo { align-items: center; gap: var(--space-8); }
+  .title-head .logo-mark { width: 56px; color: #fff; filter: drop-shadow(0 2px 10px rgba(10, 50, 110, 0.3)); }
+  .title-head .logo-name { font-size: 38px; color: #fff; }
+  .title-tagline { color: #fff; }
+  .title-screen { --title-sheet-pad: max(16px, (100% - 480px) / 2); }
+  .title-body { margin: 0; padding: 20px max(var(--title-sheet-pad), env(safe-area-inset-right, 0px)) 8px max(var(--title-sheet-pad), env(safe-area-inset-left, 0px));
+    background: var(--school-primary); border-top: 6px solid var(--school-secondary); }
+  .title-hall, .title-version { align-self: stretch; max-width: none; margin: 0; background: var(--school-primary);
+    padding: 0 max(var(--title-sheet-pad), env(safe-area-inset-right, 0px)) 0 max(var(--title-sheet-pad), env(safe-area-inset-left, 0px)); }
+  .title-hall { justify-items: start; padding-bottom: var(--space-8); }
+  .title-hall:not(:has(.title-hall-all)), .title-hall .hall-frames, .title-hall .title-hall-head { display: none; }
+  .title-hall-all { color: color-mix(in srgb, var(--school-on-primary) 78%, transparent); text-shadow: none; }
+  .title-hall-all::before { content: "The hall of fame · "; }
+  .title-version { padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); text-shadow: none;
+    color: color-mix(in srgb, var(--school-on-primary) 60%, transparent); }
+}
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
@@ -404,12 +506,6 @@ button, input, select, textarea { font-size: inherit; }
 .save-slot-actions .menu-btn { width: auto; }
 .import-save-note { margin: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--ink-muted); display: flex; flex-direction: column; gap: 6px; }
 .import-save-note p { margin: 0; color: var(--ink); font-weight: 600; }
-.title-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-.title-primary { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-12) var(--space-16);
-  border-radius: var(--radius-lg); font-size: var(--text-xl); }
-.title-sub { font-family: var(--sans); font-weight: 600; font-size: var(--text-sm); opacity: 0.85; }
-.title-hall-head { margin: 0 0 var(--space-8); }
-.title-hall-all { margin-top: 10px; }
 .hall-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .hall-head .hall-title { margin: 0; }
 .settings-row { border: 0; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -421,7 +517,6 @@ button, input, select, textarea { font-size: inherit; }
 .settings-keys dd { margin: 0; display: grid; grid-template-columns: 9.5em 1fr; gap: 8px; align-items: baseline; font-size: var(--text-sm); }
 .settings-keys-caps { display: flex; flex-wrap: wrap; gap: 3px; }
 .settings-keys kbd { font: inherit; font-size: var(--text-xs); min-width: 1.7em; text-align: center; padding: 1px 5px; border: 1px solid var(--ink-muted); border-radius: 4px; }
-.title-version { margin: var(--space-12) 0 0; font-size: var(--text-sm); color: var(--ink-muted); text-align: center; font-variant-numeric: tabular-nums; }
 .credits-lede { font-style: italic; color: var(--ink-muted); }
 .credits-list { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
 .credits-list dt { font-family: var(--display); font-weight: 800; color: var(--ink); }

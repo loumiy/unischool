@@ -120,7 +120,7 @@ async function check() {
   // audio: nothing until the first click; running after it.
   await step('audio', async () => {
     const before = await frameOf(page).evaluate(() => (window.__contexts ?? []).map((c) => c.state));
-    await f.locator('.title-card').click({ position: { x: 5, y: 5 } });
+    await f.locator('.title-banner').click({ position: { x: 5, y: 5 } });
     await page.waitForTimeout(400);
     const after = await frameOf(page).evaluate(() => (window.__contexts ?? []).map((c) => c.state));
     assert(!before.includes('running') && after.includes('running'), `sound starts on the first click (before: ${before.join(',') || 'none'}; after: ${after.join(',') || 'none'})`);
