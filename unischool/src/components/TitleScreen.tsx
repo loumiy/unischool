@@ -20,7 +20,7 @@ import { feedbackAvailable, openFeedback } from '../feedback';
 // screen); and the hall of fame's newest portraits, because they are the
 // reason to play again.
 //
-// Over the title art (assets/campus-quad.svg): the mark and the name in the
+// Over the title art (assets/campus-quad.webp): the mark and the name in the
 // sky, the menu on a frosted card below them, the quad showing round it.
 
 const SHOWN = 3;
