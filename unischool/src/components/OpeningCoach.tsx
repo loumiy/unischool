@@ -3,6 +3,7 @@ import type { GameState } from '../state/types';
 import { isCoachStage, OPENING_STEPS, SKIP_WORDS, WALKTHROUGH_LENGTH } from '../data/openingData';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import ConfirmButton from './ConfirmButton';
+import { openingSkipped } from '../analytics/analytics';
 
 // The opening walkthrough's card. state/opening.ts owns the stages and
 // data/openingData.ts the copy; this only draws the current step. The
@@ -60,7 +61,7 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOp
               armedLabel={SKIP_WORDS.confirm}
               warning={SKIP_WORDS.question}
               cancelLabel={SKIP_WORDS.keep}
-              onConfirm={() => act({ type: 'SKIP_OPENING' })}
+              onConfirm={() => { openingSkipped(stage, false); act({ type: 'SKIP_OPENING' }); }}
             />
           </div>
         </div>
@@ -106,7 +107,7 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOp
         armedLabel={SKIP_WORDS.confirm}
         warning={SKIP_WORDS.question}
         cancelLabel={SKIP_WORDS.keep}
-        onConfirm={() => act({ type: 'SKIP_OPENING', keepLetters: true })}
+        onConfirm={() => { openingSkipped(stage, true); act({ type: 'SKIP_OPENING', keepLetters: true }); }}
       />
     </aside>
   );

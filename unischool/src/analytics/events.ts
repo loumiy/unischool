@@ -1,4 +1,4 @@
-import type { GameState, Pillar, Vernacular } from '../state/types';
+import type { GameState, OpeningStage, Pillar, Vernacular } from '../state/types';
 import type { TabId } from '../components/TabNav';
 import { TAGS } from '../data/tagData';
 import { PROMISES } from '../data/promiseData';
@@ -33,6 +33,17 @@ export const PLAYING_SPEEDS = ['real', 'double', 'quad', 'octo', 'fast'] as cons
 export type PlayingSpeed = (typeof PLAYING_SPEEDS)[number];
 export const SCREEN_BANDS = ['phone', 'tablet', 'laptop', 'desktop'] as const;
 const MARKS = REPORT_GRADES.map((g) => g.letter);
+// The walkthrough's stages (state/opening.ts), checked against OpeningStage
+// like the tabs: the stages a step reaches, and the cards a skip is pressed
+// on. Nothing is reached at the welcome, and no card shows while the first
+// course is written.
+const OPENING_STAGES_RECORD: Record<OpeningStage, true> = {
+  welcome: true, 'site-hall': true, appoint: true, found: true, 'await-course': true, 'second-course': true,
+  needs: true, 'site-housing': true, 'site-dining': true, play: true,
+};
+const OPENING_STAGES = Object.keys(OPENING_STAGES_RECORD) as OpeningStage[];
+export const OPENING_REACHED = OPENING_STAGES.filter((st) => st !== 'welcome');
+export const OPENING_CARDS = OPENING_STAGES.filter((st) => st !== 'await-course' && st !== 'play');
 
 // On every event (analytics.ts adds them).
 export const COMMON_FIELDS: Readonly<Record<string, FieldKind>> = {
@@ -72,6 +83,8 @@ export const EVENTS = {
   save_imported: { kind: ['file'] },
   feedback_opened: { from: ['menu', 'title', 'bug', 'crash', 'five-years', 'final-report', 'demo'] },
   crashed: { message: 'message', year: 'number' },
+  opening_step: { stage: OPENING_REACHED },
+  opening_skipped: { stage: OPENING_CARDS, letters: 'boolean' },
 } as const satisfies Record<string, Record<string, FieldKind>>;
 
 export type EventName = keyof typeof EVENTS;
@@ -137,10 +150,17 @@ export function yearReadings(s: GameState, year: number): Fields | null {
   };
 }
 
-export function stateEvents(prev: GameState, next: GameState): StateEvent[] {
+// `walkSkipped`: the walkthrough's skip was just confirmed (analytics.ts's
+// openingSkipped), so the stage it lands on is not a step.
+export function stateEvents(prev: GameState, next: GameState, walkSkipped = false): StateEvent[] {
   // A new run, or no run: run_started is sent where the run is founded.
   if (!prev.started || !next.started || prev.self.name !== next.self.name || next.clock.year < prev.clock.year) return [];
   const out: StateEvent[] = [];
+  // The walkthrough moved on (Plan 104D): the stage reached. A skip is
+  // opening_skipped, sent by its confirmation, not a step to 'play'.
+  const from = prev.events.opening.stage;
+  const to = next.events.opening.stage;
+  if (from !== to && to !== 'welcome' && !(walkSkipped && to === 'play')) out.push({ name: 'opening_step', fields: { stage: to } });
   // The summer closed: RESOLVE_ADMISSIONS turned the calendar.
   if (next.clock.year > prev.clock.year) {
     const year = prev.clock.year;

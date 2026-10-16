@@ -25,6 +25,16 @@ import { EVENTS, cashBand, enrollmentBand, prestigeBand, stateEvents, yearReport
 import { BUILD_STAMP } from '../src/build';
 import { setSettings } from '../src/settings';
 import type { GameState } from '../src/state/types';
+import type { Action } from '../src/state/actions';
+import { createPreStartState } from '../src/state/actions';
+import { reducer } from '../src/engine/reducer';
+import { defaultAnswer } from '../src/engine/defaultAnswers';
+import { FOUNDING_VERNACULAR, WALKTHROUGH_PROFESSOR, WALKTHROUGH_PROGRAM } from '../src/data/foundingData';
+import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
+import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
+import { walkBuilding } from '../src/data/openingData';
+import { centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
+import { openingSkipped } from '../src/analytics/analytics';
 
 let checks = 0;
 let failures = 0;
@@ -200,6 +210,78 @@ function testFailsSilently(): void {
   assert(sent.length === 0, 'an event with a field not in its entry, or a value not in its list, is dropped');
 }
 
+// ---- The walkthrough's steps and skips (Plan 104D) ----
+// A guided founding walked through the reducer, observed as useGame does;
+// a skip is sent by the card's confirmation just before it acts.
+function testOpening(): void {
+  setSettings({ stats: 'on' });
+  configureAnalytics({ enabled: true, key: 'phc_test', transport: fake });
+  const walk = (name: string) => {
+    let s = reducer(createPreStartState(), { type: 'START_GAME', name, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true });
+    const step = (a: Action) => { const prev = s; s = reducer(s, a); observe(prev, s); };
+    const site = (id: string, centred = false) => {
+      const t = s.tech.find((x) => x.id === id)!;
+      const spot = centred ? centredPlacement(footprintOf(t)) : firstFreeSpot(s, t, footprintOf(t))!;
+      step({ type: 'PLACE_BUILDABLE', buildableId: id, row: spot.row, col: spot.col, facing: 0 });
+    };
+    const until = (stage: GameState['events']['opening']['stage']) => {
+      for (let i = 0; i < 60 && s.events.opening.stage !== stage; i += 1) step(s.pendingInterrupt ? defaultAnswer(s)! : { type: 'TICK' });
+    };
+    const skip = (keepLetters: boolean) => { openingSkipped(s.events.opening.stage, keepLetters); step({ type: 'SKIP_OPENING', keepLetters }); };
+    return { get s() { return s; }, step, site, until, skip };
+  };
+  const steps = () => events().filter((e) => e.event === 'opening_step').map((e) => e.properties.stage);
+  const skips = () => events().filter((e) => e.event === 'opening_skipped').map((e) => `${String(e.properties.stage)}:${String(e.properties.letters)}`);
+
+  // Walked to the end.
+  sent = [];
+  const w = walk('Walked');
+  w.step({ type: 'ADVANCE_OPENING' });
+  w.site(FOUNDERS_HALL_ID, true);
+  w.step({ type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  w.step({ type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
+  w.until('second-course');
+  const next = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => w.s.tech.find((t) => t.id === id)?.status === 'available')!;
+  w.step({ type: 'START_DEVELOPMENT', nodeId: next, facultyId: WALKTHROUGH_PROFESSOR });
+  w.step({ type: 'ADVANCE_OPENING' });
+  w.site(walkBuilding(w.s)!.id);
+  w.site(walkBuilding(w.s)!.id);
+  flush();
+  const walked = 'site-hall,appoint,found,await-course,second-course,needs,site-housing,site-dining,play';
+  assert(w.s.events.opening.stage === 'play' && steps().join(',') === walked, `each stage reached is an opening_step, in order (${steps().join(',')})`);
+  assert(skips().length === 0, 'and a walk finished sends no opening_skipped');
+
+  // Skipped from a later card, the letters kept: no step to play.
+  sent = [];
+  const k = walk('Kept');
+  k.step({ type: 'ADVANCE_OPENING' });
+  k.site(FOUNDERS_HALL_ID, true);
+  k.skip(true);
+  flush();
+  assert(k.s.events.opening.stage === 'play' && steps().join(',') === 'site-hall,appoint', `skipped on the professor's card: the steps before it (${steps().join(',')})`);
+  assert(skips().join(',') === 'appoint:true', `and opening_skipped with the card and the letters kept (${skips().join(',')})`);
+
+  // Skipped from the welcome, the letters declined.
+  sent = [];
+  const d = walk('Declined');
+  d.skip(false);
+  flush();
+  assert(steps().length === 0 && skips().join(',') === 'welcome:false', `skipped on the welcome: no step, the letters declined (${steps().join(',')} / ${skips().join(',')})`);
+
+  // A walk after a skip: the skip's mark doesn't outlive it.
+  sent = [];
+  const after = walk('After');
+  after.step({ type: 'ADVANCE_OPENING' });
+  flush();
+  assert(steps().join(',') === 'site-hall', 'a later run\'s first step is sent');
+
+  const bad = events().flatMap((e) => Object.entries(e.properties).filter(([key, v]) => !fieldOk(e.event, key, v)).map(([key, v]) => `${e.event}.${key}=${JSON.stringify(v)}`));
+  assert(bad.length === 0, `their fields fit (${bad.join('; ')})`);
+  const body = JSON.stringify(sent);
+  assert(!body.includes('Walked') && !body.includes('Kept'), 'and carry no name');
+  answerStats(false);
+}
+
 // ---- The page that lists them ----
 function testDocs(): void {
   const doc = readFileSync(join(process.cwd(), '../docs/architecture/analytics.md'), 'utf8');
@@ -211,6 +293,7 @@ testOffByDefault();
 testScriptedRun();
 testStateEvents();
 testFailsSilently();
+testOpening();
 testDocs();
 configureAnalytics({ enabled: false });
 

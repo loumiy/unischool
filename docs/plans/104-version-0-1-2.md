@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C.**
+October). Landed: A, C, D.**
 
 ---
 
@@ -195,6 +195,27 @@ paused clock.*
 - **What it answers:** players who leave at scattered stages are browsing;
   players who pile up at one stage are stuck there; players who skip and
   then stop early tell whether the skip (C) mattered.
+
+**As implemented.**
+
+- **`opening_step` is read off the state, `opening_skipped` is sent by the
+  confirmation.** `stateEvents` sends a step whenever the stage changes
+  (so it covers `settleOpening` and `ADVANCE_OPENING` without touching
+  either). A skip can't be read that way: from the needs cards, a skip
+  with the letters kept and a walk finished by the same action leave the
+  same state. So C's confirmation calls `analytics.ts`'s
+  `openingSkipped(stage, letters)` just before it acts, and that marks the
+  next stage change as the skip's, so the `play` it lands on isn't sent as
+  a step. `play` as a step means the walkthrough was finished.
+- **`opening_skipped`'s `stage` lists `welcome` too**, the one card that
+  isn't a stage reached. Both lists are built from a `Record<OpeningStage,
+  true>`, so a stage added to the walk fails to compile until it is
+  listed, as the tabs do.
+- **Tests:** `analytics.test.ts` walks a guided founding through the
+  reducer, observed as `useGame` does: finished (every stage, `play`
+  last), skipped on a later card (the steps before it, the skip with the
+  letters kept, no `play`), skipped on the welcome, and a later run's
+  first step still sent.
 
 ### F — A quieter screen for the first three steps
 

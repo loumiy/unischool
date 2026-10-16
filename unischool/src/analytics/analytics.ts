@@ -1,7 +1,7 @@
 import { DEV_BUILD } from '../engine/devBuild';
 import { BUILD_STAMP } from '../build';
 import { getSettings, onSettings, setSettings } from '../settings';
-import { institutionName, type GameState } from '../state/types';
+import { institutionName, type GameState, type OpeningStage } from '../state/types';
 import type { TabId } from '../components/TabNav';
 import { COMMON_FIELDS, EVENTS, PLAYING_SPEEDS, TAB_IDS, eventFits, fieldFits, finishedFields, screenBand, stateEvents, type EventName, type Fields, type PlayingSpeed } from './events';
 
@@ -264,12 +264,24 @@ export function runResumed(year: number): void {
   track('run_resumed', { year });
 }
 
+// The walkthrough skipped (Plan 104D), sent by the skip's confirmation
+// (OpeningCoach.tsx) just before it acts: the card it was pressed on, and
+// whether the board's letters were kept. The next stage change observed is
+// that skip's, so it is not sent as a step.
+let walkSkipped = false;
+export function openingSkipped(stage: OpeningStage, letters: boolean): void {
+  walkSkipped = true;
+  track('opening_skipped', { stage, letters });
+}
+
 // The run's events, from the state before an action and after it
 // (events.ts's stateEvents). A year_reached carries this year's play, and
 // any summer closing starts the next year's count.
 export function observe(prev: GameState, next: GameState): void {
+  const skipped = walkSkipped;
+  if (prev.events.opening.stage !== next.events.opening.stage) walkSkipped = false;
   if (!statsAvailable() || consent() === 'off' || prev === next) return;
-  const events = stateEvents(prev, next);
+  const events = stateEvents(prev, next, skipped);
   for (const e of events) {
     if (e.name !== 'year_reached') { track(e.name, e.fields); continue; }
     const y = currentRun().year;
