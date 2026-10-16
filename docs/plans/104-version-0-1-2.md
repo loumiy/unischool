@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F.**
+October). Landed: A, C, D, F, K.**
 
 ---
 
@@ -373,6 +373,25 @@ S1 named the college "Baltimoore", and the map's pennant broke it as
   longer than the banner can hold).
 - **Tests:** a pennant test over a list of names (short, long, one long
   word, "Baltimoore College") that the chosen size fits the longest word.
+
+**As implemented.**
+
+- **The break needs the largest text.** At the default text size
+  "Baltimoore" is 97 px at the second size and fits the 118 px line; at
+  Settings' largest (1.3×) it is 126 px, the plan's figure, and breaks
+  (reproduced in the browser). So the word's size is chosen at the
+  player's text size (`useSettings().textScale`), not once for all.
+- **A word's width is reckoned from the display face's letters**, measured
+  once in Chromium (Bricolage Grotesque at 800) and kept in `Pennant.tsx`.
+  A flat allowance per letter would still break "Wormwood", whose m's and
+  w's run 0.7 em a letter. The test holds the table to whole words
+  measured in the browser (within 2%) and the size shares to `styles.css`.
+- **Past the smallest size the type is fitted, not broken.**
+  "Wolverhampton" doesn't fit the smallest size at 1.15× or 1.3×, so the
+  name's type is set to just fit its longest word, down to 11 px. Only a
+  word wider than that (a nonsense one) breaks. This goes past the plan,
+  which let a word break at the smallest size, so that a thirteen-letter
+  town is never split.
 
 ### L — A welcome that welcomes, and the opening in the order it's played
 
