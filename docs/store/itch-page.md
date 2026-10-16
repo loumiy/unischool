@@ -2,9 +2,11 @@
 
 **Status:** published, 8 October 2026, at
 [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool);
-0.1.1 went live on 13 October 2026.
-The owner rewrote the description on itch.io; the text below is the live
-page's (13 October), with the changes for 0.1.1. The first draft (Plan
+0.1.1 went live on 13 October 2026. 0.1.2 was built on 16 October 2026
+(the Release workflow's run 4, from `main` at `4f5b83e`), and its
+description below goes up with it.
+The owner rewrote the description on itch.io; the text below is the
+owner's, with the changes for 0.1.1 and 0.1.2. The first draft (Plan
 97I) was built from [`steam-page.md`](steam-page.md), cut to what an early
 playtest page needs. Every line says only what the game does on
 `main` today. "AI" never sits beside "school simulator" (the second
@@ -48,15 +50,23 @@ the fullscreen button and no automatic start.
 
 ## The description
 
-The live page's text as of 13 October 2026, with the three changes for
-0.1.1: the events paragraph in *Make the big decisions*, the hall and
-closing sentence in *Grow the institution*, and the save slots in *What to
-expect*, plus "now 0.1.1" in the first line. Paste below the line into the
-page's **Description**. The bold lines are its headings.
+The text for 0.1.2, agreed with the owner on 16 October 2026. Four
+changes for 0.1.2:
+- the first line now says "now 0.1.2";
+- *Build a campus* gains a sentence on the grounds (paths, trees, lamps,
+  benches and flower beds);
+- *What to expect* opens with the walkthrough;
+- the feedback ask names the opening walkthrough.
+
+0.1.1's three changes stay: the events paragraph in *Make the big
+decisions*, the hall and closing sentence in *Grow the institution*, and
+the save slots in *What to expect*. The page's text as the owner had it
+on 16 October was missing them, so restore them when pasting. Paste below
+the line into the page's **Description**. The bold lines are its headings.
 
 ---
 
-**An early playtest build, now 0.1.1. Your feedback will help inform version 1.0.0!**
+**An early playtest build, now 0.1.2. Your feedback will help inform version 1.0.0!**
 
 UniSchool is a university management simulation about watching a small
 college become a robust institution.
@@ -75,7 +85,9 @@ classrooms, residences, dining halls, student centers, health facilities,
 athletic venues and landmarks.
 
 Lay out the campus yourself on an isometric map. Choose its architecture
-and school colors. Watch familiar places emerge as the years pass: the
+and school colors. Lay paths in flagstone, cobbles or brick, plant trees by
+species, and set out lamps, benches and flower beds, all free. Watch
+familiar places emerge as the years pass: the
 quad, the science buildings, the residential quarter, the stadium, the
 places that eventually become part of the school's identity.
 
@@ -135,6 +147,8 @@ And after the report, you can keep playing.
 
 **What to expect**
 
+- Your first run opens with a short walkthrough, about five minutes, that
+  founds your first program with you. You can skip it.
 - A full run is fifty years: roughly two to four hours, depending on the
   speed you play at, over as many sittings as you like. Growth is slow on
   purpose, and money paces the first decades.
@@ -154,8 +168,8 @@ And after the report, you can keep playing.
 - Or leave a comment below.
 
 What I most want to know: where you stopped, and why; whether you reached
-the specialization; and what you thought of the opening, the summers and
-the Final Report.
+the specialization; whether the opening walkthrough made sense; and what
+you thought of the summers and the Final Report.
 
 **Play statistics**
 
