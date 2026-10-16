@@ -22,12 +22,13 @@ import { hallDisplayName } from '../systems/techtree/schools';
 import { courseHoldReason, crossMajorPrereqs, milestoneLine, programProgress, tierBands, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { facultyQualityTier } from '../data/facultyData';
-import { gradeFor, type Grade } from '../data/courseQuality';
+import type { CourseQuality } from '../data/courseQuality';
 import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
 import HelpHint from '../components/HelpHint';
-import GradeMark from '../components/GradeMark';
+import { ScoreMark } from '../components/GradeMark';
+import { facultyMedian } from './facultySort';
 import { sectionAnchor } from '../components/sectionTarget';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { CloseIcon, StatusIcon } from '../components/icons';
@@ -261,19 +262,30 @@ function courseSchools(): Map<string, { key: string; school: string }> {
   return map;
 }
 
-// A grade, for a course's own grade and for aggregates alike: the letter
-// circled in pen (Plan 90D; components/GradeMark.tsx). The letter always
-// shows; the ink is only a cue (color-blind players, small sizes). Kept
-// under its old name so every caller follows.
-export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?: string; size?: 'sm' | 'lg' }) {
-  return <GradeMark grade={grade} title={title} size={size} />;
+// A course's, a program's or a projection's quality as its number out of
+// 100, circled in pen in its band's ink (components/GradeMark.tsx's
+// ScoreMark; letters until Plan 104G). The number always shows; the ink is
+// only a cue. Kept under its old name so every caller follows.
+export function GradeChip({ score, title, size = 'sm' }: { score: number; title?: string; size?: 'sm' | 'lg' }) {
+  return <ScoreMark score={score} title={title} size={size} />;
+}
+
+// What sets a course apart from its teacher's own number, in words: "−2,
+// upper-level" (Plan 104G), so a professor and their course never seem to
+// disagree. Empty when the course is taught at the teacher's number.
+export function qualityGap(q: CourseQuality): string {
+  const rest = q.factors.filter((f) => f.label !== 'Instructor teaching');
+  if (rest.length === 0) return '';
+  const total = rest.reduce((sum, f) => sum + f.value, 0);
+  const what = rest.map((f) => f.label.replace(/ (course|coursework|faculty)$/, '').toLowerCase()).join(', ');
+  return `${signed(total)}, ${what}`;
 }
 
 // An aggregate grade across a set of courses, or nothing when none are graded.
 function AggregateGrade({ s, ids, label }: { s: GameState; ids: string[]; label: string }) {
   const avg = averageCourseQuality(s, ids);
   if (avg === null) return null;
-  return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
+  return <GradeChip score={avg} title={`${label} averages ${count(avg)} out of 100 across its developed courses`} />;
 }
 
 // One course cell: code over title, filled when done, with a progress bar
@@ -298,21 +310,24 @@ export interface DragHandlers {
   onDrop: (courseId: string) => void;
 }
 
-function InstructorChip({ f, grade, draggable, onDragStart, onDragEnd }: {
-  f: Faculty; grade: Grade | null; draggable: boolean;
+// The course's teacher and its number; the title says how the course's
+// number stands to the teacher's own (Plan 104G).
+function InstructorChip({ f, quality, draggable, onDragStart, onDragEnd }: {
+  f: Faculty; quality: CourseQuality | null; draggable: boolean;
   onDragStart?: (e: React.DragEvent) => void; onDragEnd?: () => void;
 }) {
+  const gap = quality ? qualityGap(quality) : '';
   return (
     <span
       className={`instructor-chip${draggable ? ' draggable' : ''}`}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      title={f.name}
+      title={quality ? `${f.name}, teaching ${f.teaching}: this course ${count(quality.score)}${gap ? ` (${gap})` : ''}` : f.name}
     >
       <FacultyPortrait f={portraitOf(f)} size={18} />
       <span className="instructor-chip-name">{surnameOf(f.name)}</span>
-      {grade && <span className={`instructor-chip-grade grade-${grade.toLowerCase()}`}>{grade}</span>}
+      {quality && <span className={`instructor-chip-grade grade-${quality.grade.toLowerCase()}`}>{count(quality.score)}</span>}
     </span>
   );
 }
@@ -338,10 +353,10 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
   const weeksLeft = s.developing[t.id] ?? 0;
   const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   // For a course still ahead: its cost and the strongest free teacher with
-  // the grade they would earn.
+  // the number they would teach it at.
   const ahead = state === 'available' || state === 'blocked';
   const best = ahead && t.requiresFaculty ? eligibleInstructors(s, t)[0] : undefined;
-  const bestGrade = best ? projectedQuality(t, best).grade : null;
+  const bestQuality = best ? projectedQuality(t, best) : null;
   // A program between halls is not taught or advancing.
   const programId = programOfCourse(t.id);
   const transit = programId !== undefined && isInTransit(s, programId);
@@ -355,14 +370,14 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
   const isSource = dragging?.courseId === t.id;
   const isTarget = !!dragging && dnd?.over === t.id && !isSource;
   const legalTarget = !!dragging && !isSource && canSwapInstructors(s, dragging.courseId, t.id);
-  let preview: { grade: Grade; delta: number } | null = null;
+  let preview: { score: number; delta: number } | null = null;
   if (dragging && instructor && (isTarget || (isSource && dnd?.over))) {
     const otherId = isSource ? dnd!.over! : dragging.courseId;
     const other = s.tech.find((x) => x.id === otherId);
     const incoming = other ? assignedInstructor(s, other) : undefined;
     if (other && incoming && canSwapInstructors(s, dragging.courseId, isSource ? otherId : t.id)) {
       const projected = projectedQuality(t, incoming);
-      preview = { grade: projected.grade, delta: projected.score - (quality?.score ?? 0) };
+      preview = { score: projected.score, delta: projected.score - (quality?.score ?? 0) };
     }
   }
 
@@ -383,7 +398,7 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
         <span className="cell-next">
           {moneyShort(t.cost)}
           {best
-            ? <> · {surnameOf(best.name)} <span className={`instructor-chip-grade grade-${bestGrade!.toLowerCase()}`}>{bestGrade}</span></>
+            ? <> · {surnameOf(best.name)} <span className={`instructor-chip-grade grade-${bestQuality!.grade.toLowerCase()}`}>{count(bestQuality!.score)}</span></>
             : t.requiresFaculty ? ' · needs faculty' : ''}
         </span>
       )}
@@ -391,7 +406,7 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
       {instructor && (state === 'developing' || state === 'done') && (
         <InstructorChip
           f={instructor}
-          grade={quality?.grade ?? null}
+          quality={quality}
           draggable={!!dnd && !transit}
           onDragStart={dnd ? (e) => { e.dataTransfer.setData('text/plain', t.id); e.dataTransfer.effectAllowed = 'move'; dnd.onDragStart(t.id, instructor.id); } : undefined}
           onDragEnd={dnd ? dnd.onDragEnd : undefined}
@@ -399,7 +414,7 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
       )}
       {preview && (
         <span className={`swap-preview${preview.delta > 0 ? ' up' : preview.delta < 0 ? ' down' : ''}`} aria-live="polite">
-          → {preview.grade} ({signed(preview.delta)})
+          → {count(preview.score)} ({signed(preview.delta)})
         </span>
       )}
       {state === 'done' && !instructor && !unstaffed && <span className="cell-stamp" aria-hidden="true">✓</span>}
@@ -429,13 +444,15 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
 // nobody in the field (hire here from the market, or say it is empty).
 
 // One selectable person, styled like the Faculty tab's roster card, plus
-// teaching and current load.
+// teaching and current load. A candidate's teaching is set beside the
+// college's median (`median`, Plan 104G), warm when it would raise it.
 export function InstructorOption(
-  { s, f, selected, disabled = false, projectedFor, onPick, pay = true }:
+  { s, f, selected, disabled = false, projectedFor, onPick, pay = true, median = null }:
   {
     s: GameState; f: Faculty; selected: boolean; disabled?: boolean; projectedFor?: Buildable; onPick?: () => void;
     // The salary in the meta; off where an Appoint button under it says it.
     pay?: boolean;
+    median?: number | null;
   },
 ) {
   const load = facultyLoad(s, f.id);
@@ -464,15 +481,16 @@ export function InstructorOption(
               <span className="instructor-bar-headroom" style={{ width: `${f.teachingPotential}%` }} />
               <span className="instructor-bar-fill" style={{ width: `${f.teaching}%` }} />
             </span>
-            <span className="instructor-stat-value">{f.teaching}</span>
+            <span className={`instructor-stat-value${median !== null && f.teaching > median ? ' above-median' : ''}`}>{f.teaching}</span>
           </span>
         </span>
+        {median !== null && <span className="instructor-option-median">your faculty’s median is {median}</span>}
       </span>
       <span className="instructor-option-right">
         {projected && (
           <GradeChip
-            grade={projected.grade}
-            title={`This course would be graded ${projected.grade} (${count(projected.score)}/100) with them`}
+            score={projected.score}
+            title={`With them this course would be ${count(projected.score)} out of 100${qualityGap(projected) ? ` (${f.teaching} teaching, ${qualityGap(projected)})` : ''}`}
           />
         )}
         <span className={`instructor-option-load${load >= f.courseSlots ? ' full' : ''}`}>
@@ -526,7 +544,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
       ) : (
         listed.map((c) => (
           <div key={c.id} className="course-drawer-candidate">
-            <InstructorOption s={s} f={c} selected={false} projectedFor={projectedFor} pay={false} />
+            <InstructorOption s={s} f={c} selected={false} projectedFor={projectedFor} pay={false} median={facultyMedian(s.faculty)} />
             <button
               type="button"
               className="course-drawer-appoint"
@@ -550,7 +568,7 @@ function CourseDrawer(
   { s, act, t, lookup, onClose, onGoToCourse, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>;
-    onClose: () => void; loads: FacultyLoads; onGoToCourse: (id: string) => void;
+    onClose: () => void; onGoToCourse: (id: string) => void;
     onOpenFaculty?: (field: string) => void;
   },
 ) {
@@ -614,9 +632,9 @@ function CourseDrawer(
           <section className="course-drawer-section">
             <h4>Quality</h4>
             <div className="course-drawer-grade">
-              <GradeChip grade={quality.grade} size="lg" />
+              <GradeChip score={quality.score} size="lg" />
               <div className="course-drawer-grade-body">
-                <span className="course-drawer-grade-score">{count(quality.score)}/100</span>
+                <span className="course-drawer-grade-score">out of 100</span>
                 <ul className="course-drawer-factors">
                   {quality.factors.map((factor) => (
                     <li key={factor.label} className={factor.value < 0 ? 'down' : 'up'}>
@@ -846,7 +864,8 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
   const batch = ready.slice(0, free);
   const batchCost = batch.reduce((sum, t) => sum + t.cost, 0);
   const batchOk = batch.length >= 2 && batchCost <= s.finance.cash;
-  const batchGrades = batch.map((t) => projectedQuality(t, best).grade);
+  // The same number for every course of a band (Plan 104J: no load).
+  const batchScores = [...new Set(batch.map((t) => count(projectedQuality(t, best).score)))];
 
   return (
     <p className="row-action">
@@ -863,7 +882,7 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
         {/* The course by its title, not its code (Plan 96D); the code and the
             full name stay in the tooltip and the course cell. */}
         Develop <span className="row-action-title">{titleFromName ?? code}</span> with {surnameOf(best.name)}
-        <GradeChip grade={projected.grade} title={`${next.name} would be graded ${projected.grade} with ${best.name}`} />
+        <GradeChip score={projected.score} title={`${next.name} would be ${count(projected.score)} out of 100 with ${best.name}, who teaches at ${best.teaching}${qualityGap(projected) ? ` (${qualityGap(projected)})` : ''}`} />
       </button>
       <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
       {!compact && <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">Choose…</button>}
@@ -871,10 +890,10 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
         <button
           type="button"
           className="row-action-secondary batch"
-          title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)} — grades ${batchGrades.join(' ')}`}
+          title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)}, each ${batchScores.join(' or ')} out of 100`}
           onClick={() => { for (const t of batch) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: best.id }); }}
         >
-          All {batch.length} with {surnameOf(best.name)} → {batchGrades.join(' ')}
+          All {batch.length} with {surnameOf(best.name)} → {batchScores.join(' / ')}
         </button>
       )}
       {worth}
@@ -916,7 +935,7 @@ function ProgramRowView(
         {rowMark && <span className="program-row-mark" aria-hidden="true">{rowMark.motif}</span>}
         <h4>{program.name}</h4>
         {grad && <span className="subgroup-degree">{grad.degree}</span>}
-        {avg !== null && <GradeChip grade={gradeFor(avg)} title={`${program.name} averages ${count(avg)}/100`} />}
+        {avg !== null && <GradeChip score={avg} title={`${program.name} averages ${count(avg)} out of 100`} />}
         {hall && <span className="program-row-hall" title="The hall it is taught in">{hallDisplayName(s, hall)}</span>}
         {dark && <span className="program-row-dark" title="A course has no instructor">dark · unstaffed</span>}
         {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} compact />}
@@ -984,7 +1003,7 @@ function SchoolGroupView(
               review's B3-8). */}
           <h3>{group.founded ? group.heading : <>{group.key}<span className="school-group-unnamed"> · {group.rows.length} {group.rows.length === 1 ? 'program' : 'programs'}, not yet founded</span></>}</h3>
           <span className="school-group-tally">
-            {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100 across its developed courses`} />}
+            {avg !== null && <GradeChip score={avg} title={`Averages ${count(avg)} out of 100 across its developed courses`} />}
             <span className="school-group-meter" aria-hidden="true">
               <span style={{ width: `${done.total > 0 ? Math.round((done.done / done.total) * 100) : 0}%` }} />
             </span>
@@ -1054,9 +1073,9 @@ function FilterBar(
         className={`curriculum-chip${filters.grade === 'belowA' ? ' on' : ''}`}
         aria-pressed={filters.grade === 'belowA'}
         onClick={() => onChange({ ...filters, grade: filters.grade === 'belowA' ? 'all' : 'belowA' })}
-        title="Courses graded below A, or unstaffed"
+        title="Courses under 78 out of 100, the top band, or unstaffed"
       >
-        Below A
+        Below 78
       </button>
       <button
         type="button"
@@ -1272,7 +1291,7 @@ export default function CurriculumTab(
   }, []);
   useEffect(() => {
     if (!target) return;
-    // A department, No instructor, or Below A (History › Prestige's
+    // A department, No instructor, or Below 78 (History › Prestige's
     // teaching line, Plan 95S): the tab opens filtered.
     const filtered = targetFilters(target);
     if (target.startsWith('program:')) {
@@ -1339,7 +1358,7 @@ export default function CurriculumTab(
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" />
             <HelpHint
               align="end"
-              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's grade, its courses done of ten and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both grades preview while it is held.`}
+              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's number out of 100 (its courses' average), its courses done of ten and its next start: the course, the strongest free teacher and the number they would teach it at, which is their own teaching less what harder material asks (a little for upper-level courses, more for advanced ones, the capstone and graduate work). Develop takes it. Open a line (▸) for its courses and "choose…", which picks somebody else. Below 78 and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both numbers preview while it is held.`}
             />
           </span>
         </div>
@@ -1388,7 +1407,6 @@ export default function CurriculumTab(
           t={selected}
           lookup={lookup}
           onClose={() => setSelectedId(null)}
-          loads={loads}
           onGoToCourse={goToCourse}
           onOpenFaculty={onOpenFaculty}
         />

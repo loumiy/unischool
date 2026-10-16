@@ -66,7 +66,7 @@ export function meanGradePoints(scores: readonly number[]): number {
 // and the letter is the nearest step. F has no plus.
 const GRADE_LADDER: readonly Grade[] = ['F', 'D', 'C', 'B', 'A'];
 // How many letters `to` stands above `from` (Plan 95S: the Provost's
-// teaching policy moves a course only for a full letter or more).
+// staffing policy moves a course only for a band or more).
 export function lettersBetter(from: Grade, to: Grade): number {
   return GRADE_LADDER.indexOf(to) - GRADE_LADDER.indexOf(from);
 }

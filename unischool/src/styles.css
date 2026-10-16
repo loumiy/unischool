@@ -16,6 +16,9 @@
   --ink-lo: color-mix(in srgb, var(--school-on-primary) 72%, var(--school-primary));
   --ink-hi: var(--school-on-primary);
   --gold: var(--school-secondary);
+  /* A candidate who would raise the college's median teaching (Plan 104G):
+     warm, not a band's verdict. */
+  --warm-ink: #a8541c;
   --gold-dim: var(--school-primary);
   --brass-deep: var(--school-primary);
   --parchment: var(--cream);
@@ -1813,7 +1816,10 @@ button.build-tile { font-family: inherit; }
 .instructor-chip.draggable { cursor: grab; }
 .instructor-chip.draggable:active { cursor: grabbing; }
 .instructor-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.instructor-chip-grade { font-weight: 800; }
+.instructor-chip-grade { font-weight: 800; font-variant-numeric: tabular-nums; }
+.instructor-stat-value.above-median { color: var(--warm-ink); }
+.instructor-option-median { display: block; font-size: var(--text-2xs); color: var(--ink-muted); }
+.instructor-option:has(.above-median) .instructor-option-median { color: var(--warm-ink); font-weight: 700; }
 .course-cell.done .instructor-chip { background: var(--cream-hi); }
 .course-cell.drag-source { outline: 3px dashed var(--school-secondary); outline-offset: 1px; }
 .course-cell.drop-target { box-shadow: inset 0 0 0 3px var(--outline); }
@@ -2002,6 +2008,9 @@ button.btn-speed-up { color: var(--school-primary); border-color: var(--school-p
 .grade-mark svg { position: absolute; inset: -0.12em; width: calc(100% + 0.24em); height: calc(100% + 0.24em); overflow: visible; }
 .grade-mark path { fill: var(--mark-fill, none); stroke: var(--mark-ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .grade-mark-letter { position: relative; }
+/* A score in the ring (Plan 104G): two digits, or a hundred, fit it. */
+.grade-mark.score .grade-mark-letter { font-size: 0.72em; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.mark-plain { --mark-ink: var(--ink-muted); }
 .mark-a { --mark-ink: var(--grade-a); }
 .mark-b { --mark-ink: var(--grade-b); }
 .mark-c { --mark-ink: var(--grade-c); }
@@ -2269,8 +2278,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-stat-fill { background: var(--stat-grade); }
 .faculty-stat-headroom { background: color-mix(in srgb, var(--stat-grade) 28%, transparent); }
 .faculty-stat-grade { display: inline-flex; align-items: baseline; gap: var(--space-2); min-width: 1.2em; }
-.faculty-stat-letter { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); line-height: 1; color: var(--stat-grade); }
-.faculty-stat-rise { font-family: var(--display); font-weight: 800; color: var(--school-primary); font-size: var(--text-xs); }
+.faculty-stat-value { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); line-height: 1; color: var(--stat-grade);
+  font-variant-numeric: tabular-nums; }
+.faculty-stat-rise { font-family: var(--display); font-weight: 800; color: var(--ink-muted); font-size: var(--text-xs); white-space: nowrap; }
+/* A candidate's teaching against the college's median (Plan 104G), on its
+   own line under the meter. */
+.faculty-stat-median { grid-column: 1 / -1; margin-top: calc(-1 * var(--space-2)); font-size: var(--text-2xs); color: var(--ink-muted); }
+.faculty-stat.above-median .faculty-stat-median { color: var(--warm-ink); font-weight: 700; }
 .faculty-badges { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .faculty-badges .faculty-quirk { margin: 0; padding: 1px 7px; font-size: var(--text-2xs); line-height: 1.4; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

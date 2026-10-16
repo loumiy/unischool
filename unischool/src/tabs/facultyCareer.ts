@@ -6,7 +6,6 @@ import { initiativeDepth } from '../data/researchData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { CAREER_WORDS, LONG_SERVICE_YEARS } from '../data/careerWords';
 import { termName } from '../format';
-import { gradeFor } from '../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // A professor's page, read off their career record (Plan 84C's Career) for
@@ -132,7 +131,7 @@ export function recognitions(s: GameState, f: Faculty): Recognition[] {
 // ---- Training at the Faculty Training Institute (Plan 85E) ----
 // Each training on the record, oldest first, in words.
 export function trainingLines(f: Faculty): string[] {
-  return (f.career?.training ?? []).map((x) => CAREER_WORDS.trained(x.year, x.from, x.to, gradeFor(x.from), gradeFor(x.to)));
+  return (f.career?.training ?? []).map((x) => CAREER_WORDS.trained(x.year, x.from, x.to));
 }
 
 // ---- The chart: a mark a year, and today ----

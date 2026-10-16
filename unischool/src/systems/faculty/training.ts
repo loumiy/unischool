@@ -1,6 +1,6 @@
 import type { Faculty, GameState } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
-import { oneGradeUp, gradeFor } from '../../data/courseQuality';
+import { oneGradeUp } from '../../data/courseQuality';
 import {
   TRAINING_WEEKS, TRAINING_WORDS, instituteStands, picksFor, trainingWeek,
 } from '../../data/trainingData';
@@ -104,7 +104,7 @@ export function trainFaculty(s: GameState, facultyId: string): boolean {
   s.log.unshift({
     year: s.clock.year,
     week: s.clock.week,
-    message: TRAINING_WORDS.trained(f.name, gradeFor(outcome.from), gradeFor(outcome.to), moved),
+    message: TRAINING_WORDS.trained(f.name, outcome.from, outcome.to, moved),
     kind: coverage.orphaned.length > 0 ? 'info' : 'good',
     topic: 'training',
     subject: f.id,

@@ -12,7 +12,7 @@
 import { bindScriptStream } from '../src/engine/random';
 import { generateCandidate } from '../src/data/facultyData';
 import {
-  FACULTY_SORTS, GROUP_SCOPE, NO_GRID_FILTER, compareFaculty, letterOf, potentialOf, retiringSoon, showsDepartment, showsPerson, yearsLeft,
+  FACULTY_SORTS, GROUP_SCOPE, NO_GRID_FILTER, bandOf, compareFaculty, facultyMedian, potentialOf, retiringSoon, showsDepartment, showsPerson, yearsLeft,
 } from '../src/tabs/facultySort';
 import { emptyCareer } from '../src/systems/faculty/career';
 import { GRADE_A, GRADE_B } from '../src/data/courseQuality';
@@ -76,7 +76,12 @@ people[3].teaching = people[4].teaching;
 
 {
   // Letters on the course-grade bands.
-  assert(letterOf(GRADE_A) === 'A' && letterOf(GRADE_A - 1) === 'B' && letterOf(GRADE_B) === 'B' && letterOf(GRADE_B - 1) === 'C', 'a stat reads as the course grade would: A from 78, B from 62');
+  assert(bandOf(GRADE_A) === 'A' && bandOf(GRADE_A - 1) === 'B' && bandOf(GRADE_B) === 'B' && bandOf(GRADE_B - 1) === 'C', 'a stat takes the ink a course of that number would: the top band from 78, the next from 62');
+  // The college's median teaching (Plan 104G), what a candidate is read against.
+  const at = (teaching: number) => ({ teaching }) as Faculty;
+  assert(facultyMedian([]) === null, 'no median with nobody on the payroll');
+  assert(facultyMedian([at(40), at(52), at(44)]) === 44, 'the middle of an odd roster');
+  assert(facultyMedian([at(40), at(44), at(50), at(70)]) === 47, 'the mean of the middle two of an even one');
 
   // The grid's filters.
   const shows = (filter: typeof NO_GRID_FILTER, canTake = false) => people.filter((f) => showsPerson(filter, f, canTake));

@@ -65,8 +65,8 @@ export const CAREER_WORDS = {
   noRecognition: 'Nothing yet.',
 
   // Training at the Faculty Training Institute (Plan 85E).
-  trained: (year: number, from: number, to: number, gradeFrom: string, gradeTo: string) =>
-    `Trained at the Faculty Training Institute in Year ${year}: teaching from ${from} (${gradeFrom}) to ${to} (${gradeTo}), and their potential with it.`,
+  trained: (year: number, from: number, to: number) =>
+    `Trained at the Faculty Training Institute in Year ${year}: teaching ${from} → ${to}, and their potential with it.`,
   trainingNow: (until: string) => `At the institute this term: one course fewer until ${until}.`,
   notTrained: 'Not trained at the institute yet.',
   trainingPoints: (points: number) => `Training has added ${points} to their teaching in all.`,

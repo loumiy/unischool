@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F, H, J, K.**
+October). Landed: A, C, D, F, G, H, J, K.**
 
 ---
 
@@ -297,6 +297,47 @@ campus.
 - **Tests:** every faculty and course surface shows a number and no
   letter; a candidate's tile shows the faculty's median; the sim baseline
   is unchanged.
+
+**As implemented.**
+
+- **`GradeChip` takes a score** and draws `GradeMark.tsx`'s new
+  `ScoreMark`: the number in the same pen ring, in its band's ink (78, 62,
+  44, 30), so every chip changed in one place. The run's report-card marks
+  (the Final Report, the hall of fame) keep their letters: they grade a
+  run, not a teacher.
+- **The meters** read "81 → 88": the teaching or research now, and where
+  the potential takes it. `letterOf` became `bandOf`, the meter's ink only.
+- **The median** (`facultySort.ts`'s `facultyMedian`, the payroll's
+  teaching) is said under a candidate's teaching on the market's tiles and
+  on the cards the hall's picker and the course drawer list ("your
+  faculty's median is 67"). Decision 6: the candidate's teaching meter and
+  number are warm above it and plain grey below, in no band's ink. A
+  candidate's research keeps its band's ink, since no median is said for it.
+- **The difference is said** where a course's number meets its teacher's:
+  the instructor chip's and the next start's titles read "Iyer, teaching
+  63: this course 61 (−2, upper-level)" (`CurriculumTab.tsx`'s
+  `qualityGap`). The drawer's factor list stays the full account, under
+  the number "out of 100".
+- **Words that named a letter:** the staffing policy is "Staff the weakest
+  courses first", its note in numbers ("each course under 78, when they
+  would lift it a band, past 30, 44, 62 or 78"), and its weekly line names
+  the move as "61 → 70". The Curriculum's *Below A* is *Below 78*, and
+  History's link "Show the 6 courses under 78". The training words read
+  "teaching 58 → 76", the career line likewise, the refusal "Already
+  teaches at 78 or more". The Faculty and Curriculum tabs' help lines are
+  rewritten (Plan 95E). The market's listings carry a `score` for the chip
+  beside the `grade` that decides what is worth taking.
+- **Left as letters, for the owner:** the campus's teaching standard in
+  History › Prestige ("courses average a B+") and academic satisfaction's
+  factor ("Average course grade (B+)"). Both name the mean of the grade
+  points (Plan 95H chose that wording on purpose), which isn't the average
+  of the course numbers, so turning them into a number needs a choice of
+  which number. The plan's list doesn't name them.
+- **Tests:** `test/teaching-numbers.test.ts` renders the faculty tile
+  (professors and candidates), the person page, the market, the picker,
+  the Curriculum tab, a course cell, the row, the hall's tile and the
+  Faculty tab, and finds numbers and no grade letter on any; the median on
+  candidates, warm only above it; and the words.
 
 ### H — Every refused placement says why
 

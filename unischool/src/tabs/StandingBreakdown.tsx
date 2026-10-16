@@ -160,7 +160,7 @@ function summerNote(breakdown: StandingBreakdown): string {
 // `rowSaid`: the specialization's sentence is
 // already on the row this breakdown opens under (a pillar in History ›
 // Prestige), so it is left off.
-// `belowA`: the teaching standard's link to the Curriculum's Below A (Plan
+// `belowA`: the teaching standard's link to the Curriculum's Below 78 (Plan
 // 95S), shown on whichever breakdown carries the teaching ceiling.
 export interface BelowALink { count: number; onOpen: () => void }
 export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: {
@@ -198,7 +198,7 @@ export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: 
             <>
               {' '}
               <button type="button" className="standing-link" onClick={belowA.onOpen}>
-                {belowA.count === 1 ? 'Show the course below A' : `Show the ${belowA.count} courses below A`}
+                {belowA.count === 1 ? 'Show the course under 78' : `Show the ${belowA.count} courses under 78`}
               </button>
             </>
           )}

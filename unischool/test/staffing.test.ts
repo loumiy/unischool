@@ -194,10 +194,10 @@ function weakPair(s: GameState, teaching: number): { ids: string[]; teacher: Fac
   assert(JSON.stringify(targetFilters(BELOW_A_TARGET)) === JSON.stringify(BELOW_A_FILTERS) && BELOW_A_FILTERS.grade === 'belowA', 'the link\'s target opens the Curriculum with Below A on');
   let opened: string | undefined;
   const html = renderToStaticMarkup(createElement(HistoryTab, { s, act: () => {}, view: 'prestige', onOpenCurriculum: (target: string) => { opened = target; } }));
-  const label = n === 1 ? 'Show the course below A' : `Show the ${n} courses below A`;
+  const label = n === 1 ? 'Show the course under 78' : `Show the ${n} courses under 78`;
   assert(html.includes(label), `History › Prestige's teaching line says "${label}"`);
   const bare = renderToStaticMarkup(createElement(HistoryTab, { s, act: () => {}, view: 'prestige' }));
-  assert(!bare.includes('courses below A'), 'and without a way to open the Curriculum, no link');
+  assert(!bare.includes('courses under 78'), 'and without a way to open the Curriculum, no link');
   assert(opened === undefined, 'drawing it opens nothing');
 }
 

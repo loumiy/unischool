@@ -18,8 +18,9 @@ export function cellState(s: GameState, t: Buildable): CellState {
 }
 
 export type StatusFilter = 'all' | 'available' | 'developing' | 'done' | 'unstaffed';
-// "belowA" is anything short of the A that lifts prestige. Needs attention
-// (a D or an F) went in Plan 80B: Below A and No instructor cover it.
+// "belowA" is anything short of the top band (78) that lifts prestige,
+// shown as Below 78 since Plan 104G. Needs attention (a D or an F) went in
+// Plan 80B: Below 78 and No instructor cover it.
 export type GradeFilter = 'all' | 'belowA';
 
 const GRADES_IN: Record<Exclude<GradeFilter, 'all'>, ReadonlySet<Grade>> = {
@@ -84,7 +85,7 @@ export function matchesFilters(s: GameState, t: Buildable, f: Filters, lookup?: 
   return true;
 }
 
-// The Curriculum's target that opens it with Below A on (Plan 95S, the
+// The Curriculum's target that opens it with Below 78 on (Plan 95S, the
 // second review's B4-5): History › Prestige's teaching line links to it.
 export const BELOW_A_TARGET = 'belowA';
 export const BELOW_A_FILTERS: Filters = { ...NO_FILTERS, grade: 'belowA' };
@@ -98,7 +99,7 @@ export function targetFilters(target: string): Filters | null {
   return null;
 }
 
-// How many courses Below A lists, so the link's count is the list's.
+// How many courses Below 78 lists, so the link's count is the list's.
 export function belowACount(s: GameState): number {
   return s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS)).length;
 }

@@ -20,7 +20,6 @@ import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField, RowAction } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
-import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
   canFoundProgram, canRelocateProgram, closeRefusal, courseSlotsFree, eligibleInstructors, relocationWeeks,
@@ -246,7 +245,7 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
               ? <span className="program-tile-transit" title="A course has no instructor">dark</span>
               : <span className="program-tile-progress">{fraction(progress.done, progress.total)}</span>}
           {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
-          {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100`} />}
+          {avg !== null && <GradeChip score={avg} title={`Averages ${count(avg)} out of 100`} />}
         </span>
       </button>
       {open && (
