@@ -79,10 +79,19 @@ marked **0.1.x** and fixed in a patch.*
 - **The letters that stop the clock are too quiet.** The player didn't
   notice that time had stopped, or that something was waiting for him.
   *1 player · live (T1).*
+- **The pennant split the college's name mid-word.** "Baltimoore
+  College" showed as "Baltimoor / e College": the banner sizes the name
+  by its total length and lets a word break. Plan 104 as K. *Owner, from
+  S1's video.*
 - **The board's opening letter took two reads.** "350 students are on
   the books, nobody is on the payroll … Founders Hall hasn't been placed
   yet": S1 read it a couple of times ("Sorry, what?") before it made
   sense as no people, no courses, no building. *1 player · service (S1).*
+  The owner's reading (16 October): "all three are yours to fix, in that
+  order" asks the player to remember three tasks and an order, and the
+  order isn't the one the walkthrough plays. The letter should welcome,
+  then start with Founders Hall; programs, their teachers and courses
+  come as the steps reach them. Plan 104 as L.
 - **A need's score reads as a clock.** S1 took a need's "12" for a time
   of day. It is a score out of 100 at its floor (`ATTRIBUTE_SCORE_FLOOR`):
   the Students tab shows it as a bare number in a round, ticked dial, with
@@ -97,6 +106,9 @@ marked **0.1.x** and fixed in a patch.*
   and rises as she matures. Only the course drawer lists those factors;
   the chips say none of it. F2 asked what the grades mean too.
   *1 player · service (S1).*
+  **Decided: no teaching overload** (the owner, 16 October, from S1's
+  video: Iyer appointed as a B, her courses sinking to C as she took
+  more). The load penalty goes; the course slots stay. Plan 104 as J.
 - **What the grades and ranks on a teacher mean.** F2 didn't understand
   the letter grades (A, B, C) or the ranks (assistant, associate…), nor
   how they affect teaching, courses or students, and asked for each
@@ -143,6 +155,15 @@ marked **0.1.x** and fixed in a patch.*
   fifth player to find the game hard to read, and the first to name the
   systems after the opening. *1 player · form (F2).*
 
+- **The Students tab in week one shows a college failing.** The
+  walkthrough's "Somewhere to sleep, somewhere to eat" opens it before
+  anything is built, so every need reads low, and health's dormant dial
+  ("–", "Not yet a need") reads as one more failure. **Decided** (the
+  owner, 16 October): the tab opens after the first summer; the
+  walkthrough has the player build one residence hall and one dining
+  hall instead; health isn't shown until it's a need, so a college doing
+  everything it can reads full marks. Plan 104 as M. *Owner, from S1's
+  video.*
 - **Why satisfaction falls in year two isn't said.** S1 couldn't find
   satisfaction at first, then couldn't work out why it kept dropping in
   year two with dining, academic and social all full and health "not yet
