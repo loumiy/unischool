@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F, J, K.**
+October). Landed: A, C, D, F, H, J, K.**
 
 ---
 
@@ -317,6 +317,35 @@ campus.
   loan").
 - **Tests:** a placement test for each refusal's words, and that the
   ghost is green wherever a click would place.
+
+**As implemented.**
+
+- **One module, `components/buildReasons.ts`,** for the menu and the map:
+  `buildFinancing` (how the click pays, Founders Hall's free siting
+  included), `startRefusal` (the words when nothing pays), `paidWords`, and
+  the menu's `noLoanReason` and `greyedReason`, moved there from
+  `BuildPopup.tsx`. The click, the ghost and the held strip all read
+  `buildFinancing`, so they can't disagree.
+- **S1's money case was the ghost's, not a missing reason.** The menu
+  never lets a building be picked up that nothing pays for, so a red ghost
+  over money came from the ghost reading cash only: in year two the house
+  S1 wanted was on a loan, the ghost was red, and nothing said why. Now it
+  is green and says "part borrowed" (checked in the browser on a year-two
+  save). The note uses the held strip's words (`BUILD_WORDS.pay`: "part
+  borrowed", "paid from gifts", "half from the endowment") rather than the
+  plan's "on a loan", so the two say the same.
+- **The refusals in words:** "Costs $2.1M · you have $1.4M" with why no loan
+  ("the college can borrow up to …"), "The board has frozen
+  construction", "Needs a Chemistry professor with a free course slot",
+  and "… isn't open to build yet". These show if the money or the freeze
+  changes while a building is held.
+- **Benches, lamps and beds** say why too: off the college's land, or
+  "Elm Hall stands here". S1's benches in the park are the second, if the
+  park was a building's ground. Since the decoration change (#377) a
+  bench goes anywhere else on land.
+- **Tests:** `test/placement-reasons.test.ts` places through the reducer
+  with the financing the ghost names, for cash, a gift, a loan, Founders
+  Hall's siting, and where it names none, every way of paying is refused.
 
 ### I — Needs out of 100, and what pulls satisfaction down
 

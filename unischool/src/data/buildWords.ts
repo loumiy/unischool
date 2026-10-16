@@ -23,4 +23,15 @@ export const BUILD_WORDS = {
     noRoom: 'the college has no borrowing room left',
   },
   constructionFrozen: 'construction frozen',
+  // Why the map's ghost is red when the ground is fine (Plan 104H): what
+  // the building costs against what there is, the board's freeze, a field
+  // with nobody to staff it, or a building not open yet.
+  costs: 'Costs {cost} · you have {cash}',
+  frozen: 'The board has frozen construction',
+  needsFaculty: 'Needs a {field} professor with a free course slot',
+  notOpen: '{building} isn’t open to build yet',
+  // A bench, lamp or bed refused (the reducer's PLACE_DRESSING): off the
+  // college's land, or on a building.
+  dressingOffLand: 'Only on the college’s land',
+  dressingOnBuilding: '{building} stands here',
 } as const;

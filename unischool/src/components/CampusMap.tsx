@@ -1,4 +1,3 @@
-import { financingFor } from '../systems/finance/treasury';
 import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
@@ -7,10 +6,11 @@ import { totalEnrolled } from '../state/types';
 import { entryKey, useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
-  ROAD_FIRST_ROW, awaitsSite, canPlace, nextFacing,
+  ROAD_FIRST_ROW, canPlace, nextFacing,
   isPlaceableKind, orientedFootprint, parsePathTileKey, pathTileKey,
 } from '../state/campusMap';
 import { siteRefusal } from '../state/reach';
+import { buildFinancing, dressingRefusal, paidWords, startRefusal } from './buildReasons';
 import Walkers from './Walkers';
 import AgeMarks, { Sinkhole, type AgeBand } from './ageMarks';
 import { Bench, dressingProps } from './dressing';
@@ -18,7 +18,7 @@ import { facingToCamera, frontWidth, localToGrid } from './facing';
 import { defaultBenchFacing, turnFacing } from '../state/dressing';
 import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
-import { canStartDevelopment, facultyGate } from '../systems/techtree/techSystem';
+import { facultyGate } from '../systems/techtree/techSystem';
 import { schoolOffers } from '../systems/techtree/programOffers';
 import { claimedSchool } from '../systems/techtree/schools';
 import { SHORTCUTS, isKey, isTypingTarget, useHotkeys } from './hotkeys';
@@ -2134,10 +2134,10 @@ export default function CampusMap({
     if (!t) return;
     const fp = orientedFootprint(t, facing);
     if (!canPlace(s, t, row, col, fp)) return;
-    // Paid as the tile said (BuildPopup.tsx): building gifts first, then
-    // cash, then a loan for the shortfall (finance/treasury.ts).
-    const financing = t.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, t, undefined, f));
-    if (t.status === 'done' ? !awaitsSite(s, t) : financing === null) return;
+    // Paid as the tile said (BuildPopup.tsx) and the ghost shows
+    // (buildReasons.ts): building gifts first, then cash, then a loan.
+    const financing = buildFinancing(s, t);
+    if (financing === null) return;
     // A sandbox's chosen style for it (pathChoice.ts's buildStyle).
     const style = isSandbox(s) ? buildStyle() : null;
     act({ type: 'PLACE_BUILDABLE', buildableId: id, row, col, facing, ...(style ? { vernacular: style } : {}), ...(financing === 'loan' ? { borrow: true } : financing === 'gift' ? { gift: true } : financing === 'endowment' ? { endowment: true } : {}) });
@@ -2241,9 +2241,12 @@ export default function CampusMap({
 
   // The footprint ghost at the current rotation, and whether a click would
   // succeed: the site is allowed (reach.ts: clear land, a walk from the road,
-  // nothing walled off) and the school can afford it (canStartDevelopment,
-  // or awaitsSite for Founders Hall). A refused site says why. Memoised on
-  // the tile, since the walk check floods the parcel.
+  // nothing walled off) and the building can be paid for as the click pays
+  // (buildReasons.ts's buildFinancing, or awaitsSite for Founders Hall).
+  // Every refusal says why (Plan 104H): the site's first, else the start's
+  // (the money against what there is, the freeze, a missing professor); and
+  // a building paid any way but cash says how. Memoised on the tile, since
+  // the walk check floods the parcel.
   const refusal = useMemo(
     () => (selected && hover && selectedFootprint
       ? (moving ? moveRefusal(s, moving.id, hover.row, hover.col, facing) : siteRefusal(s, selected, hover.row, hover.col, selectedFootprint))
@@ -2251,14 +2254,18 @@ export default function CampusMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selected?.id, moving?.id, facing, hover?.row, hover?.col, selectedFootprint?.w, selectedFootprint?.h, s.placements],
   );
+  const financing = selected && !moving ? buildFinancing(s, selected) : null;
   const preview = selected && hover && selectedFootprint
-    ? {
-        ...hover,
-        ...selectedFootprint,
-        refusal,
-        ok: refusal === null
-          && (moving !== null || (selected.status === 'done' ? awaitsSite(s, selected) : canStartDevelopment(s, selected))),
-      }
+    ? (() => {
+        const ok = refusal === null && (moving !== null || financing !== null);
+        return {
+          ...hover,
+          ...selectedFootprint,
+          refusal: refusal ?? (moving ? null : startRefusal(s, selected)),
+          ok,
+          paid: ok ? paidWords(financing) : null,
+        };
+      })()
     : null;
 
   // The season on the map (Plan 74I): CSS variables for the grass and the
@@ -2598,6 +2605,17 @@ export default function CampusMap({
             {preview.refusal}
           </div>
         )}
+        {preview?.paid && (
+          <div className="campus-map-why paid" style={{ left: pointerRef.current.x, top: pointerRef.current.y }}>
+            {preview.paid}
+          </div>
+        )}
+        {/* A bench, lamp or bed the tile would refuse (Plan 104H). */}
+        {pathGhost && isClickTool(pathGhost.tool) && dressingRefusal(s, pathGhost.row, pathGhost.col) && (
+          <div className="campus-map-why" style={{ left: pointerRef.current.x, top: pointerRef.current.y }}>
+            {dressingRefusal(s, pathGhost.row, pathGhost.col)}
+          </div>
+        )}
 
         {/* The inspected building's info panel: a fixed corner card, not
             anchored to the building, since tracking it under imperative
@@ -2629,7 +2647,7 @@ export default function CampusMap({
           <div className="map-touch-bar" role="toolbar" aria-label={`Place ${selected.name}`}>
             <span className="map-touch-bar-name">
               {selected.name}
-              <span className="map-touch-bar-note">{!hover ? 'Tap the ground to set it down' : preview?.refusal ?? (preview?.ok ? 'Drag to move it' : 'Not affordable yet')}</span>
+              <span className="map-touch-bar-note">{!hover ? 'Tap the ground to set it down' : preview?.refusal ?? (preview?.ok ? (preview.paid ? `Drag to move it · ${preview.paid}` : 'Drag to move it') : 'Not affordable yet')}</span>
             </span>
             {canRotateSelected && <button type="button" onClick={() => setFacing(nextFacing)}>Rotate</button>}
             <button type="button" className="primary" disabled={!hover || !preview?.ok} onClick={() => { if (hover) placeById(selected.id, hover.row, hover.col); }}>Place</button>
