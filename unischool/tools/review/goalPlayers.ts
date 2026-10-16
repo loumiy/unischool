@@ -21,7 +21,7 @@
 //
 //   npm run review:goals                        every goal, five seeds, two names
 //   npm run review:goals -- --goals revenue,prestige --seeds 12345 --years 20
-//   npm run review:goals -- --run --goal revenue --seed 7 --name Blackmoor --out f.json
+//   npm run review:goals -- --run --goal revenue --seed 7 --name Halifax --out f.json
 //   npm run review:goals -- --report <dir>      re-write the report from saved runs
 //   npm run review:goals -- --goals championships --specialization athletics
 //                                               a fixed pick at the milestone
@@ -108,7 +108,7 @@ export const GOALS = ['revenue', 'prestige', 'satisfaction', 'assets', 'champion
 export type Goal = (typeof GOALS)[number];
 
 const DEFAULT_SEEDS = [12345, 4242, 777, 31337, 2026];
-const DEFAULT_NAMES = ['Blackmoor', 'Saint Aldric'];
+const DEFAULT_NAMES = ['Halifax', 'Saint Aldric'];
 const YEARS = 50;
 // The switch in the two "then" goals.
 const SWITCH_YEAR = 20;

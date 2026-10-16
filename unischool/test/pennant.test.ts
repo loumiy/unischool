@@ -48,7 +48,7 @@ assert(/--text-2xl: calc\(22px \* var\(--text-scale\)\)/.test(css) && TEXT_2XL_P
 
 const NAMES = [
   'Ely College', 'Baltimoore College', 'Wormwood College', 'Wolverhampton College', 'Massachusetts Polytechnic',
-  'The College of Saint Augustine and All Souls', 'Mmmmmmmmmmmmmmmmmm College', 'Bay State University', 'Blackmoor College',
+  'The College of Saint Augustine and All Souls', 'Mmmmmmmmmmmmmmmmmm College', 'Bay State University', 'Halifax College',
 ];
 for (const name of NAMES) {
   const longest = name.split(' ').reduce((a, b) => (wordEm(b) > wordEm(a) ? b : a));

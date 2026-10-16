@@ -22,7 +22,7 @@ passed straight through:
 ```sh
 npm run dev                                          # in one shell
 npm run scenario -- --player Completionist --year 22 --vernacular gothic \
-  --name Blackmoor --clear-modal /tmp/gothic.json    # play 22 years, write a save
+  --name Halifax --clear-modal /tmp/gothic.json    # play 22 years, write a save
 npm run shot -- /tmp/gothic.json /tmp/gothic.png --zoom=-2 --pan=-430,320
 ```
 
@@ -51,7 +51,7 @@ result and plants the grounds, and writes the save back out:
 
 ```sh
 npm run scenario -- --player Completionist --year 50 --build-all --clear-modal \
-  --name Blackmoor --colors navy-gold node_modules/.tmp/in.json
+  --name Halifax --colors navy-gold node_modules/.tmp/in.json
 npm run layout -- node_modules/.tmp/in.json node_modules/.tmp/out.json --ascii
 npm run shot -- node_modules/.tmp/out.json docs/images/campus.png --zoom=-1 --pan=60,-10 --scale=2
 pngquant --force --skip-if-larger --quality=70-95 --output docs/images/campus.png docs/images/campus.png
@@ -156,7 +156,7 @@ for t in faculty research students athletics history treasury; do
 done
 npm run shot -- node_modules/.tmp/out.json docs/images/tab-curriculum.png --tab=curriculum \
   --press=".collapse-toggle" --press=".collapse-toggle >> nth=1" --press=".collapse-toggle >> nth=2" --scale=2
-npm run scenario -- summer --name Blackmoor --colors royal-gold node_modules/.tmp/summer.json
+npm run scenario -- summer --name Halifax --colors royal-gold node_modules/.tmp/summer.json
 npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png \
   --size=1600,1700 --click="Continue" --click="Set tuition for the year" \
   --press=".cohort-breakdown h3" --press=".cohort-breakdown h3" \
@@ -246,7 +246,7 @@ them into a WebM.
 
 ```sh
 npm run dev                                          # in one shell
-npm run timelapse -- --name Blackmoor --colors navy-gold --out node_modules/.tmp/timelapse
+npm run timelapse -- --name Halifax --colors navy-gold --out node_modules/.tmp/timelapse
 npm run timelapse:shoot -- node_modules/.tmp/timelapse --fps=8 --png
 ```
 

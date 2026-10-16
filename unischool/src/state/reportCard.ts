@@ -72,7 +72,7 @@ export function rankLine(entry: HallEntry): string {
 }
 
 // The report's title under the college's name, without the name again
-// ("Blackmoor College: a teaching college…" reads "A teaching college…").
+// ("Halifax College: a teaching college…" reads "A teaching college…").
 export function cardTitle(entry: HallEntry): string {
   const lead = `${entry.college}: `;
   if (!entry.title.startsWith(lead)) return entry.title;

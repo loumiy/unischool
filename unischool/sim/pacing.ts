@@ -69,7 +69,7 @@ export interface PaceYear {
 export const PACING_PLAYERS = ['Natural', 'Guided', 'Completionist'] as const;
 export type PacingPlayer = (typeof PACING_PLAYERS)[number];
 export const PACING_SEEDS = [12345, 4242, 777] as const;
-export const PACING_NAME = 'Blackmoor';
+export const PACING_NAME = 'Halifax';
 const YEARS = 50;
 
 function readYear(s: GameState, year: number, netPerWeek: number): PaceYear {

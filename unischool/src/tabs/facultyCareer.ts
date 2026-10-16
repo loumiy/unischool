@@ -34,7 +34,7 @@ export function isFounder(f: Faculty): boolean {
   return FOUNDING_MARKET.some((p) => p.id === f.id);
 }
 
-// "Joined Blackmoor University in Year 3, fall term."; null for a candidate.
+// "Joined Halifax University in Year 3, fall term."; null for a candidate.
 export function joinedLine(college: string, f: Faculty): string | null {
   if (!f.career) return null;
   const week = f.career.arrivedWeek;

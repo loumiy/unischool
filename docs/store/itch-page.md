@@ -226,7 +226,7 @@ From `unischool/`, with the production build served
 `CAMPUS_URL=http://localhost:4173/`:
 
 ```sh
-npm run scenario -- --player Completionist --year 32 --week 14 --clear-modal --name Blackmoor --colors navy-gold campus.json
+npm run scenario -- --player Completionist --year 32 --week 14 --clear-modal --name Halifax --colors navy-gold campus.json
 npm run layout -- campus.json campus-laid.json
 npm run shot -- campus-laid.json ../docs/store/itch/1-campus.jpg --size=1920,1080 --tilt=-2 --zoom=-1
 npm run shot -- campus-laid.json cover-bg.jpg --bare --size=1260,1000 --tilt=-2 --zoom=-1 --pan=0,220
@@ -237,8 +237,8 @@ npm run scenario -- summer summer.json
 npm run shot -- summer.json ../docs/store/itch/2-admissions.jpg --size=1920,1080 --click=Continue --click="Set tuition for the year"
 npm run scenario -- specialization spec.json
 npm run shot -- spec.json ../docs/store/itch/3-specialization.jpg --size=1920,1080
-npm run scenario -- --player Completionist --year 45 --clear-modal --name Blackmoor --colors navy-gold late.json
+npm run scenario -- --player Completionist --year 45 --clear-modal --name Halifax --colors navy-gold late.json
 npm run shot -- late.json ../docs/store/itch/4-faculty.jpg --size=1920,1080 --tab=faculty
-npm run scenario -- final-report --name Blackmoor --colors navy-gold final.json
+npm run scenario -- final-report --name Halifax --colors navy-gold final.json
 npm run shot -- final.json ../docs/store/itch/5-final-report.jpg --size=1920,1080
 ```

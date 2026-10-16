@@ -9,7 +9,7 @@
 //   npm run scenario -- --player Completionist --year 31 --from-year 30 \
 //     --modal summer /tmp/summer30.json       # a modal that recurs, caught late
 //   npm run scenario -- --player Completionist --year 22 --vernacular gothic \
-//     --name Blackmoor --clear-modal /tmp/gothic.json    # a campus to photograph
+//     --name Halifax --clear-modal /tmp/gothic.json    # a campus to photograph
 //   npm run scenario -- --player Completionist --year 50 --build-all \
 //     --clear-modal /tmp/all.json           # every placeable asset standing
 //

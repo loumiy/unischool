@@ -7,7 +7,7 @@
 // props; and the big set pieces side by side.
 //
 //   npm run scenario -- --player Completionist --year 50 --build-all --clear-modal \
-//     --name Blackmoor node_modules/.tmp/all.json      # the base: every asset done
+//     --name Halifax node_modules/.tmp/all.json      # the base: every asset done
 //   npm run review:arrangements                         # node_modules/.tmp/arrangements/
 //   npm run review:arrangements -- --base <save> --out <dir> --only cross,trees
 //   npm run review:arrangements -- --list

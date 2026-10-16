@@ -13,7 +13,7 @@
 // ever computed; the school in the file is still the one the run produced.
 //
 //   npm run scenario -- --strategy Completionist --year 30 --clear-modal \
-//     --name "Blackmoor University" /tmp/in.json
+//     --name "Halifax University" /tmp/in.json
 //   npm run layout -- /tmp/in.json /tmp/out.json [--ascii]
 //   npm run shot -- /tmp/out.json /tmp/campus.png --zoom=-2
 //

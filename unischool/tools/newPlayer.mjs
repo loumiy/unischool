@@ -86,7 +86,7 @@ await page.click('.title-screen .title-primary');
 await page.waitForTimeout(400);
 
 // Founding.
-await page.fill('input[placeholder="e.g. Blackmoor"]', 'Newcomb');
+await page.fill('input[placeholder="e.g. Halifax"]', 'Newcomb');
 await page.click('.startup-begin-btn');
 await page.waitForTimeout(800);
 note('founded Newcomb College');

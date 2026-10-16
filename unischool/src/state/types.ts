@@ -1139,7 +1139,7 @@ export interface SchoolColors {
 }
 
 export interface University {
-  // The name in two halves: the player's first half ("Blackmoor") and a
+  // The name in two halves: the player's first half ("Halifax") and a
   // suffix, "College" until the one-time 'charter' offer makes it
   // "University". Separate so nothing parses a name to rename it.
   name: string;
@@ -1178,9 +1178,9 @@ export interface ReportCard {
 
 // The half of the name the player writes: a trailing "College" or
 // "University" typed into it is dropped, since the game supplies the suffix
-// and later changes it (the University charter). Without this, "Blackmoor
-// University" founded as "Blackmoor University College" and chartered as
-// "Blackmoor University University".
+// and later changes it (the University charter). Without this, "Halifax
+// University" founded as "Halifax University College" and chartered as
+// "Halifax University University".
 // The longest name the founding screen and the pennant's rename take.
 export const COLLEGE_NAME_MAX = 60;
 

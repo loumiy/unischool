@@ -32,7 +32,7 @@ function run(cmd, args) {
 }
 
 run('npm', ['run', 'scenario', '--', '--player', 'Completionist', '--year', '32', '--week', '14',
-  '--clear-modal', '--name', 'Blackmoor', '--colors', 'navy-gold', save]);
+  '--clear-modal', '--name', 'Halifax', '--colors', 'navy-gold', save]);
 run('npm', ['run', 'layout', '--', save, laid]);
 run('node', ['tools/shoot.mjs', laid, out, '--bare', '--size=1600,840', '--scale=0.75',
   '--tilt=-2', '--zoom=-2', '--pan=0,30', '--quality=88']);
