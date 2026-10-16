@@ -8,6 +8,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import { FIGURE_HINTS, NEED_LABELS, dragLine } from '../data/figureHints';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../data/facilitiesData';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { sectionAnchor } from '../components/sectionTarget';
 import {
@@ -184,12 +185,9 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
   // unit is named.
   const unit = attribute === 'housing' ? 'beds' : 'served';
 
-  // The walkthrough's needs step rings the two it asks for (Plan 103C).
-  const ringed = s.events.opening.stage === 'needs' && (attribute === 'housing' || attribute === 'basicNeeds');
-
   // Expanded state is reported by `aria-expanded` on the toggle, not a class.
   return (
-    <li className={`satisfaction-card${ringed ? ' opening-target' : ''}`}>
+    <li className="satisfaction-card">
       <div className="satisfaction-card-head">
         <SatisfactionDial score={detail.score} dormant={detail.dormant} />
         <div className="satisfaction-card-text">
@@ -202,6 +200,9 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
           {/* Housing says beds against the beds wanted; the other needs say
               nothing here (Plan 96E: "1,200/113 served" beside a score of 40
               read as a contradiction, the score being mostly teaching). */}
+          {attribute === 'health' && !detail.dormant && (
+            <span className="satisfaction-card-coverage">A need since the college passed {count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students</span>
+          )}
           {(detail.dormant || attribute === 'housing') && (
             <span className="satisfaction-card-coverage">
               {detail.dormant
@@ -270,7 +271,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>{SECTION_HEADINGS['students.breakdown']}</h2>
         <HelpHint
-          text="The five needs satisfaction is made of, read live off the campus: a building finished this week shows here while the headline catches up over the coming weeks. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
+          text="The needs satisfaction is made of, read live off the campus: a building finished this week shows here while the headline catches up over the coming weeks. Health joins them once the college is large enough to need care on campus. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
         />
       </div>
       {/* Today's figure heads the needs it is made of, not the clubs'
@@ -285,7 +286,10 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       </dl>
       {drag && <p className="satisfaction-drag">{dragLine(drag)}</p>}
       <ul className="satisfaction-cards">
-        {ATTRIBUTE_ORDER.map((attribute) => (
+        {/* Health shows once it is a need (Plan 104M): below its gate it
+            scores full and counts against nothing, and a dormant card read
+            as one more failure. */}
+        {ATTRIBUTE_ORDER.filter((attribute) => attribute !== 'health' || !attributeDetail(s, 'health').dormant).map((attribute) => (
           <AttributeCard key={attribute} s={s} attribute={attribute} />
         ))}
       </ul>

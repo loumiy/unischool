@@ -16,6 +16,7 @@ import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CE
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
+import { tabAvailable } from './TabNav';
 import { BUILD_WORDS } from '../data/buildWords';
 import { buildFinancing, greyedReason, noLoanReason } from './buildReasons';
 import { ProgressBar } from './Progress';
@@ -861,7 +862,7 @@ export default function BuildPopup({
           <span className="stat">
             {count(s.students.capacity)} beds{offCampusBeds > 0 && <span title={DOWNTOWN_WORDS.offCampusHint}> · {DOWNTOWN_WORDS.offCampusBeds(count(offCampusBeds))}</span>} · {count(totalEnrolled(s.students))} enrolled
           </span>
-          <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>
+          {tabAvailable(s, 'students') && <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>}
           <StylePicker s={s} />
         </div>
 

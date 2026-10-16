@@ -338,7 +338,9 @@ export default function App() {
       inspectHall(FOUNDERS_HALL_ID);
     }
     else if (stage === 'second-course') openWalkProgram();
-    else if (stage === 'needs') openTab('students', 'students.breakdown');
+    // The needs are built, not shown (Plan 104M): back to the campus, where
+    // the next two steps site them.
+    else if (stage === 'needs') openTab(null);
     // The menu opens on the step's tab (BuildPopup.tsx's initialBuildTab);
     // already open, it turns to it.
     else if (stage === 'site-housing' || stage === 'site-dining') setBuildOpen(true);
@@ -638,12 +640,10 @@ export default function App() {
         buildOpen={buildOpen}
         hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
         curriculumOpen={overlay?.tab === 'curriculum'}
-        studentsOpen={overlay?.tab === 'students'}
         placing={placingId !== null}
         onOpenBuild={() => setBuildOpen(true)}
         onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
         onOpenCurriculum={openWalkProgram}
-        onOpenStudents={() => openTab('students', 'students.breakdown')}
       />}
     </>
   );

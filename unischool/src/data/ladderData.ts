@@ -138,15 +138,19 @@ export const MILESTONES: readonly Milestone[] = [
     condition: 'the first summer closes',
     reached: (s) => s.history.length >= 1,
     buildables: ['AMENITY-FOUNTAIN'],
-    // Students and History are open from the first week, for what the
-    // students think and where the college stands (Plans 78B, 78C); what
-    // takes a year to exist waits for this. History's record is first, so the
-    // letter's door opens History (InboxTab.tsx).
-    tabs: [],
-    // The funnel too: until the first summer there is no last summer's.
-    sections: ['history.record', 'students.guidebook', 'students.clubs', 'students.funnel'],
-    letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, what the guidebooks make of it, and the clubs the students have started.',
-    opens: ['History: the record of each year', 'Students: what the guidebooks say, the clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
+    // The Students tab opens here, with satisfaction (Plan 104M): in week
+    // one every need reads low because nothing is built yet, which read as
+    // failure (S1), so the walkthrough builds the needs instead of showing
+    // them, and the first summer's review introduces satisfaction as the
+    // year's average. Plans 78B and 78C opened it from the first week.
+    // History is open from the first week, for where the college stands;
+    // its record waits for this. History's record is first, so the letter's
+    // door opens History (InboxTab.tsx).
+    tabs: ['students'],
+    // Students' guidebook, clubs and funnel open with the tab itself.
+    sections: ['history.record'],
+    letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, how content the students were and what they need, what the guidebooks make of it, and the clubs the students have started.',
+    opens: ['History: the record of each year', 'Students: satisfaction and the five needs it is made of, what the guidebooks say, the clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
   },
   {
     id: 'curriculum',

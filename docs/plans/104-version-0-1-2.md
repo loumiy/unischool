@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F, G, H, I, J, K, L.**
+October). Landed: A, C, D, F–M.**
 
 ---
 
@@ -585,6 +585,39 @@ need") reads as one more failure.
 - **Tests:** the tab and the header's satisfaction figure are gated
   until the first summer closes and open after it; the walkthrough never opens a gated tab; health's card is
   absent below the gate.
+
+**As implemented.**
+
+- **The gate is the ladder's:** `commencement` lists `tabs: ['students']`,
+  so the toolbar's button, the L key and every door into the tab wait with
+  it. Students' guidebook, clubs and funnel no longer need their own gates
+  (they open with the tab), so the milestone holds back only History's
+  record. Its letter and its "opens" line now name satisfaction and the
+  needs.
+- **What else waits with it:** the header's satisfaction chip, the build
+  menu's "satisfaction 70", and any stat chip's door to a tab not yet open.
+  The "Somewhere to sleep" letter (sent at week 9 to a walk skipped before
+  the needs) no longer opens on a satisfaction figure.
+- **The first summer's review** reads "Satisfaction, how content the
+  students are out of 100, averaged 55 this year: from now on it shows at
+  the foot of the screen, and the Students tab opens on the needs it is
+  made of". Later summers compare the year with the one before, as they
+  did.
+- **The needs step** keeps its stage and its Next (D's events and the
+  letter it stands in for read it), says in two sentences what students
+  need, and returns to the campus (the Curriculum was still open from step
+  four). Its door and its ringed cards are gone, and with them the coach's
+  Students door.
+- **Health's card** is absent while dormant. Once past the gate it reads
+  "A need since the college passed 1,500 students". The balance doesn't
+  move: below the gate health already scored 100.
+- **The NEXT line** names a need "out of 100" too ("Housing is at 12 out of
+  100: a residence hall would raise it"), the same reading as I's. It
+  still names a need in year one, as guidance to build, though the
+  satisfaction figure itself is hidden until the first summer.
+- **Tests:** `test/students-after-summer.test.ts`; `opening.test.ts` checks
+  that no card's door leads to a closed tab; `tab-gates`, `stat-chips`,
+  `year-in-review` and `first-year` are updated to the new rule.
 
 ### E — 0.1.2
 

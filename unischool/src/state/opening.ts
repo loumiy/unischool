@@ -30,8 +30,9 @@ import { awaitsSite } from './campusMap';
 //              ringed; done when any course after a program's first is
 //              under way or taught, or when none of its courses can be
 //              started.
-//   needs      the Students tab opens on the satisfaction breakdown, its
-//              Housing and Dining cards ringed (Plan 103C); ends on Next.
+//   needs      a line on what students need, somewhere to sleep and
+//              somewhere to eat (Plan 103C; since Plan 104M it opens no
+//              tab: Students waits for the first summer); ends on Next.
 //              Reaching it counts the "Somewhere to sleep" letter read: the
 //              three steps are that letter.
 //   site-housing  the build menu opens on Housing, the next residence hall

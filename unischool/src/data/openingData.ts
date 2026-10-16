@@ -2,8 +2,7 @@ import type { Buildable, GameState, OpeningStage } from '../state/types';
 import { servingPopulation, totalEnrolled } from '../state/types';
 import { programById } from './techData';
 import { FOUNDING_MARKET, WALKTHROUGH_PROGRAM, WALKTHROUGH_PROFESSOR } from './foundingData';
-import { NEED_LABELS } from './figureHints';
-import { count, countWord, money, satisfactionFigure } from '../format';
+import { count, countWord, money } from '../format';
 
 // ---------------------------------------------------------------------
 // The opening walkthrough's copy, one card per stage (state/opening.ts,
@@ -18,7 +17,7 @@ export interface OpeningStep {
   title: string;
   body: (s: GameState) => string;
   next?: string;
-  door?: 'build' | 'hall' | 'curriculum' | 'students';
+  door?: 'build' | 'hall' | 'curriculum';
 }
 
 function list(names: string[]): string {
@@ -190,18 +189,19 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     },
     door: 'curriculum',
   },
+  // The needs, built rather than shown (Plan 104M): the Students tab waits
+  // for the first summer, so this step says in a line what students need
+  // and goes on to siting a residence hall and a dining hall. Ends on Next.
   needs: {
     eyebrow: 'Step five',
     title: 'Somewhere to sleep, somewhere to eat',
     body: (s) => {
-      const b = s.students.satisfactionBreakdown;
       const going = sitedAny(s, isDorm) && sitedAny(s, isDiningHall);
-      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)} out of 100, and the Students tab shows the needs it is made of: ${NEED_LABELS.housing} is at ${satisfactionFigure(b.housing)} out of 100 and ${NEED_LABELS.basicNeeds} at ${satisfactionFigure(b.basicNeeds)}.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. ${going
-        ? 'A residence hall and a dining hall are going up: the ratings rise when they open.'
-        : 'A need is met by building for it, from the build menu: a residence hall for housing, a dining hall for dining.'}`;
+      return `Students need somewhere to sleep and somewhere to eat.${campusLack(s)} ${going
+        ? 'A residence hall and a dining hall are going up: the students will feel them when they open.'
+        : 'A residence hall and a dining hall come next, from the build menu.'}`;
     },
     next: 'Next',
-    door: 'students',
   },
   'site-housing': {
     eyebrow: 'Step six',

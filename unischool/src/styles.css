@@ -3589,7 +3589,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
    Students (Plan 103C), at the foot, clear of the needs it rings. */
 @media (min-width: 761px) {
   .opening-coach.over-tab { top: 72px; right: 32px; }
-  .opening-coach.over-tab.low { top: auto; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 16px); }
 }
 @media (max-width: 760px) {
   .opening-coach { right: 16px; left: 16px; width: auto; }

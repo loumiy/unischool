@@ -43,6 +43,7 @@ import { STARTING_DORM_CAPACITY, STARTING_DORM_ID } from '../src/data/campusData
 import { teachPillars } from './fixtures/teaching';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
+import { tabAvailable } from '../src/components/TabNav';
 import { NEEDS_LETTER_ID, walkBuilding, walkProgram } from '../src/data/openingData';
 import { awaitsSite, centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -312,7 +313,11 @@ const walkToCourse = (name: string) => reducer(
   assert(s.events.opening.stage === 'needs' && openingHoldsClock(s), 'the walk moves on to the needs, the clock still held');
   assert(s.events.opening.read.includes(NEEDS_LETTER_ID), 'and counts the letter the needs steps stand in for read');
   const needs = OPENING_STEPS.needs.body(s);
-  assert(/Housing is at \d+ out of 100 and Dining at \d+\./.test(needs) && needs.includes('0 beds and 0 dining seats') && needs.includes('a residence hall for housing'), `the card reads the two needs and the figures behind them (${needs})`);
+  // Built rather than shown (Plan 104M): the Students tab waits for the
+  // first summer, so the card says what students need and goes on.
+  assert(needs.startsWith('Students need somewhere to sleep and somewhere to eat.') && needs.includes('from the build menu') && !/Students tab|satisfaction/i.test(needs), `the card says what students need, and opens no tab (${needs})`);
+  assert(OPENING_STEPS.needs.door === undefined && OPENING_STEPS.needs.next === 'Next', 'it has no door, and ends on Next');
+  assert(!tabAvailable(s, 'students'), 'and the Students tab is still closed');
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'site-housing' && openingHoldsClock(s), 'Next asks for a residence hall');
   const dorm = walkBuilding(s)!;
@@ -491,6 +496,32 @@ const walkToCourse = (name: string) => reducer(
   assert(OPENING_STEPS.appoint.title === 'Choose the first program', `the step is choosing a program (${OPENING_STEPS.appoint.title})`);
   assert(pick.includes('English, with Dr. Grace Bennett; Mathematics, with Dr. Priya Iyer; and Economics, with Dr. John Okafor'), `the three founding candidates as three programs (${pick})`);
   assert(words('found', found).indexOf('course') >= 0, 'courses come in when the program is founded');
+}
+
+// --- the walkthrough never opens a gated tab (Plan 104M) -------------------
+{
+  const doorTab = { curriculum: 'curriculum', build: null, hall: null } as const;
+  let w = foundWalk('Doors');
+  const seen: string[] = [];
+  const check = () => {
+    const stage = w.events.opening.stage;
+    if (stage === 'play' || stage === 'await-course') return;
+    const door = OPENING_STEPS[stage].door;
+    const tab = door ? doorTab[door] : null;
+    seen.push(stage);
+    assert(tab === null || tabAvailable(w, tab), `${stage}: its door (${door}) is open`);
+  };
+  check();
+  w = reducer(w, { type: 'ADVANCE_OPENING' }); check();
+  w = siteHall(w); check();
+  w = reducer(w, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR }); check();
+  w = reducer(w, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
+  w = untilStage(w, 'second-course'); check();
+  const next = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => w.tech.find((t) => t.id === id)?.status === 'available')!;
+  w = reducer(w, { type: 'START_DEVELOPMENT', nodeId: next, facultyId: WALKTHROUGH_PROFESSOR }); check();
+  w = reducer(w, { type: 'ADVANCE_OPENING' }); check();
+  assert(seen.join(',') === 'welcome,site-hall,appoint,found,second-course,needs,site-housing', `every card checked (${seen.join(',')})`);
+  assert(Object.values(OPENING_STEPS).every((step) => step.door === undefined || step.door in doorTab), 'no card has a door to a gated tab');
 }
 
 // --- the skip asks first (Plan 104C) ----------------------------------------

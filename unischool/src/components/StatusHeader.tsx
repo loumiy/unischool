@@ -21,6 +21,7 @@ import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
 import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason, weekOfTerm } from '../format';
 import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
+import { tabAvailable } from './TabNav';
 import type { TabSection } from '../data/ladderData';
 import type { TabId } from './TabNav';
 
@@ -116,6 +117,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
   // A chip that has a door is a button named with its figure (Plan 78C).
   const door = (chip: StatChip, figure: string) => {
     const d = quiet ? null : chipDoor(chip, figure);
+    if (d && !tabAvailable(s, d.tab)) return undefined;
     return d ? { name: d.name, onOpen: () => onOpenSection(d.tab, d.section) } : undefined;
   };
   // The word over the figure on a wide screen; on a phone the glyph stands
@@ -166,7 +168,9 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
             <TrendArrow change={prestigeWeeklyChange(s)} {...PRESTIGE_TREND} />
           </span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={satisfactionHint(s, satisfactionDrag(s))} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
+        {/* Satisfaction waits for the first summer, with the Students tab
+            (Plan 104M): the review introduces it as the year's average. */}
+        {tabAvailable(s, 'students') && <FigureBox className="toolbar-stat" above hint={satisfactionHint(s, satisfactionDrag(s))} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
           <SatisfactionIcon />
           {word('satisfaction')}
           {/* The warning is the paper red: the chip is cream, and the dock's
@@ -175,7 +179,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
             <AnimatedNumber value={s.students.satisfaction} format={satisfactionFigure} />
             <TrendArrow change={satisfactionWeeklyChange(s)} {...SATISFACTION_TREND} />
           </span>
-        </FigureBox>
+        </FigureBox>}
       </div>
     </>
   );
