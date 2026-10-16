@@ -60,6 +60,15 @@ point to the development records in `docs/plans/`.*
   (104I)
 - **A long college name on the pennant** never breaks a word, at any text
   size. (104K)
+- **The Grounds tab, tidied.** One Paths tile and one Trees tile: armed,
+  its surfaces or its species extend beside it. Every tile shows the thing
+  itself, as the building tiles do. One eraser deletes any decoration
+  (path, tree, lamp, bench or bed) in place of Erase, Fell and Remove, and
+  the map's hint reads "Right click to delete" and "Esc to cancel".
+- **Brick and cobble paths are coursed on the diagonal too**, and brick is
+  a shade darker.
+- **Flower beds look planted**: mounds of leaf in drifts of color inside a
+  stone kerb, where they were scattered petals on bare soil.
 
 ### Saves
 

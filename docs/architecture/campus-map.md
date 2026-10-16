@@ -348,19 +348,28 @@ followed Plan 99 they had to touch a path). A **banner lamp** is a lamp post
 hung for good with a pair of banners in the college's colors, one each side
 of the post (`dressing.tsx`'s `BannerLamp`; the lamps' commencement banner is
 the same drawing, one-sided and for a week). A **flower bed** is painted in
-strokes like a path: turned soil inside a low stone edge, set with blooms
-whose colors and places are rolled off the tile, and beds side by side run
-together as one border, the edge only where the bed stops. They take the
-gardens' season (`--bed`, `--bloom-opacity`). The decoration eraser (the
-`clear` tool) lifts any of them by stroke, as the right button does.
+strokes like a path: dark soil inside a low stone kerb, planted with mounds
+of leaf on a jittered lattice of three by three a tile, each mound in flower
+in one color. A mound's color is its two-by-two block of the lattice's,
+counted across the campus, so colors run in drifts over the joins; beds side
+by side run together as one border, the kerb only where the bed stops, and
+everything is rolled off the tile, so a bed never changes. The leaf is the
+canopy's, turning with it and dying back to stems over the winter, and the
+blooms take the gardens' season (`--bed`, `--bloom-opacity`). The **eraser** (the `erase`
+tool) deletes whatever decoration is on the tiles it is dragged across: a
+path, a tree, a lamp, a bench or a bed. Under any other tool the right button
+deletes only what that tool lays (`CampusMap.tsx`'s `otherPathTool`): the
+paving tool's lifts paths and leaves the trees, the planting tool's fells,
+and a lamp's or a bench's lifts the one clicked.
 Weathering (`ageMarks.tsx`) reads `Buildable.builtYear`. All of it is
 drawing only.
 
 **Paths have three surfaces** (`state/paving.ts`): the flagged walk every
 path had before materials, cobbles and brick. A saved tile stores `true` for
 the flagged walk, so a campus drawn before them loads unchanged, and the
-material's name otherwise. The build menu's three path tiles arm the one
-draw tool with a surface; drawing over a paved tile repaves it, and a Shift
+material's name otherwise. The build menu's Paths tile arms the draw tool,
+and the surface tiles that extend from it while it is armed choose what it
+paves with; drawing over a paved tile repaves it, and a Shift
 run that crosses another surface repaves it and puts it back if the run moves
 off it (`PAINT_PATH_TILES`'s `restore`). Only the drawing reads the surface:
 reach, the quads, the walkers and beauty ask whether a tile is paved, never
@@ -369,7 +378,10 @@ neighbor whatever its surface, so a brick walk running into a flagged one is
 one walk under one curb; each surface has its own fill, and cobbles and brick
 their coursing over it (setts in a grid of three, every other row shifted;
 four stretcher courses with staggered joints), cut back short of a rounded
-corner so a joint never crosses the curb.
+corner so a joint never crosses the curb. The corners a diagonal run bridges
+are coursed too, each notch as the open tile beside it would be, cut along the
+run's edge (`halfCoursingOf`), so a diagonal brick or cobble walk is coursed
+end to end.
 
 **Benches** (Plan 80I) are the one prop with a direction. A bench is set
 against one edge of its tile and faces out across it, its back to the lawn,

@@ -397,7 +397,7 @@ it.
 | Scroll / pinch, `+` `−` | Zoom. |
 | `Space` | Pause, or resume at whatever speed was last running. |
 | `1` `2` `3` `4` | Play, 2×, 4×, 8× (4× and 8× once the seats have earned them). (`5` is sandbox fast — see `playtestEnabled`.) |
-| `P` | Arm the path tool. Left button draws, right button erases; a ghost tile marks the square under the cursor. |
+| `P` | Arm the path tool. Left button draws, right button deletes paths; a ghost tile marks the square under the cursor. |
 | `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. On a touch screen the same moves are buttons in the map's folding "Map tools" pill (Plans 70F and 70G): zoom, turn, tilt and the opening view (Plan 80H took away the quad names' `N` and `Aa`). |
 | `R` | Turn the picked-up building a quarter, same as the ⟳ on its footprint ghost; the ghost marks its front. |
 | `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
@@ -458,15 +458,18 @@ capacity goes (Plan 80B). The menu opens on Grounds (`BuildPopup.tsx`'s `initial
 Plan 92), except while Founders Hall waits for its ground in a guided
 founding: then it opens on the tab holding the hall, where the walkthrough
 points. The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
-`MiniCluster`): four to the space of one building's tile, in labelled
-clusters two high (Paths, Trees, Decoration), so the row of small, repeatable
-things stays short as it grows. A surface's tile (Paving, Cobbles, Brick)
-arms the one draw tool with that surface, and a species' tile the one plant
-tool with that species: both are the session's choices, not the run's
-(`pathChoice.ts`, `plantingChoice.ts`). While a grounds tool is armed, a strip
-at the top of the map says what it does (`CampusMap.tsx`'s `ToolHint`), so
-the second button and Shift's straight run are found without the help: on a
-touch screen it says only what a drag or a tap does. In a sandbox the menu
+`CampusToolsTiles`): four to the space of one building's tile, under one
+"Grounds · free" label, so the row of small, repeatable things stays short.
+**Paths** and **Trees** are one tile each, a row each; armed, its styles
+extend from it in its row as a tray (`MiniToolRow`: Paving, Cobbles and
+Brick; Any tree and the seven species), the chosen one ringed, and the tool's
+own tile shows the one chosen. Both choices are the session's, not the run's
+(`pathChoice.ts`, `plantingChoice.ts`). Lamp, Banner lamp, Bench and Flower
+bed follow in columns of two, then one **Eraser** that deletes whatever
+decoration is on a tile. While a grounds tool is armed, a strip at the top of
+the map says what it does (`CampusMap.tsx`'s `ToolHint`): the right click
+that deletes, Shift's straight run, and Esc to cancel, found without the
+help; on a touch screen it says only what a drag or a tap does. In a sandbox the menu
 carries a **Style** picker for the architecture the next building goes up in
 (the college's own by default). Each building's tile shows the building itself (Plan 94,
 `BuildThumb.tsx`): drawn by the map's own `BuildingMotif` in the college's
@@ -474,7 +477,10 @@ vernacular, as a building site while it goes up, always from the default
 camera so it does not turn with the map, and kept as markup once drawn, so
 a session draws each building once. A drawing is fitted to its tile but
 never smaller than a fixed box, so a statue stays small beside a hall. The
-tools (paths, trees, lamps, benches) keep their glyphs. The Build button's glyph is Lucide's wrench (Plan 93; a crossed
+grounds' tiles show the thing itself the same way (`decorThumbs.tsx`, through
+`BuildThumb.tsx`'s `FittedDrawing`): a tile of each path surface, each tree
+(a little grove of the woodland's three for Any tree), the lamps, a bench and
+a bed, each on its tile of grass. Only the eraser keeps a glyph. The Build button's glyph is Lucide's wrench (Plan 93; a crossed
 hammer and wrench in Plan 92, a bulldozer before it).
 
 What each key MEANS stays with the component that owns the thing it does —

@@ -7,7 +7,7 @@ import { isLand, parsePathTileKey } from '../state/campusMap';
 import { FACING_STEP, benchFacingOf } from '../state/dressing';
 import { roll } from '../data/treeData';
 import { isAcademicHall } from '../data/techData';
-import { boxFaces, groundSquash, lift, polyPoints, project, projectedCircle, type Pt } from './isoProjection';
+import { boxFaces, groundSquash, lift, polyPoints, project, type Pt } from './isoProjection';
 import { depthOrder, type DepthBox } from './depthSort';
 import { castShadow } from './light';
 import { up } from './campusScale';
@@ -192,14 +192,27 @@ export function Bench({ col, row, facing, ghost = false }: { col: number; row: n
   );
 }
 
-// A flower bed: a tile of turned soil inside a low stone edge, set with
-// blooms. Beds side by side run together as one border: the edge and the
-// inset are only on the sides with no bed beyond them. The blooms' colors
-// and places are rolled off the tile, so a bed never changes; they go with
-// the season (styles.css's --bed and --bloom-opacity, seasons.ts).
-const BED_INSET = 0.1;
-const BED_RISE = up(0.25);
-const BLOOMS_PER_BED = 7;
+// A flower bed: a tile of dark soil inside a low stone kerb, planted with
+// mounds of leaf, each in flower in one color, so a border reads in drifts
+// of color rather than as confetti. Beds side by side run together as one
+// border: the kerb and the inset are only on the sides with no bed beyond
+// them, and the mounds keep one spacing across the join. The mounds' places,
+// sizes and colors are rolled off the tile, so a bed never changes; the
+// leaf turns and dies back with the canopy's, and the flowers go from bare
+// to bud (styles.css's --bed and --bloom-opacity, seasons.ts).
+const BED_INSET = 0.08;
+const BED_KERB = 0.06;
+const BED_RISE = up(0.3);
+// Mounds on a lattice of three by three a tile, jittered, a few left out.
+const MOUND_LATTICE = 3;
+const MOUND_KEEP = 0.9;
+const BLOOMS_PER_MOUND = 6;
+// A mound's color is its two-by-two block of the lattice's, counted across
+// the whole campus, so a drift of one color runs over the join between beds.
+function driftHue(gc: number, gr: number): number {
+  const h = (Math.imul(Math.floor(gc / 2), 73856093) ^ Math.imul(Math.floor(gr / 2), 19349663)) >>> 0;
+  return Math.floor(roll(h, 1) * 4);
+}
 export function Flowerbed({ col, row, open }: {
   col: number; row: number;
   // Whether each side, [N, E, S, W], has no bed beyond it.
@@ -209,23 +222,51 @@ export function Flowerbed({ col, row, open }: {
   const c0 = col + (w ? BED_INSET : 0); const c1 = col + 1 - (e ? BED_INSET : 0);
   const r0 = row + (n ? BED_INSET : 0); const r1 = row + 1 - (s ? BED_INSET : 0);
   const f = boxFaces(c0, r0, c1 - c0, r1 - r0, 0, BED_RISE);
+  // The soil, inside the kerb's top on the open sides, and a hair over the
+  // join on the others, so no seam shows between beds run together.
+  const SEAM = 0.01;
+  const k0 = c0 + (w ? BED_KERB : -SEAM); const k1 = c1 + (e ? -BED_KERB : SEAM);
+  const j0 = r0 + (n ? BED_KERB : -SEAM); const j1 = r1 + (s ? -BED_KERB : SEAM);
+  const soil = boxFaces(k0, j0, k1 - k0, j1 - j0, 0, BED_RISE).top;
   const seed = (row * 131 + col) * 2654435761 >>> 0;
-  const blooms = [];
-  for (let i = 0; i < BLOOMS_PER_BED; i++) {
-    const bc = c0 + 0.08 + roll(seed, 10 + i) * (c1 - c0 - 0.16);
-    const br = r0 + 0.08 + roll(seed, 30 + i) * (r1 - r0 - 0.16);
-    const hue = Math.floor(roll(seed, 50 + Math.floor(i / 3)) * 4);
-    const disc = projectedCircle(bc, br, 0.09 + roll(seed, 70 + i) * 0.05, 8).map((p) => lift(p, BED_RISE));
-    blooms.push({ disc, y: project(bc, br).y, hue, key: i });
+  const squash = groundSquash();
+  const mounds = [];
+  for (let i = 0; i < MOUND_LATTICE * MOUND_LATTICE; i++) {
+    if (roll(seed, 90 + i) > MOUND_KEEP) continue;
+    const gu = (i % MOUND_LATTICE + 0.5) / MOUND_LATTICE + (roll(seed, 10 + i) - 0.5) * 0.12;
+    const gv = (Math.floor(i / MOUND_LATTICE) + 0.5) / MOUND_LATTICE + (roll(seed, 30 + i) - 0.5) * 0.12;
+    const mc = Math.min(c1 - BED_KERB - 0.1, Math.max(c0 + BED_KERB + 0.1, col + gu));
+    const mr = Math.min(r1 - BED_KERB - 0.1, Math.max(r0 + BED_KERB + 0.1, row + gv));
+    const rx = 7 + roll(seed, 70 + i) * 2;
+    const ry = rx * (0.55 + 0.25 * squash);
+    // The mound sits on the soil: its middle half its height above it.
+    const at = lift(lift(project(mc, mr), BED_RISE), ry * 0.6);
+    const hue = driftHue(col * MOUND_LATTICE + (i % MOUND_LATTICE), row * MOUND_LATTICE + Math.floor(i / MOUND_LATTICE));
+    const blooms = [];
+    for (let b = 0; b < BLOOMS_PER_MOUND; b++) {
+      blooms.push({
+        x: at.x + (roll(seed, 200 + i * 8 + b) - 0.5) * rx * 1.4,
+        y: at.y - ry * (0.7 - roll(seed, 300 + i * 8 + b) * 0.85),
+        r: 1.5 + roll(seed, 400 + i * 8 + b) * 0.6,
+      });
+    }
+    mounds.push({ at, rx, ry, hue, blooms, key: i });
   }
-  // Painted back to front, so a near bloom covers a far one.
-  blooms.sort((a, b) => a.y - b.y);
+  // Painted back to front, so a near mound covers a far one.
+  mounds.sort((a, b) => a.at.y - b.at.y);
   return (
     <g className="campus-flowerbed">
       <polygon className="campus-bed-edge" points={polyPoints(f.left)} />
       <polygon className="campus-bed-edge side" points={polyPoints(f.right)} />
-      <polygon className="ground-bed" points={polyPoints(f.top)} />
-      {blooms.map((b) => <polygon key={b.key} className={`ground-bloom-${b.hue}`} points={polyPoints(b.disc)} />)}
+      <polygon className="campus-bed-kerb" points={polyPoints(f.top)} />
+      <polygon className="ground-bed" points={polyPoints(soil)} />
+      {mounds.map((m) => (
+        <g key={m.key}>
+          <ellipse className="campus-bed-leaf" cx={m.at.x} cy={m.at.y} rx={m.rx} ry={m.ry} />
+          <ellipse className="campus-bed-leaf-top" cx={m.at.x - m.rx * 0.18} cy={m.at.y - m.ry * 0.28} rx={m.rx * 0.62} ry={m.ry * 0.55} />
+          {m.blooms.map((b, i) => <circle key={i} className={`ground-bloom-${m.hue}`} cx={b.x} cy={b.y} r={b.r} />)}
+        </g>
+      ))}
     </g>
   );
 }

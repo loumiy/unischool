@@ -41,11 +41,12 @@ import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSyste
 // Swapped for "University" only by the charter offer.
 export const STARTING_INSTITUTION_SUFFIX = 'College';
 
-// The map's campus tools; the right button applies the armed tool's opposite.
+// The map's campus tools; the right button deletes what the armed tool lays.
 // `draw` paves with the material the build menu's path tiles chose
 // (components/pathChoice.ts); `flowerbed` is painted in strokes like a
-// path, and `clear` lifts whatever decoration stands on a tile.
-export type CampusTool = 'draw' | 'erase' | 'plant' | 'fell' | 'lamp' | 'bannerLamp' | 'bench' | 'flowerbed' | 'clear';
+// path, and `erase` deletes whatever decoration is on a tile: path, tree,
+// lamp, bench or bed.
+export type CampusTool = 'draw' | 'plant' | 'lamp' | 'bannerLamp' | 'bench' | 'flowerbed' | 'erase';
 
 // All the ways a player can change the world. The reducer is the only thing
 // that interprets these; UI dispatches them, systems never do.

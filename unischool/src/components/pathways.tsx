@@ -55,48 +55,69 @@ function arcInset(d: number): number {
   return CORNER_RADIUS - Math.sqrt(CORNER_RADIUS * CORNER_RADIUS - k * k) + ARC_MARGIN;
 }
 
-// The coursing of one tile, as segments in grid space. `rounded` is which
-// corners are rounded, [NE, SE, SW, NW]. A line running along the columns
-// at `v` down the tile is cut back at a rounded corner on either end; one
-// along the rows likewise.
-function coursingOf(surface: PathSurface, col: number, row: number, rounded: readonly boolean[]): string {
-  if (surface === 'paving') return '';
-  const [ne, se, sw, nw] = rounded;
-  const out: string[] = [];
-  // Along the columns (constant row), from u0 to u1 of the way across.
-  const alongCol = (v: number, u0 = 0, u1 = 1) => {
-    const westCut = Math.max(nw ? arcInset(v) : 0, sw ? arcInset(1 - v) : 0);
-    const eastCut = Math.max(ne ? arcInset(v) : 0, se ? arcInset(1 - v) : 0);
-    const a = Math.max(u0, westCut); const b = Math.min(u1, 1 - eastCut);
-    if (b - a > 0.02) out.push(seg(project(col + a, row + v), project(col + b, row + v)));
-  };
-  // Along the rows (constant col).
-  const alongRow = (u: number, v0 = 0, v1 = 1) => {
-    const northCut = Math.max(nw ? arcInset(u) : 0, ne ? arcInset(1 - u) : 0);
-    const southCut = Math.max(sw ? arcInset(u) : 0, se ? arcInset(1 - u) : 0);
-    const a = Math.max(v0, northCut); const b = Math.min(v1, 1 - southCut);
-    if (b - a > 0.02) out.push(seg(project(col + u, row + a), project(col + u, row + b)));
-  };
+// One line of a tile's coursing, in the tile's own unit square (u across
+// the columns, v down the rows): a line `along` the columns sits at v = at
+// and runs from u = from to u = to; one along the rows sits at u = at.
+interface CourseLine { along: 'col' | 'row'; at: number; from: number; to: number }
+
+function courseLines(surface: PathSurface, row: number): CourseLine[] {
+  const out: CourseLine[] = [];
   if (surface === 'brick') {
     // Four stretcher courses, the joints staggered by half a brick.
     const COURSES = 4;
-    for (let k = 1; k < COURSES; k++) alongCol(k / COURSES);
+    for (let k = 1; k < COURSES; k++) out.push({ along: 'col', at: k / COURSES, from: 0, to: 1 });
     for (let k = 0; k < COURSES; k++) {
-      const v0 = k / COURSES; const v1 = (k + 1) / COURSES;
       const offset = k % 2 === 0 ? 0.25 : 0.5;
-      for (let u = offset; u < 1; u += 0.5) alongRow(u, v0, v1);
+      for (let u = offset; u < 1; u += 0.5) out.push({ along: 'row', at: u, from: k / COURSES, to: (k + 1) / COURSES });
     }
-  } else {
+  } else if (surface === 'cobble') {
     // Setts: three rows of three, every other row shifted half a sett.
     const ROWS = 3;
-    for (let k = 1; k < ROWS; k++) alongCol(k / ROWS);
+    for (let k = 1; k < ROWS; k++) out.push({ along: 'col', at: k / ROWS, from: 0, to: 1 });
     for (let k = 0; k < ROWS; k++) {
-      const v0 = k / ROWS; const v1 = (k + 1) / ROWS;
       const offset = (k + row) % 2 === 0 ? 1 / 3 : 1 / 6;
-      for (let u = offset; u < 1; u += 1 / 3) alongRow(u, v0, v1);
+      for (let u = offset; u < 1; u += 1 / 3) out.push({ along: 'row', at: u, from: k / ROWS, to: (k + 1) / ROWS });
     }
   }
-  return out.join('');
+  return out;
+}
+
+// A course line from `from` to `to` of its own length, in grid space.
+function courseSeg(col: number, row: number, along: CourseLine['along'], at: number, from: number, to: number): string {
+  return along === 'col'
+    ? seg(project(col + from, row + at), project(col + to, row + at))
+    : seg(project(col + at, row + from), project(col + at, row + to));
+}
+
+// The coursing of one tile, as segments in grid space. `rounded` is which
+// corners are rounded, [NE, SE, SW, NW]. A line is cut back at a rounded
+// corner on either end.
+function coursingOf(surface: PathSurface, col: number, row: number, rounded: readonly boolean[]): string {
+  const [ne, se, sw, nw] = rounded;
+  return courseLines(surface, row).map(({ along, at, from, to }) => {
+    // The corners at the line's start and end: west and east for a line
+    // along the columns, north and south for one along the rows.
+    const [startCut, endCut] = along === 'col'
+      ? [Math.max(nw ? arcInset(at) : 0, sw ? arcInset(1 - at) : 0), Math.max(ne ? arcInset(at) : 0, se ? arcInset(1 - at) : 0)]
+      : [Math.max(nw ? arcInset(at) : 0, ne ? arcInset(1 - at) : 0), Math.max(sw ? arcInset(at) : 0, se ? arcInset(1 - at) : 0)];
+    const a = Math.max(from, startCut); const b = Math.min(to, 1 - endCut);
+    return b - a > 0.02 ? courseSeg(col, row, along, at, a, b) : '';
+  }).join('');
+}
+
+// The coursing of the half of an open tile a diagonal run's bridge paves:
+// the tile's own coursing, so it lines up with the paving either side, cut
+// to the half where p·u + q·v + c >= 0.
+function halfCoursingOf(surface: PathSurface, col: number, row: number, [p, q, c]: readonly [number, number, number]): string {
+  return courseLines(surface, row).map(({ along, at, from, to }) => {
+    // Along the line the half is k·t + m >= 0, t its own coordinate.
+    const [k, m] = along === 'col' ? [p, q * at + c] : [q, p * at + c];
+    let a = from; let b = to;
+    if (k > 0) a = Math.max(a, -m / k);
+    else if (k < 0) b = Math.min(b, -m / k);
+    else if (m < 0) return '';
+    return b - a > 0.02 ? courseSeg(col, row, along, at, a, b) : '';
+  }).join('');
 }
 
 const noneBySurface = (): Record<PathSurface, string[]> => ({ paving: [], cobble: [], brick: [] });
@@ -178,6 +199,14 @@ export function buildPathGeometry(pathways: Pathways): Geometry {
       const [e0, e1] = dc > 0 ? [col + 1, col] : [col, col + 1];
       fill.push(sub([project(e0, row), project(sc, sr), project(e0 + dc, row + 1)]));
       fill.push(sub([project(e1, row + 1), project(sc, sr), project(e1 + dc, row + 2)]));
+      // Each notch is half of the open tile beside it, coursed as that tile
+      // would be: the one beside this tile, then the one beside the next.
+      if (surface !== 'paving') {
+        coursing[surface].push(
+          halfCoursingOf(surface, col + dc, row, dc > 0 ? [-1, 1, 0] : [1, 1, -1]),
+          halfCoursingOf(surface, col, row + 1, dc > 0 ? [1, -1, 0] : [-1, -1, 1]),
+        );
+      }
     });
   }
 

@@ -206,15 +206,17 @@ function tilesBetween(a: TileCoord, b: TileCoord): TileCoord[] {
   return out;
 }
 
-// The path tool the secondary mouse button paints with, given the armed one.
-function otherPathTool(tool: CampusTool): CampusTool {
+// What a stroke paints with: an armed tool, or what the secondary mouse
+// button paints with under it, which deletes only what the tool lays (the
+// paving tool's right button lifts paths and leaves the trees). The eraser
+// deletes whatever decoration is on a tile, with either button.
+type StrokeTool = CampusTool | 'unpave' | 'fell' | 'lift';
+function otherPathTool(tool: CampusTool): StrokeTool {
   switch (tool) {
-    case 'draw': return 'erase';
-    case 'erase': return 'draw';
+    case 'draw': return 'unpave';
     case 'plant': return 'fell';
-    case 'fell': return 'plant';
-    case 'flowerbed': return 'clear';
-    case 'clear': return 'clear';
+    case 'flowerbed': return 'lift';
+    case 'erase': return 'erase';
     case 'lamp': return 'lamp';
     case 'bannerLamp': return 'bannerLamp';
     case 'bench': return 'bench';
@@ -226,15 +228,13 @@ function otherPathTool(tool: CampusTool): CampusTool {
 // text. Pieces in <kbd> are keys or buttons. A touch screen has neither a
 // second button nor Shift: it is told only what a drag or a tap does.
 const TOOL_HINTS: Record<CampusTool, { mouse: string[]; touch: string }> = {
-  draw: { mouse: ['Drag to pave', '[Shift]+drag for a straight line', '[Right]-drag lifts'], touch: 'Drag to pave' },
-  erase: { mouse: ['Drag to lift paths', '[Right]-drag paves'], touch: 'Drag to lift paths' },
-  plant: { mouse: ['Drag to plant', '[Right]-drag fells'], touch: 'Drag to plant' },
-  fell: { mouse: ['Drag to fell', '[Right]-drag plants'], touch: 'Drag to fell' },
-  lamp: { mouse: ['Click to place', '[Right]-click lifts'], touch: 'Tap to place' },
-  bannerLamp: { mouse: ['Click to place', '[Right]-click lifts'], touch: 'Tap to place' },
-  bench: { mouse: ['Click to place', '[R] turns it', '[Right]-click lifts'], touch: 'Tap to place' },
-  flowerbed: { mouse: ['Drag to plant a border', '[Right]-drag lifts'], touch: 'Drag to plant a border' },
-  clear: { mouse: ['Drag across lamps, benches and beds to lift them'], touch: 'Drag across decoration to lift it' },
+  draw: { mouse: ['Drag to pave', '[Shift]+drag for a straight line', '[Right click] to delete'], touch: 'Drag to pave' },
+  plant: { mouse: ['Drag to plant', '[Right click] to delete'], touch: 'Drag to plant' },
+  lamp: { mouse: ['Click to place', '[Right click] to delete'], touch: 'Tap to place' },
+  bannerLamp: { mouse: ['Click to place', '[Right click] to delete'], touch: 'Tap to place' },
+  bench: { mouse: ['Click to place', '[R] turns it', '[Right click] to delete'], touch: 'Tap to place' },
+  flowerbed: { mouse: ['Drag to plant a border', '[Right click] to delete'], touch: 'Drag to plant a border' },
+  erase: { mouse: ['Drag to delete paths, trees and decoration'], touch: 'Drag to delete paths, trees and decoration' },
 };
 // A screen whose main pointer is a finger: the hint speaks of taps before
 // the map has been touched (touchUi is only set by a touch on the map).
@@ -243,7 +243,7 @@ function coarsePointer(): boolean {
 }
 function ToolHint({ tool, touch }: { tool: CampusTool; touch: boolean }) {
   const hint = TOOL_HINTS[tool];
-  const parts = touch ? [hint.touch] : [...hint.mouse, '[Esc] puts it away'];
+  const parts = touch ? [hint.touch] : [...hint.mouse, '[Esc] to cancel'];
   return (
     <div className="map-tool-hint" role="status">
       {parts.map((part, i) => (
@@ -1422,7 +1422,7 @@ export default function CampusMap({
   // Set when a drag is recognized as a pan, so the click fired after mouseup
   // doesn't also place a building. Consumed by the next click or mousedown.
   const justPannedRef = useRef(false);
-  const pathDragRef = useRef<CampusTool | null>(null);
+  const pathDragRef = useRef<StrokeTool | null>(null);
   // The last tile a stroke painted. Mousemove can skip tiles on a fast
   // drag, so paintStroke draws the line from here.
   const pathLastRef = useRef<TileCoord | null>(null);
@@ -1833,7 +1833,7 @@ export default function CampusMap({
   // the draw tool lays a straight run from where the stroke began instead,
   // diagonals included (drawn as one band, see pathways.tsx), and moving the
   // pointer moves the run: tiles this stroke laid off the new line are lifted.
-  function paintStroke(e: { clientX: number; clientY: number; shiftKey: boolean }, tool: CampusTool) {
+  function paintStroke(e: { clientX: number; clientY: number; shiftKey: boolean }, tool: StrokeTool) {
     const here = tileFromEvent(e);
     if (!here) return;
     const stroke = strokeRef.current;
@@ -1902,8 +1902,8 @@ export default function CampusMap({
       return;
     }
     // A path tool owns the gesture and never arms the pan. Left paints with
-    // the armed tool, right with its opposite (so left draws, right erases).
-    // Lamps and benches: one a click, the right button lifts.
+    // the armed tool, right deletes what it lays (otherPathTool).
+    // Lamps and benches: one a click, the right button deletes.
     if (isClickTool(pathTool) && (e.button === 0 || e.button === 2)) {
       const tile = tileFromEvent(e);
       if (tile) act(e.button === 0 ? placeDressing(tile, pathTool) : { type: 'REMOVE_DRESSING', tile });
@@ -2212,25 +2212,42 @@ export default function CampusMap({
     ? { type: 'PLACE_DRESSING', tile, kind, facing: benchFacingAt(tile) }
     : { type: 'PLACE_DRESSING', tile, kind });
 
-  const paintTile = (tile: TileCoord, tool: CampusTool) => {
+  const paintTile = (tile: TileCoord, tool: StrokeTool) => {
     const key = pathTileKey(tile);
     // A tile already as the stroke would leave it is passed over, so a
     // stroke dispatches only what it changes.
-    if (tool === 'draw') {
-      const surface = pathSurface();
-      if (key in s.pathways && surfaceOf(s.pathways[key]) === surface) return;
-      act({ type: 'ADD_PATH_TILE', tile, ...(surface === 'paving' ? {} : { surface }) });
-    } else if (tool === 'flowerbed') {
-      if (s.dressing?.[key] !== 'flowerbed') act({ type: 'PLACE_DRESSING', tile, kind: 'flowerbed' });
-    } else if (tool === 'clear') {
-      if (s.dressing && key in s.dressing) act({ type: 'REMOVE_DRESSING', tile });
-    } else {
-      act(
-        tool === 'erase' ? { type: 'REMOVE_PATH_TILE', tile }
-          : tool === 'plant' ? { type: 'PLANT_TREE', tile, species: plantingSpecies() ?? undefined }
-            : tool === 'fell' ? { type: 'FELL_TREE', tile }
-              : placeDressing(tile, tool),
-      );
+    const paved = key in s.pathways;
+    const tree = key in s.trees;
+    const dressed = !!s.dressing && key in s.dressing;
+    switch (tool) {
+      case 'draw': {
+        const surface = pathSurface();
+        if (paved && surfaceOf(s.pathways[key]) === surface) return;
+        act({ type: 'ADD_PATH_TILE', tile, ...(surface === 'paving' ? {} : { surface }) });
+        return;
+      }
+      case 'plant':
+        if (!tree) act({ type: 'PLANT_TREE', tile, species: plantingSpecies() ?? undefined });
+        return;
+      case 'flowerbed':
+        if (s.dressing?.[key] !== 'flowerbed') act({ type: 'PLACE_DRESSING', tile, kind: 'flowerbed' });
+        return;
+      case 'unpave':
+        if (paved) act({ type: 'REMOVE_PATH_TILE', tile });
+        return;
+      case 'fell':
+        if (tree) act({ type: 'FELL_TREE', tile });
+        return;
+      case 'lift':
+        if (dressed) act({ type: 'REMOVE_DRESSING', tile });
+        return;
+      case 'erase':
+        if (paved) act({ type: 'REMOVE_PATH_TILE', tile });
+        if (tree) act({ type: 'FELL_TREE', tile });
+        if (dressed) act({ type: 'REMOVE_DRESSING', tile });
+        return;
+      default:
+        act(placeDressing(tile, tool));
     }
   };
 
@@ -2670,7 +2687,7 @@ export default function CampusMap({
             <>
               <HelpHint
                 align="end"
-                text="Where the college physically grows. Pick a building from the build menu (the toolbar's Build button) and place it here: the cost is charged at once, and it goes up where it is put. Press R, or click the ⟳ on the ghost, to turn it 90 degrees; with the bench tool, R turns the bench. A building needs empty ground for its whole footprint and a way to walk to it from the road along the south edge; when one is refused, the ghost says why. Press P (or use the Build menu's Paving, Cobbles or Brick tiles) to lay walkways, free: drag with the left button to pave, the right to lift, and hold Shift for a straight run. The Build menu's Grounds tab also plants trees by species, and sets lamps, banner lamps, benches and flower beds anywhere on open ground. Paths shape the quads and count toward campus beauty. Every tab opens as a full screen over this one; the Campus button, the tab's Close, or Escape returns here. Keys: W/A/S/D or the arrows pan; Q/E turn the view, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses, 1 to 4 set the speed, M mutes. Drag the map (or hold the scroll wheel) to pan; scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the curved-arrow buttons turn the view, ⤓ ⤒ tilt it, and ⌂ brings back the opening view."
+                text="Where the college physically grows. Pick a building from the build menu (the toolbar's Build button) and place it here: the cost is charged at once, and it goes up where it is put. Press R, or click the ⟳ on the ghost, to turn it 90 degrees; with the bench tool, R turns the bench. A building needs empty ground for its whole footprint and a way to walk to it from the road along the south edge; when one is refused, the ghost says why. Press P (or use the Build menu's Paths tile, then Paving, Cobbles or Brick beside it) to lay walkways, free: drag with the left button to pave, right click to delete, and hold Shift for a straight run. The Build menu's Grounds tab also plants trees by species, and sets lamps, banner lamps, benches and flower beds anywhere on open ground; its Eraser deletes any of them, paths and trees included. Paths shape the quads and count toward campus beauty. Every tab opens as a full screen over this one; the Campus button, the tab's Close, or Escape returns here. Keys: W/A/S/D or the arrows pan; Q/E turn the view, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses, 1 to 4 set the speed, M mutes. Drag the map (or hold the scroll wheel) to pan; scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the curved-arrow buttons turn the view, ⤓ ⤒ tilt it, and ⌂ brings back the opening view."
               />
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

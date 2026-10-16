@@ -52,13 +52,15 @@ export function ThumbDrawing({ t, vernacular }: { t: Buildable; vernacular: Vern
 
 const drawn = new Map<string, string>();
 
-// Draws one tile's building off screen at the default camera, fits the
-// viewBox to what was drawn, and keeps the markup. The camera is swapped
-// and put back inside this one synchronous call, so the map never renders
-// at the thumbnail's camera (isoProjection.ts's setCamera). Runs from a
-// timer, never inside a render, as flushSync requires.
-function draw(t: Buildable, v: Vernacular): string {
-  const key = thumbKey(t, v);
+// Draws `node` (an <svg> holding one <g>) off screen at the default camera,
+// fits the viewBox to what was drawn, and keeps the markup under `key`.
+// The camera is swapped and put back inside this one synchronous call, so
+// the map never renders at the thumbnail's camera (isoProjection.ts's
+// setCamera). Runs from a timer, never inside a render, as flushSync
+// requires. `minBox`: the smallest box, in projected units, a drawing is
+// fitted to, so a statue stays a statue beside a hall. The decoration's
+// tiles share it (decorThumbs.tsx).
+export function drawFitted(key: string, node: React.ReactElement, minBox = MIN_BOX): string {
   const kept = drawn.get(key);
   if (kept !== undefined) return kept;
   const host = document.createElement('div');
@@ -69,13 +71,13 @@ function draw(t: Buildable, v: Vernacular): string {
   setCamera(DEFAULT_CAMERA);
   let markup = '';
   try {
-    flushSync(() => root.render(<ThumbDrawing t={t} vernacular={v} />));
+    flushSync(() => root.render(node));
     const svg = host.querySelector('svg');
     const g = svg?.querySelector('g');
     if (svg && g) {
       const b = g.getBBox();
-      const w = Math.max(b.width, MIN_BOX);
-      const h = Math.max(b.height, MIN_BOX * 0.6);
+      const w = Math.max(b.width, minBox);
+      const h = Math.max(b.height, minBox * 0.6);
       const pad = Math.max(w, h) * 0.05;
       // Centred across, standing on the bottom edge of the box.
       const x = b.x + b.width / 2 - w / 2 - pad;
@@ -94,16 +96,20 @@ function draw(t: Buildable, v: Vernacular): string {
   return markup;
 }
 
-export default function BuildThumb({ t, vernacular }: { t: Buildable; vernacular: Vernacular }) {
-  const key = thumbKey(t, vernacular);
-  const [markup, setMarkup] = useState(() => drawn.get(key) ?? null);
+// A drawing made once by drawFitted and kept, shown as markup.
+export function FittedDrawing({ drawKey, node, minBox }: { drawKey: string; node: () => React.ReactElement; minBox?: number }) {
+  const [markup, setMarkup] = useState(() => drawn.get(drawKey) ?? null);
   useEffect(() => {
-    const kept = drawn.get(key);
+    const kept = drawn.get(drawKey);
     if (kept !== undefined) { setMarkup(kept); return; }
-    const timer = window.setTimeout(() => setMarkup(draw(t, vernacular)), 0);
+    const timer = window.setTimeout(() => setMarkup(drawFitted(drawKey, node(), minBox)), 0);
     return () => window.clearTimeout(timer);
-    // `key` stands for t and vernacular.
+    // `drawKey` stands for what the node draws.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [drawKey]);
   return <span className="build-thumb" dangerouslySetInnerHTML={{ __html: markup ?? '' }} />;
+}
+
+export default function BuildThumb({ t, vernacular }: { t: Buildable; vernacular: Vernacular }) {
+  return <FittedDrawing drawKey={thumbKey(t, vernacular)} node={() => <ThumbDrawing t={t} vernacular={vernacular} />} />;
 }

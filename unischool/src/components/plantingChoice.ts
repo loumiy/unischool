@@ -20,5 +20,6 @@ export function usePlantingSpecies(): Species | null {
   return useSyncExternalStore(
     (l) => { listeners.add(l); return () => { listeners.delete(l); }; },
     plantingSpecies,
+    plantingSpecies,
   );
 }
