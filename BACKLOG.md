@@ -17,6 +17,20 @@ archive, and what is left here waits for later.*
 
 ---
 
+## Shipped in 0.1.2
+
+*Plan 104, from the playtest's players since 0.1.1 (T1, R9–R11, F2, S1),
+merged 16 October 2026; the upload is the owner's. What players see is in
+[`docs/store/changelog.md`](docs/store/changelog.md).*
+
+- [Plan 104](docs/plans/104-version-0-1-2.md): develop a course from its
+  hall, a skip that asks, the opening measured, a quieter first three
+  steps, teaching as numbers, a reason for every refused placement, needs
+  out of 100 and what pulls satisfaction down, no teaching overload, a
+  pennant that never splits a word, a welcome that welcomes, and the
+  Students tab after the first summer. Its B (a clock that says why it
+  stopped) is held until a second player misses a paused clock.
+
 ## Shipped in 0.1.1 (13 October 2026)
 
 *Sorted by the owner on 12 October 2026, sequenced in Plans 98–102 (and

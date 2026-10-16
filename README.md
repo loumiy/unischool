@@ -26,8 +26,8 @@ there is a legacy, and more than one way to earn a good one.
 - 📚 **Develop the curriculum** across 473 courses, 42 majors, graduate
   programs and seven schools: a hall becomes a school's once it holds three
   of its programs, and a program that isn't earning its place can be closed.
-- 👩‍🏫 **Hire faculty** with different teaching and research strengths — and
-  decide who teaches what.
+- 👩‍🏫 **Hire faculty** with different teaching and research strengths, read
+  against your own faculty's — and decide who teaches what.
 - 🔬 **Conduct research** by commissioning a topic, a team and a depth out of a
   specific facility, producing publications, breakthroughs and prizes.
 - 🎓 **Manage admissions** once a year, setting tuition and selectivity and
@@ -180,9 +180,9 @@ npm run dev
 
 Open the printed localhost URL. Name your school, pick its architecture and
 its colours, and a short walkthrough takes you through the first clicks —
-raise Founders Hall, appoint the first professor, found the first program,
-develop its next course, then house and feed the students — before the
-college is yours to run.
+raise Founders Hall, choose the first program and the professor who will
+teach it, develop its next course, then house and feed the students —
+before the college is yours to run.
 
 ## Controls
 

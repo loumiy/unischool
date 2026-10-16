@@ -5,6 +5,68 @@ point to the development records in `docs/plans/`.*
 
 ---
 
+## 0.1.2
+
+*From the first players' notes since 0.1.1, sequenced in Plan 104.*
+
+### The first hour
+
+- **A gentler start.** The welcome introduces the college and Founders
+  Hall, with no list of tasks to remember. Step two is choosing the first
+  program, each shown with the professor who would teach it ("English,
+  with Dr. Grace Bennett"); courses come in when the program is founded.
+  (104L)
+- **A quieter screen for the first three steps.** While you raise Founders
+  Hall and found the first program, the tabs you don't need yet are shut
+  and the figures dimmed. (104F)
+- **The walkthrough's skip asks first**: "Skip the walkthrough? It doesn't
+  come back this run." The welcome says it takes about five minutes.
+  (104C)
+- **The Students tab opens after the first summer**, with the satisfaction
+  figure. In week one every need read low because nothing was built yet;
+  now the walkthrough has you build somewhere to sleep and somewhere to
+  eat, and the first summer's review introduces satisfaction as the year's
+  average. Health shows once the college is big enough to need care.
+  (104M)
+
+### New
+
+- **Develop a program's next course from its hall.** Click a program in a
+  hall: its summary has the same Develop button as the Curriculum. (104A)
+- **What pulls satisfaction down.** While satisfaction is falling, the
+  Students tab and the figure's hover name the need that pulls hardest,
+  and why: "Housing is the drag: 320 beds, 480 wanted." (104I)
+
+### Changed
+
+- **Teaching as numbers, not letters.** A professor's teaching and
+  research, and a course's or program's quality, are numbers out of 100
+  ("81 → 88": now, and where they are heading). A young college's market
+  is weak by design, and as letters a search of C's and D's looked broken;
+  a candidate's teaching now sits beside your own faculty's median, warm
+  when they would raise it. The Provost's policy is *Staff the weakest
+  courses first*, and the Curriculum's filter *Below 78*. (104G)
+- **No teaching overload.** A professor teaches every course in their
+  slots at their own teaching: a B appointment no longer teaches C's as
+  they take more on. The slots stay, so a full department still needs a
+  hire to grow. Courses grade a little higher, and prestige rises a little
+  with them. (104J)
+- **A refused building says why.** A building you'd pay for with a loan,
+  gifts or the endowment shows green, and says how it would be paid; one
+  you can't put up says what it costs against what you have, or that the
+  board has frozen construction. A bench refused on a building says so
+  too. (104H)
+- **Needs read out of 100** on the Students tab and in the next-step line.
+  (104I)
+- **A long college name on the pennant** never breaks a word, at any text
+  size. (104K)
+
+### Saves
+
+A save from 0.1.1 opens in 0.1.2: nothing in the save changed.
+
+---
+
 ## 0.1.1 — 13 October 2026
 
 ### New
