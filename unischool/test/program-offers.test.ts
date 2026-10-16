@@ -83,7 +83,7 @@ function schoolOf(programId: string): string {
 }
 
 // ---- 0. The founding offers: the pillars (Plan 80D), then ordinary draws ----
-for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood', 'Dunmore']) {
+for (const rngSeed of ['Ashgrove', 'Halifax', 'Calderwood', 'Dunmore']) {
   const s = createInitialState(rngSeed);
   assert(s.programOffers.join(',') === FOUNDING_PROGRAMS.join(','), `seed ${rngSeed}: the founding pillars are the first offers (${s.programOffers.join(', ')})`);
   // Founding one draws its replacement by the ordinary mix (Plan 71): two
@@ -95,7 +95,7 @@ for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood', 'Dunmore']) {
 }
 
 // ---- 1. Found everything, taking the first offer each time ----
-for (const rngSeed of ['Ashgrove', 'Blackmoor', 'Calderwood']) {
+for (const rngSeed of ['Ashgrove', 'Halifax', 'Calderwood']) {
   const s = foundedState(rngSeed);
   assert(s.programOffers.length === PROGRAM_OFFER_COUNT, `seed ${rngSeed}: three on offer at founding`);
   assert(s.programOffers.every((id) => programById(id)?.kind === 'major'), `seed ${rngSeed}: the first offer is all majors`);

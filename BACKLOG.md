@@ -17,6 +17,20 @@ archive, and what is left here waits for later.*
 
 ---
 
+## Shipped in 0.1.2
+
+*Plan 104, from the playtest's players since 0.1.1 (T1, R9–R11, F2, S1),
+merged 16 October 2026; the upload is the owner's. What players see is in
+[`docs/store/changelog.md`](docs/store/changelog.md).*
+
+- [Plan 104](docs/plans/104-version-0-1-2.md): develop a course from its
+  hall, a skip that asks, the opening measured, a quieter first three
+  steps, teaching as numbers, a reason for every refused placement, needs
+  out of 100 and what pulls satisfaction down, no teaching overload, a
+  pennant that never splits a word, a welcome that welcomes, and the
+  Students tab after the first summer. Its B (a clock that says why it
+  stopped) is held until a second player misses a paused clock.
+
 ## Shipped in 0.1.1 (13 October 2026)
 
 *Sorted by the owner on 12 October 2026, sequenced in Plans 98–102 (and
@@ -35,6 +49,27 @@ Plan 103's opening), and landed by 13 October. What players see is in
   choices backed by real systems, and a memory of answers.
 - [Plan 102](docs/plans/102-the-course-catalog.md): what Plans 95L–M left
   of the course catalog's shape, at its present size.
+
+## Maybe for 0.1.3
+
+*The owner's ideas (16 October 2026), after Plan 104's fixes merged. Not
+yet sorted into a plan.*
+
+- **SVG textures for a "cozy" look.** Investigate whether textures drawn in
+  SVG (paper grain, fabric, brushed or stippled fills on the map and the
+  panels) would appeal to the cozy-game audience, or at least try the idea.
+  Start with a look, not a plan: a few textures on the cream panels, the
+  ground and a building or two, checked for legibility, both themes and
+  the colour-vision modes, and against the profiler on a late campus, since
+  the map is drawn on a canvas (`canvasPaint.ts`) and the panels in CSS.
+- **Admissions as a full-screen event.** The summer's admissions beat is
+  answered today in the inbox's reading pane (Plan 77;
+  `InterruptModal.tsx`'s `AdmissionsInterruptForm`), as a letter. Make it
+  a full-screen moment of its own, with the applicants drawn as dots that
+  move into an *admitted* bucket as the admit-rate slider moves, so the
+  decision is something to watch and feel rather than a number ticking up
+  and down. The figures and the projection it shows stay the model's own
+  (`projectAdmissions`); motion follows *Reduce motion*.
 
 ## Launch: toward Next Fest and 1.0
 

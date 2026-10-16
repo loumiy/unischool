@@ -36,7 +36,7 @@ const arg = (flag: string) => {
 const seed = Number(arg('--seed') ?? DEFAULT_SEED);
 // A name of its own for the Final Report's title, in place of the
 // harness's "Test".
-const name = arg('--name') ?? 'Blackmoor';
+const name = arg('--name') ?? 'Halifax';
 const out = arg('--out');
 const YEARS = 50;
 

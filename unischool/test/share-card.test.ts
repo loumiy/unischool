@@ -40,7 +40,7 @@ console.log('report card tests');
 
 {
   // A year-50 save, as the Final Report hangs it.
-  const s = createInitialState('Blackmoor');
+  const s = createInitialState('Halifax');
   s.clock.year = 50;
   const report = finalReport(s);
   const entry = hallEntryFor(s, report, 1_000);
@@ -65,7 +65,7 @@ console.log('report card tests');
   // The text, pinned: a fixed entry, not one the game grades, so the
   // snapshot moves only when the card does.
   const entry: HallEntry = {
-    id: 'x', college: 'Blackmoor & Vale College', name: 'Blackmoor & Vale', suffix: 'College', vernacular: 'collegiate-gothic' as HallEntry['vernacular'],
+    id: 'x', college: 'Halifax & Vale College', name: 'Halifax & Vale', suffix: 'College', vernacular: 'collegiate-gothic' as HallEntry['vernacular'],
     colors: { primary: '#123456', secondary: '#abcdef' } as HallEntry['colors'],
     title: 'A research powerhouse that never quite learned to teach, and a stadium that outgrew the library',
     mark: 'B',
@@ -75,36 +75,36 @@ console.log('report card tests');
     ],
     eras: [
       { name: 'The founding', from: 1, to: 10, lines: ['Four halls on a hill.'] },
-      { name: 'The long climb', from: 11, to: 50, lines: ['The rankings came round.', 'By the fiftieth year, <nobody> asked where Blackmoor was.'] },
+      { name: 'The long climb', from: 11, to: 50, lines: ['The rankings came round.', 'By the fiftieth year, <nobody> asked where Halifax was.'] },
     ],
     year: 50, finishedAt: 0, markScore: 67.6, rank: 4, total: 100,
   };
   const svg = reportCardSvg(entry, 'unischool.example');
   assert(wellFormed(svg), 'the pinned card is well formed, with its ampersand and angle brackets escaped');
   const expected = [
-    'B',
+    'H',
     'B',
     'The grade · 68',
     '#4 of 100 after fifty years',
-    'Blackmoor &amp; Vale College',
+    'Halifax &amp; Vale College',
     'A research powerhouse that never quite learned to teach,',
     'and a stadium that outgrew the library',
     'A', 'Academics', 'A', 'Research', 'B', 'Experience',
     'C', 'Athletics', 'D', 'Access', 'F', 'Finance',
-    '“By the fiftieth year, &lt;nobody&gt; asked where Blackmoor was.”',
+    '“By the fiftieth year, &lt;nobody&gt; asked where Halifax was.”',
     'UniSchool · unischool.example',
   ];
   const got = textOf(svg);
   assert(JSON.stringify(got) === JSON.stringify(expected), `the card's text, in order:\n    ${got.join('\n    ')}`);
   assert(chronicleLine(entry) === entry.eras[1].lines[1], 'the chronicle line is the last era\'s last');
-  assert(cardTitle({ ...entry, title: 'Blackmoor & Vale College: a teaching college' }) === 'A teaching college', 'the title drops the name the card already carries');
+  assert(cardTitle({ ...entry, title: 'Halifax & Vale College: a teaching college' }) === 'A teaching college', 'the title drops the name the card already carries');
 
   // A run hung before the card: no score, no rank.
   const legacy: HallEntry = { ...entry, markScore: undefined, rank: undefined, total: undefined, year: 50 };
   const old = textOf(reportCardSvg(legacy, ''));
   assert(!old.some((w) => w.startsWith('The grade ·')) && old.includes('After fifty years'), 'an older entry draws without the score and the rank');
   assert(old[old.length - 1] === 'UniSchool', 'and without a site, the footer is the name alone');
-  assert(reportCardSummary(legacy, 'site') === 'Blackmoor & Vale College — B after fifty years. UniSchool site', 'and its summary too');
+  assert(reportCardSummary(legacy, 'site') === 'Halifax & Vale College — B after fifty years. UniSchool site', 'and its summary too');
   assert(chronicleLine({ ...entry, eras: [{ name: 'x', from: 1, to: 50, lines: [] }] }) === '', 'no chronicle, no quote');
 }
 
@@ -118,7 +118,7 @@ console.log('report card tests');
 // The card's own fonts (Plan 98F): four faces, embedded when given, each
 // subset small, and holding every character the report's own words use.
 {
-  const s = createInitialState('Blackmoor');
+  const s = createInitialState('Halifax');
   s.clock.year = 50;
   const entry = hallEntryFor(s, finalReport(s), 1_000);
   const fonts = { display: 'data:font/woff2;base64,AAAA', sans: 'data:font/woff2;base64,BBBB', sansBold: 'data:font/woff2;base64,CCCC', sansItalic: 'data:font/woff2;base64,DDDD' };

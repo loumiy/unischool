@@ -25,14 +25,14 @@ function assert(cond: boolean, msg: string): void {
 
 console.log('surroundings tests');
 
-const NAMES = ['Blackmoor University', 'Harrow Vale College', 'Saint Aldric', 'Q', 'Université de Montfort', 'A'];
+const NAMES = ['Halifax University', 'Harrow Vale College', 'Saint Aldric', 'Q', 'Université de Montfort', 'A'];
 
 // The same name, the same land; another name, another.
-const a = JSON.stringify(landOf('Blackmoor University'));
+const a = JSON.stringify(landOf('Halifax University'));
 landOf('Harrow Vale College');
-assert(JSON.stringify(landOf('Blackmoor University')) === a, 'a name gives the same land every time');
+assert(JSON.stringify(landOf('Halifax University')) === a, 'a name gives the same land every time');
 const differs = (x: Land, y: Land) => JSON.stringify(x.fields) !== JSON.stringify(y.fields) && JSON.stringify(x.houses) !== JSON.stringify(y.houses);
-assert(differs(landOf('Blackmoor University'), landOf('Harrow Vale College')), 'two names give two lands');
+assert(differs(landOf('Halifax University'), landOf('Harrow Vale College')), 'two names give two lands');
 const towns = new Set(NAMES.map((n) => landOf(n).town));
 assert(towns.size === 2, 'the town stands west of one campus and east of another');
 
@@ -163,7 +163,7 @@ assert(clampView(still, 1440, 900) === still, 'a view over the land is not moved
 // The view is a handful of shapes and a modest number of sprites.
 for (const azimuth of VIEWS) {
   setCamera({ azimuth, pitch: PITCHES[3]! });
-  const view = ringView('Blackmoor University');
+  const view = ringView('Halifax University');
   const sprites = view.back.length + view.front.length;
   assert(view.covers.length <= 40 && sprites < 450, `view ${azimuth.toFixed(2)}: ${view.covers.length} field shapes, ${sprites} sprites`);
   assert(!('woods' in view) && !('pines' in view), 'no wood shapes (Plan 81D)');

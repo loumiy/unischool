@@ -10,6 +10,7 @@ import { totalEnrolled } from '../state/types';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
 import { awaitsSite, isPlaceableKind } from '../state/campusMap';
 import BuildThumb from './BuildThumb';
+import DecorThumb from './decorThumbs';
 import { foundersHallUnsited } from '../state/opening';
 import { walkBuilding } from '../data/openingData';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
@@ -23,14 +24,12 @@ import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
 import { setPlantingSpecies, usePlantingSpecies } from './plantingChoice';
 import { buildStyle, setBuildStyle, setPathSurface, useBuildStyle, usePathSurface } from './pathChoice';
-import type { PathSurface } from '../state/paving';
+import { PATH_SURFACES, type PathSurface } from '../state/paving';
 import type { Species } from '../data/treeData';
 import { isSandbox } from '../systems/sandbox/sandbox';
 import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
 import {
-  EraseIcon, FellIcon, LampIcon, BenchIcon, BuildIcon,
-  PavingIcon, CobbleIcon, BrickIcon, BannerLampIcon, FlowerbedIcon, ClearDecorIcon,
-  AnyTreeIcon, BroadleafIcon, OrnamentalIcon, BirchIcon, WillowIcon, CherryIcon, PalmIcon, HousingIcon, DiningIcon, LibraryIcon,
+  EraseIcon, BuildIcon, HousingIcon, DiningIcon, LibraryIcon,
   LabIcon, HealthIcon, QuadIcon, FitnessIcon, ArtsIcon, AcademicIcon, TreeIcon,
   AthleticsIcon, StudentLifeIcon, DisclosureIcon,
 } from './icons';
@@ -658,19 +657,20 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   );
 }
 
-// The grounds' tools (paths, trees, decoration): quarter tiles, four to the
-// space of one building's tile, in clusters two high, so a long row of small
-// repeatable things stays short. `pathTool` is lifted to App.tsx; which
-// surface the draw tool paves with and which tree the plant tool plants are
-// the session's choices (pathChoice.ts, plantingChoice.ts), so a surface's
-// or a species' tile arms the one tool with that choice.
+// The grounds' tools: quarter tiles, four to the space of one building's
+// tile, each showing the thing itself (decorThumbs.tsx). `pathTool` is lifted
+// to App.tsx. Paths and Trees are one tile each: armed, its styles extend
+// from it in its row (the surface the draw tool paves with, the tree the
+// plant tool plants: the session's choices, pathChoice.ts and
+// plantingChoice.ts), and the tile shows the one chosen. One eraser deletes
+// whatever decoration is on a tile.
 interface MiniTool {
-  key: string; label: string; title: string; Icon: () => React.JSX.Element;
+  key: string; label: string; title: string; art: React.ReactNode;
   armed: boolean; onClick: () => void;
 }
 
 function MiniTile({ tool }: { tool: MiniTool }) {
-  const { label, title, Icon, armed, onClick } = tool;
+  const { label, title, art, armed, onClick } = tool;
   return (
     <button
       type="button"
@@ -679,41 +679,40 @@ function MiniTile({ tool }: { tool: MiniTool }) {
       title={title}
       onClick={onClick}
     >
-      <span className="build-mini-icon"><Icon /></span>
+      <span className="build-mini-art">{art}</span>
       <span className="build-mini-name">{label}</span>
     </button>
   );
 }
 
-// A labelled cluster of quarter tiles, filled down each column of two.
-function MiniCluster({ label, tools }: { label: string; tools: MiniTool[] }) {
+// A tool's row: its tile, and while it is armed its styles beside it.
+function MiniToolRow({ tool, styles, label }: { tool: MiniTool; styles: MiniTool[]; label: string }) {
+  const open = tool.armed;
   return (
-    <div className="build-mini-cluster" role="group" aria-label={label}>
-      <span className="build-mini-label">{label}</span>
-      <div className="build-mini-grid">
-        {tools.map((tool) => <MiniTile key={tool.key} tool={tool} />)}
-      </div>
+    <div className={`build-mini-row ${open ? 'open' : ''}`}>
+      <MiniTile tool={tool} />
+      {open && (
+        <div className="build-mini-styles" role="group" aria-label={label}>
+          {styles.map((t) => <MiniTile key={t.key} tool={t} />)}
+        </div>
+      )}
     </div>
   );
 }
 
-const SURFACE_TOOLS: readonly { id: PathSurface; label: string; title: string; Icon: () => React.JSX.Element }[] = [
-  { id: 'paving', label: 'Paving', title: 'Draw flagstone paths (P). Drag to pave; hold Shift for a straight line; right-drag lifts.', Icon: PavingIcon },
-  { id: 'cobble', label: 'Cobbles', title: 'Draw cobblestone paths. Drag to pave or repave; hold Shift for a straight line; right-drag lifts.', Icon: CobbleIcon },
-  { id: 'brick', label: 'Brick', title: 'Draw brick paths. Drag to pave or repave; hold Shift for a straight line; right-drag lifts.', Icon: BrickIcon },
-];
+const SURFACE_LABELS: Record<PathSurface, string> = { paving: 'Paving', cobble: 'Cobbles', brick: 'Brick' };
 
 // Which tree the plant tool plants (Plan 37, from v2's): whatever grows,
 // or one kind.
-const SPECIES_TOOLS: readonly { id: Species | null; label: string; Icon: () => React.JSX.Element }[] = [
-  { id: null, label: 'Any tree', Icon: AnyTreeIcon },
-  { id: 'canopy', label: 'Broadleaf', Icon: BroadleafIcon },
-  { id: 'conifer', label: 'Conifer', Icon: TreeIcon },
-  { id: 'ornamental', label: 'Ornamental', Icon: OrnamentalIcon },
-  { id: 'birch', label: 'Birch', Icon: BirchIcon },
-  { id: 'willow', label: 'Willow', Icon: WillowIcon },
-  { id: 'cherry', label: 'Cherry', Icon: CherryIcon },
-  { id: 'palm', label: 'Palm', Icon: PalmIcon },
+const SPECIES_CHOICES: readonly { id: Species | null; label: string }[] = [
+  { id: null, label: 'Any tree' },
+  { id: 'canopy', label: 'Broadleaf' },
+  { id: 'conifer', label: 'Conifer' },
+  { id: 'ornamental', label: 'Ornamental' },
+  { id: 'birch', label: 'Birch' },
+  { id: 'willow', label: 'Willow' },
+  { id: 'cherry', label: 'Cherry' },
+  { id: 'palm', label: 'Palm' },
 ];
 
 function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArmPlacement, act }: {
@@ -727,41 +726,43 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
   const surface = usePathSurface();
   const species = usePlantingSpecies();
   // A tool's tile: arms it, or puts it away if it is already armed.
-  const tool = (key: CampusTool, label: string, title: string, Icon: () => React.JSX.Element): MiniTool => ({
-    key, label, title, Icon, armed: pathTool === key, onClick: () => onSetPathTool(key),
+  const tool = (key: CampusTool, label: string, title: string, art: React.ReactNode): MiniTool => ({
+    key, label, title, art, armed: pathTool === key, onClick: () => onSetPathTool(key),
   });
-  // A choice's tile: arms its tool with that choice, or, already armed with
-  // it, puts the tool away.
-  const chosen = (key: string, armed: boolean, label: string, title: string, Icon: () => React.JSX.Element, choose: () => void, mode: CampusTool): MiniTool => ({
-    key, label, title, Icon, armed,
-    onClick: () => {
-      if (armed) { onSetPathTool(mode); return; }
-      choose();
-      if (pathTool !== mode) onSetPathTool(mode);
-    },
-  });
-  const paths: MiniTool[] = [
-    ...SURFACE_TOOLS.map((t) => chosen(`path-${t.id}`, pathTool === 'draw' && surface === t.id, t.label, t.title, t.Icon, () => setPathSurface(t.id), 'draw')),
-    tool('erase', 'Erase', 'Erase paths (right-drag with a path tool also erases)', EraseIcon),
-  ];
-  const trees: MiniTool[] = [
-    ...SPECIES_TOOLS.map((t) => chosen(`tree-${t.id ?? 'any'}`, pathTool === 'plant' && species === t.id, t.label,
-      t.id ? `Plant ${t.label.toLowerCase()} trees: drag to plant; right-drag fells` : 'Plant whatever grows: drag to plant; right-drag fells',
-      t.Icon, () => setPlantingSpecies(t.id), 'plant')),
-    tool('fell', 'Fell', 'Fell trees (right-drag with a tree tool also fells)', FellIcon),
-  ];
+  const paths = tool('draw', 'Paths', 'Draw paths, free (P): drag to pave, Shift for a straight line, right click to delete',
+    <DecorThumb d={{ kind: 'path', surface }} />);
+  const surfaces: MiniTool[] = PATH_SURFACES.map((id) => ({
+    key: `path-${id}`, label: SURFACE_LABELS[id], title: `Pave with ${SURFACE_LABELS[id].toLowerCase()}`,
+    art: <DecorThumb d={{ kind: 'path', surface: id }} />, armed: surface === id, onClick: () => setPathSurface(id),
+  }));
+  const trees = tool('plant', 'Trees', 'Plant trees, free: drag to plant, right click to delete',
+    <DecorThumb d={{ kind: 'tree', species }} />);
+  const kinds: MiniTool[] = SPECIES_CHOICES.map((c) => ({
+    key: `tree-${c.id ?? 'any'}`, label: c.label, title: c.id ? `Plant ${c.label.toLowerCase()} trees` : 'Plant whatever grows',
+    art: <DecorThumb d={{ kind: 'tree', species: c.id }} />, armed: species === c.id, onClick: () => setPlantingSpecies(c.id),
+  }));
   const decor: MiniTool[] = [
-    tool('lamp', 'Lamp', 'Place a lamp, one a click (right-click lifts one)', LampIcon),
-    tool('bannerLamp', 'Banner lamp', 'Place a lamp post hung with banners in the college colors (right-click lifts one)', BannerLampIcon),
-    tool('bench', 'Bench', 'Place a bench, one a click: R turns it (right-click lifts one)', BenchIcon),
-    tool('flowerbed', 'Flower bed', 'Plant flower beds: drag to plant a border; right-drag lifts', FlowerbedIcon),
-    tool('clear', 'Remove', 'Lift lamps, benches and flower beds: drag across them', ClearDecorIcon),
+    tool('lamp', 'Lamp', 'Place a lamp, one a click; right click to delete', <DecorThumb d={{ kind: 'lamp' }} />),
+    tool('bannerLamp', 'Banner lamp', 'Place a lamp post hung with banners in the college colors; right click to delete',
+      <DecorThumb d={{ kind: 'bannerLamp', colors: s.self.colors }} />),
+    tool('bench', 'Bench', 'Place a bench, one a click: R turns it; right click to delete', <DecorThumb d={{ kind: 'bench' }} />),
+    tool('flowerbed', 'Flower bed', 'Plant flower beds: drag to plant a border; right click to delete', <DecorThumb d={{ kind: 'flowerbed' }} />),
+    tool('erase', 'Eraser', 'Delete paths, trees, lamps, benches and flower beds: drag across them', <EraseIcon />),
   ];
   return (
     <div className="build-tile-row">
-      <MiniCluster label="Paths · free" tools={paths} />
-      <MiniCluster label="Trees · free" tools={trees} />
-      <MiniCluster label="Decoration · free" tools={decor} />
+      <div className="build-mini-cluster" role="group" aria-label="Grounds tools">
+        <span className="build-mini-label">Grounds · free</span>
+        <div className="build-mini-body">
+          <div className="build-mini-rows">
+            <MiniToolRow tool={paths} styles={surfaces} label="What to pave with" />
+            <MiniToolRow tool={trees} styles={kinds} label="Which tree to plant" />
+          </div>
+          <div className="build-mini-grid">
+            {decor.map((t) => <MiniTile key={t.key} tool={t} />)}
+          </div>
+        </div>
+      </div>
       {groups.map((group) => (
         <BuildGroupTiles key={group.key} s={s} group={group} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}

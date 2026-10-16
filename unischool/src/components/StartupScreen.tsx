@@ -323,7 +323,7 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Blackmoor"
+          placeholder="e.g. Halifax"
           maxLength={COLLEGE_NAME_MAX}
         />
         {name.length >= COLLEGE_NAME_MAX && <p className="startup-name-note" role="status">{NAME_LIMIT_NOTE}</p>}

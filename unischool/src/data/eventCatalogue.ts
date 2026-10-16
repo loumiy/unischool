@@ -509,7 +509,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     hires: 'untaught',
     when: { facultyOver: 2, programsOver: 1 },
     names: { faculty: 'recent' },
-    text: '{faculty}, whom {school} would like to keep, has a spouse, {candidate}, who is also an academic, in {candidateField}, a field the college does not teach, and has asked, mildly, whether anything might be possible. Nobody has mentioned anywhere else, which is itself a kind of mention.',
+    text: '{faculty}, whom {school} would like to keep, has a spouse, {candidate}, who is also an academic, in {candidateField}, a field the college does not teach, and has asked, mildly, whether anything might be possible. Nobody has mentioned going anywhere else, which is itself a kind of mention.',
     timeoutWeeks: 3,
     choices: [
       { id: 'line', label: 'Appoint {candidate} to a courtesy post', effects: { cash: -90000, quality: 2, mood: 1, hire: 1 } },

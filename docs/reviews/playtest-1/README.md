@@ -35,6 +35,14 @@ And everything else they find: what confuses, what bores, what breaks.
 | October – mid December | The playtest. Replies read weekly. `0.1.x` builds only for bugs that lose a save or block a run. Avoid posting in US Thanksgiving week (from 23 November) and Steam Next Fest weeks. |
 | Mid December | The form closes (or runs on, if replies still come). Triage (below), and the next plan written from it. |
 
+## The builds
+
+| Build | On itch.io | What it changed |
+|---|---|---|
+| `0.1.0` (`433e111`) | 8 October | The first public build (Plan 97). |
+| `0.1.1` (`f57916d`) | 13 October | Plans 98–103: halls claimed by three, events that do what they say, save slots, a longer opening ([changelog](../../store/changelog.md)). |
+| `0.1.2` | Not yet uploaded | Plan 104: the first hour and the readings players got stuck on ([changelog](../../store/changelog.md)). |
+
 ## Where feedback arrives
 
 | Source | Where to read it | What it holds |

@@ -32,7 +32,7 @@ const RUNS = [
   { seed: 1, name: 'Ashgrove College' },
   { seed: 2, name: 'Test' },
   { seed: 3, name: 'Harrow College' },
-  { seed: 4, name: 'Blackmoor University' },
+  { seed: 4, name: 'Halifax University' },
 ];
 const YEARS = 6;
 

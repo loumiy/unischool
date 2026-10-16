@@ -6,10 +6,10 @@ is to sequence the fixes the playtest has asked for since 0.1.1 (13 October
 from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
-**Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). A, C, D and F–M are done, on the branch `claude/plan-104` (16
-October), not yet merged; B is held (decision 4); E, the release, waits for
-them.**
+**Status: Landed (16 October 2026), bar B, held by decision 4 until a
+second player misses a paused clock. A, C, D and F–M merged together
+(#380); E's repository side followed, and the Release workflow and the
+itch.io upload are the owner's.**
 
 ---
 
@@ -625,6 +625,20 @@ need") reads as one more failure.
 
 - `package.json` to 0.1.2, the Release workflow, the itch.io upload, a
   short devlog, and the playtest README's patch table.
+
+**As implemented.**
+
+- **The repository's half:** the version (0.1.2), the players' changelog
+  (`docs/store/changelog.md`, undated until the upload, as 0.1.1's was), a
+  devlog draft in the owner's first person (`docs/store/devlog-0.1.2.md`),
+  the README's opening sentence and faculty line, `BACKLOG.md`'s *Shipped in
+  0.1.2*, and the playtest README's table of builds, which it didn't have:
+  0.1.0, 0.1.1 and 0.1.2, the last "not yet uploaded".
+- **Saves:** `SAVE_VERSION` is 103, as in 0.1.1, so a save goes either
+  way; the changelog says a 0.1.1 save opens in 0.1.2.
+- **Left to the owner:** the Release workflow (a `v0.1.2` tag, or by hand),
+  the upload, the itch page's text, and the build's date and commit in the
+  changelog and the table.
 
 ## 3. Decisions, settled by the owner (16 October)
 

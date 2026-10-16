@@ -7,7 +7,7 @@
 //
 //   npm run timelapse -- --out node_modules/.tmp/timelapse
 //   npm run timelapse -- --player Completionist --years 50 --every 13 \
-//     --name Blackmoor --colors navy-gold --vernacular gothic --out dir
+//     --name Halifax --colors navy-gold --vernacular gothic --out dir
 //   npm run timelapse:shoot -- node_modules/.tmp/timelapse
 //
 // How a frame is made:

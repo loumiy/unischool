@@ -1,7 +1,10 @@
 // The grounds a player draws (the build menu's Grounds tab): paths in three
 // surfaces (src/state/paving.ts), laid tile by tile or in a straight run
 // that puts back what it crossed, and drawn each in its own coursing
-// (src/components/pathways.tsx); and a sandbox's hand on a standing
+// (src/components/pathways.tsx), diagonals included; the tab's tiles, one
+// for Paths and one for Trees with their styles beside them while armed,
+// one eraser, each showing the thing itself (decorThumbs.tsx); and a
+// sandbox's hand on a standing
 // building (src/state/sandboxMoves.ts): moved, and drawn in another
 // architecture. None of it is open to a normal run's buildings.
 
@@ -11,9 +14,15 @@ import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { bindScriptStream } from '../src/engine/random';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { buildPathGeometry } from '../src/components/pathways';
+import { project, type Pt } from '../src/components/isoProjection';
+import BuildPopup from '../src/components/BuildPopup';
+import { DecorDrawing, decorKey, type Decor } from '../src/components/decorThumbs';
+import type { CampusTool } from '../src/state/actions';
 import { campusLayout, entryKey } from '../src/components/campusLayout';
-import { surfaceOf } from '../src/state/paving';
+import { PATH_SURFACES, surfaceOf } from '../src/state/paving';
 import { moveRefusal } from '../src/state/sandboxMoves';
 import { firstFreeSpot, footprintOf, isPlaceableKind, orientedFootprint, placementTiles } from '../src/state/campusMap';
 import { SAVE_KEY, SAVE_VERSION, loadGame } from '../src/state/persistence';
@@ -113,6 +122,82 @@ function roundTrip(s: GameState): GameState | null {
     return true;
   };
   assert(xs.length > 0 && xs.every(inside), 'and every sett joint of a lone tile lies inside its rounded outline');
+}
+
+// ---- A diagonal run is coursed end to end ----
+{
+  // Two tiles that meet at a corner are bridged by paving across it; the
+  // bridge's notches carry the coursing too, either way the run goes. The
+  // first notch is half the open tile beside the upper one, under the run's
+  // edge: some coursing must lie inside it.
+  const mids = (d: string) => [...d.matchAll(/M(-?[\d.]+),(-?[\d.]+)L(-?[\d.]+),(-?[\d.]+)/g)]
+    .map((m) => ({ x: (Number(m[1]) + Number(m[3])) / 2, y: (Number(m[2]) + Number(m[4])) / 2 }));
+  const inside = (p: Pt, [a, b, c]: Pt[]) => {
+    const side = (u: Pt, v: Pt) => (v.x - u.x) * (p.y - u.y) - (v.y - u.y) * (p.x - u.x);
+    const s1 = side(a!, b!); const s2 = side(b!, c!); const s3 = side(c!, a!);
+    return (s1 > 0 && s2 > 0 && s3 > 0) || (s1 < 0 && s2 < 0 && s3 < 0);
+  };
+  for (const surface of ['brick', 'cobble'] as const) {
+    const runs = [
+      { name: 'south-east', other: '51,51', notch: [project(51, 50), project(51, 51), project(52, 51)] },
+      { name: 'south-west', other: '51,49', notch: [project(50, 50), project(50, 51), project(49, 51)] },
+    ];
+    for (const { name, other, notch } of runs) {
+      const run = buildPathGeometry({ '50,50': surface, [other]: surface });
+      const inNotch = mids(run.coursing[surface]).filter((p) => inside(p, notch)).length;
+      assert(inNotch > 0, `a ${surface} run to the ${name} is coursed across the corner it bridges (${inNotch} lines in the notch)`);
+    }
+  }
+  assert(buildPathGeometry({ '50,50': true, '51,51': true }).coursing.paving === '', 'and the flagged walk keeps only its joints');
+}
+
+// ---- The Grounds tab: one Paths, one Trees, one eraser ----
+{
+  const s = found(false);
+  const noop = () => {};
+  const tab = (pathTool: CampusTool | null) => renderToStaticMarkup(createElement(BuildPopup, {
+    s, act: noop, placingId: null, onArmPlacement: noop, pathTool, onSetPathTool: noop, onClose: noop,
+  }));
+  const tiles = (html: string) => (html.match(/class="build-mini-tile/g) ?? []).length;
+  const shut = tab(null);
+  assert(shut.includes('Grounds · free'), 'the build menu opens on the Grounds tools');
+  // Paths, Trees, Lamp, Banner lamp, Bench, Flower bed, Eraser.
+  assert(tiles(shut) === 7, `seven tools with nothing armed (${tiles(shut)})`);
+  assert(!shut.includes('build-mini-styles'), 'and no styles until one is armed');
+  for (const gone of ['>Erase<', '>Fell<', '>Remove<', '>Cobbles<', '>Broadleaf<']) {
+    assert(!shut.includes(gone), `no tile of its own for ${gone.slice(1, -1)}`);
+  }
+  assert((shut.match(/>Eraser</g) ?? []).length === 1, 'one eraser');
+  const paths = tab('draw');
+  assert(tiles(paths) === 7 + PATH_SURFACES.length && paths.includes('aria-label="What to pave with"'),
+    `the Paths tool armed, its three surfaces extend from it (${tiles(paths)} tiles)`);
+  assert(paths.includes('>Paving<') && paths.includes('>Cobbles<') && paths.includes('>Brick<'), 'Paving, Cobbles and Brick');
+  const trees = tab('plant');
+  assert(tiles(trees) === 7 + 8 && trees.includes('aria-label="Which tree to plant"') && !trees.includes('What to pave with'),
+    `the Trees tool armed, its eight choices extend from it and not the surfaces (${tiles(trees)} tiles)`);
+  assert(!tab('erase').includes('build-mini-styles'), 'the eraser has no styles');
+}
+
+// ---- Each decoration's tile is drawn by the map's own art ----
+{
+  const kinds: Decor[] = [
+    ...PATH_SURFACES.map((surface) => ({ kind: 'path', surface }) as Decor),
+    ...([null, 'canopy', 'conifer', 'ornamental', 'birch', 'willow', 'cherry', 'palm'] as const).map((species) => ({ kind: 'tree', species }) as Decor),
+    { kind: 'lamp' }, { kind: 'bannerLamp', colors: schoolColorsOf(FOUNDING_COLORS) }, { kind: 'bench' }, { kind: 'flowerbed' },
+  ];
+  const keys = new Set<string>();
+  for (const d of kinds) {
+    let markup = '';
+    try {
+      markup = renderToStaticMarkup(createElement(DecorDrawing, { d }));
+    } catch (e) {
+      assert(false, `${decorKey(d)} draws: ${(e as Error).message}`);
+      continue;
+    }
+    assert((markup.match(/<(polygon|path|line|circle|ellipse)\b/g) ?? []).length > 1, `${decorKey(d)} draws something on its grass`);
+    keys.add(decorKey(d));
+  }
+  assert(keys.size === kinds.length, 'and each is kept under its own key');
 }
 
 // ---- A save keeps the surfaces, and drops what it does not draw ----

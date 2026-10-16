@@ -51,7 +51,7 @@ npm run scenario -- summer                    # the four-beat summer, stopped on
 npm run scenario -- final-report              # the fiftieth summer, stopped on the final report
 npm run scenario -- --player Guided --year 12 --modal milestone
 npm run scenario -- --player Completionist --year 22 --vernacular gothic \
-  --name Blackmoor --clear-modal /tmp/gothic.json   # a campus to photograph
+  --name Halifax --clear-modal /tmp/gothic.json   # a campus to photograph
 ```
 
 A scenario is a **recipe, never a file**: a player (the guided player or an

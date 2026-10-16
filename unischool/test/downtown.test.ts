@@ -299,7 +299,7 @@ const TOWN = EVENT_CATALOGUE.filter(isTownEvent);
 
 // ---- The map ----
 {
-  const name = 'Blackmoor University';
+  const name = 'Halifax University';
   const land = landOf(name);
   const plain = ringView(name, false);
   const zero = ringView(name, false, 0, true);

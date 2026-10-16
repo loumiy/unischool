@@ -171,7 +171,7 @@ export function titleTag(s: GameState, grades: AxisGrade[]): string | undefined 
   return tags.find(earned) ?? unheld[0] ?? tags[0];
 }
 
-// "Blackmoor University: a research powerhouse that never gave its students
+// "Halifax University: a research powerhouse that never gave its students
 // much of a campus life." Its specialization first, once it has one (Plan
 // 85D: "a college known first for its teaching", the card's own words);
 // else its tag, an earned one first (titleTag), or its strongest standing. Then

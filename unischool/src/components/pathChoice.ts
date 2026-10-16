@@ -17,6 +17,7 @@ function choice<T>(initial: T) {
   const use = () => useSyncExternalStore(
     (l) => { listeners.add(l); return () => { listeners.delete(l); }; },
     get,
+    get,
   );
   return { get, set, use };
 }

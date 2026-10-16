@@ -861,7 +861,7 @@ button.build-tile { font-family: inherit; }
 /* The building itself, as the map draws it (Plan 94, BuildThumb.tsx): it
    fills the plan and stands on its foot, the stamp over its corner. */
 .build-thumb { width: 100%; height: 100%; display: block; }
-.build-thumb svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.build-thumb svg { width: 100%; height: 100%; display: block; overflow: visible; cursor: inherit; touch-action: auto; }
 /* The count, chain place or "built", stamped on the plan (Plan 90). */
 .build-tile-stamp { position: absolute; right: 5px; bottom: 4px; font-family: var(--mono); font-weight: 700;
   font-size: var(--text-2xs); line-height: 1; letter-spacing: 0.02em; white-space: nowrap; color: var(--school-primary);
@@ -912,8 +912,7 @@ button.build-tile { font-family: inherit; }
   cursor: grab; touch-action: none; }
 .campus-map-svg.panning { cursor: grabbing; }
 .campus-map-svg.path-draw, .campus-map-svg.path-erase,
-.campus-map-svg.path-plant, .campus-map-svg.path-fell,
-.campus-map-svg.path-flowerbed, .campus-map-svg.path-clear { cursor: crosshair; }
+.campus-map-svg.path-plant, .campus-map-svg.path-flowerbed { cursor: crosshair; }
 
 /* Clicked-building info panel: a fixed card in the map's top-left corner. */
 .building-info-panel { position: fixed; z-index: 10; top: 16px; left: 16px;
@@ -1155,9 +1154,7 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg.path-draw .campus-grid,
 .campus-map-svg.path-erase .campus-grid,
 .campus-map-svg.path-plant .campus-grid,
-.campus-map-svg.path-fell .campus-grid,
-.campus-map-svg.path-flowerbed .campus-grid,
-.campus-map-svg.path-clear .campus-grid { stroke: var(--grass-line); }
+.campus-map-svg.path-flowerbed .campus-grid { stroke: var(--grass-line); }
 
 /* Footprint ghost. non-scaling-stroke keeps it legible at MIN_ZOOM. */
 .campus-preview { pointer-events: none; fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
@@ -1180,10 +1177,8 @@ button.build-tile { font-family: inherit; }
 .campus-path-ghost.draw { stroke: var(--gold); fill: rgba(201, 162, 39, 0.28); }
 .campus-path-ghost.erase { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 .campus-path-ghost.plant { stroke: #3f6b2a; fill: rgba(63, 107, 42, 0.28); }
-.campus-path-ghost.fell { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 .campus-path-ghost.lamp, .campus-path-ghost.bench, .campus-path-ghost.bannerLamp { stroke: var(--gold); fill: rgba(201, 162, 39, 0.2); }
 .campus-path-ghost.flowerbed { stroke: #3f6b2a; fill: rgba(217, 86, 106, 0.25); }
-.campus-path-ghost.clear { stroke: #b4544a; fill: rgba(180, 84, 74, 0.22); stroke-dasharray: 4 3; }
 
 /* Walkers (Walkers.tsx) and the lawn their routes wear (walkRoutes.ts). */
 .campus-walkers { pointer-events: none; }
@@ -1208,6 +1203,11 @@ button.build-tile { font-family: inherit; }
 .building-info-style select { font: inherit; padding: 2px 4px; }
 .campus-bed-edge { fill: #9b927f; }
 .campus-bed-edge.side { fill: #b4ab96; }
+.campus-bed-kerb { fill: #d3cab4; }
+/* A bed's planting: the canopy's leaf, turning with it and dying back to
+   stems over the winter, never quite gone. */
+.campus-bed-leaf { fill: var(--leaf-canopy, #4f7a3c); opacity: calc(0.35 + 0.65 * var(--bloom-opacity, 1)); }
+.campus-bed-leaf-top { fill: var(--leaf-canopy-top, #679a4c); opacity: calc(0.35 + 0.65 * var(--bloom-opacity, 1)); }
 .campus-flag-pole { stroke: #d8d4c8; stroke-width: 1.4; }
 .campus-flag-finial { fill: #d9b44a; }
 /* A site's shell rising in scaffolding (CampusMap.tsx's SiteProgress). */
@@ -1266,7 +1266,7 @@ button.build-tile { font-family: inherit; }
 .campus-paths { pointer-events: none; }
 .campus-path-fill { fill: #cbbd8e; }
 .campus-path-fill.cobble { fill: #a8a397; }
-.campus-path-fill.brick { fill: #b8684b; }
+.campus-path-fill.brick { fill: #a2573d; }
 /* Each surface's coursing (pathways.tsx): the setts' dark joints, the
    bricks' pale mortar. */
 .campus-path-coursing { fill: none; stroke-width: 0.8; vector-effect: non-scaling-stroke; }
@@ -1285,9 +1285,7 @@ button.build-tile { font-family: inherit; }
 .campus-map-svg.path-draw .campus-building,
 .campus-map-svg.path-erase .campus-building,
 .campus-map-svg.path-plant .campus-building,
-.campus-map-svg.path-fell .campus-building,
-.campus-map-svg.path-flowerbed .campus-building,
-.campus-map-svg.path-clear .campus-building { pointer-events: none; }
+.campus-map-svg.path-flowerbed .campus-building { pointer-events: none; }
 
 /* No fill: the motif passes the vernacular's glass color as an attribute,
    and a class rule here would silently override it. */
@@ -3837,14 +3835,30 @@ body:has(.building-info-panel) .pennant { display: none; }
 .build-mini-cluster { flex: none; display: flex; flex-direction: column; gap: 4px; }
 .build-mini-label { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: 0.04em; line-height: 1; padding-left: 2px; }
-.build-mini-grid { flex: 1; display: grid; grid-auto-flow: column; grid-template-rows: 1fr 1fr; grid-auto-columns: 64px; gap: 6px; }
-.build-mini-tile { font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  padding: 4px 2px; min-height: 0; border: 1.5px solid var(--outline); border-radius: var(--radius-md, 8px);
+/* Paths and Trees, a row each, then the rest in columns of two. */
+.build-mini-body { flex: 1; display: flex; gap: 6px; min-height: 0; }
+.build-mini-rows { display: grid; grid-template-rows: 1fr 1fr; gap: 6px; }
+.build-mini-row { display: flex; min-height: 0; }
+.build-mini-row > .build-mini-tile { flex: none; width: 64px; }
+.build-mini-grid { display: grid; grid-auto-flow: column; grid-template-rows: 1fr 1fr; grid-auto-columns: 64px; gap: 6px; }
+.build-mini-tile { font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 3px 2px 4px; min-height: 0; border: 1.5px solid var(--outline); border-radius: var(--radius-md, 8px);
   background: var(--cream-hi); color: var(--ink); cursor: pointer; }
 .build-mini-tile:hover { background: var(--school-secondary); color: var(--school-on-secondary); box-shadow: var(--shadow-2); }
 .build-mini-tile.placing { background: var(--school-secondary); color: var(--school-on-secondary); box-shadow: var(--shadow-2); }
-.build-mini-icon { width: 24px; height: 24px; display: flex; }
-.build-mini-icon svg { width: 24px; height: 24px; display: block; }
+/* The thing itself (decorThumbs.tsx), or the eraser's icon. */
+.build-mini-art { flex: 1 1 auto; width: 56px; min-height: 24px; max-height: 40px; display: flex; align-items: center; justify-content: center; }
+.build-mini-art > svg { width: 26px; height: 26px; display: block; }
+/* An armed tool's styles extend from its tile as one tray; the chosen one
+   is ringed, the tool itself filled. */
+.build-mini-row.open > .build-mini-tile { border-top-right-radius: 0; border-bottom-right-radius: 0; border-color: var(--school-secondary); box-shadow: none; }
+.build-mini-styles { display: flex; gap: 4px; padding: 3px; border: 1.5px solid var(--school-secondary); border-left: 0;
+  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
+  background: color-mix(in srgb, var(--school-secondary) 18%, var(--cream-hi)); }
+.build-mini-styles .build-mini-tile { flex: none; width: 64px; }
+.build-mini-styles .build-mini-tile.placing { background: var(--cream-hi); color: var(--ink); border-color: var(--school-secondary);
+  box-shadow: inset 0 0 0 1.5px var(--school-secondary); }
+.build-mini-styles .build-mini-tile:hover { background: var(--school-secondary); color: var(--school-on-secondary); }
 .build-mini-name { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); line-height: 1.05; text-align: center; }
 /* A sandbox's style for the next building (BuildPopup.tsx's StylePicker). */
 .build-style-picker { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); margin-left: auto; }
