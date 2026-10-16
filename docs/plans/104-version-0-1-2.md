@@ -6,7 +6,7 @@ is to sequence the fixes the playtest has asked for since 0.1.1 (13 October
 from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
-**Status: Proposed (14 October 2026; G–M added 16 October).**
+**Status: Proposed (14 October 2026; G–M added and decisions settled 16 October).**
 
 ---
 
@@ -111,6 +111,9 @@ itself, where the program was placed.
   Curriculum's reasons.
 
 ### B — A clock that says why it stopped
+
+*Held out of 0.1.2 (decision 4): it goes in when a second player misses a
+paused clock.*
 
 - **While the clock is paused for a matter** (the `arrival` and
   `final-week` reasons in `unseen.ts`), a band beside the speed control
@@ -331,7 +334,10 @@ need") reads as one more failure.
   `commencement` milestone (the first summer closes) already opens
   Students' guidebook, clubs and funnel; it opens the tab itself. Plans
   78B and 78C opened it from the first week on purpose; their words are
-  rewritten (Plan 95E). The header's satisfaction figure is decision 9.
+  rewritten (Plan 95E). **The header's satisfaction figure waits with it**
+  (decision 9): in year one the top bar shows no satisfaction, and the
+  first summer's review introduces it as the year's average, the moment
+  the header figure and the tab appear.
 - **The walkthrough builds the needs instead of showing them.** The
   `needs` step stops opening the Students tab: it says in a line that
   students need somewhere to sleep and somewhere to eat, and goes
@@ -342,8 +348,8 @@ need") reads as one more failure.
   health scores full and isn't counted against the college; its card is
   hidden until the gate is crossed, then appears with a line saying it
   is now a need. A college meeting every need it has reads full marks.
-- **Tests:** the tab is gated until the first summer closes and opens
-  after it; the walkthrough never opens a gated tab; health's card is
+- **Tests:** the tab and the header's satisfaction figure are gated
+  until the first summer closes and open after it; the walkthrough never opens a gated tab; health's card is
   absent below the gate.
 
 ### E — 0.1.2
@@ -351,19 +357,19 @@ need") reads as one more failure.
 - `package.json` to 0.1.2, the Release workflow, the itch.io upload, a
   short devlog, and the playtest README's patch table.
 
-## 3. Decisions for the owner
+## 3. Decisions, settled by the owner (16 October)
 
-| # | Question | Proposed |
+| # | Question | Decided |
 |---|---|---|
-| 1 | Where does the hall's Develop button sit? | **In the program's summary** (click the tile), above *Open in Curriculum*. On the tile itself it is faster but makes a full hall of six programs busy. |
-| 2 | The band's place | **Beside the speed control**, where the eye goes when the clock stops. The alternative is a strip across the top of the map. |
+| 1 | Where does the hall's Develop button sit? | **In the program's summary** (click the tile), above *Open in Curriculum*. On the tile itself it would make a full hall of six programs busy. |
+| 2 | The band's place | **Beside the speed control**, where the eye goes when the clock stops. |
 | 3 | Does the welcome card keep a skip at all? | **Yes, behind the confirmation.** A returning player on a second run wants it. |
-| 4 | Is B worth doing before more players say it? | **Yes.** It is one player (T1), but it isn't a decision being punished: a player who doesn't know a decision is waiting can't make it, however carefully they play. |
-| 5 | How far does F dim? | **Tabs disabled, top-bar figures dimmed but readable**, for the first three steps only. Hiding the figures entirely would make the first summer's numbers arrive from nowhere. |
+| 4 | Is B worth doing before more players say it? | **Not yet: wait for a second player.** B stays written here but is out of 0.1.2; it goes in when another player misses a paused clock. |
+| 5 | How far does F dim? | **Tabs disabled, top-bar figures dimmed but readable**, for the first three steps only. |
 | 6 | Is a candidate's number coloured against the college's median? | **Yes, lightly:** above the median warm, below it plain. Colour by the absolute bands would bring back the letters' verdict. |
-| 7 | Do course and program quality become numbers too, or keep letters? | **Numbers.** A letter on the course beside a number on its professor is S1's confusion again. |
-| 8 | Does the appointment step become "choose a program", or only its words? | **Only its words**, in L: the three candidates shown as programs with their professors. Reordering the stages (a program first, then a separate appointment) adds a step to the opening Plan 104 is trying to shorten. |
-| 9 | With the Students tab closed, does the header still show satisfaction in year one? | **Yes.** The first summer's review grades satisfaction, so it shouldn't arrive from nowhere; the header's hover names the lowest need. Hiding it too is the alternative. |
+| 7 | Do course and program quality become numbers too, or keep letters? | **Numbers everywhere,** so a professor and their courses never seem to disagree. |
+| 8 | Does the appointment step become "choose a program", or only its words? | **Only its words**, in L: the three candidates shown as programs with their professors. No new step. |
+| 9 | With the Students tab closed, does the header still show satisfaction in year one? | **No: hidden until the first summer,** with the Students tab. The first summer's review is where satisfaction first appears, as the year's average, and the header and tab open with it. |
 
 ## Rules for every PR in this plan
 
@@ -379,7 +385,7 @@ need") reads as one more failure.
 | PR | Subject | Depends on |
 |---|---|---|
 | A | Develop the next course from the hall | — |
-| B | A clock that says why it stopped | — |
+| B | A clock that says why it stopped | — (held: decision 4) |
 | C | A skip that's hard to hit by accident | — |
 | D | The opening, measured | — (C's confirmation fires D's `opening_skipped` once both are in) |
 | F | A quieter screen for the first three steps | — |
@@ -390,4 +396,4 @@ need") reads as one more failure.
 | K | A name on the pennant never splits a word | — |
 | L | A welcome that welcomes, and the opening in the order it's played | — |
 | M | The Students tab after the first summer, and needs that can read full | — (I's "/100" lands in the same tab) |
-| E | 0.1.2 | A–D, F–M |
+| E | 0.1.2 | A, C, D, F–M |
