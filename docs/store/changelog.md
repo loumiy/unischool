@@ -7,7 +7,8 @@ point to the development records in `docs/plans/`.*
 
 ## 0.1.2
 
-*From the first players' notes since 0.1.1, sequenced in Plan 104.*
+*From the first players' notes since 0.1.1, sequenced in Plan 104, with
+the grounds, the sandbox and the title theme that landed beside it.*
 
 ### The first hour
 
@@ -36,6 +37,26 @@ point to the development records in `docs/plans/`.*
 - **What pulls satisfaction down.** While satisfaction is falling, the
   Students tab and the figure's hover name the need that pulls hardest,
   and why: "Housing is the drag: 320 beds, 480 wanted." (104I)
+- **Decorate the grounds**, free. Paths come in flagstone, cobbles or
+  brick, each laid in its own pattern, diagonals included. Four trees join
+  the broadleaf, conifer and ornamental: birch, willow, palm, and a cherry
+  that flowers in spring. Banner lamps in the college's colors and flower
+  beds, planted in drifts of color, join lamps and benches, and all of
+  them stand anywhere on open land, not only beside a path.
+- **The Grounds tab shows each tool as it looks on the map.** Paths and
+  Trees are one tile each, with their styles beside them once picked. One
+  eraser deletes any of it (path, tree, lamp, bench or bed) by a stroke,
+  on a touch screen too, in place of *Erase path* and *Fell trees*; with
+  any other tool, a right click deletes what that tool lays. While a tool
+  is out, a line over the map says what it does: Shift for a straight run,
+  right click to delete, Esc to cancel.
+- **Sandbox: move and restyle.** In a sandbox, a standing building can be
+  moved (on the same rules as a new one) and drawn in any of the nine
+  architectures; the Build menu picks the style of the next one, and the
+  curriculum committee is set aside.
+- **A title theme** by Alejandro Tóth plays on the title screen and the
+  screens opened from it, over a new painting of the quad. The credits
+  name him under Music.
 
 ### Changed
 
@@ -60,19 +81,10 @@ point to the development records in `docs/plans/`.*
   (104I)
 - **A long college name on the pennant** never breaks a word, at any text
   size. (104K)
-- **The Grounds tab, tidied.** One Paths tile and one Trees tile: armed,
-  its surfaces or its species extend beside it. Every tile shows the thing
-  itself, as the building tiles do. One eraser deletes any decoration
-  (path, tree, lamp, bench or bed) in place of Erase, Fell and Remove, and
-  the map's hint reads "Right click to delete" and "Esc to cancel".
-- **Brick and cobble paths are coursed on the diagonal too**, and brick is
-  a shade darker.
-- **Flower beds look planted**: mounds of leaf in drifts of color inside a
-  stone kerb, where they were scattered petals on bare soil.
 
 ### Saves
 
-A save from 0.1.1 opens in 0.1.2: nothing in the save changed.
+A save from 0.1.1 opens in 0.1.2 as it was.
 
 ---
 
