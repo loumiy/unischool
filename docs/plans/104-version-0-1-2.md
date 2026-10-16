@@ -6,7 +6,8 @@ is to sequence the fixes the playtest has asked for since 0.1.1 (13 October
 from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
-**Status: Proposed (14 October 2026; G–M added and decisions settled 16 October).**
+**Status: In progress (14 October 2026; G–M added and decisions settled 16
+October). Landed: A.**
 
 ---
 
@@ -109,6 +110,24 @@ itself, where the program was placed.
   an available course and a free teacher, dispatches the same
   `START_DEVELOPMENT` as the Curriculum row, and is disabled with the
   Curriculum's reasons.
+
+**As implemented.**
+
+- **The Curriculum gained a `course:` target.** `onOpenCurriculum` only
+  knew programs, schools, filters and the committee, so *Appoint…* and
+  *Open…* open the tab with `course:<id>`, which selects the course (its
+  drawer opens) and scrolls to its cell, or to its program's row when the
+  row is folded and the cell isn't drawn.
+- **`RowAction` takes `showWorth`.** The hall passes `false`: the
+  summary's *Stage* already states the milestone, and the row's "4 to
+  Established · +80 places" beside it said it twice.
+- **The ring comes with it.** On the walkthrough's step four the
+  Curriculum's button is ringed (`opening-target`); being the same
+  component, the hall's is too, so "the ringed button" in the card is true
+  in either place. Pressing it ends the step as the Curriculum's does
+  (checked in the browser).
+- **Tests:** `test/hall-develop.test.ts` calls the tile and the row as
+  functions (neither uses a hook) to press their buttons without a DOM.
 
 ### B — A clock that says why it stopped
 

@@ -786,13 +786,16 @@ function CourseDrawer(
 // Each start is its own START_DEVELOPMENT, so one that becomes illegal
 // mid-batch is refused.
 // Compact, it is the program's one line (Plan 76B): the next course and
-// its one action, without "choose…" and the batch.
-function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact = false }: {
+// its one action, without "choose…" and the batch. A hall's program summary
+// shows the same compact line (Plan 104A), without the milestone, which the
+// summary states above it.
+export function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact = false, showWorth = true }: {
   s: GameState; act: (a: Action) => void; program: ProgramInfo; progress: ProgramProgress;
   lookup: Map<string, Buildable>; loads: FacultyLoads; onSelect: (id: string) => void; compact?: boolean;
+  showWorth?: boolean;
 }) {
   const next = progress.next;
-  const worth = (
+  const worth = showWorth && (
     <span className="row-action-worth">
       {milestoneLine(progress)}
       {progress.toMilestone > 0 && <> · +{SEATS_PER_COURSE} places</>}
@@ -1261,11 +1264,16 @@ export default function CurriculumTab(
     setSelectedId((cur) => (cur === id ? null : id));
   }, []);
 
-  // Jump to a course from a search result or a prereq link.
+  // Jump to a course from a search result or a prereq link; to its
+  // program's row when the row is folded and the cell isn't drawn.
   const goToCourse = useCallback((id: string) => {
     setSelectedId(id);
     setFilters(NO_FILTERS);
-    window.setTimeout(() => document.getElementById(`course-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0);
+    window.setTimeout(() => {
+      const cell = document.getElementById(`course-${id}`);
+      const row = document.querySelector(`[data-program="${CSS.escape(programOfCourse(id) ?? '')}"]`);
+      (cell ?? row)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 0);
   }, []);
 
   // Scroll to a program's row, clearing selection and filters.
@@ -1281,6 +1289,9 @@ export default function CurriculumTab(
     const filtered = targetFilters(target);
     if (target.startsWith('program:')) {
       goToProgram(target.slice('program:'.length));
+    } else if (target.startsWith('course:')) {
+      // A hall's Appoint… or Open… (Plan 104A): the course's drawer.
+      goToCourse(target.slice('course:'.length));
     } else if (filtered) {
       setSelectedId(null);
       setFilters(filtered);
