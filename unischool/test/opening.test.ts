@@ -309,7 +309,7 @@ const walkToCourse = (name: string) => reducer(
   assert(s.events.opening.stage === 'needs' && openingHoldsClock(s), 'the walk moves on to the needs, the clock still held');
   assert(s.events.opening.read.includes(NEEDS_LETTER_ID), 'and counts the letter the needs steps stand in for read');
   const needs = OPENING_STEPS.needs.body(s);
-  assert(/Housing is at \d+ and Dining at \d+\./.test(needs) && needs.includes('0 beds and 0 dining seats') && needs.includes('a residence hall for housing'), `the card reads the two needs and the figures behind them (${needs})`);
+  assert(/Housing is at \d+ out of 100 and Dining at \d+\./.test(needs) && needs.includes('0 beds and 0 dining seats') && needs.includes('a residence hall for housing'), `the card reads the two needs and the figures behind them (${needs})`);
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'site-housing' && openingHoldsClock(s), 'Next asks for a residence hall');
   const dorm = walkBuilding(s)!;

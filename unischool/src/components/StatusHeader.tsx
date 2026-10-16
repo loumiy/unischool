@@ -14,7 +14,7 @@ import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
 import { PRESTIGE_TREND, SATISFACTION_TREND, TrendArrow } from './TrendFigure';
 import { prestigeWeeklyChange } from '../systems/prestige/prestigeSystem';
-import { satisfactionWeeklyChange } from '../systems/satisfaction/satisfactionSystem';
+import { satisfactionDrag, satisfactionWeeklyChange } from '../systems/satisfaction/satisfactionSystem';
 import { FigureBox } from './Figure';
 import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
@@ -166,7 +166,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
             <TrendArrow change={prestigeWeeklyChange(s)} {...PRESTIGE_TREND} />
           </span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={satisfactionHint(s)} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
+        <FigureBox className="toolbar-stat" above hint={satisfactionHint(s, satisfactionDrag(s))} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
           <SatisfactionIcon />
           {word('satisfaction')}
           {/* The warning is the paper red: the chip is cream, and the dock's

@@ -7,13 +7,13 @@ import type { BuildableStatus, GameState, GreekChapter, SatisfactionAttributes, 
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
-import { FIGURE_HINTS, NEED_LABELS } from '../data/figureHints';
+import { FIGURE_HINTS, NEED_LABELS, dragLine } from '../data/figureHints';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { sectionAnchor } from '../components/sectionTarget';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, interestClubs, sportClubCapacity, sportClubs,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
-import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionWeeklyChange, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionDrag, satisfactionWeeklyChange, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { SATISFACTION_TREND, TrendFigure } from '../components/TrendFigure';
 import { DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
@@ -165,9 +165,11 @@ function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean 
       </g>
       {/* A thin ring inside the gauge; at full marks, a gold centre. */}
       <circle className="satisfaction-dial-centre" cx={c} cy={c} r={r - DIAL_STROKE / 2 - (full ? 2.5 : 4)} />
-      <text className="satisfaction-dial-value" x={c} y={c} textAnchor="middle" dominantBaseline="central">
+      {/* Out of 100, said (Plan 104I: S1 read a bare "12" as a time of day). */}
+      <text className="satisfaction-dial-value" x={c} y={dormant ? c : c - 4} textAnchor="middle" dominantBaseline="central">
         {dormant ? '–' : satisfactionFigure(score)}
       </text>
+      {!dormant && <text className="satisfaction-dial-of" x={c} y={c + 11} textAnchor="middle" dominantBaseline="central">/100</text>}
     </svg>
   );
 }
@@ -261,6 +263,8 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
 // week shows immediately. Always on screen: it explains satisfaction from
 // week one, long before any club exists.
 function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
+  // While it falls, the need that pulls it down most and why (Plan 104I).
+  const drag = satisfactionDrag(s);
   return (
     <section className="panel panel-span-2" {...sectionAnchor('students.breakdown')}>
       <div className="panel-head">
@@ -279,6 +283,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
           hint={FIGURE_HINTS.satisfactionToday}
         />
       </dl>
+      {drag && <p className="satisfaction-drag">{dragLine(drag)}</p>}
       <ul className="satisfaction-cards">
         {ATTRIBUTE_ORDER.map((attribute) => (
           <AttributeCard key={attribute} s={s} attribute={attribute} />

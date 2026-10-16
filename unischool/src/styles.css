@@ -2122,6 +2122,8 @@ button.btn-speed-up { color: var(--school-primary); border-color: var(--school-p
    breakpoint. `dense` backfills the gap an open card leaves. */
 /* The target and today's figure over the needs (Plan 95Q). */
 .panel dl.satisfaction-target { margin: 0 0 var(--space-12); }
+/* What pulls satisfaction down, while it falls (Plan 104I). */
+.satisfaction-drag { margin: calc(-1 * var(--space-4)) 0 var(--space-12); font-weight: 700; color: var(--danger-ink); }
 .satisfaction-cards { display: grid; gap: 10px; grid-auto-flow: row dense;
   grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); }
 .satisfaction-card { border: 2px solid var(--outline); border-radius: var(--radius-lg);
@@ -2151,6 +2153,7 @@ button.btn-speed-up { color: var(--school-primary); border-color: var(--school-p
 .satisfaction-dial-track { fill: none; stroke: var(--cream-lo); }
 .satisfaction-dial-fill { fill: none; stroke-linecap: butt; transition: stroke-dasharray 320ms ease; }
 .satisfaction-dial-value { font-family: var(--display); font-size: 17px; font-weight: 800; fill: var(--ink); }
+.satisfaction-dial-of { font-family: var(--display); font-size: 8px; font-weight: 700; fill: var(--ink-muted); }
 .satisfaction-dial.ok .satisfaction-dial-fill { stroke: var(--ok-on-light); }
 .satisfaction-dial.warn .satisfaction-dial-fill { stroke: var(--warn-on-light); }
 .satisfaction-dial.bad .satisfaction-dial-fill { stroke: var(--bad-on-light); }

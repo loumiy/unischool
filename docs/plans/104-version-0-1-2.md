@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F, G, H, J, K.**
+October). Landed: A, C, D, F, G, H, I, J, K.**
 
 ---
 
@@ -402,6 +402,24 @@ campus.
   hidden (Plan 98B), only the largest pull is named.
 - **Tests:** the line names the lowest weighted need, and says nothing
   while satisfaction is steady or rising.
+
+**As implemented.**
+
+- **"Falling" is the header arrow's own:** the weekly change below
+  −0.05 (`TrendFigure.tsx`'s `SATISFACTION_TREND` floor), so the line
+  shows exactly when the ▼ does.
+- **The need named is the largest pull,** its weight times what it lacks
+  of 100 (`satisfactionSystem.ts`'s `satisfactionDrag`), not the lowest
+  score: Dining at 60 (×0.30) pulls harder than Health at 50 (×0.11).
+- **The words are the needs cards' own** (`figureHints.ts`'s `dragLine`):
+  "Housing is the drag: 320 beds, 480 wanted." The plan's "for 480
+  students" would be untrue, since not every student wants a bed and the
+  card counts the beds wanted. Academic, made of points, says "teaching
+  earns 39 of its 60 points, the library 40 of its 40". The facts come from
+  the system and the words from `data/`, which reads no system.
+- **The dial** shows "/100" small under its number. The needs step's line
+  reads "out of 100", until M rewrites the step.
+- **Tests:** `test/satisfaction-drag.test.ts`.
 
 ### J — No teaching overload
 

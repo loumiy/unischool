@@ -378,6 +378,40 @@ export function satisfactionWeeklyChange(s: GameState): number {
   return (satisfactionTarget(s) - s.students.satisfaction) * SATISFACTION_DRIFT_RATE;
 }
 
+// What pulls satisfaction down most (Plan 104I, from S1, who couldn't tell
+// in year two): while the headline is falling, by the header arrow's own
+// floor (TrendFigure.tsx's SATISFACTION_TREND), the need whose shortfall
+// weighs most on the target, its weight times what it lacks of 100, and the
+// figures behind it. The target itself stays unsaid (Plan 98B): only the
+// largest pull is named. Null while satisfaction is steady or rising.
+export const DRAG_FLOOR = 0.05;
+export interface SatisfactionDrag {
+  need: keyof SatisfactionAttributes;
+  // What the need has against what it wants: beds, or students served; for
+  // academic, the teaching's and the library's points against theirs.
+  has: number;
+  wants: number;
+  library?: { has: number; wants: number };
+}
+export function satisfactionDrag(s: GameState): SatisfactionDrag | null {
+  if (satisfactionWeeklyChange(s) > -DRAG_FLOOR) return null;
+  const scores = computeSatisfactionBreakdown(s);
+  const needs = Object.keys(ATTRIBUTE_WEIGHTS) as Array<keyof SatisfactionAttributes>;
+  const pull = (k: keyof SatisfactionAttributes) => ATTRIBUTE_WEIGHTS[k] * (100 - scores[k]);
+  const need = needs.reduce((most, k) => (pull(k) > pull(most) ? k : most), needs[0]);
+  if (pull(need) <= 0) return null;
+  if (need === 'academic') {
+    return {
+      need,
+      has: teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS,
+      wants: ACADEMIC_TEACHING_POINTS,
+      library: { has: libraryPoints(s), wants: ACADEMIC_LIBRARY_POINTS },
+    };
+  }
+  const detail = attributeDetail(s, need);
+  return { need, has: detail.totalServed, wants: detail.neededForFullScore };
+}
+
 // What student life is worth on the satisfaction target. Orgs nudge the
 // target, not the stock, so this reruns the real computation on shallow
 // copies with each source removed (like prestigeTargetWithout) and reports

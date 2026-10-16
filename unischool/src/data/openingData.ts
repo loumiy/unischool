@@ -181,7 +181,7 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     body: (s) => {
       const b = s.students.satisfactionBreakdown;
       const going = sitedAny(s, isDorm) && sitedAny(s, isDiningHall);
-      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}, and the Students tab shows the needs it is made of: ${NEED_LABELS.housing} is at ${satisfactionFigure(b.housing)} and ${NEED_LABELS.basicNeeds} at ${satisfactionFigure(b.basicNeeds)}.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. ${going
+      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)} out of 100, and the Students tab shows the needs it is made of: ${NEED_LABELS.housing} is at ${satisfactionFigure(b.housing)} out of 100 and ${NEED_LABELS.basicNeeds} at ${satisfactionFigure(b.basicNeeds)}.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. ${going
         ? 'A residence hall and a dining hall are going up: the ratings rise when they open.'
         : 'A need is met by building for it, from the build menu: a residence hall for housing, a dining hall for dining.'}`;
     },
