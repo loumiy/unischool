@@ -6,7 +6,7 @@ import type { Grade } from '../data/courseQuality';
 import { programById, programOfCourse } from '../data/techData';
 import { canStartDevelopment, isUnstaffed } from '../systems/techtree/techSystem';
 import { tierBands } from '../systems/techtree/programProgress';
-import { facultyLoads, instructorQuality, type FacultyLoads } from '../systems/faculty/facultyAssignment';
+import { instructorQuality } from '../systems/faculty/facultyAssignment';
 
 export type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
 
@@ -59,7 +59,7 @@ export function oneFromEstablished(s: GameState, t: Buildable, lookup?: Map<stri
   return needed.filter((id) => find(id)?.status !== 'done').length === 1;
 }
 
-export function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: FacultyLoads, lookup?: Map<string, Buildable>): boolean {
+export function matchesFilters(s: GameState, t: Buildable, f: Filters, lookup?: Map<string, Buildable>): boolean {
   const query = f.query.trim().toLowerCase();
   if (query !== '' && !t.name.toLowerCase().includes(query)) return false;
 
@@ -76,7 +76,7 @@ export function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: Fa
   if (f.grade !== 'all') {
     // The grade its instructor earns, so a weak course in a dark program
     // (no grade while dark) is still caught.
-    const q = instructorQuality(s, t, loads);
+    const q = instructorQuality(s, t);
     // An unstaffed course has no grade but belongs in the worklist.
     if (!q) return isUnstaffed(s, t);
     if (!GRADES_IN[f.grade].has(q.grade)) return false;
@@ -100,6 +100,5 @@ export function targetFilters(target: string): Filters | null {
 
 // How many courses Below A lists, so the link's count is the list's.
 export function belowACount(s: GameState): number {
-  const loads = facultyLoads(s);
-  return s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS, loads)).length;
+  return s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS)).length;
 }

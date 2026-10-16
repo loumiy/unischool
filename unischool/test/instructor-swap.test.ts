@@ -68,7 +68,7 @@ console.log('instructor swap tests');
   assert(canSwapInstructors(s, 'ENGL101', 'ENGL110'), 'two staffed courses in one department can swap');
   const a = s.tech.find((t) => t.id === 'ENGL101')!;
   const strong = s.faculty.find((f) => f.id === 'strong')!;
-  const previewA = projectedQuality(s, a, strong);
+  const previewA = projectedQuality(a, strong);
   s = reducer(s, { type: 'SWAP_COURSE_FACULTY', courseA: 'ENGL101', courseB: 'ENGL110' });
   assert(s.courseFaculty['ENGL101'] === 'strong' && s.courseFaculty['ENGL110'] === 'weak', 'the two instructors trade courses');
   assert(previewA.grade !== undefined, 'the preview computed a grade for the incoming professor');

@@ -221,7 +221,7 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
 }) {
   const mark = schoolMark(program.school);
   const loads = facultyLoads(s);
-  const avg = averageCourseQuality(s, program.courseIds, loads);
+  const avg = averageCourseQuality(s, program.courseIds);
   const progress = programProgress(s, program);
   const inTransit = transitWeeks(s, program.id);
   // An unstaffed course darkens the program (Plan 59).

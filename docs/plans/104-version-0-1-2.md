@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F, K.**
+October). Landed: A, C, D, F, J, K.**
 
 ---
 
@@ -356,6 +356,36 @@ game contradicting itself.
   and `courseQuality.ts`'s comment on why 7 is rewritten (Plan 95E).
 - **Tests:** a course's quality no longer depends on its instructor's
   load; the save fixtures still load.
+
+**As implemented.**
+
+- **The load leaves the grade's functions entirely.** `qualityOf` takes
+  teaching, acclaim and tier. `projectedQuality(t, f)`,
+  `instructorQuality(s, t)`, `courseQuality(s, t, unstaffed?)` and the
+  averages no longer take `loads`, and nor do the course cell, the drawer
+  or the Curriculum's filter, which carried them only for the grade.
+  `facultyLoads` stays for free course slots (the batch, the Provost's
+  staffing, the market's cards). The batch's preview no longer steps its
+  grades down.
+- **Balance.** `npm run sim` before (with A–K in, it read the baseline, bar
+  a +0.0 in Guided, athletics' year-50 prestige) and after: the guided
+  player's prestige +1.0 at year 10, +4.0 at 25 and +0.7 at 50,
+  satisfaction within a point. The Completionist's year-10 satisfaction is
+  +5.0 (92.7) and its year-50 prestige −4.2 (111.1). Cash at years 25 and
+  50 swings by tens to hundreds of millions either way, as it does between
+  seeds. Every archetype and guided-player check passes
+  (`npm run test:slow`). Neither prestige nor academic satisfaction ran
+  past its band, so the grade bands and tier penalties are unchanged;
+  `sim/baseline.json` is rebased.
+- **The harness's teaching moves** (`sim/harness/moves.ts`) read the grade
+  the same way, so "could this teacher reach an A here" no longer counts
+  the load.
+- **Words:** `courseQuality.ts`'s band comment and its section on load,
+  `docs/design/faculty.md`'s course-quality section, and the row's comment
+  in the Curriculum. No help text named the penalty (searched).
+- **Tests:** `course-quality.test.ts` is rewritten around the new rule,
+  with one reading of a college: Dr. Bennett's first courses grade the same
+  after she takes a third.
 
 ### K — A name on the pennant never splits a word
 

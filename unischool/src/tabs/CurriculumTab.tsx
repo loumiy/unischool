@@ -22,7 +22,7 @@ import { hallDisplayName } from '../systems/techtree/schools';
 import { courseHoldReason, crossMajorPrereqs, milestoneLine, programProgress, tierBands, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { facultyQualityTier } from '../data/facultyData';
-import { gradeFor, qualityOf, tierOf, type Grade } from '../data/courseQuality';
+import { gradeFor, type Grade } from '../data/courseQuality';
 import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
@@ -270,8 +270,8 @@ export function GradeChip({ grade, title, size = 'sm' }: { grade: Grade; title?:
 }
 
 // An aggregate grade across a set of courses, or nothing when none are graded.
-function AggregateGrade({ s, ids, label, loads }: { s: GameState; ids: string[]; label: string; loads: FacultyLoads }) {
-  const avg = averageCourseQuality(s, ids, loads);
+function AggregateGrade({ s, ids, label }: { s: GameState; ids: string[]; label: string }) {
+  const avg = averageCourseQuality(s, ids);
   if (avg === null) return null;
   return <GradeChip grade={gradeFor(avg)} title={`${label} averages ${count(avg)}/100 across its developed courses`} />;
 }
@@ -317,8 +317,8 @@ function InstructorChip({ f, grade, draggable, onDragStart, onDragEnd }: {
   );
 }
 
-export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
-  s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void; loads: FacultyLoads;
+export function CourseCell({ s, t, selected, onSelect, dnd }: {
+  s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void;
   // Only inside the rows; the worklist's cells carry none.
   dnd?: DragHandlers;
 }) {
@@ -330,7 +330,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
   // An offered course whose instructor has left (types.ts's CourseFaculty).
   const unstaffed = isUnstaffed(s, t);
   // Only an offered, staffed course has a grade (see courseQuality).
-  const quality = courseQuality(s, t, loads);
+  const quality = courseQuality(s, t);
   const instructor = assignedInstructor(s, t);
   // The gate matters only for a course not yet started.
   const showGateDot = gate !== 'open' && state !== 'developing' && state !== 'done';
@@ -341,7 +341,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
   // the grade they would earn.
   const ahead = state === 'available' || state === 'blocked';
   const best = ahead && t.requiresFaculty ? eligibleInstructors(s, t)[0] : undefined;
-  const bestGrade = best ? projectedQuality(s, t, best, loads).grade : null;
+  const bestGrade = best ? projectedQuality(t, best).grade : null;
   // A program between halls is not taught or advancing.
   const programId = programOfCourse(t.id);
   const transit = programId !== undefined && isInTransit(s, programId);
@@ -361,7 +361,7 @@ export function CourseCell({ s, t, selected, onSelect, loads, dnd }: {
     const other = s.tech.find((x) => x.id === otherId);
     const incoming = other ? assignedInstructor(s, other) : undefined;
     if (other && incoming && canSwapInstructors(s, dragging.courseId, isSource ? otherId : t.id)) {
-      const projected = projectedQuality(s, t, incoming, loads);
+      const projected = projectedQuality(t, incoming);
       preview = { grade: projected.grade, delta: projected.score - (quality?.score ?? 0) };
     }
   }
@@ -439,17 +439,8 @@ export function InstructorOption(
   },
 ) {
   const load = facultyLoad(s, f.id);
-  // The grade this course would get with them. The load used is what theirs
-  // would become (current plus this course, unless they already teach it).
-  const projected = projectedFor
-    ? qualityOf({
-      teaching: f.teaching,
-      acclaim: f.acclaim,
-      load: s.courseFaculty[projectedFor.id] === f.id ? load : load + 1,
-      slots: f.courseSlots,
-      tier: tierOf(projectedFor.id),
-    })
-    : null;
+  // The grade this course would get with them.
+  const projected = projectedFor ? projectedQuality(projectedFor, f) : null;
   return (
     <button
       type="button"
@@ -556,7 +547,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
 }
 
 function CourseDrawer(
-  { s, act, t, lookup, onClose, loads, onGoToCourse, onOpenFaculty }:
+  { s, act, t, lookup, onClose, onGoToCourse, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>;
     onClose: () => void; loads: FacultyLoads; onGoToCourse: (id: string) => void;
@@ -567,7 +558,7 @@ function CourseDrawer(
   const offered = t.status === 'developing' || t.status === 'done';
   const instructor = assignedInstructor(s, t);
   const unstaffed = isUnstaffed(s, t);
-  const quality = courseQuality(s, t, loads);
+  const quality = courseQuality(s, t);
   const bridges = crossMajorPrereqs(t, (id) => lookup.get(id));
 
   // An offered course's current instructor stays eligible for it (see
@@ -782,7 +773,7 @@ function CourseDrawer(
 // projected grade, cost) with a Develop button, "choose…" for the drawer,
 // and what the start is worth toward the next milestone. When several
 // courses in the same tier band are ready and the teacher has the slots, a
-// batch button starts them all with grades previewed as the load climbs.
+// batch button starts them all, with the grades they would earn.
 // Each start is its own START_DEVELOPMENT, so one that becomes illegal
 // mid-batch is refused.
 // Compact, it is the program's one line (Plan 76B): the next course and
@@ -843,7 +834,7 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
     );
   }
 
-  const projected = projectedQuality(s, next, best, loads);
+  const projected = projectedQuality(next, best);
   const canStart = canStartDevelopment(s, next, best.id);
 
   // The batch: other ready courses in the same band, up to the teacher's free
@@ -855,10 +846,7 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
   const batch = ready.slice(0, free);
   const batchCost = batch.reduce((sum, t) => sum + t.cost, 0);
   const batchOk = batch.length >= 2 && batchCost <= s.finance.cash;
-  const batchGrades = batch.map((t, i) => qualityOf({
-    teaching: best.teaching, acclaim: best.acclaim,
-    load: (loads.get(best.id) ?? 0) + i + 1, slots: best.courseSlots, tier: tierOf(t.id),
-  }).grade);
+  const batchGrades = batch.map((t) => projectedQuality(t, best).grade);
 
   return (
     <p className="row-action">
@@ -904,7 +892,7 @@ function ProgramRowView(
   },
 ) {
   const { program } = row;
-  const avg = averageCourseQuality(s, program.courseIds, loads);
+  const avg = averageCourseQuality(s, program.courseIds);
   const progress = programProgress(s, program, lookup);
   const graduate = program.kind === 'graduate';
   const grad = graduate ? graduatePrograms().find((g) => g.id === program.id) : undefined;
@@ -943,7 +931,7 @@ function ProgramRowView(
           const rule = !graduate && (i === 1 || i === 5 || i === 9) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
           const cell = !t || !row.revealed.has(id)
             ? <span key={id} className="course-cell placeholder" aria-hidden="true" />
-            : <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} loads={loads} dnd={dnd} />;
+            : <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} dnd={dnd} />;
           return rule ? [rule, cell] : cell;
         })}
       </div>}
@@ -965,7 +953,7 @@ function SchoolGroupView(
   },
 ) {
   const ids = group.rows.flatMap((row) => row.program.courseIds);
-  const avg = averageCourseQuality(s, ids, loads);
+  const avg = averageCourseQuality(s, ids);
   const done = completion(s, ids);
   // Restaffing in one click (Plan 59, restaffing.ts): what the market and
   // the payroll can cover of this section's unstaffed courses. A graduate
@@ -1321,7 +1309,7 @@ export default function CurriculumTab(
   const matches = filtering
     ? visibleCourseIds(s)
       .map((id) => lookup.get(id))
-      .filter((t): t is Buildable => !!t && matchesFilters(s, t, filters, loads, lookup))
+      .filter((t): t is Buildable => !!t && matchesFilters(s, t, filters, lookup))
     : [];
 
   return (
@@ -1348,7 +1336,7 @@ export default function CurriculumTab(
               />
               <span className="stat">{fraction(doneCourses, courses.length)}<br />developed</span>
             </span>
-            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" loads={loads} />
+            <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" />
             <HelpHint
               align="end"
               text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's grade, its courses done of ten and its next start: the course, the strongest free teacher and the grade they would earn, which Develop takes. Open a line (▸) for its courses and "choose…", which picks somebody else. Below A and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both grades preview while it is held.`}
@@ -1379,7 +1367,7 @@ export default function CurriculumTab(
                   const home = courseSchools().get(t.id);
                   return (
                     <div key={t.id} className="worklist-row">
-                      <CourseCell s={s} t={t} selected={selectedId === t.id} onSelect={onSelect} loads={loads} />
+                      <CourseCell s={s} t={t} selected={selectedId === t.id} onSelect={onSelect} />
                       <span className="worklist-where">{home?.school ?? ''}</span>
                     </div>
                   );

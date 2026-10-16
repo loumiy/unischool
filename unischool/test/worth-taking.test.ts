@@ -35,7 +35,7 @@ if ('refused' in read) {
   for (const field of neededFacultyFields(s)) {
     const course = waitingCourses(s, field)[0];
     for (const c of s.candidates.filter((x) => x.field === field)) {
-      const grade = course ? projectedQuality(s, course, c).grade : null;
+      const grade = course ? projectedQuality(course, c).grade : null;
       if (grade === null || (grade !== 'D' && grade !== 'F')) good += 1;
     }
   }

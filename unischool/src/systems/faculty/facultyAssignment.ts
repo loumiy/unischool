@@ -15,14 +15,15 @@ export function coursesTaughtBy(s: GameState, f: Faculty): Buildable[] {
 }
 
 // Course quality, wired to state. The scale lives in data/courseQuality.ts;
-// this supplies who teaches the course and their load. The instructor is
-// always resolved through techSystem's assignedInstructor, so the grade and
-// the cell agree on whether the teacher has left.
+// this supplies who teaches the course. The instructor is always resolved
+// through techSystem's assignedInstructor, so the grade and the cell agree
+// on whether the teacher has left. A teacher's load no longer moves a grade
+// (Plan 104J).
 
-// Every instructor's current load in one pass. Anything grading more than one
-// course must build this and thread it through: techSystem's facultyLoad
-// filters all of s.tech per call, and grading every course that way twice a
-// week makes a long run effectively never finish.
+// Every instructor's current load in one pass, for their free slots.
+// Anything counting more than one professor's room must build this and
+// thread it through: techSystem's facultyLoad filters all of s.tech per
+// call.
 export type FacultyLoads = ReadonlyMap<string, number>;
 
 export function facultyLoads(s: GameState): FacultyLoads {
@@ -39,7 +40,7 @@ export function facultyLoads(s: GameState): FacultyLoads {
 // Only an offered course with a faculty field is graded; null renders as a dash.
 // `unstaffed` is darkness.ts's unstaffedPrograms, when the caller grades
 // many courses and has it already.
-export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads, unstaffed?: ReadonlySet<string>): CourseQuality | null {
+export function courseQuality(s: GameState, t: Buildable, unstaffed?: ReadonlySet<string>): CourseQuality | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
   // A dark program is not taught this term (darkness.ts): in transit
@@ -48,7 +49,7 @@ export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads, 
   const programId = programOfCourse(t.id);
   if (programId !== undefined && (unstaffed ?? unstaffedPrograms(s)).has(programId)) return null;
 
-  return instructorQuality(s, t, loads);
+  return instructorQuality(s, t);
 }
 
 // The grade a course's own instructor earns on it, whether or not its
@@ -56,33 +57,18 @@ export function courseQuality(s: GameState, t: Buildable, loads?: FacultyLoads, 
 // (above), but a weak one still has a teacher to change (Plan 80B's Below
 // A filter). An unstaffed course (instructor dismissed) is null: not
 // taught, rather than taught badly.
-export function instructorQuality(s: GameState, t: Buildable, loads?: FacultyLoads): CourseQuality | null {
+export function instructorQuality(s: GameState, t: Buildable): CourseQuality | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
   const instructor = assignedInstructor(s, t);
   if (!instructor) return null;
-
-  return qualityOf({
-    teaching: instructor.teaching,
-    acclaim: instructor.acclaim,
-    load: (loads ?? facultyLoads(s)).get(instructor.id) ?? 0,
-    slots: instructor.courseSlots,
-    tier: tierOf(t.id),
-  });
+  return projectedQuality(t, instructor);
 }
 
 // What a course would be graded with this person teaching it (the picker's
-// chips and the swap preview). The load is theirs plus this course, unless
-// they already teach it.
-export function projectedQuality(s: GameState, t: Buildable, f: Faculty, loads?: FacultyLoads): CourseQuality {
-  const load = (loads ?? facultyLoads(s)).get(f.id) ?? 0;
-  return qualityOf({
-    teaching: f.teaching,
-    acclaim: f.acclaim,
-    load: s.courseFaculty[t.id] === f.id ? load : load + 1,
-    slots: f.courseSlots,
-    tier: tierOf(t.id),
-  });
+// chips and the swap preview): the same as they would grade it teaching it.
+export function projectedQuality(t: Buildable, f: Faculty): CourseQuality {
+  return qualityOf({ teaching: f.teaching, acclaim: f.acclaim, tier: tierOf(t.id) });
 }
 
 // What one course contributes to an aggregate (a major, a school, the campus):
@@ -93,11 +79,11 @@ export function projectedQuality(s: GameState, t: Buildable, f: Faculty, loads?:
 //     that dismissed most of its faculty report a comfortable grade from
 //     the few staffed courses. (The course's own card shows "—": it answers
 //     a different question.)
-function aggregateScore(s: GameState, t: Buildable, loads: FacultyLoads, unstaffed: ReadonlySet<string>): number | null {
+function aggregateScore(s: GameState, t: Buildable, unstaffed: ReadonlySet<string>): number | null {
   if (t.status !== 'developing' && t.status !== 'done') return null;
   if (!t.requiresFaculty) return null;
   if (inTransit(s, t)) return null;
-  return courseQuality(s, t, loads, unstaffed)?.score ?? 0;
+  return courseQuality(s, t, unstaffed)?.score ?? 0;
 }
 
 function inTransit(s: GameState, t: Buildable): boolean {
@@ -106,16 +92,15 @@ function inTransit(s: GameState, t: Buildable): boolean {
 }
 
 // The mean across a set of course ids; null when none of them count.
-export function averageCourseQuality(s: GameState, ids: string[], loads?: FacultyLoads): number | null {
+export function averageCourseQuality(s: GameState, ids: string[]): number | null {
   const byId = new Map(s.tech.map((t) => [t.id, t]));
-  const load = loads ?? facultyLoads(s);
   const unstaffed = unstaffedPrograms(s);
   let sum = 0;
   let n = 0;
   for (const id of ids) {
     const t = byId.get(id);
     if (!t) continue;
-    const score = aggregateScore(s, t, load, unstaffed);
+    const score = aggregateScore(s, t, unstaffed);
     if (score === null) continue;
     sum += score;
     n += 1;
@@ -126,11 +111,10 @@ export function averageCourseQuality(s: GameState, ids: string[], loads?: Facult
 // Every graded course's score on campus (Plan 71: academic satisfaction and
 // prestige's teaching standard read each course, not only the mean).
 export function campusCourseScores(s: GameState): number[] {
-  const loads = facultyLoads(s);
   const unstaffed = unstaffedPrograms(s);
   const out: number[] = [];
   for (const t of s.tech) {
-    const score = aggregateScore(s, t, loads, unstaffed);
+    const score = aggregateScore(s, t, unstaffed);
     if (score !== null) out.push(score);
   }
   return out;
@@ -139,12 +123,11 @@ export function campusCourseScores(s: GameState): number[] {
 // Every graded course on campus as one mean, read by both satisfaction and
 // prestige so they agree.
 export function campusAverageCourseQuality(s: GameState): number | null {
-  const loads = facultyLoads(s);
   const unstaffed = unstaffedPrograms(s);
   let sum = 0;
   let n = 0;
   for (const t of s.tech) {
-    const score = aggregateScore(s, t, loads, unstaffed);
+    const score = aggregateScore(s, t, unstaffed);
     if (score === null) continue;
     sum += score;
     n += 1;

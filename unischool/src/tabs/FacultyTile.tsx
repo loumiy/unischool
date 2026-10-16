@@ -200,7 +200,7 @@ export default function FacultyTile(
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
   const held = isCandidate ? 0 : (load ?? taught.length);
   const firstWaiting = waiting?.open[0];
-  const projected = isCandidate && firstWaiting ? projectedQuality(s, firstWaiting, f) : null;
+  const projected = isCandidate && firstWaiting ? projectedQuality(firstWaiting, f) : null;
   // Every tile shows what this school pays, listing or roster: the market
   // rate is applied at payroll (financeSystem.ts's facultyPay).
   const pay = facultyPay(s, f.salary);

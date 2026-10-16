@@ -251,20 +251,18 @@ export function staffForTheA(s: GameState, school: string | null): StaffingMove[
       const programId = programOfCourse(t.id);
       return programId === undefined || !isInTransit(s, programId);
     })
-    .map((t) => ({ t, q: instructorQuality(s, t, loads) }))
+    .map((t) => ({ t, q: instructorQuality(s, t) }))
     .filter((x): x is { t: Buildable; q: CourseQuality } => x.q !== null && x.q.grade !== 'A')
     .sort((a, b) => a.q.score - b.q.score);
   const moves: StaffingMove[] = [];
-  for (const { t } of weak) {
-    // Read again: an earlier move this week may have lightened its teacher.
-    const now = instructorQuality(s, t, loads);
+  for (const { t, q: now } of weak) {
     const current = s.courseFaculty[t.id];
-    if (!now || now.grade === 'A' || !current) continue;
+    if (!current) continue;
     let best: { f: Faculty; q: CourseQuality } | null = null;
     for (const f of s.faculty) {
       if (f.field !== t.requiresFaculty || f.id === current) continue;
       if ((loads.get(f.id) ?? 0) >= effectiveCourseSlots(s, f)) continue;
-      const q = projectedQuality(s, t, f, loads);
+      const q = projectedQuality(t, f);
       if (!best || q.score > best.q.score) best = { f, q };
     }
     if (!best || lettersBetter(now.grade, best.q.grade) < 1) continue;
