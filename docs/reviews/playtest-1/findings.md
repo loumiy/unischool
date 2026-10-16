@@ -177,6 +177,11 @@ marked **0.1.x** and fixed in a patch.*
   of money, but weren't. With F1's "trying to find a decent teacher",
   the second player to find hiring slow. *2 players · service (S1), form
   (F1).*
+  **Decided: the mechanics stay, the presentation changes** (the owner,
+  16 October). A young college can't hire the best teachers, and the
+  faculty should grow across the game; shown as letters, a weak early
+  market reads as failure. Teaching becomes a number, so a 50 among 40s
+  reads as a good hire. Plan 104 as G.
 
 ## Asked for in play
 
