@@ -552,6 +552,9 @@ button, input, select, textarea { font-size: inherit; }
 .toolbar-funds-net { font-family: var(--mono); font-size: var(--text-2xs); font-weight: 700; color: var(--school-secondary); }
 
 .toolbar-stats { display: flex; gap: 5px; padding-left: 8px; }
+/* The walkthrough's first three steps (Plan 104F): the figures dimmed but
+   readable, and not doors. */
+.toolbar-stats.quiet, .toolbar-funds-btn.quiet:disabled { opacity: 0.55; cursor: default; }
 /* A chip: the word over the figure, in the height the glyph and figure had
    in a row. The word takes the glyph's place, so the chips fit the band as
    they did (the band is checked at 1280 and 1440 with every tab open). */

@@ -98,10 +98,13 @@ function useRankFlash(rank: number): string {
   return flash;
 }
 
-export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }: {
+export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, quiet = false }: {
   s: GameState; onOpenTreasury: () => void; treasuryOpen: boolean;
   // A chip's door (data/statChips.ts): the tab, and the section to land on.
   onOpenSection: (tab: TabId, section: TabSection) => void;
+  // The walkthrough's first three steps (Plan 104F): the figures dimmed,
+  // still readable, and their doors shut with the tabs they open.
+  quiet?: boolean;
 }) {
   const netWeekly = weeklyNet(s);
   // Shown from week one: the field is 100 schools, with many below a founding
@@ -112,7 +115,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
   const rankFlash = useRankFlash(rank);
   // A chip that has a door is a button named with its figure (Plan 78C).
   const door = (chip: StatChip, figure: string) => {
-    const d = chipDoor(chip, figure);
+    const d = quiet ? null : chipDoor(chip, figure);
     return d ? { name: d.name, onOpen: () => onOpenSection(d.tab, d.section) } : undefined;
   };
   // The word over the figure on a wide screen; on a phone the glyph stands
@@ -123,10 +126,11 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
     <>
       <button
         type="button"
-        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}`}
+        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}${quiet ? ' quiet' : ''}`}
         aria-expanded={treasuryOpen}
         aria-label="Treasury"
         aria-describedby={fundsHint}
+        disabled={quiet}
         onClick={onOpenTreasury}
       >
         {/* Money ticks to its new value. Rank does not animate: it is an
@@ -142,7 +146,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
         <span className="toolbar-funds-net">{signedMoney(netWeekly)}/wk</span>
         <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
-      <div className="toolbar-stats">
+      <div className={`toolbar-stats${quiet ? ' quiet' : ''}`}>
         <FigureBox className={`toolbar-stat ${rankFlash}`} above hint={FIGURE_HINTS.rank(s.rivals.length + 1)} door={door('rank', `#${rank}`)}>
           <RankIcon />
           {word('rank')}

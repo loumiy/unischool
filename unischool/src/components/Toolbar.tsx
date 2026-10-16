@@ -1,7 +1,7 @@
 import { forwardRef, useId } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { GameState } from '../state/types';
-import { foundersHallUnsited } from '../state/opening';
+import { foundersHallUnsited, openingQuietDoor } from '../state/opening';
 import { TAB_LABELS, TAB_ORDER, tabAvailable, type TabId } from './TabNav';
 import BuildPopup, { visibleBuildableIds } from './BuildPopup';
 import { FundsAndStats, SchoolAndClock } from './StatusHeader';
@@ -82,6 +82,10 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // hall is unsited (see state/opening.ts, .opening-target).
   const stage = s.events.opening.stage;
   const ringBuild = (stage === 'site-hall' || (stage === 'play' && foundersHallUnsited(s))) && !buildOpen;
+  // The walkthrough's first three steps (Plan 104F): every tab shut, the
+  // figures dimmed, Build open only for siting the hall. Campus stays: it
+  // is the map, where all three steps are done.
+  const quiet = openingQuietDoor(s);
   // Lit while any build category holds an unseen tile, open or not: the
   // build menu's "!", "something new to build here" (BuildPopup.tsx).
   const buildNew = visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]);
@@ -94,6 +98,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       <div className="toolbar-left">
         <FundsAndStats
           s={s}
+          quiet={quiet !== null}
           treasuryOpen={active === 'treasury'}
           onOpenTreasury={() => onChangeTab(active === 'treasury' ? null : 'treasury')}
           onOpenSection={(tab, section) => onChangeTab(tab, section)}
@@ -142,7 +147,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
                 aria-label={inboxLabel}
                 aria-describedby={hint ? committeeHint : undefined}
                 title={hint ? `${inboxLabel}. ${hint}` : inboxLabel}
-                disabled={held && id !== 'inbox'}
+                disabled={(held && id !== 'inbox') || quiet !== null}
                 onClick={() => onChangeTab(isActive ? null : id)}
               >
                 <Icon />
@@ -165,7 +170,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           aria-expanded={buildOpen}
           aria-label={buildOpen ? 'Close build menu' : 'Open build menu'}
           title={buildNew ? 'Build: something new to build' : 'Build'}
-          disabled={held}
+          disabled={held || (quiet !== null && quiet !== 'build')}
           onClick={() => onSetBuildOpen(!buildOpen)}
         >
           <BuildIcon />

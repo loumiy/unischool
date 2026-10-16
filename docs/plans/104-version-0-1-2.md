@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D.**
+October). Landed: A, C, D, F.**
 
 ---
 
@@ -239,6 +239,23 @@ other tabs dimmed until those are done."
 - **Skipping the walkthrough** lifts the dimming at once.
 - **Tests:** a shell test that the tabs are disabled at `site-hall` and
   live at `await-course` and after a skip.
+
+**As implemented.**
+
+- **The rule is one reading, `state/opening.ts`'s `openingQuietDoor`:**
+  `build` while siting the hall, `campus` while appointing and founding,
+  null otherwise. The toolbar draws from it, and `App.tsx`'s `openTab`
+  and build-menu opener refuse what it shuts, so the tab keys and every
+  other door into a tab are shut with the buttons.
+- **Campus stays live** at all three steps: it is the map, where all three
+  are done. **Build is shut** while appointing and founding, being no
+  step's door then.
+- **The figures stop being doors** while dimmed: the funds figure is
+  disabled and the stat chips are drawn without their doors, since each
+  opens a tab that is shut.
+- **Tests:** `test/quiet-opening.test.ts` renders the toolbar at each step,
+  at `await-course` and `second-course`, and after a skip from each of the
+  three.
 
 ### G — Teaching as a number, not a letter
 

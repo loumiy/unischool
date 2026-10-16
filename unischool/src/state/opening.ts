@@ -69,6 +69,22 @@ export function openingHoldsClock(s: GameState): boolean {
   return (stage !== 'play' && stage !== 'await-course') || foundersHallUnsited(s);
 }
 
+// The first three steps keep the screen quiet (Plan 104F, from R10–R11):
+// the toolbar's tabs are shut and its figures dimmed but readable, all but
+// the door the step needs: the build menu to site the hall, the map
+// (Founders Hall's panel) to appoint and to found. Null from the wait for
+// the first course on, when the later steps send the player into the tabs
+// on purpose, and at once when the walk is skipped.
+export type QuietDoor = 'build' | 'campus';
+export function openingQuietDoor(s: GameState): QuietDoor | null {
+  switch (s.events.opening.stage) {
+    case 'site-hall': return 'build';
+    case 'appoint':
+    case 'found': return 'campus';
+    default: return null;
+  }
+}
+
 // The welcome's Next; other stages are settled by settleOpening.
 export function advanceOpening(s: GameState): void {
   if (s.events.opening.stage === 'welcome') s.events.opening.stage = 'site-hall';
