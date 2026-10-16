@@ -2,7 +2,9 @@
 // headless Chromium, follows the opening walkthrough by doing what each step
 // asks (through the UI, the way a player would: since Plan 80D, site
 // Founders Hall, appoint Dr. Grace Bennett from the founding market in the
-// hall's panel, and found English with her), then plays the first year
+// hall's panel, and found English with her; since Plan 103, develop the next
+// course and site a residence hall and a dining hall, each on the first
+// clear ground out from the centre), then plays the first year
 // at the fastest speed open to it (2× until a Provost opens 4×), answering
 // every stop and every matter with its last button. A matter that pauses
 // the clock on arrival (Plan 78E) is opened from its notice, answered in the
@@ -48,7 +50,35 @@ const clickFirst = async (selector) => {
   await page.waitForTimeout(150);
   return true;
 };
-const clock = async () => (await page.locator('body').innerText()).match(/Year (\d+) · [^\n]*Week (\d+)/);
+// The dock's clock (StatusHeader.tsx's SchoolAndClock): the year, and the
+// term's week on the calendar page. [label, year, week], or null before
+// there is a clock.
+const clock = async () => {
+  const year = (await page.locator('.toolbar-clock').first().innerText({ timeout: 500 }).catch(() => '')).match(/Year (\d+)/);
+  if (!year) return null;
+  const term = await page.locator('.toolbar-calendar-term').first().innerText({ timeout: 500 }).catch(() => '');
+  const week = await page.locator('.toolbar-calendar-week').first().innerText({ timeout: 500 }).catch(() => '');
+  return [`Year ${year[1]} · ${term.trim()} week ${week.trim()}`, year[1], week.trim()];
+};
+// Where a held building is tried, outward from the centre of the map: the
+// first spot whose ghost is green takes it (a residence hall cannot go where
+// Founders Hall already stands).
+const SPOTS = [[0, 0], ...[1, 2, 3, 4].flatMap((r) => [[r, 0], [-r, 0], [0, r], [0, -r], [r, r], [-r, -r], [r, -r], [-r, r]].map(([x, y]) => [x * 110, y * 80]))];
+async function setDown() {
+  const box = await page.locator('.campus-map-svg').boundingBox();
+  for (const [dx, dy] of SPOTS) {
+    const x = box.x + box.width / 2 + dx;
+    const y = box.y + box.height / 2 + dy;
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(80);
+    if (await visible('.campus-preview.ok')) {
+      await page.mouse.click(x, y);
+      await page.waitForTimeout(200);
+      return true;
+    }
+  }
+  return false;
+}
 
 // The title screen comes first (Plan 34): a fresh browser has no run to
 // continue, so its primary button is New game.
@@ -104,11 +134,7 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
       // Picked up the ringed build tile, opened the ringed program slot,
       // picked the ringed program, or pressed the ringed Found.
     }
-    if (await visible('.campus-map-svg.placing')) {
-      const box = await page.locator('.campus-map-svg').boundingBox();
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-      await page.waitForTimeout(200);
-    }
+    if (await visible('.campus-map-svg.placing') && !(await setDown())) note('no clear ground found near the centre');
     if (await visible('.hall-offer-tile')) {
       // The ringed program (English), else the first; then its professor:
       // appointed from the market beside it when nobody can teach it yet.
