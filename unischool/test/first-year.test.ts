@@ -116,7 +116,7 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   s.students.satisfactionBreakdown = { academic: 70, social: 45, basicNeeds: 70, health: 70, housing: 12 };
   // Nothing going up: the line asks for a residence hall, at the build menu.
   const none = nextStep(s);
-  assert(none?.intent?.kind === 'build-for' && none.text === 'Housing is at 12: a residence hall would raise it' && none.go === 'build', `with nothing going up, the line asks for one (${none?.text})`);
+  assert(none?.intent?.kind === 'build-for' && none.text === 'Housing is at 12 out of 100: a residence hall would raise it' && none.go === 'build', `with nothing going up, the line asks for one (${none?.text})`);
 
   // Two residence halls going up: the line names the first to open, and its site.
   const dorms = s.tech.filter((t) => t.kind === 'dorm' && t.status !== 'done' && !(t.id in s.placements)).slice(0, 2);
@@ -127,14 +127,14 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
     s.placements[t.id] = { row: 30 + i * 6, col: 30, w: 4, h: 4 };
   });
   const up = nextStep(s);
-  assert(up?.text === `Housing is at 12 — ${dorms[1].name} opens in 9 weeks`, `the line names the building going up and when it opens (${up?.text})`);
+  assert(up?.text === `Housing is at 12 out of 100 — ${dorms[1].name} opens in 9 weeks`, `the line names the building going up and when it opens (${up?.text})`);
   assert(up?.go === 'hall' && up.hallId === dorms[1].id, 'and opens its site on the map, not the build menu');
   assert(up?.intent?.kind === 'wait', 'so the guided player does not build twice');
 
   // Something going up for another need does not answer this one.
   s.students.satisfactionBreakdown = { academic: 70, social: 45, basicNeeds: 70, health: 70, housing: 70 };
   const social = nextStep(s);
-  assert(social?.intent?.kind === 'build-for' && social.text.startsWith('Social is at 45: '), `a residence hall does not serve social (${social?.text})`);
+  assert(social?.intent?.kind === 'build-for' && social.text.startsWith('Social is at 45 out of 100: '), `a residence hall does not serve social (${social?.text})`);
 
   // Both open: the line reads the need afresh.
   s.students.satisfactionBreakdown.housing = 12;
@@ -143,7 +143,7 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
     delete s.developing[t.id];
   }
   const opened = nextStep(s);
-  assert(opened?.intent?.kind === 'build-for' && opened.text === 'Housing is at 12: a residence hall would raise it', `once open, the line reads the need afresh (${opened?.text})`);
+  assert(opened?.intent?.kind === 'build-for' && opened.text === 'Housing is at 12 out of 100: a residence hall would raise it', `once open, the line reads the need afresh (${opened?.text})`);
 }
 
 // --- NEXT seats the students first (Plan 80D) --------------------------------

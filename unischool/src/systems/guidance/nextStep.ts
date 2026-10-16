@@ -262,7 +262,7 @@ function shortfall(s: GameState): NextStep | null {
     if (score < ATTRIBUTE_SHORTFALL && (!worst || score < worst.score)) worst = { key, score };
   }
   if (!worst) return null;
-  const need = `${ATTRIBUTE_LABEL[worst.key]} is at ${satisfactionFigure(worst.score)}`;
+  const need = `${ATTRIBUTE_LABEL[worst.key]} is at ${satisfactionFigure(worst.score)} out of 100`;
   const coming = comingFor(s, worst.key);
   if (coming) {
     const name = coming.story ? `${coming.building.name}'s new story` : coming.building.name;

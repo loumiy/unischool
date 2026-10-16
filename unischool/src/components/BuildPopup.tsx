@@ -16,7 +16,9 @@ import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CE
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
+import { tabAvailable } from './TabNav';
 import { BUILD_WORDS } from '../data/buildWords';
+import { buildFinancing, greyedReason, noLoanReason } from './buildReasons';
 import { ProgressBar } from './Progress';
 import ToolbarPopup from './ToolbarPopup';
 import { setPlantingSpecies, usePlantingSpecies } from './plantingChoice';
@@ -33,7 +35,7 @@ import {
   AthleticsIcon, StudentLifeIcon, DisclosureIcon,
 } from './icons';
 import { count, money, moneyShort, pct, satisfactionFigure, weeksShort } from '../format';
-import { LOAN_RATE, LOAN_YEARS, borrowingRoom, financingFor, giftFunds, loanBar, loanFor } from '../systems/finance/treasury';
+import { LOAN_RATE, LOAN_YEARS, financingFor, giftFunds, loanFor } from '../systems/finance/treasury';
 import { pillarWorthWords } from '../data/prestigeWords';
 import { constructionFrozen } from '../systems/finance/distress';
 import { offCampusPlaces } from '../systems/satisfaction/satisfactionSystem';
@@ -405,28 +407,6 @@ function TilePlan({ Icon, stamp, t, vernacular }: {
 // the next building; otherwise the college's.
 function tileStyle(s: GameState, t: Buildable): Vernacular {
   return s.placements[t.id]?.vernacular ?? (isSandbox(s) && !(t.id in s.placements) ? buildStyle() : null) ?? s.self.vernacular;
-}
-
-// Which of loanFor's conditions stopped a loan for a building the cash
-// cannot cover (finance/treasury.ts's loanBar), in words; nothing when a
-// loan is offered or none is needed.
-function noLoanReason(s: GameState, cost: number): string | undefined {
-  const bar = loanBar(s, cost);
-  if (bar === null) return undefined;
-  if (bar !== 'room') return BUILD_WORDS.noLoan[bar];
-  const room = borrowingRoom(s);
-  return room > 0 ? BUILD_WORDS.noLoan.room.replace('{room}', moneyShort(room)) : BUILD_WORDS.noLoan.noRoom;
-}
-
-// A greyed tile's reason, short, for its face: "$2.1M short · the college
-// can borrow up to $1.4M", or the board's freeze.
-function greyedReason(s: GameState, cost: number): string | undefined {
-  if (constructionFrozen(s)) return BUILD_WORDS.constructionFrozen;
-  const shortfall = cost - s.finance.cash;
-  if (shortfall <= 0) return undefined;
-  const short = BUILD_WORDS.short.replace('{short}', moneyShort(Math.ceil(shortfall)));
-  const why = noLoanReason(s, cost);
-  return why ? `${short} · ${why}` : short;
 }
 
 // One building as a tile: a button for anything the player can act on (arm a
@@ -852,7 +832,7 @@ export default function BuildPopup({
   // it. Escape cancels it (App.tsx's ladder), before it closes the menu.
   const held = placingId ? s.tech.find((t) => t.id === placingId) : undefined;
   if (held) {
-    const financing = held.status === 'done' ? 'cash' : financingFor((f) => canStartDevelopment(s, held, undefined, f));
+    const financing = buildFinancing(s, held);
     return (
       <ToolbarPopup title="Build" onClose={onClose} className="build-popup holding">
         <div className="build-holding">
@@ -882,7 +862,7 @@ export default function BuildPopup({
           <span className="stat">
             {count(s.students.capacity)} beds{offCampusBeds > 0 && <span title={DOWNTOWN_WORDS.offCampusHint}> · {DOWNTOWN_WORDS.offCampusBeds(count(offCampusBeds))}</span>} · {count(totalEnrolled(s.students))} enrolled
           </span>
-          <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>
+          {tabAvailable(s, 'students') && <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>}
           <StylePicker s={s} />
         </div>
 

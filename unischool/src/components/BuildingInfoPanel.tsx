@@ -14,19 +14,18 @@ import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
 import { NEED_WORD } from '../data/needWords';
 import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
-import { WALKTHROUGH_PROGRAM } from '../data/foundingData';
+import { FOUNDING_MARKET, WALKTHROUGH_PROGRAM } from '../data/foundingData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
-import { GradeChip, InstructorOption, MarketInField } from '../tabs/CurriculumTab';
+import { GradeChip, InstructorOption, MarketInField, RowAction } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
-import { gradeFor } from '../data/courseQuality';
 import { schoolMark } from '../data/schoolPalette';
 import {
-  canFoundProgram, canRelocateProgram, closeRefusal, courseSlotsFree, eligibleInstructors, facultyGate, relocationWeeks,
+  canFoundProgram, canRelocateProgram, closeRefusal, courseSlotsFree, eligibleInstructors, relocationWeeks,
 } from '../systems/techtree/techSystem';
 import { declineRefusal, hostOffers, isHoused, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
-import { milestoneLine, programProgress, unmetPrereqNames } from '../systems/techtree/programProgress';
+import { milestoneLine, programProgress } from '../systems/techtree/programProgress';
 import { count, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
 import { initiativeDepth } from '../data/researchData';
 import { researchTopic } from '../data/researchTopics';
@@ -44,8 +43,11 @@ import { OFFICES } from '../data/officeData';
 // where a program is founded, because the decision is "what goes in this
 // building". It dispatches FOUND_PROGRAM, gated by the reducer's own
 // canFoundProgram so the button never offers what the action would refuse.
-// It does not develop courses: the Curriculum tab is where a program is
-// filled in, and a program tile is a summary with one door to its row there.
+// A program tile's summary also starts its next course (Plan 104A): the
+// Curriculum row's own one-click Develop (CurriculumTab.tsx's RowAction),
+// so it offers and refuses exactly what the row does. Choosing another
+// teacher, or several courses at once, is the Curriculum's, through the
+// summary's door to the program's row there.
 
 // A dorm's capacity is its capacityBonus effect, the founding dorm included.
 function dormCapacity(t: Buildable): number | null {
@@ -206,27 +208,25 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
 // ---------------------------------------------------------------------
 // The program tile: a filled slot showing the program's name in its school's
 // color, courses done of ten, and aggregate grade. Clicking opens its
-// summary and one door, "Open in Curriculum". Relocation sits behind a
+// summary: the next course's Develop button (or why there is none), then the
+// door to its row, "Open in Curriculum". Relocation sits behind a
 // "Move…" disclosure since it happens a few times a run; a program away from
 // its school's hall also gets its suggested move (schools.ts), one click,
 // and an arrow on the tile saying there is one (Plan 55).
 // ---------------------------------------------------------------------
-function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
+export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   program: ProgramInfo; s: GameState; act?: (a: Action) => void; open: boolean; onToggle: () => void;
   onOpenCurriculum?: (sectionKey: string) => void;
 }) {
   const mark = schoolMark(program.school);
   const loads = facultyLoads(s);
-  const avg = averageCourseQuality(s, program.courseIds, loads);
+  const avg = averageCourseQuality(s, program.courseIds);
   const progress = programProgress(s, program);
   const inTransit = transitWeeks(s, program.id);
   // An unstaffed course darkens the program (Plan 59).
   const dark = unstaffedPrograms(s).has(program.id);
   const move = act && program.kind !== 'graduate' ? suggestedMove(s, program.id) : null;
   const moveHall = move ? s.tech.find((x) => x.id === move.hallId) : undefined;
-  const courseTitle = (t: Buildable) => t.name.split(' · ')[1] ?? t.name;
-  const courseCode = (t: Buildable) => t.name.split(' · ')[0];
-
   return (
     <div className={`hall-slot housed${open ? ' open' : ''}`} style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}>
       <button
@@ -245,7 +245,7 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
               ? <span className="program-tile-transit" title="A course has no instructor">dark</span>
               : <span className="program-tile-progress">{fraction(progress.done, progress.total)}</span>}
           {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
-          {avg !== null && <GradeChip grade={gradeFor(avg)} title={`Averages ${count(avg)}/100`} />}
+          {avg !== null && <GradeChip score={avg} title={`Averages ${count(avg)} out of 100`} />}
         </span>
       </button>
       {open && (
@@ -255,28 +255,21 @@ function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
             <div><dt>Teaching</dt><dd>{count(progress.seats)} places</dd></div>
             {progress.developing > 0 && <div><dt>In development</dt><dd>{progress.developing}</dd></div>}
           </dl>
-          <p className="building-info-line program-summary-next">
-            {inTransit > 0
-              ? `In transit · ${inTransit} week${inTransit === 1 ? '' : 's'}.`
-              : progress.next
-                ? (() => {
-                  const field = progress.next.requiresFaculty;
-                  const gate = field ? facultyGate(s, field) : 'open';
-                  return (
-                    <>
-                      Next: <span className="hall-offer-code">{courseCode(progress.next)}</span> {courseTitle(progress.next)} · {moneyShort(progress.next.cost)} · {weeksShort(progress.next.duration)}
-                      {gate !== 'open' && (
-                        <span className="program-summary-blocked"> — needs {field} faculty.</span>
-                      )}
-                    </>
-                  );
-                })()
-                : progress.waiting
-                  ? <>Waiting on <span className="hall-offer-code">{courseCode(progress.waiting)}</span> {courseTitle(progress.waiting)} — needs {unmetPrereqNames(s, progress.waiting).join(', ') || 'its prerequisites'}.</>
-                  : progress.developing > 0
-                    ? 'Every remaining course is in development.'
-                    : 'Every course is developed.'}
-          </p>
+          {act && (
+            <div className="program-summary-next">
+              <RowAction
+                s={s}
+                act={act}
+                program={program}
+                progress={progress}
+                lookup={new Map(s.tech.map((t) => [t.id, t]))}
+                loads={loads}
+                onSelect={(id) => onOpenCurriculum?.(`course:${id}`)}
+                compact
+                showWorth={false}
+              />
+            </div>
+          )}
           <OpenInCurriculum id={`program:${program.id}`} onOpenCurriculum={onOpenCurriculum} />
           {move && moveHall && (
             <div className="relocate-suggested">
@@ -488,6 +481,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     const selected = pickedProgram === program.id;
     // The walkthrough's program, rung until it is picked.
     const ringed = walking && t.id === FOUNDERS_HALL_ID && program.id === WALKTHROUGH_PROGRAM && pickedProgram === null;
+    // A founding program is shown with the professor who would teach it
+    // (Plan 104L), so the program comes first and the professor with it.
+    const founder = FOUNDING_MARKET.find((p) => p.field === course?.requiresFaculty && s.candidates.some((c) => c.id === p.id));
     return (
       <button
         key={program.id}
@@ -500,7 +496,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
         <span className="hall-offer-name">{program.name}</span>
         <span className="hall-offer-meta">
-          {moneyShort(course?.cost ?? 0)} · {course?.requiresFaculty ?? '—'}
+          {founder ? `with ${founder.name}` : `${moneyShort(course?.cost ?? 0)} · ${course?.requiresFaculty ?? '—'}`}
         </span>
       </button>
     );

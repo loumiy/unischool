@@ -101,7 +101,7 @@ console.log('year in review tests');
   assert(section(s, 'research').empty.length > 0, 'which still says something');
 
   const students = text(s, 'students');
-  assert(/Satisfaction averaged \d+ this year/.test(students), `the students section leads with the year's average (${students})`);
+  assert(/Satisfaction, how content the students are out of 100, averaged \d+ this year: from now on it shows at the foot of the screen/.test(students), `the students section leads with the year's average (${students})`);
 
   const moneyLines = text(s, 'money');
   const net = s.finance.cash - FOUNDING_PRESET.startingCash;

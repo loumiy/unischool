@@ -78,7 +78,7 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickTech,
   tickFaculty,
   // After the faculty's week (growth, departures): a Provost or Dean on
-  // Staff for the A moves instructors onto the courses below A (Plan 95S),
+  // Staff the weakest courses first moves instructors onto the courses under 78 (Plan 95S),
   // before anything this week reads the grades.
   tickStaffing,
   // Before tickFinance: output uses this week's grown stats, and a grant

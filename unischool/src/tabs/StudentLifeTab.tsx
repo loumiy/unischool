@@ -7,13 +7,14 @@ import type { BuildableStatus, GameState, GreekChapter, SatisfactionAttributes, 
 import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
-import { FIGURE_HINTS, NEED_LABELS } from '../data/figureHints';
+import { FIGURE_HINTS, NEED_LABELS, dragLine } from '../data/figureHints';
+import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../data/facilitiesData';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { sectionAnchor } from '../components/sectionTarget';
 import {
   HELLENIC_COUNCIL_HINT, clubCapacity, chapterCapacity, interestClubs, sportClubCapacity, sportClubs,
   hasStudentCenter, orgMembership, studentOrgUpkeep, varsityEligibleYear } from '../data/studentLifeData';
-import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionWeeklyChange, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
+import { ATTRIBUTE_WEIGHTS, attributeDetail, satisfactionDrag, satisfactionWeeklyChange, studentLifeSatisfaction } from '../systems/satisfaction/satisfactionSystem';
 import { SATISFACTION_TREND, TrendFigure } from '../components/TrendFigure';
 import { DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
@@ -165,9 +166,11 @@ function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean 
       </g>
       {/* A thin ring inside the gauge; at full marks, a gold centre. */}
       <circle className="satisfaction-dial-centre" cx={c} cy={c} r={r - DIAL_STROKE / 2 - (full ? 2.5 : 4)} />
-      <text className="satisfaction-dial-value" x={c} y={c} textAnchor="middle" dominantBaseline="central">
+      {/* Out of 100, said (Plan 104I: S1 read a bare "12" as a time of day). */}
+      <text className="satisfaction-dial-value" x={c} y={dormant ? c : c - 4} textAnchor="middle" dominantBaseline="central">
         {dormant ? '–' : satisfactionFigure(score)}
       </text>
+      {!dormant && <text className="satisfaction-dial-of" x={c} y={c + 11} textAnchor="middle" dominantBaseline="central">/100</text>}
     </svg>
   );
 }
@@ -182,12 +185,9 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
   // unit is named.
   const unit = attribute === 'housing' ? 'beds' : 'served';
 
-  // The walkthrough's needs step rings the two it asks for (Plan 103C).
-  const ringed = s.events.opening.stage === 'needs' && (attribute === 'housing' || attribute === 'basicNeeds');
-
   // Expanded state is reported by `aria-expanded` on the toggle, not a class.
   return (
-    <li className={`satisfaction-card${ringed ? ' opening-target' : ''}`}>
+    <li className="satisfaction-card">
       <div className="satisfaction-card-head">
         <SatisfactionDial score={detail.score} dormant={detail.dormant} />
         <div className="satisfaction-card-text">
@@ -200,6 +200,9 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
           {/* Housing says beds against the beds wanted; the other needs say
               nothing here (Plan 96E: "1,200/113 served" beside a score of 40
               read as a contradiction, the score being mostly teaching). */}
+          {attribute === 'health' && !detail.dormant && (
+            <span className="satisfaction-card-coverage">A need since the college passed {count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students</span>
+          )}
           {(detail.dormant || attribute === 'housing') && (
             <span className="satisfaction-card-coverage">
               {detail.dormant
@@ -261,12 +264,14 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
 // week shows immediately. Always on screen: it explains satisfaction from
 // week one, long before any club exists.
 function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
+  // While it falls, the need that pulls it down most and why (Plan 104I).
+  const drag = satisfactionDrag(s);
   return (
     <section className="panel panel-span-2" {...sectionAnchor('students.breakdown')}>
       <div className="panel-head">
         <h2>{SECTION_HEADINGS['students.breakdown']}</h2>
         <HelpHint
-          text="The five needs satisfaction is made of, read live off the campus: a building finished this week shows here while the headline catches up over the coming weeks. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
+          text="The needs satisfaction is made of, read live off the campus: a building finished this week shows here while the headline catches up over the coming weeks. Health joins them once the college is large enough to need care on campus. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
         />
       </div>
       {/* Today's figure heads the needs it is made of, not the clubs'
@@ -279,8 +284,12 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
           hint={FIGURE_HINTS.satisfactionToday}
         />
       </dl>
+      {drag && <p className="satisfaction-drag">{dragLine(drag)}</p>}
       <ul className="satisfaction-cards">
-        {ATTRIBUTE_ORDER.map((attribute) => (
+        {/* Health shows once it is a need (Plan 104M): below its gate it
+            scores full and counts against nothing, and a dormant card read
+            as one more failure. */}
+        {ATTRIBUTE_ORDER.filter((attribute) => attribute !== 'health' || !attributeDetail(s, 'health').dormant).map((attribute) => (
           <AttributeCard key={attribute} s={s} attribute={attribute} />
         ))}
       </ul>

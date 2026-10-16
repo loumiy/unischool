@@ -2,7 +2,8 @@
 // The dock's stat chips lead to their explanations (Plan 78C,
 // src/data/statChips.ts): prestige opens History › Prestige and rank the
 // guide's table (Plan 80C), satisfaction opens Students › the breakdown, and
-// each lands from the first week. The committee, a chip until Plan 91, is
+// each lands where its tab is open: prestige and rank from the first week,
+// satisfaction, a chip only from the first summer, with its tab (Plan 104M). The committee, a chip until Plan 91, is
 // lamps on the Curriculum button: test/committee.test.ts's. The rank chip's
 // sentence says the rank is by prestige.
 //
@@ -71,6 +72,15 @@ console.log('stat chip tests');
   for (const chip of STAT_CHIPS) {
     const door = chipDoor(chip, '1');
     if (!door) continue;
+    if (chip === 'satisfaction') {
+      assert(!tabAvailable(s, door.tab), "satisfaction's tab waits for the first summer");
+      const after = createInitialState('Chips after');
+      after.history.push({ ...({} as typeof after.history[number]), year: 1 });
+      after.clock.year = 2;
+      tickLadder(after);
+      assert(tabAvailable(after, door.tab) && sectionAvailable(after, door.section), "and its door lands once the first summer has closed");
+      continue;
+    }
     assert(tabAvailable(s, door.tab), `${chip}'s tab is open in week 1`);
     assert(sectionAvailable(s, door.section), `${chip}'s section shows in week 1`);
   }

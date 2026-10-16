@@ -12,7 +12,8 @@ import { awaitsSite } from './campusMap';
 // professor, no course — so the walk founds its first program:
 //
 //   welcome    Next, or "Skip the walkthrough and the letters". Every later
-//              card can skip the rest, letters kept.
+//              card can skip the rest, letters kept. Either skip asks first
+//              (Plan 104C, components/OpeningCoach.tsx).
 //   site-hall  Founders Hall is not pre-placed in a guided founding; done
 //              when the hall stands on the map (siting is free).
 //   appoint    appoint the college's first professor from the founding
@@ -29,8 +30,9 @@ import { awaitsSite } from './campusMap';
 //              ringed; done when any course after a program's first is
 //              under way or taught, or when none of its courses can be
 //              started.
-//   needs      the Students tab opens on the satisfaction breakdown, its
-//              Housing and Dining cards ringed (Plan 103C); ends on Next.
+//   needs      a line on what students need, somewhere to sleep and
+//              somewhere to eat (Plan 103C; since Plan 104M it opens no
+//              tab: Students waits for the first summer); ends on Next.
 //              Reaching it counts the "Somewhere to sleep" letter read: the
 //              three steps are that letter.
 //   site-housing  the build menu opens on Housing, the next residence hall
@@ -66,6 +68,22 @@ export function foundersHallUnsited(s: GameState): boolean {
 export function openingHoldsClock(s: GameState): boolean {
   const stage = s.events.opening.stage;
   return (stage !== 'play' && stage !== 'await-course') || foundersHallUnsited(s);
+}
+
+// The first three steps keep the screen quiet (Plan 104F, from R10–R11):
+// the toolbar's tabs are shut and its figures dimmed but readable, all but
+// the door the step needs: the build menu to site the hall, the map
+// (Founders Hall's panel) to appoint and to found. Null from the wait for
+// the first course on, when the later steps send the player into the tabs
+// on purpose, and at once when the walk is skipped.
+export type QuietDoor = 'build' | 'campus';
+export function openingQuietDoor(s: GameState): QuietDoor | null {
+  switch (s.events.opening.stage) {
+    case 'site-hall': return 'build';
+    case 'appoint':
+    case 'found': return 'campus';
+    default: return null;
+  }
 }
 
 // The welcome's Next; other stages are settled by settleOpening.

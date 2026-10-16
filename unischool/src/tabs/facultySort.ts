@@ -39,11 +39,23 @@ export function potentialOf(f: Faculty): number {
   return f.teachingPotential + f.researchPotential;
 }
 
-// A stat as a letter, on the course-grade bands (courseQuality.ts's
-// gradeFor: A from 78, B from 62), so a professor reads on the scale their
-// courses are graded on.
-export function letterOf(value: number): Grade {
+// A stat's colour band, on the course-grade bands (courseQuality.ts's
+// gradeFor: 78, 62, 44, 30), so a professor's meter is coloured as their
+// courses' numbers are. The number is what is shown (Plan 104G: as letters,
+// a young college's weak market read as failure); the band is only its ink.
+export function bandOf(value: number): Grade {
   return gradeFor(value);
+}
+
+// The college's own median teaching (Plan 104G), what a candidate's is read
+// against: a 50 is a good hire among 40s in year 3 and a weak one in year
+// 40, without the player knowing the market's shape. Null with nobody on
+// the payroll.
+export function facultyMedian(faculty: readonly Faculty[]): number | null {
+  if (faculty.length === 0) return null;
+  const sorted = faculty.map((f) => f.teaching).sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return Math.round(sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2);
 }
 
 // Strongest, dearest, longest here or longest left first; names A to Z.

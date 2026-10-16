@@ -14,9 +14,9 @@ export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 // mostly low), so most fresh appointments open at C or below and a rare
 // one at A; early grades still read tenure more than choice.
 // These bands are tuned so about one fresh hire in seven opens at F, and so
-// a matured instructor (teaching ~71) visibly drops a grade under a full
-// load on a tier-3 course. Preserve through any retune: D on a new
-// department's course is normal, D on a veteran's means overload.
+// a matured instructor (teaching ~71) teaches an advanced course at B (66).
+// Preserve through any retune: D on a new department's course is normal,
+// D on a veteran's means the wrong teacher for the material.
 export const GRADE_A = 78;
 export const GRADE_B = 62;
 export const GRADE_C = 44;
@@ -66,7 +66,7 @@ export function meanGradePoints(scores: readonly number[]): number {
 // and the letter is the nearest step. F has no plus.
 const GRADE_LADDER: readonly Grade[] = ['F', 'D', 'C', 'B', 'A'];
 // How many letters `to` stands above `from` (Plan 95S: the Provost's
-// teaching policy moves a course only for a full letter or more).
+// staffing policy moves a course only for a band or more).
 export function lettersBetter(from: Grade, to: Grade): number {
   return GRADE_LADDER.indexOf(to) - GRADE_LADDER.indexOf(from);
 }
@@ -83,23 +83,14 @@ export function meanGradeLetter(points: number): string {
   return best[0];
 }
 
-// --- Load: what a full plate costs the courses on it. ---
-// Scales with how close the instructor is to their own slot ceiling
-// (exceeding it is impossible in play): one course is taught at full
-// strength, and each further course costs all of them a little, so "hire
-// more" and "hire better" are different answers. 7 keeps a full load a cost
-// rather than a cliff while a matured instructor on a tier-3 course still
-// drops a visible grade (66 B to 59 C).
-const LOAD_PENALTY_MAX = 7;
-// An over-ceiling load (migration only) keeps scaling up to this multiple,
-// so an over-stretched department reads worse than a full one.
-const LOAD_PENALTY_OVERRUN_CAP = 1.5;
-
-export function loadPenalty(load: number, slots: number): number {
-  if (slots <= 1 || load <= 1) return 0;
-  const fraction = (load - 1) / (slots - 1);
-  return LOAD_PENALTY_MAX * Math.min(fraction, LOAD_PENALTY_OVERRUN_CAP);
-}
+// --- Load: none (Plan 104J). ---
+// A professor teaches every course in their slots (facultyData.ts's
+// courseSlots) at their own teaching: how many they hold is capped, not
+// charged. Until 0.1.2 each course past the first cost all of them up to 7
+// at a full load, so a professor appointed as a B taught C's as their plate
+// filled, which read as the game contradicting itself (S1, the playtest).
+// "Teach more or hire better" is still a choice: a full department needs a
+// hire to grow.
 
 // --- Tier: harder material needs a stronger teacher. ---
 // Makes assignment a matching problem: a star belongs on the capstone.
@@ -166,16 +157,13 @@ export interface CourseQuality {
   factors: QualityFactor[];
 }
 
-// `slots` and `load` are the instructor's ceiling and current course count,
-// the graded course included.
+// The instructor's teaching, less the tier's penalty, plus their acclaim:
+// the same score on every course they teach of one tier, however many.
 export function qualityOf(
-  { teaching, acclaim, load, slots, tier }:
-  { teaching: number; acclaim: number; load: number; slots: number; tier: CourseTier },
+  { teaching, acclaim, tier }:
+  { teaching: number; acclaim: number; tier: CourseTier },
 ): CourseQuality {
   const factors: QualityFactor[] = [{ label: 'Instructor teaching', value: teaching }];
-
-  const loadCost = loadPenalty(load, slots);
-  if (loadCost > 0) factors.push({ label: `Teaching load (${load} of ${slots})`, value: -loadCost });
 
   const tierCost = tierPenalty(tier);
   if (tierCost > 0) {

@@ -21,7 +21,7 @@ import type { StepIntent } from '../systems/guidance/intent';
 import { schoolOffers } from '../systems/techtree/programOffers';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
-import { count as countOf, money, satisfactionFigure } from '../format';
+import { count as countOf, money } from '../format';
 import { campusFigures, campusLack, NEEDS_LETTER_ID } from './openingData';
 import { clamp } from '../math';
 import { random } from '../engine/random';
@@ -1174,7 +1174,8 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     body: (s) => {
       // What the students lack and the figures behind it, read as the letter
       // is written (openingData.ts, shared with the walkthrough's needs step).
-      return `Satisfaction is ${satisfactionFigure(s.students.satisfaction)}.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
+      // No figure for satisfaction: it shows from the first summer (Plan 104M).
+      return `Students need somewhere to sleep and somewhere to eat.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
     },
     ask: (s) => ({
       text: 'Site a residence hall and a dining hall', go: 'build',

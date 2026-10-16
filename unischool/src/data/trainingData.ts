@@ -98,14 +98,14 @@ export const TRAINING_WORDS = {
   train: 'Train',
   trainArmed: (course: string) => `Confirm — ${course} loses its teacher for a term`,
   trainGain: (from: string, to: string) => `Teaching ${from} to ${to}`,
-  trainTitle: (from: number, to: number, gradeFrom: string, gradeTo: string, until: string) =>
-    `Train at the Faculty Training Institute: teaching ${from} (${gradeFrom}) to ${to} (${gradeTo}), and the potential by as much. One course fewer until ${until}.`,
+  trainTitle: (from: number, to: number, until: string) =>
+    `Train at the Faculty Training Institute: teaching ${from} → ${to}, and the potential by as much. One course fewer until ${until}.`,
   trainWarning: (name: string, course: string, to: string | null, until: string) => (to
     ? `${name} teaches one course fewer until ${until}: ${course} moves to ${to}.`
     : `${name} teaches one course fewer until ${until}: ${course} will be left without an instructor.`),
   whyNot: {
     noPicks: (year: number) => `No training picks are left in Year ${year}.`,
-    topGrade: 'Already teaches at an A.',
+    topGrade: 'Already teaches at 78 or more, the top band.',
     thisYear: 'Already trained this year.',
   },
   trainedBadge: 'Trained',
@@ -113,7 +113,7 @@ export const TRAINING_WORDS = {
   inTraining: (until: string) => `At the institute: one course fewer until ${until}`,
 
   // The log.
-  trained: (name: string, from: string, to: string, moved: string) => `${name} has been trained at the Faculty Training Institute: teaching ${from} to ${to}.${moved}`,
+  trained: (name: string, from: number, to: number, moved: string) => `${name} has been trained at the Faculty Training Institute: teaching ${from} → ${to}.${moved}`,
   movedTo: (course: string, to: string) => ` ${course} moves to ${to} for the term.`,
   orphaned: (course: string) => ` ${course} is without an instructor while they train.`,
   lapsed: (n: number, year: number) => `${n} training ${n === 1 ? 'pick' : 'picks'} at the Faculty Training Institute went unused in Year ${year}, and ${n === 1 ? 'has' : 'have'} lapsed.`,

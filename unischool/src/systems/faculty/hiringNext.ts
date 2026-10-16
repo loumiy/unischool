@@ -27,9 +27,11 @@ export interface Listing {
   candidate: Faculty;
   field: string;
   weeksLeft: number;
-  // The first course waiting on the field, and this person's grade on it.
+  // The first course waiting on the field, and this person's number on it
+  // (shown, Plan 104G) and its band (which decides what is worth taking).
   course: Buildable | undefined;
   grade: Grade | null;
+  score: number | null;
   // Salary at this school's market rate, a year.
   pay: number;
   // Titles of the waiting courses their slots would open (Plan 96D: by
@@ -44,7 +46,8 @@ function listingFor(s: GameState, candidate: Faculty, waiting: Buildable[]): Lis
     field: candidate.field,
     weeksLeft: Math.max(0, candidateListingWeeks(s) - candidate.weeksListed),
     course,
-    grade: course ? projectedQuality(s, course, candidate).grade : null,
+    grade: course ? projectedQuality(course, candidate).grade : null,
+    score: course ? projectedQuality(course, candidate).score : null,
     pay: facultyPay(s, candidate.salary),
     unblocks: waiting.slice(0, candidate.courseSlots).map((t) => t.name.split(' · ')[1] ?? t.name),
   };

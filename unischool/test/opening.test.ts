@@ -43,12 +43,19 @@ import { STARTING_DORM_CAPACITY, STARTING_DORM_ID } from '../src/data/campusData
 import { teachPillars } from './fixtures/teaching';
 import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
+import { tabAvailable } from '../src/components/TabNav';
 import { NEEDS_LETTER_ID, walkBuilding, walkProgram } from '../src/data/openingData';
 import { awaitsSite, centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { loadGame, saveGame } from '../src/state/persistence';
 import type { GameState } from '../src/state/types';
+import type { Action } from '../src/state/actions';
+import { createElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import OpeningCoach from '../src/components/OpeningCoach';
+import ConfirmButton from '../src/components/ConfirmButton';
+import { SKIP_WORDS, WALKTHROUGH_LENGTH } from '../src/data/openingData';
 
 // In-memory localStorage, for the save round trip below.
 const store = new Map<string, string>();
@@ -241,7 +248,10 @@ const walkToCourse = (name: string) => reducer(
   assert(s.events.opening.stage === 'welcome' && openingHoldsClock(s), 'a guided founding opens on the welcome with the clock held');
   assert(!(FOUNDERS_HALL_ID in s.placements), 'Founders Hall is not placed');
   assert(s.events.opening.read.includes(OPENING_LETTERS[0].id) && !s.events.opening.skipped, 'the first letter is counted read — the welcome is its content');
-  assert(OPENING_STEPS.welcome.body(s).includes('nobody is on the payroll'), 'and the welcome says nobody is on the payroll yet');
+  // The welcome welcomes (Plan 104L): the college, and the building it
+  // begins with; no list of tasks, no order to remember.
+  const welcome = OPENING_STEPS.welcome.body(s);
+  assert(welcome === 'The Walk board wishes you well. Three hundred and fifty students have enrolled, and the college is yours to build. It begins with one building, Founders Hall, where the first classes will meet.', `the welcome's words (${welcome})`);
   assert(nextStep(s) === null, 'the next-step line is silent while the walk holds the clock');
   const week = s.clock.week;
   s = reducer(s, { type: 'TICK' });
@@ -272,7 +282,7 @@ const walkToCourse = (name: string) => reducer(
   s = reducer(s, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
   assert(s.faculty.some((f) => f.id === WALKTHROUGH_PROFESSOR), 'Bennett is on the payroll');
   assert(s.events.opening.stage === 'found' && openingHoldsClock(s), 'and the walk asks for the program, the clock still held');
-  assert(OPENING_STEPS.found.body(s).startsWith('Found English'), `the card names English (${OPENING_STEPS.found.body(s).slice(0, 40)})`);
+  assert(OPENING_STEPS.found.body(s).includes('Found English into the program slot'), `the card names English (${OPENING_STEPS.found.body(s).slice(0, 80)})`);
 
   // Found English: its entry course goes to the committee.
   const entry = programById(WALKTHROUGH_PROGRAM)!.entryCourseId;
@@ -303,7 +313,11 @@ const walkToCourse = (name: string) => reducer(
   assert(s.events.opening.stage === 'needs' && openingHoldsClock(s), 'the walk moves on to the needs, the clock still held');
   assert(s.events.opening.read.includes(NEEDS_LETTER_ID), 'and counts the letter the needs steps stand in for read');
   const needs = OPENING_STEPS.needs.body(s);
-  assert(/Housing is at \d+ and Dining at \d+\./.test(needs) && needs.includes('0 beds and 0 dining seats') && needs.includes('a residence hall for housing'), `the card reads the two needs and the figures behind them (${needs})`);
+  // Built rather than shown (Plan 104M): the Students tab waits for the
+  // first summer, so the card says what students need and goes on.
+  assert(needs.startsWith('Students need somewhere to sleep and somewhere to eat.') && needs.includes('from the build menu') && !/Students tab|satisfaction/i.test(needs), `the card says what students need, and opens no tab (${needs})`);
+  assert(OPENING_STEPS.needs.door === undefined && OPENING_STEPS.needs.next === 'Next', 'it has no door, and ends on Next');
+  assert(!tabAvailable(s, 'students'), 'and the Students tab is still closed');
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'site-housing' && openingHoldsClock(s), 'Next asks for a residence hall');
   const dorm = walkBuilding(s)!;
@@ -458,6 +472,134 @@ const walkToCourse = (name: string) => reducer(
   for (const t of broke.tech) if (t.kind === 'dorm' || t.facilityType === 'diningHall') t.cost = 1e12;
   broke = reducer(broke, { type: 'ADVANCE_OPENING' });
   assert(broke.events.opening.stage === 'play' && !openingHoldsClock(broke), `with neither building within reach, Next ends the walk (${broke.events.opening.stage})`);
+}
+
+// --- each card introduces its own step, in the order played (Plan 104L) ----
+{
+  const words = (stage: GameState['events']['opening']['stage'], s: GameState) => OPENING_STEPS[stage as 'welcome'].body(s).toLowerCase();
+  const w = foundWalk('Order');
+  const site = reducer(w, { type: 'ADVANCE_OPENING' });
+  const appoint = siteHall(site);
+  const found = reducer(appoint, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  // A card names no step it doesn't lead to: the welcome and the hall's
+  // step no professor, program or course; choosing the program no course.
+  for (const [stage, s, banned] of [
+    ['welcome', w, ['professor', 'program', 'course', 'in that order']],
+    ['site-hall', site, ['professor', 'program', 'course']],
+    ['appoint', appoint, ['course']],
+  ] as const) {
+    const said = banned.filter((term) => words(stage, s).includes(term));
+    assert(said.length === 0, `${stage}: names no later step (${said.join(', ')})`);
+  }
+  // Choosing the program reads program, then professor (decision 8).
+  const pick = OPENING_STEPS.appoint.body(appoint);
+  assert(OPENING_STEPS.appoint.title === 'Choose the first program', `the step is choosing a program (${OPENING_STEPS.appoint.title})`);
+  assert(pick.includes('English, with Dr. Grace Bennett; Mathematics, with Dr. Priya Iyer; and Economics, with Dr. John Okafor'), `the three founding candidates as three programs (${pick})`);
+  assert(words('found', found).indexOf('course') >= 0, 'courses come in when the program is founded');
+}
+
+// --- the walkthrough never opens a gated tab (Plan 104M) -------------------
+{
+  const doorTab = { curriculum: 'curriculum', build: null, hall: null } as const;
+  let w = foundWalk('Doors');
+  const seen: string[] = [];
+  const check = () => {
+    const stage = w.events.opening.stage;
+    if (stage === 'play' || stage === 'await-course') return;
+    const door = OPENING_STEPS[stage].door;
+    const tab = door ? doorTab[door] : null;
+    seen.push(stage);
+    assert(tab === null || tabAvailable(w, tab), `${stage}: its door (${door}) is open`);
+  };
+  check();
+  w = reducer(w, { type: 'ADVANCE_OPENING' }); check();
+  w = siteHall(w); check();
+  w = reducer(w, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR }); check();
+  w = reducer(w, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
+  w = untilStage(w, 'second-course'); check();
+  const next = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => w.tech.find((t) => t.id === id)?.status === 'available')!;
+  w = reducer(w, { type: 'START_DEVELOPMENT', nodeId: next, facultyId: WALKTHROUGH_PROFESSOR }); check();
+  w = reducer(w, { type: 'ADVANCE_OPENING' }); check();
+  assert(seen.join(',') === 'welcome,site-hall,appoint,found,second-course,needs,site-housing', `every card checked (${seen.join(',')})`);
+  assert(Object.values(OPENING_STEPS).every((step) => step.door === undefined || step.door in doorTab), 'no card has a door to a gated tab');
+}
+
+// --- the skip asks first (Plan 104C) ----------------------------------------
+// The coach is rendered inside a probe that keeps the tree it returns, so
+// its buttons' handlers can be pressed without a DOM.
+{
+  type Props = Record<string, unknown> & { children?: ReactNode };
+  const all = (node: ReactNode, out: ReactElement<Props>[] = []): ReactElement<Props>[] => {
+    if (Array.isArray(node)) { for (const n of node) all(n, out); return out; }
+    if (!isValidElement<Props>(node)) return out;
+    out.push(node);
+    all(node.props.children, out);
+    return out;
+  };
+  const coach = (s: GameState) => {
+    const acted: Action[] = [];
+    let tree: ReactNode = null;
+    const props = {
+      s, act: (a: Action) => acted.push(a), buildOpen: false, hallOpen: false, curriculumOpen: false, studentsOpen: false, placing: false,
+      onOpenBuild: () => {}, onOpenHall: () => {}, onOpenCurriculum: () => {}, onOpenStudents: () => {},
+    };
+    const Probe = () => { tree = OpeningCoach(props); return null; };
+    renderToStaticMarkup(createElement(Probe));
+    return { acted, elements: all(tree), html: renderToStaticMarkup(createElement(OpeningCoach, props)) };
+  };
+
+  const welcome = foundWalk('Ask');
+  const siteStep = reducer(welcome, { type: 'ADVANCE_OPENING' });
+  const appointStep = siteHall(siteStep);
+  const foundStep = reducer(appointStep, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  const courseStep = untilStage(walkToCourse('Ask course'), 'second-course');
+  const course = walkProgram(courseStep) ? programById(walkProgram(courseStep)!)!.courseIds.find((id) => courseStep.tech.find((t) => t.id === id)?.status === 'available')! : '';
+  const needsStep = reducer(courseStep, { type: 'START_DEVELOPMENT', nodeId: course, facultyId: WALKTHROUGH_PROFESSOR });
+  const housingStep = reducer(needsStep, { type: 'ADVANCE_OPENING' });
+  const diningStep = siteAnywhere(housingStep, walkBuilding(housingStep)!.id);
+  const steps = [welcome, siteStep, appointStep, foundStep, courseStep, needsStep, housingStep, diningStep];
+  assert(steps.map((x) => x.events.opening.stage).join(',') === 'welcome,site-hall,appoint,found,second-course,needs,site-housing,site-dining',
+    `every card is reached (${steps.map((x) => x.events.opening.stage).join(',')})`);
+
+  for (const s of steps) {
+    const stage = s.events.opening.stage;
+    const c = coach(s);
+    // One click on anything the card draws: nothing skips.
+    for (const e of c.elements) if (e.type === 'button' && typeof e.props.onClick === 'function') (e.props.onClick as () => void)();
+    assert(!c.acted.some((a) => a.type === 'SKIP_OPENING'), `${stage}: no button skips on one click`);
+    const skips = c.elements.filter((e) => e.type === ConfirmButton);
+    assert(skips.length === 1, `${stage}: the skip is a confirmation (${skips.length})`);
+    const skip = skips[0]?.props ?? {};
+    assert(skip.needsConfirm !== false && skip.cancelLabel === SKIP_WORDS.keep && skip.warning === SKIP_WORDS.question && skip.armedLabel === SKIP_WORDS.confirm,
+      `${stage}: armed, it asks "${SKIP_WORDS.question}" with ${SKIP_WORDS.confirm} and ${SKIP_WORDS.keep}`);
+    c.acted.length = 0;
+    (skip.onConfirm as () => void)?.();
+    const keep = stage !== 'welcome';
+    assert(c.acted.length === 1 && c.acted[0].type === 'SKIP_OPENING' && (c.acted[0].keepLetters === true) === keep,
+      `${stage}: its confirmation skips, ${keep ? 'keeping' : 'declining'} the letters (${JSON.stringify(c.acted)})`);
+    assert(skip.label === (keep ? SKIP_WORDS.rest : SKIP_WORDS.welcome), `${stage}: labelled "${String(skip.label)}"`);
+  }
+
+  // The welcome: the skip is a link under the actions, and the card says
+  // how long the walk is.
+  const w = coach(welcome).html;
+  assert(w.includes(WALKTHROUGH_LENGTH), 'the welcome says how long the walkthrough takes');
+  const actionsRow = w.slice(w.indexOf('letter-actions'), w.indexOf('</div>', w.indexOf('letter-actions')));
+  assert(w.indexOf('letter-skip-row') > w.indexOf('letter-actions') && !actionsRow.includes('skip'),
+    'and its skip sits below the actions, not beside Next');
+  assert(w.includes('letter-skip-link'), 'as a plain text link');
+
+  // ConfirmButton itself: a first click arms; it does not act.
+  let confirmed = 0;
+  let button: ReactElement<Props> | undefined;
+  const Probe = () => {
+    const tree = ConfirmButton({ label: 'Skip', armedLabel: 'Skip', onConfirm: () => { confirmed += 1; }, cancelLabel: 'Keep' });
+    button = all(tree).find((e) => e.type === 'button');
+    return null;
+  };
+  renderToStaticMarkup(createElement(Probe));
+  (button?.props.onClick as () => void)?.();
+  assert(confirmed === 0, 'a first click on a confirmation does not act');
 }
 
 if (failures === 0) {

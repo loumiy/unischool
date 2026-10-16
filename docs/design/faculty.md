@@ -341,7 +341,6 @@ rest"). Until Plan 80F each course was scored against a standard of an A
 | Input | Effect |
 | --- | --- |
 | Instructor's teaching stat | the base, 0..100 |
-| Teaching load | up to −7, scaling with how full their slots are |
 | Course tier | 0 for tier-1, −2 tier-2, −5 tier-3, −8 graduate |
 | Prize-winning instructor | +3 per prize, capped at +6 |
 
@@ -351,16 +350,17 @@ turns assignment from a RANKING problem ("who is best") into a MATCHING one
 star on the tier-3 seminar, not the entry survey, because that is where their
 strength shows up in the grade.
 
-**Overload is a cost, not a cliff.** The load penalty was 12, against bands
-16–18 points wide, which made a professor's second and third course read as a
-punishment for expanding the catalogue rather than as a price paid for it. At 7
-a matured instructor (teaching ~71) on a capstone still drops a visible grade at
-a full load — B to C — so overloading somebody stays legible in the middle of
-the range where most courses live; what changed is the depth of the drop. The
-property to preserve through any further retune is stated in `courseQuality.ts`
-and checked in `test/course-quality.test.ts`: **a D on a new department's course
-is the system working, a D on a veteran's course means the player overloaded
-them**, and those must stay distinguishable.
+**A professor's load costs nothing** (Plan 104J). They hold a fixed number
+of courses (`courseSlots`: four to six for a hire, two or three for a founder)
+and teach every one at their own teaching, less the tier's penalty, so a
+professor and the courses they teach never seem to disagree. Until 0.1.2 a
+load penalty took up to 7 at a full plate (12 before that), which made a B
+appointment teach C's as their courses filled. "Teach more or hire better" is
+still a choice: a full department needs a hire to grow. The property to
+preserve through any further retune is stated in `courseQuality.ts` and
+checked in `test/course-quality.test.ts`: **a D on a new department's course
+is the system working, a D on a veteran's course means the wrong teacher for
+the material**.
 
 **Campus facilities are deliberately NOT an input.** The library already reaches
 academic satisfaction through seats-per-student (40 of its 100 points since

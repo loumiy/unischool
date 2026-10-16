@@ -2,7 +2,7 @@ import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import { graduatePrograms, milestoneSchools } from '../src/data/techData';
 import { GRADE_A, GRADE_C, gradeFor } from '../src/data/courseQuality';
-import { courseQuality, facultyLoads } from '../src/systems/faculty/facultyAssignment';
+import { courseQuality } from '../src/systems/faculty/facultyAssignment';
 import {
   RESEARCH_CREDITS_FOR_FULL_SCORE, concentrationScore, curriculumBreadthScore, researchCredits, researchScore,
   socialStandingBreakdown,
@@ -72,12 +72,11 @@ const GRADE_RANK: Record<LegacyGrade, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 }
 const TEACHING_AVERAGE_SHARE = 0.5;
 
 function teachingReading(s: GameState): { score: number; detail: string } {
-  const loads = facultyLoads(s);
   let sum = 0;
   let n = 0;
   let good = 0;
   for (const t of s.tech) {
-    const quality = courseQuality(s, t, loads);
+    const quality = courseQuality(s, t);
     if (!quality) continue;
     sum += quality.score;
     n += 1;

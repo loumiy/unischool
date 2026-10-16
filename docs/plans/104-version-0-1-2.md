@@ -6,7 +6,10 @@ is to sequence the fixes the playtest has asked for since 0.1.1 (13 October
 from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
-**Status: Proposed (14 October 2026; G–M added and decisions settled 16 October).**
+**Status: In progress (14 October 2026; G–M added and decisions settled 16
+October). A, C, D and F–M are done, on the branch `claude/plan-104` (16
+October), not yet merged; B is held (decision 4); E, the release, waits for
+them.**
 
 ---
 
@@ -110,6 +113,24 @@ itself, where the program was placed.
   `START_DEVELOPMENT` as the Curriculum row, and is disabled with the
   Curriculum's reasons.
 
+**As implemented.**
+
+- **The Curriculum gained a `course:` target.** `onOpenCurriculum` only
+  knew programs, schools, filters and the committee, so *Appoint…* and
+  *Open…* open the tab with `course:<id>`, which selects the course (its
+  drawer opens) and scrolls to its cell, or to its program's row when the
+  row is folded and the cell isn't drawn.
+- **`RowAction` takes `showWorth`.** The hall passes `false`: the
+  summary's *Stage* already states the milestone, and the row's "4 to
+  Established · +80 places" beside it said it twice.
+- **The ring comes with it.** On the walkthrough's step four the
+  Curriculum's button is ringed (`opening-target`); being the same
+  component, the hall's is too, so "the ringed button" in the card is true
+  in either place. Pressing it ends the step as the Curriculum's does
+  (checked in the browser).
+- **Tests:** `test/hall-develop.test.ts` calls the tile and the row as
+  functions (neither uses a hook) to press their buttons without a DOM.
+
 ### B — A clock that says why it stopped
 
 *Held out of 0.1.2 (decision 4): it goes in when a second player misses a
@@ -143,6 +164,24 @@ paused clock.*
 - **Tests:** `opening.test.ts`: one click no longer skips; the
   confirmation does, from the welcome and from each later card.
 
+**As implemented.**
+
+- **`ConfirmButton` gained a question form** (`cancelLabel`): armed, the
+  warning reads first as the question, over the armed button (*Skip*) and
+  a second one, *Keep the walkthrough*, that disarms it. Without
+  `cancelLabel` it is unchanged. The button keeps its place in the DOM
+  when armed (the question is moved up by CSS `order`), so arming from the
+  keyboard keeps focus, and Tab between the two buttons doesn't disarm.
+- **The words live in `openingData.ts`** (`SKIP_WORDS`,
+  `WALKTHROUGH_LENGTH`), with the rest of the walk's copy. The length line
+  sits above the welcome's Next.
+- **The later cards keep their quiet pill** for the skip; only the
+  welcome's became a text link, as the plan says.
+- **Tests:** the coach is rendered inside a probe component that keeps the
+  tree it returns, so every button's handler is pressed once: none skips,
+  and the one confirmation on each of the eight cards does. Checked in the
+  browser: a click, Enter from the keyboard, Tab to *Keep*, and Escape.
+
 ### D — The opening, measured
 
 - **`opening_step`**, fired each time the stage moves on
@@ -158,6 +197,27 @@ paused clock.*
 - **What it answers:** players who leave at scattered stages are browsing;
   players who pile up at one stage are stuck there; players who skip and
   then stop early tell whether the skip (C) mattered.
+
+**As implemented.**
+
+- **`opening_step` is read off the state, `opening_skipped` is sent by the
+  confirmation.** `stateEvents` sends a step whenever the stage changes
+  (so it covers `settleOpening` and `ADVANCE_OPENING` without touching
+  either). A skip can't be read that way: from the needs cards, a skip
+  with the letters kept and a walk finished by the same action leave the
+  same state. So C's confirmation calls `analytics.ts`'s
+  `openingSkipped(stage, letters)` just before it acts, and that marks the
+  next stage change as the skip's, so the `play` it lands on isn't sent as
+  a step. `play` as a step means the walkthrough was finished.
+- **`opening_skipped`'s `stage` lists `welcome` too**, the one card that
+  isn't a stage reached. Both lists are built from a `Record<OpeningStage,
+  true>`, so a stage added to the walk fails to compile until it is
+  listed, as the tabs do.
+- **Tests:** `analytics.test.ts` walks a guided founding through the
+  reducer, observed as `useGame` does: finished (every stage, `play`
+  last), skipped on a later card (the steps before it, the skip with the
+  letters kept, no `play`), skipped on the welcome, and a later run's
+  first step still sent.
 
 ### F — A quieter screen for the first three steps
 
@@ -181,6 +241,23 @@ other tabs dimmed until those are done."
 - **Skipping the walkthrough** lifts the dimming at once.
 - **Tests:** a shell test that the tabs are disabled at `site-hall` and
   live at `await-course` and after a skip.
+
+**As implemented.**
+
+- **The rule is one reading, `state/opening.ts`'s `openingQuietDoor`:**
+  `build` while siting the hall, `campus` while appointing and founding,
+  null otherwise. The toolbar draws from it, and `App.tsx`'s `openTab`
+  and build-menu opener refuse what it shuts, so the tab keys and every
+  other door into a tab are shut with the buttons.
+- **Campus stays live** at all three steps: it is the map, where all three
+  are done. **Build is shut** while appointing and founding, being no
+  step's door then.
+- **The figures stop being doors** while dimmed: the funds figure is
+  disabled and the stat chips are drawn without their doors, since each
+  opens a tab that is shut.
+- **Tests:** `test/quiet-opening.test.ts` renders the toolbar at each step,
+  at `await-course` and `second-course`, and after a skip from each of the
+  three.
 
 ### G — Teaching as a number, not a letter
 
@@ -223,6 +300,49 @@ campus.
   letter; a candidate's tile shows the faculty's median; the sim baseline
   is unchanged.
 
+**As implemented.**
+
+- **`GradeChip` takes a score** and draws `GradeMark.tsx`'s new
+  `ScoreMark`: the number in the same pen ring, in its band's ink (78, 62,
+  44, 30), so every chip changed in one place. The run's report-card marks
+  (the Final Report, the hall of fame) keep their letters: they grade a
+  run, not a teacher.
+- **The meters** read "81 → 88": the teaching or research now, and where
+  the potential takes it. `letterOf` became `bandOf`, the meter's ink only.
+- **The median** (`facultySort.ts`'s `facultyMedian`, the payroll's
+  teaching) is said under a candidate's teaching on the market's tiles and
+  on the cards the hall's picker and the course drawer list ("your
+  faculty's median is 67"). Decision 6: the candidate's teaching meter and
+  number are warm above it and plain grey below, in no band's ink. A
+  candidate's research keeps its band's ink, since no median is said for it.
+- **The difference is said** where a course's number meets its teacher's:
+  the instructor chip's and the next start's titles read "Iyer, teaching
+  63: this course 61 (−2, upper-level)" (`CurriculumTab.tsx`'s
+  `qualityGap`). The drawer's factor list stays the full account, under
+  the number "out of 100".
+- **Words that named a letter:** the staffing policy is "Staff the weakest
+  courses first", its note in numbers ("each course under 78, when they
+  would lift it a band, past 30, 44, 62 or 78"), and its weekly line names
+  the move as "61 → 70". The Curriculum's *Below A* is *Below 78*, and
+  History's link "Show the 6 courses under 78". The training words read
+  "teaching 58 → 76", the career line likewise, the refusal "Already
+  teaches at 78 or more". The Faculty and Curriculum tabs' help lines are
+  rewritten (Plan 95E). The market's listings carry a `score` for the chip
+  beside the `grade` that decides what is worth taking.
+- **Left as letters, for the owner:** the campus's teaching standard in
+  History › Prestige ("courses average a B+") and academic satisfaction's
+  factor ("Average course grade (B+)"). Both name the mean of the grade
+  points (Plan 95H chose that wording on purpose), which isn't the average
+  of the course numbers, so turning them into a number needs a choice of
+  which number. The plan's list doesn't name them.
+- **Balance:** `npm run sim` after G reads the rebased baseline (J's)
+  exactly, all thirty runs.
+- **Tests:** `test/teaching-numbers.test.ts` renders the faculty tile
+  (professors and candidates), the person page, the market, the picker,
+  the Curriculum tab, a course cell, the row, the hall's tile and the
+  Faculty tab, and finds numbers and no grade letter on any; the median on
+  candidates, warm only above it; and the words.
+
 ### H — Every refused placement says why
 
 - **Today** the map says why only for ground ("not enough clear ground"),
@@ -243,6 +363,35 @@ campus.
 - **Tests:** a placement test for each refusal's words, and that the
   ghost is green wherever a click would place.
 
+**As implemented.**
+
+- **One module, `components/buildReasons.ts`,** for the menu and the map:
+  `buildFinancing` (how the click pays, Founders Hall's free siting
+  included), `startRefusal` (the words when nothing pays), `paidWords`, and
+  the menu's `noLoanReason` and `greyedReason`, moved there from
+  `BuildPopup.tsx`. The click, the ghost and the held strip all read
+  `buildFinancing`, so they can't disagree.
+- **S1's money case was the ghost's, not a missing reason.** The menu
+  never lets a building be picked up that nothing pays for, so a red ghost
+  over money came from the ghost reading cash only: in year two the house
+  S1 wanted was on a loan, the ghost was red, and nothing said why. Now it
+  is green and says "part borrowed" (checked in the browser on a year-two
+  save). The note uses the held strip's words (`BUILD_WORDS.pay`: "part
+  borrowed", "paid from gifts", "half from the endowment") rather than the
+  plan's "on a loan", so the two say the same.
+- **The refusals in words:** "Costs $2.1M · you have $1.4M" with why no loan
+  ("the college can borrow up to …"), "The board has frozen
+  construction", "Needs a Chemistry professor with a free course slot",
+  and "… isn't open to build yet". These show if the money or the freeze
+  changes while a building is held.
+- **Benches, lamps and beds** say why too: off the college's land, or
+  "Elm Hall stands here". S1's benches in the park are the second, if the
+  park was a building's ground. Since the decoration change (#377) a
+  bench goes anywhere else on land.
+- **Tests:** `test/placement-reasons.test.ts` places through the reducer
+  with the financing the ghost names, for cash, a gift, a loan, Founders
+  Hall's siting, and where it names none, every way of paying is refused.
+
 ### I — Needs out of 100, and what pulls satisfaction down
 
 - **A need's score shows "/100".** Today the Students tab's dial holds a
@@ -257,6 +406,24 @@ campus.
   hidden (Plan 98B), only the largest pull is named.
 - **Tests:** the line names the lowest weighted need, and says nothing
   while satisfaction is steady or rising.
+
+**As implemented.**
+
+- **"Falling" is the header arrow's own:** the weekly change below
+  −0.05 (`TrendFigure.tsx`'s `SATISFACTION_TREND` floor), so the line
+  shows exactly when the ▼ does.
+- **The need named is the largest pull,** its weight times what it lacks
+  of 100 (`satisfactionSystem.ts`'s `satisfactionDrag`), not the lowest
+  score: Dining at 60 (×0.30) pulls harder than Health at 50 (×0.11).
+- **The words are the needs cards' own** (`figureHints.ts`'s `dragLine`):
+  "Housing is the drag: 320 beds, 480 wanted." The plan's "for 480
+  students" would be untrue, since not every student wants a bed and the
+  card counts the beds wanted. Academic, made of points, says "teaching
+  earns 39 of its 60 points, the library 40 of its 40". The facts come from
+  the system and the words from `data/`, which reads no system.
+- **The dial** shows "/100" small under its number. The needs step's line
+  reads "out of 100", until M rewrites the step.
+- **Tests:** `test/satisfaction-drag.test.ts`.
 
 ### J — No teaching overload
 
@@ -282,6 +449,36 @@ game contradicting itself.
 - **Tests:** a course's quality no longer depends on its instructor's
   load; the save fixtures still load.
 
+**As implemented.**
+
+- **The load leaves the grade's functions entirely.** `qualityOf` takes
+  teaching, acclaim and tier. `projectedQuality(t, f)`,
+  `instructorQuality(s, t)`, `courseQuality(s, t, unstaffed?)` and the
+  averages no longer take `loads`, and nor do the course cell, the drawer
+  or the Curriculum's filter, which carried them only for the grade.
+  `facultyLoads` stays for free course slots (the batch, the Provost's
+  staffing, the market's cards). The batch's preview no longer steps its
+  grades down.
+- **Balance.** `npm run sim` before (with A–K in, it read the baseline, bar
+  a +0.0 in Guided, athletics' year-50 prestige) and after: the guided
+  player's prestige +1.0 at year 10, +4.0 at 25 and +0.7 at 50,
+  satisfaction within a point. The Completionist's year-10 satisfaction is
+  +5.0 (92.7) and its year-50 prestige −4.2 (111.1). Cash at years 25 and
+  50 swings by tens to hundreds of millions either way, as it does between
+  seeds. Every archetype and guided-player check passes
+  (`npm run test:slow`). Neither prestige nor academic satisfaction ran
+  past its band, so the grade bands and tier penalties are unchanged;
+  `sim/baseline.json` is rebased.
+- **The harness's teaching moves** (`sim/harness/moves.ts`) read the grade
+  the same way, so "could this teacher reach an A here" no longer counts
+  the load.
+- **Words:** `courseQuality.ts`'s band comment and its section on load,
+  `docs/design/faculty.md`'s course-quality section, and the row's comment
+  in the Curriculum. No help text named the penalty (searched).
+- **Tests:** `course-quality.test.ts` is rewritten around the new rule,
+  with one reading of a college: Dr. Bennett's first courses grade the same
+  after she takes a third.
+
 ### K — A name on the pennant never splits a word
 
 S1 named the college "Baltimoore", and the map's pennant broke it as
@@ -298,6 +495,25 @@ S1 named the college "Baltimoore", and the map's pennant broke it as
   longer than the banner can hold).
 - **Tests:** a pennant test over a list of names (short, long, one long
   word, "Baltimoore College") that the chosen size fits the longest word.
+
+**As implemented.**
+
+- **The break needs the largest text.** At the default text size
+  "Baltimoore" is 97 px at the second size and fits the 118 px line; at
+  Settings' largest (1.3×) it is 126 px, the plan's figure, and breaks
+  (reproduced in the browser). So the word's size is chosen at the
+  player's text size (`useSettings().textScale`), not once for all.
+- **A word's width is reckoned from the display face's letters**, measured
+  once in Chromium (Bricolage Grotesque at 800) and kept in `Pennant.tsx`.
+  A flat allowance per letter would still break "Wormwood", whose m's and
+  w's run 0.7 em a letter. The test holds the table to whole words
+  measured in the browser (within 2%) and the size shares to `styles.css`.
+- **Past the smallest size the type is fitted, not broken.**
+  "Wolverhampton" doesn't fit the smallest size at 1.15× or 1.3×, so the
+  name's type is set to just fit its longest word, down to 11 px. Only a
+  word wider than that (a nonsense one) breaks. This goes past the plan,
+  which let a word break at the smallest size, so that a thirteen-letter
+  town is never split.
 
 ### L — A welcome that welcomes, and the opening in the order it's played
 
@@ -322,6 +538,26 @@ then plays.
   subject; this puts the subject first.
 - **Tests:** `opening.test.ts` holds the welcome's new words and that no
   card names a step it doesn't lead to.
+
+**As implemented.**
+
+- **The welcome** is the plan's three sentences, word for word. The board's
+  first letter (`eventData.ts`'s "The doors open") is unchanged: a guided
+  founding counts it read, the welcome being its content, so only a run
+  founded without the walkthrough receives it.
+- **Step two is "Choose the first program":** "The college teaches in
+  programs, each with a professor to teach it. Three are on offer:
+  English, with Dr. Grace Bennett; Mathematics, with Dr. Priya Iyer; and
+  Economics, with Dr. John Okafor." The hall's offer tiles say the same,
+  "with Dr. Grace Bennett" where they said the first course's price and
+  field, while a founding professor is listed for the program. The price is
+  still on the Found button. The stage keeps its id, `appoint`.
+- **Step three introduces the courses** as they arrive: "A program is
+  taught in courses, ten of them, each written by the curriculum committee
+  before it is taught."
+- **Tests:** the welcome's words; the welcome and the hall's step name no
+  professor, program or course, and the program's step names no course;
+  the three candidates read as three programs, in that order.
 
 ### M — The Students tab after the first summer, and needs that can read full
 
@@ -351,6 +587,39 @@ need") reads as one more failure.
 - **Tests:** the tab and the header's satisfaction figure are gated
   until the first summer closes and open after it; the walkthrough never opens a gated tab; health's card is
   absent below the gate.
+
+**As implemented.**
+
+- **The gate is the ladder's:** `commencement` lists `tabs: ['students']`,
+  so the toolbar's button, the L key and every door into the tab wait with
+  it. Students' guidebook, clubs and funnel no longer need their own gates
+  (they open with the tab), so the milestone holds back only History's
+  record. Its letter and its "opens" line now name satisfaction and the
+  needs.
+- **What else waits with it:** the header's satisfaction chip, the build
+  menu's "satisfaction 70", and any stat chip's door to a tab not yet open.
+  The "Somewhere to sleep" letter (sent at week 9 to a walk skipped before
+  the needs) no longer opens on a satisfaction figure.
+- **The first summer's review** reads "Satisfaction, how content the
+  students are out of 100, averaged 55 this year: from now on it shows at
+  the foot of the screen, and the Students tab opens on the needs it is
+  made of". Later summers compare the year with the one before, as they
+  did.
+- **The needs step** keeps its stage and its Next (D's events and the
+  letter it stands in for read it), says in two sentences what students
+  need, and returns to the campus (the Curriculum was still open from step
+  four). Its door and its ringed cards are gone, and with them the coach's
+  Students door.
+- **Health's card** is absent while dormant. Once past the gate it reads
+  "A need since the college passed 1,500 students". The balance doesn't
+  move: below the gate health already scored 100.
+- **The NEXT line** names a need "out of 100" too ("Housing is at 12 out of
+  100: a residence hall would raise it"), the same reading as I's. It
+  still names a need in year one, as guidance to build, though the
+  satisfaction figure itself is hidden until the first summer.
+- **Tests:** `test/students-after-summer.test.ts`; `opening.test.ts` checks
+  that no card's door leads to a closed tab; `tab-gates`, `stat-chips`,
+  `year-in-review` and `first-year` are updated to the new rule.
 
 ### E — 0.1.2
 

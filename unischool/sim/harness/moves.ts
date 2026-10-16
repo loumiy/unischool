@@ -21,7 +21,7 @@ import { FOUNDERS_HALL_ID, isAcademicHall, programById, type ProgramInfo } from 
 import {
   canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, hasFreeFacultySlot, hasFreeSlot,
 } from '../../src/systems/techtree/techSystem';
-import { courseQuality, facultyLoads, projectedQuality } from '../../src/systems/faculty/facultyAssignment';
+import { courseQuality, projectedQuality } from '../../src/systems/faculty/facultyAssignment';
 import { GRADE_A, qualityOf, tierOf } from '../../src/data/courseQuality';
 import { CROWDING_GRACE, crowdingCoverages } from '../../src/systems/prestige/prestigeSystem';
 import { claimedHalls, claimedSchool, homeSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
@@ -270,9 +270,9 @@ export const TEND_EVERY_WEEKS = 4;
 const TEND_MARGIN = 4;
 const TEND_IDLE_YEARS = 8;
 
-// What `f` will score on `t` at their potential, under `load` of `slots`.
-function eventualScore(t: Buildable, f: { teachingPotential: number; acclaim: number; courseSlots: number }, load: number): number {
-  return qualityOf({ teaching: f.teachingPotential, acclaim: f.acclaim, load, slots: f.courseSlots, tier: tierOf(t.id) }).score;
+// What `f` will score on `t` at their potential.
+function eventualScore(t: Buildable, f: { teachingPotential: number; acclaim: number }): number {
+  return qualityOf({ teaching: f.teachingPotential, acclaim: f.acclaim, tier: tierOf(t.id) }).score;
 }
 
 export function tendTeaching(g: Game, { reserve = 0, hires = 2 }: MoveOptions & { hires?: number } = {}): boolean {
@@ -286,13 +286,12 @@ export function tendTeaching(g: Game, { reserve = 0, hires = 2 }: MoveOptions & 
     .filter((x): x is { t: Buildable; q: NonNullable<typeof x.q> } => x.q !== null && x.q.score < GRADE_A)
     .sort((a, b) => a.q.score - b.q.score);
   for (const { t, q } of weak) {
-    const loads = facultyLoads(g.s);
     const current = g.s.courseFaculty[t.id];
     // A Provost or Dean on Staff for the A (Plan 95S) makes this course's
     // swaps: the player leaves step 1 to the seat, and still hires.
     const better = staffingCovers(g.s, t) ? undefined : eligibleInstructors(g.s, t, t.id)
       .filter((f) => f.id !== current)
-      .map((f) => ({ f, score: projectedQuality(g.s, t, f, loads).score }))
+      .map((f) => ({ f, score: projectedQuality(t, f).score }))
       .sort((a, b) => b.score - a.score)[0];
     if (better && better.score >= q.score + TEND_MARGIN) {
       g.act({ type: 'REASSIGN_COURSE_FACULTY', courseId: t.id, facultyId: better.f.id });
@@ -301,13 +300,13 @@ export function tendTeaching(g: Game, { reserve = 0, hires = 2 }: MoveOptions & 
     }
     if (hired >= hires) continue;
     const teacher = g.s.faculty.find((f) => f.id === current);
-    if (teacher && eventualScore(t, teacher, loads.get(teacher.id) ?? 1) >= GRADE_A) continue;
+    if (teacher && eventualScore(t, teacher) >= GRADE_A) continue;
     // Someone in the field already on the way up counts as the hire.
     const coming = g.s.faculty.some((f) => f.field === t.requiresFaculty && f.id !== current
-      && hasFreeSlot(g.s, f) && eventualScore(t, f, (loads.get(f.id) ?? 0) + 1) >= GRADE_A);
+      && hasFreeSlot(g.s, f) && eventualScore(t, f) >= GRADE_A);
     if (coming) continue;
     const candidate = g.s.candidates
-      .filter((c) => c.field === t.requiresFaculty && eventualScore(t, c, 2) >= GRADE_A)
+      .filter((c) => c.field === t.requiresFaculty && eventualScore(t, c) >= GRADE_A)
       // A salary is a weekly cost: the week's pay against the reserve.
       .filter((c) => affords(g.s, c.salary / WEEKS_PER_YEAR, reserve))
       .sort((a, b) => b.teachingPotential - a.teachingPotential)[0];

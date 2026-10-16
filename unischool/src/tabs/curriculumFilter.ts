@@ -6,7 +6,7 @@ import type { Grade } from '../data/courseQuality';
 import { programById, programOfCourse } from '../data/techData';
 import { canStartDevelopment, isUnstaffed } from '../systems/techtree/techSystem';
 import { tierBands } from '../systems/techtree/programProgress';
-import { facultyLoads, instructorQuality, type FacultyLoads } from '../systems/faculty/facultyAssignment';
+import { instructorQuality } from '../systems/faculty/facultyAssignment';
 
 export type CellState = 'locked' | 'blocked' | 'available' | 'developing' | 'done';
 
@@ -18,8 +18,9 @@ export function cellState(s: GameState, t: Buildable): CellState {
 }
 
 export type StatusFilter = 'all' | 'available' | 'developing' | 'done' | 'unstaffed';
-// "belowA" is anything short of the A that lifts prestige. Needs attention
-// (a D or an F) went in Plan 80B: Below A and No instructor cover it.
+// "belowA" is anything short of the top band (78) that lifts prestige,
+// shown as Below 78 since Plan 104G. Needs attention (a D or an F) went in
+// Plan 80B: Below 78 and No instructor cover it.
 export type GradeFilter = 'all' | 'belowA';
 
 const GRADES_IN: Record<Exclude<GradeFilter, 'all'>, ReadonlySet<Grade>> = {
@@ -59,7 +60,7 @@ export function oneFromEstablished(s: GameState, t: Buildable, lookup?: Map<stri
   return needed.filter((id) => find(id)?.status !== 'done').length === 1;
 }
 
-export function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: FacultyLoads, lookup?: Map<string, Buildable>): boolean {
+export function matchesFilters(s: GameState, t: Buildable, f: Filters, lookup?: Map<string, Buildable>): boolean {
   const query = f.query.trim().toLowerCase();
   if (query !== '' && !t.name.toLowerCase().includes(query)) return false;
 
@@ -76,7 +77,7 @@ export function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: Fa
   if (f.grade !== 'all') {
     // The grade its instructor earns, so a weak course in a dark program
     // (no grade while dark) is still caught.
-    const q = instructorQuality(s, t, loads);
+    const q = instructorQuality(s, t);
     // An unstaffed course has no grade but belongs in the worklist.
     if (!q) return isUnstaffed(s, t);
     if (!GRADES_IN[f.grade].has(q.grade)) return false;
@@ -84,7 +85,7 @@ export function matchesFilters(s: GameState, t: Buildable, f: Filters, loads: Fa
   return true;
 }
 
-// The Curriculum's target that opens it with Below A on (Plan 95S, the
+// The Curriculum's target that opens it with Below 78 on (Plan 95S, the
 // second review's B4-5): History › Prestige's teaching line links to it.
 export const BELOW_A_TARGET = 'belowA';
 export const BELOW_A_FILTERS: Filters = { ...NO_FILTERS, grade: 'belowA' };
@@ -98,8 +99,7 @@ export function targetFilters(target: string): Filters | null {
   return null;
 }
 
-// How many courses Below A lists, so the link's count is the list's.
+// How many courses Below 78 lists, so the link's count is the list's.
 export function belowACount(s: GameState): number {
-  const loads = facultyLoads(s);
-  return s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS, loads)).length;
+  return s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS)).length;
 }

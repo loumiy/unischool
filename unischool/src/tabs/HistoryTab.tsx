@@ -329,7 +329,7 @@ function GuideView({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
 // last used, held by the parent (App.tsx) for the session, as the Faculty
 // tab's is (Plan 95G); without them, the tab holds its own.
 // `onOpenCurriculum`: the teaching standard's line opens the Curriculum with
-// Below A on (Plan 95S, the second review's B4-5).
+// Below 78 on (Plan 95S, the second review's B4-5).
 export default function HistoryTab({ s, act, target, onTargetConsumed, view: held, onView, onOpenCurriculum }: {
   s: GameState; act: (a: Action) => void; target?: string; onTargetConsumed?: () => void;
   view?: HistoryView; onView?: (view: HistoryView) => void; onOpenCurriculum?: (target: string) => void;

@@ -235,12 +235,14 @@ export function staffingCovers(s: GameState, t: Buildable): boolean {
   return staffingSeats(s).some((seat) => seat.school === null || schoolOfCourse(t.id) === seat.school);
 }
 
-export interface StaffingMove { courseId: string; facultyId: string; from: Grade; to: Grade }
+// The bands decide a move; the numbers are what the log says (Plan 104G).
+export interface StaffingMove { courseId: string; facultyId: string; from: Grade; to: Grade; fromScore: number; toScore: number }
 
-// Staff for the A: for each course below A in the seat's scope, weakest
-// first, the best free instructor in its field (teaching under their course
-// slots) takes it over when they would teach it a full letter or more
-// better, so the seat does not churn. At most one move a course a week; it
+// Staff the weakest courses first (Plan 95S's "Staff for the A", renamed
+// with the numbers, Plan 104G): for each course under the top band (78) in
+// the seat's scope, weakest first, the best free instructor in its field
+// (teaching under their course slots) takes it over when they would lift
+// it a band or more, so the seat does not churn. At most one move a course a week; it
 // never hires and never dismisses. A course in a program between halls
 // keeps its instructor, as REASSIGN_COURSE_FACULTY refuses it.
 export function staffForTheA(s: GameState, school: string | null): StaffingMove[] {
@@ -251,27 +253,25 @@ export function staffForTheA(s: GameState, school: string | null): StaffingMove[
       const programId = programOfCourse(t.id);
       return programId === undefined || !isInTransit(s, programId);
     })
-    .map((t) => ({ t, q: instructorQuality(s, t, loads) }))
+    .map((t) => ({ t, q: instructorQuality(s, t) }))
     .filter((x): x is { t: Buildable; q: CourseQuality } => x.q !== null && x.q.grade !== 'A')
     .sort((a, b) => a.q.score - b.q.score);
   const moves: StaffingMove[] = [];
-  for (const { t } of weak) {
-    // Read again: an earlier move this week may have lightened its teacher.
-    const now = instructorQuality(s, t, loads);
+  for (const { t, q: now } of weak) {
     const current = s.courseFaculty[t.id];
-    if (!now || now.grade === 'A' || !current) continue;
+    if (!current) continue;
     let best: { f: Faculty; q: CourseQuality } | null = null;
     for (const f of s.faculty) {
       if (f.field !== t.requiresFaculty || f.id === current) continue;
       if ((loads.get(f.id) ?? 0) >= effectiveCourseSlots(s, f)) continue;
-      const q = projectedQuality(s, t, f, loads);
+      const q = projectedQuality(t, f);
       if (!best || q.score > best.q.score) best = { f, q };
     }
     if (!best || lettersBetter(now.grade, best.q.grade) < 1) continue;
     s.courseFaculty[t.id] = best.f.id;
     loads.set(current, (loads.get(current) ?? 1) - 1);
     loads.set(best.f.id, (loads.get(best.f.id) ?? 0) + 1);
-    moves.push({ courseId: t.id, facultyId: best.f.id, from: now.grade, to: best.q.grade });
+    moves.push({ courseId: t.id, facultyId: best.f.id, from: now.grade, to: best.q.grade, fromScore: Math.round(now.score), toScore: Math.round(best.q.score) });
   }
   return moves;
 }
@@ -288,11 +288,11 @@ export function tickStaffing(s: GameState): void {
     const named = moves.slice(0, STAFFING_NAMED).map((m) => {
       const who = s.faculty.find((f) => f.id === m.facultyId)?.name ?? 'a professor';
       const code = s.tech.find((t) => t.id === m.courseId)?.name.split(' · ')[0] ?? m.courseId;
-      return `${who} onto ${code} (${m.from} to ${m.to})`;
+      return `${who} onto ${code} (${m.fromScore} → ${m.toScore})`;
     });
     const rest = moves.length - named.length;
     const list = rest > 0
-      ? `${named.join(', ')}, and ${rest} more onto ${rest === 1 ? 'a course' : 'courses'} below A`
+      ? `${named.join(', ')}, and ${rest} more onto ${rest === 1 ? 'a course' : 'courses'} under 78`
       : named.length > 1 ? `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}` : named[0];
     s.log.unshift({
       year: s.clock.year, week: s.clock.week, kind: 'info',

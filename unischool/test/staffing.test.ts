@@ -23,7 +23,7 @@ import { teachingCollege, teachingCourseIds } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { staffForTheA, staffingCovers, staffingSeats, tickStaffing } from '../src/systems/delegation/seats';
 import { STAFFING_POLICY } from '../src/data/seatData';
-import { instructorQuality, projectedQuality, facultyLoads } from '../src/systems/faculty/facultyAssignment';
+import { instructorQuality, projectedQuality } from '../src/systems/faculty/facultyAssignment';
 import { effectiveCourseSlots } from '../src/systems/techtree/techSystem';
 import { lettersBetter } from '../src/data/courseQuality';
 import { programById, programOfCourse } from '../src/data/techData';
@@ -106,7 +106,7 @@ function weakPair(s: GameState, teaching: number): { ids: string[]; teacher: Fac
   // The strongest newcomer who still teaches it in the same letter, and the
   // weakest who teaches it a letter better.
   const q = newcomer(s, teacher, 'quinn', teacher.teaching, 1);
-  const grades = (teaching: number) => { q.teaching = teaching; return projectedQuality(s, t, q, facultyLoads(s)); };
+  const grades = (teaching: number) => { q.teaching = teaching; return projectedQuality(t, q); };
   let same = teacher.teaching;
   while (same < 100 && lettersBetter(now.grade, grades(same + 1).grade) < 1) same += 1;
   const better = same + 1;
@@ -190,15 +190,14 @@ function weakPair(s: GameState, teaching: number): { ids: string[]; teacher: Fac
   const s = fresh();
   weakPair(s, 30);
   const n = belowACount(s);
-  const loads = facultyLoads(s);
-  assert(n > 0 && n === s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS, loads)).length, `the count is Below A's (${n})`);
+  assert(n > 0 && n === s.tech.filter((t) => matchesFilters(s, t, BELOW_A_FILTERS)).length, `the count is Below A's (${n})`);
   assert(JSON.stringify(targetFilters(BELOW_A_TARGET)) === JSON.stringify(BELOW_A_FILTERS) && BELOW_A_FILTERS.grade === 'belowA', 'the link\'s target opens the Curriculum with Below A on');
   let opened: string | undefined;
   const html = renderToStaticMarkup(createElement(HistoryTab, { s, act: () => {}, view: 'prestige', onOpenCurriculum: (target: string) => { opened = target; } }));
-  const label = n === 1 ? 'Show the course below A' : `Show the ${n} courses below A`;
+  const label = n === 1 ? 'Show the course under 78' : `Show the ${n} courses under 78`;
   assert(html.includes(label), `History › Prestige's teaching line says "${label}"`);
   const bare = renderToStaticMarkup(createElement(HistoryTab, { s, act: () => {}, view: 'prestige' }));
-  assert(!bare.includes('courses below A'), 'and without a way to open the Curriculum, no link');
+  assert(!bare.includes('courses under 78'), 'and without a way to open the Curriculum, no link');
   assert(opened === undefined, 'drawing it opens nothing');
 }
 

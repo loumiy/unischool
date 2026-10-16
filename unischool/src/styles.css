@@ -16,6 +16,9 @@
   --ink-lo: color-mix(in srgb, var(--school-on-primary) 72%, var(--school-primary));
   --ink-hi: var(--school-on-primary);
   --gold: var(--school-secondary);
+  /* A candidate who would raise the college's median teaching (Plan 104G):
+     warm, not a band's verdict. */
+  --warm-ink: #a8541c;
   --gold-dim: var(--school-primary);
   --brass-deep: var(--school-primary);
   --parchment: var(--cream);
@@ -272,6 +275,11 @@ button, input, select, textarea { font-size: inherit; }
 .confirm-button > button.confirm-armed, .confirm-button > button.confirm-armed:hover:not(:disabled) {
   border-color: var(--bad-on-light); background: var(--danger-bg); color: var(--danger-ink); transform: none; }
 .confirm-warning { font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); }
+/* Armed as a question (Plan 104C): the question on its own line above the
+   armed button and the one that keeps things as they are. */
+.confirm-button.has-question { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.confirm-button.has-question > .confirm-warning { order: -1; flex: 1 0 100%; color: var(--ink); font-weight: 600; }
+.confirm-cancel { padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 
 /* A segmented choice: a row of pills, the picked one in the secondary fill
    (Plan 18). */
@@ -547,6 +555,9 @@ button, input, select, textarea { font-size: inherit; }
 .toolbar-funds-net { font-family: var(--mono); font-size: var(--text-2xs); font-weight: 700; color: var(--school-secondary); }
 
 .toolbar-stats { display: flex; gap: 5px; padding-left: 8px; }
+/* The walkthrough's first three steps (Plan 104F): the figures dimmed but
+   readable, and not doors. */
+.toolbar-stats.quiet, .toolbar-funds-btn.quiet:disabled { opacity: 0.55; cursor: default; }
 /* A chip: the word over the figure, in the height the glyph and figure had
    in a row. The word takes the glyph's place, so the chips fit the band as
    they did (the band is checked at 1280 and 1440 with every tab open). */
@@ -984,7 +995,8 @@ button.build-tile { font-family: inherit; }
 .program-summary-facts dt { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); }
 .program-summary-facts dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--ink); }
 .program-summary-next { margin: 0; }
-.program-summary-blocked { color: var(--danger-ink); }
+/* The next course's Develop, the Curriculum row's own (Plan 104A). */
+.program-summary .row-action { margin: 0; }
 .program-summary .building-info-jump { margin-top: 6px; }
 .relocate-details { margin-top: 6px; }
 .relocate-details > summary { cursor: pointer; font-size: var(--text-xs); color: var(--ink-muted); }
@@ -1157,9 +1169,12 @@ button.build-tile { font-family: inherit; }
 .campus-preview-front.ok polygon { fill: var(--gold); }
 .campus-preview-front.blocked line { stroke: #b4544a; }
 .campus-preview-front.blocked polygon { fill: #b4544a; }
-/* Why a site is refused (reach.ts's siteRefusal), beside the pointer. */
+/* Why a site is refused (reach.ts's siteRefusal, buildReasons.ts's
+   startRefusal), beside the pointer; or, on a green ghost, how a building
+   not paid in cash would be paid (Plan 104H). */
 .campus-map-why { position: absolute; transform: translate(16px, 14px); pointer-events: none; padding: var(--space-4) var(--space-8);
   color: var(--danger-ink); border-color: var(--bad-on-light); white-space: nowrap; }
+.campus-map-why.paid { color: var(--ink); border-color: var(--outline); }
 
 .campus-path-ghost { pointer-events: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .campus-path-ghost.draw { stroke: var(--gold); fill: rgba(201, 162, 39, 0.28); }
@@ -1801,7 +1816,10 @@ button.build-tile { font-family: inherit; }
 .instructor-chip.draggable { cursor: grab; }
 .instructor-chip.draggable:active { cursor: grabbing; }
 .instructor-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.instructor-chip-grade { font-weight: 800; }
+.instructor-chip-grade { font-weight: 800; font-variant-numeric: tabular-nums; }
+.instructor-stat-value.above-median { color: var(--warm-ink); }
+.instructor-option-median { display: block; font-size: var(--text-2xs); color: var(--ink-muted); }
+.instructor-option:has(.above-median) .instructor-option-median { color: var(--warm-ink); font-weight: 700; }
 .course-cell.done .instructor-chip { background: var(--cream-hi); }
 .course-cell.drag-source { outline: 3px dashed var(--school-secondary); outline-offset: 1px; }
 .course-cell.drop-target { box-shadow: inset 0 0 0 3px var(--outline); }
@@ -1990,6 +2008,9 @@ button.btn-speed-up { color: var(--school-primary); border-color: var(--school-p
 .grade-mark svg { position: absolute; inset: -0.12em; width: calc(100% + 0.24em); height: calc(100% + 0.24em); overflow: visible; }
 .grade-mark path { fill: var(--mark-fill, none); stroke: var(--mark-ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .grade-mark-letter { position: relative; }
+/* A score in the ring (Plan 104G): two digits, or a hundred, fit it. */
+.grade-mark.score .grade-mark-letter { font-size: 0.72em; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.mark-plain { --mark-ink: var(--ink-muted); }
 .mark-a { --mark-ink: var(--grade-a); }
 .mark-b { --mark-ink: var(--grade-b); }
 .mark-c { --mark-ink: var(--grade-c); }
@@ -2101,6 +2122,8 @@ button.btn-speed-up { color: var(--school-primary); border-color: var(--school-p
    breakpoint. `dense` backfills the gap an open card leaves. */
 /* The target and today's figure over the needs (Plan 95Q). */
 .panel dl.satisfaction-target { margin: 0 0 var(--space-12); }
+/* What pulls satisfaction down, while it falls (Plan 104I). */
+.satisfaction-drag { margin: calc(-1 * var(--space-4)) 0 var(--space-12); font-weight: 700; color: var(--danger-ink); }
 .satisfaction-cards { display: grid; gap: 10px; grid-auto-flow: row dense;
   grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); }
 .satisfaction-card { border: 2px solid var(--outline); border-radius: var(--radius-lg);
@@ -2130,6 +2153,7 @@ button.btn-speed-up { color: var(--school-primary); border-color: var(--school-p
 .satisfaction-dial-track { fill: none; stroke: var(--cream-lo); }
 .satisfaction-dial-fill { fill: none; stroke-linecap: butt; transition: stroke-dasharray 320ms ease; }
 .satisfaction-dial-value { font-family: var(--display); font-size: 17px; font-weight: 800; fill: var(--ink); }
+.satisfaction-dial-of { font-family: var(--display); font-size: 8px; font-weight: 700; fill: var(--ink-muted); }
 .satisfaction-dial.ok .satisfaction-dial-fill { stroke: var(--ok-on-light); }
 .satisfaction-dial.warn .satisfaction-dial-fill { stroke: var(--warn-on-light); }
 .satisfaction-dial.bad .satisfaction-dial-fill { stroke: var(--bad-on-light); }
@@ -2257,8 +2281,13 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-stat-fill { background: var(--stat-grade); }
 .faculty-stat-headroom { background: color-mix(in srgb, var(--stat-grade) 28%, transparent); }
 .faculty-stat-grade { display: inline-flex; align-items: baseline; gap: var(--space-2); min-width: 1.2em; }
-.faculty-stat-letter { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); line-height: 1; color: var(--stat-grade); }
-.faculty-stat-rise { font-family: var(--display); font-weight: 800; color: var(--school-primary); font-size: var(--text-xs); }
+.faculty-stat-value { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); line-height: 1; color: var(--stat-grade);
+  font-variant-numeric: tabular-nums; }
+.faculty-stat-rise { font-family: var(--display); font-weight: 800; color: var(--ink-muted); font-size: var(--text-xs); white-space: nowrap; }
+/* A candidate's teaching against the college's median (Plan 104G), on its
+   own line under the meter. */
+.faculty-stat-median { grid-column: 1 / -1; margin-top: calc(-1 * var(--space-2)); font-size: var(--text-2xs); color: var(--ink-muted); }
+.faculty-stat.above-median .faculty-stat-median { color: var(--warm-ink); font-weight: 700; }
 .faculty-badges { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .faculty-badges .faculty-quirk { margin: 0; padding: 1px 7px; font-size: var(--text-2xs); line-height: 1.4; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3367,7 +3396,16 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .letter-actions > button { margin: 0; }
 .letter-skip { font-size: var(--text-xs); padding: var(--space-6) var(--space-12); }
 /* On a coach card it takes its own line under the step's actions. */
-.opening-coach .letter-skip { margin: 12px 0 0; }
+.opening-coach .confirm-button:has(> .letter-skip) { margin: 12px 0 0; }
+/* The welcome's skip (Plan 104C): a plain text link under the card's
+   actions, not a button beside Next; armed, a pill like any confirmation. */
+.letter-skip-row { margin: var(--space-16) 0 0; }
+.modal .letter-length { margin: 0 0 var(--space-12); font-size: var(--text-sm); color: var(--ink-muted); }
+.letter-skip-link { background: none; border: none; padding: 0; font: inherit; font-size: var(--text-xs);
+  color: var(--ink-muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.letter-skip-link:hover { color: var(--ink); }
+.letter-skip-link.confirm-armed { border: 2px solid var(--bad-on-light); border-radius: var(--radius-pill); padding: var(--space-4) var(--space-12);
+  font-family: var(--display); font-weight: 800; text-decoration: none; box-shadow: var(--shadow-1); }
 
 /* ---------- The hall of fame (Plan 33, StartupScreen.tsx) ---------- */
 .hall-wall { width: min(960px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
@@ -3551,7 +3589,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
    Students (Plan 103C), at the foot, clear of the needs it rings. */
 @media (min-width: 761px) {
   .opening-coach.over-tab { top: 72px; right: 32px; }
-  .opening-coach.over-tab.low { top: auto; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 16px); }
 }
 @media (max-width: 760px) {
   .opening-coach { right: 16px; left: 16px; width: auto; }

@@ -131,7 +131,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
         title={`Appoint ${l.candidate.name} (teaching ${l.candidate.teaching}) at ${money(l.pay)}/yr${l.unblocks.length > 0 ? ` — opens ${l.unblocks.join(', ')}` : ''}; the listing withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}`}
       >
         Appoint {surnameOf(l.candidate.name)}
-        {l.grade && <GradeChip grade={l.grade} />}
+        {l.score !== null && <GradeChip score={l.score} />}
         <span className="dept-action-meta">{moneyShort(l.pay)} · {weeksShort(l.weeksLeft)}</span>
       </button>
     );
@@ -350,10 +350,10 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
                 type="button"
                 className={`next-up-door${l.weeksLeft <= 2 ? ' soon' : ''}`}
                 onClick={() => appoint(l)}
-                title={`${l.candidate.name}, ${facultyQualityTier(l.candidate)} in ${l.field}: teaching ${l.candidate.teaching}, ${money(l.pay)}/yr at the college's rate${l.course ? `; would earn a ${l.grade} on ${l.course.name}` : ''}${l.unblocks.length > 0 ? `; opens ${l.unblocks.join(', ')}` : ''}. Withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
+                title={`${l.candidate.name}, ${facultyQualityTier(l.candidate)} in ${l.field}: teaching ${l.candidate.teaching}, ${money(l.pay)}/yr at the college's rate${l.course && l.score !== null ? `; would teach ${l.course.name} at ${Math.round(l.score)}` : ''}${l.unblocks.length > 0 ? `; opens ${l.unblocks.join(', ')}` : ''}. Withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
               >
                 Appoint {surnameOf(l.candidate.name)} · {l.field}
-                {l.grade && <GradeChip grade={l.grade} />}
+                {l.score !== null && <GradeChip score={l.score} />}
                 <span className="next-up-meta">{moneyShort(l.pay)} · {weeksShort(l.weeksLeft)}</span>
               </button>
             ))}
@@ -493,7 +493,7 @@ export const FACULTY_VIEW_START: FacultyViewMemory = {
 
 // The tab's help (Plan 95G): what the summary paragraphs said, behind the
 // '?', with the figures in a row under it.
-const FACULTY_HELP = 'Every professor and every candidate as a tile: teaching and research as letters on the scale courses are graded on, with the letter each is growing toward. More opens a person: their career, and Train and Dismiss. Sort and filter the grid, or open the Departments view for each department\'s course slots against what its courses take. '
+const FACULTY_HELP = 'Every professor and every candidate as a tile: teaching and research as numbers out of 100, the scale courses are graded on, with where each is heading. A candidate\'s teaching is set beside your faculty\'s median, warm when it would raise it. More opens a person: their career, and Train and Dismiss. Sort and filter the grid, or open the Departments view for each department\'s course slots against what its courses take. '
   + 'The figures under the heading: the course slots the faculty supplies; those taken by the courses on offer, since a course holds its slot for as long as it is offered, whether or not somebody is teaching it; the courses open and not yet developed; and how many more course slots teaching the whole catalog would take. A scholar on a research project supplies two fewer, as a professor at the Faculty Training Institute supplies one fewer for a term. '
   + 'The candidates the college attracts improve with its standing: their teaching potential rises with its prestige, and their research potential with its research standing, and a little with prestige. Around the typical candidate there is a wide spread, and now and then a standout well above it. Everyone arrives below their potential and grows toward it over the years they stay. '
   + 'Appointing is immediate and costs nothing up front; what costs is the salary.';

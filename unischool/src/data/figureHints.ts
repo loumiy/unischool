@@ -3,7 +3,7 @@
 // one does not typecheck. Keyed by where the figure sits.
 
 import type { GameState, SatisfactionAttributes } from '../state/types';
-import { satisfactionFigure } from '../format';
+import { count, satisfactionFigure } from '../format';
 import { pillarWeightsWords } from './prestigeWords';
 
 export type Sentence = `${string}.`;
@@ -65,9 +65,30 @@ export const FIGURE_HINTS = {
 
 // The satisfaction chip's hint (Plan 78B): the lowest of the five needs and
 // its figure, from the week's breakdown, which the NEXT line reads too.
-export function satisfactionHint(s: GameState): Sentence {
+// While it is falling, the need that pulls it down most and why instead
+// (Plan 104I; satisfactionSystem.ts's satisfactionDrag, passed in).
+export function satisfactionHint(s: GameState, drag: DragFacts | null = null): Sentence {
+  if (drag) return `How content the students are, out of 100, and falling. ${dragLine(drag)}` as Sentence;
   const scores = s.students.satisfactionBreakdown;
   const needs = Object.keys(NEED_LABELS) as Array<keyof SatisfactionAttributes>;
   const lowest = needs.reduce((low, k) => (scores[k] < scores[low] ? k : low), needs[0]);
   return FIGURE_HINTS.satisfaction(NEED_LABELS[lowest].toLowerCase(), satisfactionFigure(scores[lowest]));
+}
+
+// The need that pulls satisfaction down, in words (Plan 104I): "Housing is
+// the drag: 320 beds, 480 wanted." The facts are satisfactionSystem.ts's
+// SatisfactionDrag; the words are the needs' cards' own.
+export interface DragFacts {
+  need: keyof SatisfactionAttributes;
+  has: number;
+  wants: number;
+  library?: { has: number; wants: number };
+}
+export function dragLine(d: DragFacts): Sentence {
+  const why = d.need === 'housing'
+    ? `${count(d.has)} beds, ${count(d.wants)} wanted`
+    : d.need === 'academic'
+      ? `teaching earns ${count(d.has)} of its ${count(d.wants)} points${d.library ? `, the library ${count(d.library.has)} of its ${count(d.library.wants)}` : ''}`
+      : `${count(d.has)} served of the ${count(d.wants)} it takes`;
+  return `${NEED_LABELS[d.need]} is the drag: ${why}.` as Sentence;
 }

@@ -2,7 +2,7 @@ import type { CampusTool } from './state/actions';
 import { MILESTONES } from './data/ladderData';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { SPEEDS, useGame } from './engine/useGame';
-import { openingHoldsClock } from './state/opening';
+import { openingHoldsClock, openingQuietDoor } from './state/opening';
 import { SHORTCUTS, isKey, mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
 import type { GameState } from './state/types';
 import { institutionName } from './state/types';
@@ -266,6 +266,8 @@ export default function App() {
   function openTab(tab: TabId | null, target?: string) {
     if (tab !== null && !tabAvailable(s, tab)) return;
     if (holding && tab !== 'inbox') return;
+    // The walkthrough's first three steps shut the tabs (Plan 104F).
+    if (tab !== null && openingQuietDoor(s) !== null) return;
     // A tab opened, for the play statistics (analytics.ts).
     if (tab !== null && overlay?.tab !== tab) noteTab(tab);
     setOverlay(tab === null ? null : { tab, target });
@@ -288,6 +290,9 @@ export default function App() {
       return;
     }
     if (holding) return;
+    // Siting the hall is the one quiet step the build menu is for.
+    const quiet = openingQuietDoor(s);
+    if (quiet !== null && quiet !== 'build') return;
     setBuildOpenState(true);
     setOverlay(null);
     // The build menu and the log popups share the bottom-left corner.
@@ -333,7 +338,9 @@ export default function App() {
       inspectHall(FOUNDERS_HALL_ID);
     }
     else if (stage === 'second-course') openWalkProgram();
-    else if (stage === 'needs') openTab('students', 'students.breakdown');
+    // The needs are built, not shown (Plan 104M): back to the campus, where
+    // the next two steps site them.
+    else if (stage === 'needs') openTab(null);
     // The menu opens on the step's tab (BuildPopup.tsx's initialBuildTab);
     // already open, it turns to it.
     else if (stage === 'site-housing' || stage === 'site-dining') setBuildOpen(true);
@@ -633,12 +640,10 @@ export default function App() {
         buildOpen={buildOpen}
         hallOpen={overlay === null && inspectedId === FOUNDERS_HALL_ID}
         curriculumOpen={overlay?.tab === 'curriculum'}
-        studentsOpen={overlay?.tab === 'students'}
         placing={placingId !== null}
         onOpenBuild={() => setBuildOpen(true)}
         onOpenHall={() => inspectHall(FOUNDERS_HALL_ID)}
         onOpenCurriculum={openWalkProgram}
-        onOpenStudents={() => openTab('students', 'students.breakdown')}
       />}
     </>
   );

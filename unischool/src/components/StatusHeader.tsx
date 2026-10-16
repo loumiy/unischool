@@ -14,13 +14,14 @@ import DayTicker from './DayTicker';
 import AnimatedNumber from './AnimatedNumber';
 import { PRESTIGE_TREND, SATISFACTION_TREND, TrendArrow } from './TrendFigure';
 import { prestigeWeeklyChange } from '../systems/prestige/prestigeSystem';
-import { satisfactionWeeklyChange } from '../systems/satisfaction/satisfactionSystem';
+import { satisfactionDrag, satisfactionWeeklyChange } from '../systems/satisfaction/satisfactionSystem';
 import { FigureBox } from './Figure';
 import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
 import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason, weekOfTerm } from '../format';
 import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
+import { tabAvailable } from './TabNav';
 import type { TabSection } from '../data/ladderData';
 import type { TabId } from './TabNav';
 
@@ -98,10 +99,13 @@ function useRankFlash(rank: number): string {
   return flash;
 }
 
-export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }: {
+export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, quiet = false }: {
   s: GameState; onOpenTreasury: () => void; treasuryOpen: boolean;
   // A chip's door (data/statChips.ts): the tab, and the section to land on.
   onOpenSection: (tab: TabId, section: TabSection) => void;
+  // The walkthrough's first three steps (Plan 104F): the figures dimmed,
+  // still readable, and their doors shut with the tabs they open.
+  quiet?: boolean;
 }) {
   const netWeekly = weeklyNet(s);
   // Shown from week one: the field is 100 schools, with many below a founding
@@ -112,7 +116,8 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
   const rankFlash = useRankFlash(rank);
   // A chip that has a door is a button named with its figure (Plan 78C).
   const door = (chip: StatChip, figure: string) => {
-    const d = chipDoor(chip, figure);
+    const d = quiet ? null : chipDoor(chip, figure);
+    if (d && !tabAvailable(s, d.tab)) return undefined;
     return d ? { name: d.name, onOpen: () => onOpenSection(d.tab, d.section) } : undefined;
   };
   // The word over the figure on a wide screen; on a phone the glyph stands
@@ -123,10 +128,11 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
     <>
       <button
         type="button"
-        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}`}
+        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}${quiet ? ' quiet' : ''}`}
         aria-expanded={treasuryOpen}
         aria-label="Treasury"
         aria-describedby={fundsHint}
+        disabled={quiet}
         onClick={onOpenTreasury}
       >
         {/* Money ticks to its new value. Rank does not animate: it is an
@@ -142,7 +148,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
         <span className="toolbar-funds-net">{signedMoney(netWeekly)}/wk</span>
         <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
-      <div className="toolbar-stats">
+      <div className={`toolbar-stats${quiet ? ' quiet' : ''}`}>
         <FigureBox className={`toolbar-stat ${rankFlash}`} above hint={FIGURE_HINTS.rank(s.rivals.length + 1)} door={door('rank', `#${rank}`)}>
           <RankIcon />
           {word('rank')}
@@ -162,7 +168,9 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
             <TrendArrow change={prestigeWeeklyChange(s)} {...PRESTIGE_TREND} />
           </span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={satisfactionHint(s)} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
+        {/* Satisfaction waits for the first summer, with the Students tab
+            (Plan 104M): the review introduces it as the year's average. */}
+        {tabAvailable(s, 'students') && <FigureBox className="toolbar-stat" above hint={satisfactionHint(s, satisfactionDrag(s))} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
           <SatisfactionIcon />
           {word('satisfaction')}
           {/* The warning is the paper red: the chip is cream, and the dock's
@@ -171,7 +179,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection }
             <AnimatedNumber value={s.students.satisfaction} format={satisfactionFigure} />
             <TrendArrow change={satisfactionWeeklyChange(s)} {...SATISFACTION_TREND} />
           </span>
-        </FigureBox>
+        </FigureBox>}
       </div>
     </>
   );

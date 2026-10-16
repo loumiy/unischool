@@ -6,7 +6,6 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import { quirkById } from '../data/quirkData';
 import { facultyQualityTier } from '../data/facultyData';
 import { candidateListingWeeks } from '../systems/administration/effects';
-import type { Grade } from '../data/courseQuality';
 import { effectiveCourseSlots } from '../systems/techtree/techSystem';
 import { careerWeeks } from '../systems/faculty/facultySystem';
 import { facultyPay } from '../systems/finance/financeSystem';
@@ -15,14 +14,13 @@ import ConfirmButton from '../components/ConfirmButton';
 import { DisclosureIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { GradeChip } from './CurriculumTab';
-import { letterOf, retiringSoon } from './facultySort';
+import { bandOf, facultyMedian, retiringSoon } from './facultySort';
 import { money, moneyShort, weeksShort } from '../format';
 import { CAREER_WORDS } from '../data/careerWords';
 import FacultyPerson from './FacultyPerson';
 import { TRAINING_SLOTS, TRAINING_WORDS, instituteStands, trainingSlotsOff } from '../data/trainingData';
 import { trainingOutcome, trainingUntil, whyNotTrain } from '../systems/faculty/training';
 import { planTrainingCoverage } from '../systems/techtree/techSystem';
-import { gradeFor } from '../data/courseQuality';
 
 // ---------------------------------------------------------------------
 // One person as a tile (Plan 84D): the Faculty tab's grid, the market and
@@ -31,8 +29,8 @@ import { gradeFor } from '../data/courseQuality';
 //
 // The face, a staff ID card (Plan 90): a band with the field and the
 // courses waiting in it, a portrait that reads, the name and rank,
-// teaching and research as meters with their letters on the course-grade
-// bands and where each is heading, and badges for a quirk, prizes and a
+// teaching and research as meters with their numbers out of 100 and where
+// each is heading, and badges for a quirk, prizes and a
 // retirement within the year. The foot carries pay, load or the listing's
 // time left, More, and on the market Appoint.
 //
@@ -62,28 +60,32 @@ export function waitingCount(w: FieldWaiting | undefined): number {
   return w ? w.unstaffed + w.open.length : 0;
 }
 
-// A stat as a short meter (Plan 90): the score the letter is read from,
-// 0 to 100, filled in its grade's colour, the potential still to come as a
-// paler run beyond it, and the letter beside it with the letter the
-// potential reaches when that is higher: the hint of where this person is
-// going. Three cells of the meters' grid.
+// A stat as a short meter (Plan 90): the score out of 100, filled in its
+// band's colour, the potential still to come as a paler run beyond it, and
+// the number beside it with where the potential takes it, "58 → 80"
+// (Plan 104G: numbers, not letters). A candidate's teaching is read
+// against the college's own median instead (`median`): warm above it,
+// plain below, never the bands' verdict. Three cells of the meters' grid.
 const pct = (v: number) => `${Math.max(0, Math.min(100, v))}%`;
-function StatMeter({ label, value, potential }: { label: string; value: number; potential: number }) {
-  const now: Grade = letterOf(value);
-  const then: Grade = letterOf(potential);
-  const rising = then !== now && potential > value;
-  const title = `${label} ${value} (${now})${rising ? `, growing toward ${potential} (${then})` : potential > value ? `, growing toward ${potential}` : ''}`;
+function StatMeter({ label, value, potential, median }: { label: string; value: number; potential: number; median?: number | null }) {
+  const now = Math.round(value);
+  const then = Math.round(potential);
+  const rising = then > now;
+  const against = median !== undefined && median !== null;
+  const ink = against ? (now > median ? 'var(--warm-ink)' : 'var(--ink-muted)') : `var(--grade-${bandOf(value).toLowerCase()})`;
+  const title = `${label} ${now} of 100${rising ? `, growing toward ${then}` : ''}${against ? `; your faculty's median is ${median}` : ''}`;
   return (
-    <div className="faculty-stat" title={title} style={{ '--stat-grade': `var(--grade-${now.toLowerCase()})` } as CSSProperties}>
+    <div className={`faculty-stat${against && now > median ? ' above-median' : ''}`} title={title} style={{ '--stat-grade': ink } as CSSProperties}>
       <span className="faculty-stat-label"><span className="faculty-stat-long">{label}</span><span className="faculty-stat-short" aria-hidden="true">{label[0]}</span></span>
       <span className="faculty-stat-track" aria-hidden="true">
         {potential > value && <span className="faculty-stat-headroom" style={{ width: pct(potential) }} />}
         <span className="faculty-stat-fill" style={{ width: pct(value) }} />
       </span>
       <span className="faculty-stat-grade">
-        <span className="faculty-stat-letter" aria-label={`grade ${now}`}>{now}</span>
-        {rising && <span className="faculty-stat-rise" aria-label={`rising to ${then}`}>→{then}</span>}
+        <span className="faculty-stat-value" aria-label={`${label} ${now} out of 100`}>{now}</span>
+        {rising && <span className="faculty-stat-rise" aria-label={`growing toward ${then}`}>→ {then}</span>}
       </span>
+      {against && <span className="faculty-stat-median">your faculty’s median is {median}</span>}
     </div>
   );
 }
@@ -128,7 +130,7 @@ export function FacultyActions(
           <ConfirmButton
             className="btn-train"
             label={TRAINING_WORDS.train}
-            title={TRAINING_WORDS.trainTitle(outcome.from, outcome.to, gradeFor(outcome.from), gradeFor(outcome.to), trainingUntil(outcome.untilWeek))}
+            title={TRAINING_WORDS.trainTitle(outcome.from, outcome.to, trainingUntil(outcome.untilWeek))}
             armedLabel={TRAINING_WORDS.trainArmed(trainCoverage?.shed[0]?.name.split(' · ')[0] ?? '')}
             warning={trainCoverage?.shed[0] && TRAINING_WORDS.trainWarning(
               f.name, trainCoverage.shed[0].name.split(' · ')[0],
@@ -200,7 +202,7 @@ export default function FacultyTile(
   const slots = isCandidate ? f.courseSlots : effectiveCourseSlots(s, f);
   const held = isCandidate ? 0 : (load ?? taught.length);
   const firstWaiting = waiting?.open[0];
-  const projected = isCandidate && firstWaiting ? projectedQuality(s, firstWaiting, f) : null;
+  const projected = isCandidate && firstWaiting ? projectedQuality(firstWaiting, f) : null;
   // Every tile shows what this school pays, listing or roster: the market
   // rate is applied at payroll (financeSystem.ts's facultyPay).
   const pay = facultyPay(s, f.salary);
@@ -247,7 +249,7 @@ export default function FacultyTile(
         </button>
 
         <div className="faculty-tile-stats">
-          <StatMeter label="Teaching" value={f.teaching} potential={f.teachingPotential} />
+          <StatMeter label="Teaching" value={f.teaching} potential={f.teachingPotential} median={isCandidate ? facultyMedian(s.faculty) : undefined} />
           <StatMeter label="Research" value={f.research} potential={f.researchPotential} />
         </div>
 
@@ -296,7 +298,7 @@ export default function FacultyTile(
             </span>
           )}
           {projected && firstWaiting && (
-            <GradeChip grade={projected.grade} title={`Would earn a ${projected.grade} on ${firstWaiting.name}`} />
+            <GradeChip score={projected.score} title={`Would teach ${firstWaiting.name} at ${Math.round(projected.score)}`} />
           )}
         </div>
 

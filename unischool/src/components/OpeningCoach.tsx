@@ -1,7 +1,9 @@
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
-import { isCoachStage, OPENING_STEPS } from '../data/openingData';
+import { isCoachStage, OPENING_STEPS, SKIP_WORDS, WALKTHROUGH_LENGTH } from '../data/openingData';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
+import ConfirmButton from './ConfirmButton';
+import { openingSkipped } from '../analytics/analytics';
 
 // The opening walkthrough's card. state/opening.ts owns the stages and
 // data/openingData.ts the copy; this only draws the current step. The
@@ -10,24 +12,23 @@ import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 // building panel, Plan 78F) with no backdrop, since the player has to
 // work the screen under it. A step that ends on something done has no Next
 // button, but offers to reopen the door it needs (build menu, Founders
-// Hall's panel, the Curriculum, Students) so wandering off is never a dead end, and every card can
-// skip the rest, so a step the player can't finish never holds the clock. Enter presses Next,
+// Hall's panel, the Curriculum) so wandering off is never a dead end, and every card can
+// skip the rest, so a step the player can't finish never holds the clock. A skip asks first
+// (Plan 104C, ConfirmButton's question): the walk doesn't come back. Enter presses Next,
 // guarded so a focused button keeps its own Enter.
-export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOpen, studentsOpen, placing, onOpenBuild, onOpenHall, onOpenCurriculum, onOpenStudents }: {
+export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOpen, placing, onOpenBuild, onOpenHall, onOpenCurriculum }: {
   s: GameState;
   act: (a: Action) => void;
   buildOpen: boolean;
   // Whether Founders Hall's panel is open on the map (see App.tsx).
   hallOpen: boolean;
   curriculumOpen: boolean;
-  studentsOpen: boolean;
   // A building in hand: on a phone the map's touch bar (its Place button)
   // takes the top of the screen, so the card steps aside (styles.css).
   placing: boolean;
   onOpenBuild: () => void;
   onOpenHall: () => void;
   onOpenCurriculum: () => void;
-  onOpenStudents: () => void;
 }) {
   const stage = s.events.opening.stage;
   const step = isCoachStage(stage) ? OPENING_STEPS[stage] : null;
@@ -47,11 +48,19 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOp
           <p className="letter-eyebrow">{step.eyebrow}</p>
           <h2>{step.title}</h2>
           <p className="letter-body">{step.body(s)}</p>
+          <p className="letter-length">{WALKTHROUGH_LENGTH}</p>
           <div className="modal-actions letter-actions">
             <button type="button" onClick={() => act({ type: 'ADVANCE_OPENING' })}>{step.next}</button>
-            <button type="button" className="letter-skip" onClick={() => act({ type: 'SKIP_OPENING' })}>
-              Skip the walkthrough and the letters
-            </button>
+          </div>
+          <div className="letter-skip-row">
+            <ConfirmButton
+              className="letter-skip-link"
+              label={SKIP_WORDS.welcome}
+              armedLabel={SKIP_WORDS.confirm}
+              warning={SKIP_WORDS.question}
+              cancelLabel={SKIP_WORDS.keep}
+              onConfirm={() => { openingSkipped(stage, false); act({ type: 'SKIP_OPENING' }); }}
+            />
           </div>
         </div>
       </div>
@@ -62,20 +71,18 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOp
     build: { open: buildOpen, label: 'Open the build menu', go: onOpenBuild },
     hall: { open: hallOpen, label: 'Open Founders Hall', go: onOpenHall },
     curriculum: { open: curriculumOpen, label: 'Open the Curriculum', go: onOpenCurriculum },
-    students: { open: studentsOpen, label: 'Open Students', go: onOpenStudents },
   };
   const door = step.door ? doors[step.door] : undefined;
   const doorOpen = door?.open ?? true;
   const doorLabel = door?.label;
-  // Over a tab, the card sits below the tab's header, clear of its Close;
-  // over Students, at the foot, clear of the needs row it rings.
-  const overTab = (step.door === 'curriculum' || step.door === 'students') && doorOpen;
+  // Over a tab, the card sits below the tab's header, clear of its Close.
+  const overTab = step.door === 'curriculum' && doorOpen;
   const onDoor = door?.go;
 
   return (
     // On a phone the hall's panel and a tab take the top of the screen, so a
     // step done in one drops the card to the foot, over the dock (styles.css).
-    <aside className={`opening-coach${(step.door === 'hall' && hallOpen) || overTab ? ' under-panel' : ''}${overTab ? ' over-tab' : ''}${overTab && step.door === 'students' ? ' low' : ''}${placing ? ' placing' : ''}`} role="status" aria-live="polite" aria-label={step.title}>
+    <aside className={`opening-coach${(step.door === 'hall' && hallOpen) || overTab ? ' under-panel' : ''}${overTab ? ' over-tab' : ''}${placing ? ' placing' : ''}`} role="status" aria-live="polite" aria-label={step.title}>
       <p className="letter-eyebrow">{step.eyebrow}</p>
       <h2>{step.title}</h2>
       <p>{step.body(s)}</p>
@@ -90,9 +97,14 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOp
           <span className="opening-coach-wait">The clock is held until this is done</span>
         )}
       </div>
-      <button type="button" className="letter-skip" onClick={() => act({ type: 'SKIP_OPENING', keepLetters: true })}>
-        Skip the rest of the walkthrough
-      </button>
+      <ConfirmButton
+        className="letter-skip"
+        label={SKIP_WORDS.rest}
+        armedLabel={SKIP_WORDS.confirm}
+        warning={SKIP_WORDS.question}
+        cancelLabel={SKIP_WORDS.keep}
+        onConfirm={() => { openingSkipped(stage, true); act({ type: 'SKIP_OPENING', keepLetters: true }); }}
+      />
     </aside>
   );
 }

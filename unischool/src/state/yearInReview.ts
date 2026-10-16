@@ -178,7 +178,9 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
   lines.push({
     text: s.history.length > 0
       ? `Satisfaction averaged ${satisfactionFigure(average)} this year, against ${satisfactionFigure(lastAverage)} last year (${signed(delta)})`
-      : `Satisfaction averaged ${satisfactionFigure(average)} this year`,
+      // The first summer introduces it (Plan 104M): until now neither the
+      // header nor the Students tab showed it.
+      : `Satisfaction, how content the students are out of 100, averaged ${satisfactionFigure(average)} this year: from now on it shows at the foot of the screen, and the Students tab opens on the needs it is made of`,
     tone: delta >= 2 ? 'good' : delta <= -2 ? 'bad' : undefined,
   });
   const raised = byTopic(entries, 'demand-raised').length;

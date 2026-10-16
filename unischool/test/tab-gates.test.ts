@@ -57,8 +57,8 @@ console.log('tab gate tests');
 {
   const s = fresh();
 
-  assert(GATED_TABS.length === 2, 'exactly two tabs are gated (Students and History open from the first week, Plans 78B and 78C)');
-  assert(!GATED_TABS.includes('students') && tabAvailable(s, 'students'), 'Students is available in week 1');
+  assert(GATED_TABS.length === 3, `exactly three tabs are gated (History opens from the first week, Plan 78C; Students at the first summer, Plan 104M): ${GATED_TABS.join(', ')}`);
+  assert(GATED_TABS.includes('students') && !tabAvailable(s, 'students'), 'Students waits for the first summer');
   assert(!GATED_TABS.includes('history') && tabAvailable(s, 'history'), 'History is available in week 1');
   assert(sectionAvailable(s, 'history.prestige') && sectionAvailable(s, 'history.rankings'), 'and shows Prestige and the guide');
   for (const id of GATED_TABS) {
@@ -118,23 +118,25 @@ console.log('tab gate tests');
 // --- the sections a milestone opens -----------------------------------
 {
   const sections = MILESTONES.flatMap((m) => m.sections ?? []);
-  assert(sections.length >= 2, 'the ladder holds back sections of open tabs');
+  // History's record; Students' sections open with the tab (Plan 104M).
+  assert(sections.length >= 1, `the ladder holds back sections of open tabs (${sections.join(', ')})`);
   for (const id of sections) {
     assert(TAB_ORDER.includes(tabOfSection(id)), `${id} names a tab`);
     assert(!GATED_TABS.includes(tabOfSection(id)), `${id} is a section of a tab open from the charter`);
   }
 }
 
-// --- History's record, and Students' guidebook and clubs: the first
-// commencement ------------------------------------------------------------
+// --- History's record, and the Students tab with its guidebook, clubs and
+// funnel: the first commencement (Plan 104M) --------------------------------
 {
   const s = fresh();
-  const held: TabSection[] = ['history.record', 'students.guidebook', 'students.clubs', 'students.funnel'];
+  const held: TabSection[] = ['history.record', 'students.guidebook', 'students.clubs', 'students.funnel', 'students.breakdown'];
   tickLadder(s);
-  for (const id of ['students', 'history'] as TabId[]) assert(tabAvailable(s, id), `${id} is open in week 1`);
+  assert(tabAvailable(s, 'history') && !tabAvailable(s, 'students'), 'History is open in week 1, Students is not');
   for (const id of held) assert(!sectionAvailable(s, id), `${id} is not shown in week 1`);
   s.clock.week = 52;
   tickLadder(s);
+  assert(!tabAvailable(s, 'students'), 'Students stays closed through the first year');
   for (const id of held) assert(!sectionAvailable(s, id), `${id} stays hidden through the first year`);
   s.history.push({ ...({} as GameState['history'][number]), year: 1 });
   s.clock.year = 2;
