@@ -7,7 +7,9 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F–M.**
+October). A, C, D and F–M are done, on the branch `claude/plan-104` (16
+October), not yet merged; B is held (decision 4); E, the release, waits for
+them.**
 
 ---
 
