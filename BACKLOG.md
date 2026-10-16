@@ -36,6 +36,27 @@ Plan 103's opening), and landed by 13 October. What players see is in
 - [Plan 102](docs/plans/102-the-course-catalog.md): what Plans 95L–M left
   of the course catalog's shape, at its present size.
 
+## Maybe for 0.1.3
+
+*The owner's ideas (16 October 2026), after Plan 104's fixes merged. Not
+yet sorted into a plan.*
+
+- **SVG textures for a "cozy" look.** Investigate whether textures drawn in
+  SVG (paper grain, fabric, brushed or stippled fills on the map and the
+  panels) would appeal to the cozy-game audience, or at least try the idea.
+  Start with a look, not a plan: a few textures on the cream panels, the
+  ground and a building or two, checked for legibility, both themes and
+  the colour-vision modes, and against the profiler on a late campus, since
+  the map is drawn on a canvas (`canvasPaint.ts`) and the panels in CSS.
+- **Admissions as a full-screen event.** The summer's admissions beat is
+  answered today in the inbox's reading pane (Plan 77;
+  `InterruptModal.tsx`'s `AdmissionsInterruptForm`), as a letter. Make it
+  a full-screen moment of its own, with the applicants drawn as dots that
+  move into an *admitted* bucket as the admit-rate slider moves, so the
+  decision is something to watch and feel rather than a number ticking up
+  and down. The figures and the projection it shows stay the model's own
+  (`projectAdmissions`); motion follows *Reduce motion*.
+
 ## Launch: toward Next Fest and 1.0
 
 *The timeline is decided (the second review's B6-4, Plan 95): Next Fest in
