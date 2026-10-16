@@ -106,6 +106,19 @@ function titleOf(name: string): string {
   return name.split(' · ')[1] ?? name;
 }
 
+// The walkthrough's skip (Plan 104C): one click arms it and it asks, since
+// a walk skipped by a stray click doesn't come back. From the welcome it
+// declines the letters too; from a later card it keeps them.
+export const SKIP_WORDS = {
+  welcome: 'Skip the walkthrough and the letters',
+  rest: 'Skip the rest of the walkthrough',
+  question: 'Skip the walkthrough? It doesn’t come back this run.',
+  confirm: 'Skip',
+  keep: 'Keep the walkthrough',
+};
+// The welcome's line on what the skip would cost.
+export const WALKTHROUGH_LENGTH = 'The walkthrough takes about five minutes.';
+
 export type CoachStage = Exclude<OpeningStage, 'play' | 'await-course'>;
 export function isCoachStage(stage: OpeningStage): stage is CoachStage {
   return stage !== 'play' && stage !== 'await-course';

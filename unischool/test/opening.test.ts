@@ -49,6 +49,12 @@ import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { loadGame, saveGame } from '../src/state/persistence';
 import type { GameState } from '../src/state/types';
+import type { Action } from '../src/state/actions';
+import { createElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import OpeningCoach from '../src/components/OpeningCoach';
+import ConfirmButton from '../src/components/ConfirmButton';
+import { SKIP_WORDS, WALKTHROUGH_LENGTH } from '../src/data/openingData';
 
 // In-memory localStorage, for the save round trip below.
 const store = new Map<string, string>();
@@ -458,6 +464,84 @@ const walkToCourse = (name: string) => reducer(
   for (const t of broke.tech) if (t.kind === 'dorm' || t.facilityType === 'diningHall') t.cost = 1e12;
   broke = reducer(broke, { type: 'ADVANCE_OPENING' });
   assert(broke.events.opening.stage === 'play' && !openingHoldsClock(broke), `with neither building within reach, Next ends the walk (${broke.events.opening.stage})`);
+}
+
+// --- the skip asks first (Plan 104C) ----------------------------------------
+// The coach is rendered inside a probe that keeps the tree it returns, so
+// its buttons' handlers can be pressed without a DOM.
+{
+  type Props = Record<string, unknown> & { children?: ReactNode };
+  const all = (node: ReactNode, out: ReactElement<Props>[] = []): ReactElement<Props>[] => {
+    if (Array.isArray(node)) { for (const n of node) all(n, out); return out; }
+    if (!isValidElement<Props>(node)) return out;
+    out.push(node);
+    all(node.props.children, out);
+    return out;
+  };
+  const coach = (s: GameState) => {
+    const acted: Action[] = [];
+    let tree: ReactNode = null;
+    const props = {
+      s, act: (a: Action) => acted.push(a), buildOpen: false, hallOpen: false, curriculumOpen: false, studentsOpen: false, placing: false,
+      onOpenBuild: () => {}, onOpenHall: () => {}, onOpenCurriculum: () => {}, onOpenStudents: () => {},
+    };
+    const Probe = () => { tree = OpeningCoach(props); return null; };
+    renderToStaticMarkup(createElement(Probe));
+    return { acted, elements: all(tree), html: renderToStaticMarkup(createElement(OpeningCoach, props)) };
+  };
+
+  const welcome = foundWalk('Ask');
+  const siteStep = reducer(welcome, { type: 'ADVANCE_OPENING' });
+  const appointStep = siteHall(siteStep);
+  const foundStep = reducer(appointStep, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  const courseStep = untilStage(walkToCourse('Ask course'), 'second-course');
+  const course = walkProgram(courseStep) ? programById(walkProgram(courseStep)!)!.courseIds.find((id) => courseStep.tech.find((t) => t.id === id)?.status === 'available')! : '';
+  const needsStep = reducer(courseStep, { type: 'START_DEVELOPMENT', nodeId: course, facultyId: WALKTHROUGH_PROFESSOR });
+  const housingStep = reducer(needsStep, { type: 'ADVANCE_OPENING' });
+  const diningStep = siteAnywhere(housingStep, walkBuilding(housingStep)!.id);
+  const steps = [welcome, siteStep, appointStep, foundStep, courseStep, needsStep, housingStep, diningStep];
+  assert(steps.map((x) => x.events.opening.stage).join(',') === 'welcome,site-hall,appoint,found,second-course,needs,site-housing,site-dining',
+    `every card is reached (${steps.map((x) => x.events.opening.stage).join(',')})`);
+
+  for (const s of steps) {
+    const stage = s.events.opening.stage;
+    const c = coach(s);
+    // One click on anything the card draws: nothing skips.
+    for (const e of c.elements) if (e.type === 'button' && typeof e.props.onClick === 'function') (e.props.onClick as () => void)();
+    assert(!c.acted.some((a) => a.type === 'SKIP_OPENING'), `${stage}: no button skips on one click`);
+    const skips = c.elements.filter((e) => e.type === ConfirmButton);
+    assert(skips.length === 1, `${stage}: the skip is a confirmation (${skips.length})`);
+    const skip = skips[0]?.props ?? {};
+    assert(skip.needsConfirm !== false && skip.cancelLabel === SKIP_WORDS.keep && skip.warning === SKIP_WORDS.question && skip.armedLabel === SKIP_WORDS.confirm,
+      `${stage}: armed, it asks "${SKIP_WORDS.question}" with ${SKIP_WORDS.confirm} and ${SKIP_WORDS.keep}`);
+    c.acted.length = 0;
+    (skip.onConfirm as () => void)?.();
+    const keep = stage !== 'welcome';
+    assert(c.acted.length === 1 && c.acted[0].type === 'SKIP_OPENING' && (c.acted[0].keepLetters === true) === keep,
+      `${stage}: its confirmation skips, ${keep ? 'keeping' : 'declining'} the letters (${JSON.stringify(c.acted)})`);
+    assert(skip.label === (keep ? SKIP_WORDS.rest : SKIP_WORDS.welcome), `${stage}: labelled "${String(skip.label)}"`);
+  }
+
+  // The welcome: the skip is a link under the actions, and the card says
+  // how long the walk is.
+  const w = coach(welcome).html;
+  assert(w.includes(WALKTHROUGH_LENGTH), 'the welcome says how long the walkthrough takes');
+  const actionsRow = w.slice(w.indexOf('letter-actions'), w.indexOf('</div>', w.indexOf('letter-actions')));
+  assert(w.indexOf('letter-skip-row') > w.indexOf('letter-actions') && !actionsRow.includes('skip'),
+    'and its skip sits below the actions, not beside Next');
+  assert(w.includes('letter-skip-link'), 'as a plain text link');
+
+  // ConfirmButton itself: a first click arms; it does not act.
+  let confirmed = 0;
+  let button: ReactElement<Props> | undefined;
+  const Probe = () => {
+    const tree = ConfirmButton({ label: 'Skip', armedLabel: 'Skip', onConfirm: () => { confirmed += 1; }, cancelLabel: 'Keep' });
+    button = all(tree).find((e) => e.type === 'button');
+    return null;
+  };
+  renderToStaticMarkup(createElement(Probe));
+  (button?.props.onClick as () => void)?.();
+  assert(confirmed === 0, 'a first click on a confirmation does not act');
 }
 
 if (failures === 0) {

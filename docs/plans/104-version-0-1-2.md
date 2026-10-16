@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A.**
+October). Landed: A, C.**
 
 ---
 
@@ -161,6 +161,24 @@ paused clock.*
   about five minutes, so a player knows what they're skipping.
 - **Tests:** `opening.test.ts`: one click no longer skips; the
   confirmation does, from the welcome and from each later card.
+
+**As implemented.**
+
+- **`ConfirmButton` gained a question form** (`cancelLabel`): armed, the
+  warning reads first as the question, over the armed button (*Skip*) and
+  a second one, *Keep the walkthrough*, that disarms it. Without
+  `cancelLabel` it is unchanged. The button keeps its place in the DOM
+  when armed (the question is moved up by CSS `order`), so arming from the
+  keyboard keeps focus, and Tab between the two buttons doesn't disarm.
+- **The words live in `openingData.ts`** (`SKIP_WORDS`,
+  `WALKTHROUGH_LENGTH`), with the rest of the walk's copy. The length line
+  sits above the welcome's Next.
+- **The later cards keep their quiet pill** for the skip; only the
+  welcome's became a text link, as the plan says.
+- **Tests:** the coach is rendered inside a probe component that keeps the
+  tree it returns, so every button's handler is pressed once: none skips,
+  and the one confirmation on each of the eight cards does. Checked in the
+  browser: a click, Enter from the keyboard, Tab to *Keep*, and Escape.
 
 ### D — The opening, measured
 

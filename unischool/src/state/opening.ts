@@ -12,7 +12,8 @@ import { awaitsSite } from './campusMap';
 // professor, no course — so the walk founds its first program:
 //
 //   welcome    Next, or "Skip the walkthrough and the letters". Every later
-//              card can skip the rest, letters kept.
+//              card can skip the rest, letters kept. Either skip asks first
+//              (Plan 104C, components/OpeningCoach.tsx).
 //   site-hall  Founders Hall is not pre-placed in a guided founding; done
 //              when the hall stands on the map (siting is free).
 //   appoint    appoint the college's first professor from the founding
