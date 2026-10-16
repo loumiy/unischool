@@ -6,7 +6,7 @@ is to sequence the fixes the playtest has asked for since 0.1.1 (13 October
 from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
-**Status: Proposed (14 October 2026).**
+**Status: Proposed (14 October 2026; G–I added 16 October).**
 
 ---
 
@@ -27,6 +27,16 @@ Three players since then, or just before, found the start hard to read:
   I skipped accidentally)".
 - **R10–R11**, on r/WebGames: the clock held at the start is "a good
   call", but "all the stats and menus are competing" with the walkthrough.
+
+- **F2**, on the feedback form after 1–2 hours: past the walkthrough,
+  athletics, research and the faculty's grades and ranks were never
+  explained; asked for the systems to be introduced gradually.
+- **S1**, a playtesting service's session (16 October; 9/10, "one of a
+  kind"): couldn't place buildings and never learned why, read a need's
+  "12" as a time of day, couldn't tell what pulled satisfaction down in
+  year two, wondered why Mathematics showed a C with a good professor,
+  and spent much of the session on searches that returned only C, D and
+  F candidates.
 
 T1 and R9 may have played 0.1.0, before Plan 103; the version their runs
 were on is not known. What follows is what Plan 103 doesn't cover.
@@ -169,6 +179,81 @@ other tabs dimmed until those are done."
 - **Tests:** a shell test that the tabs are disabled at `site-hall` and
   live at `await-course` and after a skip.
 
+### G — Teaching as a number, not a letter
+
+The owner's decision (16 October): **the hiring mechanics stay; the
+presentation changes.** A young college can't hire the country's best
+teachers, so the early market is weak by design and the faculty improve
+over fifty years. Shown as letters, that reads as failure: a search of
+C, D and F candidates looks broken (S1), and a good professor's course
+reads C (S1, F2). Shown as numbers, a 50 among 40s is plainly a good
+hire, even though the same 50 would be the weakest professor on a late
+campus.
+
+- **Teaching and research show as numbers out of 100** wherever a
+  professor or candidate is shown: the faculty tiles, the search results
+  (`FacultyTab.tsx`'s listing chips), the appointment cards, the
+  instructor picker, the career lines and the training notes ("trained,
+  teaching 58 → 64"). Growth shows as now and where it's heading:
+  **"58 → 80"**.
+- **Course and program quality show as the same number** the professor
+  makes them, with the difference said: Iyer **63**; Calculus **56**,
+  "−7, a full load". So a professor and their courses can never seem to
+  disagree. The course drawer's factor list stays as the full account.
+- **Measured against the college, not the country.** Beside a
+  candidate's teaching, the college's own median: "**52** · your faculty's
+  median is 44". That is what makes a 50 read as good in year 3 and weak
+  in year 40, without the player knowing the market's shape. Whether the
+  number is coloured by that comparison or left plain is decision 6.
+- **The bands stay underneath.** Grade points still feed prestige's
+  teaching ceiling and academic satisfaction (`courseQuality.ts`), and
+  training still moves a professor one band up (`oneGradeUp`). Only the
+  words and chips change; balance doesn't move. *Staff for the A*, the
+  seats' staffing policy, is renamed in words that don't name a letter
+  ("Staff the weakest courses first").
+- **`GradeChip`** becomes a number chip with the same colour steps, so
+  every screen changes in one place; `letterOf` in `facultySort.ts` and
+  the Faculty tab's help line ("teaching and research as letters") are
+  rewritten (Plan 95E).
+- **Tests:** every faculty and course surface shows a number and no
+  letter; a candidate's tile shows the faculty's median; the sim baseline
+  is unchanged.
+
+### H — Every refused placement says why
+
+- **Today** the map says why only for ground ("not enough clear ground"),
+  road access and walling off a building (`state/reach.ts`'s
+  `siteRefusal`). Not enough money, a board freeze, or a building not
+  yet available turn the ghost red with no words, though the map's own
+  hint promises "the ghost says why". S1 hit it three times: more housing
+  in year two, beside Elm Hall, and benches in the park.
+- **The change:** the pointer's red note names every refusal: "Costs
+  $2.1M · you have $1.4M", "The board has frozen construction", and the
+  building's own reason when it isn't available yet.
+- **The ghost and the click agree.** The ghost checks cash only
+  (`canStartDevelopment` with its default financing) while the click
+  (`placeById`) also tries a gift, a loan and the endowment, so a spot can
+  show red and still take the building. The ghost uses the click's
+  `financingFor`, and says how it would be paid when it isn't cash ("on a
+  loan").
+- **Tests:** a placement test for each refusal's words, and that the
+  ghost is green wherever a click would place.
+
+### I — Needs out of 100, and what pulls satisfaction down
+
+- **A need's score shows "/100".** Today the Students tab's dial holds a
+  bare number in a round, ticked face, beside a bed count, and S1 read
+  "12" as a time of day; the walkthrough's needs step says "Housing is at
+  12" the same way. The dial gains "/100" and the walkthrough's line says
+  "12 out of 100".
+- **One line names the drag.** When satisfaction is falling, the Students
+  tab and the header's hover say which need pulls it down most and why,
+  in words: "Housing is the drag: 320 beds for 480 students." The causes
+  are already computed (`satisfactionSystem.ts`); the target stays
+  hidden (Plan 98B), only the largest pull is named.
+- **Tests:** the line names the lowest weighted need, and says nothing
+  while satisfaction is steady or rising.
+
 ### E — 0.1.2
 
 - `package.json` to 0.1.2, the Release workflow, the itch.io upload, a
@@ -183,6 +268,8 @@ other tabs dimmed until those are done."
 | 3 | Does the welcome card keep a skip at all? | **Yes, behind the confirmation.** A returning player on a second run wants it. |
 | 4 | Is B worth doing before more players say it? | **Yes.** It is one player (T1), but it isn't a decision being punished: a player who doesn't know a decision is waiting can't make it, however carefully they play. |
 | 5 | How far does F dim? | **Tabs disabled, top-bar figures dimmed but readable**, for the first three steps only. Hiding the figures entirely would make the first summer's numbers arrive from nowhere. |
+| 6 | Is a candidate's number coloured against the college's median? | **Yes, lightly:** above the median warm, below it plain. Colour by the absolute bands would bring back the letters' verdict. |
+| 7 | Do course and program quality become numbers too, or keep letters? | **Numbers.** A letter on the course beside a number on its professor is S1's confusion again. |
 
 ## Rules for every PR in this plan
 
@@ -201,4 +288,7 @@ other tabs dimmed until those are done."
 | C | A skip that's hard to hit by accident | — |
 | D | The opening, measured | — (C's confirmation fires D's `opening_skipped` once both are in) |
 | F | A quieter screen for the first three steps | — |
-| E | 0.1.2 | A–D, F |
+| G | Teaching as a number, not a letter | — |
+| H | Every refused placement says why | — |
+| I | Needs out of 100, and what pulls satisfaction down | — |
+| E | 0.1.2 | A–D, F–I |

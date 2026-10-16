@@ -4,7 +4,8 @@
 the reviews' areas ([`README.md`](README.md), the triage rule). One line a
 finding, with how many players said it and where it came from: `form`,
 `comment` (the itch.io page), `reddit`, `live` (a session the owner
-watched), `form` (the in-game feedback form), `discord` or `stats`. Every reply read is
+watched), `form` (the in-game feedback form), `discord`, `service` (a
+playtesting service) or `stats`. Every reply read is
 logged under *The replies* at the bottom, with its link, so a count can be
 checked against what was said. A finding that loses a save or blocks a run is also
 marked **0.1.x** and fixed in a patch.*
@@ -25,7 +26,20 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1), discord (D1).*
+  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1, F2), discord (D1), service (S1).*
+  F2, after 1–2 hours: "I've been looking for exactly this type of game
+  for a long time"; "I reeeally enjoyed playing and love the concept as
+  well as the execution"; best moment "seeing the money amount
+  increasing and being able to buy everything that the students would
+  want"; would play again "every once in a while absolutely"; would pay
+  $5–10.
+  S1, after about three years of play: "I'd give it a nine out of ten. It
+  feels one of a kind"; "I didn't stop because I was getting really
+  engrossed. I'm getting addicted"; "I love how much micromanaging you can
+  do: searching for teachers, planning courses, laying out the
+  university". Liked the flavour text (lights on at night after the first
+  students moved in; the brown line worn across the quad) and the
+  buildings' progress bars.
   D1, a first look: "giving proper throwback to the original Sims vibes",
   and "really liked [the] visual style on the buildings/scene".
   F1, who finished a run: best moment "unlocking and expanding the
@@ -65,6 +79,28 @@ marked **0.1.x** and fixed in a patch.*
 - **The letters that stop the clock are too quiet.** The player didn't
   notice that time had stopped, or that something was waiting for him.
   *1 player · live (T1).*
+- **The board's opening letter took two reads.** "350 students are on
+  the books, nobody is on the payroll … Founders Hall hasn't been placed
+  yet": S1 read it a couple of times ("Sorry, what?") before it made
+  sense as no people, no courses, no building. *1 player · service (S1).*
+- **A need's score reads as a clock.** S1 took a need's "12" for a time
+  of day. It is a score out of 100 at its floor (`ATTRIBUTE_SCORE_FLOOR`):
+  the Students tab shows it as a bare number in a round, ticked dial, with
+  no "/100", beside a bed count; the walkthrough's needs step says
+  "Housing is at 12" the same way. Only the header's hover says "out of
+  100". *1 player · service (S1).*
+- **A grade that doesn't move when a better professor is appointed.** S1
+  appointed Dr. Priya Iyer to Mathematics and it still showed a C. The
+  grade is the instructor's teaching *now*, less a load penalty (up to −7
+  at a full load) and an upper-tier penalty: Iyer starts at about 63, a B
+  on Calculus alone, a C once she teaches two courses or a tier-2 course,
+  and rises as she matures. Only the course drawer lists those factors;
+  the chips say none of it. F2 asked what the grades mean too.
+  *1 player · service (S1).*
+- **What the grades and ranks on a teacher mean.** F2 didn't understand
+  the letter grades (A, B, C) or the ranks (assistant, associate…), nor
+  how they affect teaching, courses or students, and asked for each
+  attribute and its effect to be explained. *1 player · form (F2).*
 - **The walkthrough is skipped by players who don't read.** T1 skimmed
   it and was a little overwhelmed. *1 player · live (T1).*
 
@@ -97,6 +133,27 @@ marked **0.1.x** and fixed in a patch.*
   letter, `App.tsx`'s `holding`). In Plan 104 as F. *1 player · reddit
   (R10, R11).*
 
+- **Past the walkthrough, the systems aren't introduced.** F2 (1–2
+  hours, sent from year 12) saw the milestones and objectives in the
+  bottom banner but often didn't know what to do to reach them, wasn't
+  sure what athletics was for, and found research projects confusing.
+  Asked for "a more comprehensive introduction" that brings in the main
+  systems gradually, so a player knows what to prioritize and doesn't
+  miss a feature for not knowing it exists. With R2, T1, R9 and D1, the
+  fifth player to find the game hard to read, and the first to name the
+  systems after the opening. *1 player · form (F2).*
+
+- **Why satisfaction falls in year two isn't said.** S1 couldn't find
+  satisfaction at first, then couldn't work out why it kept dropping in
+  year two with dining, academic and social all full and health "not yet
+  a need". Housing, the worst crowding in the year's review, was the
+  likely pull, and S1 was trying and failing to build more of it (7 ·
+  Bugs). The causes are real (the
+  second class arrives into the same beds and seats, expectations rise
+  with prestige, health becomes a need past a population), but the game
+  shows a trend arrow and the lowest need on hover, never the reason in
+  words. *1 player · service (S1).*
+
 ## 4 · Strategy
 
 - **Finding a decent teacher, and waiting to add more classes,** were the
@@ -113,16 +170,52 @@ marked **0.1.x** and fixed in a patch.*
   and made progress: the cause could be found and the hole climbed out
   of, which is what matters.
 
+- **Searches that turn up only weak candidates.** S1 spent much of the
+  session posting faculty searches and comparing candidates; several came
+  back with only C, D and F candidates (FF, DF), so they searched again.
+  At one point a search "seemed to stop" and they thought they were out
+  of money, but weren't. With F1's "trying to find a decent teacher",
+  the second player to find hiring slow. *2 players · service (S1), form
+  (F1).*
+  **Decided: the mechanics stay, the presentation changes** (the owner,
+  16 October). A young college can't hire the best teachers, and the
+  faculty should grow across the game; shown as letters, a weak early
+  market reads as failure. Teaching becomes a number, so a 50 among 40s
+  reads as a good hire. Plan 104 as G.
+
 ## Asked for in play
 
 - **An ordinance system "like in the SimCity series"**: standing policies
   for the college. *1 player · form (F1).*
+
+- **More ways to make the campus its own.** More than benches and
+  trees: decorative options, architectural styles, elements that carry
+  the university's identity, so each campus feels personal. *1 player ·
+  form (F2).*
+
+- **A skill tree** beside research and the specialization: invest in
+  arts and culture to unlock cultural facilities or events, in finance
+  for economic advantages, in research for efficiency, each branch
+  opening further ones, so progress isn't mostly buying more buildings.
+  The player knows it's a big feature. *1 player · form (F2).*
 
 - **Benches on a quad.** T1 tried to put benches on top of a quad, and
   enjoyed placing benches more than almost anything else. *1 player ·
   live (T1).*
 
 ## 7 · Bugs
+
+- **A red ghost with no reason.** S1 couldn't place buildings in several
+  spots and never got a reason: more housing in year two, while housing
+  was the worst-crowded need; buildings next to Elm Hall; benches in the
+  park. The map says why only
+  for ground, road access and walling off a building; money, a board
+  freeze and an unavailable building turn the ghost red with no words
+  (the map's own hint says "the ghost says why"). Worse, the ghost checks
+  cash only while the click also tries a gift, loan or the endowment, so
+  a spot can show red and still accept the building. Likely a bug
+  (`CampusMap.tsx`, `preview.ok` against `placeById`). *1 player ·
+  service (S1).*
 
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Not yet traced in the code. *Owner.*
@@ -380,6 +473,38 @@ Discord. A fuller review may follow.*
   - *Anything else:* "You should add in an ordinance system like in the
     sim city series."
 
+- **F2** · 15 October, 20:30 UTC · 0.1.1 (build `f57916d`, itch.io),
+  sent from year 12 week 1, rank 55. No install id (statistics probably turned off),
+  so no PostHog run to match. Left an email for updates (kept in
+  Tally, not here).
+  - *How long:* 1–2 hours.
+  - *A moment you didn't know what to do next?* Enjoyed it, but found the
+    learning curve hard for lack of guidance at the start. The milestones
+    and objectives in the bottom banner didn't say what to actually do to
+    reach them. Unsure what athletics was for; research projects somewhat
+    confusing. Didn't understand the teachers' grades (A, B, C) or ranks
+    (assistant, associate), or how they affect teaching, courses and
+    students. Wanted "a more comprehensive introduction or tutorial at the
+    start of the game, gradually introducing its main mechanics", to know
+    what to prioritize and not miss features. "(but don't misunderstand
+    me, I reeeally enjoyed playing and love the concept as well as the
+    execution, just had some trouble)"
+  - *Best moment:* "Seeing the money amount increasing and being able to
+    buy everything that the students would want to have the maximum
+    satisfaction."
+  - *Most frustrating:* being somewhat lost in those parts; "besides
+    that, no frustration at all."
+  - *Play again?* "Yes, maybe not everyday but every once in a while
+    absolutely."
+  - *Would pay:* $5–10.
+  - *Anything else:* "I've been looking for exactly this type of game for
+    a long time." The game feels "quite general": wants more
+    customization and personality (decorations, architectural styles,
+    the university's identity), and a skill tree to complement research
+    and specialization (arts and culture, finance, research, branches
+    unlocking further branches), so progress isn't only buying buildings.
+    "These are just ideas … I really like the concept behind the game."
+
 ### Reddit, r/WebGames — [the owner's post](https://www.reddit.com/r/WebGames/s/j0w5eKdcbi) (14 October)
 
 - **R10** · No-Giraffe-3838 — "350 students and zero professors is an
@@ -407,6 +532,50 @@ that in mind.*
   though, but I can imagine that it is overwhelming for a new player
   because it was a little hard to figure things out (maybe there was a
   tutorial I skipped accidentally)."
+
+### We Playtest Games — a service's unsolicited playtest (16 October)
+
+- **S1** · posted on Reddit by u/WePlaytestGames, who runs a playtesting
+  service, about their tester "Misthios". Not asked for; the full notes
+  sit behind a sign-up on their platform, so the comment doubles as a
+  pitch. [The session video](https://www.youtube.com/watch?v=zv1kn2uAHVs);
+  [the breakdown](https://app.weplaytestgames.com/transcript/04a2a26d-f482-4d87-aaf4-a476c910ab98).
+  The owner shared the breakdown as a PDF (an AI-generated transcript and
+  three takeaways), 16 October; what follows is from it. Version not
+  known. Played about three in-game years, recording with the sound down.
+  - Founded Baltimore in royal blue and gold; skipped the walkthrough's
+    English and took Mathematics, appointing Dr. Priya Iyer "because they
+    felt it's important to start a college with good people".
+  - Liked the intro music enough to "vibe with it" before turning it down
+    to record. (The recorded title theme went to `main` on 15 October; on
+    the itch.io build the title still plays the synthesised theme.)
+  - The opening: read the board's first letter twice; found the three
+    founding candidates "all look the same", thought English wouldn't
+    draw students, and took Mathematics instead of the walkthrough's
+    pick. Placed Founders Hall, the residence and dining halls (kept the
+    residence hall away from the classrooms), rotated with L.
+  - Satisfaction: couldn't find it at first; then 62, with housing and
+    dining at 12, which "read like a time of day". In year two, with
+    dining, academic and social full, couldn't tell what pulled it down.
+  - Mathematics showed a C with Iyer appointed "and nothing changed at
+    64"; "it didn't really matter, so I moved on."
+  - Placement: tried and failed to add housing in year two, to build next
+    to Elm Hall, and to put benches in the park ("Sad").
+  - Money: the first year ran low; didn't want to borrow. Waiting on 2.5
+    million for Elm Hall: "I don't like that I can only wait for the
+    money", though a course could be developed meanwhile.
+  - Hiring: searches returning only C, D and F candidates, searched again
+    and again; wants at least a B; a search "seemed to stop" as if out of
+    money.
+  - Year one review: six courses, four programs, six buildings,
+    satisfaction averaged 55, graded 33. Allowed fraternities and
+    sororities. Placed athletics fields by the student center.
+  - The service's takeaways: clear feedback on placement (invalid-spot
+    indicators and the reason); show what pulls satisfaction down and
+    label need values; explain how professor grades relate to program
+    grades, and fewer searches that turn up only weak candidates.
+  - Close: nine out of ten, "one of a kind", "getting addicted"; would
+    answer follow-up questions on the service's platform.
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
