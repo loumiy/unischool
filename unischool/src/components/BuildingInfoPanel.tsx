@@ -14,7 +14,7 @@ import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
 import { NEED_WORD } from '../data/needWords';
 import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
-import { WALKTHROUGH_PROGRAM } from '../data/foundingData';
+import { FOUNDING_MARKET, WALKTHROUGH_PROGRAM } from '../data/foundingData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
@@ -481,6 +481,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     const selected = pickedProgram === program.id;
     // The walkthrough's program, rung until it is picked.
     const ringed = walking && t.id === FOUNDERS_HALL_ID && program.id === WALKTHROUGH_PROGRAM && pickedProgram === null;
+    // A founding program is shown with the professor who would teach it
+    // (Plan 104L), so the program comes first and the professor with it.
+    const founder = FOUNDING_MARKET.find((p) => p.field === course?.requiresFaculty && s.candidates.some((c) => c.id === p.id));
     return (
       <button
         key={program.id}
@@ -493,7 +496,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
         <span className="hall-offer-name">{program.name}</span>
         <span className="hall-offer-meta">
-          {moneyShort(course?.cost ?? 0)} · {course?.requiresFaculty ?? '—'}
+          {founder ? `with ${founder.name}` : `${moneyShort(course?.cost ?? 0)} · ${course?.requiresFaculty ?? '—'}`}
         </span>
       </button>
     );

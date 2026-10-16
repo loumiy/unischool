@@ -247,7 +247,10 @@ const walkToCourse = (name: string) => reducer(
   assert(s.events.opening.stage === 'welcome' && openingHoldsClock(s), 'a guided founding opens on the welcome with the clock held');
   assert(!(FOUNDERS_HALL_ID in s.placements), 'Founders Hall is not placed');
   assert(s.events.opening.read.includes(OPENING_LETTERS[0].id) && !s.events.opening.skipped, 'the first letter is counted read — the welcome is its content');
-  assert(OPENING_STEPS.welcome.body(s).includes('nobody is on the payroll'), 'and the welcome says nobody is on the payroll yet');
+  // The welcome welcomes (Plan 104L): the college, and the building it
+  // begins with; no list of tasks, no order to remember.
+  const welcome = OPENING_STEPS.welcome.body(s);
+  assert(welcome === 'The Walk board wishes you well. Three hundred and fifty students have enrolled, and the college is yours to build. It begins with one building, Founders Hall, where the first classes will meet.', `the welcome's words (${welcome})`);
   assert(nextStep(s) === null, 'the next-step line is silent while the walk holds the clock');
   const week = s.clock.week;
   s = reducer(s, { type: 'TICK' });
@@ -278,7 +281,7 @@ const walkToCourse = (name: string) => reducer(
   s = reducer(s, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
   assert(s.faculty.some((f) => f.id === WALKTHROUGH_PROFESSOR), 'Bennett is on the payroll');
   assert(s.events.opening.stage === 'found' && openingHoldsClock(s), 'and the walk asks for the program, the clock still held');
-  assert(OPENING_STEPS.found.body(s).startsWith('Found English'), `the card names English (${OPENING_STEPS.found.body(s).slice(0, 40)})`);
+  assert(OPENING_STEPS.found.body(s).includes('Found English into the program slot'), `the card names English (${OPENING_STEPS.found.body(s).slice(0, 80)})`);
 
   // Found English: its entry course goes to the committee.
   const entry = programById(WALKTHROUGH_PROGRAM)!.entryCourseId;
@@ -464,6 +467,30 @@ const walkToCourse = (name: string) => reducer(
   for (const t of broke.tech) if (t.kind === 'dorm' || t.facilityType === 'diningHall') t.cost = 1e12;
   broke = reducer(broke, { type: 'ADVANCE_OPENING' });
   assert(broke.events.opening.stage === 'play' && !openingHoldsClock(broke), `with neither building within reach, Next ends the walk (${broke.events.opening.stage})`);
+}
+
+// --- each card introduces its own step, in the order played (Plan 104L) ----
+{
+  const words = (stage: GameState['events']['opening']['stage'], s: GameState) => OPENING_STEPS[stage as 'welcome'].body(s).toLowerCase();
+  const w = foundWalk('Order');
+  const site = reducer(w, { type: 'ADVANCE_OPENING' });
+  const appoint = siteHall(site);
+  const found = reducer(appoint, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  // A card names no step it doesn't lead to: the welcome and the hall's
+  // step no professor, program or course; choosing the program no course.
+  for (const [stage, s, banned] of [
+    ['welcome', w, ['professor', 'program', 'course', 'in that order']],
+    ['site-hall', site, ['professor', 'program', 'course']],
+    ['appoint', appoint, ['course']],
+  ] as const) {
+    const said = banned.filter((term) => words(stage, s).includes(term));
+    assert(said.length === 0, `${stage}: names no later step (${said.join(', ')})`);
+  }
+  // Choosing the program reads program, then professor (decision 8).
+  const pick = OPENING_STEPS.appoint.body(appoint);
+  assert(OPENING_STEPS.appoint.title === 'Choose the first program', `the step is choosing a program (${OPENING_STEPS.appoint.title})`);
+  assert(pick.includes('English, with Dr. Grace Bennett; Mathematics, with Dr. Priya Iyer; and Economics, with Dr. John Okafor'), `the three founding candidates as three programs (${pick})`);
+  assert(words('found', found).indexOf('course') >= 0, 'courses come in when the program is founded');
 }
 
 // --- the skip asks first (Plan 104C) ----------------------------------------

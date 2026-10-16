@@ -28,9 +28,14 @@ function list(names: string[]): string {
 
 const programName = (id: string) => programById(id)?.name ?? id;
 
-// The founding market's professors still listed, as "Dr. X in Field".
-function foundingListings(s: GameState): string[] {
-  return FOUNDING_MARKET.filter((p) => s.candidates.some((c) => c.id === p.id)).map((p) => `${p.name} in ${p.field}`);
+// The programs on offer that a founding professor is listed for, as
+// "English, with Dr. Grace Bennett".
+function foundingPrograms(s: GameState): string[] {
+  return s.programOffers.flatMap((id) => {
+    const field = programById(id)?.field;
+    const p = FOUNDING_MARKET.find((x) => x.field === field && s.candidates.some((c) => c.id === x.id));
+    return p ? [`${programName(id)}, with ${p.name}`] : [];
+  });
 }
 
 // The program the found step names: the walkthrough's, if its professor was
@@ -128,7 +133,10 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
   welcome: {
     eyebrow: 'From the chair of the board',
     title: 'The doors open',
-    body: (s) => `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, and nobody is on the payroll to teach them: the college has not one professor and not one course, and the one building it owns, Founders Hall, has not been set down on its ground. All three are yours to fix, in that order, and nothing else can start until the first is done: the hall, then its first professor, then its first program.`,
+    // It introduces the college and the one building it begins with (Plan
+    // 104L): S1 read the old list of three tasks, in an order the walk then
+    // didn't play, twice. Each step introduces its own thing when it comes.
+    body: (s) => `The ${s.self.name} board wishes you well. Three hundred and fifty students have enrolled, and the college is yours to build. It begins with one building, Founders Hall, where the first classes will meet.`,
     next: 'Next',
   },
   'site-hall': {
@@ -137,13 +145,19 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     body: () => 'Every building comes from the build menu at the foot of the screen. Click Founders Hall to pick it up, then click a clear stretch of ground to set it down — its footprint follows the pointer.',
     door: 'build',
   },
+  // Choosing a program, with its professor (Plan 104L, the owner's decision
+  // 8): the three founding candidates read as three programs, each with the
+  // professor who would teach it. Done when the professor is appointed.
   appoint: {
     eyebrow: 'Step two',
-    title: 'Appoint the first professor',
+    title: 'Choose the first program',
     body: (s) => {
-      const listed = foundingListings(s);
-      const market = listed.length > 0 ? ` The market lists one for each program on offer: ${list(listed)}.` : '';
-      return `A program is founded with the professor who teaches its first course, so the professor comes first.${market} Click the ringed program slot, choose ${programName(WALKTHROUGH_PROGRAM)}, and appoint ${professor.name}. An appointment costs nothing up front; the salary is paid weekly.`;
+      const offered = foundingPrograms(s);
+      const n = countWord(offered.length);
+      const choice = offered.length > 0
+        ? ` ${n[0].toUpperCase()}${n.slice(1)} ${offered.length === 1 ? 'is' : 'are'} on offer: ${offered.length > 1 ? `${offered.slice(0, -1).join('; ')}; and ${offered[offered.length - 1]}` : offered[0]}.`
+        : '';
+      return `The college teaches in programs, each with a professor to teach it.${choice} Click the ringed program slot, choose ${programName(WALKTHROUGH_PROGRAM)}, and appoint ${professor.name}. An appointment costs nothing up front; the salary is paid weekly.`;
     },
     door: 'hall',
   },
@@ -154,7 +168,8 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
       const id = programToFound(s);
       const entry = s.tech.find((t) => t.id === programById(id)?.entryCourseId);
       const course = entry ? `${entry.name.split(' · ')[1] ?? entry.name}, for ${money(entry.cost)}` : 'its first course';
-      return `Found ${programName(id)} into the program slot: its first course, ${course}, goes to the curriculum committee and is taught ${weeksAway(entry?.duration ?? 4)} from now. Each course taught gives the catalog eighty places. Until there are places for all ${totalEnrolled(s.students)} students the college is crowded: the next courses, and the professors to teach them, come first.`;
+      const total = programById(id)?.courseIds.length ?? 10;
+      return `A program is taught in courses, ${countWord(total)} of them, each written by the curriculum committee before it is taught. Found ${programName(id)} into the program slot: its first course, ${course}, goes to the committee and is taught ${weeksAway(entry?.duration ?? 4)} from now. Each course taught gives the catalog eighty places. Until there are places for all ${totalEnrolled(s.students)} students the college is crowded: the next courses, and the professors to teach them, come first.`;
     },
     door: 'hall',
   },

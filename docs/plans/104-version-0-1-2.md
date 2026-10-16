@@ -7,7 +7,7 @@ from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
 **Status: In progress (14 October 2026; G–M added and decisions settled 16
-October). Landed: A, C, D, F, G, H, I, J, K.**
+October). Landed: A, C, D, F, G, H, I, J, K, L.**
 
 ---
 
@@ -333,6 +333,8 @@ campus.
   points (Plan 95H chose that wording on purpose), which isn't the average
   of the course numbers, so turning them into a number needs a choice of
   which number. The plan's list doesn't name them.
+- **Balance:** `npm run sim` after G reads the rebased baseline (J's)
+  exactly, all thirty runs.
 - **Tests:** `test/teaching-numbers.test.ts` renders the faculty tile
   (professors and candidates), the person page, the market, the picker,
   the Curriculum tab, a course cell, the row, the hall's tile and the
@@ -534,6 +536,26 @@ then plays.
   subject; this puts the subject first.
 - **Tests:** `opening.test.ts` holds the welcome's new words and that no
   card names a step it doesn't lead to.
+
+**As implemented.**
+
+- **The welcome** is the plan's three sentences, word for word. The board's
+  first letter (`eventData.ts`'s "The doors open") is unchanged: a guided
+  founding counts it read, the welcome being its content, so only a run
+  founded without the walkthrough receives it.
+- **Step two is "Choose the first program":** "The college teaches in
+  programs, each with a professor to teach it. Three are on offer:
+  English, with Dr. Grace Bennett; Mathematics, with Dr. Priya Iyer; and
+  Economics, with Dr. John Okafor." The hall's offer tiles say the same,
+  "with Dr. Grace Bennett" where they said the first course's price and
+  field, while a founding professor is listed for the program. The price is
+  still on the Found button. The stage keeps its id, `appoint`.
+- **Step three introduces the courses** as they arrive: "A program is
+  taught in courses, ten of them, each written by the curriculum committee
+  before it is taught."
+- **Tests:** the welcome's words; the welcome and the hall's step name no
+  professor, program or course, and the program's step names no course;
+  the three candidates read as three programs, in that order.
 
 ### M — The Students tab after the first summer, and needs that can read full
 
