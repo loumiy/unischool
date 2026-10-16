@@ -6,7 +6,7 @@ is to sequence the fixes the playtest has asked for since 0.1.1 (13 October
 from the owner's reading of one, filed in
 [`docs/reviews/playtest-1/findings.md`](../reviews/playtest-1/findings.md).*
 
-**Status: Proposed (14 October 2026; G–I added 16 October).**
+**Status: Proposed (14 October 2026; G–M added and decisions settled 16 October).**
 
 ---
 
@@ -112,6 +112,9 @@ itself, where the program was placed.
 
 ### B — A clock that says why it stopped
 
+*Held out of 0.1.2 (decision 4): it goes in when a second player misses a
+paused clock.*
+
 - **While the clock is paused for a matter** (the `arrival` and
   `final-week` reasons in `unseen.ts`), a band beside the speed control
   reads **"Paused · a decision is waiting"** with an **Open** button that
@@ -197,9 +200,10 @@ campus.
   teaching 58 → 64"). Growth shows as now and where it's heading:
   **"58 → 80"**.
 - **Course and program quality show as the same number** the professor
-  makes them, with the difference said: Iyer **63**; Calculus **56**,
-  "−7, a full load". So a professor and their courses can never seem to
-  disagree. The course drawer's factor list stays as the full account.
+  makes them, with any difference said: Iyer **63**; an upper-level
+  course **61**, "−2, upper-level". With the load penalty gone (J), that
+  is the only gap left on most courses, so a professor and their courses
+  can never seem to disagree. The course drawer's factor list stays as the full account.
 - **Measured against the college, not the country.** Beside a
   candidate's teaching, the college's own median: "**52** · your faculty's
   median is 44". That is what makes a 50 read as good in year 3 and weak
@@ -254,27 +258,124 @@ campus.
 - **Tests:** the line names the lowest weighted need, and says nothing
   while satisfaction is steady or rising.
 
+### J — No teaching overload
+
+The owner's decision (16 October, from S1's video): S1 appointed Dr. Iyer
+as a B, and her courses sank to C as she took on more, which read as the
+game contradicting itself.
+
+- **The load penalty goes** (`courseQuality.ts`'s `loadPenalty`, up to −7
+  at a full load). A professor teaches every course in their slots at
+  their own teaching, less the tier penalty only.
+- **The slots stay.** A professor still holds a fixed number of courses
+  (`courseSlots`: four to six for a hire, two or three for a founder), so "teach more or hire better" is still a choice: a
+  full department still needs a hire to grow, it just doesn't grade
+  worse for being full.
+- **This PR moves balance**, unlike the rest of the plan: courses grade
+  higher, so prestige's teaching ceiling and academic satisfaction rise.
+  It runs `npm run sim` before and after, records the change, and
+  rebases `sim/baseline.json`; if academic satisfaction or prestige rise
+  past their bands, the grade bands or the tier penalties take up the
+  slack, not the load.
+- **Words:** the course drawer's "Teaching load (2 of 2) −7" factor goes,
+  and `courseQuality.ts`'s comment on why 7 is rewritten (Plan 95E).
+- **Tests:** a course's quality no longer depends on its instructor's
+  load; the save fixtures still load.
+
+### K — A name on the pennant never splits a word
+
+S1 named the college "Baltimoore", and the map's pennant broke it as
+"Baltimoor / e College".
+
+- **The cause:** `Pennant.tsx` picks the type size by the whole name's
+  length (12, 24 or 40 characters), and the CSS lets a word break
+  (`overflow-wrap: break-word`). "Baltimoore College" is 18 characters,
+  so it gets the second size, at which the ten-letter word is wider than
+  the banner's 126 px.
+- **The fix:** the size is the smaller of the one the whole name asks for
+  and the one its longest word asks for, so the longest word always fits
+  on a line; a word breaks only past the smallest size (a single word
+  longer than the banner can hold).
+- **Tests:** a pennant test over a list of names (short, long, one long
+  word, "Baltimoore College") that the chosen size fits the longest word.
+
+### L — A welcome that welcomes, and the opening in the order it's played
+
+From S1 (16 October): the board's first letter took two reads. It ends
+"All three are yours to fix, in that order … the hall, then its first
+professor, then its first program", which tells a player to remember
+three tasks and an order, and the order isn't the one the walkthrough
+then plays.
+
+- **The welcome introduces the college,** and asks for one thing: "The
+  {name} board wishes you well. Three hundred and fifty students have
+  enrolled, and the college is yours to build. It begins with one
+  building, Founders Hall, where the first classes will meet." No list,
+  no order to remember.
+- **Each later step introduces the next thing when it arrives:** a
+  program, which needs a professor to teach it, then its courses.
+- **The appointment reads as choosing a program** (decision 8): the
+  three founding candidates are shown as three programs, each with the
+  professor who would teach it ("English, with Dr. Grace Bennett"),
+  so the order the player meets is program, then professor, then course.
+  S1 found the three candidates "all look the same" and chose by
+  subject; this puts the subject first.
+- **Tests:** `opening.test.ts` holds the welcome's new words and that no
+  card names a step it doesn't lead to.
+
+### M — The Students tab after the first summer, and needs that can read full
+
+From S1 (16 October): the walkthrough's "Somewhere to sleep, somewhere
+to eat" opens the Students tab in week one, where every need reads low
+because nothing is built yet, and health's dormant dial ("–", "Not yet a
+need") reads as one more failure.
+
+- **The Students tab opens at the first commencement.** The ladder's
+  `commencement` milestone (the first summer closes) already opens
+  Students' guidebook, clubs and funnel; it opens the tab itself. Plans
+  78B and 78C opened it from the first week on purpose; their words are
+  rewritten (Plan 95E). **The header's satisfaction figure waits with it**
+  (decision 9): in year one the top bar shows no satisfaction, and the
+  first summer's review introduces it as the year's average, the moment
+  the header figure and the tab appear.
+- **The walkthrough builds the needs instead of showing them.** The
+  `needs` step stops opening the Students tab: it says in a line that
+  students need somewhere to sleep and somewhere to eat, and goes
+  straight to siting one residence hall and one dining hall (Plan 103's
+  `site-housing` and `site-dining`). A college that builds those and the
+  library should see good marks when the tab opens.
+- **Health doesn't show until it's read.** Below its population gate
+  health scores full and isn't counted against the college; its card is
+  hidden until the gate is crossed, then appears with a line saying it
+  is now a need. A college meeting every need it has reads full marks.
+- **Tests:** the tab and the header's satisfaction figure are gated
+  until the first summer closes and open after it; the walkthrough never opens a gated tab; health's card is
+  absent below the gate.
+
 ### E — 0.1.2
 
 - `package.json` to 0.1.2, the Release workflow, the itch.io upload, a
   short devlog, and the playtest README's patch table.
 
-## 3. Decisions for the owner
+## 3. Decisions, settled by the owner (16 October)
 
-| # | Question | Proposed |
+| # | Question | Decided |
 |---|---|---|
-| 1 | Where does the hall's Develop button sit? | **In the program's summary** (click the tile), above *Open in Curriculum*. On the tile itself it is faster but makes a full hall of six programs busy. |
-| 2 | The band's place | **Beside the speed control**, where the eye goes when the clock stops. The alternative is a strip across the top of the map. |
+| 1 | Where does the hall's Develop button sit? | **In the program's summary** (click the tile), above *Open in Curriculum*. On the tile itself it would make a full hall of six programs busy. |
+| 2 | The band's place | **Beside the speed control**, where the eye goes when the clock stops. |
 | 3 | Does the welcome card keep a skip at all? | **Yes, behind the confirmation.** A returning player on a second run wants it. |
-| 4 | Is B worth doing before more players say it? | **Yes.** It is one player (T1), but it isn't a decision being punished: a player who doesn't know a decision is waiting can't make it, however carefully they play. |
-| 5 | How far does F dim? | **Tabs disabled, top-bar figures dimmed but readable**, for the first three steps only. Hiding the figures entirely would make the first summer's numbers arrive from nowhere. |
+| 4 | Is B worth doing before more players say it? | **Not yet: wait for a second player.** B stays written here but is out of 0.1.2; it goes in when another player misses a paused clock. |
+| 5 | How far does F dim? | **Tabs disabled, top-bar figures dimmed but readable**, for the first three steps only. |
 | 6 | Is a candidate's number coloured against the college's median? | **Yes, lightly:** above the median warm, below it plain. Colour by the absolute bands would bring back the letters' verdict. |
-| 7 | Do course and program quality become numbers too, or keep letters? | **Numbers.** A letter on the course beside a number on its professor is S1's confusion again. |
+| 7 | Do course and program quality become numbers too, or keep letters? | **Numbers everywhere,** so a professor and their courses never seem to disagree. |
+| 8 | Does the appointment step become "choose a program", or only its words? | **Only its words**, in L: the three candidates shown as programs with their professors. No new step. |
+| 9 | With the Students tab closed, does the header still show satisfaction in year one? | **No: hidden until the first summer,** with the Students tab. The first summer's review is where satisfaction first appears, as the year's average, and the header and tab open with it. |
 
 ## Rules for every PR in this plan
 
-- **Balance never moves.** Nothing here touches the simulation;
-  `npm run sim` reads the same as `sim/baseline.json` after each PR.
+- **Balance never moves,** except in J, which removes the load penalty
+  on purpose and rebases `sim/baseline.json`. Every other PR leaves
+  `npm run sim` reading the same as the baseline.
 - **Old saves are untouched.** No save version change.
 - **Each PR runs `npm run check` and `npm run test:slow`,** and is checked
   in the browser at 1440 wide.
@@ -284,11 +385,15 @@ campus.
 | PR | Subject | Depends on |
 |---|---|---|
 | A | Develop the next course from the hall | — |
-| B | A clock that says why it stopped | — |
+| B | A clock that says why it stopped | — (held: decision 4) |
 | C | A skip that's hard to hit by accident | — |
 | D | The opening, measured | — (C's confirmation fires D's `opening_skipped` once both are in) |
 | F | A quieter screen for the first three steps | — |
 | G | Teaching as a number, not a letter | — |
 | H | Every refused placement says why | — |
 | I | Needs out of 100, and what pulls satisfaction down | — |
-| E | 0.1.2 | A–D, F–I |
+| J | No teaching overload | — (G's course numbers assume it) |
+| K | A name on the pennant never splits a word | — |
+| L | A welcome that welcomes, and the opening in the order it's played | — |
+| M | The Students tab after the first summer, and needs that can read full | — (I's "/100" lands in the same tab) |
+| E | 0.1.2 | A, C, D, F–M |
