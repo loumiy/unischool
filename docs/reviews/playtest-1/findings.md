@@ -33,6 +33,13 @@ marked **0.1.x** and fixed in a patch.*
   increasing and being able to buy everything that the students would
   want"; would play again "every once in a while absolutely"; would pay
   $5–10.
+  S1, after about three years of play: "I'd give it a nine out of ten. It
+  feels one of a kind"; "I didn't stop because I was getting really
+  engrossed. I'm getting addicted"; "I love how much micromanaging you can
+  do: searching for teachers, planning courses, laying out the
+  university". Liked the flavour text (lights on at night after the first
+  students moved in; the brown line worn across the quad) and the
+  buildings' progress bars.
   D1, a first look: "giving proper throwback to the original Sims vibes",
   and "really liked [the] visual style on the buildings/scene".
   F1, who finished a run: best moment "unlocking and expanding the
@@ -72,6 +79,10 @@ marked **0.1.x** and fixed in a patch.*
 - **The letters that stop the clock are too quiet.** The player didn't
   notice that time had stopped, or that something was waiting for him.
   *1 player · live (T1).*
+- **The board's opening letter took two reads.** "350 students are on
+  the books, nobody is on the payroll … Founders Hall hasn't been placed
+  yet": S1 read it a couple of times ("Sorry, what?") before it made
+  sense as no people, no courses, no building. *1 player · service (S1).*
 - **A need's score reads as a clock.** S1 took a need's "12" for a time
   of day. It is a score out of 100 at its floor (`ATTRIBUTE_SCORE_FLOOR`):
   the Students tab shows it as a bare number in a round, ticked dial, with
@@ -132,8 +143,12 @@ marked **0.1.x** and fixed in a patch.*
   fifth player to find the game hard to read, and the first to name the
   systems after the opening. *1 player · form (F2).*
 
-- **Why satisfaction falls in year two isn't said.** S1 couldn't work out
-  why satisfaction kept dropping in year two. The causes are real (the
+- **Why satisfaction falls in year two isn't said.** S1 couldn't find
+  satisfaction at first, then couldn't work out why it kept dropping in
+  year two with dining, academic and social all full and health "not yet
+  a need". Housing, the worst crowding in the year's review, was the
+  likely pull, and S1 was trying and failing to build more of it (7 ·
+  Bugs). The causes are real (the
   second class arrives into the same beds and seats, expectations rise
   with prestige, health becomes a need past a population), but the game
   shows a trend arrow and the lowest need on hover, never the reason in
@@ -154,6 +169,14 @@ marked **0.1.x** and fixed in a patch.*
   he worked out what had happened he fixed it, got money back above zero
   and made progress: the cause could be found and the hole climbed out
   of, which is what matters.
+
+- **Searches that turn up only weak candidates.** S1 spent much of the
+  session posting faculty searches and comparing candidates; several came
+  back with only C, D and F candidates (FF, DF), so they searched again.
+  At one point a search "seemed to stop" and they thought they were out
+  of money, but weren't. With F1's "trying to find a decent teacher",
+  the second player to find hiring slow. *2 players · service (S1), form
+  (F1).*
 
 ## Asked for in play
 
@@ -178,7 +201,9 @@ marked **0.1.x** and fixed in a patch.*
 ## 7 · Bugs
 
 - **A red ghost with no reason.** S1 couldn't place buildings in several
-  spots, housing included, and never got a reason. The map says why only
+  spots and never got a reason: more housing in year two, while housing
+  was the worst-crowded need; buildings next to Elm Hall; benches in the
+  park. The map says why only
   for ground, road access and walling off a building; money, a board
   freeze and an unavailable building turn the ghost red with no words
   (the map's own hint says "the ghost says why"). Worse, the ghost checks
@@ -509,20 +534,43 @@ that in mind.*
   service, about their tester "Misthios". Not asked for; the full notes
   sit behind a sign-up on their platform, so the comment doubles as a
   pitch. [The session video](https://www.youtube.com/watch?v=zv1kn2uAHVs);
-  [the breakdown](https://app.weplaytestgames.com/transcript/04a2a26d-f482-4d87-aaf4-a476c910ab98)
-  (neither reachable from this repo's tools, so only the comment is
-  logged). Version not known.
+  [the breakdown](https://app.weplaytestgames.com/transcript/04a2a26d-f482-4d87-aaf4-a476c910ab98).
+  The owner shared the breakdown as a PDF (an AI-generated transcript and
+  three takeaways), 16 October; what follows is from it. Version not
+  known. Played about three in-game years, recording with the sound down.
   - Founded Baltimore in royal blue and gold; skipped the walkthrough's
     English and took Mathematics, appointing Dr. Priya Iyer "because they
     felt it's important to start a college with good people".
   - Liked the intro music enough to "vibe with it" before turning it down
     to record. (The recorded title theme went to `main` on 15 October; on
     the itch.io build the title still plays the synthesised theme.)
-  - Friction: couldn't place buildings in several spots with no clear
-    reason, even with housing the most pressing need; read the need value
-    "12" as a time of day; couldn't work out why satisfaction kept
-    dropping in year two; confused that Mathematics still showed a C
-    after appointing Dr. Iyer.
+  - The opening: read the board's first letter twice; found the three
+    founding candidates "all look the same", thought English wouldn't
+    draw students, and took Mathematics instead of the walkthrough's
+    pick. Placed Founders Hall, the residence and dining halls (kept the
+    residence hall away from the classrooms), rotated with L.
+  - Satisfaction: couldn't find it at first; then 62, with housing and
+    dining at 12, which "read like a time of day". In year two, with
+    dining, academic and social full, couldn't tell what pulled it down.
+  - Mathematics showed a C with Iyer appointed "and nothing changed at
+    64"; "it didn't really matter, so I moved on."
+  - Placement: tried and failed to add housing in year two, to build next
+    to Elm Hall, and to put benches in the park ("Sad").
+  - Money: the first year ran low; didn't want to borrow. Waiting on 2.5
+    million for Elm Hall: "I don't like that I can only wait for the
+    money", though a course could be developed meanwhile.
+  - Hiring: searches returning only C, D and F candidates, searched again
+    and again; wants at least a B; a search "seemed to stop" as if out of
+    money.
+  - Year one review: six courses, four programs, six buildings,
+    satisfaction averaged 55, graded 33. Allowed fraternities and
+    sororities. Placed athletics fields by the student center.
+  - The service's takeaways: clear feedback on placement (invalid-spot
+    indicators and the reason); show what pulls satisfaction down and
+    label need values; explain how professor grades relate to program
+    grades, and fewer searches that turn up only weak candidates.
+  - Close: nine out of ten, "one of a kind", "getting addicted"; would
+    answer follow-up questions on the service's platform.
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
