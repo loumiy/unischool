@@ -5,3 +5,6 @@ dist/
 .env*.local
 dist-itch/
 release/
+
+# Python bytecode (tools/trailer/compose.py).
+__pycache__/
