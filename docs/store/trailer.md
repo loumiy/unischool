@@ -1,205 +1,176 @@
 # The trailer — a script
 
-**Status:** a draft for the owner to edit, 17 October 2026. A first cut is
-made ([The cut](#the-cut)). It replaces the plan in
-[`steam-page.md`](steam-page.md)'s *What waits on others*. The research
-behind it is [`trailer-research.md`](trailer-research.md).
+**Status:** a draft for the owner to edit, 17 October 2026. This is the
+one-minute script, written after watching the 30-second first cut
+([What the first cut taught](#what-the-first-cut-taught)). It replaces the
+plan in [`steam-page.md`](steam-page.md)'s *What waits on others*. The
+research behind it is [`trailer-research.md`](trailer-research.md).
 
-**Length:** 0:30 · **Music:** Alejandro Tóth's title theme, 30 seconds of
-it · **Slot:** the store's first trailer, tagged *Gameplay*.
+**Length:** 1:00 · **Music:** Alejandro Tóth's title theme, cut twice ·
+**Slot:** the store's first trailer, tagged *Gameplay*.
 
 ## The idea
 
-A slow pan across one finished campus, in the fall, from a low angle with
-the hills and the haze behind. On the beat, the same campus changes its
-architecture: Georgian, then Collegiate Gothic, then Classical. Over it,
-what players said, set like review headlines. Then the music opens up and
-the game itself plays in short clips: a hall set down on an empty lawn,
-fifty years in two seconds, the people, the summer, the choice, a year of
-seasons, a full stadium. At the peak the pan comes back, still moving, as
-if the camera never stopped: Mission, then Modern. Then the title.
+The first thing on screen is the dream: one finished university, in the
+fall, the camera drifting slowly across it as it changes architecture on
+the beat. It goes from Georgian to Collegiate Gothic, Classical, Mission,
+Modern and Art Deco, and each style is named in the corner. Over it, what
+players said, set like review headlines.
 
-The pan says *this place could be yours, in any style*. The headlines say
-*people who played it loved it*. The clips in between prove it's a game
-you play, not a postcard.
+Then the music drops away, and the trailer goes back to where every one of
+those campuses began: an empty lawn and one building. Founders Hall is set
+down. Flower beds are planted round it, one tile at a time, with a gap left
+at each door. A walk is drawn out from every door, and the first residence
+hall rises beside it as summer turns to autumn.
 
-## The cut
+From there the game opens out: the faculty's faces, a summer's class, the
+one choice that can't be taken back. As the theme returns, fifty years pass:
+the time-lapse, the charter that makes the college a university, a year of
+seasons, a full stadium. The Final Report names what the school became.
 
-A first cut exists: 30 seconds, 1920×1080 at 30 fps, H.264 with the theme
-in AAC, at about −14.5 LUFS with the peaks at −1.5 dBTP. At 50 MB it isn't
-kept in the repository. `unischool/tools/trailer/build.sh` rebuilds it from
-the game in about 25 minutes (see *The trailer* in
-[`tools/README.md`](../../unischool/tools/README.md)).
+On the music's peak the pan comes back, still drifting, and settles on
+Founders Hall in year 50, its flower beds still round it. Then the title.
 
-**Still stand-ins:**
-- **The headlines** may go out only with the five players' permission, and
-  with S1's words checked against the video ([The headlines](#the-headlines)).
-- **The logo** is the game's own temple mark, with the name set in
-  Bricolage Grotesque, until the commissioned logo exists.
-- **The end card** says *Wishlist on Steam* with no date or platform,
-  because the page isn't up yet.
-- **The sound** is the theme alone, from the repository's 160 kb/s MP3.
-  There's no campus sound under the pan yet, and no lossless master.
-
-**Where the cut differs from the script below:**
-- G1 is a new game in its first week, so its lawn is summer green, not
-  autumn.
-- G5–G7 are slow push-ins on 4K stills of the screens rather than
-  recordings: the faculty grid, the summer's admissions with the pool
-  already counted, and the four cards with no cursor.
-- Three frames of the hall going up (G2) and one of the year of seasons
-  (G8) are dropped. At a week a frame, the canvas map repaints the ground
-  in patches as the snow melts. The seasons clip also caught the inbox
-  opening once.
+The pan says *this place could be yours, in any style*. The flower beds say
+*and every corner of it is yours to make*. The headlines say *people who
+played it loved it*. The minute in between proves it's a game you play,
+across fifty years.
 
 ## How it's built
 
-- **The pan is the spine.** It opens the trailer and returns at the peak.
-  It never sits still: it changes architecture every 2.45 s, walkers cross
-  it, and the gameplay arrives at 0:07.4.
-- **The first words say the genre.** The first headline, "The football
-  manager of universities", tells a muted viewer what this is in its first
-  second.
-- **The interface shows in the gameplay clips** (placing, drawing a walk,
-  the faculty, the summer, the choice) and nowhere else.
-- **It works muted:** five headlines, one card, the end card, all burned
-  in, large, inside the inner 90% of the frame. Check it at 360p in a
-  phone-sized player.
-- **Cut to the music,** which was measured, not guessed (below).
-- **Only what the game does.** In-engine footage from the real build, with
-  architectures the game offers at founding. The map has no night (Plan
-  95C), so nothing here asks for one.
+- **The pan opens and closes it.** It holds each architecture three to four
+  seconds and switches on the music's swells. The architecture's name sits
+  small in the corner, like the time-lapse's year caption.
+- **The first words say the genre.** "The football manager of universities"
+  is on screen from the first second.
+- **One continuous beginning.** The founding, the flower beds, the walks
+  and the first residence hall are one new game, in its first summer, in
+  order.
+- **The interface in the gameplay shots, in many colours.** The screens
+  (faculty, summer, the choice, the charter, the Final Report) each wear a
+  different pair of school colours, so the colour choice shows without a
+  word about it. The map shots stay in Halifax's navy and gold, so the
+  campus reads as one place throughout. See [The colours](#the-colours).
+- **It works muted:** five headlines, four cards, the architecture captions
+  and the end card, all burned in, inside the inner 90% of the frame.
+- **Cut to the music,** measured, not guessed (below).
+- **Only what the game does,** in-engine. The map has no night (Plan 95C).
+  No shot asks for one.
 
 ## The music
 
-The trailer uses **music 1:04.1 to 1:34.1** of
-`unischool/src/assets/title-theme.mp3` (1:44.8 in all), with no internal
-cut. **Trailer time = music time − 1:04.1.** The cues below come from
-measuring the recording's loudness and its onsets. Confirm each by ear.
+Three pieces of the theme (`unischool/src/assets/title-theme.mp3`, 1:44.8)
+make one minute, joined at two points where the harmony either side
+matches. Both joins were found by measuring the recording's harmony; confirm
+them by ear and nudge each to the nearest bar line.
 
-| T | M | What the recording does | What the picture does |
+| Piece | Music time | Trailer time | What it carries |
 |---|---|---|---|
-| 0:00.0 | 1:04.1 | The quiet middle's pulse, about −32 dBFS. The window starts on a group onset. Onsets come every 0.27 s and group in threes, 2.45 s apart. | The pan opens in Georgian. |
-| 0:02.46 | 1:06.56 | Group onset. | Switch to Collegiate Gothic. |
-| 0:04.92 | 1:09.02 | Group onset. | Switch to Classical. |
-| **0:07.37** | 1:11.47 | **The second entry:** +9 dB. | The gameplay begins. |
-| 0:09.75 | 1:13.85 | A drop (−9 dB). | The time-lapse. |
-| 0:16.5 | 1:20.6 | A swell. | The four cards. |
-| 0:18.4 | 1:22.5 | A drop. | A year of seasons. |
-| **0:21.0** | 1:25.1 | **The big swell,** to the peak at 0:22.4 (about −12 dBFS, the loudest moment in the theme). | The pan returns: Mission, then Modern. |
-| **0:23.45** | 1:27.55 | **A breath:** −8.5 dB for one second. | The title. |
-| 0:24.55 | 1:28.65 | The finale enters (+9 dB). | *Wishlist on Steam*. |
-| 0:27.4 → 0:29.8 | 1:31.5 → 1:33.9 | Fade to silence, done before the swell at 1:33.95. | The end card holds to 0:30.0. |
+| A | 0:07.36 → 0:30.9 | 0:00 → 0:23.54 | The last three seconds of the quiet intro, the first entry and its full statement, the hard drop, the start of the quiet middle |
+| B | 0:39.6 → 0:47.1 | 0:23.54 → 0:31.04 | More of the quiet middle. The join at 0:30.9 → 0:39.6 skips one 8.7 s phrase (harmony 0.97 before, 0.92 after). |
+| C | 1:04.5 → 1:33.9 | 0:31.04 → 1:00.44 | The pulse building to the return, the second entry, the peak, the breath, the finale. The join at 0:47.1 → 1:04.5 skips two phrases (0.95, 0.90) and lands on a swell. |
 
-**In the mix.** The first 7.4 seconds sit about 14 dB below the entry. Lift
-them a few dB, and lay the campus's own sound under the pan (the crowd's
-murmur and birds), so the opening isn't near-silent with the sound on.
+**The cues, in trailer time:**
 
-**Ask Alejandro for:**
-1. **Use in marketing,** in writing: the trailer, the store page, social
-   video. And whether the track is registered with YouTube's Content ID,
-   which would claim every upload.
-2. **The lossless master** (WAV, 48 kHz, 24-bit). The repository's MP3 is
-   160 kb/s, fine for the title screen but not for a trailer.
-3. **A 30-second edit with a written ending,** in place of the fade. This
-   window, from the quiet pulse through the entry and the peak, is a good
-   starting point to send him.
-4. **Stems,** or a mix without the lead line, so the music can thin under
-   the headlines.
-5. **His credit** on the end card: *Music by Alejandro Tóth*, as the game's
-   Credits screen has it.
-
-## The script
-
-T is trailer time. `P` and `G` numbers point to [the footage](#the-footage).
-*UI* means the interface is on screen; *bare* means the chrome is hidden.
-
-### The pan
-*T 0:00–0:07.37 · the quiet pulse*
-
-**Bare.** The year-50 campus in the fall (week 12, the leaves turned), at a
-low tilt with the hills and the haze in the top third. Close enough that
-roofs, towers and walls read: five to eight buildings across the frame,
-along the Grand Quad. The camera drifts slowly left to right. Walkers cross
-the walks. On each switch, the campus stays exactly where it is and only
-its architecture changes: a hard cut on the onset.
-
-| T | Picture | On screen | |
+| T | M | The music | The picture |
 |---|---|---|---|
-| 0:00.0 | The pan, **Georgian** (red brick and white trim, a gilded cupola). | **"The football manager of universities"** — playtester, Reddit (0:00.2–0:02.3) | P1 |
-| 0:02.46 | The same pan, same place, **Collegiate Gothic** (grey ashlar and steep slate). | **"An alarmingly believable university simulator"** — playtester, Reddit (0:02.6–0:04.8) | P2 |
-| 0:04.92 | The same pan, **Classical** (limestone and columns under copper roofs). | **"It feels one of a kind"** — playtester, We Playtest Games (0:05.1–0:07.2) | P3 |
+| 0:00 | 0:07.36 | The quiet intro (about −39 dBFS; lift it about 6 dB in the mix). | The pan opens, Georgian. |
+| **0:03.09** | 0:10.45 | **First entry,** +13 dB. | Collegiate Gothic. |
+| 0:06.25 | 0:13.61 | An onset. | Classical. |
+| 0:10.39 | 0:17.75 | A swell. | Mission. |
+| 0:14.74 | 0:22.10 | A swell. | Modern. |
+| 0:17.74 | 0:25.10 | A swell, the statement's peak. | Art Deco. |
+| **0:18.99** | 0:26.35 | **Hard drop,** −13 dB in 0.4 s. | An empty lawn: Founders Hall. |
+| 0:20.89 | 0:28.25 | A rise. | |
+| 0:23.54 | 0:30.9 → 0:39.6 | First join. | |
+| 0:25.39 | 0:41.45 | An onset. | The walks. |
+| 0:28.64 | 0:44.70 | A rise. | The residence hall rises. |
+| **0:31.04** | 0:47.1 → 1:04.5 | Second join, on a swell. The pulse begins. | The faculty. |
+| 0:33.10 | 1:06.56 | A pulse group. | The summer. |
+| 0:35.56 | 1:09.02 | A pulse group. | The choice. |
+| **0:38.01** | 1:11.47 | **Second entry,** +9 dB. | Fifty years. |
+| 0:40.39 | 1:13.85 | A drop. | |
+| 0:47.14 | 1:20.60 | A swell. | The Final Report. |
+| 0:49.04 | 1:22.50 | A drop. | |
+| **0:51.64** | 1:25.10 | **The big swell,** to the peak at 0:53.04. | The pan returns. |
+| **0:54.09** | 1:27.55 | **The breath,** −8.5 dB for a second. | The title. |
+| **0:55.19** | 1:28.65 | **The finale** enters. | *Wishlist on Steam*. |
+| 0:58.04 → 1:00.44 | 1:31.5 → 1:33.9 | Fade to silence, done before the swell at 1:33.95. | The end card holds to 1:00.5. |
 
-Sound: the campus's murmur and birds under the quiet pulse.
+**Ask Alejandro for** written permission to use the theme in marketing
+(and whether it's in YouTube's Content ID); the lossless master (the
+repository's MP3 is 160 kb/s); a one-minute edit with a written ending in
+place of the fade, using these three pieces as the guide; stems, so the
+music can thin under the headlines; and how he'd like his credit to read.
 
-### The game
-*T 0:07.37–0:21.0 · the second entry*
+## The shot list
 
-| T | Picture | On screen · sound | |
-|---|---|---|---|
-| **0:07.37** · entry | **UI.** An empty lawn by the woodland. Founders Hall is picked up from the build menu, its ghost glides in, and it's set down. | The game's *place* sound. | G1 |
-| 0:08.6 | Close. A hall from footings to finished in one second. | The game's *complete* sound. | G2 |
-| **0:09.75** · drop | **Bare.** The time-lapse, wide: year 1 to year 50 in two and a half seconds, every frame in the fall, the game's year caption in the corner. | **Card:** ONE COLLEGE. FIFTY YEARS. (0:09.9–0:12.1) | G3 |
-| 0:12.2 | **Bare.** The path tool draws two straight walks out across the grass beside the Grand Quad, in the fall. | **"Deeply impressed by this game"** — itch.io player (0:12.35–0:14.5) | G4 |
-| 0:14.6 | **UI.** Faculty: a push-in across the grid of faces, toward the cards and their quirks. | | G5 |
-| 0:15.6 | **UI.** The summer: a push-in to the applicant pool and the kinds of student it drew. | | G6 |
-| **0:16.5** · swell | **UI.** The specialization's four cards. The cursor passes over them and chooses one just before the drop. | | G7 |
-| **0:18.4** · drop | **Bare.** A grown campus through one year: green, gold, snow, spring. | **"I've been looking for exactly this type of game"** — playtester (0:18.5–0:20.9) | G8 |
-| 0:19.7 | Close. Game day: the stadium full. | The stadium's roar under the music. | G9 |
+**Status** says whether a shot can be used as it is:
+- **Have** means it was recorded for the 30-second cut and is usable as it
+  is. `unischool/tools/trailer/build.sh` rebuilds every *Have* shot.
+- **Re-shoot** means it was recorded, but must be taken again, for the
+  reason given.
+- **New** means it has never been recorded.
 
-### The pan returns
-*T 0:21.0–0:23.45 · the big swell, to the peak*
+*UI* means the interface is on screen. *Bare* means the chrome is hidden,
+and the map's labels and marks too (`--clean`).
 
-| T | Picture | On screen | |
-|---|---|---|---|
-| **0:21.0** · swell | **Bare.** The pan again, further along, as if the camera kept moving all the while: **Mission** (cream stucco and red tile). | No text. | P4 |
-| 0:22.2 | The same pan, **Modern** (white panel, glass and burnt-orange brick), arriving at Founders Hall and the Grand Quad on the peak. | No text. | P5 |
+### Act 1 — The dream (0:00 – 0:18.99)
 
-### The end card
-*T 0:23.45–0:30.0 · the breath, then the finale, faded*
-
-| T | Picture | On screen | |
-|---|---|---|---|
-| **0:23.45** · breath | **Bare.** The year-50 campus, wide, in the fall, barely moving. | The logo (commissioned, not drawn by code). **FIFTY YEARS TO BUILD A UNIVERSITY.** (the game's own line, from the Credits) | E1 |
-| **0:24.55** · finale | Same. | **WISHLIST ON STEAM**, the platform, the release window. Small, at the foot: *Music by Alejandro Tóth* · Halifax Games. | E1 |
-| 0:27.4 → 0:30.0 | Same. | The music fades out by 0:29.8. Hold to 0:30.0. | E1 |
-
-## The headlines
-
-Five players, one headline each, every one in the player's own words
-([`findings.md`](../reviews/playtest-1/findings.md) logs them "trimmed, not
-edited"). They're trimmed to the phrase a reviewer would put in a headline.
-No words are changed or stitched together, and no star ratings or
-outlet-style logos appear: these are players, and they're labelled as
-players.
-
-**Set them like this:** the quote large, in the game's display face, one line
-where it fits, in quotation marks. The attribution small beneath it. Placed
-in the top third, over the haze, where the pan leaves clean space.
-
-| | Headline | Their full words | Who, where | Before it goes out |
+| # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 1 | "The football manager of universities" | "I'm a huge football manager fan and this feels like the football manager of universities basically." | R8, Careless-Flower6059 | **A private Reddit chat message.** Ask for permission, and how they'd like to be credited. It names another publisher's game, which is fine as a player's words, kept as they wrote them. |
-| 2 | "An alarmingly believable university simulator" | "350 students and zero professors is an alarmingly believable university simulator lol." | R10, No-Giraffe-3838, a public comment on r/WebGames | A joke about the opening (350 students, no professors yet) that reads as praise for the simulation. The trim keeps that sense. The owner should judge whether it's fair; ask them anyway. |
-| 3 | "It feels one of a kind" | "I'd give it a nine out of ten. It feels one of a kind." | S1, the tester "Misthios" for We Playtest Games | These words come from an **AI-generated transcript** of the session video. Check them against [the video](https://www.youtube.com/watch?v=zv1kn2uAHVs), and ask the service. "I'd give it a nine out of ten" is the alternative headline. |
-| 4 | "Deeply impressed by this game" | "Wow, deeply impressed by this game, tried it and it's wow!" | I2, AlexanderGGA08, a public itch.io rating (★★★★★) | Public. The same player as R1, R5 and I1 (one voice, not four). Ask anyway. |
-| 5 | "I've been looking for exactly this type of game" | "I've been looking for exactly this type of game for a long time." | F2, the feedback form | Anonymous, but F2 left an email, so ask there. |
+| 1 | 0:00 – 0:03.09 | **Bare.** The pan: year 50 in the fall, a low angle, the Grand Quad and its fountain, walkers crossing. The camera drifts slowly left to right. **Georgian.** | **"The football manager of universities"** — Playtester · Reddit (0:00.3 – 0:02.9). Caption: *Georgian* | **Re-shoot.** The first cut's plates are 3.5 s long; this act holds a style up to 4.4 s. Record 5 s plates, with the flower beds of shot 9 added round Founders Hall (for shot 22). |
+| 2 | 0:03.09 – 0:06.25 | The same pan, same place: **Collegiate Gothic**. A hard cut on the entry, so only the buildings change. | Caption: *Collegiate Gothic* | **Re-shoot,** as 1. |
+| 3 | 0:06.25 – 0:10.39 | **Classical**. | **"An alarmingly believable university simulator"** — Playtester · Reddit (0:06.5 – 0:09.1). Caption: *Classical* | **Re-shoot,** as 1. |
+| 4 | 0:10.39 – 0:14.74 | **Mission**. | **"It feels one of a kind"** — Playtester · We Playtest Games (0:11.0 – 0:13.6). Caption: *Mission* | **Re-shoot,** as 1. |
+| 5 | 0:14.74 – 0:17.74 | **Modern**. | Caption: *Modern* | **Re-shoot,** as 1. |
+| 6 | 0:17.74 – 0:18.99 | **Art Deco**, one of the four styles a run unlocks. | Caption: *Art Deco* | **New.** One more plate, same save and framing. |
 
-**Spares,** one per player not already used:
-- **T1**, on Twitch: "This reminds me of games I used to play". From the
-  owner's notes; check against the recording.
-- **D1**, on Discord: "giving proper throwback to the original Sims vibes".
-  The original spells it "throughback", so ask before correcting it.
+### Act 2 — One building (0:18.99 – 0:31.04)
 
-**Not used:**
-- **F3's** "I like seeing the different ways the university can develop…",
-  at the owner's call.
-- **R9's** message, from the composer the owner was talking to about the
-  music. Quoting a commissioned musician in a trailer scored with a
-  commissioned theme is a conflict of interest.
-- **A second line from someone already quoted,** such as R3's "extremely
-  well thought of and so fun" (R8's player) or I1's "pretty damn awesome"
-  (I2's). Two headlines from one person would read as two people.
+One new game, Halifax in navy and gold, in its first summer. The map is
+three steps closer than the opening view.
+
+| # | T | Scene | Words on screen | Status |
+|---|---|---|---|---|
+| 7 | 0:18.99 – 0:22.30 | **UI.** An empty lawn by the woodland. Founders Hall is picked up from the build menu, its ghost glides in, and it's set down. | **Card:** EVERY UNIVERSITY BEGINS WITH ONE BUILDING. (0:19.2 – 0:22.0) | **Have.** The founding take (`founding.mjs`), used longer: about 100 of its 114 frames. |
+| 8 | 0:22.30 – 0:25.39 | **UI**, close. The build menu on its Grounds tab, *Flower bed* picked. The cursor drags along the hall's south wall, and beds appear tile by tile. It lifts at the door, starts again past it, and turns the corner along the east wall. Of the 24 tiles round the hall, 4 are left open, one at the middle of each wall, where the doors open. | None. Let it breathe. | **New.** See [The flower beds](#the-flower-beds). |
+| 9 | 0:25.39 – 0:28.64 | **UI**, same framing. The path tool draws a straight walk out from each door, through its gap in the beds, across the lawn. The first walkers step onto them. | None. | **New.** The same take as 8. |
+| 10 | 0:28.64 – 0:31.04 | Close. Meadow House, the first residence hall, rises beside it, from footings to finished. Its 16 weeks take summer into early autumn: no snow, and no summer stop. | **"Deeply impressed by this game"** — Player · itch.io (0:28.8 – 0:31.0) | **New.** It replaces the first cut's hall, whose 35 weeks crossed a winter and the summer's stop (the white flashes). It's the same game, the walkthrough's own residence hall, recorded with `clip.mjs --until-built`. |
+
+### Act 3 — The people and the choices (0:31.04 – 0:38.01)
+
+Three screens, each in its own school colours.
+
+| # | T | Scene | Words on screen | Status |
+|---|---|---|---|---|
+| 11 | 0:31.04 – 0:33.10 | **UI, forest & gold.** Faculty: a push-in across the grid of faces, toward one card's portrait and quirk. | None. | **Re-shoot.** It exists in navy and gold. Re-shoot in forest and gold (the same year-50 save, its colours changed). |
+| 12 | 0:33.10 – 0:35.56 | **UI, maroon & gold.** The summer: a push-in to the applicant pool and the kinds of student it drew. | **Card**, on a dark band across the lower third: EVERY SUMMER, A NEW CLASS. (0:33.3 – 0:35.4) | **Re-shoot.** It exists in navy and gold. Re-shoot with `npm run scenario -- summer --colors maroon-gold`. |
+| 13 | 0:35.56 – 0:38.01 | **UI, crimson & silver.** The board's letter with the four specialization cards. The cursor passes over them and chooses one on the last pulse. | **Card**, lower band: CHOOSE WHAT IT'S KNOWN FOR. (0:35.8 – 0:37.9) | **Re-shoot.** It exists in navy and gold, as a still. Re-shoot with `--colors crimson-silver`, recorded with a drawn cursor and the click, as `founding.mjs` records one. |
+
+### Act 4 — Fifty years (0:38.01 – 0:51.64)
+
+| # | T | Scene | Words on screen | Status |
+|---|---|---|---|---|
+| 14 | 0:38.01 – 0:41.50 | **Bare.** The time-lapse, wide: fifty autumns, one frame a year dissolving into the next, the game's *Year N* caption in the corner. | **Card:** ONE COLLEGE. FIFTY YEARS. (0:38.2 – 0:41.2) | **Have.** The first cut's clean fall frames, given 3.5 s instead of 2.45. |
+| 15 | 0:41.50 – 0:43.60 | **UI, royal blue & gold.** The charter: the board's letter cropped to its last line ("the stone is cut once") and its button **Become Halifax University**, clicked. Then a cut to the pennant over the campus, now reading *Halifax University*. | The letter's own words. | **New.** Use `npm run scenario -- charter --colors royal-gold`, with a drawn cursor and the click. The pennant is chrome, so this shot is not bare. |
+| 16 | 0:43.60 – 0:45.40 | **Bare.** A grown campus through one year: autumn gold, bare, snow, spring green. | **"I've been looking for exactly this type of game"** — Playtester (0:43.8 – 0:46.9) | **Re-shoot.** The first cut's year crossed the summer, whose stop opened the inbox for a frame. Re-shoot from a save set to week 3, at a little under a week a frame (`clip.mjs --step=4000`), so the 54 frames end near week 47, before the summer. |
+| 17 | 0:45.40 – 0:47.14 | Close. Game day: Hamilton Stadium full for the season's opener. | (the headline carries over) | **Have.** The first cut's 4K take, pushed in on the far stand. |
+| 18 | 0:47.14 – 0:51.64 | **UI, purple & gold.** The Final Report: *Year 50 · the fiftieth year closes*, then a push-in to its sentence: "Halifax University: a college known first for what its laboratories find, with no glaring weakness." | The report's own words. | **New.** Use `npm run scenario -- final-report --colors purple-gold`, and the sentence the run writes, unedited. Choose the run for its sentence. |
+
+### Act 5 — The pan returns (0:51.64 – 0:54.09)
+
+| # | T | Scene | Words on screen | Status |
+|---|---|---|---|---|
+| 19 | 0:51.64 – 0:52.45 | **Bare.** The pan again, further along, as if it never stopped: **Mission**. | Caption: *Mission* | **Re-shoot,** with 1–6. |
+| 20 | 0:52.45 – 0:53.26 | **Modern**. | Caption: *Modern* | **Re-shoot,** with 1–6. |
+| 21 | 0:53.26 – 0:54.09 | **Georgian** again, Halifax's own. The drift slows and settles on Founders Hall at the head of the Grand Quad, with its ring of flower beds, fifty years on. | None. | **Re-shoot,** with 1–6. The year-50 save gets the same beds round Founders Hall (row 51, col 60, 7×5), wherever the year-50 paving leaves open ground. |
+
+### End card (0:54.09 – 1:00.5)
+
+| # | T | Scene | Words on screen | Status |
+|---|---|---|---|---|
+| 22 | 0:54.09 – 1:00.5 | **Bare.** Year 50, wide, in the fall, the hills and haze behind, barely drifting. A dark gradient under the words. | From 0:54.09: the logo and **FIFTY YEARS TO BUILD A UNIVERSITY.** From 0:55.19: **WISHLIST ON STEAM**, the platform and the release window, with *Music by Alejandro Tóth · Halifax Games* small at the foot. Fade to black from 1:00.1. | **Have,** the 4K plate. The logo is the game's mark as a stand-in until the commissioned one exists. |
 
 ## The words on screen
 
@@ -207,133 +178,136 @@ The muted test: read only this column.
 
 | T | Text | Words | Seconds |
 |---|---|---|---|
-| 0:00.2 | "The football manager of universities" | 5 | 2.1 |
-| 0:02.6 | "An alarmingly believable university simulator" | 5 | 2.2 |
-| 0:05.1 | "It feels one of a kind" | 6 | 2.1 |
-| 0:09.9 | ONE COLLEGE. FIFTY YEARS. | 4 | 2.2 |
-| 0:12.35 | "Deeply impressed by this game" | 5 | 2.15 |
-| 0:18.5 | "I've been looking for exactly this type of game" | 9 | 2.4 |
-| 0:23.45 | Logo · FIFTY YEARS TO BUILD A UNIVERSITY. | 6 | 1.1, then held |
-| 0:24.55 | WISHLIST ON STEAM · platform · window | — | 5.45 |
+| 0:00.3 | "The football manager of universities" — Playtester · Reddit | 5 | 2.6 |
+| 0:06.5 | "An alarmingly believable university simulator" — Playtester · Reddit | 5 | 2.6 |
+| 0:11.0 | "It feels one of a kind" — Playtester · We Playtest Games | 6 | 2.6 |
+| 0:00 – 0:18.99 | Captions, small: *Georgian · Collegiate Gothic · Classical · Mission · Modern · Art Deco* | 1–2 each | 1.25 – 4.35 |
+| 0:19.2 | EVERY UNIVERSITY BEGINS WITH ONE BUILDING. | 6 | 2.8 |
+| 0:28.8 | "Deeply impressed by this game" — Player · itch.io | 5 | 2.2 |
+| 0:33.3 | EVERY SUMMER, A NEW CLASS. | 5 | 2.1 |
+| 0:35.8 | CHOOSE WHAT IT'S KNOWN FOR. | 5 | 2.1 |
+| 0:38.2 | ONE COLLEGE. FIFTY YEARS. | 4 | 3.0 |
+| 0:41.5 | *Become Halifax University* (the letter's button) | 3 | 1.0 |
+| 0:43.8 | "I've been looking for exactly this type of game" — Playtester | 9 | 3.1 |
+| 0:47.14 | The Final Report's sentence (the report itself) | 17 | 4.5 |
+| 0:54.09 | Logo · FIFTY YEARS TO BUILD A UNIVERSITY. | 6 | to the end |
+| 0:55.19 | WISHLIST ON STEAM · platform · window | — | 5.3 |
 
-Each attribution sits under its headline for the same time.
+Headlines and the time-lapse card are set as in the first cut, at the top or
+centre over the map. The two Act 3 cards sit on a dark band across the
+lower third, since they play over the screens' cream.
 
-## The footage
+## The colours
 
-The first cut recorded every shot below with `tools/trailer/build.sh`. The
-lists say what each shot is for, and what a better take would have.
+The map is one college, so it keeps one pair of colours. Each screen is a
+different college's, so between them they show the choice.
 
-### What exists
+| Shots | Colours |
+|---|---|
+| The pan (1–6, 19–21), the founding and flower beds (7–10), the time-lapse (14), the seasons (16), the stadium (17), the end card (22) | **Navy & gold**, Halifax's own |
+| Faculty (11) | **Forest & gold** |
+| The summer (12) | **Maroon & gold** |
+| The specialization (13) | **Crimson & silver** |
+| The charter (15) | **Royal blue & gold** |
+| The Final Report (18) | **Purple & gold** |
 
-Before the first cut, an animatic could be cut from what was already in the
-repository:
-- **The pan:** the README's campus pictures are already the same year-50
-  campus in all five architectures, one layout and one run.
-  [`campus.png`](../images/campus.png) is the Georgian;
-  [`campus-gothic.png`](../images/campus-gothic.png),
-  [`campus-classical.png`](../images/campus-classical.png),
-  [`campus-mission.png`](../images/campus-mission.png) and
-  [`campus-modern.png`](../images/campus-modern.png) are the others. A
-  slow move across them, cut on the beats above, is the pan in rough.
-  They're stills, in summer green, each in a different colour pair, at a
-  wide zoom, so they won't do for the final.
-- **The clips:** [`clip-building.webm`](../images/clip-building.webm) (G2),
-  [`clip-paths.webm`](../images/clip-paths.webm) (G4) and
-  [`timelapse.webm`](../images/timelapse.webm) (G3). They're 720p to 1080p,
-  summer, with the seasons off in the time-lapse.
-- **The interface stills** in [`store/itch/`](itch/) stand in for G5–G7.
+Every screen keeps the name Halifax: only the colours change. A save's
+colours are one field, like its architecture, so a screen can be re-shot in
+another pair from the same save, or from the same seeded scenario with
+`--colors`.
 
-### How to capture
+## The flower beds
 
-- **One college in every shot:** Halifax, navy and gold, seed 12345, the
-  Completionist, as the README's campus is. For every pan plate,
-  `--vernacular` is the only flag that changes.
-- **The colours stay put** across the pan, so the eye sees the architecture
-  change and nothing else. Switching colours with each style, as the
-  README's pictures do, is the owner's option, but it's busier.
-- **The fall by default:** week 12, the leaves turned and not yet down
-  (`seasons.ts`).
-- **Size:** at least 3840×2160 (`--size=1920,1080 --scale=2`), 30 fps.
-  Steam takes 1920×1080 at most. The extra is for cropping and moving.
-- **Interface shots:** text at its largest (the Settings panel, or
-  `--settings='{"textScale":1.3}'` for stills), and a slow, deliberate
-  cursor.
-- **Steam's format:** H.264 MP4, AAC stereo, 30 fps, at 5,000 Kbps or more.
-  The tools write WebM, so convert with a full ffmpeg.
+Shots 8 and 9, the new close-up, recorded like the founding (a script on
+Playwright's stepped clock, with a drawn cursor), straight after it in the
+same new game:
 
-### The pan: how to make it
+- **The hall:** Founders Hall is 7×5, so each wall has an odd length and one
+  door tile at its middle (`walkRoutes.ts`'s `entrancesOf`). The students
+  come and go through those four tiles. Decor doesn't block walking (the
+  walk grid ignores it), so a bed on a door tile would have the students
+  walking straight through the flowers. The gaps keep them on the walks.
+- **The beds:** the build menu's Grounds tab, *Flower bed*. It is a drag
+  tool ("drag to plant a border"), so each run between two doors is one
+  smooth drag along the wall, lifting at the door. 24 beds on the 28 tiles
+  round the hall. The camera sees the south and east walls best; drag those
+  in shot, and plant the far two between takes.
+- **The walks:** the path tool, Shift held, one straight run out from each
+  door through its gap.
+- **The camera:** two to three steps closer than shot 7, the hall a little
+  above the middle, the build menu showing.
+- **The season:** the first summer, so the beds are in flower and the lawn
+  matches shot 7.
 
-`clip.mjs` records with a still camera, so the pan is made in the edit:
-- record each architecture as a **large, identical, still-camera clip** with
-  the walkers moving;
-- move a 1920×1080 window slowly across it;
-- use the same move on all five.
+## The headlines
 
-Because the framing is identical, a cut from one architecture to the next
-on the same frame of the move is seamless: the campus stays put, the
-walkers keep walking, and only the buildings change. The return at 0:21.0
-picks the move up further along, where it would have reached by then.
+Five players, one headline each, every one in the player's own words
+([`findings.md`](../reviews/playtest-1/findings.md) logs them "trimmed, not
+edited"). They're trimmed to the phrase a reviewer would put in a headline,
+with no words changed or stitched together. There are no star ratings or
+outlet-style logos: these are players, and they're labelled as players.
 
-The first cut took a shortcut that makes the five plates identical by
-construction. An architecture is one field of a save (`self.vernacular`),
-so `build.sh` copies the time-lapse's year-50 frame five times, changing
-only that field. Each copy is recorded with the same framing:
-`clip.mjs --focus=QUAD-T2 --zoom=4 --tilt=-2 --size=2880,1620 --clean`,
-3.5 seconds each. The move is 960 px across each 2880×1620 plate over the
-trailer's first 23.45 seconds, at about 41 px a second, with the
-architecture changing on the beat.
-
-If the hard cut feels abrupt, try a soft vertical wipe that travels with
-the pan.
-
-### What to record
-
-| | Shot | Moment | Tool | Notes |
+| | Headline | Their full words | Who, where | Before it goes out |
 |---|---|---|---|---|
-| P1–P5 | The pan plates: Georgian, Collegiate Gothic, Classical, Mission, Modern | Year 50, week 14 | One save, five architectures → `clip.mjs` (above) | Identical framing in all five. |
-| G1 | Founders Hall picked up and set down, the build menu showing | A new game, week 1 | `tools/trailer/founding.mjs` | The cursor is drawn on the page, since a headless screenshot has none. |
-| G2 | A hall from footings to finished | Any year | `clip.mjs --until-built` | As `clip-building`, in the fall. Only about 1 s of it is used. |
-| G3 | The time-lapse, years 1–50, every frame in the fall | The whole run | `timelapse` and `timelapse:shoot --seasons` | With `--every 13`, one frame a year lands in the fall term. Keep those (the caption reads *Fall term*), 50 frames for 2.5 s. |
-| G4 | A straight walk drawn across a quad, the walkers taking it | About year 15 | `clip.mjs --stroke` | With the path tool's interface showing. |
-| G5 | Faculty: a push-in to one card, the face and the quirk | About year 30 | By hand | A quirk short enough to read in a second (`quirkData.ts`). |
-| G6 | The summer: the pool counting up | Any summer | `npm run scenario -- summer`, then by hand | The count-up is the shot. |
-| G7 | The four cards, and the choice | The specialization's summer | `npm run scenario -- specialization`, then by hand | |
-| G8 | One year at a frame a week: green, gold, snow, spring | About year 30 | `clip.mjs --step=5000 --seconds=2` | Each frame is a week of game time. Wide. |
-| G9 | The stadium full on a game day | Week 8, 20 or 32 | `clip.mjs` on a save stopped in that week | The stands fill only in the season's three home games (`OCCASIONS`, `athletics/season.ts`). |
-| E1 | The end card's plate: year 50, wide, the fall, barely moving | Year 50, week 12 | `shoot.mjs --bare --tilt=-2`, or `clip.mjs` | 8 s. Leave sky at the top for the logo. |
+| 1 | "The football manager of universities" | "I'm a huge football manager fan and this feels like the football manager of universities basically." | R8, Careless-Flower6059 | **A private Reddit chat message.** Ask for permission, and how they'd like to be credited. |
+| 2 | "An alarmingly believable university simulator" | "350 students and zero professors is an alarmingly believable university simulator lol." | R10, No-Giraffe-3838, a public comment on r/WebGames | A joke about the opening that reads as praise. The owner should judge whether the trim is fair; ask them anyway. |
+| 3 | "It feels one of a kind" | "I'd give it a nine out of ten. It feels one of a kind." | S1, the tester "Misthios" for We Playtest Games | From an **AI-generated transcript**. Check against [the video](https://www.youtube.com/watch?v=zv1kn2uAHVs), and ask the service. |
+| 4 | "Deeply impressed by this game" | "Wow, deeply impressed by this game, tried it and it's wow!" | I2, AlexanderGGA08, a public itch.io rating | Public. The same player as R1, R5 and I1. Ask anyway. |
+| 5 | "I've been looking for exactly this type of game" | "I've been looking for exactly this type of game for a long time." | F2, the feedback form | Anonymous, but F2 left an email: ask there. |
 
-**Sound,** recorded clean at 48 kHz from the listening bench in the debug
-panel (`?debug=1`, `AudioBench.tsx`):
-- the *Term* and *Summer* ambience presets for the pan, and *Game day* for
-  G9;
-- the *place*, *complete* and *cheer* effects, each fired alone.
+**Spares:** T1, on Twitch, "This reminds me of games I used to play"
+(check against the recording). D1, on Discord, "giving proper throwback to
+the original Sims vibes" (it's spelled "throughback", so ask before
+correcting it). **Not used:** F3's line, at the owner's call. R9's message,
+from the composer the owner was talking to about the music. And any second
+line from a player already quoted.
 
-### The tools
+## What the first cut taught
 
-- **T1 · A moving camera in `clip.mjs`** (keys pressed at set page times:
-  `Q`/`E`, `Z`/`X`, `+`/`−`). Not needed for this cut, since the pan is made
-  in the edit. It would let the game's own camera make the move, at the
-  cost of five separate takes having to match.
-- **T2 · Placing a building in a clip.** `tools/trailer/founding.mjs`
-  scripts G1's placement on a new game. A `--place` flag on `clip.mjs`
-  would make any placement a clip.
-- **T3 · A photo mode for hand capture:** the `--bare` stylesheet behind a
-  URL flag or a hotkey.
+The 30-second cut (`claude/trailer-script`, rebuilt by
+`unischool/tools/trailer/build.sh`) proved the pan and the headlines, and
+showed three things this script fixes:
 
-## Cut-downs
+- **Too short.** Every beat was over before it could be read. The minute
+  gives the pan three to four seconds a style, and gives the beginning,
+  the founding to the first residence hall, its own act.
+- **White flashes at 0:08.7–0:09.1.** The hall-rising clip squeezed 35
+  weeks into a second. Its winter flashed white for four frames, and the
+  summer's stop opened the inbox for two. Shot 10 uses a 16-week building
+  started in week 1, which finishes before the snow and long before the
+  summer.
+- **The screens all wore navy and gold.** Now each screen has its own
+  colours.
 
-- **A 6-second loop** for posts and the store page: the pan's three switches
-  (P1–P3, T 0:00–0:07.37) loop as they stand. It may be the best thing to
-  post first.
-- **A longer cut** (1:27, with the charter, the people and the Final Report)
-  was drafted before this one. It's in this file's history on the
-  `claude/trailer-script` branch, if a second trailer is wanted later.
+Smaller findings for the tools:
+- **The inbox can leak into a clip.** When `clip.mjs` answers a stop, the
+  inbox a stop opens can show for a frame. Hiding `.tab-overlay` in its
+  stylesheet would end that for every clip that crosses a summer.
+- **The ground repaints in patches.** At a week a frame, the canvas map
+  repaints the ground in rectangular patches while the snow melts. It may
+  show at 8× in play too. It is a rendering bug, not a capture one.
+
+## How to capture
+
+- **Size:** at least 3840×2160 (`--size=1920,1080 --scale=2`), 30 fps.
+  Steam takes 1920×1080 at most; the extra is for crops and pushes.
+- **The pan:** one year-50 save copied once per architecture. Only
+  `self.vernacular` changes, so the campus is identical, and so is the
+  framing (`clip.mjs --focus=QUAD-T2 --zoom=4 --tilt=-2 --size=2880,1620
+  --clean`). The move is made in the edit, across the 2880×1620 plate.
+  Record 5 s a plate. Add the flower beds to the save's `dressing` round
+  Founders Hall before copying it.
+- **The screens:** text at its largest. Where a shot clicks, use a drawn
+  cursor, slow and deliberate, as in `founding.mjs`.
+- **Steam's format:** H.264 MP4, AAC stereo, 30 fps, at 5,000 Kbps or more.
 
 ## Decisions for the owner
 
 1. **The headlines' permissions:** all five players asked, and S1's words
-   checked against the video. If one says no, a spare goes in.
-2. **The college:** Halifax, navy and gold, as proposed, or another single
-   choice for every shot.
+   checked against the video.
+2. **The sixth style:** Art Deco is proposed for the end of the pan. Tudor,
+   Italianate or Second Empire would do the same job.
 3. **The end card:** the release window to promise, and the commissioned
-   logo. The trailer doesn't go out without the logo.
+   logo.
+4. **The specialization shown,** which must be the one the Final Report's
+   run chose (shots 13 and 18).
