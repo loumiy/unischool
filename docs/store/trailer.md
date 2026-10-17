@@ -1,9 +1,9 @@
 # The trailer — a script
 
-**Status:** a draft for the owner to edit, 17 October 2026. Nothing is
-recorded yet. It replaces the plan in [`steam-page.md`](steam-page.md)'s
-*What waits on others*. The research behind it is
-[`trailer-research.md`](trailer-research.md).
+**Status:** a draft for the owner to edit, 17 October 2026. A first cut is
+made ([The cut](#the-cut)). It replaces the plan in
+[`steam-page.md`](steam-page.md)'s *What waits on others*. The research
+behind it is [`trailer-research.md`](trailer-research.md).
 
 **Length:** 0:30 · **Music:** Alejandro Tóth's title theme, 30 seconds of
 it · **Slot:** the store's first trailer, tagged *Gameplay*.
@@ -22,6 +22,35 @@ if the camera never stopped: Mission, then Modern. Then the title.
 The pan says *this place could be yours, in any style*. The headlines say
 *people who played it loved it*. The clips in between prove it's a game
 you play, not a postcard.
+
+## The cut
+
+A first cut exists: 30 seconds, 1920×1080 at 30 fps, H.264 with the theme
+in AAC, at about −14.5 LUFS with the peaks at −1.5 dBTP. At 50 MB it isn't
+kept in the repository. `unischool/tools/trailer/build.sh` rebuilds it from
+the game in about 25 minutes (see *The trailer* in
+[`tools/README.md`](../../unischool/tools/README.md)).
+
+**Still stand-ins:**
+- **The headlines** may go out only with the five players' permission, and
+  with S1's words checked against the video ([The headlines](#the-headlines)).
+- **The logo** is the game's own temple mark, with the name set in
+  Bricolage Grotesque, until the commissioned logo exists.
+- **The end card** says *Wishlist on Steam* with no date or platform,
+  because the page isn't up yet.
+- **The sound** is the theme alone, from the repository's 160 kb/s MP3.
+  There's no campus sound under the pan yet, and no lossless master.
+
+**Where the cut differs from the script below:**
+- G1 is a new game in its first week, so its lawn is summer green, not
+  autumn.
+- G5–G7 are slow push-ins on 4K stills of the screens rather than
+  recordings: the faculty grid, the summer's admissions with the pool
+  already counted, and the four cards with no cursor.
+- Three frames of the hall going up (G2) and one of the year of seasons
+  (G8) are dropped. At a week a frame, the canvas map repaints the ground
+  in patches as the snow melts. The seasons clip also caught the inbox
+  opening once.
 
 ## How it's built
 
@@ -111,9 +140,9 @@ Sound: the campus's murmur and birds under the quiet pulse.
 | **0:07.37** · entry | **UI.** An empty lawn by the woodland. Founders Hall is picked up from the build menu, its ghost glides in, and it's set down. | The game's *place* sound. | G1 |
 | 0:08.6 | Close. A hall from footings to finished in one second. | The game's *complete* sound. | G2 |
 | **0:09.75** · drop | **Bare.** The time-lapse, wide: year 1 to year 50 in two and a half seconds, every frame in the fall, the game's year caption in the corner. | **Card:** ONE COLLEGE. FIFTY YEARS. (0:09.9–0:12.1) | G3 |
-| 0:12.2 | **UI.** The path tool draws a straight walk across a quad, and the walkers take it. | **"Deeply impressed by this game"** — itch.io player (0:12.3–0:14.6) | G4 |
-| 0:13.8 | **UI.** Faculty: a push-in to one professor's card, the face and the quirk. | (the headline carries over) | G5 |
-| 0:15.2 | **UI.** The summer: the pool of applicants counting up, kind by kind. | | G6 |
+| 0:12.2 | **Bare.** The path tool draws two straight walks out across the grass beside the Grand Quad, in the fall. | **"Deeply impressed by this game"** — itch.io player (0:12.35–0:14.5) | G4 |
+| 0:14.6 | **UI.** Faculty: a push-in across the grid of faces, toward the cards and their quirks. | | G5 |
+| 0:15.6 | **UI.** The summer: a push-in to the applicant pool and the kinds of student it drew. | | G6 |
 | **0:16.5** · swell | **UI.** The specialization's four cards. The cursor passes over them and chooses one just before the drop. | | G7 |
 | **0:18.4** · drop | **Bare.** A grown campus through one year: green, gold, snow, spring. | **"I've been looking for exactly this type of game"** — playtester (0:18.5–0:20.9) | G8 |
 | 0:19.7 | Close. Game day: the stadium full. | The stadium's roar under the music. | G9 |
@@ -182,7 +211,7 @@ The muted test: read only this column.
 | 0:02.6 | "An alarmingly believable university simulator" | 5 | 2.2 |
 | 0:05.1 | "It feels one of a kind" | 6 | 2.1 |
 | 0:09.9 | ONE COLLEGE. FIFTY YEARS. | 4 | 2.2 |
-| 0:12.3 | "Deeply impressed by this game" | 5 | 2.3 |
+| 0:12.35 | "Deeply impressed by this game" | 5 | 2.15 |
 | 0:18.5 | "I've been looking for exactly this type of game" | 9 | 2.4 |
 | 0:23.45 | Logo · FIFTY YEARS TO BUILD A UNIVERSITY. | 6 | 1.1, then held |
 | 0:24.55 | WISHLIST ON STEAM · platform · window | — | 5.45 |
@@ -191,10 +220,13 @@ Each attribution sits under its headline for the same time.
 
 ## The footage
 
+The first cut recorded every shot below with `tools/trailer/build.sh`. The
+lists say what each shot is for, and what a better take would have.
+
 ### What exists
 
-An animatic of the whole trailer can be cut today, to lock the timing
-before anything is recorded:
+Before the first cut, an animatic could be cut from what was already in the
+repository:
 - **The pan:** the README's campus pictures are already the same year-50
   campus in all five architectures, one layout and one run.
   [`campus.png`](../images/campus.png) is the Georgian;
@@ -242,32 +274,24 @@ on the same frame of the move is seamless: the campus stays put, the
 walkers keep walking, and only the buildings change. The return at 0:21.0
 picks the move up further along, where it would have reached by then.
 
-```sh
-npm run dev                                          # in one shell
-for v in georgian gothic classical mission modern; do
-  npm run scenario -- --player Completionist --year 50 --build-all --clear-modal \
-    --name Halifax --colors navy-gold --vernacular $v --week 12 node_modules/.tmp/pan-$v.json
-  npm run layout -- node_modules/.tmp/pan-$v.json node_modules/.tmp/pan-$v-laid.json
-  npm run clip -- node_modules/.tmp/pan-$v-laid.json pan-$v.webm \
-    --focus=QUAD-T2 --zoom=2 --tilt=-2 --size=2880,1620 --scale=2 --seconds=12
-done
-```
+The first cut took a shortcut that makes the five plates identical by
+construction. An architecture is one field of a save (`self.vernacular`),
+so `build.sh` copies the time-lapse's year-50 frame five times, changing
+only that field. Each copy is recorded with the same framing:
+`clip.mjs --focus=QUAD-T2 --zoom=4 --tilt=-2 --size=2880,1620 --clean`,
+3.5 seconds each. The move is 960 px across each 2880×1620 plate over the
+trailer's first 23.45 seconds, at about 41 px a second, with the
+architecture changing on the beat.
 
-That writes five 5760×3240 plates. Tune the zoom and the focus once on the
-Georgian, then keep them for all five.
-- **Check the layout:** confirm that `layout.ts` puts every building in the
-  same place in each run. The README's five pictures say it does.
-- **Check the week:** confirm that `--week 12` with `--year 50` stops in the
-  fall.
-- **Try a wipe:** if the hard cut feels abrupt, try a soft vertical wipe
-  that travels with the pan.
+If the hard cut feels abrupt, try a soft vertical wipe that travels with
+the pan.
 
 ### What to record
 
 | | Shot | Moment | Tool | Notes |
 |---|---|---|---|---|
-| P1–P5 | The pan plates: Georgian, Collegiate Gothic, Classical, Mission, Modern | Year 50, week 12 | `scenario` → `layout` → `clip.mjs` (above) | Identical framing in all five. 12 s each. |
-| G1 | Founders Hall picked up and set down, the build menu showing | A new game, week 1 | By hand (OBS, 4K) | `clip.mjs` can't place a building yet (gap T2). |
+| P1–P5 | The pan plates: Georgian, Collegiate Gothic, Classical, Mission, Modern | Year 50, week 14 | One save, five architectures → `clip.mjs` (above) | Identical framing in all five. |
+| G1 | Founders Hall picked up and set down, the build menu showing | A new game, week 1 | `tools/trailer/founding.mjs` | The cursor is drawn on the page, since a headless screenshot has none. |
 | G2 | A hall from footings to finished | Any year | `clip.mjs --until-built` | As `clip-building`, in the fall. Only about 1 s of it is used. |
 | G3 | The time-lapse, years 1–50, every frame in the fall | The whole run | `timelapse` and `timelapse:shoot --seasons` | With `--every 13`, one frame a year lands in the fall term. Keep those (the caption reads *Fall term*), 50 frames for 2.5 s. |
 | G4 | A straight walk drawn across a quad, the walkers taking it | About year 15 | `clip.mjs --stroke` | With the path tool's interface showing. |
@@ -290,8 +314,9 @@ panel (`?debug=1`, `AudioBench.tsx`):
   `Q`/`E`, `Z`/`X`, `+`/`−`). Not needed for this cut, since the pan is made
   in the edit. It would let the game's own camera make the move, at the
   cost of five separate takes having to match.
-- **T2 · Placing a building in a clip,** for G1. Until then G1 is a hand
-  capture.
+- **T2 · Placing a building in a clip.** `tools/trailer/founding.mjs`
+  scripts G1's placement on a new game. A `--place` flag on `clip.mjs`
+  would make any placement a clip.
 - **T3 · A photo mode for hand capture:** the `--bare` stylesheet behind a
   URL flag or a hotkey.
 

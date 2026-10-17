@@ -32,3 +32,11 @@ export function mapBuildingAt(page, x, y) {
 export function mapMissed(page) {
   return page.evaluate(() => window.__campusMap?.frame()?.unsupported ?? null);
 }
+
+// The map's own marks, for a picture of the campus alone (a trailer's
+// --clean): the building labels, and the hall, lab and full-residence
+// marks drawn over the buildings (CampusMap.tsx's mark layers). The
+// walkers, the ghost and the completion ring stay.
+export const CLEAN_MAP_CSS = `
+  .campus-label, .campus-hall-marks, .campus-lab-mark, .campus-full-mark { display: none !important; }
+`;

@@ -319,7 +319,31 @@ page time a frame so the focused site finishes a second before the end;
 `--step=MS` sets it by hand; `--speed` picks the clock's gear (a locked
 one is refused). The flags are in the script's header. The clip is VP9
 when the ffmpeg found has it (`/usr/bin/ffmpeg` is tried first), VP8
-otherwise.
+otherwise. `--clean`, here and on `timelapseShoot.mjs`, hides the map's
+own marks as well as its interface: the building labels and the hall, lab
+and full-residence marks (`mapReview.mjs`'s `CLEAN_MAP_CSS`), for a picture
+of the campus alone.
+
+### The trailer
+
+`trailer/build.sh` records every shot of the 30-second trailer
+([`docs/store/trailer.md`](../../docs/store/trailer.md)) with the tools
+above, renders its words, cuts Alejandro Tóth's theme and composes the cut:
+
+```sh
+npm run dev                          # in one shell
+tools/trailer/build.sh               # about 25 minutes; writes node_modules/.tmp/trailer/unischool-trailer-30s.mp4
+```
+
+It needs python3 with Pillow (the edit, `trailer/compose.py`) and an
+ffmpeg with libx264. The pan's five plates are one year-50 save with only
+its architecture changed, recorded with the same framing, so a cut from one
+to the next on the same frame of the move changes nothing but the
+buildings. `trailer/founding.mjs` records the one shot no tool could: a new
+game's Founders Hall picked up from the build menu and set down.
+`trailer/cards.mjs` renders the headlines and the end card in the game's
+own faces. The frame picks in `compose.py` belong to these captures; after
+changing one, check its shot by eye.
 
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB

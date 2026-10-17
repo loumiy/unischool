@@ -26,7 +26,8 @@
 // held so each run is straight), --no-seasons (the map's seasons off, as
 // the time-lapse has them), --warmup=MS (page time played before the
 // first frame, default 8000, so the walkers are out), --png (keep the
-// frames).
+// frames), --clean (hide the map's own marks too: the building labels and
+// the hall, lab and full-residence marks, for a trailer's picture).
 // Writes the WebM, and its frames in <out>.frames/ while it works.
 //
 // Same browser rules as shoot.mjs: playwright-core, no download.
@@ -34,7 +35,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { chromium } from 'playwright-core';
-import { mapBuildings, waitForMap } from './mapReview.mjs';
+import { CLEAN_MAP_CSS, mapBuildings, waitForMap } from './mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const [savePath, outPath] = argv.filter((a) => !a.startsWith('--'));
@@ -60,6 +61,7 @@ const untilBuilt = argv.includes('--until-built');
 const strokes = flagAll('stroke').map((s) => s.split(':').map((p) => p.split(',').map(Number)));
 const keepPng = argv.includes('--png');
 const seasons = !argv.includes('--no-seasons');
+const clean = argv.includes('--clean');
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 // useGame.ts's SPEEDS: page milliseconds a week.
 const WEEK_MS = { real: 5000, double: 2500, quad: 1250, octo: 625 };
@@ -163,10 +165,11 @@ await drag(pan[0], pan[1]);
 // (timelapseShoot.mjs's list, with the map tools' own button).
 await page.addStyleTag({ content: `
   .pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
-  .toast, .tooltip, [role="tooltip"], .path-tool-hint, .build-popup,
+  .toast, .tooltip, [role="tooltip"], .map-tool-hint, .build-popup,
   .modal-backdrop, .modal-inbox { display: none !important; }
   :root { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
 ` });
+if (clean) await page.addStyleTag({ content: CLEAN_MAP_CSS });
 await page.mouse.move(-20, -20);
 await page.waitForTimeout(800);
 await waitForMap(page);

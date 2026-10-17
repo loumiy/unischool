@@ -16,7 +16,8 @@
 // as well, for an editor), --jobs=N (browsers in parallel, default 4),
 // --from=N --to=N (a range of frames, for a retake), --seasons (keep the
 // map's seasons: off by default, since one frame a quarter lands in the
-// winter white once a year and the video strobes).
+// winter white once a year and the video strobes), --clean (hide the
+// map's own labels and marks, as clip.mjs's --clean does).
 // Writes <dir>/shots/*.jpg and <dir>/timelapse.webm.
 //
 // The WebM is a preview and a source for an editor. Steam wants an MP4
@@ -29,7 +30,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { waitForMap } from './mapReview.mjs';
+import { CLEAN_MAP_CSS, waitForMap } from './mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const dir = argv.find((a) => !a.startsWith('--'));
@@ -50,6 +51,7 @@ const jobs = Number(flag('jobs', 4));
 const caption = !argv.includes('--no-caption');
 const png = argv.includes('--png');
 const seasons = argv.includes('--seasons');
+const clean = argv.includes('--clean');
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 
 const CANDIDATES = [
@@ -135,6 +137,7 @@ async function shootFrame(file) {
     await page.keyboard.press('Escape');
   }
   await page.addStyleTag({ content: HIDE });
+  if (clean) await page.addStyleTag({ content: CLEAN_MAP_CSS });
   if (caption) {
     // format.ts's termName: the first half of the year is the fall term.
     const term = state.clock.week <= 26 ? 'Fall term' : 'Spring term';
