@@ -329,24 +329,27 @@ of the campus alone.
 
 ### The trailer
 
-`trailer/build.sh` records every shot of the 30-second trailer
+`trailer/build.sh` records every shot of the one-minute trailer
 ([`docs/store/trailer.md`](../../docs/store/trailer.md)) with the tools
 above, renders its words, cuts Alejandro Tóth's theme and composes the cut:
 
 ```sh
 npm run dev                          # in one shell
-tools/trailer/build.sh               # about 25 minutes; writes node_modules/.tmp/trailer/unischool-trailer-30s.mp4
+tools/trailer/build.sh               # about an hour; writes node_modules/.tmp/tr60/unischool-trailer.mp4
 ```
 
 It needs python3 with Pillow (the edit, `trailer/compose.py`) and an
-ffmpeg with libx264. The pan's five plates are one year-50 save with only
+ffmpeg with libx264. The pan's six plates are one year-50 save with only
 its architecture changed, recorded with the same framing, so a cut from one
 to the next on the same frame of the move changes nothing but the
-buildings. `trailer/founding.mjs` records the one shot no tool could: a new
-game's Founders Hall picked up from the build menu and set down.
-`trailer/cards.mjs` renders the headlines and the end card in the game's
-own faces. The frame picks in `compose.py` belong to these captures; after
-changing one, check its shot by eye.
+buildings. Two scripts record what no tool could, with a cursor drawn on
+the page: `trailer/act2.mjs`, one new game named on the founding screen
+(its facade carving the name), Founders Hall set down, flower beds dragged
+round it and a walk drawn out from each door; and `trailer/screens.mjs`,
+the specialization chosen and the charter answered. `trailer/cards.mjs`
+renders the headlines, the cards, the captions and the end card in the
+game's own faces. The frame picks in `compose.py` belong to these
+captures; after changing one, check its shot by eye.
 
 `trailer/tudorTimelapse.ts` builds the hand-laid Tudor campus
 (`campuses/tudor-year-1.unischool.json`) over fifty years. It plays the

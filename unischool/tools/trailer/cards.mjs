@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------
 // THE TRAILER'S WORDS (docs/store/trailer.md): the five headlines (the
-// quotes alone, no attribution: the owner's call), the card and the end
-// card, each a transparent 1920x1080 PNG in the game's own
+// quotes alone, no attribution: the owner's call), the cards, the bands
+// that sit across the screens' lower part, the architectures' captions and
+// the end card, each a transparent 1920x1080 PNG in the game's own
 // faces (Bricolage Grotesque for display, Archivo for text), loaded from
 // the fontsource packages the game ships with. tools/trailer/compose.py
 // lays them over the picture and fades them.
@@ -47,6 +48,16 @@ html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; 
 .card { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
   font: 800 124px/1 Brico, sans-serif; letter-spacing: .01em; color: #fff; text-transform: uppercase;
   text-shadow: 0 4px 26px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35); }
+.card.long { font-size: 96px; line-height: 1.08; }
+/* Over a shot whose subject is in the middle: the words above it. */
+.card.top { align-items: flex-start; padding-top: 118px; }
+/* Over the screens' cream: a dark band below what the screen says. */
+.band { position: absolute; left: 0; right: 0; top: 842px; height: 148px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(to bottom, rgba(10,16,28,0) 0%, rgba(10,16,28,.82) 14%, rgba(10,16,28,.82) 86%, rgba(10,16,28,0) 100%);
+  font: 800 66px/1 Brico, sans-serif; letter-spacing: .02em; color: #fff; text-transform: uppercase; }
+/* The architecture's name, as the time-lapse captions its year. */
+.caption { position: absolute; left: 48px; bottom: 40px; font: 600 44px/1 Brico, sans-serif; color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.45); letter-spacing: .01em; }
 .end { position: absolute; left: 0; right: 0; top: 250px; text-align: center; color: #fff; }
 .end .name { margin-top: 26px; font: 800 132px/1 Archivo, sans-serif; letter-spacing: .04em; text-transform: uppercase;
   text-shadow: 0 4px 26px rgba(0,0,0,.45); }
@@ -67,6 +78,12 @@ const CARDS = {
   h4: headline('Deeply impressed by this game'),
   h5: headline('I’ve been looking for exactly this type of game'),
   card: `<div class="frame shade-all"></div><div class="card">One college.<br>Fifty years.</div>`,
+  begins: `<div class="frame shade-top"></div><div class="card long top">Every university<br>begins with one building.</div>`,
+  'band-summer': `<div class="band">Every summer, a new class.</div>`,
+  'band-choose': `<div class="band">Choose what it’s known for.</div>`,
+  'band-build': `<div class="band">What will you build?</div>`,
+  ...Object.fromEntries([['georgian', 'Georgian'], ['gothic', 'Collegiate Gothic'], ['classical', 'Classical'], ['mission', 'Mission'],
+    ['modern', 'Modern'], ['artDeco', 'Art Deco']].map(([id, name]) => [`cap-${id}`, `<div class="caption">${name}</div>`])),
   end1: `<div class="frame shade-end"></div><div class="end">${MARK}<div class="name">UniSchool</div><div class="tag">Fifty years to build a university.</div></div>`,
   end2: `<div class="cta"><span class="wish">Wishlist on Steam</span></div><div class="credit">Music by Alejandro Tóth &nbsp;·&nbsp; Halifax Games</div>`,
 };

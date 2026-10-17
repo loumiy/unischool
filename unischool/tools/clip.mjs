@@ -166,7 +166,7 @@ await drag(pan[0], pan[1]);
 await page.addStyleTag({ content: `
   .pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
   .toast, .tooltip, [role="tooltip"], .map-tool-hint, .build-popup,
-  .modal-backdrop, .modal-inbox { display: none !important; }
+  .modal-backdrop, .modal-inbox, .tab-overlay { display: none !important; }
   :root { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
 ` });
 if (clean) await page.addStyleTag({ content: CLEAN_MAP_CSS });
@@ -216,7 +216,8 @@ if (untilBuilt) {
 
 // A stop (a letter the clock waits on) answered with its last button, as
 // newPlayer.mjs answers them, so the clock runs through the clip. Its
-// card is hidden with the rest of the interface, so no frame shows it.
+// card is hidden with the rest of the interface, and so is the inbox a
+// stop opens (.tab-overlay), so no frame shows either.
 const STOP = '.modal-inbox, .modal-backdrop .modal, [role="dialog"][aria-modal="true"]';
 async function clearStops() {
   for (let i = 0; i < 6; i++) {
