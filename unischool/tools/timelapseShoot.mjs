@@ -17,7 +17,9 @@
 // --from=N --to=N (a range of frames, for a retake), --seasons (keep the
 // map's seasons: off by default, since one frame a quarter lands in the
 // winter white once a year and the video strobes), --clean (hide the
-// map's own labels and marks, as clip.mjs's --clean does).
+// map's own labels and marks, as clip.mjs's --clean does), --positions
+// (beside each shot, <frame>.positions.json: every building's middle on
+// the page, in CSS px, for an editor's camera move to follow the campus).
 // Writes <dir>/shots/*.jpg and <dir>/timelapse.webm.
 //
 // The WebM is a preview and a source for an editor. Steam wants an MP4
@@ -27,10 +29,10 @@
 // Same browser rules as shoot.mjs: playwright-core, no download.
 // ---------------------------------------------------------------------
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { CLEAN_MAP_CSS, waitForMap } from './mapReview.mjs';
+import { CLEAN_MAP_CSS, mapBuildings, waitForMap } from './mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const dir = argv.find((a) => !a.startsWith('--'));
@@ -52,6 +54,7 @@ const caption = !argv.includes('--no-caption');
 const png = argv.includes('--png');
 const seasons = argv.includes('--seasons');
 const clean = argv.includes('--clean');
+const positions = argv.includes('--positions');
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 
 const CANDIDATES = [
@@ -154,6 +157,9 @@ async function shootFrame(file) {
   const base = join(shots, file.replace(/\.json$/, ''));
   await page.screenshot({ path: `${base}.jpg`, type: 'jpeg', quality: 92 });
   if (png) await page.screenshot({ path: `${base}.png` });
+  if (positions) {
+    writeFileSync(`${base}.positions.json`, JSON.stringify({ width: W, height: H, scale, buildings: await mapBuildings(page) }));
+  }
   await context.close();
 }
 

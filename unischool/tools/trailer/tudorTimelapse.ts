@@ -10,7 +10,9 @@
 //   npm run dev                                                # in one shell
 //   npx rolldown tools/trailer/tudorTimelapse.ts -o node_modules/.tmp/tudor.mjs -f esm -p node \
 //     && node node_modules/.tmp/tudor.mjs --out node_modules/.tmp/tudor
-//   node tools/timelapseShoot.mjs node_modules/.tmp/tudor --clean --png
+//   node tools/timelapseShoot.mjs node_modules/.tmp/tudor --clean --png --positions --no-caption \
+//     --zoom=-2 --pan=-230,140 --scale=3
+//   (then tools/trailer/captions.mjs and tools/trailer/tudor_compose.py: tools/README.md)
 //
 // How a frame is made, as in tools/timelapse.ts:
 //   - its buildings are those the run has placed by then that the plan
@@ -22,10 +24,17 @@
 //   - its trees are the founding woodland, felled where buildings and walks
 //     arrive, with the plan's own trees and its lamps, benches and flower
 //     beds coming in round each building as it stands;
-//   - three of the plan's buildings the run never builds (the Triumphal
-//     Gate, since it chose the Campanile; the Research Park; Aurora Tower)
-//     are raised in a short coda after year 50, as the README's campus
-//     picture stands what the run did not (layout's --build-all).
+//   - its athletic venues grow in place to their last stage over the run
+//     (the owner's direction): the run's player never expands a venue, so
+//     this does, through the game's own EXPAND_VENUE and at the run's own
+//     cost, one stage at a time and a few years apart, and each stage
+//     stands as a construction site while it is built;
+//   - the plan's buildings the run never builds (the Triumphal Gate, since
+//     it chose the Campanile; the Research Park) are raised in a short coda
+//     after year 50, as the README's campus picture stands what the run did
+//     not (layout's --build-all), after any venue stage the run could not
+//     afford by then; and the last frames finish whatever is still going
+//     up (Aurora Tower, begun in the run's last year).
 //
 // Flags: --every N (weeks between frames, 13) --coda N (frames of the coda,
 //        12) --out <dir>
@@ -34,10 +43,11 @@
 // ---------------------------------------------------------------------
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DEFAULT_SEED, foundGame, playWeek } from '../../sim/harness/game';
+import { DEFAULT_SEED, foundGame, playWeek, type Game } from '../../sim/harness/game';
 import { playerNamed } from '../../sim/harness/archetypes';
 import { SAVE_VERSION } from '../../src/state/persistence';
 import { seedTrees } from '../../src/data/treeData';
+import { nextVenueExpansion, venueExpansionsMax } from '../../src/data/facilitiesData';
 import { bindScriptStream } from '../../src/engine/random';
 import { pathTileKey, placementTiles } from '../../src/state/campusMap';
 import type { GameState, Pathways, Placement, Placements, TileCoord, Trees } from '../../src/state/types';
@@ -67,6 +77,35 @@ const plan = {
   dressing: tudor.dressing ?? {},
 };
 
+// The venues, grown a stage at a time: GROW_EVERY weeks after the venue
+// stood or its last stage finished, when the treasury can pay for the stage
+// twice over; from LATE_YEAR, as soon as it can pay at all, so every venue
+// is at its last stage by year 50 if the run can afford it.
+const VENUES = ['ATH-FIELD', 'ATH-DIAMOND', 'ATH-ARENA', 'ATH-NATATORIUM', 'ATH-STADIUM'];
+const GROW_EVERY = 52 * 3;
+const LATE_YEAR = 44;
+const waitingSince = new Map<string, number>();
+const grownInRun: string[] = [];
+function growVenues(g: Game, week: number): void {
+  for (const id of VENUES) {
+    const t = g.s.tech.find((x) => x.id === id);
+    if (!t || t.status !== 'done' || !(id in g.s.placements)) continue;
+    if ((t.expansions ?? 0) >= venueExpansionsMax(id)) continue;
+    if (!waitingSince.has(id)) { waitingSince.set(id, week); continue; }
+    const late = g.s.clock.year >= LATE_YEAR;
+    if (!late && week - waitingSince.get(id)! < GROW_EVERY) continue;
+    const stage = nextVenueExpansion(t);
+    if (!stage || g.s.finance.cash < stage.cost * (late ? 1 : 2)) continue;
+    const before = t.expansions ?? 0;
+    g.act({ type: 'EXPAND_VENUE', venueId: id });
+    const after = g.s.tech.find((x) => x.id === id)?.expansions ?? 0;
+    if (after > before) {
+      waitingSince.delete(id);
+      grownInRun.push(`${id} ${after} (year ${g.s.clock.year})`);
+    }
+  }
+}
+
 // The run.
 const player = playerNamed('Completionist')!;
 const game = foundGame({ seed: DEFAULT_SEED });
@@ -75,6 +114,7 @@ const endYear = game.s.clock.year + YEARS;
 for (let week = 0, limit = YEARS * 52 * 4 + 100; week < limit && game.s.clock.year < endYear; week++) {
   if (week % every === 0) snapshots.push(structuredClone(game.s));
   playWeek(game, player);
+  growVenues(game, week);
 }
 
 function dress(state: GameState): void {
@@ -168,33 +208,46 @@ for (const state of snapshots) {
   write(state, Object.keys(state.placements).filter((id) => id in plan.placements), i++);
 }
 
-// The coda: the plan's buildings the run never built, raised in turn on
-// the last snapshot, each a construction site for a few frames first.
-const last = snapshots[snapshots.length - 1];
-const standing = Object.keys(last.placements).filter((id) => id in plan.placements);
-const missing = Object.keys(plan.placements).filter((id) => !standing.includes(id));
-const perBuilding = Math.max(2, Math.floor(coda / Math.max(1, missing.length)));
-let built = [...standing];
-for (const id of missing) {
-  const t = last.tech.find((x) => x.id === id);
-  if (!t) { console.warn(`the plan's ${id} is not in this build's catalog; left out`); continue; }
-  const weeks = t.duration ?? 52;
-  for (let f = 0; f < perBuilding; f++) {
-    const state = structuredClone(last);
-    const site = state.tech.find((x) => x.id === id)!;
-    const done = f === perBuilding - 1;
-    for (const b of built) { const x = state.tech.find((y) => y.id === b); if (x && !state.developing[b]) x.status = 'done'; }
-    site.status = done ? 'done' : 'developing';
-    if (done) delete state.developing[id];
-    else state.developing[id] = Math.max(1, Math.round(weeks * (1 - (f + 1) / perBuilding)));
-    write(state, [...built, id], i++);
+// The coda, on the last snapshot carried forward: any venue stage the run
+// could not afford by year 50, then the plan's buildings the run never
+// built, each a construction site for a few frames before it finishes;
+// then the finished plan, held.
+const base = snapshots[snapshots.length - 1];
+let built = Object.keys(base.placements).filter((id) => id in plan.placements);
+function raise(id: string, weeks: number, frames: number): void {
+  for (let f = 0; f < frames; f++) {
+    const t = base.tech.find((x) => x.id === id)!;
+    const done = f === frames - 1;
+    t.status = done ? 'done' : 'developing';
+    if (done) delete base.developing[id];
+    else base.developing[id] = Math.max(1, Math.round(weeks * (1 - (f + 1) / frames)));
+    write(structuredClone(base), built.includes(id) ? built : [...built, id], i++);
   }
-  built = [...built, id];
+  if (!built.includes(id)) built = [...built, id];
+}
+const grownInCoda: string[] = [];
+for (const id of VENUES) {
+  const t = base.tech.find((x) => x.id === id);
+  if (!t || !built.includes(id)) continue;
+  for (let stage = nextVenueExpansion(t); stage; stage = nextVenueExpansion(t)) {
+    t.renovatingFrom = t.effects?.servesPopulation ?? 0;
+    t.expansions = (t.expansions ?? 0) + 1;
+    raise(id, stage.weeks, 3);
+    grownInCoda.push(`${id} ${t.expansions}`);
+  }
+}
+const missing = Object.keys(plan.placements).filter((id) => !built.includes(id));
+const perBuilding = Math.max(2, Math.floor(coda / Math.max(1, missing.length)));
+for (const id of missing) {
+  const t = base.tech.find((x) => x.id === id);
+  if (!t) { console.warn(`the plan's ${id} is not in this build's catalog; left out`); continue; }
+  raise(id, t.duration ?? 52, perBuilding);
 }
 // The finished plan, held.
-for (let f = 0; f < 4; f++) {
-  const state = structuredClone(last);
-  for (const b of built) { const x = state.tech.find((y) => y.id === b); if (x) { x.status = 'done'; delete state.developing[b]; } }
-  write(state, built, i++, true);
-}
-console.log(`${out}: ${i} frames (${snapshots.length} from the run, to year ${last.clock.year}; ${missing.length} raised in the coda: ${missing.join(', ') || 'none'})`);
+for (const b of built) { const x = base.tech.find((y) => y.id === b); if (x) { x.status = 'done'; delete base.developing[b]; } }
+for (let f = 0; f < 4; f++) write(structuredClone(base), built, i++, true);
+const venues = VENUES.map((id) => `${id} ${base.tech.find((x) => x.id === id)?.expansions ?? 0}/${venueExpansionsMax(id)}`);
+console.log(`venues grown in the run: ${grownInRun.join(', ') || 'none'}`);
+console.log(`venues grown in the coda: ${grownInCoda.join(', ') || 'none'}`);
+console.log(`venues at the end: ${venues.join(', ')}`);
+console.log(`${out}: ${i} frames (${snapshots.length} from the run, to year ${base.clock.year}; ${missing.length} raised in the coda: ${missing.join(', ') || 'none'})`);
