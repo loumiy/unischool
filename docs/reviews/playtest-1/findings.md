@@ -25,8 +25,13 @@ marked **0.1.x** and fixed in a patch.*
   details." Also "looks pretty good", "looked like a fun concept",
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
-  building game I played in a long long time". *3 players · reddit (R1,
-  R3, R4, R8, R9), comment (I1, I2), live (T1), form (F1, F2), discord (D1), service (S1).*
+  building game I played in a long long time". *10 players · reddit (R1,
+  R3, R4, R8, R9, R12), comment (I1, I2), live (T1), form (F1, F2, F3),
+  discord (D1), service (S1).*
+  R12, from the screenshot and the page: "It feels like a classic tycoon
+  game right out the gate."
+  The quotes worth reusing are collected in
+  [`docs/store/quotes.md`](../../store/quotes.md).
   F2, after 1–2 hours: "I've been looking for exactly this type of game
   for a long time"; "I reeeally enjoyed playing and love the concept as
   well as the execution"; best moment "seeing the money amount
@@ -467,6 +472,16 @@ Italianate, and more): "Should I narrow this down?" (9 October).*
   switch and/or mix and match styles as they build."
 - **R7** · mebjammin (the same player as R6) — "Let then switch. More
   player freedom more player enjoyment."
+
+### Reddit, a reply to the owner's comment (17 October)
+
+*The owner's comment, posted three days earlier: "I'm working on a
+university tycoon game! I have a free playtest available here (playable
+in browser)", linking the itch.io page with a screenshot of the Faculty
+tab (60 views, 2 upvotes when read). The thread's link wasn't kept.*
+
+- **R12** · CrunchyTuna_games — "This looks super cool. What a great
+  concept. It feels like a classic tycoon game right out the gate."
 
 ### Reddit, a chat message
 
