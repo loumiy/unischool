@@ -57,7 +57,7 @@ node tools/clip.mjs "$T/pan-georgian.json" "$T/clips/e1.webm" --focus=QUAD-T2 --
 # 2 · Act 2 (shots 7-11): one new game, founded and laid out on camera,
 # then Meadow House rising beside the hall, Always summer.
 node tools/trailer/act2.mjs "$T/act2"
-node tools/clip.mjs "$T/act2/meadow.json" "$T/clips/meadow.webm" --focus=DORM-01 --zoom=4 --until-built --no-seasons \
+node tools/clip.mjs "$T/act2/meadow.json" "$T/clips/meadow.webm" --focus=DORM-01 --zoom=4 --pan=0,150 --until-built --no-seasons \
   --clean --size=1920,1080 --scale=2 --seconds=2.4 --png
 
 # 3 · The screens (shots 12-14, 16, 18), each in its own school colours, at

@@ -108,7 +108,7 @@ def still(path, c0, w0, c1, w1, n, hold=0):
 def meadow(i, t):
     fs = frames(T / 'clips/meadow.webm.frames')
     k = round(i * 62 / 71)
-    return window(img(fs[k]), lerp(1740, 1728, i / 71), lerp(660, 650, i / 71), lerp(2450, 2250, ease(i / 71)))   # the cupola below the headline
+    return window(img(fs[k]), lerp(1680, 1660, i / 71), lerp(900, 896, i / 71), lerp(2580, 2380, ease(i / 71)))   # the cupola below the headline
 
 # 16 · The charter: the letter's last lines and its button, clicked (frame
 # 38); then the pennant over the campus, reading Halifax University.
