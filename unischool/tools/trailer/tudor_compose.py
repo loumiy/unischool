@@ -173,10 +173,12 @@ n = N * PER + HOLD
 seconds = n / FPS
 MUSIC_FROM = 26.35 - N * PER / FPS          # the finished plan on the hard drop
 
+# This stretch of the theme is at the trailer's loudness (-14.5 LUFS) as it
+# stands, so no gain: the limiter only guards the peaks.
 enc = subprocess.Popen(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
     '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
     '-ss', f'{MUSIC_FROM + 0.025:.3f}', '-t', f'{seconds:.3f}', '-i', music,
-    '-af', f'afade=t=in:st=0:d=0.3,afade=t=out:st={seconds - 1.6:.3f}:d=1.6,volume=2.4dB,alimiter=limit=0.84:level=disabled',
+    '-af', f'afade=t=in:st=0:d=0.3,afade=t=out:st={seconds - 1.6:.3f}:d=1.6,alimiter=limit=0.84:level=disabled',
     '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-movflags', '+faststart', '-shortest', out], stdin=subprocess.PIPE)
 
