@@ -345,6 +345,27 @@ game's Founders Hall picked up from the build menu and set down.
 own faces. The frame picks in `compose.py` belong to these captures; after
 changing one, check its shot by eye.
 
+`trailer/tudorTimelapse.ts` builds the hand-laid Tudor campus
+(`campuses/tudor-year-1.unischool.json`) over fifty years. It plays the
+seeded Completionist run and stands each building the run has by then on
+its site in the plan, so the campus grows in the order a real run builds
+it, with its construction sites and its clock. The walks grow out from
+Founders Hall, eight ways round, since the plan runs walks on the diagonal.
+A short coda raises the three buildings the run never builds (the
+Triumphal Gate, the Research Park, Aurora Tower), and the last frames are
+the plan exactly. `trailer/tudor_compose.py` cuts the frames to the theme:
+
+```sh
+npx rolldown tools/trailer/tudorTimelapse.ts -o node_modules/.tmp/tudor.mjs -f esm -p node \
+  && node node_modules/.tmp/tudor.mjs --out node_modules/.tmp/tudor
+node tools/timelapseShoot.mjs node_modules/.tmp/tudor --clean --png --zoom=-2 --pan=-60,140 --scale=1.5 --fps=10
+python3 tools/trailer/tudor_compose.py node_modules/.tmp/tudor/shots src/assets/title-theme.mp3 node_modules/.tmp/tudor.mp4
+```
+
+The shooter's default holds the map in summer (the Seasons setting's
+*Always summer*), which is what a squeezed year wants: a frame a quarter
+would otherwise land in the winter white once a year.
+
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB
 nobody asked for. Point `CHROME_PATH` at any Chromium or Chrome build; failing

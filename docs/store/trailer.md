@@ -25,8 +25,9 @@ hall rises beside it as summer turns to autumn.
 
 From there the game opens out: the faculty's faces, a summer's class, the
 one choice that can't be taken back. As the theme returns, fifty years pass:
-the time-lapse, the charter that makes the college a university, a year of
-seasons, a full stadium. The Final Report names what the school became.
+a Tudor campus built from nothing, the charter that makes the college a
+university, and the stadium growing to its full double-decked size. The
+Final Report names what the school became.
 
 On the music's peak the pan comes back, still drifting, and settles on
 Founders Hall in year 50, its flower beds still round it. Then the title.
@@ -54,6 +55,11 @@ across fifty years.
 - **It works muted:** five headlines, four cards, the architecture captions
   and the end card, all burned in, inside the inner 90% of the frame.
 - **Cut to the music,** measured, not guessed (below).
+- **Always summer when time is squeezed.** Any shot that runs weeks into
+  frames (the hall rising, the stadium growing, the time-lapse) is
+  recorded with the game's Seasons setting on *Always summer*, so no winter
+  can flash white. A held shot in one season, like the autumn pan, can't
+  flash, and keeps its season.
 - **Only what the game does,** in-engine. The map has no night (Plan 95C).
   No shot asks for one.
 
@@ -136,7 +142,7 @@ three steps closer than the opening view.
 | 7 | 0:18.99 – 0:22.30 | **UI.** An empty lawn by the woodland. Founders Hall is picked up from the build menu, its ghost glides in, and it's set down. | **Card:** EVERY UNIVERSITY BEGINS WITH ONE BUILDING. (0:19.2 – 0:22.0) | **Have.** The founding take (`founding.mjs`), used longer: about 100 of its 114 frames. |
 | 8 | 0:22.30 – 0:25.39 | **UI**, close. The build menu on its Grounds tab, *Flower bed* picked. The cursor drags along the hall's south wall, and beds appear tile by tile. It lifts at the door, starts again past it, and turns the corner along the east wall. Of the 24 tiles round the hall, 4 are left open, one at the middle of each wall, where the doors open. | None. Let it breathe. | **New.** See [The flower beds](#the-flower-beds). |
 | 9 | 0:25.39 – 0:28.64 | **UI**, same framing. The path tool draws a straight walk out from each door, through its gap in the beds, across the lawn. The first walkers step onto them. | None. | **New.** The same take as 8. |
-| 10 | 0:28.64 – 0:31.04 | Close. Meadow House, the first residence hall, rises beside it, from footings to finished. Its 16 weeks take summer into early autumn: no snow, and no summer stop. | **"Deeply impressed by this game"** — Player · itch.io (0:28.8 – 0:31.0) | **New.** It replaces the first cut's hall, whose 35 weeks crossed a winter and the summer's stop (the white flashes). It's the same game, the walkthrough's own residence hall, recorded with `clip.mjs --until-built`. |
+| 10 | 0:28.64 – 0:31.04 | Close. Meadow House, the first residence hall, rises beside it, from footings to finished, in summer green. | **"Deeply impressed by this game"** — Player · itch.io (0:28.8 – 0:31.0) | **New.** It replaces the first cut's hall, whose 35 weeks crossed a winter and the summer's stop (the white flashes). It's the same game, the walkthrough's own 16-week residence hall, recorded *Always summer* (`clip.mjs --until-built --no-seasons`). |
 
 ### Act 3 — The people and the choices (0:31.04 – 0:38.01)
 
@@ -144,7 +150,7 @@ Three screens, each in its own school colours.
 
 | # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 11 | 0:31.04 – 0:33.10 | **UI, forest & gold.** Faculty: a push-in across the grid of faces, toward one card's portrait and quirk. | None. | **Re-shoot.** It exists in navy and gold. Re-shoot in forest and gold (the same year-50 save, its colours changed). |
+| 11 | 0:31.04 – 0:33.10 | **UI, black & gold.** Faculty: a push-in across the grid of faces, toward one card's portrait and quirk. | None. | **Re-shoot.** It exists in navy and gold. Re-shoot in black and gold (the same year-50 save, its colours changed). |
 | 12 | 0:33.10 – 0:35.56 | **UI, maroon & gold.** The summer: a push-in to the applicant pool and the kinds of student it drew. | **Card**, on a dark band across the lower third: EVERY SUMMER, A NEW CLASS. (0:33.3 – 0:35.4) | **Re-shoot.** It exists in navy and gold. Re-shoot with `npm run scenario -- summer --colors maroon-gold`. |
 | 13 | 0:35.56 – 0:38.01 | **UI, crimson & silver.** The board's letter with the four specialization cards. The cursor passes over them and chooses one on the last pulse. | **Card**, lower band: CHOOSE WHAT IT'S KNOWN FOR. (0:35.8 – 0:37.9) | **Re-shoot.** It exists in navy and gold, as a still. Re-shoot with `--colors crimson-silver`, recorded with a drawn cursor and the click, as `founding.mjs` records one. |
 
@@ -152,10 +158,9 @@ Three screens, each in its own school colours.
 
 | # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 14 | 0:38.01 – 0:41.50 | **Bare.** The time-lapse, wide: fifty autumns, one frame a year dissolving into the next, the game's *Year N* caption in the corner. | **Card:** ONE COLLEGE. FIFTY YEARS. (0:38.2 – 0:41.2) | **Have.** The first cut's clean fall frames, given 3.5 s instead of 2.45. |
+| 14 | 0:38.01 – 0:41.50 | **Bare.** The Tudor time-lapse, wide: the hand-laid Tudor campus built over fifty years. It grows in the order the seeded run builds it: walks reach out from Founders Hall, sites rise and finish, and lamps, benches and flower beds arrive round each building. The Triumphal Gate goes up last. The game's *Year N* caption sits in the corner. | **Card:** ONE COLLEGE. FIFTY YEARS. (0:38.2 – 0:41.2) | **Have** (made after the first cut): `tools/trailer/tudorTimelapse.ts`, 217 frames, *Always summer*. About 3.5 s of it plays here, sped up. A seventh architecture on screen. |
 | 15 | 0:41.50 – 0:43.60 | **UI, royal blue & gold.** The charter: the board's letter cropped to its last line ("the stone is cut once") and its button **Become Halifax University**, clicked. Then a cut to the pennant over the campus, now reading *Halifax University*. | The letter's own words. | **New.** Use `npm run scenario -- charter --colors royal-gold`, with a drawn cursor and the click. The pennant is chrome, so this shot is not bare. |
-| 16 | 0:43.60 – 0:45.40 | **Bare.** A grown campus through one year: autumn gold, bare, snow, spring green. | **"I've been looking for exactly this type of game"** — Playtester (0:43.8 – 0:46.9) | **Re-shoot.** The first cut's year crossed the summer, whose stop opened the inbox for a frame. Re-shoot from a save set to week 3, at a little under a week a frame (`clip.mjs --step=4000`), so the 54 frames end near week 47, before the summer. |
-| 17 | 0:45.40 – 0:47.14 | Close. Game day: Hamilton Stadium full for the season's opener. | (the headline carries over) | **Have.** The first cut's 4K take, pushed in on the far stand. |
+| 16 | 0:43.60 – 0:47.14 | Close. Hamilton Stadium grows to full size: the base and its field, then stands, full seating all round, and a second deck. Each expansion stands as a site for a few frames before it finishes. Then the double-decked bowl, full for a home game. | **"I've been looking for exactly this type of game"** — Playtester (0:43.8 – 0:46.9) | **New.** Frames rendered from saves, like the time-lapse: the stadium at 0, 1, 2 and 3 expansions (`expansions`, `status: 'developing'` with its weeks left between them), *Always summer*. Then the full bowl recorded live in a home-game week (week 8, 20 or 32) for the crowd. The first cut's stadium take shows the base stage only. It replaces the year of seasons, whose fast snow would flash. |
 | 18 | 0:47.14 – 0:51.64 | **UI, purple & gold.** The Final Report: *Year 50 · the fiftieth year closes*, then a push-in to its sentence: "Halifax University: a college known first for what its laboratories find, with no glaring weakness." | The report's own words. | **New.** Use `npm run scenario -- final-report --colors purple-gold`, and the sentence the run writes, unedited. Choose the run for its sentence. |
 
 ### Act 5 — The pan returns (0:51.64 – 0:54.09)
@@ -204,8 +209,9 @@ different college's, so between them they show the choice.
 
 | Shots | Colours |
 |---|---|
-| The pan (1–6, 19–21), the founding and flower beds (7–10), the time-lapse (14), the seasons (16), the stadium (17), the end card (22) | **Navy & gold**, Halifax's own |
-| Faculty (11) | **Forest & gold** |
+| The pan (1–6, 19–21), the founding and flower beds (7–10), the stadium (16), the end card (22) | **Navy & gold**, Halifax's own |
+| The Tudor time-lapse (14), another college | **Forest & gold**, the Tudor plan's own |
+| Faculty (11) | **Black & gold** |
 | The summer (12) | **Maroon & gold** |
 | The specialization (13) | **Crimson & silver** |
 | The charter (15) | **Royal blue & gold** |
@@ -262,6 +268,53 @@ correcting it). **Not used:** F3's line, at the owner's call. R9's message,
 from the composer the owner was talking to about the music. And any second
 line from a player already quoted.
 
+## Ideas for more school theming
+
+Proposals, not yet in the shot list. Each is something the game already
+has. Pick the ones that fit, and the shots change to carry them. The three
+marked ★ are the recommendation: they change no shot's footage, only its
+words or sound.
+
+1. ★ **Move-in day.** The first residence hall's letter in the game is
+   titled *Somebody lives here now*. Set that title as the card on shot 10,
+   as Meadow House finishes and the first walkers head in. Move the itch.io
+   headline to shot 9.
+2. ★ **Homecoming.** The stadium's three home games each year are the
+   opener, the rivalry and homecoming (weeks 8, 20 and 32,
+   `athletics/season.ts`). Record shot 16's full bowl in week 32 and caption
+   it *Homecoming* in the corner, as the architectures are captioned.
+3. ★ **A bell.** The game has a Bell Tower and a Campanile. Ask Alejandro
+   for a single bell or chime, struck under the title at 0:54.09 and left to
+   ring into the finale. Lay the campus's own murmur under the pan, and the
+   stadium's roar under shot 16.
+4. **The name, carved.** As you type a college's name at the founding, the
+   screen carves it across the front of a hall (`StartupScreen.tsx`'s
+   facade, drawn by code). Open Act 2 on *HALIFAX* appearing in stone, then
+   cut to the empty lawn. Crop to the facade: check where the title
+   painting behind it comes from before showing it.
+5. **The board's welcome.** Replace "Every university begins with one
+   building" with the game's own first letter, set as a letter: the eyebrow
+   *From the chair of the board*, the title *The doors open*, then "Three
+   hundred and fifty students have enrolled, and the college is yours to
+   build." It casts the viewer as the President. It is longer: give it the
+   whole of shot 7.
+6. **The eras as chapters.** Over the Tudor time-lapse, the chronicle's own
+   era names in the corner as the decades pass: *The Charter Years · The
+   Scaffolding Years · The Championship Years · The Laureate Years*. Use
+   the names the recorded run's Final Report actually gives.
+7. **Commencement.** In the year's last fortnight every lamp carries a banner
+   in the college's colours. The Tudor layout has 78 lamps and benches. A
+   close shot down a lamp-lined walk at commencement, captioned
+   *Commencement*, could close Act 4 before the Final Report.
+8. **What the guidebooks call it.** The game tags a college as the
+   guidebooks see it: *a research powerhouse*, *a teaching college*, *an
+   artists' college*, *an old-money college*, *a party school*. A card
+   asking "What will the guidebooks call yours?" before the Final Report
+   ties the minute to identity, which is what F3 said they come back for.
+9. **Student life.** The Students tab's clubs and Greek chapters, in navy
+   and orange (the last unused colour pair), as a one-second screen in
+   Act 3, with Greek Row on the map behind.
+
 ## What the first cut taught
 
 The 30-second cut (`claude/trailer-script`, rebuilt by
@@ -274,8 +327,8 @@ showed three things this script fixes:
 - **White flashes at 0:08.7–0:09.1.** The hall-rising clip squeezed 35
   weeks into a second. Its winter flashed white for four frames, and the
   summer's stop opened the inbox for two. Shot 10 uses a 16-week building
-  started in week 1, which finishes before the snow and long before the
-  summer.
+  started in week 1, which finishes long before the summer. Every
+  time-squeezed shot is recorded *Always summer*, so no winter can flash.
 - **The screens all wore navy and gold.** Now each screen has its own
   colours.
 
@@ -299,6 +352,9 @@ Smaller findings for the tools:
   Founders Hall before copying it.
 - **The screens:** text at its largest. Where a shot clicks, use a drawn
   cursor, slow and deliberate, as in `founding.mjs`.
+- **Always summer** for every time-squeezed shot. That's Settings → Seasons →
+  *Always summer* in a hand capture, `--no-seasons` on `clip.mjs`, and
+  `timelapseShoot.mjs`'s default (leave out `--seasons`).
 - **Steam's format:** H.264 MP4, AAC stereo, 30 fps, at 5,000 Kbps or more.
 
 ## Decisions for the owner
@@ -311,3 +367,6 @@ Smaller findings for the tools:
    logo.
 4. **The specialization shown,** which must be the one the Final Report's
    run chose (shots 13 and 18).
+5. **The school-theming ideas** to take
+   ([Ideas for more school theming](#ideas-for-more-school-theming)). The
+   three marked ★ cost no new footage.
