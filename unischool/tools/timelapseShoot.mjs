@@ -19,7 +19,11 @@
 // winter white once a year and the video strobes), --clean (hide the
 // map's own labels and marks, as clip.mjs's --clean does), --positions
 // (beside each shot, <frame>.positions.json: every building's middle on
-// the page, in CSS px, for an editor's camera move to follow the campus).
+// the page, in CSS px, and the map's view, for an editor's camera move to
+// follow the campus), --views=FILE (a camera per frame, in place of --zoom
+// and --pan: FILE is a JSON array of the map's own views, { zoom, x, y } as
+// window.__campusMap.view() gives them, one per frame by its number; the
+// game draws each frame at its own zoom, for a move sharp at every size).
 // Writes <dir>/shots/*.jpg and <dir>/timelapse.webm.
 //
 // The WebM is a preview and a source for an editor. Steam wants an MP4
@@ -55,6 +59,7 @@ const png = argv.includes('--png');
 const seasons = argv.includes('--seasons');
 const clean = argv.includes('--clean');
 const positions = argv.includes('--positions');
+const views = flag('views', null) && JSON.parse(readFileSync(flag('views', null), 'utf8'));
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 
 const CANDIDATES = [
@@ -100,6 +105,52 @@ const HIDE = `
 const browser = await chromium.launch({ executablePath, args: ['--no-sandbox', '--disable-background-networking'] });
 const errors = [];
 
+// --views: the map moved to a view by the player's own means, a wheel turn
+// and drags (CampusMap.tsx), then read back, since the canvas sets its
+// offset on a device pixel.
+const ZOOM_SPEED = 0.0016;       // CampusMap.tsx: zoom × e^(−deltaY × ZOOM_SPEED), toward the cursor
+const mapView = (page) => page.evaluate(() => window.__campusMap.view());
+// A drag by (dx, dy), in pieces that stay on the page, each by way of a
+// point off its line, so a short one is still a drag and not a click.
+async function dragBy(page, dx, dy) {
+  const pieces = Math.max(1, Math.ceil(Math.max(Math.abs(dx) / (W * 0.4), Math.abs(dy) / (H * 0.4))));
+  for (let i = 0; i < pieces; i++) {
+    const [x, y] = [W / 2 - dx / pieces / 2, H / 2 - dy / pieces / 2];
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 24, y + 24, { steps: 4 });
+    await page.mouse.move(x + dx / pieces, y + dy / pieces, { steps: 8 });
+    await page.mouse.up();
+  }
+  await page.keyboard.press('Escape');
+}
+async function setView(page, target) {
+  // The target's middle brought to the page's middle, the zoom turned
+  // there, which keeps it there, then what is left put right.
+  const mid = { x: (W / 2 - target.x) / target.zoom, y: (H / 2 - target.y) / target.zoom };
+  let v = await mapView(page);
+  await dragBy(page, W / 2 - (mid.x * v.zoom + v.x), H / 2 - (mid.y * v.zoom + v.y));
+  // What a wheel turn does, as measured: the browser scales a turn (by the
+  // device scale, in headless Chromium).
+  let gain = 1;
+  for (let tries = 0; tries < 6; tries++) {
+    v = await mapView(page);
+    const want = Math.log(target.zoom / v.zoom);
+    if (Math.abs(want) > 1e-6) {
+      await page.mouse.move(W / 2, H / 2);
+      await page.mouse.wheel(0, -want / ZOOM_SPEED / gain);
+      await page.waitForTimeout(100);
+      const turned = await mapView(page);
+      const got = Math.log(turned.zoom / v.zoom);
+      if (Math.abs(got) > 1e-9) gain *= got / want;
+      v = turned;
+    }
+    if (Math.abs(target.x - v.x) < 0.75 && Math.abs(target.y - v.y) < 0.75 && Math.abs(target.zoom / v.zoom - 1) < 1e-4) return v;
+    await dragBy(page, target.x - v.x, target.y - v.y);
+  }
+  return mapView(page);
+}
+
 async function shootFrame(file) {
   const payload = readFileSync(join(dir, file), 'utf8');
   const { state } = JSON.parse(payload);
@@ -122,7 +173,9 @@ async function shootFrame(file) {
   await page.waitForTimeout(800);
   // Paused, so the clock raises nothing while the camera is set.
   await page.getByRole('button', { name: 'Paused', exact: true }).click().catch(() => {});
-  if (zoom !== 0) {
+  if (views) {
+    await setView(page, views[Number(file.match(/\d+/)[0])]);
+  } else if (zoom !== 0) {
     await page.click('.map-tools-toggle');
     for (let i = 0; i < Math.abs(zoom); i++) {
       await page.click(zoom > 0 ? 'button:has-text("+")' : 'button:has-text("−")');
@@ -130,7 +183,7 @@ async function shootFrame(file) {
     }
     await page.click('.map-tools-toggle').catch(() => {});
   }
-  if (pan[0] || pan[1]) {
+  if (!views && (pan[0] || pan[1])) {
     await page.mouse.move(W / 2, H / 2);
     await page.mouse.down();
     await page.mouse.move(W / 2 + pan[0], H / 2 + pan[1], { steps: 20 });
@@ -158,7 +211,7 @@ async function shootFrame(file) {
   await page.screenshot({ path: `${base}.jpg`, type: 'jpeg', quality: 92 });
   if (png) await page.screenshot({ path: `${base}.png` });
   if (positions) {
-    writeFileSync(`${base}.positions.json`, JSON.stringify({ width: W, height: H, scale, buildings: await mapBuildings(page) }));
+    writeFileSync(`${base}.positions.json`, JSON.stringify({ width: W, height: H, scale, view: await mapView(page), buildings: await mapBuildings(page) }));
   }
   await context.close();
 }

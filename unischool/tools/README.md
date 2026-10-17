@@ -273,7 +273,10 @@ in five styles.
 The shooter takes `--zoom`, `--pan`, `--size` and `--scale` as `shot` does
 (the default framing, `--zoom=-1 --pan=60,-10` at 1920 by 1080, holds the
 year-50 campus), captions the year and term unless `--no-caption`, and keeps
-a PNG a frame with `--png` for an editor. It turns the map's seasons off
+a PNG a frame with `--png` for an editor. `--positions` writes beside each
+shot every building's middle and the map's view, for an editor's camera
+move; `--views=FILE` gives each frame a view of its own instead, so the
+game draws a move (the Tudor time-lapse below). It turns the map's seasons off
 (the Seasons setting, `settings.ts`): at one frame a quarter, one frame a
 year lands in the winter white and the video strobes. `--seasons` keeps
 them, for a cut that holds a frame per week. `--from=N --to=N` retakes a range;
@@ -357,21 +360,31 @@ reaches its last stage by year 50, the stadium its second deck. A short
 coda raises the plan's buildings the run never builds (the Triumphal Gate,
 the Research Park), and the last frames are the plan exactly.
 
-The shoot is at three times the pixels, with no caption and each frame's
-building positions beside it (`--positions`), so the edit can start close
-on Founders Hall and pull out as the campus spreads, sharp all the way.
+The camera is one move: from the map's closest zoom on Founders Hall in
+year 1, out at an even pace to the whole campus in year 50, revealing what
+was past the edge as the view widens to it. `trailer/tudor_camera.py`
+plans it, ending on a shot of one frame at the full view (whose map view
+it reads). The shooter then sets each frame's own view (`--views`), so the
+game draws every frame at about the zoom it is shown at: sharp all the
+way, with its lines at the weight the game gives them there.
 `trailer/captions.mjs` renders the year captions apart from the picture,
-and `trailer/tudor_compose.py` moves the camera, lays the captions on and
-cuts the frames to the theme:
+and `trailer/tudor_compose.py` dissolves the frames under the camera, lays
+the captions on and cuts them to the theme:
 
 ```sh
 npx rolldown tools/trailer/tudorTimelapse.ts -o node_modules/.tmp/tudor.mjs -f esm -p node \
   && node node_modules/.tmp/tudor.mjs --out node_modules/.tmp/tudor
-node tools/timelapseShoot.mjs node_modules/.tmp/tudor --clean --png --positions --no-caption \
-  --zoom=-2 --pan=-230,140 --scale=3 --fps=10           # about 35 minutes on four cores
+node tools/timelapseShoot.mjs node_modules/.tmp/tudor --from=216 --clean --positions --no-caption \
+  --zoom=-2 --pan=-230,140                              # the full view, where the camera ends
+cp node_modules/.tmp/tudor/shots/frame-0216.positions.json node_modules/.tmp/tudor-full.json
+python3 tools/trailer/tudor_camera.py node_modules/.tmp/tudor node_modules/.tmp/tudor-full.json \
+  node_modules/.tmp/tudor-camera
+node tools/timelapseShoot.mjs node_modules/.tmp/tudor --clean --png --positions --no-caption --scale=2 \
+  --views=node_modules/.tmp/tudor-camera/views.json --fps=10
 node tools/trailer/captions.mjs node_modules/.tmp/tudor node_modules/.tmp/tudor-captions
 python3 tools/trailer/tudor_compose.py node_modules/.tmp/tudor node_modules/.tmp/tudor/shots \
-  node_modules/.tmp/tudor-captions src/assets/title-theme.mp3 node_modules/.tmp/tudor.mp4
+  node_modules/.tmp/tudor-camera/camera.json node_modules/.tmp/tudor-captions \
+  src/assets/title-theme.mp3 node_modules/.tmp/tudor.mp4
 ```
 
 The shooter's default holds the map in summer (the Seasons setting's

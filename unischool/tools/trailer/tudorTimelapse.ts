@@ -10,9 +10,7 @@
 //   npm run dev                                                # in one shell
 //   npx rolldown tools/trailer/tudorTimelapse.ts -o node_modules/.tmp/tudor.mjs -f esm -p node \
 //     && node node_modules/.tmp/tudor.mjs --out node_modules/.tmp/tudor
-//   node tools/timelapseShoot.mjs node_modules/.tmp/tudor --clean --png --positions --no-caption \
-//     --zoom=-2 --pan=-230,140 --scale=3
-//   (then tools/trailer/captions.mjs and tools/trailer/tudor_compose.py: tools/README.md)
+//   (then the camera, the shoot, the captions and the cut: tools/README.md)
 //
 // How a frame is made, as in tools/timelapse.ts:
 //   - its buildings are those the run has placed by then that the plan
