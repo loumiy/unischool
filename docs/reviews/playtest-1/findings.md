@@ -204,6 +204,23 @@ marked **0.1.x** and fixed in a patch.*
   market reads as failure. Teaching becomes a number, so a 50 among 40s
   reads as a good hire. Plan 104 as G.
 
+- **Every run starts the same.** After one full run, the most
+  frustrating part of the second was "the beginning because it starts
+  off exactly the same". The player still wants to replay: "I like
+  seeing the different ways the university can develop and get its own
+  unique culture." *1 player · form (F3).*
+
+- **Two titles a year reads as a cap.** With eight teams at 100 quality,
+  "the max seems to be two". There is no cap: every postseason round
+  gives the college's opponent a stage edge (8, 20 and 35 points by
+  round; for an athletics-specialized college a quarter of that, 2, 5
+  and 9, less the Athletic Performance Complex's), so even a 100 team
+  often loses a semifinal or final (`systems/athletics/playoffs.ts`).
+  That is by design: the owner asked for about 25 to 40 titles by year 50
+  for a specialist (Plan 85G's review, 1 October), against 50 to 80
+  with no edge. What the player can't see is why: nothing says the
+  stage favours the established powers. *1 player · form (F3).*
+
 ## Asked for in play
 
 - **An ordinance system "like in the SimCity series"**: standing policies
@@ -219,6 +236,12 @@ marked **0.1.x** and fixed in a patch.*
   for economic advantages, in research for efficiency, each branch
   opening further ones, so progress isn't mostly buying more buildings.
   The player knows it's a big feature. *1 player · form (F2).*
+
+- **Coaches with continuity, history and reputations.** "There should be
+  a growing bonus for having the same coach. It seems odd that I can
+  fire a champion coach the next year, hire a higher quality coach
+  without any consequences", and "coaches should have history and
+  reputations". *1 player · form (F3).*
 
 - **Benches on a quad.** T1 tried to put benches on top of a quad, and
   enjoyed placing benches more than almost anything else. *1 player ·
@@ -390,6 +413,8 @@ questions, six of them typed answers.
 
 | Version | Date | What it fixed |
 |---|---|---|
+| `0.1.1` (`f57916d`) | 13 October | Plans 98–103, before most of these findings: halls claimed by three, events that do what they say, save slots, and a longer opening (the next course, the needs, a residence and a dining hall). |
+| `0.1.2` (`4f5b83e`) | 16 October | Plan 104, bar B: develop the next course from the hall (T1, R2); a skip that asks first (R9); the opening measured; a quieter screen for the first three steps (R10–R11); teaching as numbers, not letters (S1, F1, F2); a reason for every refused placement, and the ghost agreeing with the click (S1); needs out of 100 and what pulls satisfaction down (S1); no teaching overload (S1); the pennant (S1); the welcome letter (S1); the Students tab and satisfaction after the first summer (S1). |
 
 ## The replies
 
@@ -553,6 +578,26 @@ that in mind.*
   though, but I can imagine that it is overwhelming for a new player
   because it was a little hard to figure things out (maybe there was a
   tutorial I skipped accidentally)."
+
+- **F3** · 17 October, 02:53 UTC · 0.1.2 (build `4f5b83e`, itch.io),
+  sent from year 34 week 11, rank 30. The same install as **F1**, back
+  for a second college: on 0.1.2 one run, 68 played minutes to year 30
+  (PostHog, by install id), after F1's finished run on 0.1.1.
+  - *How long:* 4+ hours.
+  - *A moment you didn't know what to do next?* "N/A"
+  - *Best moment:* "Dominating in the athletics with 22-0 seasons."
+  - *Most frustrating:* "after playing it once, it is the beginning
+    because it starts off exactly the same."
+  - *Play again?* "yes. I like seeing the different ways the university
+    can develop and get it's own unique culture."
+  - *Would pay:* $10–15.
+  - *Anything else:* "So for my second university I made an athletic
+    focused school. (1) For coaches there should be a growing bonus for
+    having the same coach. it seems odd that I can fire a champion coach
+    the next year, hire a higher quality coach without any consequences
+    (2) Is the amount of championships you can win in a year capped a 2?
+    I have had 8 100 quality teams and the max seems to be two. (3)
+    coaches should have history and reputations."
 
 ### We Playtest Games — a service's unsolicited playtest (16 October)
 
