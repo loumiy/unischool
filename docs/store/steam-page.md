@@ -108,10 +108,11 @@ own; its line in the features carries it.
 
 - **The capsule art and the logo:** commissioned, not drawn by code
   (B6-3). The page does not go up without them.
-- **The trailer:** scripted in [`trailer.md`](trailer.md) (the time-lapse,
-  a seasonal year, the summer, the four cards and the Final Report, cut to
-  Alejandro Tóth's theme), with its research in
-  [`trailer-research.md`](trailer-research.md). It waits on the footage
-  listed there, the logo, and the theme's use in marketing.
+- **The trailer:** scripted in [`trailer.md`](trailer.md): 30 seconds of
+  Alejandro Tóth's theme, a slow pan across one campus as it changes
+  architecture under players' headlines, then the game in short clips. Its
+  research is in [`trailer-research.md`](trailer-research.md). It waits on
+  the footage listed there, the players' permissions, the logo, and the
+  theme's use in marketing.
 - **The disclosure:** [`ai-disclosure.md`](ai-disclosure.md), in Steam's
   AI-content section.
