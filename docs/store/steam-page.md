@@ -111,10 +111,10 @@ own; its line in the features carries it.
 - **The trailer:** scripted in [`trailer.md`](trailer.md): a minute of
   Alejandro Tóth's theme. It opens on a slow pan across one campus as it
   changes architecture under players' headlines. Then it goes back to the
-  founding (Founders Hall, its flower beds, its first walks) and through
-  fifty years to the Final Report. Its research is in
+  founding (the name carved in stone, Founders Hall, its flower beds, its
+  first walks) and through fifty years to the Final Report, and ends on the
+  game's logo and *Wishlist on Steam*. Its research is in
   [`trailer-research.md`](trailer-research.md). It waits on the shots
-  marked *New* and *Re-shoot* there, the players' permissions, the logo,
-  and the theme's use in marketing.
+  marked *New* and *Re-shoot* there, and the theme's use in marketing.
 - **The disclosure:** [`ai-disclosure.md`](ai-disclosure.md), in Steam's
   AI-content section.

@@ -18,6 +18,9 @@
 //        --seed N --vernacular <v> --colors <pair id> --name <school>
 //        --week N (stop in week N of year --year rather than at its end:
 //        the share image wants the fall, Plan 95Y)
+//        --specialization <pillar> (the player's pick when the milestone
+//        offers one, over the scenario's: academics, research,
+//        studentLife or athletics; the trailer's Final Report, Plan 85D)
 //        --clear-modal --build-all --list
 //
 // The output is a real save at the current SAVE_VERSION, built through the
@@ -30,14 +33,16 @@ import { SAVE_VERSION } from '../src/state/persistence';
 import { SCHOOL_COLOR_PAIRS, schoolColorsOf } from '../src/data/schoolColors';
 import { nextVenueExpansion, venueExpansionsMax } from '../src/data/facilitiesData';
 import { institutionName, totalEnrolled } from '../src/state/types';
-import type { GameState, Vernacular } from '../src/state/types';
+import type { GameState, Pillar, Vernacular } from '../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 import { CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
 import { clearBoardLetters } from '../src/systems/finance/distress';
 
+const PILLARS: readonly Pillar[] = ['academics', 'research', 'studentLife', 'athletics'];
+
 // `--k v` and `--k=v` both work; other arguments are positional.
-const VALUE_FLAGS = ['player', 'strategy', 'year', 'week', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
+const VALUE_FLAGS = ['player', 'strategy', 'year', 'week', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out', 'specialization'];
 const BOOL_FLAGS = ['list', 'clear-modal', 'build-all', 'help'];
 
 function parseArgs(argv: string[]): { flags: Record<string, string>; positional: string[] } {
@@ -102,8 +107,11 @@ if (!player) throw new Error(`no player matching "${recipe.player}". Known: ${PL
 // A run that stops at the specialization (Plan 85D) leaves it standing
 // rather than choosing by the player's rule (sim/harness/specialization.ts).
 if (wantedModal === 'specialization' || (recipe.name.startsWith('specialization') && recipe.name !== 'specialization-notice')) player.specialization = 'wait';
-// A fixed pick (Plan 85F's research park).
-else if (named?.specialization) player.specialization = named.specialization;
+// A fixed pick: the command line's, else the scenario's (Plan 85F's research park).
+else if (flags.specialization) {
+  if (!PILLARS.includes(flags.specialization as Pillar)) throw new Error(`--specialization is one of ${PILLARS.join(', ')}`);
+  player.specialization = flags.specialization as Pillar;
+} else if (named?.specialization) player.specialization = named.specialization;
 // A run that stops with a year's training picks unspent (Plan 85E).
 if (named?.trains) player.trains = named.trains;
 const seed = flags.seed ? Number(flags.seed) : DEFAULT_SEED;

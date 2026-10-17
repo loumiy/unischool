@@ -1,14 +1,16 @@
 // ---------------------------------------------------------------------
-// THE TRAILER'S WORDS (docs/store/trailer.md): the five headlines, the card
-// and the end card, each a transparent 1920x1080 PNG in the game's own
+// THE TRAILER'S WORDS (docs/store/trailer.md): the five headlines (the
+// quotes alone, no attribution: the owner's call), the card and the end
+// card, each a transparent 1920x1080 PNG in the game's own
 // faces (Bricolage Grotesque for display, Archivo for text), loaded from
 // the fontsource packages the game ships with. tools/trailer/compose.py
 // lays them over the picture and fades them.
 //
 //   node tools/trailer/cards.mjs <out dir>       # from unischool/
 //
-// The logo is a stand-in: the game's own mark (src/components/Logo.tsx)
-// until the commissioned one exists. Not part of the game.
+// The logo is the game's own (src/components/Logo.tsx), as the title
+// screen shows it: the mark over the name, in Archivo at its heaviest, in
+// wide capitals. Not part of the game.
 // ---------------------------------------------------------------------
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright-core';
@@ -33,6 +35,7 @@ const CSS = `
 @font-face { font-family: Archivo; src: url('file://${ARCH(500)}') format('woff2'); font-weight: 500; }
 @font-face { font-family: Archivo; src: url('file://${ARCH(600)}') format('woff2'); font-weight: 600; }
 @font-face { font-family: Archivo; src: url('file://${ARCH(700)}') format('woff2'); font-weight: 700; }
+@font-face { font-family: Archivo; src: url('file://${ARCH(800)}') format('woff2'); font-weight: 800; }
 html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; overflow: hidden; }
 .frame { position: absolute; inset: 0; }
 .shade-top { background: linear-gradient(to bottom, rgba(10,16,28,.70) 0%, rgba(10,16,28,.50) 20%, rgba(10,16,28,.18) 34%, rgba(10,16,28,0) 46%); }
@@ -41,13 +44,11 @@ html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; 
 .headline { position: absolute; left: 0; right: 0; top: 104px; text-align: center; color: #fff; }
 .quote { font: 800 68px/1.04 Brico, sans-serif; letter-spacing: -0.012em; max-width: 1820px; margin: 0 auto; white-space: nowrap;
   text-shadow: 0 3px 18px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35); }
-.who { margin-top: 22px; font: 600 25px/1 Archivo, sans-serif; letter-spacing: .16em; text-transform: uppercase;
-  color: #f2d27a; text-shadow: 0 2px 10px rgba(0,0,0,.5); }
 .card { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
   font: 800 124px/1 Brico, sans-serif; letter-spacing: .01em; color: #fff; text-transform: uppercase;
   text-shadow: 0 4px 26px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35); }
 .end { position: absolute; left: 0; right: 0; top: 250px; text-align: center; color: #fff; }
-.end .name { margin-top: 26px; font: 800 132px/1 Brico, sans-serif; letter-spacing: .03em; text-transform: uppercase;
+.end .name { margin-top: 26px; font: 800 132px/1 Archivo, sans-serif; letter-spacing: .04em; text-transform: uppercase;
   text-shadow: 0 4px 26px rgba(0,0,0,.45); }
 .end .tag { margin-top: 26px; font: 500 40px/1.2 Archivo, sans-serif; color: #f4efe4; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
 .cta { position: absolute; left: 0; right: 0; top: 760px; text-align: center; }
@@ -58,13 +59,13 @@ html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; 
   letter-spacing: .06em; color: rgba(255,255,255,.86); }
 `;
 
-const headline = (q, who) => `<div class="frame shade-top"></div><div class="headline"><div class="quote">“${q}”</div><div class="who">${who}</div></div>`;
+const headline = (q) => `<div class="frame shade-top"></div><div class="headline"><div class="quote">“${q}”</div></div>`;
 const CARDS = {
-  h1: headline('The football manager of universities', 'Playtester · Reddit'),
-  h2: headline('An alarmingly believable university simulator', 'Playtester · Reddit'),
-  h3: headline('It feels one of a kind', 'Playtester · We Playtest Games'),
-  h4: headline('Deeply impressed by this game', 'Player · itch.io'),
-  h5: headline('I’ve been looking for exactly this type of game', 'Playtester'),
+  h1: headline('The football manager of universities'),
+  h2: headline('An alarmingly believable university simulator'),
+  h3: headline('It feels one of a kind'),
+  h4: headline('Deeply impressed by this game'),
+  h5: headline('I’ve been looking for exactly this type of game'),
   card: `<div class="frame shade-all"></div><div class="card">One college.<br>Fifty years.</div>`,
   end1: `<div class="frame shade-end"></div><div class="end">${MARK}<div class="name">UniSchool</div><div class="tag">Fifty years to build a university.</div></div>`,
   end2: `<div class="cta"><span class="wish">Wishlist on Steam</span></div><div class="credit">Music by Alejandro Tóth &nbsp;·&nbsp; Halifax Games</div>`,
