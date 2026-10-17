@@ -41,7 +41,7 @@ And everything else they find: what confuses, what bores, what breaks.
 |---|---|---|
 | `0.1.0` (`433e111`) | 8 October | The first public build (Plan 97). |
 | `0.1.1` (`f57916d`) | 13 October | Plans 98–103: halls claimed by three, events that do what they say, save slots, a longer opening ([changelog](../../store/changelog.md)). |
-| `0.1.2` | Not yet uploaded | Plan 104: the first hour and the readings players got stuck on ([changelog](../../store/changelog.md)). |
+| `0.1.2` (`4f5b83e`) | 16 October | Plan 104: the first hour and the readings players got stuck on ([changelog](../../store/changelog.md)). |
 
 ## Where feedback arrives
 
