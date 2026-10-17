@@ -108,7 +108,10 @@ own; its line in the features carries it.
 
 - **The capsule art and the logo:** commissioned, not drawn by code
   (B6-3). The page does not go up without them.
-- **The trailer:** the time-lapse re-cut with one seasonal year (review
-  §4), then the summer, the four cards and the Final Report.
+- **The trailer:** scripted in [`trailer.md`](trailer.md) (the time-lapse,
+  a seasonal year, the summer, the four cards and the Final Report, cut to
+  Alejandro Tóth's theme), with its research in
+  [`trailer-research.md`](trailer-research.md). It waits on the footage
+  listed there, the logo, and the theme's use in marketing.
 - **The disclosure:** [`ai-disclosure.md`](ai-disclosure.md), in Steam's
   AI-content section.
