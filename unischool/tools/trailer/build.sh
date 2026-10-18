@@ -9,7 +9,7 @@
 #
 # Needs python3 with Pillow, and an ffmpeg with libx264. Everything it
 # records lands in node_modules/.tmp/tr60; nothing it writes ships. The
-# Tudor time-lapse (shot 15) is node_modules/.tmp/tudor.mp4, built by its
+# Tudor time-lapse (shot 11) is node_modules/.tmp/tudor.mp4, built by its
 # own recipe (tools/README.md) when it is not there yet.
 # ---------------------------------------------------------------------
 set -euo pipefail
@@ -19,7 +19,7 @@ OUT=${1:-$T/unischool-trailer.mp4}
 COLLEGE=(--name Halifax --vernacular georgian)
 mkdir -p "$T"
 
-# 1 · The pan's plates (shots 1-6, 19-21) and the end card's: year 50 of
+# 1 · The pan's plates (shots 12-16) and the end card's: year 50 of
 # the Completionist's seeded run, in the fall (frame 197 of a quarterly
 # time-lapse), with flower beds round Founders Hall wherever its paving
 # leaves open ground, the doors left clear. The architecture is one field
@@ -54,30 +54,31 @@ printf '%s\n' georgian gothic classical mission modern artDeco | xargs -P 3 -I{}
 node tools/clip.mjs "$T/pan-georgian.json" "$T/clips/e1.webm" --focus=QUAD-T2 --zoom=-1 --tilt=-2 --clean \
   --size=1920,1080 --scale=2 --seconds=0.04 --png
 
-# 2 · Act 2 (shots 7-11): one new game, founded and laid out on camera,
-# then Meadow House rising beside the hall, Always summer.
+# 2 · The name and Act 2 (shots 1-5): one new game, named, founded and laid
+# out on camera, then Meadow House rising beside the hall, Always summer.
 node tools/trailer/act2.mjs "$T/act2"
 node tools/clip.mjs "$T/act2/meadow.json" "$T/clips/meadow.webm" --focus=DORM-01 --zoom=4 --pan=0,150 --until-built --no-seasons \
   --clean --size=1920,1080 --scale=2 --seconds=2.4 --png
 
-# 3 · The screens (shots 12-14, 16, 18), each in its own school colours, at
-# 4K for the push-ins.
-npm run --silent scenario -- summer "${COLLEGE[@]}" --colors maroon-gold "$T/sc-summer.json"
+# 3 · The screens (shots 6-9, 17), each in its own school colours, at 4K
+# for the push-ins. The curriculum is year 11, its committee writing four
+# courses; the summer is year 12's, the pool up 37% with every figure that
+# moved up, the price dragged and set by hand (screens.mjs summer).
+npm run --silent scenario -- --player Guided --year 10 --clear-modal "${COLLEGE[@]}" --colors navy-orange "$T/sc-curriculum.json"
+npm run --silent scenario -- --player Guided --year 13 --from-year 12 --modal summer "${COLLEGE[@]}" --colors maroon-gold "$T/sc-summer.json"
 npm run --silent scenario -- specialization "${COLLEGE[@]}" --colors crimson-silver "$T/sc-specialization.json"
-npm run --silent scenario -- charter "${COLLEGE[@]}" --colors royal-gold "$T/sc-charter.json"
 npm run --silent scenario -- final-report "${COLLEGE[@]}" --player Natural --specialization academics --colors purple-gold "$T/sc-final.json"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); d['state']['self']['colors']={'primary':'#1f1b17','secondary':'#e6b84a'}; json.dump(d,open(sys.argv[2],'w'))" \
   "$T/pan-georgian.json" "$T/faculty-black.json"
 mkdir -p "$T/ui"
+node tools/shoot.mjs "$T/sc-curriculum.json" "$T/ui/curriculum.png" --tab=curriculum --size=1920,1080 --scale=2
 node tools/shoot.mjs "$T/faculty-black.json" "$T/ui/faculty.png" --tab=faculty --size=1920,1080 --scale=2
-node tools/shoot.mjs "$T/sc-summer.json" "$T/ui/summer.png" --size=1920,1080 --scale=2 \
-  --click="Continue" --click="Set tuition for the year"
 node tools/shoot.mjs "$T/sc-final.json" "$T/ui/final.png" --size=1920,1080 --scale=2
+node tools/trailer/screens.mjs summer "$T/sc-summer.json" "$T/summer"
 node tools/trailer/screens.mjs choice "$T/sc-specialization.json" "$T/choice"
-node tools/trailer/screens.mjs charter "$T/sc-charter.json" "$T/charter"
 
-# 4 · Fifty years (shot 15): the Tudor time-lapse, from spring of year 32
-# to the end of year 40 (its frames 378-482).
+# 4 · Forty years (shot 11): the Tudor time-lapse, year 1 to the end of
+# year 40 (its frames 0-482).
 if [ ! -f node_modules/.tmp/tudor.mp4 ]; then
   npx rolldown tools/trailer/tudorTimelapse.ts -o node_modules/.tmp/tudor.mjs -f esm -p node
   node node_modules/.tmp/tudor.mjs --out node_modules/.tmp/tudor
@@ -90,12 +91,11 @@ if [ ! -f node_modules/.tmp/tudor.mp4 ]; then
   python3 tools/trailer/tudor_compose.py node_modules/.tmp/tudor node_modules/.tmp/tudor/shots \
     node_modules/.tmp/tudor-camera/camera.json node_modules/.tmp/tudor-captions src/assets/title-theme.mp3 node_modules/.tmp/tudor.mp4
 fi
-rm -rf "$T/tl40" && mkdir -p "$T/tl40"
-ffmpeg -hide_banner -loglevel error -i node_modules/.tmp/tudor.mp4 -vf "select='between(n\,378\,482)'" -vsync 0 -start_number 0 "$T/tl40/%04d.png"
+rm -rf "$T/tl" && mkdir -p "$T/tl"
+ffmpeg -hide_banner -loglevel error -i node_modules/.tmp/tudor.mp4 -vf "select='between(n\,0\,482)'" -vsync 0 -start_number 0 "$T/tl/%04d.png"
 
-# 5 · The stadium (shot 17): the Tudor frames it is raised and grown in
-# (104-150), shot close on it with one view; then the double-decked bowl
-# live on the opener (the save set back to week 7), Always summer.
+# 5 · The stadium (shot 10): the Tudor frames it is raised and grown in
+# (104-150), shot close on it with one view, Always summer.
 python3 - "$T" <<'PY'
 import json, sys
 T = sys.argv[1]
@@ -104,16 +104,11 @@ cm, rm = p['col'] + p['w'] / 2, p['row'] + p['h'] / 2
 zoom = 0.62 * 1920 / ((p['w'] + p['h']) * 32)
 cx, cy = 32 * (cm - rm), 16 * (cm + rm) - 40                 # the stands rise above the footprint
 json.dump([{'zoom': zoom, 'x': 960 - cx * zoom, 'y': 540 - cy * zoom}] * 217, open(f'{T}/stadium-views.json', 'w'))
-d = json.load(open('node_modules/.tmp/tudor/frame-0216.json'))
-d['state']['clock']['week'] = 7
-json.dump(d, open(f'{T}/bowl-w7.json', 'w'))
 PY
 rm -rf "$T/stadium" && mkdir -p "$T/stadium"
 for k in $(seq 104 150); do ln -s "$(realpath "node_modules/.tmp/tudor/frame-$(printf %04d "$k").json")" "$T/stadium/"; done
 node tools/timelapseShoot.mjs "$T/stadium" --clean --png --positions --no-caption --jobs=2 \
   --views="$T/stadium-views.json" --size=1920,1080 --scale=2 --fps=10
-node tools/clip.mjs "$T/bowl-w7.json" "$T/clips/bowl.webm" --focus=ATH-STADIUM --zoom=4 --warmup=2000 --seconds=3 \
-  --clean --no-seasons --size=1920,1080 --scale=2 --png
 
 # 6 · The words.
 node tools/trailer/cards.mjs "$T/cards"

@@ -1,7 +1,11 @@
 // ---------------------------------------------------------------------
 // THE TRAILER'S SCREENS WITH A HAND ON THEM (docs/store/trailer.md, shots
-// 14 and 16), at four times the pixels for the edit's push-ins:
+// 8 and 9, and the charter the cut leaves out), at four times the pixels
+// for the edit's push-ins:
 //
+//   summer   the summer's admissions: the tuition slider dragged up, down
+//            and back, Set tuition for the year clicked, and the reveal,
+//            every figure counting up from nothing;
 //   choice   the board's letter of the four specializations: the cursor
 //            passes over the cards and chooses academics, the faculty
 //            training program (its button armed, then confirmed);
@@ -13,6 +17,7 @@
 // a cursor is drawn on the page, as tools/trailer/act2.mjs draws it.
 //
 //   npm run dev                                                 # in one shell
+//   node tools/trailer/screens.mjs summer <save.json> <out dir>
 //   node tools/trailer/screens.mjs choice <save.json> <out dir>
 //   node tools/trailer/screens.mjs charter <save.json> <out dir>
 //
@@ -22,8 +27,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
 const [mode, savePath, OUT] = process.argv.slice(2);
-if (!['choice', 'charter'].includes(mode) || !savePath || !OUT) {
-  console.error('usage: screens <choice|charter> <save.json> <out dir>');
+if (!['summer', 'choice', 'charter'].includes(mode) || !savePath || !OUT) {
+  console.error('usage: screens <summer|choice|charter> <save.json> <out dir>');
   process.exit(2);
 }
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
@@ -101,7 +106,47 @@ const middle = async (locator) => {
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
 };
 
-if (mode === 'choice') {
+if (mode === 'summer') {
+  // The review beat answered off camera; the admissions beat, its price
+  // not yet set, on.
+  await page.getByRole('button', { name: 'Continue', exact: true }).first().click();
+  await page.waitForSelector('.admissions-lock', { timeout: 10_000 });
+  const slider = page.locator('.admissions-field input[type="range"]').first();
+  const lock = page.locator('.admissions-lock');
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+  await page.clock.runFor(600);
+  const box = await slider.boundingBox();
+  const [min, max, value] = await slider.evaluate((el) => [Number(el.min), Number(el.max), Number(el.value)]);
+  // Where the thumb's middle sits for a price: the track less the thumb's
+  // own width, Chromium's own 16px (the stylesheet only colours it).
+  const thumb = 16;
+  const xAt = (v) => box.x + thumb / 2 + (box.width - thumb) * (v - min) / (max - min);
+  const y = box.y + box.height / 2;
+  // The price the reveal shows: the year's own, rounded down to the
+  // slider's step, so the pool is the one the run drew.
+  const settle = Math.floor(value / 500) * 500;
+  at = { x: xAt(value) + 150, y: y + 90 };
+  await page.mouse.move(at.x, at.y);
+  await cursor(at.x, at.y);
+  await hold(2);
+  await glide({ x: xAt(value), y }, 7);
+  await page.mouse.down();
+  // Up past what prestige supports, down to a bargain, back to the year's.
+  await glide({ x: xAt(50_000), y }, 15);
+  await hold(1);
+  await glide({ x: xAt(10_000), y }, 17);
+  await hold(1);
+  await glide({ x: xAt(settle), y }, 8);
+  await hold(2);
+  await page.mouse.up();
+  const set = await slider.evaluate((el) => Number(el.value));
+  await glide(await middle(lock), 9);
+  await hold(1);
+  console.log(`price: ${value} → ${set} set at frame ${n}`);
+  await page.mouse.click(at.x, at.y);                 // set: the reveal counts up
+  await glide({ x: W - 280, y: at.y + 60 }, 16);      // off the panel, out of the figures' way
+  await hold(94);
+} else if (mode === 'choice') {
   await page.waitForSelector('.spec-card-choose', { timeout: 10_000 });
   const cards = page.locator('section:has(.spec-card-choose)');
   const count = await cards.count();

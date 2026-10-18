@@ -1,10 +1,11 @@
 # The trailer — a script
 
-**Status:** a draft for the owner to edit, 18 October 2026. The second
-one-minute script, revised on the owner's notes on its first draft: no jump
-forward, the pan after the time-lapse, and the stadium raised but not
-filled ([What the owner said](#what-the-owner-said)). It replaces the plan
-in [`steam-page.md`](steam-page.md)'s *What waits on others*. The research
+**Status:** cut, 18 October 2026 (`unischool/tools/trailer/build.sh`). The
+second one-minute script, revised on the owner's notes: no jump forward, the
+pan after the time-lapse, the stadium raised but not filled, and the
+summer's admissions re-shot with a hand on the tuition
+([What the owner said](#what-the-owner-said)). It replaces the plan in
+[`steam-page.md`](steam-page.md)'s *What waits on others*. The research
 behind it is [`trailer-research.md`](trailer-research.md).
 
 **Length:** 1:00.5 · **Music:** Alejandro Tóth's title theme, cut twice (the
@@ -23,9 +24,10 @@ it with a gap at each door, a walk runs out from every door, and the first
 residence hall rises beside it.
 
 On the next swell the game opens out in the order you play it: the courses
-and the professors to teach them, the summer's new class, the one choice
-that decides what the college is known for, then a stadium, raised stage by
-stage.
+and the professors to teach them; on the hard drop, the summer, its tuition
+dragged up and down and set, and the new class counting up from nothing;
+the one choice that decides what the college is known for; then a stadium,
+raised stage by stage.
 
 On the rise into the theme's return, forty years pass in one shot. The
 camera starts close on Founders Hall, alone on its lawn, and pulls out year
@@ -58,6 +60,12 @@ says *it can look like anything*, and the report says *and it's yours*.
   flash-forward, the first card carries the promise, EVERY UNIVERSITY
   BEGINS WITH ONE BUILDING., and the years arrive with the time-lapse at
   0:28.64.
+- **Cause and effect on the screens.** The game moves little, so the one
+  screen with a hand on it at length is the summer: the price dragged past
+  what prestige supports, down to a bargain and back, the verdict under it
+  changing as it goes, then set, and the pool it drew counting up from
+  nothing with every reason it rose (the research's rule six, cause and
+  effect, on a screen).
 - **The story follows play.** Name, Founders Hall, the grounds, the first
   residence, courses and professors, admissions, the specialization,
   athletics, then the years: the calendar structure the genre's best
@@ -128,10 +136,11 @@ them by ear and nudge each to the nearest bar line.
 | 0:14.74 | 0:22.10 | A swell. | The courses. |
 | 0:16.91 | 0:24.27 | An eighth-note onset. | The professors. |
 | 0:17.74 | 0:25.10 | A swell, the statement's peak. | |
-| **0:18.99** | 0:26.35 | **Hard drop,** −13 dB in 0.4 s. | The summer's new class. |
-| 0:20.89 | 0:28.25 | A rise. | The choice follows on the pulse at 0:21.31. |
-| 0:23.54 | 0:30.9 → 0:39.6 | First join. | The stadium follows on the pulse at 0:23.94. |
-| 0:25.39 | 0:41.45 | An onset. | |
+| **0:18.99** | 0:26.35 | **Hard drop,** −13 dB in 0.4 s. | The summer: the tuition dragged up and down. |
+| 0:20.89 | 0:28.25 | A rise. | The price set; the new class counts up. |
+| 0:22.93 | 0:30.29 | An onset of the pulse. | The choice. |
+| 0:23.54 | 0:30.9 → 0:39.6 | First join. | |
+| 0:25.39 | 0:41.45 | An onset. | The stadium. |
 | **0:28.64** | 0:44.70 | **A rise,** the quiet middle's strongest onset. | Forty years: Founders Hall, alone, and the first headline. |
 | 0:31.04 | 0:47.1 → 1:04.5 | Second join, on a swell. The pulse begins. | Year 7. |
 | 0:33.10 | 1:06.56 | A pulse group. | |
@@ -159,11 +168,10 @@ music can thin under the headlines; and how he'd like his credit to read.
 
 ## The shot list
 
-Every shot below was recorded for the first minute
-(`unischool/tools/trailer/build.sh`), except the curriculum (shot 6).
-**Status** says what each needs:
-- **Have**: recorded, used as it is (any retiming is the edit's).
-- **New**: never recorded.
+Every shot below is recorded by `unischool/tools/trailer/build.sh`: most
+for the first minute, and the curriculum (shot 6) and the summer (shot 8)
+for this cut. **Status** says where each comes from; all are **Have**:
+recorded, used as they are (any retiming is the edit's).
 
 *UI* means the interface is on screen. *Bare* means the chrome is hidden,
 and the map's labels and marks too (`--clean`).
@@ -192,17 +200,17 @@ The screens, each in its own school colours, then the stadium.
 
 | # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 6 | 0:14.74 – 0:16.91 | **UI, navy & orange.** On the swell, the curriculum: the course catalogue, a slow push across it. | **Band:** ADD THE COURSES. (0:14.85 – 0:16.85) | **New:** one 4K still (`shoot.mjs <save> curriculum.png --tab=curriculum --scale=2`, the year-50 save in navy and orange). Without it, shot 7 starts here and holds to 0:18.99. |
+| 6 | 0:14.74 – 0:16.91 | **UI, navy & orange.** On the swell, the curriculum in year 11: the committee writing four courses, each with its bar, and the catalogue under it, a *Develop* button on every program. A slow push in on the committee and the first school. | **Band:** ADD THE COURSES. (0:14.85 – 0:16.85) | **Have.** One 4K still of year 11 (`npm run scenario -- --player Guided --year 10 --clear-modal --name Halifax --colors navy-orange`, then `shoot.mjs --tab=curriculum --scale=2`). Year 50 had every course written, its committee idle. |
 | 7 | 0:16.91 – 0:18.99 | **UI, black & gold.** The faculty: a push-in across the grid of faces, toward one card's portrait, through the statement's peak (0:17.74). | **Band:** HIRE THE PROFESSORS. (0:16.95 – 0:18.95) | **Have.** |
-| 8 | 0:18.99 – 0:21.31 | **UI, maroon & gold.** On the hard drop, the summer: a push-in to the applicant pool and the kinds of student it drew. | **Band:** EVERY SUMMER, A NEW CLASS. (0:19.1 – 0:21.2) | **Have.** |
-| 9 | 0:21.31 – 0:23.94 | **UI, crimson & silver.** The board's letter with the four specialization cards. The cursor passes over them and chooses academics, **The faculty training program**: armed. | **Band:** CHOOSE WHAT IT'S KNOWN FOR. (0:21.45 – 0:23.8) | **Have** (`screens.mjs choice`), its frames 0–68, ending on the armed button under the cursor, its first frame held a third of a second. |
-| 10 | 0:23.94 – 0:28.64 | Close. The stadium raised and grown, stage by stage, at the time-lapse's own pace: the pad, the stands, full seating all round, the second deck, each a construction site for a beat. | None. | **Have.** The Tudor frames 104–150, shot close on the stadium: three frames each, 4.7 s (the first minute squeezed them into 2.4 s). |
+| 8 | 0:18.99 – 0:22.93 | **UI, maroon & gold.** On the hard drop, the summer's admissions, year 12. The cursor takes the tuition slider and drags it up to $50,000 (*far above what the college's prestige supports*), down to $10,000 (*a bargain*) and back to the year's $22,000 (*in line with the college's prestige*). It clicks *Set tuition for the year* on the rise (0:20.89), and the reveal counts up from nothing: the applicant pool to 6,700, +37% on last summer, every reason in green; the room to 3,340; and, as the camera tilts down to them, the kinds of student it drew, each up on last year. | **Band:** EVERY SUMMER, A NEW CLASS. (0:19.05 – 0:21.1), over the empty cream under the price, gone as the figures come. | **Have** (re-shot for this cut: `screens.mjs summer` on `npm run scenario -- --player Guided --year 13 --from-year 12 --modal summer --name Halifax --colors maroon-gold`), its frames 6–123: the price set at its frame 63. |
+| 9 | 0:22.93 – 0:25.39 | **UI, crimson & silver.** The board's letter with the four specialization cards. The cursor passes over them and chooses academics, **The faculty training program**: armed. | **Band:** CHOOSE WHAT IT'S KNOWN FOR. (0:23.05 – 0:25.3) | **Have** (`screens.mjs choice`), its frames 0–68, ending on the armed button under the cursor, its first frame held a sixth of a second. |
+| 10 | 0:25.39 – 0:28.64 | Close. The stadium raised and grown, stage by stage: the pad, the stands, full seating all round, the second deck, each a construction site for a beat. | None. | **Have.** The Tudor frames 104–150, shot close on the stadium, about two frames each, each dissolving into the next (3.25 s; the first minute squeezed them into 2.4 s). |
 
 ### Act 4 — Forty years (0:28.64 – 0:44.73)
 
 | # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 11 | 0:28.64 – 0:44.73 | **Bare.** On the rise, the Tudor time-lapse, year 1 to the end of year 40, in one unbroken shot. It opens at the map's closest zoom on Founders Hall, alone on its lawn, and pulls out at an even pace as walks, halls and sites spread round it: the quads, the residences, the athletic venues growing at the edge. The year sits in the corner. The pulse begins at year 7; the second entry lands in year 24. | The five headlines, one after another, each a beat after the last: **"The football manager of universities"** (0:29.0 – 0:31.6), **"An alarmingly believable university simulator"** (0:32.0 – 0:34.7), **"Deeply impressed by this game"** (0:35.1 – 0:37.6), **"It feels one of a kind"** (0:38.0 – 0:40.6, on the second entry), **"I've been looking for exactly this type of game"** (0:41.0 – 0:44.2). Then year 40, clear. | **Have.** `tudor.mp4`'s frames 0–482, at their own pace (`tudorTimelapse.ts`, `tudor_camera.py`, `timelapseShoot.mjs --views`), *Always summer*. A seventh architecture on screen. (`build.sh` takes its frames 378–482 for the first minute; this cut takes them all.) |
+| 11 | 0:28.64 – 0:44.73 | **Bare.** On the rise, the Tudor time-lapse, year 1 to the end of year 40, in one unbroken shot. It opens at the map's closest zoom on Founders Hall, alone on its lawn, and pulls out at an even pace as walks, halls and sites spread round it: the quads, the residences, the athletic venues growing at the edge. The year sits in the corner. The pulse begins at year 7; the second entry lands in year 24. | The five headlines, one after another, each a beat after the last: **"The football manager of universities"** (0:29.0 – 0:31.6), **"An alarmingly believable university simulator"** (0:32.0 – 0:34.7), **"Deeply impressed by this game"** (0:35.1 – 0:37.6), **"It feels one of a kind"** (0:38.0 – 0:40.6, on the second entry), **"I've been looking for exactly this type of game"** (0:41.0 – 0:44.2). Then year 40, clear. | **Have.** `tudor.mp4`'s frames 0–482, at their own pace (`tudorTimelapse.ts`, `tudor_camera.py`, `timelapseShoot.mjs --views`), *Always summer*. A seventh architecture on screen. Its last three frames, where the caption turns to year 41, hold year 40. |
 
 ### Act 5 — Year 50 (0:44.73 – 0:54.09)
 
@@ -246,8 +254,8 @@ The muted test: read only this column.
 | 0:03.3 | EVERY UNIVERSITY BEGINS WITH ONE BUILDING. | 6 | 2.6 |
 | 0:14.85 | ADD THE COURSES. | 3 | 2.0 |
 | 0:16.95 | HIRE THE PROFESSORS. | 3 | 2.0 |
-| 0:19.1 | EVERY SUMMER, A NEW CLASS. | 5 | 2.1 |
-| 0:21.45 | CHOOSE WHAT IT'S KNOWN FOR. | 5 | 2.35 |
+| 0:19.05 | EVERY SUMMER, A NEW CLASS. | 5 | 2.05 |
+| 0:23.05 | CHOOSE WHAT IT'S KNOWN FOR. | 5 | 2.25 |
 | 0:29.0 | "The football manager of universities" | 5 | 2.6 |
 | 0:32.0 | "An alarmingly believable university simulator" | 5 | 2.7 |
 | 0:35.1 | "Deeply impressed by this game" | 5 | 2.5 |
@@ -408,7 +416,7 @@ time-lapse showed only years 32 to 40; the name came after the pan, at
 - **The headlines together,** so they say that several people are enjoying
   the game. They now play as one passage over the time-lapse.
 
-### Of the second script's first draft
+### Of the second script
 
 The first draft (18 October) jumped from the name to seven seconds of
 Halifax fifty years on, the pan flicking through five architectures, before
@@ -423,7 +431,15 @@ full for the opener, under FILL THE STANDS. The owner asked for:
   year 40, under *What will you build?*, and lead into the Final Report.
 - **The stadium raised, not filled.** The filled stands on game day don't
   look good. The bowl and FILL THE STANDS. are out. The stadium's rise
-  keeps its place, now at the time-lapse's own pace and without a card.
+  keeps its place, without a card.
+
+Then, of the revised script:
+
+- **Re-shoot admissions.** There is so little visual movement in the game
+  that the summer's tuition, slid up and down, and then the numbers all
+  ticking up, is a moment to capture. The summer now runs 3.9 seconds
+  with a hand on the slider (shot 8), taken from the stadium, which runs
+  3.25 seconds and starts on the onset at 0:25.39.
 
 ## What the first cut taught
 
@@ -466,6 +482,20 @@ Smaller findings for the tools:
   the filled stands didn't look good to the owner, so the bowl is out of
   this cut.
 
+## What recording this cut taught
+
+- **The summer has to be a good one.** The first minute's summer was year
+  6's, whose pool fell 41% to crowding: red figures everywhere. Every
+  summer of the seeded run was surveyed at the year's price, and year 12's
+  rose 37% with every reason it moved in green.
+- **The slider snaps to its step.** It shows the year's price ($22,100)
+  until it is touched, then whole $500s; the take sets $22,000. Chromium's
+  own thumb is 16 px wide, which `screens.mjs` allows for to land on a price.
+- **The reveal counts for 2.6 seconds** on an ease-out, so its first two
+  seconds show nearly all of it: the cut leaves on 6,641 of 6,700.
+- **Year 50's curriculum is finished.** Every course written, the committee
+  idle: the still is year 11's, four courses in development.
+
 ## How to capture
 
 - **Size:** at least 3840×2160 (`--size=1920,1080 --scale=2`), 30 fps.
@@ -501,11 +531,10 @@ The owner's calls on what was open:
 7. **The second draft's notes** (18 October): no jump forward; the pan
    after the time-lapse; the stadium raised, not filled, and no FILL THE
    STANDS.
+8. **The revised script** (18 October): the admissions re-shot, the
+   tuition slid up and down and the numbers ticking up; the curriculum
+   still taken; the stadium wordless.
 
-Still to settle before the cut: S1's words against the video
+Still to settle before the store: S1's words against the video
 ([The headlines](#the-headlines)), and the theme's permission and master
-from Alejandro ([The music](#the-music)). For this script: whether the
-curriculum still is worth its one new capture, and whether the stadium
-carries a card. It plays wordless here, a breath between the screens'
-bands and the headlines; FIELD THE TEAMS. would name the athletics
-programs.
+from Alejandro ([The music](#the-music)).
