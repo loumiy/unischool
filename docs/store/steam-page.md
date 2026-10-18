@@ -109,11 +109,13 @@ own; its line in the features carries it.
 - **The capsule art and the logo:** commissioned, not drawn by code
   (B6-3). The page does not go up without them.
 - **The trailer:** scripted in [`trailer.md`](trailer.md): a minute of
-  Alejandro Tóth's theme. It opens on a slow pan across one campus as it
-  changes architecture under players' headlines. Then it goes back to the
-  founding (the name carved in stone, Founders Hall, its flower beds, its
-  first walks) and through fifty years to the Final Report, and ends on the
-  game's logo and *Wishlist on Steam*. Its research is in
+  Alejandro Tóth's theme, in the order of play. It opens on the college's
+  name carved in stone, jumps fifty years to what it becomes, then goes back
+  to Founders Hall, its flower beds and walks, the first residence, the
+  courses and professors, admissions, the specialization and game day.
+  Fifty years pass in one pull-back from Founders Hall while the players'
+  headlines arrive, and it ends on the Final Report, the game's logo and
+  *Wishlist on Steam*. Its research is in
   [`trailer-research.md`](trailer-research.md). It waits on the shots
   marked *New* and *Re-shoot* there, and the theme's use in marketing.
 - **The disclosure:** [`ai-disclosure.md`](ai-disclosure.md), in Steam's
