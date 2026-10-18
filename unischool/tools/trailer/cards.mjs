@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------
-// THE TRAILER'S WORDS (docs/store/trailer.md): the founding screen's
-// heading, the five headlines (the quotes alone, no attribution: the
-// owner's call), the cards, the bands that sit across the screens' lower
-// part, the architectures' captions and the end card, each a transparent 1920x1080 PNG in the game's own
+// THE TRAILER'S WORDS (docs/store/trailer.md): the five headlines (the
+// quotes alone, no attribution: the owner's call), the cards, the bands
+// that sit across the screens' lower part, the architectures' captions and
+// the end card, each a transparent 1920x1080 PNG in the game's own
 // faces (Bricolage Grotesque for display, Archivo for text), loaded from
 // the fontsource packages the game ships with. tools/trailer/compose.py
 // lays them over the picture and fades them.
@@ -54,9 +54,6 @@ html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; 
 .band { position: absolute; left: 0; right: 0; top: 842px; height: 148px; display: flex; align-items: center; justify-content: center;
   background: linear-gradient(to bottom, rgba(10,16,28,0) 0%, rgba(10,16,28,.82) 14%, rgba(10,16,28,.82) 86%, rgba(10,16,28,0) 100%);
   font: 800 66px/1 Brico, sans-serif; letter-spacing: .02em; color: #fff; text-transform: uppercase; }
-/* The founding screen's own heading, as the game sets it, over the facade's sky. */
-.heading { position: absolute; left: 0; right: 0; top: 74px; text-align: center; font: 800 64px/1 Brico, sans-serif;
-  letter-spacing: -0.02em; color: #1b2a4a; }
 /* The architecture's name, as the time-lapse captions its year. */
 .caption { position: absolute; left: 48px; bottom: 40px; font: 600 44px/1 Brico, sans-serif; color: #fff;
   text-shadow: 0 2px 10px rgba(0,0,0,.45); letter-spacing: .01em; }
@@ -79,7 +76,6 @@ const CARDS = {
   h3: headline('Deeply impressed by this game'),
   h4: headline('It feels one of a kind'),
   h5: headline('I’ve been looking for exactly this type of game'),
-  heading: `<div class="heading">Name your college</div>`,
   begins: `<div class="frame shade-top"></div><div class="card long top">Every university<br>begins with one building.</div>`,
   'band-courses': `<div class="band">Add the courses.</div>`,
   'band-professors': `<div class="band">Hire the professors.</div>`,

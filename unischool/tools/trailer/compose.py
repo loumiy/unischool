@@ -4,8 +4,8 @@
 # music's measured cues, as the script's shot list times them: the founding
 # on the first entry (0:03.09), the screens from the swell (0:14.74), the
 # summer on the hard drop (0:18.99), forty years from the rise (0:28.64),
-# the pan on the pulse after it (0:44.73), the Final Report on the drop
-# (0:49.04) and the title in the breath (0:54.09).
+# the pan on the pulse after it (0:44.73), through the big swell to the
+# title in the breath (0:54.09).
 #
 #   python3 tools/trailer/compose.py <shots dir> <out.mp4>    # needs Pillow
 #
@@ -57,7 +57,7 @@ def name(i, t):
     h = round(src.width * H / W)
     sky = src.getpixel((4, 4))
     canvas = Image.new('RGB', (src.width, h), sky)
-    canvas.paste(src, (0, h - src.height))
+    canvas.paste(src.crop((0, 1, src.width, src.height)), (0, h - src.height + 1))   # its top row is the page's, not sky
     s = lerp(1.0, 1.045, ease(i / 92))
     band = h - src.height + src.height * 0.36                  # the frieze the name is cut in
     return window(canvas, src.width / 2, lerp(h / 2, band, 0.35), src.width / s)
@@ -75,12 +75,10 @@ def seq(dirpath, at, box=None):
         return window(src, lerp(c0x, c1x, k), lerp(c0y, c1y, k), lerp(w0, w1, k))
     return f
 
-def still(path, c0, w0, c1, w1, n, hold=0, until=None):
-    """A screen at 4K, pushed in from one window to another between `hold`
-    and `until` (the last frame, unless given), held either side."""
-    end = n - 1 if until is None else until
+def still(path, c0, w0, c1, w1, n, hold=0):
+    """A screen at 4K, pushed in from one window to another after `hold`."""
     def f(i, t):
-        k = ease((i - hold) / max(1, end - hold))
+        k = ease((i - hold) / max(1, n - 1 - hold))
         return window(img(path), lerp(c0[0], c1[0], k), lerp(c0[1], c1[1], k), lerp(w0, w1, k))
     return f
 
@@ -112,13 +110,13 @@ def stadium(i, t):
         fr = Image.blend(fr, img(fs[a + 1]), k)
     return window(fr, lerp(1920, 1990, i / 96), lerp(1080, 1040, i / 96), lerp(3840, 3300, ease(i / 96)))
 
-# --- 12-16 · the pan: one drift across the 2880x1620 plates, the same for
+# --- 12-21 · the pan: one drift across the 2880x1620 plates, the same for
 # every architecture, so a switch is a cut on the same frame of the move,
-# and the plates' frames run on across the cuts, the walkers with them. It
-# slows to rest on Founders Hall at the head of the Grand Quad as the
-# Final Report cuts in.
-PAN_T0, PAN_T1, PAN_SLOW = 1342 / FPS, 1471 / FPS, 1.5
-PAN_XA, PAN_XB, PAN_X, PAN_Y0, PAN_Y1 = 600, 820, 820, 160, 90
+# and the plates' frames run on across the cuts. It slows to rest on
+# Founders Hall at the head of the Grand Quad in the breath, as the title
+# comes up.
+PAN_T0, PAN_T1, PAN_SLOW = 1342 / FPS, 1623 / FPS, 1.6
+PAN_XA, PAN_XB, PAN_X, PAN_Y0, PAN_Y1 = 340, 820, 820, 160, 90
 PAN_V = (PAN_XB - PAN_XA) / (PAN_T1 - PAN_T0 - PAN_SLOW / 2)
 def pan_at(t):
     edge = PAN_T1 - PAN_SLOW
@@ -154,28 +152,34 @@ SEGMENTS = [   # (frames, renderer): the script's shots, in order
     (74, seq(T / 'choice', lambda i: max(0, i - 5), ((2240, 1000, 3400), (2380, 980, 2920), 74))),   # 9  0:22.93, the inbox pushed out of frame
     (97, stadium),                                                    # 10 0:25.39
     (483, seq(T / 'tl', lambda i: min(i, 479))),                      # 11 0:28.64, years 1-40 (its last frames, where the caption turns to year 41, hold year 40)
+    # The six, two beats each; on the big swell three, a beat each; then
+    # Georgian on the peak. The plates hold 150 frames, so on the cut at
+    # the drop (0:49.19) they start again, under the change of buildings.
     (36, pan('gothic')),                                              # 12 0:44.73
-    (16, pan('classical', 36)),                                       # 13 0:45.93
-    (16, pan('mission', 52)),                                         # 14 0:46.47
-    (16, pan('artDeco', 68)),                                         # 15 0:47.00
-    (45, pan('georgian', 84)),                                        # 16 0:47.54
-    (152, still(UI / 'final.png', (1920, 1080), 3840, (1920, 520), 2100, 152, hold=30, until=108)),   # 17 0:49.04
-    (192, end),                                                       # 18 0:54.09
+    (32, pan('classical', 36)),                                       # 13 0:45.93
+    (33, pan('mission', 68)),                                         # 14 0:47.00
+    (33, pan('modern', 101)),                                         # 15 0:48.10
+    (32, pan('artDeco')),                                             # 16 0:49.19
+    (33, pan('georgian', 32)),                                        # 17 0:50.27
+    (17, pan('modern', 65)),                                          # 18 0:51.36
+    (17, pan('mission', 82)),                                         # 19 0:51.93
+    (16, pan('gothic', 99)),                                          # 20 0:52.49
+    (32, pan('georgian', 115)),                                       # 21 0:53.02
+    (192, end),                                                       # 22 0:54.09
 ]
 assert sum(n for n, _ in SEGMENTS) == 1815
 
 # --- the words: (overlay, in, out, fade) in seconds --------------------------
 C = T / 'cards'
 WORDS = [
-    ('heading', 0.20, 2.40, 0.18),
     ('begins', 3.30, 5.90, 0.20),
     ('band-courses', 14.85, 16.85, 0.15), ('band-professors', 16.95, 18.95, 0.15),
     ('band-summer', 19.05, 21.10, 0.18), ('band-choose', 23.05, 25.30, 0.18),
     ('h1', 29.00, 31.60, 0.18), ('h2', 32.00, 34.70, 0.18), ('h3', 35.10, 37.60, 0.18),
     ('h4', 38.00, 40.60, 0.18), ('h5', 41.00, 44.20, 0.18),
-    ('build', 45.00, 48.80, 0.20),
-    ('cap-gothic', 44.80, 45.90, 0.10), ('cap-classical', 45.96, 46.44, 0.06), ('cap-mission', 46.50, 46.97, 0.06),
-    ('cap-artDeco', 47.03, 47.50, 0.06), ('cap-georgian', 47.57, 48.80, 0.10),
+    ('cap-gothic', 44.80, 45.86, 0.10), ('cap-classical', 46.00, 46.93, 0.10), ('cap-mission', 47.07, 48.03, 0.10),
+    ('cap-modern', 48.17, 49.12, 0.10), ('cap-artDeco', 49.26, 50.20, 0.10), ('cap-georgian', 50.34, 51.29, 0.10),
+    ('build', 51.45, 53.95, 0.20),
     ('end1', 54.09, 99, 0.40), ('end2', 55.19, 99, 0.40),
 ]
 over = {k: Image.open(C / f'{k}.png').convert('RGBA') for k, *_ in WORDS}

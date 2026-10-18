@@ -2,8 +2,9 @@
 
 **Status:** cut, 18 October 2026 (`unischool/tools/trailer/build.sh`). The
 second one-minute script, revised on the owner's notes: no jump forward, the
-pan after the time-lapse, the stadium raised but not filled, and the
-summer's admissions re-shot with a hand on the tuition
+pan after the time-lapse, the stadium raised but not filled, the summer's
+admissions re-shot with a hand on the tuition, no words on the first shot,
+and the Final Report cut for a longer pan
 ([What the owner said](#what-the-owner-said)). It replaces the plan in
 [`steam-page.md`](steam-page.md)'s *What waits on others*. The research
 behind it is [`trailer-research.md`](trailer-research.md).
@@ -35,16 +36,17 @@ by year as a campus grows round it, while the players' words arrive one
 after another.
 
 Then Halifax in its fiftieth year, in the fall. The camera drifts over the
-Grand Quad as it flicks through five architectures on the beat, under the
-question *What will you build?* It settles on Founders Hall, in the Georgian
-it was founded in. The Final Report answers for this run on the theme's
-peak: *Halifax University: a college known first for its teaching*. Then
-the title.
+Grand Quad as it goes through all six architectures on the beat, each
+named. On the theme's big swell they flicker, under the question *What
+will you build?*, and on its peak the campus settles into the Georgian it
+was founded in, the drift coming to rest on Founders Hall at the head of
+its quad. Then the title.
 
 The name says *this is yours from the first keystroke*. The minute after it
 proves it's a game you play, start to finish, in the order you play it. The
 headlines, all together, say *people are playing it and love it*. The pan
-says *it can look like anything*, and the report says *and it's yours*.
+says *it can look like anything*, and Founders Hall at its end, the hall
+set down on an empty lawn in year one, says *and it's yours*.
 
 ## How it's built
 
@@ -76,22 +78,22 @@ says *it can look like anything*, and the report says *and it's yours*.
   compressed time, a moving camera, cause and effect). It is the bookend
   inside one shot: Founders Hall alone on a lawn, and then at the heart of a
   university (the research's Civilization VII note).
-- **The pan comes last, and it's short.** Four seconds after the
-  time-lapse, five architectures, each cut on an onset of the music's
-  pulse. The first holds two beats while the new place registers. Three
-  more get a beat each. The last is Georgian, the style Halifax was founded
-  in, held while the drift comes to rest on Founders Hall. The first minute
-  gave the pan 19 seconds at the start, and the research's impatient
-  viewers named slow pans first. Modern, the sixth style, sits out: four
-  seconds hold five.
+- **The pan comes last.** Nine seconds after the time-lapse, to the
+  title, every cut on the music's beat. First all six architectures, two
+  beats each, each named in the corner. Then, on the big swell, three
+  more, a beat each, under the question. Last, on the peak, Georgian, the
+  style Halifax was founded in, held while the drift comes to rest on
+  Founders Hall. The first minute gave the pan 19 seconds at the start,
+  before anything was played, and the research's impatient viewers named
+  slow pans first; here it is the payoff, after the minute has shown the
+  game.
 - **The headlines arrive together.** All five play over the time-lapse, one
   after another, never in the first seconds (rule nine), so they read as a
   chorus: many players, one game.
 - **Six cards,** each six words or fewer, held two seconds or more (rule
-  five), and the game's own words where it has them: the carved name, the
-  Final Report's sentence.
+  five), and the game's own words where it has them: the carved name.
 - **The interface in the gameplay shots, in many colours.** The screens
-  (the curriculum, faculty, the summer, the choice, the Final Report) each
+  (the curriculum, faculty, the summer, the choice) each
   wear a different pair of school colours, so the colour choice shows
   without a word about it. Halifax's map shots stay in its navy and gold, so
   the campus reads as one place throughout. See [The colours](#the-colours).
@@ -147,10 +149,12 @@ them by ear and nudge each to the nearest bar line.
 | 0:35.56 | 1:09.02 | A pulse group. | |
 | **0:38.01** | 1:11.47 | **Second entry,** +9 dB. | Year 24, and the fourth headline. |
 | 0:40.39 | 1:13.85 | A drop. | Year 30. |
-| 0:44.73 · 0:45.93 · 0:46.47 · 0:47.00 · 0:47.54 | 1:18.19 … 1:21.00 | The pulse's beat (0.546 s; the bass marks these onsets, with a lighter one between each). | Year 40 gives way to the pan: Collegiate Gothic, then Classical, Mission, Art Deco, a beat each, then Georgian. |
-| 0:47.14 | 1:20.60 | A swell. | Under Art Deco, into Georgian. |
-| 0:49.04 | 1:22.50 | A drop. | The Final Report. |
-| **0:51.64** | 1:25.10 | **The big swell,** to the peak at 0:53.04. | The push-in to the report's sentence. |
+| 0:44.73 · 0:45.93 · 0:47.00 · 0:48.10 · 0:49.19 · 0:50.27 | 1:18.19 … 1:23.73 | Every second beat of the pulse (0.546 s a beat; the bass marks these onsets, with a lighter one between each). | Year 40 gives way to the pan: Collegiate Gothic, Classical, Mission, Modern, Art Deco, Georgian. |
+| 0:47.14 | 1:20.60 | A swell. | Under Mission and Modern. |
+| 0:49.04 | 1:22.50 | A drop. | Art Deco follows on the beat. |
+| 0:51.36 · 0:51.93 · 0:52.49 | 1:24.82 … 1:25.95 | Every beat. | Modern, Mission, Collegiate Gothic, a beat each, under *What will you build?* |
+| **0:51.64** | 1:25.10 | **The big swell,** to the peak at 0:53.04. | |
+| 0:53.02 | 1:26.48 | The beat at the peak. | Georgian, the drift coming to rest on Founders Hall. |
 | **0:54.09** | 1:27.55 | **The breath,** −8.5 dB for a second. | The title. |
 | **0:55.19** | 1:28.65 | **The finale** enters. | *Wishlist on Steam*. |
 | 0:58.04 → 1:00.44 | 1:31.5 → 1:33.9 | Fade to silence, done before the swell at 1:33.95. | The end card holds to 1:00.5. |
@@ -180,7 +184,7 @@ and the map's labels and marks too (`--clean`).
 
 | # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 1 | 0:00 – 0:03.09 | **UI**, close. The founding screen's facade: Founders Hall head-on in Georgian stone, *COLLEGE* carved across its front. *Halifax* is typed, and each letter is cut into the stone as it lands, until the front reads **HALIFAX COLLEGE**. Held, pushing in a touch. | Small, above the facade, the screen's own heading: *Name your college* (0:00.2 – 0:02.4). Then the carved name itself. | **Have.** The facade take (`act2.mjs`, shot 7 of the first minute), held longer at both ends: its 58 frames make 93. |
+| 1 | 0:00 – 0:03.09 | **UI**, close. The founding screen's facade: Founders Hall head-on in Georgian stone, *COLLEGE* carved across its front. *Halifax* is typed, and each letter is cut into the stone as it lands, until the front reads **HALIFAX COLLEGE**. Held, pushing in a touch. | None but the carved name: the clip says what is happening. | **Have.** The facade take (`act2.mjs`, shot 7 of the first minute), held longer at both ends: its 58 frames make 93. |
 
 ### Act 2 — One building (0:03.09 – 0:14.74)
 
@@ -214,34 +218,42 @@ The screens, each in its own school colours, then the stadium.
 
 ### Act 5 — Year 50 (0:44.73 – 0:54.09)
 
-Halifax again, fifty years on, in the fall; then its Final Report.
+Halifax again, fifty years on, in the fall: the pan's plates, one drift
+across them, every switch a cut on the same frame of the move.
 
 | # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 12 | 0:44.73 – 0:45.93 | **Bare.** On the pulse, year 40 gives way to Halifax in year 50, in the fall: a low angle on the Grand Quad and its fountain, walkers crossing, the camera drifting slowly left to right. **Collegiate Gothic**, held two beats. | **Card,** at the top: WHAT WILL YOU BUILD? (0:45.0 – 0:48.8). Caption: *Collegiate Gothic* | **Have.** The pan's plates. |
-| 13 | 0:45.93 – 0:46.47 | The same pan, same place, cut on the beat: **Classical**. Only the buildings change. | Caption: *Classical* | **Have.** |
-| 14 | 0:46.47 – 0:47.00 | **Mission.** | Caption: *Mission* | **Have.** |
-| 15 | 0:47.00 – 0:47.54 | **Art Deco**, the swell rising under it. | Caption: *Art Deco* | **Have.** |
-| 16 | 0:47.54 – 0:49.04 | **Georgian**, Halifax's own, the style it was founded in. The drift slows and settles on Founders Hall at the head of the Grand Quad, in its ring of flower beds. | Caption: *Georgian* (to 0:48.8) | **Have.** |
-| 17 | 0:49.04 – 0:54.09 | **UI, purple & gold.** The Final Report opens on the drop: *Year 50 · the fiftieth year closes*, and at the head of the report its sentence. A second wide, then a push-in closes on the sentence through the big swell and holds on it over the peak: "Halifax University: a college known first for its teaching, with no glaring weakness." Its final grade, an A, below. | The report's own words, no band: the sentence answers the question. | **Have.** The Natural player's academic run (`npm run scenario -- final-report --player Natural --specialization academics --colors purple-gold --name Halifax`), the sentence unedited. |
+| 12 | 0:44.73 – 0:45.93 | **Bare.** On the pulse, year 40 gives way to Halifax in year 50, in the fall: a low angle on the Grand Quad and its fountain, walkers crossing, the camera drifting slowly left to right. **Collegiate Gothic.** | Caption: *Collegiate Gothic* | **Have.** The pan's plates. |
+| 13 | 0:45.93 – 0:47.00 | The same pan, same place, cut on the beat: **Classical**. Only the buildings change. | Caption: *Classical* | **Have.** |
+| 14 | 0:47.00 – 0:48.10 | **Mission**, the swell rising under it. | Caption: *Mission* | **Have.** |
+| 15 | 0:48.10 – 0:49.19 | **Modern.** | Caption: *Modern* | **Have.** |
+| 16 | 0:49.19 – 0:50.27 | **Art Deco**, just after the drop. | Caption: *Art Deco* | **Have.** The plates hold five seconds, so from here they start again, under the change of buildings. |
+| 17 | 0:50.27 – 0:51.36 | **Georgian**, Halifax's own. | Caption: *Georgian* | **Have.** |
+| 18 | 0:51.36 – 0:51.93 | On the big swell, a beat each: **Modern**, | **Card,** at the top: WHAT WILL YOU BUILD? (0:51.45 – 0:53.95) | **Have.** |
+| 19 | 0:51.93 – 0:52.49 | **Mission**, | | **Have.** |
+| 20 | 0:52.49 – 0:53.02 | **Collegiate Gothic**, | | **Have.** |
+| 21 | 0:53.02 – 0:54.09 | and on the peak, **Georgian** again, the style it was founded in. The drift slows and comes to rest on Founders Hall at the head of the Grand Quad, in its ring of flower beds, as the music takes its breath. | | **Have.** |
 
 ### End card (0:54.09 – 1:00.5)
 
 | # | T | Scene | Words on screen | Status |
 |---|---|---|---|---|
-| 18 | 0:54.09 – 1:00.5 | **Bare.** Year 50, wide, in the fall, the hills and haze behind, barely drifting. A dark gradient under the words. | From 0:54.09: the logo and **FIFTY YEARS TO BUILD A UNIVERSITY.** From 0:55.19: **WISHLIST ON STEAM**, and no release date, with *Music by Alejandro Tóth · Halifax Games* small at the foot. Fade to black from 1:00.1. | **Have,** the 4K plate and the card (`cards.mjs`). The logo is the game's own, as the title screen shows it: the mark over the name. |
+| 22 | 0:54.09 – 1:00.5 | **Bare.** Year 50, wide, in the fall, the hills and haze behind, barely drifting. A dark gradient under the words. | From 0:54.09: the logo and **FIFTY YEARS TO BUILD A UNIVERSITY.** From 0:55.19: **WISHLIST ON STEAM**, and no release date, with *Music by Alejandro Tóth · Halifax Games* small at the foot. Fade to black from 1:00.1. | **Have,** the 4K plate and the card (`cards.mjs`). The logo is the game's own, as the title screen shows it: the mark over the name. |
 
 **Out of this cut:**
 - **The flash-forward** (HALIFAX, FIFTY YEARS ON.), at the owner's note.
   The pan now comes after the time-lapse.
 - **Game day,** the full bowl and FILL THE STANDS., at the owner's note: the
   filled stands don't look good. The stadium still rises.
-- **Modern,** the sixth architecture: the pan's four seconds hold five.
-- **The charter** (*Become Halifax University*). The name's arc pays off in
-  the Final Report, which calls the college Halifax University. To bring
-  the charter back, restore the 8.7-second quiet phrase the music skips at
-  0:23.54: the trailer runs 1:09, and the charter's 2.1 seconds sit after
-  the choice, with time to spare round the screens.
+- **The Final Report,** at the owner's note: the pan fills its time.
+  `npm run scenario -- final-report --player Natural --specialization
+  academics` still makes its save, the sentence reading "Halifax
+  University: a college known first for its teaching, with no glaring
+  weakness".
+- **The charter** (*Become Halifax University*). To bring it back, restore
+  the 8.7-second quiet phrase the music skips at 0:23.54: the trailer runs
+  1:09, and the charter's 2.1 seconds sit after the choice, with time to
+  spare round the screens (`screens.mjs charter` records it).
 
 ## The words on screen
 
@@ -249,7 +261,6 @@ The muted test: read only this column.
 
 | T | Text | Words | Seconds |
 |---|---|---|---|
-| 0:00.2 | *Name your college* (the screen's own heading, small) | 3 | 2.2 |
 | 0:00.6 | HALIFAX COLLEGE, carved as it is typed | 2 | to 0:03.09 |
 | 0:03.3 | EVERY UNIVERSITY BEGINS WITH ONE BUILDING. | 6 | 2.6 |
 | 0:14.85 | ADD THE COURSES. | 3 | 2.0 |
@@ -261,19 +272,18 @@ The muted test: read only this column.
 | 0:35.1 | "Deeply impressed by this game" | 5 | 2.5 |
 | 0:38.0 | "It feels one of a kind" | 6 | 2.6 |
 | 0:41.0 | "I've been looking for exactly this type of game" | 9 | 3.2 |
-| 0:44.73 – 0:48.8 | Captions, small: *Collegiate Gothic · Classical · Mission · Art Deco · Georgian* | 1–2 each | 0.5 – 1.25 |
-| 0:45.0 | WHAT WILL YOU BUILD? | 4 | 3.8 |
-| 0:49.04 | The Final Report's sentence (the report itself) | 13 | 5.0 |
+| 0:44.8 – 0:51.3 | Captions, small: *Collegiate Gothic · Classical · Mission · Modern · Art Deco · Georgian* | 1–2 each | about 1 |
+| 0:51.45 | WHAT WILL YOU BUILD? | 4 | 2.5 |
 | 0:54.09 | Logo · FIFTY YEARS TO BUILD A UNIVERSITY. | 6 | to the end |
 | 0:55.19 | WISHLIST ON STEAM | 3 | 5.3 |
 
 Read down the column, the cards tell the story on their own: a name; one
 building; the courses; the professors; a class each summer; a choice; the
-players' words; what will you build; the answer; the title.
+players' words; the styles; what will you build; the title.
 
 The headlines and the cards over the map sit at the top of the frame, clear
 of what the shot is about (Founders Hall in shots 2 and 11, the quad in
-shots 12–16). The screens' cards sit on a dark band across the lower part,
+shots 12–21). The screens' cards sit on a dark band across the lower part,
 since they play over the screens' cream.
 
 ## The colours
@@ -283,13 +293,12 @@ different college's, so between them they show the choice.
 
 | Shots | Colours |
 |---|---|
-| The name (1), the founding and the grounds (2–5), the pan (12–16), the end card (18) | **Navy & gold**, Halifax's own |
+| The name (1), the founding and the grounds (2–5), the pan (12–21), the end card (22) | **Navy & gold**, Halifax's own |
 | The curriculum (6) | **Navy & orange**, the last pair the trailer hadn't used |
 | Faculty (7) | **Black & gold** |
 | The summer (8) | **Maroon & gold** |
 | The specialization (9) | **Crimson & silver** |
 | The stadium (10) and the time-lapse (11), another college | **Forest & gold**, the Tudor plan's own |
-| The Final Report (17) | **Purple & gold** |
 
 Every screen keeps the name Halifax: only the colours change. A save's
 colours are one field, like its architecture, so a screen can be re-shot in
@@ -351,7 +360,7 @@ line from a player already quoted.
 
 Each is something the game already has. Two are in the shot list, at the
 owner's pick: **4**, the name carved (shot 1), and **8**, asked as "What
-will you build?" (the card over the pan, shots 12–16). The rest are
+will you build?" (the card over the pan, shots 18–21). The rest are
 proposals; the two marked ★ change no shot's footage, only its words or
 sound.
 
@@ -387,13 +396,13 @@ sound.
    in the college's colours. The Tudor layout has 78 lamps and benches. A
    close shot down a lamp-lined walk at commencement, captioned
    *Commencement*, could come between the time-lapse and the pan.
-8. **What will you build?** *In: the card over the pan, shots 12–16, in the
-   owner's words.* The game tags a college as the guidebooks see it: *a
-   research powerhouse*, *a teaching college*, *an artists' college*, *an
-   old-money college*, *a party school*. The card asks "What will you
-   build?" as the architectures switch, and the Final Report's sentence
-   answers it. It ties the minute to identity, which is what F3 said they
-   come back for.
+8. **What will you build?** *In: the card over the pan, shots 18–21, in
+   the owner's words.* The game tags a college as the guidebooks see it:
+   *a research powerhouse*, *a teaching college*, *an artists' college*,
+   *an old-money college*, *a party school*. The card asks "What will you
+   build?" as the architectures flicker on the big swell, and the campus
+   answers by settling into its own. It ties the minute to identity, which
+   is what F3 said they come back for.
 9. **Student life.** The Students tab's clubs and Greek chapters, in navy
    and orange, as a one-second screen in Act 3, with Greek Row on the map
    behind. (The curriculum takes navy and orange in this cut.)
@@ -428,7 +437,7 @@ full for the opener, under FILL THE STANDS. The owner asked for:
   first minute's, EVERY UNIVERSITY BEGINS WITH ONE BUILDING., to carry the
   promise the flash-forward showed.
 - **The pan after the time-lapse.** The architectures now switch after
-  year 40, under *What will you build?*, and lead into the Final Report.
+  year 40, under *What will you build?*
 - **The stadium raised, not filled.** The filled stands on game day don't
   look good. The bowl and FILL THE STANDS. are out. The stadium's rise
   keeps its place, without a card.
@@ -440,6 +449,16 @@ Then, of the revised script:
   ticking up, is a moment to capture. The summer now runs 3.9 seconds
   with a hand on the slider (shot 8), taken from the stadium, which runs
   3.25 seconds and starts on the onset at 0:25.39.
+
+And of its cut:
+
+- **No words on the first shot.** It's clear what's happening in the clip:
+  the heading *Name your college* is gone, and the carved name speaks for
+  itself.
+- **Cut the Final Report; extend the pan and the architectures to fill
+  its time.** The pan now runs from year 40 to the title, 9.4 seconds:
+  all six styles, Modern back among them, then the flicker on the big
+  swell and Georgian on the peak. The question moves to the swell.
 
 ## What the first cut taught
 
@@ -495,6 +514,10 @@ Smaller findings for the tools:
   seconds show nearly all of it: the cut leaves on 6,641 of 6,700.
 - **Year 50's curriculum is finished.** Every course written, the committee
   idle: the still is year 11's, four courses in development.
+- **The plates hold five seconds,** and the pan now runs nine. They start
+  again on the cut at the drop (shot 16), where every building changes.
+  The walkers don't line up exactly from one plate to the next anyway,
+  so nothing new jumps.
 
 ## How to capture
 
@@ -522,10 +545,9 @@ The owner's calls on what was open:
 3. **The end card** carries the game's current logo and WISHLIST ON STEAM,
    with no release date.
 4. **The specialization shown** is academics, the faculty training program
-   (shot 9), and the Final Report comes from a run that chose it
-   (shot 17).
+   (shot 9).
 5. **The school theming:** the name, carved (idea 4, shot 1), and the card
-   "What will you build?" (idea 8, shots 12–16).
+   "What will you build?" (idea 8, shots 18–21).
 6. **The shape** (18 October): a short pan; the time-lapse from year 1;
    the order of play, the name first; the headlines together.
 7. **The second draft's notes** (18 October): no jump forward; the pan
@@ -534,6 +556,8 @@ The owner's calls on what was open:
 8. **The revised script** (18 October): the admissions re-shot, the
    tuition slid up and down and the numbers ticking up; the curriculum
    still taken; the stadium wordless.
+9. **The cut** (18 October): no words on the first shot; the Final Report
+   out, the pan and the architectures filling its time.
 
 Still to settle before the store: S1's words against the video
 ([The headlines](#the-headlines)), and the theme's permission and master

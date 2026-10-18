@@ -348,9 +348,8 @@ the page: `trailer/act2.mjs`, one new game named on the founding screen
 round it and a walk drawn out from each door; and `trailer/screens.mjs`,
 the summer's tuition dragged up and down and set, its reveal counting up,
 and the specialization chosen (and the charter answered, which this cut
-leaves out). `trailer/cards.mjs` renders the founding screen's heading,
-the headlines, the cards, the captions and the end card in the game's own
-faces. The frame picks in `compose.py` belong to these
+leaves out). `trailer/cards.mjs` renders the headlines, the cards, the
+captions and the end card in the game's own faces. The frame picks in `compose.py` belong to these
 captures; after changing one, check its shot by eye.
 
 `trailer/tudorTimelapse.ts` builds the hand-laid Tudor campus

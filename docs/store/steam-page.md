@@ -115,9 +115,9 @@ own; its line in the features carries it.
   the summer's tuition set and its new class counting up, the
   specialization and a stadium raised. Forty years pass in one pull-back
   from Founders Hall while the players' headlines arrive. Then Halifax in
-  its fiftieth year flicks through five architectures under *What will you
-  build?*, and it ends on the Final Report, the game's logo and *Wishlist
-  on Steam*. Its research is in
+  its fiftieth year goes through all six architectures, flickers through
+  them under *What will you build?*, and settles on Founders Hall in its
+  own Georgian, before the game's logo and *Wishlist on Steam*. Its research is in
   [`trailer-research.md`](trailer-research.md). It is cut; before it goes
   up, it waits on one headline checked against its video and the theme's
   use in marketing.

@@ -19,7 +19,7 @@ OUT=${1:-$T/unischool-trailer.mp4}
 COLLEGE=(--name Halifax --vernacular georgian)
 mkdir -p "$T"
 
-# 1 · The pan's plates (shots 12-16) and the end card's: year 50 of
+# 1 · The pan's plates (shots 12-21) and the end card's: year 50 of
 # the Completionist's seeded run, in the fall (frame 197 of a quarterly
 # time-lapse), with flower beds round Founders Hall wherever its paving
 # leaves open ground, the doors left clear. The architecture is one field
@@ -60,20 +60,18 @@ node tools/trailer/act2.mjs "$T/act2"
 node tools/clip.mjs "$T/act2/meadow.json" "$T/clips/meadow.webm" --focus=DORM-01 --zoom=4 --pan=0,150 --until-built --no-seasons \
   --clean --size=1920,1080 --scale=2 --seconds=2.4 --png
 
-# 3 · The screens (shots 6-9, 17), each in its own school colours, at 4K
-# for the push-ins. The curriculum is year 11, its committee writing four
+# 3 · The screens (shots 6-9), each in its own school colours, at 4K for
+# the push-ins. The curriculum is year 11, its committee writing four
 # courses; the summer is year 12's, the pool up 37% with every figure that
 # moved up, the price dragged and set by hand (screens.mjs summer).
 npm run --silent scenario -- --player Guided --year 10 --clear-modal "${COLLEGE[@]}" --colors navy-orange "$T/sc-curriculum.json"
 npm run --silent scenario -- --player Guided --year 13 --from-year 12 --modal summer "${COLLEGE[@]}" --colors maroon-gold "$T/sc-summer.json"
 npm run --silent scenario -- specialization "${COLLEGE[@]}" --colors crimson-silver "$T/sc-specialization.json"
-npm run --silent scenario -- final-report "${COLLEGE[@]}" --player Natural --specialization academics --colors purple-gold "$T/sc-final.json"
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); d['state']['self']['colors']={'primary':'#1f1b17','secondary':'#e6b84a'}; json.dump(d,open(sys.argv[2],'w'))" \
   "$T/pan-georgian.json" "$T/faculty-black.json"
 mkdir -p "$T/ui"
 node tools/shoot.mjs "$T/sc-curriculum.json" "$T/ui/curriculum.png" --tab=curriculum --size=1920,1080 --scale=2
 node tools/shoot.mjs "$T/faculty-black.json" "$T/ui/faculty.png" --tab=faculty --size=1920,1080 --scale=2
-node tools/shoot.mjs "$T/sc-final.json" "$T/ui/final.png" --size=1920,1080 --scale=2
 node tools/trailer/screens.mjs summer "$T/sc-summer.json" "$T/summer"
 node tools/trailer/screens.mjs choice "$T/sc-specialization.json" "$T/choice"
 
