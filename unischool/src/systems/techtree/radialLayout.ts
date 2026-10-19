@@ -1,6 +1,6 @@
 import type { Buildable, GameState } from '../../state/types';
 import {
-  CROSS_MAJOR_BRIDGES, discoverySchools, programOfCourse, schoolCurriculumIds, type DiscoverySchool,
+  discoverySchools, schoolCurriculumIds, type DiscoverySchool,
 } from '../../data/techData';
 import { isHoused, isInTransit } from './programOffers';
 import { unstaffedPrograms } from './darkness';
@@ -23,7 +23,8 @@ import { canStartDevelopment } from './techSystem';
 // structure (Plan 2's "Why the constellation failed"): a line runs only to a
 // drawn course, and the core quartet meets at one junction before fanning
 // to the advanced quartet. Cross-program prerequisites (CROSS_MAJOR_BRIDGES)
-// are drawn only for the program in focus.
+// are not drawn: the owner found them clutter; the course's own detail lists
+// them.
 //
 // Units: a square 2 × HALF across, centred on the seal at (0, 0). Angles
 // are degrees clockwise from twelve o'clock.
@@ -184,7 +185,9 @@ export interface RadialDrawing {
   programs: Map<string, DrawnProgram>;
   schools: DrawnSchool[];
   lines: Record<LineKind, string>; // SVG path data per kind
+  branches: Map<string, string>;   // each major's own lines, for the program in focus
   extent: number;                  // the outermost drawn radius
+  arcRadius: number;               // where the schools' arcs run: just outside the courses drawn
 }
 
 function f(n: number): string { return String(Math.round(n * 10) / 10); }
@@ -213,6 +216,7 @@ export function radialDrawing(s: GameState): RadialDrawing {
   const courses = new Map<string, DrawnCourse>();
   const programs = new Map<string, DrawnProgram>();
   const lines: Record<LineKind, string[]> = { taught: [], writing: [], open: [] };
+  const branches = new Map<string, string>();
   let extent: number = RADIAL.seal;
 
   for (const program of layout.programs.values()) {
@@ -243,70 +247,49 @@ export function radialDrawing(s: GameState): RadialDrawing {
 
     // The lines of a major's branch, each to a drawn course and in its kind.
     const ids = program.courseIds;
+    const mine: string[] = [];
+    const put = (kind: LineKind, seg: string) => { lines[kind].push(seg); mine.push(seg); };
     const at = (i: number) => courses.get(ids[i]);
     const entry = at(0);
     if (!entry) continue;
-    lines[lineKind(entry.state)].push(line(polar(RADIAL.seal, program.angle), entry.course));
+    put(lineKind(entry.state), line(polar(RADIAL.seal, program.angle), entry.course));
     const mid12 = polar((RADIAL.entry + RADIAL.core) / 2, program.angle);
     const mid34 = polar((RADIAL.advanced + RADIAL.capstone) / 2, program.angle);
     for (let i = 1; i <= 4; i++) {
       const c = at(i);
-      if (c) lines[lineKind(c.state)].push(curve(entry.course, mid12, c.course));
+      if (c) put(lineKind(c.state), curve(entry.course, mid12, c.course));
     }
     const advanced = [5, 6, 7, 8].map(at);
     if (advanced.some(Boolean) && program.junction) {
       for (let i = 1; i <= 4; i++) {
         const c = at(i);
-        if (c) lines.taught.push(line(c.course, program.junction));
+        if (c) put('taught', line(c.course, program.junction));
       }
-      advanced.forEach((c) => { if (c) lines[lineKind(c.state)].push(line(program.junction!, c.course)); });
+      advanced.forEach((c) => { if (c) put(lineKind(c.state), line(program.junction!, c.course)); });
     }
     const cap = at(ids.length - 1);
     if (cap) {
-      for (const c of advanced) if (c) lines[lineKind(cap.state)].push(curve(c.course, mid34, cap.course));
+      for (const c of advanced) if (c) put(lineKind(cap.state), curve(c.course, mid34, cap.course));
     }
+    branches.set(program.id, mine.join(''));
   }
 
+  // The schools' arcs run just outside the outermost course drawn, up to the
+  // rim, so a young college's drawing is not held small by an empty rim.
+  const courseExtent = Math.max(RADIAL.seal, ...[...courses.values()].map((c) => c.course.radius));
+  const arcRadius = Math.min(RADIAL.arc, courseExtent + 26);
   const doneIds = new Set(s.tech.filter((t) => t.kind === 'course' && t.status === 'done').map((t) => t.id));
   const schools: DrawnSchool[] = layout.schools.map((school) => {
     const done = school.courseIds.filter((id) => doneIds.has(id)).length;
     const started = [...programs.values()].some((p) => p.program.school === school.name && p.program.kind === 'major');
-    if (done > 0) extent = Math.max(extent, RADIAL.arc);
+    if (done > 0) extent = Math.max(extent, arcRadius);
     return { school, done, started, distinguished: school.courseIds.length > 0 && done === school.courseIds.length };
   });
 
   return {
-    courses, programs, schools, extent,
+    courses, programs, schools, extent, arcRadius, branches,
     lines: { taught: lines.taught.join(''), writing: lines.writing.join(''), open: lines.open.join('') },
   };
-}
-
-// The cross-program prerequisites to draw for a program in focus: every
-// bridge into or out of it whose two ends are both drawn, as curves bowed
-// toward the centre, and the far ends to ring.
-export interface DrawnBridges {
-  path: string;
-  farEnds: Set<string>;
-}
-
-export function bridgesFor(programId: string | null, drawing: RadialDrawing): DrawnBridges {
-  const segs: string[] = [];
-  const farEnds = new Set<string>();
-  if (!programId) return { path: '', farEnds };
-  for (const [to, froms] of Object.entries(CROSS_MAJOR_BRIDGES)) {
-    for (const from of froms) {
-      const intoIt = programOfCourse(to) === programId;
-      const outOfIt = programOfCourse(from) === programId;
-      if (!intoIt && !outOfIt) continue;
-      const a = drawing.courses.get(from);
-      const b = drawing.courses.get(to);
-      if (!a || !b) continue;
-      const c = { x: (a.course.x + b.course.x) * 0.3, y: (a.course.y + b.course.y) * 0.3 };
-      segs.push(curve(a.course, c, b.course));
-      farEnds.add(intoIt ? from : to);
-    }
-  }
-  return { path: segs.join(''), farEnds };
 }
 
 // How far to scale the whole drawing so what is drawn fills the stage: the

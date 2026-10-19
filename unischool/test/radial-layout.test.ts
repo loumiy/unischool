@@ -10,9 +10,9 @@
 import { foundGame } from '../sim/harness/game';
 import { teachPillars } from './fixtures/teaching';
 import {
-  bridgesFor, fitScale, NODE_RADIUS, radialDrawing, radialLayout, RADIAL,
+  fitScale, NODE_RADIUS, radialDrawing, radialLayout, RADIAL,
 } from '../src/systems/techtree/radialLayout';
-import { CROSS_MAJOR_BRIDGES, discoverySchools, programById } from '../src/data/techData';
+import { discoverySchools, programById } from '../src/data/techData';
 import { unlockAvailable } from '../src/systems/techtree/techSystem';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 
@@ -106,23 +106,6 @@ const layout = radialLayout();
 {
   assert(fitScale(RADIAL.entry) > fitScale(RADIAL.capstone), 'a smaller drawing is scaled up further');
   assert(fitScale(RADIAL.graduate) >= 1, 'the full drawing is never shrunk below the stage');
-}
-
-// Every bridge resolves to two places, and is drawn only between drawn courses.
-{
-  let missing = 0;
-  for (const [to, froms] of Object.entries(CROSS_MAJOR_BRIDGES)) {
-    for (const from of froms) if (!layout.courses.has(to) || !layout.courses.has(from)) missing += 1;
-  }
-  assert(missing === 0, `every cross-program prerequisite has two places (${missing} missing)`);
-  const g = foundGame({ seed: 7 });
-  const s = teachPillars(g.s);
-  const drawing = radialDrawing(s);
-  for (const program of layout.programs.values()) {
-    const b = bridgesFor(program.id, drawing);
-    for (const id of b.farEnds) assert(drawing.courses.has(id), `${program.id}'s bridge end ${id} is drawn`);
-  }
-  assert(bridgesFor(null, drawing).path === '', 'no program in focus, no bridges');
 }
 
 console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);
