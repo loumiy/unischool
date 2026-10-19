@@ -31,6 +31,7 @@ import FacultyTile, { FacultyActions } from '../src/tabs/FacultyTile';
 import FacultyTab from '../src/tabs/FacultyTab';
 import CurriculumTab, { CourseCell, InstructorOption, MarketInField, RowAction, qualityGap } from '../src/tabs/CurriculumTab';
 import { ProgramTile } from '../src/components/BuildingInfoPanel';
+import { setCurriculumView } from '../src/tabs/curriculumView';
 import { facultyMedian } from '../src/tabs/facultySort';
 import { programById } from '../src/data/techData';
 import { programProgress } from '../src/systems/techtree/programProgress';
@@ -112,6 +113,10 @@ function numbersOnly(html: string, what: string, expectScore = true): void {
 {
   const s = teachPillars(foundGame({ seed: 12345 }).s);
   numbersOnly(renderToStaticMarkup(createElement(CurriculumTab, { s, act })), 'the Curriculum tab');
+  // The rows, kept as the tab's second view (Plan 105, decision 1).
+  setCurriculumView('list');
+  numbersOnly(renderToStaticMarkup(createElement(CurriculumTab, { s, act })), "the Curriculum tab's list");
+  setCurriculumView('drawing');
   const taught = s.tech.find((t) => t.status === 'done' && s.courseFaculty[t.id])!;
   const cell = renderToStaticMarkup(createElement(CourseCell, { s, t: taught, selected: false, onSelect: () => {} }));
   const q = instructorQuality(s, taught)!;

@@ -112,6 +112,14 @@ for a year and read the renovation as the cause. The map agrees: such a
 building is drawn at the height of the floors it has, with the scaffold
 rising off its finished roof rather than off the grass.
 
+A course records **when it was first finished** (`Buildable.completedWeek`,
+Plan 105E: weeks since founding), set in `techSystem.ts`'s
+`completeDevelopment` beside a building's `builtYear`, cleared when its program
+is closed (`closeProgram`), and derived on load for a save from before it
+existed (`persistence.ts`'s `sanitizeCompletedWeeks`). Nothing in the
+simulation reads it: it is the record the curriculum's year-by-year replay
+draws from (`components/CurriculumReplay.tsx`).
+
 ### Looks that are not state (Plan 25)
 
 Some of what a building looks like depends on the campus, not on the Buildable:

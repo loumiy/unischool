@@ -1,6 +1,6 @@
 import { canPayFromEndowment, endowmentHalf, projectOpen } from '../estate/projects';
 import type { GameState, Buildable, BuildableEffects, Faculty, HallSlot } from '../../state/types';
-import { PLACEABLE_KINDS } from '../../state/types';
+import { PLACEABLE_KINDS, WEEKS_PER_YEAR } from '../../state/types';
 import { giftFunds, loanFor, takeLoan, type Financing } from '../finance/treasury';
 import { constructionFrozen } from '../finance/distress';
 import {
@@ -619,6 +619,7 @@ export function closeProgram(s: GameState, programId: string): boolean {
     const t = s.tech.find((x) => x.id === id);
     if (!t) continue;
     if (t.status !== 'locked') t.status = 'locked';
+    delete t.completedWeek;
     delete s.developing[id];
     delete s.courseFaculty[id];
   }
@@ -821,6 +822,8 @@ function completeDevelopment(s: GameState, finished: Buildable[], arrived: boole
     node.status = 'done';
     // First finished, not renovated: the map dates its weathering from here.
     if (node.kind !== 'course' && node.builtYear === undefined) node.builtYear = s.clock.year;
+    // A course's first finish, in weeks since founding (Plan 105E).
+    if (node.kind === 'course' && node.completedWeek === undefined) node.completedWeek = (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
     // A finished renovation serves its new figure (types.ts's servingPopulation).
     // Its apply-once effects (beds, tuition, applicants, unlocks) were applied
     // when it was first finished, so only a first finish applies them.

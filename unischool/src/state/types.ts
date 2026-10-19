@@ -399,6 +399,12 @@ export interface Buildable {
   // marks (components/ageMarks.tsx). Undefined for courses and for buildings
   // an older save finished.
   builtYear?: number;
+  // The absolute week a course was first finished (Plan 105E: weeks since
+  // founding, eventData.ts's absoluteWeek), which the History tab's replay of
+  // the curriculum reads. Cleared when its program is closed. An older save's
+  // is derived on load where it can be (persistence.ts's
+  // sanitizeCompletedWeeks), else absent.
+  completedWeek?: number;
   // A capital project (Plan 33, systems/estate/projects.ts): the year it
   // opens from, and the standings it lifts at full condition. One to a
   // campus.
