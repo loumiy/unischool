@@ -20,7 +20,7 @@ export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export const GRADE_A = 78;
 export const GRADE_B = 62;
 export const GRADE_C = 44;
-const GRADE_D = 30;
+export const GRADE_D = 30;
 
 export function gradeFor(score: number): Grade {
   if (score >= GRADE_A) return 'A';

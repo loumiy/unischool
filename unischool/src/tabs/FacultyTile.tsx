@@ -67,7 +67,7 @@ export function waitingCount(w: FieldWaiting | undefined): number {
 // against the college's own median instead (`median`): warm above it,
 // plain below, never the bands' verdict. Three cells of the meters' grid.
 const pct = (v: number) => `${Math.max(0, Math.min(100, v))}%`;
-function StatMeter({ label, value, potential, median }: { label: string; value: number; potential: number; median?: number | null }) {
+export function StatMeter({ label, value, potential, median }: { label: string; value: number; potential: number; median?: number | null }) {
   const now = Math.round(value);
   const then = Math.round(potential);
   const rising = then > now;
@@ -86,6 +86,47 @@ function StatMeter({ label, value, potential, median }: { label: string; value: 
         {rising && <span className="faculty-stat-rise" aria-label={`growing toward ${then}`}>→ {then}</span>}
       </span>
       {against && <span className="faculty-stat-median">your faculty’s median is {median}</span>}
+    </div>
+  );
+}
+
+// The badges under a person: prizes, a retirement within the year, a
+// research project, the training program, and a quirk. The tile and the
+// table's rows draw the same.
+export function FacultyBadges({ s, f, isCandidate, commitment }: { s: GameState; f: Faculty; isCandidate: boolean; commitment?: Commitment }) {
+  const quirk = quirkById(f.quirk);
+  const retiring = !isCandidate && retiringSoon(f);
+  const retiresIn = careerWeeks(f.id) - f.tenureWeeks;
+  const atInstitute = !isCandidate && trainingSlotsOff(s, f) > 0;
+  const timesTrained = f.career?.training?.length ?? (f.training ? 1 : 0);
+  if (!(quirk || f.acclaim > 0 || retiring || commitment || f.training)) return null;
+  return (
+    <div className="faculty-badges">
+      {/* The prize badge: permanent (see types.ts's Faculty.acclaim). */}
+      {f.acclaim > 0 && (
+        <span className="faculty-acclaim" title={`${f.acclaim} research ${f.acclaim === 1 ? 'prize' : 'prizes'}`}>
+          ★{f.acclaim > 1 ? ` ${f.acclaim}` : ''}
+        </span>
+      )}
+      {retiring && (
+        <span className="faculty-badge retiring" title={`Retires in ${weeksShort(Math.max(0, retiresIn))}, after ${Math.round(careerWeeks(f.id) / WEEKS_PER_YEAR)} years`}>
+          Retiring
+        </span>
+      )}
+      {commitment && (
+        <span className="faculty-badge project" title={`On ${commitment.topic} at ${commitment.labName}, ${weeksShort(commitment.weeksRemaining)} left`}>
+          On a project
+        </span>
+      )}
+      {f.training && !isCandidate && (
+        <span
+          className={`faculty-badge trained${atInstitute ? ' training' : ''}`}
+          title={atInstitute ? TRAINING_WORDS.inTraining(trainingUntil(f.training.untilWeek)) : TRAINING_WORDS.trainedBadgeTitle(timesTrained, f.training.points)}
+        >
+          {TRAINING_WORDS.trainedBadge}
+        </span>
+      )}
+      {quirk && <span className="faculty-quirk" title={quirk.line}>{quirk.name}</span>}
     </div>
   );
 }
@@ -206,15 +247,9 @@ export default function FacultyTile(
   // Every tile shows what this school pays, listing or roster: the market
   // rate is applied at payroll (financeSystem.ts's facultyPay).
   const pay = facultyPay(s, f.salary);
-  const quirk = quirkById(f.quirk);
-  const retiring = !isCandidate && retiringSoon(f);
-  const retiresIn = careerWeeks(f.id) - f.tenureWeeks;
   // The courses waiting in their field, where they could take one: a
   // candidate always could, a professor only with a course slot free.
   const waits = isCandidate || held < slots ? waitingCount(waiting) : 0;
-
-  const atInstitute = !isCandidate && trainingSlotsOff(s, f) > 0;
-  const timesTrained = f.career?.training?.length ?? (f.training ? 1 : 0);
 
   const toggle = () => setOpen((v) => !v);
   // The staff ID card (Plan 90): a band in the school's colour with the
@@ -253,35 +288,7 @@ export default function FacultyTile(
           <StatMeter label="Research" value={f.research} potential={f.researchPotential} />
         </div>
 
-        {(quirk || f.acclaim > 0 || retiring || commitment || f.training) && (
-          <div className="faculty-badges">
-            {/* The prize badge: permanent (see types.ts's Faculty.acclaim). */}
-            {f.acclaim > 0 && (
-              <span className="faculty-acclaim" title={`${f.acclaim} research ${f.acclaim === 1 ? 'prize' : 'prizes'}`}>
-                ★{f.acclaim > 1 ? ` ${f.acclaim}` : ''}
-              </span>
-            )}
-            {retiring && (
-              <span className="faculty-badge retiring" title={`Retires in ${weeksShort(Math.max(0, retiresIn))}, after ${Math.round(careerWeeks(f.id) / WEEKS_PER_YEAR)} years`}>
-                Retiring
-              </span>
-            )}
-            {commitment && (
-              <span className="faculty-badge project" title={`On ${commitment.topic} at ${commitment.labName}, ${weeksShort(commitment.weeksRemaining)} left`}>
-                On a project
-              </span>
-            )}
-            {f.training && !isCandidate && (
-              <span
-                className={`faculty-badge trained${atInstitute ? ' training' : ''}`}
-                title={atInstitute ? TRAINING_WORDS.inTraining(trainingUntil(f.training.untilWeek)) : TRAINING_WORDS.trainedBadgeTitle(timesTrained, f.training.points)}
-              >
-                {TRAINING_WORDS.trainedBadge}
-              </span>
-            )}
-            {quirk && <span className="faculty-quirk" title={quirk.line}>{quirk.name}</span>}
-          </div>
-        )}
+        <FacultyBadges s={s} f={f} isCandidate={isCandidate} commitment={commitment} />
       </div>
 
       <div className="faculty-tile-foot">

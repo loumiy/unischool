@@ -18,10 +18,12 @@ import {
   deptAction, payroll, searchable, waitingCourses, worthTaking, type Listing,
 } from '../systems/faculty/hiringNext';
 import {
-  FACULTY_SORTS, GROUP_SCOPE, NO_GRID_FILTER, compareFaculty, retiringSoon, showsDepartment, showsPerson,
-  type FacultyFilter, type FacultySort, type GridFilter,
+  FACULTY_LAYOUTS, FACULTY_SORTS, GROUP_SCOPE, NO_GRID_FILTER, compareFaculty, retiringSoon, showsDepartment, showsPerson,
+  type FacultyFilter, type FacultyLayout, type FacultySort, type GridFilter,
 } from './facultySort';
 import FacultyTile, { waitingCount, type Commitment, type FieldWaiting } from './FacultyTile';
+import FacultyTable from './FacultyTable';
+import FacultyPlot from './FacultyPlot';
 import { TRAINING_INSTITUTE_ID, TRAINING_WORDS, instituteStands, trainedCount } from '../data/trainingData';
 import { picksLeft, trainingPicks, whyNotTrain } from '../systems/faculty/training';
 import { specializationOf } from '../systems/prestige/specialization';
@@ -482,18 +484,18 @@ const VIEWS: Array<{ id: View; label: string; title: string }> = [
   { id: 'departments', label: 'Departments', title: 'Departments' },
 ];
 
-// The view, sort and filters (Plans 72F and 84D), kept for the session:
+// The view, its layout, sort and filters (Plans 72F and 84D), kept for the session:
 // closing the tab unmounts it, and the choice should be there when it
 // opens again. Held by the tab's parent (App.tsx), not the save, and
 // cleared by New Game (Plan 95G).
-export interface FacultyViewMemory { view: View; sort: FacultySort; grid: GridFilter; board: FacultyFilter }
+export interface FacultyViewMemory { view: View; layout: FacultyLayout; sort: FacultySort; grid: GridFilter; board: FacultyFilter }
 export const FACULTY_VIEW_START: FacultyViewMemory = {
-  view: 'faculty', sort: 'teaching', grid: NO_GRID_FILTER, board: { field: null, shortOnly: false },
+  view: 'faculty', layout: 'cards', sort: 'teaching', grid: NO_GRID_FILTER, board: { field: null, shortOnly: false },
 };
 
 // The tab's help (Plan 95G): what the summary paragraphs said, behind the
 // '?', with the figures in a row under it.
-const FACULTY_HELP = 'Every professor and every candidate as a tile: teaching and research as numbers out of 100, the scale courses are graded on, with where each is heading. A candidate\'s teaching is set beside your faculty\'s median, warm when it would raise it. More opens a person: their career, and Train and Dismiss. Sort and filter the grid, or open the Departments view for each department\'s course slots against what its courses take. '
+const FACULTY_HELP = 'Every professor and every candidate as a tile: teaching and research as numbers out of 100, the scale courses are graded on, with where each is heading. A candidate\'s teaching is set beside your faculty\'s median, warm when it would raise it. More opens a person: their career, and Train and Dismiss. Sort and filter the grid; read the same people as a table, a row a person, or as a plot of teaching against research with your faculty\'s medians across it and the market beside them; or open the Departments view for each department\'s course slots against what its courses take. '
   + 'The figures under the heading: the course slots the faculty supplies; those taken by the courses on offer, since a course holds its slot for as long as it is offered, whether or not somebody is teaching it; the courses open and not yet developed; and how many more course slots teaching the whole catalog would take. A scholar on a research project supplies two fewer, as a professor at the Faculty Training Institute supplies one fewer for a term. '
   + 'The candidates the college attracts improve with its standing: their teaching potential rises with its prestige, and their research potential with its research standing, and a little with prestige. Around the typical candidate there is a wide spread, and now and then a standout well above it. Everyone arrives below their potential and grows toward it over the years they stay. '
   + 'Appointing is immediate and costs nothing up front; what costs is the salary.';
@@ -659,9 +661,10 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
   const loads = useMemo(() => facultyLoads(s), [s.tech, s.courseFaculty]);
 
   const [own, setOwn] = useState<FacultyViewMemory>(FACULTY_VIEW_START);
-  const { view, sort, grid, board } = memory ?? own;
+  const { view, layout, sort, grid, board } = memory ?? own;
   const remember = (part: Partial<FacultyViewMemory>) => (onRemember ?? setOwn)((cur) => ({ ...cur, ...part }));
   const setView = (next: View) => remember({ view: next });
+  const setLayout = (next: FacultyLayout) => remember({ layout: next });
   const setSort = (next: FacultySort) => remember({ sort: next });
   const setGrid = (next: GridFilter) => remember({ grid: next });
   const setBoard = (next: FacultyFilter) => remember({ board: next });
@@ -762,6 +765,15 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
               ) : null}
             </span>
           )}
+          {view !== 'departments' && (
+            <span className="faculty-layouts segmented switch" aria-label="Show the people as" style={switchStyle(FACULTY_LAYOUTS.length, FACULTY_LAYOUTS.findIndex((l) => l.id === layout))}>
+              {FACULTY_LAYOUTS.map((l) => (
+                <button key={l.id} type="button" className={layout === l.id ? 'on' : undefined} aria-pressed={layout === l.id} onClick={() => setLayout(l.id)}>
+                  {l.label}
+                </button>
+              ))}
+            </span>
+          )}
           <span className="dept-views segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
             {VIEWS.map((v) => (
               <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
@@ -783,7 +795,17 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
                 {s.candidates.length} listed · a listing withdraws after {candidateListingWeeks(s)} weeks, and the market turns over every week.
               </p>
             )}
-            {shownPeople.length > 0 ? (
+            {shownPeople.length > 0 && layout === 'table' ? (
+              <FacultyTable
+                s={s} act={act} people={shownPeople} isCandidate={market} sort={gridSort} setSort={setSort}
+                commitments={commitments} loads={loads} onOpenCurriculum={onOpenCurriculum}
+              />
+            ) : layout === 'plot' && (shownPeople.length > 0 || people.length > 0) ? (
+              <FacultyPlot
+                s={s} act={act} people={shownPeople} isCandidate={market} scope={grid.scope}
+                commitments={commitments} loads={loads} onOpenCurriculum={onOpenCurriculum}
+              />
+            ) : shownPeople.length > 0 ? (
               <ul className="faculty-list faculty-grid">
                 {shownPeople.map((f) => (
                   <FacultyTile
