@@ -217,10 +217,12 @@ export default function RadialSvg({
           );
         })}
 
-        {/* School names just outside what is drawn; a started school only. */}
+        {/* School names just outside what is drawn; a started school only.
+            Upright as seen: zoomed to a school, the world is turned by its
+            angle, so a name's flip is judged against the turned view. */}
         {drawing.schools.filter((x) => x.started).map((x) => {
           const at = polar(labelsAt, x.school.mid);
-          const turn = ((x.school.mid % 360) + 360) % 360;
+          const turn = ((((x.school.mid - (school?.mid ?? 0)) % 360) + 360) % 360);
           const upright = turn > 90 && turn < 270 ? x.school.mid + 180 : x.school.mid;
           return (
             <text
