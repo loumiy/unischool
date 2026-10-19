@@ -78,18 +78,10 @@ function stand(s: GameState, id: string): void {
   assert(PROJECT_IDS.every((id) => node(s, id).status === 'locked'), 'none is open to a founding college');
   s.clock.year = 12;
   // The research park is the research specialization's own building (Plan
-  // 85F); for that college it still waits on the labs (Plan 53).
+  // 85F), open with the choice: after 0.1.2 it no longer waits on the labs.
   s.specialization = 'research';
   unlockAvailable(s);
-  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'locked', 'the research park waits on the labs (Plan 53)');
-  const labId = labFinished(s);
-  const second = s.tech.find((t) => t.facilityType === 'lab' && t.id !== labId)!;
-  second.status = 'done';
-  unlockAvailable(s);
-  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'locked', 'every standing lab, not just one');
-  s.research.finishedLabs = [labId, second.id];
-  unlockAvailable(s);
-  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available', 'and opens once each has seen an initiative through');
+  assert(node(s, 'PROJ-RESEARCH-PARK').status === 'available', 'the research park opens with the choice, whatever the labs have done');
   s.specialization = 'none';
   assert(node(s, 'PROJ-ARTS').status === 'locked', 'a graduate host waits on its school\'s curriculum too');
   for (const id of schoolCurriculumIds('Arts & Media')) node(s, id).status = 'done';

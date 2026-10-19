@@ -1,5 +1,4 @@
 import type { Buildable, CapitalProject, GameState } from '../../state/types';
-import { standsOnCampus } from '../../state/types';
 import { ALL_PROJECT_TERMS, DEFEND_ERA_PRESTIGE, DEFEND_ERA_YEAR, ENDOWMENT_PROJECT_SHARE, LATE_TIER_YEAR } from '../../data/projectData';
 import { curriculumGateMet } from '../../data/techData';
 import { conditionOf } from './estate';
@@ -17,22 +16,6 @@ export function lateTierOpen(s: GameState): boolean {
   return s.clock.year >= LATE_TIER_YEAR || (s.clock.year >= DEFEND_ERA_YEAR && s.self.reputation >= DEFEND_ERA_PRESTIGE);
 }
 
-// The labs the Research Park waits on: every lab standing, each with
-// whether it has seen an initiative through. The Research tab shows the
-// count (Plan 80B).
-export function labsTowardPark(s: GameState): { lab: Buildable; finished: boolean }[] {
-  const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
-  return s.tech
-    .filter((t) => t.facilityType === 'lab' && standsOnCampus(t))
-    .map((lab) => ({ lab, finished: finished.has(lab.id) }));
-}
-
-// Every lab standing has seen an initiative through, and there is one.
-export function everyLabFinished(s: GameState): boolean {
-  const labs = labsTowardPark(s);
-  return labs.length > 0 && labs.every((l) => l.finished);
-}
-
 export function projectOpen(s: GameState, t: Buildable): boolean {
   const p = t.project;
   if (!p) return true;
@@ -44,9 +27,6 @@ export function projectOpen(s: GameState, t: Buildable): boolean {
   if (s.clock.year < p.fromYear) return false;
   // A graduate program's host waits on its school's whole curriculum (Plan 51).
   if (p.curriculum !== undefined && !curriculumGateMet(s, p.curriculum)) return false;
-  // The Research Park waits on every standing lab having finished an
-  // initiative (Plan 53).
-  if (p.everyLabFinished && !everyLabFinished(s)) return false;
   return true;
 }
 

@@ -286,10 +286,27 @@ marked **0.1.x** and fixed in a patch.*
   even if courses are transferred into Walnut Hall)." The player stopped
   at year 38 and will play again "once the bugs are fixed". *1 player ·
   form (F5).* **0.1.x**
+  The cause, reproduced: the "+" on an empty slot (`BuildingInfoPanel.tsx`'s
+  `HallSlots`) offers a hall's programs. A hall holding three programs of
+  one school is claimed by it, and a claimed hall offers only that
+  school's unfounded programs, *in place of* the global draw (Plan 100).
+  Late in a run a school usually has none left, so a claimed hall's free
+  slots refuse every program, including the ones on offer that no other
+  hall can take. Moving three of one school into Walnut Hall (moves in
+  transit count) claims it and closes it at once. The panel says only
+  "Nothing is on offer to found here." A second possibility, which the
+  save would settle: by year 38 every program in the catalog is founded,
+  and nothing says so.
 
 - **The research specialization's building doesn't appear** (0.1.2).
   "Research specialization building doesn't appear upon specializing in
   it." *1 player · form (F5).* **0.1.x**
+  The cause: the Research Park also waited on every standing lab having
+  finished a research project (Plan 53), and until then it was absent from
+  the build menu, not even listed closed; the choice's card never said so.
+  The other specializations' buildings open with the choice. **Decided:
+  drop the lab condition** (the owner, 18 October): the park opens with
+  the research specialization.
 
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Not yet traced in the code. *Owner.*

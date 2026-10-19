@@ -16,8 +16,7 @@ import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { countWord, pct, satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
-import { PARK_WORDS, parkStands } from '../../data/researchParkData';
-import { specializationOf } from '../prestige/specialization';
+import { PARK_WORDS } from '../../data/researchParkData';
 import { slotFree } from '../administration/offices';
 import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
 import { initiativeOffers } from '../../data/researchData';
@@ -334,12 +333,8 @@ function idleLab(s: GameState): NextStep | null {
   const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
   const unproven = idle.find((t) => !finished.has(t.id));
   const lab = unproven ?? idle[0];
-  const chosen = specializationOf(s);
-  const parkAhead = !parkStands(s) && (chosen === null || chosen === 'research');
   return {
-    text: unproven && parkAhead
-      ? PARK_WORDS.unprovenLab(lab.name, chosen === 'research')
-      : `${lab.name} is idle — commission research`,
+    text: unproven ? PARK_WORDS.unprovenLab(lab.name) : `${lab.name} is idle — commission research`,
     go: 'research',
     intent: { kind: 'research', labId: lab.id },
   };

@@ -120,17 +120,18 @@ first lab. Two letters lead the way (Plan 59): *The laboratories*, when
 the first lab stands, asks for an initiative seen through in every lab; *The
 Research Park*, when the park opens, asks to site it. The next-step line
 names a lab that has not yet seen one through before any other idle lab.
-The Landmark Program opens with **the Research Park**, a capital
-project that itself waits on every standing lab having seen an initiative
-through (`s.research.finishedLabs`, recorded when one ends uncancelled): a
-college earns its landmark work by doing research everywhere it can first.
-Since [Plan 85F](../plans/085-specializations.md) the park is also **the
-research specialization's own building** (below): only a college
-specialized in research may build it. The Research tab shows the count until the park stands (Plan 80B, `labsTowardPark`):
-"Labs that have finished a project: n of m", each lab marked, and that a new
-lab raises the count; for a college yet to choose it first says the park is
-the research specialization's, and for a college specialized in another
-pillar it says the park cannot be built there.
+The Landmark Program opens with **the Research Park**, since [Plan
+85F](../plans/085-specializations.md) **the research specialization's own
+building** (below): only a college specialized in research may build it,
+and it opens with the choice. Until 0.1.2 it also waited on every standing
+lab having seen an initiative through (Plan 53); a playtester who
+specialized in research and found nothing in the build menu reported it as
+a bug, and the owner dropped the condition (18 October, Playtest 1's F5).
+`s.research.finishedLabs` is still recorded, for *The laboratories* letter
+and the next-step line. The Research tab says when the park opens; for a
+college yet to choose it first says the park is the research
+specialization's, and for a college specialized in another pillar it says
+the park cannot be built there.
 
 ### The research park (Plan 85F)
 
