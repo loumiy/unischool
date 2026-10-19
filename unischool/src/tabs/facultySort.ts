@@ -3,7 +3,7 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import { careerWeeks } from '../systems/faculty/facultySystem';
 import { FACULTY_FIELD_GROUPS } from '../data/facultyData';
 import { quirkById } from '../data/quirkData';
-import { gradeFor, type Grade } from '../data/courseQuality';
+import { GRADE_A, GRADE_B, GRADE_C, GRADE_D, gradeFor, type Grade } from '../data/courseQuality';
 
 // The Faculty tab's sort and filter (Plans 72F and 84D). Pure, for the
 // test: how people are ordered, which of them show in the grid, and which
@@ -51,12 +51,37 @@ export function bandOf(value: number): Grade {
 // against: a 50 is a good hire among 40s in year 3 and a weak one in year
 // 40, without the player knowing the market's shape. Null with nobody on
 // the payroll.
-export function facultyMedian(faculty: readonly Faculty[]): number | null {
+// The plot reads research's median the same way.
+export function facultyMedian(faculty: readonly Faculty[], stat: 'teaching' | 'research' = 'teaching'): number | null {
   if (faculty.length === 0) return null;
-  const sorted = faculty.map((f) => f.teaching).sort((a, b) => a - b);
+  const sorted = faculty.map((f) => f[stat]).sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return Math.round(sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2);
 }
+
+// Where somebody stands for teaching in their department: first is the
+// best, ties shared. A candidate is ranked as if appointed, among the
+// professors already there.
+export function teachingRank(f: Faculty, faculty: readonly Faculty[]): { rank: number; of: number } {
+  const colleagues = faculty.filter((g) => g.field === f.field && g.id !== f.id);
+  return { rank: 1 + colleagues.filter((g) => g.teaching > f.teaching).length, of: colleagues.length + 1 };
+}
+
+// The lines the plot draws across both axes: where each course grade
+// begins (courseQuality.ts), so a dot reads as the grade it would teach at.
+export const GRADE_LINES: ReadonlyArray<{ value: number; grade: Grade }> = [
+  { value: GRADE_D, grade: 'D' }, { value: GRADE_C, grade: 'C' }, { value: GRADE_B, grade: 'B' }, { value: GRADE_A, grade: 'A' },
+];
+
+// How the people are drawn: as tiles, as a table's rows, or as dots on
+// teaching against research. Kept for the session with the view.
+export type FacultyLayout = 'cards' | 'table' | 'plot';
+
+export const FACULTY_LAYOUTS: ReadonlyArray<{ id: FacultyLayout; label: string }> = [
+  { id: 'cards', label: 'Cards' },
+  { id: 'table', label: 'Table' },
+  { id: 'plot', label: 'Plot' },
+];
 
 // Strongest, dearest, longest here or longest left first; names A to Z.
 // Ties go by name, so the order never shuffles between weeks. Years here

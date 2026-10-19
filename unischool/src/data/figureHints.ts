@@ -61,6 +61,13 @@ export const FIGURE_HINTS = {
   nextThousand: 'What a thousand more students would pay each at this price, against what teaching, serving and administering them would cost at this size.',
   tuitionLocked: 'The price this class pays every year until it graduates.',
   admitRate: 'Admitting more takes weaker applicants.',
+  // The Faculty tab's plot, the picked person's card.
+  plotTeaching: 'Their teaching less your faculty\'s median: above it, the courses they take would be taught better than most.',
+  plotResearch: 'Their research less your faculty\'s median.',
+  plotRank: 'Their place among their department\'s professors by teaching, a candidate\'s as if appointed.',
+  plotPay: 'What the college pays them a year, or would, at its market rate.',
+  plotLoad: 'The courses they hold against the course slots they supply.',
+  plotListing: 'How long until the listing withdraws from the market.',
 } as const satisfies Record<string, Sentence | ((...args: never[]) => Sentence)>;
 
 // The satisfaction chip's hint (Plan 78B): the lowest of the five needs and
