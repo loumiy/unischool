@@ -209,6 +209,33 @@ export function finishEstateWorks(s: GameState): void {
   }
 }
 
+// One building's backlog a week on: unpaid upkeep added to a compounding
+// backlog, or, at full funding, the backlog paid down.
+function nextBacklog(backlog: number, upkeep: number, unpaid: number, paydown: number): number {
+  return unpaid > 0
+    ? backlog * (1 + BACKLOG_GROWTH_RATE / WEEKS_PER_YEAR) + upkeep * unpaid
+    : backlog * (1 - paydown / WEEKS_PER_YEAR);
+}
+
+// The campus's backlog a year from now at today's funding, for the
+// Treasury's projection: tickEstate's arithmetic run forward, a building
+// under renovation counted as cleared when its scaffolding comes down.
+export function backlogInAYear(s: GameState): number {
+  const unpaid = 1 - maintenanceFunding(s);
+  const paydown = BACKLOG_PAYDOWN_RATE * paydownFactor(s);
+  let total = 0;
+  for (const t of s.tech) {
+    if (!isPlaceableKind(t) || !standsOnCampus(t)) continue;
+    const renovating = t.renovationWeeks ?? 0;
+    let backlog = renovating > 0 ? 0 : t.backlog ?? 0;
+    for (let w = renovating; w < WEEKS_PER_YEAR; w += 1) {
+      backlog = nextBacklog(backlog, t.effects?.upkeepPerWeek ?? 0, unpaid, paydown);
+    }
+    total += backlog;
+  }
+  return total;
+}
+
 // The estate's week: unpaid upkeep becomes backlog, backlogs compound while
 // maintenance is underfunded and are paid down at full funding, and
 // renovations run down and, when done, clear their backlog. Nothing here
@@ -235,11 +262,7 @@ export function tickEstate(s: GameState): void {
       }
       continue;
     }
-    const upkeep = t.effects?.upkeepPerWeek ?? 0;
-    const backlog = t.backlog ?? 0;
-    const next = unpaid > 0
-      ? backlog * (1 + BACKLOG_GROWTH_RATE / WEEKS_PER_YEAR) + upkeep * unpaid
-      : backlog * (1 - paydown / WEEKS_PER_YEAR);
+    const next = nextBacklog(t.backlog ?? 0, t.effects?.upkeepPerWeek ?? 0, unpaid, paydown);
     if (next >= BACKLOG_CLEARED_BELOW || (unpaid > 0 && next > 0)) t.backlog = Math.round(next);
     else delete t.backlog;
   }

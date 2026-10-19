@@ -335,7 +335,7 @@ button, input, select, textarea { font-size: inherit; }
   font-family: var(--display); font-weight: 800; font-size: var(--text-md); letter-spacing: -0.01em; line-height: 1.25; color: var(--ink); }
 /* An eyebrow: capitals for a label of three words or fewer above what it
    names. Never for a title or a proper name. */
-.eyebrow, .statement-col h3, .consequence-panel h3, .cohort-breakdown h3,
+.eyebrow, .consequence-panel h3, .cohort-breakdown h3,
 .review-section h3, .report-movers h3, .report-standings-head, .digest-head, .milestone-unlocks-head, .offer-commit h4,
 .course-drawer-section h4, .final-report h4, .facility-group-head, .faculty-market-head, .settings-row legend,
 .sound-controls legend, .ladder-tier h3, .chronicle-subhead, .milestone-unlocks-fold summary {
@@ -2710,10 +2710,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .history-table-scroll::-webkit-scrollbar-thumb { background: var(--parchment-line); border-radius: var(--radius-sm); }
 .history-table-scroll { scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 
-/* ---------- Treasury: weekly income statement ---------- */
-/* Figures come from financeSystem.ts's financeBreakdown. */
-.income-statement { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px 28px; }
-.statement-col h3 { margin: 0 0 var(--space-6); border-bottom: 2px solid var(--outline); padding-bottom: var(--space-4); }
+/* ---------- Statement lines (EnrollmentTab.tsx's funnel) ---------- */
 .statement-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
   padding: 5px 0; border-bottom: 1px solid var(--parchment-line); }
 .statement-line-label { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-base); }
@@ -2731,6 +2728,78 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 /* align-items: start so Endowment Campaign isn't stretched to match. */
 .treasury-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+
+/* ---------- Treasury: the operating budget (TreasuryTab.tsx) ----------
+   One board in three columns: the year's lines, the headline figures over
+   cash across the years, and the levers on a darker ground. */
+.treasury-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-12); }
+.treasury-bar .dateline { margin: 0; color: var(--ink-muted); }
+.treasury-bar .segmented.switch { min-width: min(100%, 460px); }
+.treasury-board { display: grid; grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.7fr) minmax(250px, 0.9fr);
+  background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); overflow: hidden; color: var(--ink); }
+.treasury-board > * { padding: var(--space-16) var(--space-24); min-width: 0; }
+.treasury-board > * + * { border-left: 1px solid var(--parchment-line); }
+.treasury-board h3 { margin: 0 0 var(--space-8); }
+.treasury-board .budget-line-note { margin: var(--space-4) 0 var(--space-12); }
+
+.treasury-ledger .eyebrow.income { color: var(--ok-on-light); }
+.treasury-ledger .eyebrow.expense { margin-top: var(--space-16); color: var(--bad-on-light); }
+.budget-line summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px var(--space-8);
+  padding: var(--space-6) 0; cursor: pointer; list-style: none; }
+.budget-line summary::-webkit-details-marker { display: none; }
+.budget-line summary:hover .budget-line-label { color: var(--school-primary); text-decoration: underline; }
+.budget-line-label { font-size: var(--text-base); }
+.budget-line-amount { font-family: var(--mono); font-size: var(--text-sm); white-space: nowrap; }
+.budget-line-bar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--cream-lo); overflow: hidden; }
+.budget-line-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--school-primary); }
+.treasury-ledger .eyebrow.expense ~ .budget-line .budget-line-bar > span { background: var(--ink-muted); }
+.budget-line-note { margin: 0 0 var(--space-6); font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
+
+.treasury-center { display: flex; flex-direction: column; gap: var(--space-12); }
+.treasury-kpis { display: flex; flex-wrap: wrap; gap: var(--space-16) var(--space-32); margin-bottom: var(--space-8); }
+.treasury-kpi { display: flex; flex-direction: column; gap: var(--space-2); }
+.treasury-kpi .eyebrow { display: inline-flex; align-items: center; gap: var(--space-4); color: var(--ink-muted); }
+.treasury-kpi strong { font-family: var(--display); font-size: var(--text-5xl); font-weight: 800; line-height: 1.05; color: var(--ink); }
+.treasury-kpi strong.good, .treasury-projection strong.good { color: var(--ok-on-light); }
+.treasury-kpi strong.bad, .treasury-projection strong.bad { color: var(--bad-on-light); }
+.treasury-kpi .stat { font-size: var(--text-xs); color: var(--ink-muted); }
+.treasury-center .empty-note { margin: 0; }
+
+.treasury-cash-chart { margin: 0; }
+.treasury-cash-chart svg { display: block; width: 100%; height: auto; }
+.treasury-cash-chart figcaption { display: flex; align-items: center; gap: var(--space-6); margin-top: var(--space-4); }
+.cash-grid { stroke: var(--parchment-line); stroke-width: 1; }
+.cash-zero { stroke: var(--ink-muted); stroke-width: 1; }
+.cash-tick { font-family: var(--mono); font-size: 10px; fill: var(--ink-muted); }
+.cash-area { fill: color-mix(in srgb, var(--school-primary) 14%, transparent); }
+.cash-line { fill: none; stroke: var(--school-primary); stroke-width: 2.5; stroke-linejoin: round; }
+.cash-now { fill: var(--school-secondary); stroke: var(--outline); stroke-width: 2; }
+.cash-band, .cash-band-key { fill: color-mix(in srgb, var(--bad-on-light) 14%, transparent); }
+.cash-band-key { display: inline-block; width: 14px; height: 10px; border-radius: 2px;
+  background: color-mix(in srgb, var(--bad-on-light) 22%, transparent); }
+
+.treasury-levers { display: flex; flex-direction: column; gap: var(--space-16); background: var(--cream); }
+.treasury-levers h3 { margin-bottom: 0; }
+.lever { display: flex; flex-direction: column; gap: var(--space-4); }
+.lever-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-8); font-weight: 700; font-size: var(--text-md); }
+.lever-head strong { font-family: var(--mono); font-size: var(--text-md); font-weight: 600; }
+.lever input[type="range"] { width: 100%; height: 24px; margin: 0; accent-color: var(--school-primary); }
+.lever-note { margin: 0; font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
+.treasury-projection { display: flex; flex-direction: column; gap: var(--space-4); margin-top: auto;
+  padding: var(--inset-card); border: 2px solid var(--outline); border-radius: var(--radius-md); background: var(--cream-hi);
+  box-shadow: var(--shadow-1); }
+.treasury-projection strong { font-family: var(--mono); font-size: var(--text-xl); font-weight: 600; }
+
+@media (max-width: 1150px) {
+  .treasury-board { grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.6fr); }
+  .treasury-levers { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--parchment-line); }
+}
+@media (max-width: 760px) {
+  .treasury-board { grid-template-columns: minmax(0, 1fr); }
+  .treasury-board > * + * { border-left: 0; border-top: 1px solid var(--parchment-line); }
+  .treasury-board > * { padding: var(--space-12) var(--space-16); }
+  .treasury-kpi strong { font-size: var(--text-4xl); }
+}
 
 /* ---------- Overlays ---------- */
 .modal-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--outline) 45%, transparent);
