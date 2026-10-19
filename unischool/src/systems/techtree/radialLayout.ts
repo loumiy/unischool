@@ -213,7 +213,7 @@ export function radialDrawing(s: GameState): RadialDrawing {
   const courses = new Map<string, DrawnCourse>();
   const programs = new Map<string, DrawnProgram>();
   const lines: Record<LineKind, string[]> = { taught: [], writing: [], open: [] };
-  let extent = RADIAL.seal;
+  let extent: number = RADIAL.seal;
 
   for (const program of layout.programs.values()) {
     if (!isHoused(s, program.id)) continue;
