@@ -25,7 +25,7 @@ import { courseQuality, projectedQuality } from '../../src/systems/faculty/facul
 import { GRADE_A, qualityOf, tierOf } from '../../src/data/courseQuality';
 import { CROWDING_GRACE, crowdingCoverages } from '../../src/systems/prestige/prestigeSystem';
 import { claimedHalls, claimedSchool, homeSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
-import { declineRefusal, schoolOffers } from '../../src/systems/techtree/programOffers';
+import { declineRefusal, drawsGlobalOffers, schoolOffers } from '../../src/systems/techtree/programOffers';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
 import { bedsWithDowntown } from '../../src/systems/satisfaction/satisfactionSystem';
 import type { Game } from './game';
@@ -73,7 +73,12 @@ export function homeFor(s: GameState, program: ProgramInfo): { hallId: string; s
   const open = Object.keys(s.halls)
     .filter((hallId) => academic(hallId) && homeSchool(s, hallId) === null && claimedSchool(s, hallId) === null)
     .sort((a, b) => (a === FOUNDERS_HALL_ID ? -1 : b === FOUNDERS_HALL_ID ? 1 : 0));
-  return open.length > 0 ? { hallId: open[0], slot: freeSlotIn(s, open[0]) } : null;
+  if (open.length > 0) return { hallId: open[0], slot: freeSlotIn(s, open[0]) };
+  // Last, a claimed hall whose school has nothing left to found: it takes
+  // the global offers too (drawsGlobalOffers).
+  const spent = Object.keys(s.halls).find((hallId) => academic(hallId) && hallId !== FOUNDERS_HALL_ID
+    && claimedSchool(s, hallId) !== null && drawsGlobalOffers(s, hallId));
+  return spent !== undefined ? { hallId: spent, slot: freeSlotIn(s, spent) } : null;
 }
 
 // The school with the most programs in a hall, alone; undefined on a tie or
@@ -109,11 +114,12 @@ export function foundable(s: GameState): Array<{ program: ProgramInfo; hallId: s
 }
 
 // What a player founds into this hall when told to (Plan 78D): a purchased
-// hall one school claims takes that school's own programs and nothing
-// else (another school's would take a program slot the school needs);
-// Founders Hall and a hall no school claims take the global offers.
+// hall one school claims takes that school's own programs while it has
+// any (another school's would take a program slot the school needs), then
+// the global offers; Founders Hall and a hall no school claims take the
+// global offers (drawsGlobalOffers).
 export function offersFor(s: GameState, hallId: string): string[] {
-  if (hallId !== FOUNDERS_HALL_ID && claimedSchool(s, hallId) !== null) return schoolOffers(s, hallId).map((p) => p.id);
+  if (!drawsGlobalOffers(s, hallId)) return schoolOffers(s, hallId).map((p) => p.id);
   return [...s.programOffers];
 }
 

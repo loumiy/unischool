@@ -5,7 +5,7 @@ import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from 
 import { CLAIM_AT, claimedHalls, claimedSchool, hallDisplayName, homeSchool, schoolHall } from '../techtree/schools';
 import { seatingAsk } from './seating';
 import { establishAsk } from './establish';
-import { isHoused, schoolOffers } from '../techtree/programOffers';
+import { drawsGlobalOffers, isHoused, schoolOffers } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
 import type { StepIntent } from './intent';
@@ -153,7 +153,9 @@ function freeSlot(s: GameState): NextStep | null {
   }
   const open = Object.keys(s.halls).find((hallId) => {
     const hall = s.tech.find((t) => t.id === hallId);
-    return !!hall && isAcademicHall(hall) && hasRoom(hallId) && homeSchool(s, hallId) === null;
+    // An open hall, or a claimed one whose school has nothing left to found.
+    return !!hall && isAcademicHall(hall) && hasRoom(hallId)
+      && (homeSchool(s, hallId) === null || (claimedSchool(s, hallId) !== null && drawsGlobalOffers(s, hallId)));
   });
   if (open && s.programOffers.length > 0) {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);

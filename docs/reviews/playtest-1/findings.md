@@ -297,6 +297,9 @@ marked **0.1.x** and fixed in a patch.*
   "Nothing is on offer to found here." A second possibility, which the
   save would settle: by year 38 every program in the catalog is founded,
   and nothing says so.
+  **Decided: a claimed hall whose school has nothing left to found takes
+  the global offers** (the owner, 19 October), and when the whole catalog
+  is founded the "+" says so.
 
 - **The research specialization's building doesn't appear** (0.1.2).
   "Research specialization building doesn't appear upon specializing in
