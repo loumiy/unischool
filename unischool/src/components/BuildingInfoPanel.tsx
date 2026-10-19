@@ -24,7 +24,7 @@ import { schoolMark } from '../data/schoolPalette';
 import {
   canFoundProgram, canRelocateProgram, closeRefusal, courseSlotsFree, eligibleInstructors, relocationWeeks,
 } from '../systems/techtree/techSystem';
-import { declineRefusal, hostOffers, isHoused, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
+import { declineRefusal, drawsGlobalOffers, hostOffers, isHoused, offerablePrograms, schoolOffers, transitWeeks } from '../systems/techtree/programOffers';
 import { milestoneLine, programProgress } from '../systems/techtree/programProgress';
 import { count, fraction, money, moneyShort, pct, signedPct, weeksShort } from '../format';
 import { initiativeDepth } from '../data/researchData';
@@ -377,8 +377,9 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
 //
 // What is on offer (Plans 78D and 100): a purchased hall one school claims
 // (three of its programs) offers every program of that school the college
-// can found (programOffers.ts's schoolOffers), and nothing else; Founders
-// Hall and an open hall offer the global three, and an open hall says how
+// can found (programOffers.ts's schoolOffers), and the global three once
+// none is left (drawsGlobalOffers); Founders Hall and an open hall offer
+// the global three, and an open hall says how
 // near a school is to claiming it. Each global offer can be declined, one a
 // year ("Not this year").
 //
@@ -424,13 +425,14 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
 
   const host = !isAcademicHall(t);
   // A claimed purchased hall offers its own school's programs, in place of
-  // the draw's (Plan 100); an open hall and Founders Hall, the draw's.
+  // the draw's (Plan 100), while it has any; then, like an open hall and
+  // Founders Hall, the draw's (drawsGlobalOffers).
   const claimed = host ? null : claimedSchool(s, t.id);
   const own = claimed ? schoolOffers(s, t.id) : [];
-  const ownSchool = claimed?.school;
+  const ownSchool = own.length > 0 ? claimed?.school : undefined;
   const drawn = host
     ? hostOffers(s, t.id)
-    : claimed ? [] : s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined);
+    : drawsGlobalOffers(s, t.id) ? s.programOffers.map((id) => programById(id)).filter((p) => p !== undefined) : [];
   const offers = [...own, ...drawn];
   // Founders Hall's offices (Plan 89): on offer while the college may hold
   // another; the row of six from the first milestone on.
@@ -541,7 +543,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         </p>
       )}
       {claim && own.length === 0 && free > 0 && (
-        <p className="building-info-line">Every {claim.school} program is housed.</p>
+        <p className="building-info-line">
+          Every {claim.school} program is housed{drawn.length > 0 ? ', so its free slots take the programs on offer.' : '.'}
+        </p>
       )}
       {!host && !founders && !claimed && !school && (
         <p className="building-info-line hall-claim-note">
@@ -607,7 +611,8 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
               aria-pressed={open}
               disabled={offers.length === 0 && officesOffered === 0}
               title={offers.length === 0 && officesOffered === 0
-                ? (host ? 'No program for this hall is on offer yet.' : 'Nothing is on offer to found here.')
+                ? (host ? 'No program for this hall is on offer yet.'
+                  : offerablePrograms(s).length === 0 ? 'Every program in the catalog is founded.' : 'Nothing is on offer to found here.')
                 : officesOffered > 0 ? 'Found a program or open an office here' : 'Found a program here'}
             >
               +

@@ -152,8 +152,6 @@ export const PARK_WORDS = {
   landmarkClosed: 'Landmark Programs, four scholars across disciplines over five years, are commissioned once the Research Park stands, which only a college specialized in research may build.',
 
   // The next-step line, at a lab that has not finished a research project
-  // while the park is still ahead (nextStep.ts's idleLab).
-  unprovenLab: (lab: string, specialized: boolean) => (specialized
-    ? `${lab} has not finished a research project`
-    : `${lab} has not finished a research project — the Research Park waits on every lab, and on a specialization in research`),
+  // (nextStep.ts's idleLab).
+  unprovenLab: (lab: string) => `${lab} has not finished a research project yet — commission one`,
 };

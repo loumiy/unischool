@@ -135,12 +135,24 @@ export function schoolOffers(s: GameState, hallId: string): ProgramInfo[] {
   return offerablePrograms(s).filter((program) => program.school === claim.school);
 }
 
-// Whether a major may be founded into this hall from what it offers: an
-// open hall (and Founders Hall) the global offers; a claimed hall only its
-// own school's (schoolOffers), in place of them (Plan 100, decision 2).
+// Whether a hall founds from the global offers: Founders Hall, an open
+// hall, and a claimed hall whose school has nothing left to found. A
+// claimed hall offers its own school's programs in place of the global
+// ones (Plan 100, decision 2) only while there are some: through 0.1.2 it
+// did so always, and late in a run a claimed hall's free slots refused
+// every program, even ones on offer with nowhere else to go (Playtest 1,
+// F5; the owner's decision, 19 October).
+export function drawsGlobalOffers(s: GameState, hallId: string): boolean {
+  if (hallId === FOUNDERS_HALL_ID || !claimedSchool(s, hallId)) return true;
+  return schoolOffers(s, hallId).length === 0;
+}
+
+// Whether a major may be founded into this hall from what it offers: the
+// global offers where the hall draws them (drawsGlobalOffers), else its own
+// school's (schoolOffers).
 export function offeredIn(s: GameState, hallId: string, programId: string): boolean {
-  if (hallId !== FOUNDERS_HALL_ID && claimedSchool(s, hallId)) return schoolOffers(s, hallId).some((program) => program.id === programId);
-  return s.programOffers.includes(programId);
+  if (drawsGlobalOffers(s, hallId)) return s.programOffers.includes(programId);
+  return schoolOffers(s, hallId).some((program) => program.id === programId);
 }
 
 // The decline (Plan 78D, A4-5's "decline an offer"): one global offer a

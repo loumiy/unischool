@@ -25,7 +25,7 @@ import { bindScriptStream } from '../src/engine/random';
 import { FOUNDERS_HALL_ID, academicHallId, programById, programs } from '../src/data/techData';
 import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
 import {
-  declineRefusal, offerablePrograms, offeredIn, PROGRAM_OFFER_COUNT, refillOffers, schoolOffers,
+  declineRefusal, drawsGlobalOffers, offerablePrograms, offeredIn, PROGRAM_OFFER_COUNT, refillOffers, schoolOffers,
 } from '../src/systems/techtree/programOffers';
 import { canFoundProgram, eligibleInstructors } from '../src/systems/techtree/techSystem';
 import { claimCutBy } from '../src/systems/techtree/schools';
@@ -118,6 +118,31 @@ function claimed(name = 'Decline', one = false): { s: GameState; school: string 
       assert(JSON.stringify(t.programOffers) === JSON.stringify(offers), 'and leaves the global offers as they were');
       assert(t.rng === rng, 'without a draw on the random stream');
     }
+  }
+}
+
+// ---- 1b. A claimed hall whose school has nothing left (Playtest 1, F5) ----
+// Late in a run a school has founded every program it has; its hall's free
+// slots then take the global offers instead of refusing everything.
+{
+  const { s, school } = claimed('Spent');
+  assert(!drawsGlobalOffers(s, ELM), `while ${school} has programs left, Elm Hall offers only those`);
+  const third = academicHallId(2);
+  const hall = s.tech.find((t) => t.id === third)!;
+  hall.status = 'done';
+  s.halls[third] = Array.from({ length: Math.max(hall.slots ?? 6, schoolOffers(s, ELM).length) }, () => ({ programId: null }));
+  schoolOffers(s, ELM).forEach((p, i) => { s.halls[third][i] = { programId: p.id }; });
+  refillOffers(s);
+  assert(schoolOffers(s, ELM).length === 0 && drawsGlobalOffers(s, ELM), `every ${school} program housed, Elm Hall draws the global offers`);
+  assert(s.programOffers.length > 0 && s.programOffers.every((id) => offeredIn(s, ELM, id)), 'and every one of them may be founded there');
+  const global = s.programOffers.map((id) => programById(id)!).find((p) => {
+    const entry = s.tech.find((t) => t.id === p.entryCourseId)!;
+    return eligibleInstructors(s, entry).length > 0;
+  });
+  if (global) {
+    const entry = s.tech.find((t) => t.id === global.entryCourseId)!;
+    const free = s.halls[ELM].findIndex((slot) => slot.programId === null);
+    assert(canFoundProgram(s, { programId: global.id, hallId: ELM, slot: free, facultyId: eligibleInstructors(s, entry)[0].id }), `${global.name} can be founded into Elm Hall's free slot`);
   }
 }
 
