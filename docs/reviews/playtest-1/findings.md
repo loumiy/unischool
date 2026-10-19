@@ -26,7 +26,7 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *10 players · reddit (R1,
-  R3, R4, R8, R9, R12), comment (I1, I2), live (T1), form (F1, F2, F3, F4),
+  R3, R4, R8, R9, R12), comment (I1, I2), live (T1), form (F1, F2, F3, F4, F6),
   discord (D1), service (S1).*
   R12, from the screenshot and the page: "It feels like a classic tycoon
   game right out the gate."
@@ -88,6 +88,8 @@ marked **0.1.x** and fixed in a patch.*
   College" showed as "Baltimoor / e College": the banner sizes the name
   by its total length and lets a word break. Plan 104 as K. *Owner, from
   S1's video.*
+- **The UI is hard to read at times.** "The game is somewhat confusing,
+  the UI is kinda hard to read at times." *1 player · form (F6).*
 - **The board's opening letter took two reads.** "350 students are on
   the books, nobody is on the payroll … Founders Hall hasn't been placed
   yet": S1 read it a couple of times ("Sorry, what?") before it made
@@ -169,6 +171,12 @@ marked **0.1.x** and fixed in a patch.*
   hall instead; health isn't shown until it's a need, so a college doing
   everything it can reads full marks. Plan 104 as M. *Owner, from S1's
   video.*
+- **Prestige falls and the player can't tell why.** "I've established a
+  bunch of programs, a sports team, some clubs, why is my prestige
+  continuing to plummet? So I'm not entirely sure what it is that makes a
+  'good' score." The same gap as S1's satisfaction: the number moves and
+  the game doesn't say what moved it. "None of that really impacted my
+  enjoyment." *1 player · form (F6).*
 - **Why satisfaction falls in year two isn't said.** S1 couldn't find
   satisfaction at first, then couldn't work out why it kept dropping in
   year two with dining, academic and social all full and health "not yet
@@ -249,6 +257,12 @@ marked **0.1.x** and fixed in a patch.*
   for economic advantages, in research for efficiency, each branch
   opening further ones, so progress isn't mostly buying more buildings.
   The player knows it's a big feature. *1 player · form (F2).*
+
+- **The people who run a university.** "Some aspects of the abstraction
+  feel very 'gamey' … I wonder about the campus administrators,
+  facilities staff, cooking staff, board of trustees, etc. There's just so
+  much that goes into running a university. Not sure if all that is
+  outside the scope of the game." *1 player · form (F6).*
 
 - **Other languages.** "The absence of other languages" was named as a
   frustration. The game is English only. *1 player · form (F4).*
@@ -684,6 +698,38 @@ that in mind.*
   - *Anything else:* "Suggestion: A way to automate athletics hiring Ex:
     Auto hire people with xx grade and/or xx potential with a minimum
     threshold of xx."
+
+- **F6** · 19 October, 19:10 UTC · 0.1.2 (build `4f5b83e`, itch.io),
+  sent from year 5 week 52, rank 72. PostHog (install id matched): one
+  run on a laptop, first seen 18 October; finished the walkthrough
+  without skipping, and played on after the form to year 10 (25 played
+  minutes).
+  - *How long:* 30–60 min.
+  - *A moment you didn't know what to do next?* "I would say a handful of
+    mechanics are somewhat counterintuitive. It's a fun game, but when
+    you're first thrust into the game, it takes some time I would say to
+    get acclimated to what the player is supposed to do. I am not sure if
+    thats a problem or not. Its kinda fun to [mess] around and build
+    whatever kind of school you want and just see how it goes. But I found
+    myself wondering okay, ive established a bunch of programs, a sports
+    team, some clubs, why is my prestige continuing to plummet? So Im not
+    entirely sure what it is that makes a "good" score. The game is fun
+    tho, none of that really impacted my enjoyment."
+  - *Best moment:* "I like being able to design a campus and seeing the
+    summaries at the end of a year."
+  - *Most frustrating:* "The game is somewhat confusing, the UI is kinda
+    hard to read at times, and i think some aspects of the abstraction
+    feel very "gamey", I suppose. I wonder about the campus
+    administrators, facilities staff, cooking staff, board of trustees,
+    etc. There's just so much that goes into running a university. Not
+    sure if all that is outside the scope of the game. Either way, I had a
+    good time."
+  - *Play again?* "Yes. I like watching my school grow and its a solid
+    little management game. It's working for me on the fun level. I dont
+    think it is like the most encompassing college simulation but it
+    doesnt have to be."
+  - *Would pay:* under $5. "I would pay under $5 if some more was built
+    out. For as it is, I would prefer that it stay free."
 
 ### We Playtest Games — a service's unsolicited playtest (16 October)
 
