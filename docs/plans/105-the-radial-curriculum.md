@@ -7,7 +7,11 @@ the whole curriculum, entry courses at the centre and capstones at the rim,
 that draws only what the college has opened and fills the screen between
 two side panels.*
 
-**Status: Proposed.**
+**Status: Landed.** A, B–D, E–F and G in four commits on one branch. The
+owner answered the five decisions as proposed (§4). Two departures, both the
+owner's, made while B landed: the drawing carries no caption until the pointer
+is on a course, and cross-program prerequisites are not drawn at all (§2's
+rule 3 and §3.4, below).
 
 ---
 
@@ -266,6 +270,11 @@ quality computed on read, and every number shown.
   grows monotonically as courses complete; every bridge in
   `CROSS_MAJOR_BRIDGES` resolves to two positions.
 
+**As implemented (A):** `systems/techtree/radialLayout.ts` and
+`test/radial-layout.test.ts`. The inner rings moved out (entry 145, core 262,
+advanced 376) when the overlap check found neighbouring entry courses
+touching at 120. `bridgesFor` and its checks went with B's departure.
+
 ### 105B — The stage
 
 - `tabs/curriculum/` holds `CurriculumStage` (the three columns),
@@ -302,6 +311,26 @@ The chip-drag swap in the program card's course list (§3.6), the dark and
 in-transit drawings, keyboard navigation (§3.4). Tests for the swap
 preview and for arrow-key order.
 
+**As implemented (B–D):** one commit. `tabs/RadialCurriculum.tsx` (the
+stage, the program card, wiring), `tabs/curriculumView.ts` (the Drawing /
+List switch, which App.tsx also reads to give the overlay `split`), and,
+since E–F, `components/RadialSvg.tsx` (the drawing). Departures:
+- **No bridges drawn** (the owner: "extra clutter"). The program in focus
+  draws only its own branch in navy; the course drawer lists cross-listed
+  prerequisites as before.
+- **No idle caption** (the owner): the caption shows only while the pointer
+  or focus is on a course; the tab's help moved to the View card's band.
+- **The schools' arcs run just outside the outermost course drawn**, not at
+  the fixed rim, so the camera's fit is not held small by an empty rim in a
+  young college.
+- The right column shows the selected course's drawer **above** the program
+  card, and scrolls to its top on a selection.
+- The program in focus is chosen in the first render (the walk's program,
+  else the first drawn), not in an effect, so a static render and the first
+  paint both have it.
+- Instructor swaps use the course cells themselves in the program card,
+  unchanged from the rows (`CourseCell`, `SWAP_COURSE_FACULTY`).
+
 ### 105E — When a course was finished
 
 `completedWeek` set in `completeDevelopment`; the sanitize step for old
@@ -315,6 +344,15 @@ The replay where decision 2 puts it: a year slider and Play over a
 read-only `RadialDrawing` fed by `completedWeek`. Reduced motion steps
 without animation.
 
+**As implemented (E–F):** one commit. `completedWeek` in `types.ts`, set in
+`completeDevelopment`, cleared in `closeProgram`, derived in
+`persistence.ts`'s `sanitizeCompletedWeeks` (no save version: the field is
+optional and the step runs on every load). The replay is
+`components/CurriculumReplay.tsx` over `radialLayout.ts`'s `curriculumAt`,
+in the History tab's record (after the chronicle) and at the foot of the
+Final Report; `test/completed-week.test.ts` and the replay's checks in
+`radial-layout.test.ts`.
+
 ### 105G — The words, and the list
 
 - `docs/design/curriculum.md` §"The Curriculum tab" (268–391) rewritten:
@@ -326,3 +364,11 @@ without animation.
   "unfold") in help text and figure hints, and rewrite them (Plan 95E's
   rule).
 - Ask decision 1 again: retire the List view, or keep it.
+
+**As implemented (G):** `docs/design/curriculum.md`'s tab section rewritten
+around the drawing, with the rows as "The List view" and the four rules of
+§2 (as landed: no bridges) closing it; `ui-shell.md`'s opening drive and ring
+list; `buildables.md` on `completedWeek`; a new `docs/images/tab-curriculum.png`
+from a Year 40 run. No help text in `src/` described rows as the only view:
+the List view's own help still describes its rows. Decision 1 stays open:
+the List view is kept until the owner retires it.

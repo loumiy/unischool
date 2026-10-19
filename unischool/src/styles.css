@@ -4182,7 +4182,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .radial-pie { fill: var(--radial-lit); }
 .radial-node.ready circle { stroke: var(--radial-lit-deep); stroke-width: 2.2; stroke-dasharray: 3 2; }
 .radial-node.held circle { stroke: var(--ink-muted); stroke-dasharray: 2 2; }
-.radial-node .radial-hit { fill: transparent; stroke: none; }
+.radial-node .radial-hit { fill: transparent !important; stroke: none !important; }
 .radial-node:hover circle:not(.radial-hit), .radial-node:focus-visible circle:not(.radial-hit) { stroke-width: 3.2; }
 .radial-node:focus-visible circle:not(.radial-hit) { stroke: var(--radial-lit-deep); }
 .radial-node.selected circle:not(.radial-hit), .radial-node.selected .radial-star { stroke: var(--radial-select); stroke-width: 3.4; stroke-dasharray: none; }

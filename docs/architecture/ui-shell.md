@@ -422,8 +422,9 @@ each transition into a stage — opens the build menu for the hall, closes it,
 drops the pickup and opens Founders Hall's panel when the hall stands (where
 the first professor is appointed and the first program founded, Plan 80D),
 starts the clock while the first course is written, opens the Curriculum on
-that program with its row open when the course step begins (Plan 103B, through
-`useCollapse.ts`'s `setCollapsed`), opens Students on the satisfaction
+that program when the course step begins (Plan 103B: in the drawing, Plan 105,
+the program in focus in the right column and its school zoomed; in the List
+view its row open, through `useCollapse.ts`'s `setCollapsed`), opens Students on the satisfaction
 breakdown for the needs step, and the build menu for each site step, on the
 tab of the building it rings (Plan 103C, `BuildPopup.tsx`'s `initialBuildTab`;
 already open, the menu turns to it) — through the same `setBuildOpen` and
@@ -438,8 +439,8 @@ the hall's panel or a tab holds the top, and steps aside while a building is
 in hand, since the map's touch bar and its Place hold the top then. The control each
 step needs carries `.opening-target` (the Build button, the hall's tile,
 Founders Hall's first free program slot in its panel on the map, English
-among the offers, the Found button, the program row's develop button in
-the Curriculum, Students' Housing and Dining cards, and the next residence
+among the offers, the Found button, the program's develop button in
+the Curriculum (the program card's, or the row's in the List view), Students' Housing and Dining cards, and the next residence
 hall's and dining hall's build tiles). A skipped walk that left the hall
 unsited keeps the Build button and the hall's tile rung while the clock
 waits for it.
