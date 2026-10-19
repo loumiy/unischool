@@ -82,7 +82,7 @@ function earned(specialization: GameState['specialization']): GameState {
 // ---- The gate ----
 {
   const def = PROJECTS.find((p) => p.id === RESEARCH_PARK_ID)!;
-  assert(def.project.specialization === 'research' && def.project.everyLabFinished === true, 'the park is the research specialization\'s, and still waits on the labs');
+  assert(def.project.specialization === 'research' && !('everyLabFinished' in def.project), 'the park is the research specialization\'s, and no longer waits on the labs');
   assert(Object.values(def.project.boosts).every((b) => !b), 'it lifts no standing of its own');
   for (const chosen of ['none', 'academics', 'studentLife', 'athletics'] as const) {
     const s = earned(chosen);
@@ -97,8 +97,9 @@ function earned(specialization: GameState['specialization']): GameState {
   s.research.finishedLabs = [];
   park(s).status = 'locked';
   unlockAvailable(s);
-  assert(park(s).status === 'locked' && !closedBySpecialization(s, park(s)), 'not before every lab has finished a project, nor listed closed then');
-  assert(projectOpens(def.project).endsWith('specialized in research and every lab on campus has finished a research project.'), `its gate in words ("${projectOpens(def.project)}")`);
+  assert(park(s).status === 'available', 'open with the choice, though no lab has finished a project (F5, 0.1.2)');
+  park(s).status = 'locked';
+  assert(projectOpens(def.project) === 'Opens once the college is specialized in research.', `its gate in words ("${projectOpens(def.project)}")`);
   assert(def.description.endsWith('home of the Landmark Programs.'), 'the description says what it is');
   // The letter asks to site it only while it can be: closed again, it asks nothing.
   const letter = OPENING_LETTERS.find((l) => l.id === 'the-research-park')!;

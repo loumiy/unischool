@@ -411,8 +411,6 @@ export interface CapitalProject {
   // Waits on a school's whole undergraduate curriculum being taught (Plan
   // 51): a school's name, or ANY_SCHOOL for the first school to finish.
   curriculum?: string;
-  // Waits on every standing lab having finished an initiative (Plan 53).
-  everyLabFinished?: true;
   // Waits on the college's specialization (Plan 85E: the Faculty Training
   // Institute, academics'; Plan 85F: the Research Park, research's): only a
   // college specialized in it may build it.

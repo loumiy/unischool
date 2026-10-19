@@ -80,7 +80,11 @@ opened teaching three programs). Three moves (Plan 14) give it its shape:
    purchased hall one school claims offers every revealed program of that
    school in place of the three** (Plans 78D and 100, `schoolOffers`,
    `offeredIn`), drawn from nothing, so a school that has moved in can
-   always grow; before Plan 78D its hall waited on the draw, and a player
+   always grow; **once that school has nothing left to found, its hall
+   draws the three again** (`drawsGlobalOffers`), so its free slots never
+   refuse every program (through 0.1.2 they did, and a late hall claimed by
+   a finished school shut: Playtest 1's F5, the owner's decision of
+   19 October); before Plan 78D its hall waited on the draw, and a player
    with Founders Hall full could wait a year for the school's next program
    (the October review's A3-1 and trace 7). Another school's program is
    not founded in a claimed hall; it can still be moved in, which asks

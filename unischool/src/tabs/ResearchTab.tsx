@@ -17,7 +17,7 @@ import { rankBy } from '../systems/rivals/rivalsSystem';
 import { decimal, money, moneyShort, multiplier, pct, weeksProse, weeksShort } from '../format';
 import { CloseIcon, RemoveIcon } from '../components/icons';
 import { projectOpens } from '../data/projectData';
-import { labsTowardPark, projectOpen } from '../systems/estate/projects';
+import { projectOpen } from '../systems/estate/projects';
 import { standsOnCampus } from '../state/types';
 import { PARK_WORDS, landmarkYears, landmarksCounted, landmarksRunning, parkReading } from '../data/researchParkData';
 import { PILLAR_WORDS } from '../data/specializationData';
@@ -318,9 +318,9 @@ function VacantPanel(
 // college, the research specialization's share it fills or that it fills
 // none. Not yet standing: it is the research specialization's own building
 // (Plan 85F), so a college specialized otherwise is told it cannot build
-// it; any other sees its progress, since it also waits on every standing
-// lab having finished a project (projects.ts's everyLabFinished): the
-// count, each lab marked, and what a new lab does to it.
+// it; a college yet to choose is told so, and one specialized in research
+// sees when it opens and whether it is open. Through 0.1.2 it also counted
+// the labs that had finished a project, which the park waited on.
 function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
   if (!park?.project) return null;
@@ -347,9 +347,6 @@ function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => vo
       </section>
     );
   }
-  const labs = labsTowardPark(s);
-  if (labs.length === 0) return null;
-  const finished = labs.filter((l) => l.finished).length;
   return (
     <section className="research-park" aria-label={PARK_WORDS.head}>
       <h3 className="facility-group-head">{PARK_WORDS.head}</h3>
@@ -362,21 +359,6 @@ function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => vo
             {projectOpens(park.project)}
             {projectOpen(s, park) && ' It is open.'}
           </p>
-          {/* A tally, a cell per lab (Plan 90); each cell names its lab. */}
-          <div className="park-tally">
-            <p className="park-tally-head">
-              <span>Labs that have finished a project</span>
-              <span className="park-tally-count">{finished}/{labs.length}</span>
-            </p>
-            <div className="park-tally-cells" style={{ gridTemplateColumns: `repeat(${labs.length}, minmax(0, 1fr))` }}>
-              {labs.map(({ lab, finished: done }) => {
-                const words = `${lab.name}: ${done ? 'has finished a project' : 'not yet'}`;
-                return (
-                  <span key={lab.id} role="img" className={`park-tally-cell${done ? ' finished' : ''}`} title={words} aria-label={words} />
-                );
-              })}
-            </div>
-          </div>
         </>
       )}
     </section>

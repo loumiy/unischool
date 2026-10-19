@@ -1207,7 +1207,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     title: 'Moving in',
     body: (s) => {
       const elm = hallName(s, FIRST_HALL_ID);
-      return `${elm} stands, with six program slots. A school is six programs of one school in one hall — any hall, Founders Hall included — and the sixth founds it; a hall other than Founders Hall takes the school's name. Three programs of one school in a hall make it that school's: from then it offers that school's programs in place of the three on offer.${closestLine(s)} Where a school grows is yours to choose: found its programs into the hall it is growing in, or move them there. A program moving out of Founders Hall is closed for ${count(FOUNDERS_MOVE_WEEKS)} weeks; between other halls, ${count(RELOCATION_WEEKS)}.`;
+      return `${elm} stands, with six program slots. A school is six programs of one school in one hall — any hall, Founders Hall included — and the sixth founds it; a hall other than Founders Hall takes the school's name. Three programs of one school in a hall make it that school's: from then it offers that school's programs in place of the three on offer, and the three again once that school has none left to found.${closestLine(s)} Where a school grows is yours to choose: found its programs into the hall it is growing in, or move them there. A program moving out of Founders Hall is closed for ${count(FOUNDERS_MOVE_WEEKS)} weeks; between other halls, ${count(RELOCATION_WEEKS)}.`;
     },
     ask: (s) => schoolAsk(s),
     done: (s) => foundedSchools(s).length > 0,
@@ -1229,7 +1229,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const hall = hallName(s, p.hallId);
       const claim = claimedSchool(s, p.hallId);
       const offers = claim && claim.school === p.school && schoolOffers(s, p.hallId).length > 0
-        ? ` ${hall} is ${p.school}'s hall now: it offers every ${p.school} program the college can found, in place of the offers.`
+        ? ` ${hall} is ${p.school}'s hall now: it offers every ${p.school} program the college can found, in place of the offers, until none is left.`
         : '';
       return `${p.school} has ${count(p.housed)} of six in ${hall}.${offers} ${count(6 - p.housed)[0].toUpperCase()}${count(6 - p.housed).slice(1)} more ${p.school} ${6 - p.housed === 1 ? 'program' : 'programs'} there found the School of ${p.school}.`;
     },
@@ -1271,7 +1271,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const park = PROJECTS.find((p) => p.id === RESEARCH_PARK_ID)?.project;
       const parkOpens = park ? `from Year ${park.fromYear}` : 'in time';
       const graduateYear = PROJECTS.find((p) => p.id === 'PROJ-GRADUATE')?.project.fromYear ?? 15;
-      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one research project at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see a project through in every lab this college builds. A college whose every lab has finished one has earned the Research Park (${parkOpens}), which opens Landmark research to every lab, though only a college that chooses, in time, to specialize in research may build it. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
+      return `${list(labs)} ${labs.length === 1 ? 'stands' : 'stand'} ready. A lab runs one research project at a time: pick a topic and a team, fund it, and see it through. The board asks one thing of you here: see a project through in every lab this college builds. The deepest work, Landmark research, comes with the Research Park (${parkOpens}), which only a college that chooses, in time, to specialize in research may build. Doctorates come separately: the Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
     },
     ask: (s) => {
       const lab = standingLabs(s).find((t) => !finishedLab(s, t.id));
@@ -1293,14 +1293,14 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     week: 1,
     arrives: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'locked'),
     title: 'The Research Park',
-    body: () => `The college is specialized in research, every lab on campus has finished a research project, and the board has found the land: the Research Park, laboratories where faculty and industry work side by side, can be built. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes. Its Landmark work fills research's specialization share, and while it stands every lab's output is ${Math.round(PARK_RESEARCH_BOOST * 100)}% higher.`,
+    body: () => `The college is specialized in research, and the board has found the land: the Research Park, laboratories where faculty and industry work side by side, can be built. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes. Its Landmark work fills research's specialization share, and while it stands every lab's output is ${Math.round(PARK_RESEARCH_BOOST * 100)}% higher.`,
     ask: () => ({ text: 'Site the Research Park', go: 'build', intent: { kind: 'site', buildableIds: [RESEARCH_PARK_ID] } }),
     done: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'available'),
   },
 ];
 
 // The labs standing on campus, and whether one has seen an initiative
-// through (research.ts records it; projects.ts's everyLabFinished reads it).
+// through (research.ts records it).
 function standingLabs(s: GameState): Buildable[] {
   return s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done');
 }

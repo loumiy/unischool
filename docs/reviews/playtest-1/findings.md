@@ -26,7 +26,7 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *10 players · reddit (R1,
-  R3, R4, R8, R9, R12), comment (I1, I2), live (T1), form (F1, F2, F3),
+  R3, R4, R8, R9, R12), comment (I1, I2), live (T1), form (F1, F2, F3, F4),
   discord (D1), service (S1).*
   R12, from the screenshot and the page: "It feels like a classic tycoon
   game right out the gate."
@@ -226,6 +226,14 @@ marked **0.1.x** and fixed in a patch.*
   with no edge. What the player can't see is why: nothing says the
   stage favours the established powers. *1 player · form (F3).*
 
+- **A program can't simply be chosen.** "That one cannot independently
+  choose which faculty to establish" was the most frustrating part of a
+  finished run. Programs come from a draw of three offers (one decline a
+  year), not a free pick, unless a school's own hall offers its school
+  (`systems/techtree/programOffers.ts`, Plan 78D). T1, who thought you
+  just keep adding programs, met the same system from the other side.
+  *1 player · form (F4).*
+
 ## Asked for in play
 
 - **An ordinance system "like in the SimCity series"**: standing policies
@@ -241,6 +249,13 @@ marked **0.1.x** and fixed in a patch.*
   for economic advantages, in research for efficiency, each branch
   opening further ones, so progress isn't mostly buying more buildings.
   The player knows it's a big feature. *1 player · form (F2).*
+
+- **Other languages.** "The absence of other languages" was named as a
+  frustration. The game is English only. *1 player · form (F4).*
+
+- **Automated athletics hiring.** "A way to automate athletics hiring.
+  Ex: Auto hire people with xx grade and/or xx potential with a minimum
+  threshold of xx." *1 player · form (F5).*
 
 - **Coaches with continuity, history and reputations.** "There should be
   a growing bonus for having the same coach. It seems odd that I can
@@ -265,6 +280,36 @@ marked **0.1.x** and fixed in a patch.*
   a spot can show red and still accept the building. Likely a bug
   (`CampusMap.tsx`, `preview.ok` against `placeById`). *1 player ·
   service (S1).*
+
+- **No courses can be added in Walnut Hall** (0.1.2). "Cannot add
+  courses once Walnut Hall is built. (Cannot click on the +course button
+  even if courses are transferred into Walnut Hall)." The player stopped
+  at year 38 and will play again "once the bugs are fixed". *1 player ·
+  form (F5).* **0.1.x**
+  The cause, reproduced: the "+" on an empty slot (`BuildingInfoPanel.tsx`'s
+  `HallSlots`) offers a hall's programs. A hall holding three programs of
+  one school is claimed by it, and a claimed hall offers only that
+  school's unfounded programs, *in place of* the global draw (Plan 100).
+  Late in a run a school usually has none left, so a claimed hall's free
+  slots refuse every program, including the ones on offer that no other
+  hall can take. Moving three of one school into Walnut Hall (moves in
+  transit count) claims it and closes it at once. The panel says only
+  "Nothing is on offer to found here." A second possibility, which the
+  save would settle: by year 38 every program in the catalog is founded,
+  and nothing says so.
+  **Decided: a claimed hall whose school has nothing left to found takes
+  the global offers** (the owner, 19 October), and when the whole catalog
+  is founded the "+" says so.
+
+- **The research specialization's building doesn't appear** (0.1.2).
+  "Research specialization building doesn't appear upon specializing in
+  it." *1 player · form (F5).* **0.1.x**
+  The cause: the Research Park also waited on every standing lab having
+  finished a research project (Plan 53), and until then it was absent from
+  the build menu, not even listed closed; the choice's card never said so.
+  The other specializations' buildings open with the choice. **Decided:
+  drop the lab condition** (the owner, 18 October): the park opens with
+  the research specialization.
 
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Not yet traced in the code. *Owner.*
@@ -613,6 +658,32 @@ that in mind.*
     (2) Is the amount of championships you can win in a year capped a 2?
     I have had 8 100 quality teams and the max seems to be two. (3)
     coaches should have history and reputations."
+
+- **F4** · 18 October, 11:21 UTC · 0.1.2 (build `4f5b83e`, itch.io),
+  sent from year 50 week 52, rank 53: a finished run. No install id
+  (statistics probably off), so no PostHog run to match.
+  - *How long:* 1–2 hours.
+  - *A moment you didn't know what to do next?* "-"
+  - *Best moment:* "opening of a medical school"
+  - *Most frustrating:* "That one cannot independently choose which
+    faculty to establish" and "the absence of other languages"
+  - *Play again?* "+"
+  - *Would pay:* $5–10.
+- **F5** · 18 October, 22:24 UTC · 0.1.2 (build `4f5b83e`, itch.io),
+  sent from year 38 week 19, rank 38. No install id.
+  - *How long:* 4+ hours.
+  - *A moment you didn't know what to do next? / Best moment:* "I want
+    to report 2 bugs"
+  - *Most frustrating:* "The bugs"
+  - *Play again?* "Yes, once the bugs are fixed"
+  - *Would pay:* under $5.
+  - *Anything broken?* "Bug #1: Cannot add courses once Walnut Hall is
+    built. (Cannot click on the +course button even if courses are
+    transferred into Walnut Hall) Bug #2: Research specialization
+    building doesn't appear upon specializing in it."
+  - *Anything else:* "Suggestion: A way to automate athletics hiring Ex:
+    Auto hire people with xx grade and/or xx potential with a minimum
+    threshold of xx."
 
 ### We Playtest Games — a service's unsolicited playtest (16 October)
 

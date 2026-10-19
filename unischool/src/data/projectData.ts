@@ -60,8 +60,11 @@ export const PROJECTS: readonly ProjectDef[] = [
     project: { fromYear: 10, curriculum: 'Arts & Media', boosts: { experience: 6 } },
   },
   // The research specialization's own building (Plan 85F): only a college
-  // specialized in research may build it, and it still waits on every lab
-  // having finished a research project (Plan 53). It opens the Landmark
+  // specialized in research may build it, and it opens with the choice, as
+  // the other specializations' buildings do. Through 0.1.2 it also waited on
+  // every lab having finished a research project (Plan 53); a player who
+  // specialized and found nothing in the build menu took that for a bug, and
+  // the owner dropped the condition (18 October). It opens the Landmark
   // Program to every lab, whatever the college's specialization, for as long
   // as it stands. It lifts no standing of its own (until Plan 85F it lifted
   // research 18 points, for any college): at a college specialized in
@@ -71,7 +74,7 @@ export const PROJECTS: readonly ProjectDef[] = [
     id: 'PROJ-RESEARCH-PARK', name: 'The Research Park',
     description: `Laboratories at the edge of campus where faculty and industry work side by side: home of the Landmark Programs.`,
     cost: 45_000_000, weeks: 144, upkeep: 45_000,
-    project: { fromYear: 12, everyLabFinished: true, specialization: 'research', boosts: {} },
+    project: { fromYear: 12, specialization: 'research', boosts: {} },
   },
   {
     id: 'PROJ-GRADUATE', name: 'The Graduate College',
@@ -134,11 +137,10 @@ export const PROJECT_IDS: readonly string[] = PROJECTS.map((p) => p.id);
 // When a project opens, read off its gates (Plan 76C), so the sentence
 // cannot drift from them as the typed "Opens once…" lines did.
 export function projectOpens(p: CapitalProject): string {
-  const once = p.everyLabFinished ? 'every lab on campus has finished a research project'
-    : p.curriculum === ANY_SCHOOL ? 'any school\'s undergraduate courses are all taught'
+  const once = p.curriculum === ANY_SCHOOL ? 'any school\'s undergraduate courses are all taught'
       : p.curriculum ? `every ${p.curriculum} course is taught` : null;
   // A specialization's own building (Plan 85E, 85F): the specialization
-  // first, then any gate of its own (the Research Park's labs).
+  // first, then any gate of its own.
   if (p.specialization !== undefined) {
     return `Opens once the college is specialized in ${SPECIALIZED_WORDS[p.specialization]}${once ? ` and ${once}` : ''}.`;
   }

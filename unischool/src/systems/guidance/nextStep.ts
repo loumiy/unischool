@@ -5,7 +5,7 @@ import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from 
 import { CLAIM_AT, claimedHalls, claimedSchool, hallDisplayName, homeSchool, schoolHall } from '../techtree/schools';
 import { seatingAsk } from './seating';
 import { establishAsk } from './establish';
-import { isHoused, schoolOffers } from '../techtree/programOffers';
+import { drawsGlobalOffers, isHoused, schoolOffers } from '../techtree/programOffers';
 import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
 import type { StepIntent } from './intent';
@@ -16,8 +16,7 @@ import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { countWord, pct, satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
-import { PARK_WORDS, parkStands } from '../../data/researchParkData';
-import { specializationOf } from '../prestige/specialization';
+import { PARK_WORDS } from '../../data/researchParkData';
 import { slotFree } from '../administration/offices';
 import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
 import { initiativeOffers } from '../../data/researchData';
@@ -154,7 +153,9 @@ function freeSlot(s: GameState): NextStep | null {
   }
   const open = Object.keys(s.halls).find((hallId) => {
     const hall = s.tech.find((t) => t.id === hallId);
-    return !!hall && isAcademicHall(hall) && hasRoom(hallId) && homeSchool(s, hallId) === null;
+    // An open hall, or a claimed one whose school has nothing left to found.
+    return !!hall && isAcademicHall(hall) && hasRoom(hallId)
+      && (homeSchool(s, hallId) === null || (claimedSchool(s, hallId) !== null && drawsGlobalOffers(s, hallId)));
   });
   if (open && s.programOffers.length > 0) {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
@@ -334,12 +335,8 @@ function idleLab(s: GameState): NextStep | null {
   const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
   const unproven = idle.find((t) => !finished.has(t.id));
   const lab = unproven ?? idle[0];
-  const chosen = specializationOf(s);
-  const parkAhead = !parkStands(s) && (chosen === null || chosen === 'research');
   return {
-    text: unproven && parkAhead
-      ? PARK_WORDS.unprovenLab(lab.name, chosen === 'research')
-      : `${lab.name} is idle — commission research`,
+    text: unproven ? PARK_WORDS.unprovenLab(lab.name) : `${lab.name} is idle — commission research`,
     go: 'research',
     intent: { kind: 'research', labId: lab.id },
   };
