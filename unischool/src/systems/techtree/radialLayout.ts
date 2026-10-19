@@ -1,6 +1,7 @@
 import type { Buildable, GameState } from '../../state/types';
+import { WEEKS_PER_YEAR } from '../../state/types';
 import {
-  discoverySchools, schoolCurriculumIds, type DiscoverySchool,
+  discoverySchools, programOfCourse, schoolCurriculumIds, type DiscoverySchool,
 } from '../../data/techData';
 import { isHoused, isInTransit } from './programOffers';
 import { unstaffedPrograms } from './darkness';
@@ -304,4 +305,39 @@ export function fitScale(extent: number): number {
 // Where a school's name sits: just outside what is drawn, up to its ring.
 export function labelRadius(extent: number): number {
   return Math.min(RADIAL.label, Math.max(extent + 34, 150));
+}
+
+// ---------------------------------------------------------------------
+// The curriculum as it stood at a past week (Plan 105F), for the History
+// tab's replay: every course taught by then done and every other one shut,
+// and the halls holding only the programs that had taught a course by then,
+// so the drawing shows what was taught and nothing else. A taught course
+// with no recorded week (an older save, persistence.ts's
+// sanitizeCompletedWeeks) counts from the start of the present year. Only
+// what radialDrawing reads is replaced; the rest is the present state's.
+// ---------------------------------------------------------------------
+export function completedWeekOf(s: GameState, t: Buildable): number | null {
+  if (t.kind !== 'course' || t.status !== 'done') return null;
+  return t.completedWeek ?? (s.clock.year - 1) * WEEKS_PER_YEAR + 1;
+}
+
+export function curriculumAt(s: GameState, week: number): GameState {
+  const tech = s.tech.map((t) => {
+    if (t.kind !== 'course') return t;
+    const at = completedWeekOf(s, t);
+    const status: Buildable['status'] = at !== null && at <= week ? 'done' : 'locked';
+    return status === t.status ? t : { ...t, status };
+  });
+  const taughtPrograms = new Set<string>();
+  for (const t of tech) if (t.kind === 'course' && t.status === 'done') { const p = programOfCourse(t.id); if (p) taughtPrograms.add(p); }
+  const halls: GameState['halls'] = {};
+  for (const [hallId, slots] of Object.entries(s.halls)) {
+    halls[hallId] = slots.map((slot) => (slot.programId && !taughtPrograms.has(slot.programId) ? { ...slot, programId: null } : { ...slot, transitWeeks: undefined }));
+  }
+  return { ...s, tech, halls, developing: {}, courseFaculty: s.courseFaculty };
+}
+
+// The years a replay can show: from the founding to the present.
+export function replayYears(s: GameState): number {
+  return s.clock.year;
 }

@@ -26,7 +26,7 @@ import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, isVernacular, stand
 import { fellTrees } from '../data/treeData';
 import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
-import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes, programById } from '../data/techData';
+import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes, programById, programOfCourse } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS, LEGACY_START_FRACTION } from '../data/facultyData';
@@ -392,6 +392,47 @@ function noClosuresYet(state: GameState): void {
 // autumn festivals a whole year each, once, no later than the save's; the
 // wing and the phase a year, or absent. Anything else is dropped, which only
 // gives back a year's purchase unspent.
+// When each course was first finished (Plan 105E, types.ts's
+// completedWeek), on every load: a week that is a whole number from 1 to the
+// save's own, on a course that is done; otherwise dropped. A taught course
+// without one, from a save before it existed, takes the earliest of what the
+// save still knows: the first week a professor on the roster taught it, its
+// completion line in the log, or the year its program was established (a
+// core course) or distinguished (an advanced course or the capstone). With
+// none of them it stays without, and the replay draws it from the start of
+// its last year.
+function sanitizeCompletedWeeks(state: GameState): void {
+  const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
+  const ok = (w: unknown): w is number => Number.isInteger(w) && (w as number) >= 1 && (w as number) <= now;
+  const earliest = new Map<string, number>();
+  const note = (id: string, week: number) => {
+    if (!ok(week)) return;
+    const cur = earliest.get(id);
+    if (cur === undefined || week < cur) earliest.set(id, week);
+  };
+  for (const f of state.faculty) for (const span of f.career?.courses ?? []) note(span.courseId, span.from);
+  for (const entry of state.log) {
+    if (entry.topic === 'course' && entry.kind === 'good' && typeof entry.subject === 'string') note(entry.subject, (entry.year - 1) * WEEKS_PER_YEAR + entry.week);
+  }
+  for (const t of state.tech) {
+    if (t.kind !== 'course') continue;
+    if (t.status !== 'done') { delete t.completedWeek; continue; }
+    if (ok(t.completedWeek)) continue;
+    delete t.completedWeek;
+    let week = earliest.get(t.id);
+    if (week === undefined) {
+      const program = programById(programOfCourse(t.id) ?? '');
+      const index = program ? program.courseIds.indexOf(t.id) : -1;
+      if (program && program.kind === 'major' && index >= 0) {
+        const key = `${index <= 4 ? 'program-established' : 'program-distinguished'}:${program.id}`;
+        const year = state.milestoneYears?.[key];
+        if (Number.isInteger(year)) week = ((year as number) - 1) * WEEKS_PER_YEAR + 1;
+      }
+    }
+    if (ok(week)) t.completedWeek = week;
+  }
+}
+
 function sanitizeBought(state: GameState): void {
   const raw = state.bought as unknown as { classes?: unknown; wing?: unknown; autumn?: unknown; phase?: unknown } | undefined;
   const year = (y: unknown): y is number => Number.isInteger(y) && (y as number) >= 1 && (y as number) <= state.clock.year;
@@ -1683,6 +1724,7 @@ function sanitize(state: GameState): void {
   sanitizeSeats(state);
   sanitizeQuirks(state);
   sanitizeCareers(state);
+  sanitizeCompletedWeeks(state);
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);

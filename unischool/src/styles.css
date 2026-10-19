@@ -4260,3 +4260,17 @@ body:has(.building-info-panel) .pennant { display: none; }
 .radial-rail .committee-box .committee-seats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .radial-rail .committee-seat { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 6px; min-height: 34px; }
 .radial-rail .committee-seat-bar { flex: 1 0 100%; order: 3; }
+
+/* The curriculum, year by year (CurriculumReplay.tsx, Plan 105F): the
+   radial drawing at a past year, in the History tab's record and the Final
+   Report. */
+.curriculum-replay { --radial-lit: #f2c14e; --radial-lit-deep: #c9952b; --radial-select: #8c2a3a; }
+.curriculum-replay.compact { border: none; padding: 0; background: transparent; margin-top: var(--space-16); }
+.curriculum-replay-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12); margin-bottom: var(--space-8); }
+.curriculum-replay-controls > button { padding: var(--space-4) var(--space-12); font-size: var(--text-sm); }
+.curriculum-replay-year { display: flex; align-items: center; gap: var(--space-8); flex: 1 1 260px; font-size: var(--text-xs); font-weight: 700; }
+.curriculum-replay-year input { flex: 1; min-height: 30px; accent-color: var(--school-primary); }
+.curriculum-replay-figure { font-family: var(--mono); min-width: 5.5em; }
+.curriculum-replay-note { font-size: var(--text-xs); color: var(--ink-muted); }
+.curriculum-replay-square { width: min(100%, 620px); aspect-ratio: 1; margin: 0 auto; }
+.curriculum-replay .radial-node { animation: none; cursor: default; }

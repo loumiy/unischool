@@ -7,10 +7,13 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { foundGame } from '../sim/harness/game';
+import CurriculumReplay from '../src/components/CurriculumReplay';
 import { teachPillars } from './fixtures/teaching';
 import {
-  fitScale, NODE_RADIUS, radialDrawing, radialLayout, RADIAL,
+  curriculumAt, fitScale, NODE_RADIUS, radialDrawing, radialLayout, RADIAL,
 } from '../src/systems/techtree/radialLayout';
 import { discoverySchools, programById } from '../src/data/techData';
 import { unlockAvailable } from '../src/systems/techtree/techSystem';
@@ -106,6 +109,30 @@ const layout = radialLayout();
 {
   assert(fitScale(RADIAL.entry) > fitScale(RADIAL.capstone), 'a smaller drawing is scaled up further');
   assert(fitScale(RADIAL.graduate) >= 1, 'the full drawing is never shrunk below the stage');
+}
+
+// The replay (Plan 105F): the curriculum at a past week draws only what was
+// taught by then, and grows week by week to the present's taught set.
+{
+  const g = foundGame({ seed: 99 });
+  const s = teachPillars(g.s);
+  const taught = s.tech.filter((t) => t.kind === 'course' && t.status === 'done');
+  taught.forEach((t, i) => { t.completedWeek = 1 + i * 3; });
+  const before = radialDrawing(curriculumAt(s, 0));
+  assert(before.courses.size === 0 && before.programs.size === 0, 'before anything was taught, nothing is drawn');
+  let last = 0;
+  let grows = true;
+  for (let w = 1; w <= 1 + taught.length * 3; w++) {
+    const d = radialDrawing(curriculumAt(s, w));
+    if (d.courses.size < last) grows = false;
+    last = d.courses.size;
+    if ([...d.courses.values()].some((c) => c.state !== 'done')) grows = false;
+  }
+  assert(grows, 'it only grows, and only with courses taught');
+  assert(last === taught.length, `and ends at the present's taught courses (${last} of ${taught.length})`);
+  const html = renderToStaticMarkup(createElement(CurriculumReplay, { s }));
+  assert(html.includes('The curriculum, year by year') && html.includes('radial-node'), 'the replay draws');
+  assert(s.tech.every((t) => t.kind !== 'course' || t.status === 'done' || t.completedWeek === undefined), 'and leaves the state as it was');
 }
 
 console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);
