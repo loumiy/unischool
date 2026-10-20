@@ -1,4 +1,5 @@
 import type { Buildable, GameState, LogTopic, SatisfactionAttributes, StudentDemand } from '../../state/types';
+import { chapterGateOpen, MATTERS_CHAPTER } from '../guidance/gates';
 import { totalEnrolled } from '../../state/types';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS } from '../../data/eventData';
 import {
@@ -294,7 +295,7 @@ function resolveActiveDemand(s: GameState): void {
 // else is happening.
 function queueDemand(s: GameState): void {
   if (s.events.activeDemand || s.events.pendingDemand) return; // one at a time, ever
-  if (s.clock.year < DEMAND_FIRST_YEAR) return;
+  if (s.clock.year < DEMAND_FIRST_YEAR || !chapterGateOpen(s, MATTERS_CHAPTER)) return;
   if (s.students.satisfaction >= DEMAND_SATISFACTION_THRESHOLD) return;
 
   const week = absoluteWeek(s);

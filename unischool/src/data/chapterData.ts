@@ -17,7 +17,8 @@ import { CROWDING_PENALTY } from '../systems/prestige/prestigeSystem';
 import { FOUNDERS_HALL_ID } from './techData';
 import { count, countWord } from '../format';
 
-export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer';
+export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
+  | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life' | 'promises';
 
 // Where a Show me goes: the NEXT line's own doors.
 export type Door = NonNullable<NextStep['go']>;
@@ -153,6 +154,110 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       ],
     },
   },
+  standing: {
+    title: 'Standing',
+    objectives: {
+      'open-students': 'Open the Students tab',
+      'open-history': "Open History, where prestige's make-up is",
+      'satisfaction-60': 'Satisfaction at 60 or more',
+      'prestige-rising': "Prestige's target above prestige",
+    },
+    briefing: {
+      what: "Prestige is the college's name in the world, and satisfaction is how content its students are. Each drifts week by week toward a target. Prestige's target blends four pillars, academics, research, student life and athletics, with the endowment, less crowding and run-down buildings; both figures move slowly.",
+      how: [
+        { text: "History shows prestige's target and what makes up each pillar; the readout above gives each pillar's points now.", door: 'history' },
+        { text: 'The Students tab shows the five needs and the one pulling satisfaction down most.', door: 'students' },
+        { text: "Nobody sets either figure: the college raises a target, and the figure follows." },
+      ],
+      why: [
+        { system: 'Admissions', text: 'prestige draws applicants, and content students tell the next class to come' },
+        { system: 'Curriculum', text: 'the committee gains a seat at prestige 70, 80, 90 and 100' },
+        { system: 'Prestige', text: "the year's average satisfaction is the heart of the student-life pillar" },
+        { system: 'Students', text: 'under 50 satisfaction a share of each class leaves at the summer, and from year 3 under 60 brings demands' },
+      ],
+    },
+  },
+  'a-faculty': {
+    title: 'A faculty',
+    objectives: {
+      'post-a-search': 'Post a search for a professor',
+      'every-program-staffed': 'Every program staffed',
+      'appoint-a-b': 'Appoint a professor who teaches at B or better',
+    },
+    briefing: {
+      what: "Each professor teaches out of 100 and does research out of 100, and both grow with the years toward a potential set when they arrive. The rank beside a name, from Adjunct to Distinguished, only reads the average of the two. The market lists few people in a thin field, and an unstaffed course darkens its whole program.",
+      how: [
+        { text: "The Faculty tab's market lists who can be appointed; a course's grade follows its professor's teaching.", door: 'faculty' },
+        { text: 'A search spends two weeks of running costs to turn somebody up in one field within half a year.', door: 'faculty' },
+        { text: 'Salaries grow with skill and seniority, and every course needs a professor in its field.' },
+      ],
+      why: [
+        { system: 'Prestige', text: 'teaching quality is one of the parts of the academics pillar' },
+        { system: 'Seats', text: 'a dark program loses its places until somebody teaches it again' },
+        { system: 'Research', text: 'later, the labs run on the research half of the same professors' },
+      ],
+    },
+  },
+  'hall-of-its-own': {
+    title: 'A hall of its own',
+    objectives: {
+      'site-academic-hall': 'Site an academic hall',
+      'move-a-program': 'Move a program into it',
+      'claim-a-hall': 'Give a hall three programs of one school',
+    },
+    briefing: {
+      what: "Founders Hall has six program slots, and each academic hall adds six more. When three programs of one school share a hall, that school claims the hall and gives it its name. Six programs together found the school.",
+      how: [
+        { text: 'The build menu lists the first academic hall once eight courses are taught.', door: 'build' },
+        { text: "A program moves from its hall's panel: four weeks out of Founders Hall, twelve from anywhere else.", door: 'hall', hallId: FOUNDERS_HALL_ID },
+        { text: 'The Curriculum groups the programs by school.', door: 'curriculum' },
+      ],
+      why: [
+        { system: 'Research', text: 'a founded school opens the first laboratory, and with it research' },
+        { system: 'Administration', text: 'a founded school brings a Dean, and a free slot in Founders Hall can become an office' },
+        { system: 'Prestige', text: 'the breadth of the curriculum and the depth of its schools lead the academics pillar' },
+      ],
+    },
+  },
+  'campus-life': {
+    title: 'Campus life',
+    objectives: {
+      'site-student-center': 'Site the Student Center',
+      'approve-a-club': 'Approve a club at the summer',
+      'answer-a-matter': 'Answer a matter in the Inbox',
+    },
+    briefing: {
+      what: "Students start clubs and petition for them through the year, and the summer's last page answers every petition together. From now on the Inbox also gathers matters to decide, and the students make demands when their satisfaction falls under 60. A matter left unanswered decides itself after four weeks.",
+      how: [
+        { text: 'The Student Center opens once the college teaches four programs: site it from the build menu.', door: 'build' },
+        { text: 'The Inbox lists each matter with its choices and its weeks left.', door: 'inbox' },
+        { text: "A demand names what the students want built and by when; meeting it lifts satisfaction." },
+      ],
+      why: [
+        { system: 'Satisfaction', text: 'clubs and the Student Center feed the social need' },
+        { system: 'Athletics', text: 'the first sport club approved opens the Athletics tab' },
+        { system: 'Identity', text: 'what the students do for years becomes what the guidebooks say about the college' },
+      ],
+    },
+  },
+  promises: {
+    title: 'Promises',
+    objectives: {
+      'third-summer': 'Reach the third summer',
+      'make-a-promise': 'Make the board a promise',
+    },
+    briefing: {
+      what: "From the third summer the board may offer a promise at the year's review: a goal, a date, a reward if kept and a cost if missed. Up to three can be open at once, and a declined promise rests for a few years.",
+      how: [
+        { text: "The summer's Review page shows the offer with its terms; accept it or let it pass." },
+        { text: 'History lists open promises with their dates and how far each has come.', door: 'history' },
+      ],
+      why: [
+        { system: 'Rewards', text: 'a kept promise pays its reward, and a missed one costs, the summer it falls due' },
+        { system: 'Final Report', text: 'the fiftieth summer counts every promise kept' },
+      ],
+    },
+  },
 };
 
 // The drawer's own words (components/ObjectivesPanel.tsx).
@@ -161,7 +266,7 @@ export const OBJECTIVES_MODES: readonly ObjectivesMode[] = ['guided', 'brief', '
 export const OBJECTIVES_NOTES: Record<ObjectivesMode, string> = {
   guided: "Each new chapter's briefing opens by itself, once. J opens the objectives at any time.",
   brief: 'The objectives stay one line in the ticker; J or a click opens them.',
-  off: 'No chapters: the ticker shows the next step and the next milestone, as it did before.',
+  off: 'No chapters: the ticker as it was before, and nothing waits for a chapter (for this college, even if they are turned back on).',
 };
 
 export const DRAWER_WORDS = {
@@ -184,4 +289,11 @@ export const DRAWER_WORDS = {
   between: (title: string, when: string) => `${title} opens ${when}.`,
   waitingOn: (title: string) => `${title} opens when the chapter before it is done.`,
   allDone: 'Every chapter so far is done.',
+  live: 'Now',
+  prestigeNow: (now: string, target: string) => `Prestige ${now}, its target ${target}`,
+  pillars: 'Its pillars',
+  pillar: (label: string, has: string, of: string) => `${label} ${has} of ${of}`,
+  takenOff: 'Taken off',
+  satisfactionNow: (now: string) => `Satisfaction ${now}.`,
+  drag: (need: string) => `${need} is pulling it down most.`,
 };

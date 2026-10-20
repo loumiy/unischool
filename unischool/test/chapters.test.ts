@@ -32,6 +32,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import LogTicker, { objectivesShown } from '../src/components/LogTicker';
 import ObjectivesPanel from '../src/components/ObjectivesPanel';
 import { setSettings } from '../src/settings';
+import { chapterGateOpen, MATTERS_CHAPTER, OBJECTIVES_OFF_MARK, PROMISES_CHAPTER } from '../src/systems/guidance/gates';
+import { bindScriptStream } from '../src/engine/random';
+import { defaultAnswer } from '../src/engine/defaultAnswers';
+import { FOUNDERS_HALL_ID, isAcademicHall } from '../src/data/techData';
 
 // A button's onClick in a rendered element tree, found by its words: the
 // panel is a plain function of its props, so calling it gives the tree.
@@ -165,9 +169,9 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
 {
   const s = teaching();
   delete s.guidance;
-  s.clock.year = 3;
+  s.clock.year = 5;
   settleChapters(s);
-  assert(CHAPTERS.every((c) => done(s, c.id)), 'a year-3 save has done every chapter of year one');
+  assert(CHAPTERS.every((c) => done(s, c.id)), 'a year-5 save has done every chapter so far');
 }
 {
   const s = createInitialState('Chapters');
@@ -269,6 +273,71 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   early.guidance!.met = early.guidance!.met.filter((id) => id !== 'develop-second-course');
   const earlyHtml = renderToStaticMarkup(createElement(ObjectivesPanel, { s: early, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
   assert(earlyHtml.includes('The next course') && earlyHtml.includes('(optional)'), 'an optional objective says so');
+}
+
+// ---- PR E: years 2 and 3, and the gates ----
+{
+  // Only a guided founding is gated.
+  const guided = reducer(createPreStartState(), {
+    type: 'START_GAME', name: 'Gates', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true,
+  });
+  assert(guided.guidance?.gated === true, 'a guided founding is gated');
+  assert(createInitialState('Headless').guidance?.gated === undefined, 'a headless one is not');
+  assert(chapterGateOpen(createInitialState('Headless'), MATTERS_CHAPTER), 'and its gates stand open');
+
+  // A gated year-3 college with Campus life not yet open: no matter, no
+  // demand, for two years of quiet weeks; then, the chapter open, they come.
+  bindScriptStream(10601);
+  const play = (start: GameState, weeks: number) => {
+    let x = start;
+    for (let i = 0; i < weeks; i += 1) x = x.pendingInterrupt ? reducer(x, defaultAnswer(x)!) : reducer(x, { type: 'TICK' });
+    return x;
+  };
+  const base = teaching();
+  base.clock.year = 3;
+  settleChapters(base);
+  base.guidance = { opened: { founding: 1, 'next-course': 1 }, done: { founding: 1 }, met: [], marked: [], gated: true };
+  base.events.opening.read = [];
+  base.events.opening.skipped = true;
+  const held = play(structuredClone(base), 104);
+  assert(!chapterGateOpen(held, MATTERS_CHAPTER) && Object.keys(held.events.decisionHistory).length === 0 && (held.catalogue?.pending.length ?? 0) === 0 && held.events.activeDemand === null,
+    `a gated college with Campus life shut gets no matter and no demand (${Object.keys(held.events.decisionHistory).join(',')})`);
+  assert((held.promises?.offer ?? null) === null && (held.promises?.active.length ?? 0) === 0, 'and no promise');
+
+  const off = structuredClone(base);
+  off.guidance!.marked.push(OBJECTIVES_OFF_MARK);
+  assert(chapterGateOpen(off, MATTERS_CHAPTER) && chapterGateOpen(off, PROMISES_CHAPTER), 'Off opens every gate');
+  const open = structuredClone(base);
+  open.guidance!.opened['campus-life'] = 105;
+  assert(chapterGateOpen(open, MATTERS_CHAPTER) && !chapterGateOpen(open, PROMISES_CHAPTER), 'Campus life open opens the matters, not the promises');
+  const freed = play(open, 104);
+  assert(Object.keys(freed.events.decisionHistory).length > 0 || (freed.catalogue?.lastInlineWeek ?? 0) > 0, 'and with it open, matters come');
+}
+{
+  // The hall chapter waits for the first academic hall to be buildable.
+  const s = teaching();
+  s.clock.year = 2;
+  s.clock.week = 30;
+  const doneBefore = ['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing', 'a-faculty'];
+  s.guidance = { opened: Object.fromEntries(doneBefore.map((id) => [id, 1])), done: Object.fromEntries(doneBefore.map((id) => [id, 1])), met: [], marked: [] };
+  for (const t of s.tech) if (isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID) t.status = 'locked';
+  settleChapters(s);
+  assert(!opened(s, 'hall-of-its-own'), 'with no academic hall to build, A hall of its own waits');
+  const elm = s.tech.find((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID)!;
+  elm.status = 'available';
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'hall-of-its-own', 'once one is, it opens');
+}
+{
+  // Standing's live readout: prestige and its target, the pulls, satisfaction.
+  const s = teaching();
+  s.clock.year = 2;
+  settleChapters(s);
+  s.guidance = { opened: { standing: 53 }, done: Object.fromEntries(['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'].map((id) => [id, 1])), met: [], marked: [] };
+  s.guidance.opened = { ...s.guidance.done, standing: 53 };
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
+  assert(html.includes('Standing') && /Prestige [\d.]+, its target [\d.]+/.test(html), 'Standing reads prestige against its target');
+  assert(/Its pillars: Academics [\d.]+ of [\d.]+ · Research/.test(html) && html.includes('Satisfaction '), 'with each pillar against its most, and the satisfaction');
 }
 
 if (failures === 0) {
