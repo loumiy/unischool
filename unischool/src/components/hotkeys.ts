@@ -14,6 +14,7 @@ export type ShortcutPlace = 'Anywhere' | 'The clock' | 'The tabs' | 'The map';
 export const SHORTCUTS = {
   back: { keys: ['escape'], does: 'Close or back out, one layer at a time', where: 'Anywhere' },
   answer: { keys: ['enter'], does: 'Continue past a notice or the coach', where: 'Anywhere' },
+  objectives: { keys: ['j'], does: 'Open or close the objectives', where: 'Anywhere' },
   mute: { keys: ['m'], does: 'Mute or unmute the sound', where: 'Anywhere' },
   pause: { keys: [' '], does: 'Pause or resume', where: 'The clock' },
   speed1: { keys: ['1'], does: 'Normal speed', where: 'The clock' },

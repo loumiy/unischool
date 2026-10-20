@@ -12,7 +12,8 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PR A (the objective model) is up; the owner
+**Status: In progress. PR A (the objective model) landed; PR B (the
+bar) is up; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -358,6 +359,22 @@ Example, chapter 6 (Standing), which answers F6:
 - "Run the clock at 2×" is an *optional* objective, met by a new
   `MARK_GUIDANCE` action. The college's state doesn't record the speed, and
   a headless player never sets it.
+
+**As implemented (PR B):**
+- The drawer is a `ToolbarPopup` above the ticker, like the log and the
+  milestones, rather than a new kind of panel. It shares their corner and
+  their Escape ladder.
+- "Also waiting" lists only the one NEXT line, because `nextStep.ts`
+  returns a single step. A list of every advisory waits on a later need.
+- The chapter chip and drawer stay hidden while the walkthrough's card is
+  up, because chapters 1–2 and the card's steps cover the same ground
+  until PR C merges them. They are also hidden in a sandbox.
+- Guided opens the drawer by itself only for a chapter **with a briefing**.
+  None has one yet, so in practice nothing opens unasked until PR C writes
+  them.
+- Showing a chapter in the drawer marks its briefing read (`read:<id>`
+  through `MARK_GUIDANCE`). Double speed set from the clock marks chapter
+  2's optional objective.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.

@@ -10,7 +10,9 @@
 // opens already met when the college got there first; a save from before
 // the objectives is caught up by its date; a sandbox keeps no record; the
 // reducer settles after every action and MARK_GUIDANCE marks once; the
-// record survives a save; and every objective has its words.
+// record survives a save; and every objective has its words. And PR B's
+// strip and drawer: the chapter chip in place of the milestone's, the
+// drawer's briefing, Show me and what else waits, and Off as it was.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -25,6 +27,28 @@ import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { loadGame, saveGame } from '../src/state/persistence';
 import { teachPillars } from './fixtures/teaching';
 import type { Buildable, GameState } from '../src/state/types';
+import { createElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import LogTicker, { objectivesShown } from '../src/components/LogTicker';
+import ObjectivesPanel from '../src/components/ObjectivesPanel';
+import { setSettings } from '../src/settings';
+
+// A button's onClick in a rendered element tree, found by its words: the
+// panel is a plain function of its props, so calling it gives the tree.
+function findButton(el: ReactElement, words: string): (() => void) | undefined {
+  const tree = (el.type as (p: unknown) => ReactNode)(el.props);
+  let found: (() => void) | undefined;
+  const walk = (n: ReactNode): void => {
+    if (found || !n) return;
+    if (Array.isArray(n)) { n.forEach(walk); return; }
+    if (!isValidElement(n)) return;
+    const p = n.props as { children?: ReactNode; onClick?: () => void };
+    if (n.type === 'button' && p.children === words) found = p.onClick;
+    walk(p.children);
+  };
+  walk(tree);
+  return found;
+}
 
 const store = new Map<string, string>();
 (globalThis as unknown as { localStorage: unknown }).localStorage = {
@@ -162,6 +186,52 @@ for (const c of CHAPTERS) {
 }
 assert(new Set(CHAPTERS.flatMap((c) => c.objectives.map((o) => o.id))).size === CHAPTERS.flatMap((c) => c.objectives).length, 'objective ids are unique');
 assert(CHAPTERS.every((c, i) => i === 0 || c.earliest >= CHAPTERS[i - 1].earliest), 'chapters open in date order');
+
+// ---- PR B: the ticker's chapter chip and the drawer ----
+{
+  const s = teaching();
+  settleChapters(s);
+  s.guidance!.done = {};
+  s.guidance!.done.founding = 1;
+  s.guidance!.met = s.guidance!.met.filter((id) => id !== 'seat-every-student');
+  s.students.classes.freshman += 1000;
+  const props = {
+    s, open: false, onSetOpen: () => {}, ladderOpen: false, onSetLadderOpen: () => {},
+    objectivesOpen: false, onSetObjectivesOpen: () => {}, onGo: () => {}, inboxOpen: false,
+  };
+  setSettings({ objectives: 'guided' });
+  const strip = renderToStaticMarkup(createElement(LogTicker, props));
+  assert(strip.includes('Chapter 2') && strip.includes('Places for every student'), 'the strip names the chapter and its first objective not met');
+  assert(/\d+\/1,350/.test(strip), `with its count (${strip.match(/[\d,]+\/[\d,]+/)?.[0]})`);
+  assert(!strip.includes('>Milestone<'), 'and no milestone chip');
+  const drawer = renderToStaticMarkup(createElement(LogTicker, { ...props, objectivesOpen: true }));
+  assert(drawer.includes('objectives-popup') && drawer.includes('Seats for everyone'), 'open, the drawer shows the chapter');
+  assert(drawer.includes('All milestones'), 'and the milestones');
+
+  setSettings({ objectives: 'off' });
+  const off = renderToStaticMarkup(createElement(LogTicker, props));
+  assert(!off.includes('Chapter 2') && off.includes('>Milestone<'), 'Off keeps the strip as it was');
+  setSettings({ objectives: 'guided' });
+
+  const walking = structuredClone(s);
+  walking.events.opening.stage = 'second-course';
+  assert(!objectivesShown(walking, 'guided'), 'no chapters while the walkthrough is up');
+  assert(!objectivesShown({ ...s, sandbox: true }, 'guided'), 'nor in a sandbox');
+
+  // A briefing, as later PRs write them: what, how with its Show me, why.
+  const copy = CHAPTER_COPY.seats;
+  copy.briefing = { what: 'Each course seats eighty.', how: [{ text: 'Develop a course in the Curriculum', door: 'curriculum' }], why: [{ system: 'Prestige', text: 'crowding lowers its target' }] };
+  let went: string | undefined;
+  const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
+  const html = renderToStaticMarkup(panel);
+  assert(html.includes('What it is') && html.includes('Each course seats eighty.') && html.includes('Show me') && html.includes('→ Prestige:'), 'a briefing shows its what, how and why');
+  assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
+  assert(html.includes('(optional)'), 'an optional objective says so');
+  const showMe = findButton(panel, 'Show me');
+  showMe?.();
+  assert(went === 'curriculum', 'Show me opens its view');
+  delete copy.briefing;
+}
 
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);

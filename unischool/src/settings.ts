@@ -33,11 +33,16 @@ export interface GameSettings {
   // The feedback form's two prompts (Plan 97F, feedback.ts): after the fifth
   // summer and on the Final Report, each once. Off, neither shows.
   feedbackPrompts: boolean;
+  // The objectives in the NEXT bar (Plan 106): Guided opens a new chapter's
+  // briefing by itself, once; Brief keeps it shut until asked; Off hides
+  // the chapters and shows the ticker as it was before them.
+  objectives: ObjectivesMode;
 }
 
+export type ObjectivesMode = 'guided' | 'brief' | 'off';
 export type StatsConsent = 'unasked' | 'on' | 'off';
 
-export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true, pauseForNews: false, seasons: true, stats: 'unasked', feedbackPrompts: true };
+export const DEFAULT_SETTINGS: GameSettings = { textScale: 1, vision: 'standard', motion: 'system', pauseOnArrival: true, pauseForNews: false, seasons: true, stats: 'unasked', feedbackPrompts: true, objectives: 'guided' };
 
 export const SETTINGS_KEY = 'unischool.settings.v1';
 
@@ -52,6 +57,7 @@ export function normaliseSettings(raw: unknown): GameSettings {
     seasons: o.seasons !== false,
     stats: o.stats === 'on' || o.stats === 'off' ? o.stats : 'unasked',
     feedbackPrompts: o.feedbackPrompts !== false,
+    objectives: o.objectives === 'brief' || o.objectives === 'off' ? o.objectives : 'guided',
   };
 }
 

@@ -164,3 +164,26 @@ export function markGuidance(s: GameState, mark: string): boolean {
   settleChapters(s);
   return true;
 }
+
+// Chapter 1 is the first; the drawer and the ticker count from it.
+export function chapterNumber(c: Chapter): number {
+  return CHAPTERS.indexOf(c) + 1;
+}
+
+// The first chapter not yet opened: the one the drawer says is coming.
+export function nextChapter(s: GameState): Chapter | null {
+  const g = s.guidance;
+  if (!g) return null;
+  return CHAPTERS.find((c) => g.opened[c.id] === undefined) ?? null;
+}
+
+// The objective the ticker's one line names: the first not met, required
+// before optional. Null when every one is met.
+export function leadObjective(s: GameState, c: Chapter): ReturnType<typeof objectiveRows>[number] | null {
+  const rows = objectiveRows(s, c).filter((r) => !r.met);
+  return rows.find((r) => !r.optional) ?? rows[0] ?? null;
+}
+
+// A chapter's briefing read: marked when the drawer first shows it, so
+// Guided opens it by itself only once.
+export const readMark = (id: string) => `read:${id}`;
