@@ -12,8 +12,9 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: Draft. The owner answered §7's five questions on 20 October;
-the answers are folded in. Not yet a set of PRs.**
+**Status: In progress. PR A (the objective model) landed; PR B (the
+bar) is up; the owner
+answered §7's five questions on 20 October.**
 
 ---
 
@@ -340,6 +341,40 @@ Example, chapter 6 (Standing), which answers F6:
 | **G** | The Guide: every briefing read, filed by system; "?" in each tab header opens its briefing; begin retiring HelpHints that a briefing now covers. | B |
 | **H** | Later chapters: research, alumni, capital projects, specialization (with the five-year warning). | F |
 | **I** | Measure: `chapter_opened`, `chapter_done` and `briefing_opened` events; compare the runs that end in Y1–5 (20% today) and the form's "didn't know what to do" answers before and after. | B |
+
+**As implemented (PR A):**
+- The model lives in `state/chapters.ts`, beside `state/opening.ts`, because
+  its readings look at the map. The words are in `data/chapterData.ts`.
+- `GameState.guidance` is optional, so there is no save version bump. A
+  save from before it is caught up **by date**, not by what is true now:
+  every chapter whose earliest week has passed is done. Reading the state
+  instead would stall a late-game run on a transient figure, such as
+  places for every student.
+- PR A defines chapters 1–3 only, as readings with no UI and no gating.
+  The chapters keep their own record and change nothing else until PR B
+  shows them and PR C retires the coach's steps.
+- "Keep the committee busy (n/4)" is left out of chapter 2. A year-one
+  college can't always afford four courses at once, so it moves to the
+  briefing.
+- "Run the clock at 2×" is an *optional* objective, met by a new
+  `MARK_GUIDANCE` action. The college's state doesn't record the speed, and
+  a headless player never sets it.
+
+**As implemented (PR B):**
+- The drawer is a `ToolbarPopup` above the ticker, like the log and the
+  milestones, rather than a new kind of panel. It shares their corner and
+  their Escape ladder.
+- "Also waiting" lists only the one NEXT line, because `nextStep.ts`
+  returns a single step. A list of every advisory waits on a later need.
+- The chapter chip and drawer stay hidden while the walkthrough's card is
+  up, because chapters 1–2 and the card's steps cover the same ground
+  until PR C merges them. They are also hidden in a sandbox.
+- Guided opens the drawer by itself only for a chapter **with a briefing**.
+  None has one yet, so in practice nothing opens unasked until PR C writes
+  them.
+- Showing a chapter in the drawer marks its briefing read (`read:<id>`
+  through `MARK_GUIDANCE`). Double speed set from the clock marks chapter
+  2's optional objective.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.

@@ -53,6 +53,7 @@ import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventDa
 import { LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion } from '../data/facilitiesData';
 import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
+import { markGuidance, settleChapters } from '../state/chapters';
 import { benchItem, defaultBenchFacing } from '../state/dressing';
 import { TRAINER_FIELD, MASCOT_MAX_LENGTH, SCHOLARSHIP_ORDER, applyTeamOrder } from '../data/studentLifeData';
 import { isLand, isPlaceableKind, pathTileKey, occupantAt } from '../state/campusMap';
@@ -167,6 +168,8 @@ export function reducer(state: GameState, action: Action): GameState {
 // (systems/sandbox): what started is finished, and the funds are full.
 function settled(state: GameState, next: GameState): GameState {
   if (next !== state && isSandbox(next)) settleSandbox(next);
+  // And the objectives (Plan 106): whatever changed may have met one.
+  if (next !== state) settleChapters(next);
   return next;
 }
 
@@ -180,6 +183,9 @@ export function reduceInPlace(s: GameState, action: Action): GameState {
   return withRandom(s, () => {
     const next = reduce(s, s, action);
     if (isSandbox(next)) settleSandbox(next);
+    // The objectives on the tick only, so a refused action still leaves
+    // `s` as it was; what an action met is counted by the next week.
+    if (action.type === 'TICK') settleChapters(next);
     return next;
   });
 }
@@ -220,6 +226,9 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     case 'ADVANCE_OPENING': {
       advanceOpening(s);
       return s;
+    }
+    case 'MARK_GUIDANCE': {
+      return markGuidance(s, action.mark) ? s : state;
     }
     case 'SKIP_OPENING': {
       if (s.events.opening.stage === 'play') return state;

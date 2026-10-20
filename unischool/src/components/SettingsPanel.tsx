@@ -4,6 +4,7 @@ import { CloseIcon } from './icons';
 import { switchStyle } from './segmentedSwitch';
 import { answerStats, statsAvailable } from '../analytics/analytics';
 import { feedbackAvailable } from '../feedback';
+import { OBJECTIVES_MODES, OBJECTIVES_NOTES, OBJECTIVES_WORDS } from '../data/chapterData';
 
 // Settings (Plan 34, from v2's): text size, color vision and motion, the
 // pause when a matter arrives (Plan 78E) and for the news (Plan 95T), the
@@ -80,6 +81,15 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             <button type="button" className={s.pauseForNews ? undefined : 'active'} aria-pressed={!s.pauseForNews} onClick={() => setSettings({ pauseForNews: false })}>Off</button>
           </span>
           <p className="settings-note">The clock stops for each celebration and research report. Off, they wait in the inbox as letters.</p>
+        </fieldset>
+        <fieldset className="settings-row">
+          <legend>Objectives</legend>
+          <span className="segmented switch" style={switchStyle(3, OBJECTIVES_MODES.indexOf(s.objectives))}>
+            {OBJECTIVES_MODES.map((mode) => (
+              <button key={mode} type="button" className={s.objectives === mode ? 'active' : undefined} aria-pressed={s.objectives === mode} onClick={() => setSettings({ objectives: mode })}>{OBJECTIVES_WORDS[mode]}</button>
+            ))}
+          </span>
+          <p className="settings-note">{OBJECTIVES_NOTES[s.objectives]}</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Seasons</legend>

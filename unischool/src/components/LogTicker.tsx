@@ -7,6 +7,10 @@ import { nextMilestone } from '../systems/ladder/ladderSystem';
 import type { Progress } from '../data/ladderData';
 import LadderPanel from './LadderPanel';
 import { count, prestigeFigure } from '../format';
+import ObjectivesPanel from './ObjectivesPanel';
+import { chapterNumber, currentChapter, leadObjective } from '../state/chapters';
+import { DRAWER_WORDS } from '../data/chapterData';
+import { useSettings } from '../settings';
 
 // One line, always on screen above the toolbar (styles.css's .log-ticker):
 // the newest entry in s.log (newest first). Only the icon on the left is a
@@ -22,6 +26,14 @@ import { count, prestigeFigure } from '../format';
 // NEXT first points at the inbox for what will not wait (Plan 77,
 // nextStep.ts's inboxPointer: the board's letter, an event in its last
 // week), pulsing, except while the inbox itself is open.
+//
+// THE OBJECTIVES (Plan 106 PR B). Once the walkthrough is over, the
+// milestone chip gives way to the chapter's: "Chapter 2 · Places for every
+// student 280/350", the first objective not yet met. It opens the drawer
+// (ObjectivesPanel.tsx), where the chapter, its briefing, what else waits
+// and the milestones are. NEXT stays on the strip only when it is urgent or
+// no chapter is open; otherwise it waits in the drawer. The Objectives
+// setting's Off keeps the strip as it was before them.
 // A milestone's progress as a count: "12/13 courses", "96.4/100.0 prestige".
 function figure(n: number, unit: string): string {
   return unit === 'prestige' ? prestigeFigure(n) : count(Math.floor(n));
@@ -33,9 +45,10 @@ function progressText(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)} of ${figure(p.target, p.unit)} ${p.unit}`;
 }
 
-export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, onGo, inboxOpen, onOpenMarket }: {
+export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, objectivesOpen, onSetObjectivesOpen, onGo, inboxOpen, onOpenMarket }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
+  objectivesOpen: boolean; onSetObjectivesOpen: (open: boolean) => void;
   onGo: (go: NonNullable<NextStep['go']>, hallId?: string, programId?: string) => void;
   inboxOpen: boolean;
   // A retirement's notice opens the market in its field (Plan 84D).
@@ -46,6 +59,11 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
   const step = s.pendingInterrupt ? null : (inboxOpen ? null : inboxPointer(s)) ?? nextStep(s);
   const milestone = nextMilestone(s);
   const progress = milestone?.progress?.(s);
+  const chaptersOn = objectivesShown(s, useSettings().objectives);
+  const chapter = chaptersOn ? currentChapter(s) : null;
+  const lead = chapter ? leadObjective(s, chapter) : null;
+  const leadCount = lead && typeof lead.progress === 'object' ? `${count(Math.min(lead.progress.n, lead.progress.of))}/${count(lead.progress.of)}` : null;
+  const stepOnStrip = step && (!chapter || step.urgent) ? step : null;
 
   return (
     <>
@@ -73,7 +91,20 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
         ) : (
           <span className="log-ticker-empty">No activity yet.</span>
         )}
-        {milestone && (
+        {chaptersOn && (
+          <button
+            type="button"
+            className="log-ticker-ladder log-ticker-objective"
+            aria-expanded={objectivesOpen}
+            aria-label={`${DRAWER_WORDS.title}${lead ? `: ${lead.text}` : ''}`}
+            onClick={() => onSetObjectivesOpen(!objectivesOpen)}
+          >
+            <span className="log-ticker-next-label">{chapter ? DRAWER_WORDS.chapter(chapterNumber(chapter)) : DRAWER_WORDS.title}</span>
+            <span className="log-ticker-objective-text">{lead ? lead.text : milestone ? `${milestone.name}` : DRAWER_WORDS.allDone}</span>
+            {lead ? leadCount && <span className="log-ticker-ladder-progress">{leadCount}</span> : progress && <span className="log-ticker-ladder-progress">{progressShort(progress)}</span>}
+          </button>
+        )}
+        {!chaptersOn && milestone && (
           <button
             type="button"
             className="log-ticker-ladder"
@@ -88,15 +119,15 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
             {progress && <span className="log-ticker-ladder-progress">{progressShort(progress)}</span>}
           </button>
         )}
-        {step && (
-          <span className={`log-ticker-next${step.urgent ? ' urgent' : ''}`}>
+        {(chaptersOn ? stepOnStrip : step) && (
+          <span className={`log-ticker-next${step!.urgent ? ' urgent' : ''}`}>
             <span className="log-ticker-next-label">Next</span>
-            {step.go ? (
-              <button type="button" className="log-ticker-next-text" onClick={() => { if (step.go) onGo(step.go, step.hallId, step.programId); }}>
-                {step.text}
+            {step!.go ? (
+              <button type="button" className="log-ticker-next-text" onClick={() => { if (step?.go) onGo(step.go, step.hallId, step.programId); }}>
+                {step!.text}
               </button>
             ) : (
-              <span className="log-ticker-next-text">{step.text}</span>
+              <span className="log-ticker-next-text">{step!.text}</span>
             )}
           </span>
         )}
@@ -106,6 +137,16 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           <LogStrip s={s} onOpenMarket={onOpenMarket ? (field) => { onSetOpen(false); onOpenMarket(field); } : undefined} />
         </ToolbarPopup>
       )}
+      {objectivesOpen && chaptersOn && (
+        <ToolbarPopup title={DRAWER_WORDS.title} onClose={() => onSetObjectivesOpen(false)} className="objectives-popup">
+          <ObjectivesPanel
+            s={s}
+            waiting={step}
+            onGo={(go, hallId, programId) => { onSetObjectivesOpen(false); onGo(go, hallId, programId); }}
+            onOpenLadder={() => onSetLadderOpen(true)}
+          />
+        </ToolbarPopup>
+      )}
       {ladderOpen && (
         <ToolbarPopup title="Milestones" onClose={() => onSetLadderOpen(false)} className="ladder-popup">
           <LadderPanel s={s} />
@@ -113,4 +154,11 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
       )}
     </>
   );
+}
+
+// Whether the strip shows the chapters: not with the setting Off, not in a
+// sandbox, and not while the walkthrough's card is up (its steps are the
+// first chapters until PR C makes them one).
+export function objectivesShown(s: GameState, mode: 'guided' | 'brief' | 'off'): boolean {
+  return mode !== 'off' && s.guidance !== undefined && !s.sandbox && s.events.opening.stage === 'play';
 }
