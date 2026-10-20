@@ -12,9 +12,9 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PRs A–G landed (the model, the bar, the
-walkthrough ported, the first five years' chapters and the gates, the
-Guide); PR H (the later chapters) is up; the owner
+**Status: Landed. PRs A–I: the model, the bar, the walkthrough ported,
+the chapters of the first five years and the gates, the Guide, the later
+chapters and the play statistics; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -519,6 +519,25 @@ Example, chapter 6 (Standing), which answers F6:
     it. It is a long goal, with its terms told well before the offer comes.
 - The Research tab's Guide button now has a chapter.
 - No new gate: these systems already open on their own conditions.
+
+**As implemented (PR I):**
+- Four events (`analytics/events.ts`, listed in `docs/architecture/analytics.md`):
+  - `chapter_opened` (chapter, year);
+  - `chapter_done` (chapter, year, weeks open);
+  - `briefing_read` (chapter);
+  - `guide_opened` (chapter, from a tab's button or the drawer's list).
+- `year_reached` also carries the Objectives setting.
+- The first three are read off the state before and after each action, as
+  the other run events are. The settle that first writes an old save's
+  record catches it up all at once, so it sends nothing.
+- **What to compare** after the release:
+  - the share of runs that end within five years (20% of 83 runs in the
+    60 days to 20 October);
+  - `chapter_done` weeks per chapter: where players stall;
+  - `briefing_read` against `chapter_opened`: whether briefings are seen;
+  - the Objectives setting's share of Off;
+  - the feedback form's "Was there a moment you didn't know what to do
+    next?" answers.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.

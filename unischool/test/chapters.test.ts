@@ -35,6 +35,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import LogTicker, { objectivesShown } from '../src/components/LogTicker';
 import ObjectivesPanel from '../src/components/ObjectivesPanel';
 import { setSettings } from '../src/settings';
+import { CHAPTER_IDS, eventFits, stateEvents } from '../src/analytics/events';
 import { chapterGateOpen, MATTERS_CHAPTER, OBJECTIVES_OFF_MARK, PROMISES_CHAPTER } from '../src/systems/guidance/gates';
 import { bindScriptStream } from '../src/engine/random';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
@@ -430,6 +431,26 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   settleChapters(s);
   assert(done(s, 'specialization'), 'the board offering the choice ends the specialization chapter');
   assert(TAB_GUIDE.research === 'research', "and the Research tab's Guide names it");
+}
+
+// ---- PR I: the chapters in the play statistics ----
+{
+  const s = teaching();
+  settleChapters(s);
+  const before = structuredClone(s);
+  before.guidance = { opened: { founding: 1 }, done: {}, met: [], marked: [] };
+  const after = structuredClone(before);
+  after.guidance = { opened: { founding: 1, 'next-course': 3 }, done: { founding: 3 }, met: [], marked: ['read:next-course'] };
+  const names = stateEvents(before, after).map((e) => `${e.name}:${String(e.fields.chapter)}`);
+  assert(names.includes('chapter_opened:next-course') && names.includes('chapter_done:founding') && names.includes('briefing_read:next-course'),
+    `opened, done and read are sent (${names.join(', ')})`);
+  const doneEvent = stateEvents(before, after).find((e) => e.name === 'chapter_done')!;
+  assert(doneEvent.fields.weeks_open === 2 && eventFits('chapter_done', doneEvent.fields), 'with the weeks the chapter was open, fitting its entry');
+  const old = structuredClone(before);
+  delete old.guidance;
+  assert(stateEvents(old, after).every((e) => !e.name.startsWith('chapter_')), 'an old save caught up all at once sends nothing');
+  assert(eventFits('guide_opened', { chapter: 'standing', from: 'tab' }) && !eventFits('guide_opened', { chapter: 'nothing', from: 'tab' }), 'guide_opened takes only a known chapter');
+  assert(CHAPTERS.every((c) => CHAPTER_IDS.includes(c.id)), 'every chapter can be named');
 }
 
 if (failures === 0) {
