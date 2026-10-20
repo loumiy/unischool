@@ -3820,6 +3820,10 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }
 .objectives-milestones p { margin: 0 0 var(--space-6); }
 .objectives-live p { margin: 0 0 var(--space-4); font-variant-numeric: tabular-nums; }
+.objectives-back { margin: 0 0 var(--space-8); font-size: var(--text-xs); padding: 3px 10px; }
+.objectives-guide p { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 0; }
+.objectives-guide-link { font-size: var(--text-xs); padding: 3px 10px; }
+.tab-overlay-guide { margin-left: auto; margin-right: var(--space-8); font-size: var(--text-xs); padding: 4px 12px; }
 
 /* The ladder (LadderPanel.tsx), in a toolbar popup above the ticker. */
 .ladder-popup { left: 16px; width: min(560px, calc(100vw - 32px)); max-height: 70vh; }

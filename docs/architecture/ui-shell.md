@@ -106,6 +106,17 @@ Settings' **Objectives** has three modes:
 The drawer takes its place on the shell's Escape ladder after the
 milestones and before the log.
 
+**The Guide** (Plan 106 PR G) lets the player read any briefing again:
+- **In the drawer**, "Read again" lists every chapter the run has opened
+  that has a briefing. Each opens that chapter's page in the drawer, with
+  a way back to the current objectives.
+- **On a tab**, a "? Guide" button sits in the header beside Close, and
+  opens the briefing of the chapter that introduced it
+  (`chapterData.ts`'s `TAB_GUIDE`). A tab gets the button once that
+  chapter has opened. Research has no chapter yet, so it has no button.
+- **Off** doesn't hide the Guide: the setting hides the chapters, not a
+  page a tab asks for.
+
 ## The inbox
 
 Everything addressed to the president that does not stop the clock is in one

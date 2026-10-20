@@ -19,10 +19,11 @@
 
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, nextChapter, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, guideChapters, nextChapter, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
-import { CHAPTER_COPY } from '../src/data/chapterData';
+import { CHAPTER_COPY, TAB_GUIDE } from '../src/data/chapterData';
+import TabOverlay from '../src/components/TabOverlay';
 import { isDiningHall, isDorm } from '../src/data/openingData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
@@ -376,6 +377,27 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   s.finance.sweepWeeks = 26;
   settleChapters(s);
   assert(done(s, 'the-long-game'), 'a standing sweep ends it');
+}
+
+// ---- PR G: the Guide ----
+{
+  for (const [tab, id] of Object.entries(TAB_GUIDE)) {
+    assert(CHAPTERS.some((c) => c.id === id) && CHAPTER_COPY[id!].briefing !== undefined, `the ${tab} tab's Guide names a chapter with a briefing (${id})`);
+  }
+  const s = teaching();
+  s.clock.year = 2;
+  const met = ['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'];
+  s.guidance = { opened: { ...Object.fromEntries(met.map((id) => [id, 1])), standing: 53 }, done: Object.fromEntries(met.map((id) => [id, 1])), met: [], marked: [] };
+  const guide = guideChapters(s).map((c) => c.id);
+  assert(guide.join(',') === 'next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing', `the Guide lists every chapter met with a briefing, in order (${guide.join(',')})`);
+  const page = (view: string | null) => renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, view, onView: () => {} }));
+  const back = page('paying-for-it');
+  assert(back.includes('Back to the objectives') && back.includes('Paying for it') && !back.includes('Also waiting'), 'a page of the Guide reads that chapter, with the way back');
+  assert(!page('standing').includes('Back to the objectives'), "the current chapter's page is the objectives themselves");
+  assert(page(null).includes('Read again') && page(null).includes('The first summer'), 'the drawer lists the Guide to read again');
+  const tab = renderToStaticMarkup(createElement(TabOverlay, { title: 'History', onClose: () => {}, onGuide: () => {}, children: null }));
+  assert(tab.includes('tab-overlay-guide') && tab.includes('The Guide on History'), "a tab carries its Guide button");
+  assert(!renderToStaticMarkup(createElement(TabOverlay, { title: 'Research', onClose: () => {}, children: null })).includes('tab-overlay-guide'), 'and a tab with no chapter has none');
 }
 
 if (failures === 0) {

@@ -25,7 +25,7 @@ import CampusMap from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
-import { CHAPTER_COPY } from './data/chapterData';
+import { CHAPTER_COPY, TAB_GUIDE } from './data/chapterData';
 import { currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
 import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import InboxTab from './components/InboxTab';
@@ -122,6 +122,8 @@ export default function App() {
   const [logOpen, setLogOpen] = useState(false);
   const [ladderOpen, setLadderOpen] = useState(false);
   const [objectivesOpen, setObjectivesOpen] = useState(false);
+  // The Guide's page: a chapter met before, read again (Plan 106 PR G).
+  const [objectivesView, setObjectivesView] = useState<string | null>(null);
   // The founding notes read this session: the one letter the save does not
   // mark (systems/inbox/foundingNote.ts). Everything else the inbox holds
   // is read off the state (Plan 77).
@@ -170,7 +172,7 @@ export default function App() {
   useHotkeys((e) => {
     if (s.pendingInterrupt || !isKey(e, 'objectives')) return;
     setObjectivesOpen((o) => {
-      if (!o) { setLogOpen(false); setLadderOpen(false); closeBuild(); }
+      if (!o) { setLogOpen(false); setLadderOpen(false); closeBuild(); setObjectivesView(null); }
       return !o;
     });
   }, chaptersOn);
@@ -203,6 +205,19 @@ export default function App() {
     act({ type: 'MARK_GUIDANCE', mark: tabMark(openTabId) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openTabId, shellLive]);
+
+  // A tab's Guide button: the briefing of the chapter that introduced it,
+  // once that chapter has opened, read in the drawer over the tab.
+  function guideFor(tab: TabId): (() => void) | undefined {
+    const id = TAB_GUIDE[tab];
+    if (!id || s.guidance?.opened[id] === undefined) return undefined;
+    return () => {
+      setObjectivesView(id);
+      setObjectivesOpen(true);
+      setLogOpen(false);
+      setLadderOpen(false);
+    };
+  }
 
   // C / F / L / I (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.
@@ -553,7 +568,9 @@ export default function App() {
             ladderOpen={ladderOpen}
             onSetLadderOpen={(o) => { setLadderOpen(o); if (o) { setLogOpen(false); setObjectivesOpen(false); closeBuild(); } }}
             objectivesOpen={objectivesOpen}
-            onSetObjectivesOpen={(o) => { setObjectivesOpen(o); if (o) { setLogOpen(false); setLadderOpen(false); closeBuild(); } }}
+            onSetObjectivesOpen={(o) => { setObjectivesOpen(o); setObjectivesView(null); if (o) { setLogOpen(false); setLadderOpen(false); closeBuild(); } }}
+            objectivesView={objectivesView}
+            onSetObjectivesView={setObjectivesView}
             onGo={(go, hallId, programId) => {
             if (go === 'build') setBuildOpen(true);
             else if (go === 'campus') openTab(null);
@@ -589,6 +606,7 @@ export default function App() {
               title={TAB_LABELS[overlay.tab]}
               onClose={holding ? undefined : () => openTab(null)}
               split={overlay.tab === 'inbox'}
+              onGuide={guideFor(overlay.tab)}
             >
               {overlay.tab === 'faculty' && (
                 <FacultyTab
