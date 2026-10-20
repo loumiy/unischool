@@ -1,4 +1,5 @@
 import { restaffPlan } from '../faculty/restaffing';
+import { chapterGateOpen, MATTERS_CHAPTER } from '../guidance/gates';
 import { raiseCharter, raiseFestival, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState, NewsLetter } from '../../state/types';
@@ -169,7 +170,7 @@ function fireVarsityPetition(s: GameState): boolean {
 // repeated. Only above ELITE_CLOSE_ABOVE_PRESTIGE: below it a school is
 // passed most years and this would eat the whole decision budget.
 function fireTrusteeResponse(s: GameState): boolean {
-  if (s.clock.year < DECISION_EVENT_FIRST_YEAR) return false;
+  if (s.clock.year < DECISION_EVENT_FIRST_YEAR || !chapterGateOpen(s, MATTERS_CHAPTER)) return false;
   if (s.self.reputation <= ELITE_CLOSE_ABOVE_PRESTIGE) return false;
   const week = absoluteWeek(s);
   if (s.events.lastDecisionWeek > 0 && week - s.events.lastDecisionWeek < DECISION_EVENT_COOLDOWN_WEEKS) return false;
@@ -191,7 +192,7 @@ function fireTrusteeResponse(s: GameState): boolean {
 // A weekly probability, floored by a global cooldown, then a weighted draw
 // across the events the current state makes eligible.
 function rollDecisionEvent(s: GameState): void {
-  if (s.clock.year < DECISION_EVENT_FIRST_YEAR) return;
+  if (s.clock.year < DECISION_EVENT_FIRST_YEAR || !chapterGateOpen(s, MATTERS_CHAPTER)) return;
 
   const week = absoluteWeek(s);
   if (s.events.lastDecisionWeek > 0 && week - s.events.lastDecisionWeek < DECISION_EVENT_COOLDOWN_WEEKS) return;

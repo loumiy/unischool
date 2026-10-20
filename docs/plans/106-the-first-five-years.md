@@ -12,8 +12,8 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PRs A (the objective model), B (the bar) and C
-(the walkthrough ported) landed; PR D (the rest of year 1) is up; the owner
+**Status: In progress. PRs A–D landed (the model, the bar, the
+walkthrough ported, year 1); PR E (years 2–3 and the gates) is up; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -424,6 +424,46 @@ Example, chapter 6 (Standing), which answers F6:
   warning.
 - From here the plan's chapter numbers run two ahead of §4's table: its
   "6. Standing" is chapter 8, and so on.
+
+**As implemented (PR E):**
+- Years 2–3 are five chapters:
+  - **7. Standing** (Y2 wk 1). Required: open Students and open History.
+    Optional: satisfaction at 60, and prestige's target above prestige. Its
+    drawer reads live: prestige against its target, each pillar's points
+    against its most, what is taken off, and the need dragging satisfaction
+    (rule 7).
+  - **8. A faculty** (Y2 wk 14). Required: post a search, and every program
+    staffed. Optional: a professor teaching at B or better. Its briefing
+    answers F2: the rank beside a name only reads the average of teaching
+    and research.
+  - **9. A hall of its own** (Y2 wk 27, and only once an academic hall can
+    be built: `opensWhen`). Required: site it and move a program in.
+    Optional: a school claims it.
+  - **10. Campus life** (Y3 wk 1). Required: the Student Center sited.
+    Optional: a club approved, and a matter answered.
+  - **11. Promises** (Y3 wk 46). Required: the third summer. Optional: a
+    promise made.
+- **The gates** (`systems/guidance/gates.ts`) apply only to a run founded
+  guided (`guidance.gated`):
+  - decision events, the inbox's catalogue matters and the students'
+    demands wait for "Campus life";
+  - promise offers wait for "Promises".
+- What no gate holds:
+  - headless foundings, so the sims are unchanged;
+  - saves from before the gates, and sandboxes;
+  - a run whose player set Objectives to Off. The shell marks that in the
+    record (`objectives-off`), so the gates stay open for that college even
+    if the chapters are turned back on.
+- Outcome figures (satisfaction 60, a rising prestige target) are optional
+  goals with a count, never requirements. A stuck figure must not hold back
+  the chapters, and with them the systems.
+- Writing the briefings corrected §5's sample. Prestige's target blends
+  four pillars, weighted academics 41, research and student life 29.5
+  each, athletics 18, plus the endowment (4), less crowding (up to 25) and
+  run-down buildings (up to 4). The live readout lists each pillar's points
+  against that most, which is what "a good score" means (F6). It doesn't
+  rank "most to gain": that list would put research first in year 2,
+  before research can exist.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.

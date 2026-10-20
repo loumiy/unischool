@@ -4,7 +4,10 @@ import { CHAPTER_COPY, DRAWER_WORDS as W, type Door } from '../data/chapterData'
 import { CHAPTERS, absoluteWeek, chapterNumber, currentChapter, nextChapter, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
-import { count, gameDateOfWeek, prestigeFigure } from '../format';
+import { count, gameDateOfWeek, prestigeFigure, satisfactionFigure } from '../format';
+import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { satisfactionDrag } from '../systems/satisfaction/satisfactionSystem';
+import { NEED_LABELS } from '../data/figureHints';
 
 // The objectives drawer (Plan 106 §2a): the NEXT bar expanded. The chapter
 // open now and its objectives, each with its reading; the chapter's
@@ -27,6 +30,32 @@ function objectiveCount(p: ObjectiveProgress): string | null {
 
 // How many milestones the drawer lists as unlocked at most.
 const UNLOCKED_SHOWN = 3;
+// The Standing chapter's live readout (Plan 106 §2, rule 7): prestige
+// against its target; each pillar's points against the most it can give,
+// which is what makes a good score; what is taken off (crowding, run-down
+// buildings); and the need pulling satisfaction down. Read from
+// prestigeBreakdown and satisfactionDrag; nothing new is said.
+function StandingLive({ s }: { s: GameState }) {
+  const b = prestigeBreakdown(s);
+  const pillars = b.inputs.filter((i) => i.pillar !== undefined);
+  const taken = b.inputs.filter((i) => i.penalty && i.contribution < -0.05);
+  const drag = satisfactionDrag(s);
+  const arrow = b.target > b.current + 0.05 ? '▲' : b.target < b.current - 0.05 ? '▼' : '';
+  return (
+    <div className="objectives-live">
+      <h4>{W.live}</h4>
+      <p>
+        {W.prestigeNow(prestigeFigure(b.current), prestigeFigure(b.target))} <span aria-hidden="true">{arrow}</span>
+      </p>
+      <p>{W.pillars}: {pillars.map((p) => W.pillar(p.label, p.contribution.toFixed(1), p.weight.toFixed(1))).join(' · ')}</p>
+      {taken.length > 0 && <p>{W.takenOff}: {taken.map((p) => `${p.label} ${p.contribution.toFixed(1)}`).join(' · ')}</p>}
+      <p>
+        {W.satisfactionNow(satisfactionFigure(s.students.satisfaction))}
+        {drag ? ` ${W.drag(NEED_LABELS[drag.need])}` : ''}
+      </p>
+    </div>
+  );
+}
 
 export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
   s: GameState;
@@ -74,6 +103,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
               );
             })}
           </ul>
+          {chapter.live === 'standing' && <StandingLive s={s} />}
           {copy.briefing && (
             <div className="objectives-briefing">
               <h4>{W.what}</h4>

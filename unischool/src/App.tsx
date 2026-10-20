@@ -27,6 +27,7 @@ import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
 import { CHAPTER_COPY } from './data/chapterData';
 import { currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
+import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import InboxTab from './components/InboxTab';
 import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
 import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
@@ -187,6 +188,14 @@ export default function App() {
     if (shellLive && speed === 'double' && s.guidance && !marked(s, DOUBLE_SPEED_MARK)) act({ type: 'MARK_GUIDANCE', mark: DOUBLE_SPEED_MARK });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speed, shellLive]);
+  // Off is the game as it was before the chapters (Plan 106 PR E): the
+  // record says so, so no system waits for a chapter (gates.ts). A mark,
+  // not a setting read by the systems, since a save travels without the
+  // browser's settings; turning the chapters back on keeps the gates open.
+  useEffect(() => {
+    if (shellLive && objectivesMode === 'off' && s.guidance?.gated && !marked(s, OBJECTIVES_OFF_MARK)) act({ type: 'MARK_GUIDANCE', mark: OBJECTIVES_OFF_MARK });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objectivesMode, shellLive, s.guidance?.gated]);
   // A tab an objective asks to be opened (chapter 5's Treasury).
   const openTabId = overlay?.tab;
   useEffect(() => {

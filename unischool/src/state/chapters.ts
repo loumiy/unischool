@@ -4,6 +4,10 @@ import { CHAPTER_COPY, type ChapterId } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { weeklyNet } from '../systems/finance/financeSystem';
+import { computePrestigeTarget } from '../systems/prestige/prestigeSystem';
+import { darkPrograms } from '../systems/techtree/darkness';
+import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
+import { GRADE_B } from '../data/courseQuality';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
@@ -41,7 +45,12 @@ export interface Chapter {
   id: ChapterId;
   // The first week (absolute) the chapter may open.
   earliest: number;
+  // What else must hold before it opens, beyond the chapter before it done
+  // and its week come: the thing it teaches has to exist.
+  opensWhen?: (s: GameState) => boolean;
   objectives: readonly Objective[];
+  // A figure the drawer reads live under the objectives (ObjectivesPanel).
+  live?: 'standing';
 }
 
 const week = (year: number, w: number) => (year - 1) * WEEKS_PER_YEAR + w;
@@ -127,12 +136,70 @@ export const CHAPTERS: readonly Chapter[] = [
       { id: 'set-first-class', progress: (s) => s.history.length >= 1 },
     ],
   },
+  {
+    // Year 2 opens with the first grade given and the Students tab open
+    // (Plan 104M): prestige and satisfaction, and what moves them. The
+    // figures are optional goals; looking is the lesson (F6: "why is my
+    // prestige continuing to plummet?").
+    id: 'standing',
+    earliest: week(2, 1),
+    live: 'standing',
+    objectives: [
+      { id: 'open-students', progress: (s) => marked(s, tabMark('students')) },
+      { id: 'open-history', progress: (s) => marked(s, tabMark('history')) },
+      { id: 'satisfaction-60', progress: (s) => ({ n: Math.min(Math.floor(s.students.satisfaction), 60), of: 60 }), optional: true },
+      { id: 'prestige-rising', progress: (s) => computePrestigeTarget(s) > s.self.reputation, optional: true },
+    ],
+  },
+  {
+    // The faculty market, grades, ranks and searches (F2, S1, F1).
+    id: 'a-faculty',
+    earliest: week(2, 14),
+    objectives: [
+      { id: 'post-a-search', progress: (s) => Object.keys(s.searches).length > 0 },
+      { id: 'every-program-staffed', progress: (s) => darkPrograms(s).size === 0 },
+      { id: 'appoint-a-b', progress: (s) => s.faculty.some((f) => f.teaching >= GRADE_B), optional: true },
+    ],
+  },
+  {
+    // Academic halls and schools, once Elm Hall can be built (eight
+    // courses taught, techData.ts's FIRST_HALL_COURSE_GATE).
+    id: 'hall-of-its-own',
+    earliest: week(2, 27),
+    opensWhen: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.status !== 'locked'),
+    objectives: [
+      { id: 'site-academic-hall', progress: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.id in s.placements) },
+      { id: 'move-a-program', progress: (s) => Object.entries(s.halls).some(([id, slots]) => id !== FOUNDERS_HALL_ID && slots.some((slot) => slot.programId !== null)) },
+      { id: 'claim-a-hall', progress: (s) => Object.keys(s.hallClaims ?? {}).some((id) => id !== FOUNDERS_HALL_ID), optional: true },
+    ],
+  },
+  {
+    // Clubs, the inbox's matters and the students' demands, which wait for
+    // this chapter in a guided run (systems/guidance/gates.ts).
+    id: 'campus-life',
+    earliest: week(3, 1),
+    objectives: [
+      { id: 'site-student-center', progress: (s) => sitedAny(s, (t) => t.facilityType === 'studentCenter') },
+      { id: 'approve-a-club', progress: (s) => s.orgs.clubs.length > 0, optional: true },
+      { id: 'answer-a-matter', progress: (s) => Object.keys(s.events.decisionHistory).length > 0, optional: true },
+    ],
+  },
+  {
+    // The board's promises, offered from the third summer, which waits for
+    // this chapter in a guided run (gates.ts).
+    id: 'promises',
+    earliest: week(3, 46),
+    objectives: [
+      { id: 'third-summer', progress: (s) => s.history.length >= 3 },
+      { id: 'make-a-promise', progress: (s) => (s.promises?.active.length ?? 0) + (s.promises?.settled.length ?? 0) > 0, optional: true },
+    ],
+  },
 ];
 
 // The tabs an objective asks to be opened, marked by the shell when they
 // are (App.tsx), since an open tab is the shell's, not the college's.
 export const tabMark = (tab: string) => `tab:${tab}`;
-export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury']);
+export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history']);
 
 // What a chapter rings while its objective waits, as the walkthrough's
 // steps did (Plan 103): the program whose next course the Curriculum
@@ -204,7 +271,7 @@ export function settleChapters(s: GameState): void {
   for (const c of CHAPTERS) {
     if (g.done[c.id] !== undefined) continue;
     if (g.opened[c.id] === undefined) {
-      if (c.earliest > now) return;
+      if (c.earliest > now || (c.opensWhen && !c.opensWhen(s))) return;
       g.opened[c.id] = now;
     }
     for (const o of c.objectives) {

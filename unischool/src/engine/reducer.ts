@@ -213,6 +213,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       // double invocation a save from here could persist the discarded run.
       // useGame.ts takes the founding save from the committed state.
       const next = createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed);
+      // A guided founding's systems wait for their chapters (Plan 106 PR E).
+      if (action.guided && !action.sandbox && next.guidance) next.guidance.gated = true;
       if (action.sandbox) {
         next.sandbox = true;
         // On the new run's own stream, not the pre-start state's.

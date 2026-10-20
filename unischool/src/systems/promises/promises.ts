@@ -1,4 +1,5 @@
 import type { GameState, PromiseState } from '../../state/types';
+import { chapterGateOpen, PROMISES_CHAPTER } from '../guidance/gates';
 import { institutionName } from '../../state/types';
 import {
   DECADE_LIST, DECADE_PICKS, DECADE_YEARS, PROMISES, PROMISE_CAP, PROMISE_DECLINED_REST_YEARS, PROMISE_FIRST_YEAR, PROMISE_LINES, PROMISE_OFFER_ODDS, promiseById,
@@ -103,7 +104,7 @@ export function openSummerPromises(s: GameState): void {
   const room = PROMISE_CAP - p.active.length;
   // None before the founding years are out, and none once the run has
   // formally ended at the fiftieth summer; those made still come due.
-  if (room > 0 && s.clock.year >= PROMISE_FIRST_YEAR && s.clock.year < SEMICENTENNIAL_YEAR) {
+  if (room > 0 && s.clock.year >= PROMISE_FIRST_YEAR && s.clock.year < SEMICENTENNIAL_YEAR && chapterGateOpen(s, PROMISES_CHAPTER)) {
     s.promises = p;
     const pool = dealable(s);
     if (isDecadeClose(s.clock.year)) {

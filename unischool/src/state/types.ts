@@ -708,6 +708,9 @@ export interface GuidanceState {
   // What the player did that the college's state doesn't record: a speed
   // set, a page read (the MARK_GUIDANCE action).
   marked: string[];
+  // A guided founding: its systems wait for their chapters
+  // (systems/guidance/gates.ts). Absent everywhere else.
+  gated?: true;
 }
 
 // See state/opening.ts, which owns the order and the meaning.

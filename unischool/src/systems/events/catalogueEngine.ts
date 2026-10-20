@@ -1,4 +1,5 @@
 import type { CatalogueState, GameState, PendingCatalogueEvent } from '../../state/types';
+import { chapterGateOpen, MATTERS_CHAPTER } from '../guidance/gates';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR } from '../../data/eventData';
@@ -101,7 +102,7 @@ export function seatAnswer(s: GameState, e: CatalogueEvent, scale: number): stri
 // letter claims the week and stops the clock; an inline event joins the
 // panel and the clock runs on.
 export function tickCatalogue(s: GameState): void {
-  if (s.clock.year < DECISION_EVENT_FIRST_YEAR || s.pendingInterrupt) return;
+  if (s.clock.year < DECISION_EVENT_FIRST_YEAR || s.pendingInterrupt || !chapterGateOpen(s, MATTERS_CHAPTER)) return;
   const c = s.catalogue ??= { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
   const week = absoluteWeek(s);
   // A letter stops the clock, so it keeps the decision events' global
