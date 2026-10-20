@@ -19,7 +19,7 @@
 
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, objectiveMet, objectiveRows, settleChapters } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
 import { CHAPTER_COPY } from '../src/data/chapterData';
 import { isDiningHall, isDorm } from '../src/data/openingData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -136,6 +136,29 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   settleChapters(s);
   assert(done(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall sited finish it');
   assert(s.guidance!.done['somewhere-to-sleep'] === 12, 'done the week it was finished');
+}
+
+// ---- The money and the first summer (PR D) ----
+{
+  let s = teaching();
+  s.clock.week = 12;
+  site(s, isDorm);
+  site(s, isDiningHall);
+  settleChapters(s);
+  assert(done(s, 'seats') && !opened(s, 'paying-for-it'), 'Paying for it waits for week 30');
+  s.clock.week = 30;
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'paying-for-it', 'in week 30 it is the chapter');
+  s = reducer(s, { type: 'MARK_GUIDANCE', mark: tabMark('treasury') });
+  assert(done(s, 'paying-for-it'), 'the Treasury opened ends it, a surplus or not');
+  assert(MARKED_TABS.has('treasury'), 'the shell marks the Treasury when it opens');
+  assert(!opened(s, 'first-summer'), 'The first summer waits for week 46');
+  s.clock.week = 46;
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'first-summer', 'in week 46 it is the chapter');
+  s.history.push({ ...(s.history[0] ?? {}) } as GameState['history'][number]);
+  settleChapters(s);
+  assert(done(s, 'first-summer'), 'the summer closed ends it');
 }
 
 // ---- A run from before the objectives is caught up by its date ----

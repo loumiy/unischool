@@ -26,7 +26,7 @@ import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
 import { CHAPTER_COPY } from './data/chapterData';
-import { currentChapter, DOUBLE_SPEED_MARK, marked, readMark } from './state/chapters';
+import { currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
 import InboxTab from './components/InboxTab';
 import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
 import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
@@ -187,6 +187,13 @@ export default function App() {
     if (shellLive && speed === 'double' && s.guidance && !marked(s, DOUBLE_SPEED_MARK)) act({ type: 'MARK_GUIDANCE', mark: DOUBLE_SPEED_MARK });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speed, shellLive]);
+  // A tab an objective asks to be opened (chapter 5's Treasury).
+  const openTabId = overlay?.tab;
+  useEffect(() => {
+    if (!shellLive || !openTabId || !MARKED_TABS.has(openTabId) || !s.guidance || marked(s, tabMark(openTabId))) return;
+    act({ type: 'MARK_GUIDANCE', mark: tabMark(openTabId) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openTabId, shellLive]);
 
   // C / F / L / I (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.

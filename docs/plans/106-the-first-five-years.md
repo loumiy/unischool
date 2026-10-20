@@ -12,8 +12,8 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PRs A (the objective model) and B (the bar)
-landed; PR C (the walkthrough ported) is up; the owner
+**Status: In progress. PRs A (the objective model), B (the bar) and C
+(the walkthrough ported) landed; PR D (the rest of year 1) is up; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -407,6 +407,23 @@ Example, chapter 6 (Standing), which answers F6:
   when nothing else is asked, as it has since Plan 78B. That reaches a
   guided player only once every student is seated, by which time chapter
   3's buildings stand.
+
+**As implemented (PR D):**
+- Year 1 ends with two more chapters, so it has six in all:
+  - **5. Paying for it**, from week 30. Required: open the Treasury,
+    marked by the shell as `tab:treasury`. Optional: take in more each
+    week than the college spends.
+  - **6. The first summer**, from week 46. Done when the summer closes.
+- The surplus is optional so that a college in deficit still reaches the
+  first-summer chapter, which explains where the income comes from.
+- "Read the report card" is dropped as an objective, because the summer's
+  Review beat shows the report card anyway. The briefing says what it
+  grades.
+- §7.5 holds: chapter 6's briefing says what a small class costs (four
+  years of short income) before the beat. The admit-rate slider gives no
+  warning.
+- From here the plan's chapter numbers run two ahead of §4's table: its
+  "6. Standing" is chapter 8, and so on.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.
