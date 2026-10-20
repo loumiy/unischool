@@ -697,6 +697,19 @@ export type NewsLetter = { id: string; week: number; unread: boolean } & (
   | { type: 'unlock'; payload: { vernacular: string } }
 );
 
+// The objectives (Plan 106; state/chapters.ts owns the order and the
+// meaning, data/chapterData.ts the words). Chapters open one at a time and
+// are done for good; an objective met once stays met, however the college
+// changes after. Weeks are absolute (week 1 of year 1 is 1).
+export interface GuidanceState {
+  opened: Record<string, number>;  // chapter id -> the week it opened
+  done: Record<string, number>;    // chapter id -> the week it was done
+  met: string[];                   // objective ids met
+  // What the player did that the college's state doesn't record: a speed
+  // set, a page read (the MARK_GUIDANCE action).
+  marked: string[];
+}
+
 // See state/opening.ts, which owns the order and the meaning.
 export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'await-course' | 'second-course' | 'needs' | 'site-housing' | 'site-dining' | 'play';
 
@@ -1406,6 +1419,9 @@ export interface GameState {
   // the year, for the alumni's dip in giving (alumni/giving.ts). Absent
   // before the first.
   closedPrograms?: { programId: string; year: number }[];
+  // The objectives (Plan 106, state/chapters.ts). Absent on a save from
+  // before them: the run is caught up the first time it is settled.
+  guidance?: GuidanceState;
   // Lamps and benches the player has placed beside the paths, by tile key,
   // each bench with its facing (components/dressing.tsx). Optional: a
   // campus may have none.
