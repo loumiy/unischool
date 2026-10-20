@@ -219,7 +219,7 @@ export function facultyMorale(s: GameState): number {
 
 // The library's share of `academic`: its seats against the students, up to
 // ACADEMIC_LIBRARY_POINTS. An empty campus reads full.
-function libraryPoints(s: GameState): number {
+export function libraryPoints(s: GameState): number {
   const enrolled = totalEnrolled(s.students);
   if (enrolled <= 0) return ACADEMIC_LIBRARY_POINTS;
   return clamp(servedPopulationFor(s, 'academic') / (enrolled * expectedRatio(s, 'academic')), 0, 1) * ACADEMIC_LIBRARY_POINTS;

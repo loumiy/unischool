@@ -21,6 +21,7 @@ import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { nextStep, ATTRIBUTE_SHORTFALL } from '../src/systems/guidance/nextStep';
+import { ACADEMIC_LIBRARY_POINTS, libraryPoints } from '../src/systems/satisfaction/satisfactionSystem';
 import { findOpeningLetter } from '../src/data/eventData';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { STARTING_DORM_ID } from '../src/data/campusData';
@@ -144,6 +145,24 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   }
   const opened = nextStep(s);
   assert(opened?.intent?.kind === 'build-for' && opened.text === 'Housing is at 12 out of 100: a residence hall would raise it', `once open, the line reads the need afresh (${opened?.text})`);
+}
+
+// --- the academic line asks for a library only when one would help (S2) ------
+{
+  const s = teachingCollege('Library');
+  s.events.opening.read = ['doors-open'];
+  s.students.satisfactionBreakdown = { academic: 30, social: 70, basicNeeds: 70, health: 70, housing: 70 };
+  const library = s.tech.find((t) => t.effects?.satisfactionAttribute === 'academic' && t.kind === 'facility')!;
+  library.status = 'available';
+  delete s.placements[library.id];
+  const none = nextStep(s);
+  assert(none?.text === 'Academic is at 30 out of 100: a library would raise it' && none.intent?.kind === 'build-for', `with no library, the line asks for one (${none?.text})`);
+  library.status = 'done';
+  s.placements[library.id] = { row: 30, col: 30, w: 4, h: 4 };
+  assert(libraryPoints(s) >= ACADEMIC_LIBRARY_POINTS, `one library seats this college (${libraryPoints(s)} of ${ACADEMIC_LIBRARY_POINTS})`);
+  const built = nextStep(s);
+  assert(!!built?.text.endsWith('the library has room; better teaching would raise it') && built.go === 'faculty' && built.intent?.kind === 'wait',
+    `with the library's seats enough, it names the teaching, not another library (${built?.text})`);
 }
 
 // --- NEXT seats the students first (Plan 80D) --------------------------------
