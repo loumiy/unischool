@@ -113,7 +113,8 @@ milestones and before the log.
 - **On a tab**, a "? Guide" button sits in the header beside Close, and
   opens the briefing of the chapter that introduced it
   (`chapterData.ts`'s `TAB_GUIDE`). A tab gets the button once that
-  chapter has opened. Research has no chapter yet, so it has no button.
+  chapter has opened; Research's chapter (Plan 106 PR H) opens with the
+  first founded school.
 - **Off** doesn't hide the Guide: the setting hides the chapters, not a
   page a tab asks for.
 

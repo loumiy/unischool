@@ -236,6 +236,55 @@ export const CHAPTERS: readonly Chapter[] = [
       { id: 'found-a-school', progress: (s) => schoolsFounded(s) > 0, optional: true },
     ],
   },
+  // Past the first five years (Plan 106 PR H): side chapters, each opening
+  // when its system first comes within reach, whenever that is, and none
+  // waiting for another.
+  {
+    // Research, once a school is founded and its first laboratory can be
+    // built (in a natural run, years 9 to 10).
+    id: 'research',
+    earliest: week(5, 1),
+    side: true,
+    opensWhen: (s) => schoolsFounded(s) > 0,
+    objectives: [
+      { id: 'site-a-lab', progress: (s) => sitedAny(s, (t) => t.facilityType === 'lab') },
+      { id: 'commission-research', progress: (s) => Object.keys(s.research.initiatives).length > 0 || s.research.completedInitiatives.length > 0 },
+      { id: 'answer-the-charter', progress: (s) => s.self.universityCharterOffered, optional: true },
+    ],
+  },
+  {
+    // The alumni and their campaigns: a few classes out, and a VP of
+    // Advancement to ask them.
+    id: 'alumni',
+    earliest: week(6, 1),
+    side: true,
+    opensWhen: (s) => (s.alumni?.length ?? 0) > 0,
+    objectives: [
+      { id: 'appoint-advancement', progress: (s) => (s.seats ?? []).some((seat) => seat.seatId === 'advancement') },
+      { id: 'run-a-campaign', progress: (s) => s.advancement?.running != null || (s.advancement?.closed.length ?? 0) > 0, optional: true },
+    ],
+  },
+  {
+    // Capital projects, which open from year 10 (projectData.ts).
+    id: 'capital-projects',
+    earliest: week(10, 1),
+    side: true,
+    objectives: [
+      { id: 'begin-a-project', progress: (s) => s.tech.some((t) => t.facilityType === 'project' && (t.status === 'developing' || t.status === 'done' || t.id in s.placements)) },
+    ],
+  },
+  {
+    // The specialization: a long goal from year 15, met when the board
+    // first offers the choice (the guide's top 30, or from year 20 the top
+    // 10 of a pillar: prestigeSystem.ts).
+    id: 'specialization',
+    earliest: week(15, 1),
+    side: true,
+    objectives: [
+      { id: 'offered-specialization', progress: (s) => s.specializationOffered !== undefined || s.specialization !== 'none' },
+      { id: 'choose-specialization', progress: (s) => s.specialization !== 'none', optional: true },
+    ],
+  },
 ];
 
 // The tabs an objective asks to be opened, marked by the shell when they
