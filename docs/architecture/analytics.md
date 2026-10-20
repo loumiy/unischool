@@ -44,7 +44,7 @@ and never ask.
 | `app_opened` | The game opens | screen size (`phone`, `tablet`, `laptop` or `desktop`), touch screen or not, first launch or not |
 | `run_started` | A college is founded | campus architecture, normal or sandbox |
 | `run_resumed` | A saved run is continued | year |
-| `opening_step` | The walkthrough moves on to its next step | the step reached: `site-hall`, `appoint`, `found`, `await-course`, `second-course`, `needs`, `site-housing`, `site-dining`, or `play` (the walkthrough finished) |
+| `opening_step` | The walkthrough moves on to its next step | the step reached: `site-hall`, `appoint`, `found`, or `play` (the walkthrough finished; since Plan 106 PR C it ends on the first program founded) |
 | `opening_skipped` | The walkthrough's skip is confirmed | the step it was skipped on (`welcome` or one of the steps above), whether the board's letters were kept |
 | `year_reached` | Each summer in years 1–10, then every fifth | year, rank, prestige band (tens), enrollment band, cash band, schools founded, times the clock was stopped this year, weeks played at each speed this year, times each tab was opened this year |
 | `ambition_reached` | An ambition is met | the ambition's id |

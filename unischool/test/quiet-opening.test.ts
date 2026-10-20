@@ -3,8 +3,9 @@
 // from R10–R11 on r/WebGames): while the stage is site-hall, appoint or
 // found, every toolbar tab is shut and the figures are dimmed, readable
 // and no longer doors; Build stays open only to site the hall, and Campus,
-// the map the three steps are done on, stays live. From the wait for the
-// first course on, and at once after a skip, everything is live again.
+// the map the three steps are done on, stays live. Once the program is
+// founded the walk is over (Plan 106 PR C), and at once after a skip,
+// everything is live again.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -63,8 +64,8 @@ const shutOf = (b: Map<string, boolean>) => [...b.entries()].filter(([k, off]) =
 const siteStep = reducer(found(), { type: 'ADVANCE_OPENING' });
 const appointStep = siteHall(siteStep);
 const foundStep = reducer(appointStep, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
-let awaitStep = reducer(foundStep, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
-assert([siteStep, appointStep, foundStep, awaitStep].map((x) => x.events.opening.stage).join(',') === 'site-hall,appoint,found,await-course', 'the walk reaches each step');
+const played = reducer(foundStep, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
+assert([siteStep, appointStep, foundStep, played].map((x) => x.events.opening.stage).join(',') === 'site-hall,appoint,found,play', 'the walk reaches each step');
 
 for (const [s, door] of [[siteStep, 'build'], [appointStep, 'campus'], [foundStep, 'campus']] as const) {
   const stage = s.events.opening.stage;
@@ -80,16 +81,14 @@ for (const [s, door] of [[siteStep, 'build'], [appointStep, 'campus'], [foundSte
   assert(/\$[\d,]+/.test(html), `${stage}: and still readable`);
 }
 
-// From the wait for the first course: everything live.
+// The program founded: the walk is over, and everything is live.
 {
-  assert(openingQuietDoor(awaitStep) === null, 'await-course: nothing is quiet');
-  const shut = shutOf(buttons(bar(awaitStep)));
-  assert(shut.length === 0, `await-course: no button is shut (${shut.join(', ')})`);
-  for (let i = 0; i < 60 && awaitStep.events.opening.stage === 'await-course'; i += 1) {
-    awaitStep = awaitStep.pendingInterrupt ? reducer(awaitStep, defaultAnswer(awaitStep)!) : reducer(awaitStep, { type: 'TICK' });
-  }
-  assert(awaitStep.events.opening.stage === 'second-course' && openingQuietDoor(awaitStep) === null && !bar(awaitStep).includes('toolbar-stats quiet'),
-    `${awaitStep.events.opening.stage}: the later steps keep it live`);
+  let s = played;
+  assert(openingQuietDoor(s) === null, 'play: nothing is quiet');
+  const shut = shutOf(buttons(bar(s)));
+  assert(shut.length === 0, `play: no button is shut (${shut.join(', ')})`);
+  for (let i = 0; i < 10; i += 1) s = s.pendingInterrupt ? reducer(s, defaultAnswer(s)!) : reducer(s, { type: 'TICK' });
+  assert(openingQuietDoor(s) === null && !bar(s).includes('toolbar-stats quiet'), 'and it stays live as the weeks pass');
 }
 
 // A skip lifts it at once, from any of the three.

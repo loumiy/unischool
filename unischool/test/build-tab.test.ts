@@ -9,6 +9,7 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
+import type { GameState } from '../src/state/types';
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
@@ -55,16 +56,18 @@ console.log('build tab tests');
   assert(FOUNDERS_HALL_ID in s.placements, 'the hall is set down');
   assert(initialBuildTab(s) === 'campus-tools', `and the menu opens on Grounds again (${initialBuildTab(s)})`);
 
-  // The walkthrough's site steps (Plan 103C): Housing, then the dining hall's tab.
-  s.events.opening.stage = 'site-housing';
+  // The chapter "Somewhere to sleep" (Plan 106 PR C, once the walkthrough's
+  // site steps): Housing, then the dining hall's tab.
+  s.events.opening.stage = 'play';
+  s.guidance = { opened: { founding: 1, 'next-course': 1, 'somewhere-to-sleep': 10 }, done: { founding: 1, 'next-course': 5 }, met: [], marked: [] };
   const dorm = s.tech.find((t) => t.kind === 'dorm' && t.status === 'available')!;
-  assert(buildTabOf(s, dorm.id) === 'housing' && initialBuildTab(s) === 'housing', `the residence hall step opens the menu on Housing (${initialBuildTab(s)})`);
-  s.events.opening.stage = 'site-dining';
+  assert(buildTabOf(s, dorm.id) === 'housing' && initialBuildTab(s) === 'housing', `the chapter opens the menu on Housing (${initialBuildTab(s)})`);
+  s.placements[dorm.id] = { row: 0, col: 0, w: 1, h: 1 } as unknown as GameState['placements'][string];
   const dining = s.tech.find((t) => t.facilityType === 'diningHall' && t.status === 'available')!;
   const diningTab = buildTabOf(s, dining.id);
-  assert(diningTab !== undefined && diningTab !== 'housing' && initialBuildTab(s) === diningTab, `the dining hall step opens it on the dining hall's tab (${initialBuildTab(s)})`);
-  s.events.opening.stage = 'play';
-  assert(initialBuildTab(s) === 'campus-tools', 'and Grounds once the walk is over');
+  assert(diningTab !== undefined && diningTab !== 'housing' && initialBuildTab(s) === diningTab, `a residence hall sited, it opens on the dining hall's tab (${initialBuildTab(s)})`);
+  s.guidance.done['somewhere-to-sleep'] = 12;
+  assert(initialBuildTab(s) === 'campus-tools', 'and Grounds once the chapter is done');
 }
 
 if (failures > 0) {

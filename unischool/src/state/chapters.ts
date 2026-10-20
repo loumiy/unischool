@@ -1,7 +1,7 @@
-import type { GameState, GuidanceState } from './types';
+import type { Buildable, GameState, GuidanceState } from './types';
 import { totalEnrolled, WEEKS_PER_YEAR } from './types';
 import { CHAPTER_COPY, type ChapterId } from '../data/chapterData';
-import { housedPrograms, isDiningHall, isDorm, sitedAny } from '../data/openingData';
+import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 
@@ -16,9 +16,9 @@ import { foundersHallUnsited, laterCourseStarted } from './opening';
 // when they finish the chapter before it. Finishing earns nothing but what
 // the next chapter opens (§7.2).
 //
-// The words are data/chapterData.ts's. The NEXT bar's drawer shows them
-// (Plan 106 PR B); the walkthrough's steps become chapters 1-3 in PR C.
-// Until then the chapters keep their own record and change nothing else.
+// The words are data/chapterData.ts's; the NEXT bar's drawer shows them
+// (Plan 106 PR B). The walkthrough teaches the founding and ends there;
+// the chapters after it took over its later steps (PR C).
 //
 // Settled after every action that changed the state and every tick (the
 // reducer's settled()). This lives in state/ because it reads the map
@@ -52,6 +52,9 @@ export const DOUBLE_SPEED_MARK = 'speed-2x';
 
 export const CHAPTERS: readonly Chapter[] = [
   {
+    // The walkthrough's three steps (state/opening.ts), with the clock held
+    // and the screen quiet: the coach card teaches them, so the drawer never
+    // shows this chapter. It is the record that they were done.
     id: 'founding',
     earliest: week(1, 1),
     objectives: [
@@ -61,10 +64,35 @@ export const CHAPTERS: readonly Chapter[] = [
     ],
   },
   {
-    id: 'seats',
+    // From the founding on: the courses, the committee and the clock (the
+    // walkthrough's old fourth step, Plan 103B).
+    id: 'next-course',
     earliest: week(1, 1),
     objectives: [
       { id: 'develop-second-course', progress: laterCourseStarted },
+      { id: 'run-at-double', progress: (s) => marked(s, DOUBLE_SPEED_MARK), optional: true },
+    ],
+  },
+  {
+    // Week 10 at the earliest, so year one comes in two sittings (Plan 106
+    // §4), and no later: each week without beds and meals costs the first
+    // summer applicants and prestige (the owner's choice, 20 October, from
+    // a measured 616 applicants with them in week 5 and 545 in week 27).
+    // Needs stay hidden until commencement (Plan 104M, §7.1): the chapter
+    // asks for the buildings, not a figure.
+    id: 'somewhere-to-sleep',
+    earliest: week(1, 10),
+    objectives: [
+      { id: 'site-residence-hall', progress: (s) => sitedAny(s, isDorm) },
+      { id: 'site-dining-hall', progress: (s) => sitedAny(s, isDiningHall) },
+    ],
+  },
+  {
+    // A place for every student: the first letter's ask, and the NEXT
+    // line's since Plan 80D. Often met before it opens; it opens met.
+    id: 'seats',
+    earliest: week(1, 1),
+    objectives: [
       {
         id: 'seat-every-student',
         progress: (s) => {
@@ -72,21 +100,21 @@ export const CHAPTERS: readonly Chapter[] = [
           return { n: Math.min(instructionCapacity(s), of), of };
         },
       },
-      { id: 'run-at-double', progress: (s) => marked(s, DOUBLE_SPEED_MARK), optional: true },
-    ],
-  },
-  {
-    // The Spring of year one (Plan 106 §4): by then the seats are in hand
-    // and the money can be seen. Needs stay hidden until commencement
-    // (Plan 104M, §7.1); the chapter asks for the buildings, not a figure.
-    id: 'somewhere-to-sleep',
-    earliest: week(1, 27),
-    objectives: [
-      { id: 'site-residence-hall', progress: (s) => sitedAny(s, isDorm) },
-      { id: 'site-dining-hall', progress: (s) => sitedAny(s, isDiningHall) },
     ],
   },
 ];
+
+// What a chapter rings while its objective waits, as the walkthrough's
+// steps did (Plan 103): the program whose next course the Curriculum
+// rings, and the building the build menu rings and opens on.
+export function ringedProgram(s: GameState): string | null {
+  return currentChapter(s)?.id === 'next-course' && !objectiveMet(s, 'develop-second-course') ? walkProgram(s) : null;
+}
+export function ringedBuilding(s: GameState): Buildable | null {
+  if (currentChapter(s)?.id !== 'somewhere-to-sleep') return null;
+  const test = !sitedAny(s, isDorm) ? isDorm : !sitedAny(s, isDiningHall) ? isDiningHall : null;
+  return test ? s.tech.find((t) => test(t) && t.status === 'available') ?? null : null;
+}
 
 export function chapterById(id: string): Chapter | undefined {
   return CHAPTERS.find((c) => c.id === id);

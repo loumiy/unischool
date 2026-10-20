@@ -1,8 +1,6 @@
 import type { GameState, OpeningStage } from './types';
-import { FOUNDERS_HALL_ID, programById, programs } from '../data/techData';
-import { canStartDevelopment } from '../systems/techtree/techSystem';
-import { financingFor } from '../systems/finance/treasury';
-import { housedPrograms, isDiningHall, isDorm, NEEDS_LETTER_ID, sitedAny, walkBuilding, walkProgram } from '../data/openingData';
+import { FOUNDERS_HALL_ID, programs } from '../data/techData';
+import { housedPrograms, NEEDS_LETTER_ID } from '../data/openingData';
 import { awaitsSite } from './campusMap';
 
 // The opening walkthrough: the first clicks of a new school, with the clock
@@ -22,29 +20,21 @@ import { awaitsSite } from './campusMap';
 //   found      found a program into Founders Hall, English with her; done
 //              when a program is housed. Its entry course goes to the
 //              committee.
-//   await-course  the clock runs and no card shows while the entry course
-//              is written (Plan 103B); done when a housed program's entry
-//              course is taught, or no program is housed any more.
-//   second-course  the Curriculum opens on that program (openingData.ts's
-//              walkProgram), its row open and its next course's button
-//              ringed; done when any course after a program's first is
-//              under way or taught, or when none of its courses can be
-//              started.
-//   needs      a line on what students need, somewhere to sleep and
-//              somewhere to eat (Plan 103C; since Plan 104M it opens no
-//              tab: Students waits for the first summer); ends on Next.
-//              Reaching it counts the "Somewhere to sleep" letter read: the
-//              three steps are that letter.
-//   site-housing  the build menu opens on Housing, the next residence hall
-//              ringed; done when a residence hall is sited, or none can be.
-//   site-dining   the same for a dining hall.
-//   play       the clock runs; the first letter is counted read.
+//   play       the clock runs. The objectives take over (Plan 106 PR C,
+//              state/chapters.ts): the next course, somewhere to sleep, a
+//              place for every student. The "Somewhere to sleep" letter is
+//              counted read, since its chapter says the same; so is the
+//              first letter.
+//
+// Plans 103B and 103C's steps after the founding (the wait for the first
+// course, the next course, the needs, a residence hall, a dining hall) are
+// retired: a save on one of them moves on to 'play' when it is next settled.
 //
 // Transitions are readings of state, not UI flags: settleOpening runs after
 // PLACE_BUILDABLE, HIRE_FACULTY, FOUND_PROGRAM and START_DEVELOPMENT, and at
-// the top of each TICK (a course is taught by the tick), and moves on
-// through every step already done; advanceOpening answers the welcome's and
-// the needs step's Next. A headless founding opens at 'play' with the hall pre-placed.
+// the top of each TICK, and moves on through every step already done;
+// advanceOpening answers the welcome's Next. A headless founding opens at
+// 'play' with the hall pre-placed.
 //
 // Skipping never sites the hall (Plan 80D): a college with Founders Hall
 // unsited holds the clock whatever the stage (openingHoldsClock), and the
@@ -63,19 +53,16 @@ export function foundersHallUnsited(s: GameState): boolean {
 
 // Whether the walk holds the clock: gates the reducer's TICK and useGame's
 // sampler, like a pending interrupt. A skipped walk still holds it while
-// Founders Hall is unsited: nothing can be taught before it stands. The
-// wait for the first course is the one stage that lets the clock run.
+// Founders Hall is unsited: nothing can be taught before it stands.
 export function openingHoldsClock(s: GameState): boolean {
-  const stage = s.events.opening.stage;
-  return (stage !== 'play' && stage !== 'await-course') || foundersHallUnsited(s);
+  return s.events.opening.stage !== 'play' || foundersHallUnsited(s);
 }
 
 // The first three steps keep the screen quiet (Plan 104F, from R10–R11):
 // the toolbar's tabs are shut and its figures dimmed but readable, all but
 // the door the step needs: the build menu to site the hall, the map
-// (Founders Hall's panel) to appoint and to found. Null from the wait for
-// the first course on, when the later steps send the player into the tabs
-// on purpose, and at once when the walk is skipped.
+// (Founders Hall's panel) to appoint and to found. Null once the walk is
+// done or skipped.
 export type QuietDoor = 'build' | 'campus';
 export function openingQuietDoor(s: GameState): QuietDoor | null {
   switch (s.events.opening.stage) {
@@ -89,7 +76,6 @@ export function openingQuietDoor(s: GameState): QuietDoor | null {
 // The welcome's Next; other stages are settled by settleOpening.
 export function advanceOpening(s: GameState): void {
   if (s.events.opening.stage === 'welcome') s.events.opening.stage = 'site-hall';
-  else if (s.events.opening.stage === 'needs') s.events.opening.stage = 'site-housing';
   settleOpening(s);
 }
 
@@ -100,55 +86,32 @@ export function laterCourseStarted(s: GameState): boolean {
   return s.tech.some((t) => t.kind === 'course' && (t.status === 'developing' || t.status === 'done') && !entryIds!.has(t.id));
 }
 
-// Whether one of the program's open courses can be started now, by
-// someone on the payroll with room, the committee and the cash: the step
-// never holds the clock on what can't be done.
-function nextCourseStartable(s: GameState, programId: string): boolean {
-  return (programById(programId)?.courseIds ?? []).some((id) => {
-    const t = s.tech.find((x) => x.id === id);
-    return t !== undefined && t.status === 'available' && canStartDevelopment(s, t);
-  });
-}
-
-// Whether the site step's building can be put up now, paid any way the build
-// menu would (finance/treasury.ts's financingFor).
-function buildingStartable(s: GameState): boolean {
-  const t = walkBuilding(s);
-  return t !== null && financingFor((f) => canStartDevelopment(s, t, undefined, f)) !== null;
-}
-
-// Whether a step's reading holds. A program gone before its course is
-// taught ends both course steps, so the walk never waits on a row that
-// isn't there; so does a program none of whose courses can be started.
+// Whether a step's reading holds.
 function stepDone(s: GameState, stage: OpeningStage): boolean {
   switch (stage) {
     case 'site-hall': return !foundersHallUnsited(s);
     case 'appoint': return s.faculty.length > 0;
     case 'found': return housedPrograms(s).length > 0;
-    case 'await-course': return walkProgram(s) !== null || housedPrograms(s).length === 0;
-    case 'second-course': {
-      const program = walkProgram(s);
-      return program === null || laterCourseStarted(s) || !nextCourseStartable(s, program);
-    }
-    case 'site-housing': return sitedAny(s, isDorm) || !buildingStartable(s);
-    case 'site-dining': return sitedAny(s, isDiningHall) || !buildingStartable(s);
     default: return false;
   }
 }
 
-const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = {
-  'site-hall': 'appoint', appoint: 'found', found: 'await-course', 'await-course': 'second-course', 'second-course': 'needs',
-  'site-housing': 'site-dining', 'site-dining': 'play',
-};
+const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = { 'site-hall': 'appoint', appoint: 'found', found: 'play' };
+const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome', 'site-hall', 'appoint', 'found', 'play']);
 
 // The steps that end when the thing was done, called after every action
 // that could do one. Moves on through every step already done, so a
-// professor appointed before the hall stands skips the appointing.
+// professor appointed before the hall stands skips the appointing. A walk
+// that ends on its program founded counts the needs letter read: the
+// chapter "Somewhere to sleep" asks for the same buildings (Plan 106 PR C).
 export function settleOpening(s: GameState): void {
-  for (let stage = s.events.opening.stage; NEXT_STAGE[stage] !== undefined && stepDone(s, stage); stage = s.events.opening.stage) {
-    s.events.opening.stage = NEXT_STAGE[stage]!;
+  const o = s.events.opening;
+  if (!LIVE_STAGES.has(o.stage)) o.stage = 'play';
+  const from = o.stage;
+  for (let stage = o.stage; NEXT_STAGE[stage] !== undefined && stepDone(s, stage); stage = o.stage) {
+    o.stage = NEXT_STAGE[stage]!;
   }
-  if (s.events.opening.stage === 'needs' && !s.events.opening.read.includes(NEEDS_LETTER_ID)) s.events.opening.read.push(NEEDS_LETTER_ID);
+  if (from !== 'play' && o.stage === 'play' && !o.read.includes(NEEDS_LETTER_ID)) o.read.push(NEEDS_LETTER_ID);
 }
 
 // Skipping: declines the rest of the walk (and, from the welcome, the

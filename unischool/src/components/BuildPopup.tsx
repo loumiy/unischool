@@ -12,7 +12,7 @@ import { awaitsSite, isPlaceableKind } from '../state/campusMap';
 import BuildThumb from './BuildThumb';
 import DecorThumb from './decorThumbs';
 import { foundersHallUnsited } from '../state/opening';
-import { walkBuilding } from '../data/openingData';
+import { ringedBuilding } from '../state/chapters';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
@@ -255,13 +255,13 @@ function buildSections(s: GameState): BuildSection[] {
 // The tab the menu opens on (Plan 92): Grounds, the first, except while
 // Founders Hall waits for its ground; then the tab that holds it, where the
 // walkthrough points (test/build-tab.test.ts).
-// The walkthrough's site steps (Plan 103C) open it on the tab holding the
-// building they ring.
+// The chapter "Somewhere to sleep" (Plan 106 PR C, once the walkthrough's
+// site steps) opens it on the tab holding the building it rings.
 export function initialBuildTab(s: GameState): string {
   return walkBuildTab(s) ?? (foundersHallUnsited(s) ? buildTabOf(s, FOUNDERS_HALL_ID) : undefined) ?? TOOLS_SECTION_ID;
 }
 function walkBuildTab(s: GameState): string | undefined {
-  const t = walkBuilding(s);
+  const t = ringedBuilding(s);
   return t ? buildTabOf(s, t.id) : undefined;
 }
 
@@ -544,7 +544,7 @@ function BuildTile({
   return (
     <button
       type="button"
-      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === walkBuilding(s)?.id && startable && !armed ? 'opening-target' : ''}`}
+      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedBuilding(s)?.id && startable && !armed ? 'opening-target' : ''}`}
       disabled={!startable}
       title={armed ? 'Click an empty tile on the map to build here, or click this again to cancel.' : disabledReason}
       draggable={startable}

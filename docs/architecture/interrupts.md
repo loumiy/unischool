@@ -98,21 +98,14 @@ Everything that needs to stop time rides on this one mechanism:
   market beside the program, where Dr. Grace Bennett is on offer from the
   founding market; done when anyone is on the payroll); found the first
   program (English with Bennett, its entry course to the committee; the
-  Found button is rung; done when a program is housed); wait for its first
-  course (`'await-course'`: `App.tsx` starts the clock and no card shows;
-  done when a housed program's entry course is taught); develop the next
-  course (`'second-course'`, Plan 103B: the clock held again, the shell
-  opens the Curriculum on that program with its row open and rings its
-  develop button; done when any course after a program's first is under
-  way or taught, or when none of the program's courses can be started);
-  read the needs (`'needs'`, Plan 103C: the shell opens Students on the
-  satisfaction breakdown and rings Housing and Dining; ends on Next);
-  site a residence hall, then a dining hall (`'site-housing'`,
-  `'site-dining'`: the build menu opens on each one's tab with the next
-  of its kind rung; done when one is sited, or when none can be put up);
-  then `'play'`. Reaching `'needs'` counts the "Somewhere to sleep, somewhere
-  to eat" letter read, so a walk that gets there never sends it; one
-  skipped before it gets the letter at week 9. The "done" steps are
+  Found button is rung; done when a program is housed); then `'play'`, and
+  `App.tsx` starts the clock. Since Plan 106 PR C the walk ends there: Plan
+  103's later steps (the next course, the needs, a residence hall and a
+  dining hall) are the objectives' chapters (`state/chapters.ts`), which
+  never hold the clock. A save on a retired step moves on to `'play'`. A
+  walk that ends on its program founded counts the "Somewhere to sleep,
+  somewhere to eat" letter read, since its chapter asks the same; one
+  skipped before then gets the letter at week 9. The "done" steps are
   settled by `settleOpening` from the action that did them (`PLACE_BUILDABLE`, `HIRE_FACULTY`, `FOUND_PROGRAM`,
   `START_DEVELOPMENT`), and at the top of each `TICK` with no stop
   standing (a course is taught by the tick), never by the UI, and it moves

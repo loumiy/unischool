@@ -35,15 +35,14 @@ export const SCREEN_BANDS = ['phone', 'tablet', 'laptop', 'desktop'] as const;
 const MARKS = REPORT_GRADES.map((g) => g.letter);
 // The walkthrough's stages (state/opening.ts), checked against OpeningStage
 // like the tabs: the stages a step reaches, and the cards a skip is pressed
-// on. Nothing is reached at the welcome, and no card shows while the first
-// course is written.
+// on. Nothing is reached at the welcome. Since Plan 106 PR C the walk ends
+// on its program founded; the steps after it are chapters.
 const OPENING_STAGES_RECORD: Record<OpeningStage, true> = {
-  welcome: true, 'site-hall': true, appoint: true, found: true, 'await-course': true, 'second-course': true,
-  needs: true, 'site-housing': true, 'site-dining': true, play: true,
+  welcome: true, 'site-hall': true, appoint: true, found: true, play: true,
 };
 const OPENING_STAGES = Object.keys(OPENING_STAGES_RECORD) as OpeningStage[];
 export const OPENING_REACHED = OPENING_STAGES.filter((st) => st !== 'welcome');
-export const OPENING_CARDS = OPENING_STAGES.filter((st) => st !== 'await-course' && st !== 'play');
+export const OPENING_CARDS = OPENING_STAGES.filter((st) => st !== 'play');
 
 // On every event (analytics.ts adds them).
 export const COMMON_FIELDS: Readonly<Record<string, FieldKind>> = {
