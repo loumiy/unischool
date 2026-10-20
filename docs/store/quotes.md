@@ -86,6 +86,15 @@ of a store page.
 - A streamer kept playing after the owner left the stream: "even without
   fully understanding what to do, he was hooked." (T1, the owner's notes)
 
+### Calm
+
+- "I found this really soothing to play." (S2)
+- "It was almost like a form of meditation playing this." (S2, on the
+  music and audio)
+- "It's a very soothing, relaxing game to play." (S2)
+- "It feels like a really chill game, and I'll definitely play more of
+  it." (S2)
+
 ### Verdicts
 
 - "I'd give it a nine out of ten. It feels one of a kind." (S1)
@@ -101,6 +110,10 @@ of a store page.
   (D1)
 - "Really liked visual style on the buildings/scene." (D1)
 - "This reminds me of games I used to play." (T1)
+- "The starting point where you're placing your first building really
+  gave me old-school The Sims vibes." (S2)
+- "Loved the art style, particularly the little people walking around
+  the campus." (S2)
 - The flavour text: the college that "used to empty at five o'clock" now
   has lights on at night, and the brown line worn across the quad. (S1,
   paraphrased in the service's transcript; not quotable as written)

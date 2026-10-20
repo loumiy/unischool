@@ -27,7 +27,13 @@ marked **0.1.x** and fixed in a patch.*
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *10 players · reddit (R1,
   R3, R4, R8, R9, R12), comment (I1, I2, I3), live (T1), form (F1, F2, F3, F4, F6),
-  discord (D1), service (S1).*
+  discord (D1), service (S1, S2).*
+  S2, a playtesting service's reviewer, about 30 minutes on 0.1.2: "I
+  found this really soothing to play"; the music and audio "almost like a
+  form of meditation"; loved the art style, "particularly the little
+  people walking around the campus", and the changing seasons; placing
+  the first building gave "old-school *The Sims* vibes" (with D1, the
+  second to say so); "I'll definitely play more of it."
   R12, from the screenshot and the page: "It feels like a classic tycoon
   game right out the gate."
   The quotes worth reusing are collected in
@@ -73,6 +79,24 @@ marked **0.1.x** and fixed in a patch.*
 
 ## 2 · UI and text
 
+- **The walkthrough's words are too many, even on 0.1.2.** S2: the
+  introduction was still text-heavy, "less so than I remember when I
+  looked at it about a week ago", and "it's mainly the wordiness of the
+  text that's difficult to follow. There were multiple times throughout
+  where I had to read and re-read something just to understand what it
+  was saying. It often felt like more words were being used than
+  necessary." The tabs are fine; the descriptions and the tutorial
+  paragraphs make them hard to take in at first. The long step headings
+  ("Somewhere to Sleep, Somewhere to Eat") are a minor dislike. With D1,
+  S1's board letter and F6's "UI is kinda hard to read", the most
+  repeated finding of the playtest: the game is easier than its words
+  make it look. *4 players · service (S2), discord (D1), service (S1),
+  form (F6).*
+- **A year-end screen opens over whatever the player is reading.** S2
+  was reading a menu (the Faculty screen) when the calendar reached the
+  summer and the End of Year overview forced itself open, "quite jarring,
+  particularly when it happened repeatedly while I was trying to read
+  something else." *1 player · service (S2).*
 - **The screens after the first course are text-heavy.** "After setting up
   an English literature course, the next few screens were quite
   overwhelmingly text heavy." Those are Plan 103's new steps (the next
@@ -131,6 +155,18 @@ marked **0.1.x** and fixed in a patch.*
   there), but the hand-off reads as the tutorial breaking. The owner's
   reply: maybe stretch the tutorial out longer. *1 player · reddit (R2).*
 
+- **Where to found the next program.** A few months in, S2 wanted a
+  third subject and couldn't remember where the eight program slots
+  were; looked under Faculty for a while before remembering Founders
+  Hall. The same seam as T1 and R2: programs live in a hall on the map.
+  *1 player · service (S2).*
+- **Walkers heading for the road before any path is laid.** When
+  Founders Hall went down and the people walked towards the road, S2
+  wasn't sure it wasn't a bug, with no paths placed yet. *1 player ·
+  service (S2).*
+- **How long is a run meant to be?** S2 was in year 3 at 20–25 minutes
+  and asked whether players are expected to keep saves going for 50
+  years. *1 player · service (S2).*
 - **Programs on the map, courses in the Curriculum.** The most
   confusing part, in T1's words: a program is offered and placed in the
   map view, but its courses are developed in the Curriculum tab. He
@@ -282,6 +318,20 @@ marked **0.1.x** and fixed in a patch.*
   live (T1).*
 
 ## 7 · Bugs
+
+- **NEXT asks for a library that stands.** In year 2, with a library
+  already built, the line at the foot of the screen still told S2 to
+  build one. The likely cause: the satisfaction hint names a building
+  for whichever need is short (`nextStep.ts`'s `ATTRIBUTE_BUILD`,
+  "a library would raise it" for academic) without asking whether it
+  already stands, and academic satisfaction also reads the courses'
+  quality. *1 player · service (S2).* Not yet traced further.
+
+- **Placing one path square sends every walker to re-plan.** "Placing a
+  single square of path causes all the people walking around to
+  recalculate where they're going, even when the path is nowhere near
+  them … This happens with every click when placing paths." Not a
+  failure, an unnecessary calculation. *1 player · service (S2).*
 
 - **A red ghost with no reason.** S1 couldn't place buildings in several
   spots and never got a reason: more housing in year two, while housing
@@ -793,6 +843,50 @@ that in mind.*
     grades, and fewer searches that turn up only weak candidates.
   - Close: nine out of ten, "one of a kind", "getting addicted"; would
     answer follow-up questions on the service's platform.
+
+### Indie Game Booster — the free playtest (20 October)
+
+*The playtesting service the owner applied to on 15 October
+(`recruiting.md`); Stephen posted his notes in their Discord, tagging the
+owner as "one of the OG members of the server". About 30 minutes on
+0.1.2; his recording caught the wrong monitor, so there is no video.*
+
+- **S2** · Stephen, Indie Game Booster.
+  - *Art and visuals:* loved the art style, "particularly the little
+    people walking around the campus"; placing the first building gave
+    "old-school *The Sims* vibes"; the changing seasons "a nice touch";
+    the menus neat, though the buttons' roundness can look unsightly
+    ("very much a personal preference").
+  - *UI and menus:* the introduction "a bit text-heavy. Less so than I
+    remember when I looked at it about a week ago, but still quite
+    heavy … There were multiple times throughout where I had to read and
+    re-read something just to understand what it was saying. It often
+    felt like more words were being used than necessary." The tabs fine,
+    the descriptions and tutorial paragraphs heavy; long step headings
+    ("Somewhere to Sleep, Somewhere to Eat") a minor dislike. The End of
+    Year overview forcing itself open while reading the Faculty screen,
+    "quite jarring". Couldn't remember where to add a third subject;
+    looked under Faculty before remembering Founders Hall. Buildings,
+    what they do, satisfaction and upgrades (Meadow Hall's beds) "mostly
+    intuitive".
+  - *Gameplay:* "I found this really soothing to play." Walkers heading
+    for the road with no paths laid looked like a bug. In year 2 NEXT
+    still asked for a library already built. After founding a subject,
+    appointing faculty and upgrading a few times "it becomes almost
+    second nature … My playtest was around 30 minutes, and I felt like I
+    had a good grasp of the game by that point." Year 3 at 20–25 minutes;
+    asked how many years a typical playthrough runs.
+  - *Bug (an unnecessary calculation):* one square of path makes every
+    walker re-plan, wherever it is, on every click.
+  - *Audio:* "I really liked the music … mellow and satisfying … It was
+    almost like a form of meditation playing this."
+  - *Overall:* "I really enjoyed this. It's a very soothing, relaxing game
+    to play." The one criticism: the amount and wordiness of the text;
+    "the underlying game is easy to understand once you've used to
+    navigating the menus a few times, but the initial presentation made
+    it almost feel a bit more complicated than it is." "I'll definitely
+    play more of it." "Hopefully you don't introduce loads of natural
+    disasters like SimCity and stress me out!"
 
 ### Live — Twitch, a streamer the owner found (13 October)
 

@@ -21,7 +21,7 @@ all. Post as yourself, say it's your game, and answer every comment.
 | **Management-game Discords** | Players of Two Point, Football Manager, Civilization, Prison Architect. | Ask a moderator first; a channel for self-promotion usually exists. |
 | **Friends** | Who play those games. | The best feedback, and the first ten players. |
 | **foundplay.io** | Found by the owner, 11 October. | The itch.io link posted there on 11 October. |
-| **Indie Game Booster** ([indiegamebooster.com](https://www.indiegamebooster.com/)) | A playtesting service found on Reddit, with a Discord. | Applied for the free playtest (up to 30 minutes), 15 October. A pay-what-you-can playtest (up to 3 hours) with detailed reports is held until the free one is seen. |
+| **Indie Game Booster** ([indiegamebooster.com](https://www.indiegamebooster.com/)) | A playtesting service found on Reddit, with a Discord. | Applied for the free playtest (up to 30 minutes), 15 October. Notes arrived 20 October (S2 in `findings.md`): about 30 minutes, warm and specific, no video (the recording caught the wrong monitor). A pay-what-you-can playtest (up to 3 hours) with detailed reports was held until the free one was seen. |
 
 **When** (the page went public Thursday 8 October 2026):
 
