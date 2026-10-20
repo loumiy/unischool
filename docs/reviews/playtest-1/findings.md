@@ -411,7 +411,11 @@ after 0.1.2 went up with its devlog. Referrers: Google 60 (+20 since
 **foundplay.io 47 (+12; its weekly email counts 31 plays this week, up
 from 12)**, itch.io's front page 29, then the browse pages (tycoon 17,
 13, 9 and 9; *new and popular* for web 14; management 14; city builder
-10 and 10; **college 10**, new), and the studio page 13.
+10 and 10; **college 10**, new), and the studio page 13. By domain: itch.io itself 447, reddit.com 64 (+20 since
+15 October), Google 60, foundplay.io 47, the Reddit Android app 11, a new
+source, **aigamehub.app** (7; not reachable from this repo's tools, so
+what it lists and how isn't known), out.reddit.com 2, Bing 2 and ChatGPT
+1.
 
 ### PostHog, 11 October
 
