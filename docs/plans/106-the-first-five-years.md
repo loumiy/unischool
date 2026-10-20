@@ -12,7 +12,8 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: Draft. A roadmap to argue over, not yet a set of PRs.**
+**Status: Draft. The owner answered §7's five questions on 20 October;
+the answers are folded in. Not yet a set of PRs.**
 
 ---
 
@@ -203,7 +204,7 @@ measurements; the sim wasn't run for this plan.
 | 3 | **Faculty appointment** | Wk 1, coach step 2 | **1. Founding** (appoint only) | Appoint its professor | Teaching grades, darkness |
 | 4 | **Courses and the committee** | Coach steps 3–4. The committee lamps carry no words | **2. Seats for everyone** (Y1 wk 5–26) | Develop a second course; keep the committee busy (4/4 lamps); places for 350 of 350 | Seats → crowding → prestige; a busy committee is the pace of growth |
 | 5 | **Seating and crowding** | NEXT seating line from wk 5 | **2. Seats for everyone** | Places for all 350 students | The prestige target pays for crowding at the summer |
-| 6 | **Housing and dining (needs)** | Coach steps 5–7 at wk 5, *together with* step 4 | **3. Somewhere to sleep** (Y1 Spring, about wk 20) | Site a residence hall; site a dining hall; Housing and Dining above 50 | Needs → satisfaction → word of mouth → applicants |
+| 6 | **Housing and dining (needs)** | Coach steps 5–7 at wk 5, *together with* step 4 | **3. Somewhere to sleep** (Y1 Spring, about wk 20) | Site a residence hall; site a dining hall. *No need is shown as a number in year 1 (§7.1)* | Needs → satisfaction → word of mouth → applicants |
 | 7 | **The clock and speed** | Not taught. T1 missed the pause | **2.** (one line) | Run the clock at 2× | Letters and interrupts stop it; the Provost unlocks 4× |
 | 8 | **Inbox and letters** | Letters are modal; ladder letters are toasts in Y1 | **2.** (one line) | Read the board's letter | Matters left open default after 4 weeks |
 | 9 | **Treasury: cash and running costs** | Funds chip; "?" hints only | **4. Paying for it** (Y1 wk 36–44) | Open the Treasury; keep a year of costs in hand; see what a loan costs | Salaries and upkeep are weekly; buildings cost up front; distress freezes building |
@@ -224,7 +225,7 @@ measurements; the sim wasn't run for this plan.
 | 24 | **Delegation seats and speed** | Panel at the foot of Faculty; "?" hint; a locked-speed note | **12. Running the college** | Appoint a Provost | 4× speed; seats answer matters by policy |
 | 25 | **Endowment and the sweep** | Board idle-cash letter; NEXT sweep line | **13. The long game** (Y5 Fall) | Set a standing sweep | Payout funds operations; the financial pillar |
 | 26 | **Rankings, rivals and pillars** | Rank chip from wk 1; rankings page at the first top 50 | **13. The long game** | Read the rankings; pick a pillar to lead | Rank → specialization at the top 30; the four pillars are the report card's columns |
-| 27 | **Ladder milestones** | "Milestone" chip and LadderPanel; F2 read it as objectives | **Folded into chapters.** Milestones stay as rewards ("Unlocked: Student Center"). They are not presented as goals | — | — |
+| 27 | **Ladder milestones** | "Milestone" chip and LadderPanel; F2 read it as objectives | **Folded into the bar (§7.4).** The ticker's "Milestone" chip goes; a milestone reached shows as an "Unlocked: Student Center" line under the current chapter, and the LadderPanel opens from the drawer. Milestones are not presented as goals | — | — |
 | 28 | **Estate, maintenance and beauty** | Only a "?" hint in the Estate panel | **13. The long game**, or when the backlog first bites | Keep the estate's funding share at its need | Beauty → applicants; condition → upkeep cost |
 | 29 | **Alumni and campaigns** | "?" hints after the first commencement | **Later: Y6–8**, at the first VP of Advancement | Run a campaign | Gifts, named funds, endowment |
 | 30 | **Research, labs and the charter** | Letter `the-laboratories` at the first founded school (about Y9–10) | **Later, at the first school** | Commission an initiative; take the charter | Research pillar, scholars, the University name. *F2's research confusion is answered here* |
@@ -242,15 +243,18 @@ The principle: **at most one new system per season**, and no tab appears
 before its chapter. The seasons are Fall (weeks 1–26), Spring (27–51) and
 Summer (week 52). A chapter opens when the one before it is done **and**
 its earliest date has come. Earlier chapters are the bottleneck; dates only
-keep a fast player from being flooded.
+keep a fast player from being flooded. **There is no latest date** (§7.3):
+a slow player meets each system when they finish the chapter before it,
+however many years that takes. Finishing a chapter earns nothing but what
+it opens (§7.2).
 
 | Year · season | Chapter | New on screen | Objectives (✓ ticks itself) |
 |---|---|---|---|
 | **Y1 Fall, wk 1** | **1. Founding** (today's steps 1–3, clock held) | Build menu, Founders Hall panel | Raise Founders Hall · Choose and staff the first program · Found it |
 | **Y1 Fall, wk 5–26** | **2. Seats for everyone** (today's step 4 and the seating NEXT line, as one chapter) | Curriculum tab; the clock controls taught; committee lamps named | Develop a second course · Keep the committee busy (n/4) · Places for 350/350 · Run the clock at 2× |
-| **Y1 Spring, wk 27–44** | **3. Somewhere to sleep** (today's steps 5–7, *moved later*: by then the seating is in hand and the money is visible) | The needs, *in the bar's expansion only* (the Students tab stays held to commencement, per 104M) | Site a residence hall · Site a dining hall · Housing and Dining above 50/100 |
+| **Y1 Spring, wk 27–44** | **3. Somewhere to sleep** (today's steps 5–7, *moved later*: by then the seating is in hand and the money is visible) | Nothing new: the needs stay hidden until commencement, per 104M (§7.1). The briefing says in words that students need beds and meals, never a value | Site a residence hall · Site a dining hall |
 | **Y1 Spring, wk 36–47** | **4. Paying for it** | Treasury's briefing; distress rungs explained | Open the Treasury · Weeks of costs in hand ≥ 26 · (optional) see what a loan would buy |
-| **Y1 Summer, wk 48–52** | **5. The first summer** | Admissions and the report card explained *before* the beat | Set the price and admit rate · Read the report card |
+| **Y1 Summer, wk 48–52** | **5. The first summer** | Admissions and the report card explained *before* the beat | Set the price and admit rate · Read the report card. *The briefing explains what a low admit rate costs (enrollment, revenue, debt) before the beat; no warning at the choice itself (§7.5)* |
 | **Y2 Fall, wk 1–13** | **6. Standing** | Students tab and satisfaction chip (already opened here); History record | Satisfaction ≥ 60 · Prestige's target above its value (the pulls listed live) |
 | **Y2 Fall, wk 14–26** | **7. A faculty** | Faculty briefing: grades, ranks, searches, the market | Post a search · Appoint a B or better · Every program staffed |
 | **Y2 Spring** (at 8 courses) | **8. A hall of its own** | Academic halls; schools | Site Elm Hall · Move a program in · Three of one school · *Long:* Establish a school 0/6 |
@@ -269,7 +273,7 @@ keep a fast player from being flooded.
   as their own chapter. *Check with the sim:* does a later dorm cost too
   much satisfaction before the first summer? If so, set the chapter's
   earliest date by Housing's value (say, when it falls under 30), not by
-  the week.
+  the week. The trigger is internal; the player still sees no number.
 - **Decision events and demands start in Y3 today.** This plan holds them
   until chapter 9 has opened, so a fast player gets them on time and a
   slow player gets them late, never before the inbox is explained.
@@ -316,7 +320,7 @@ Example, chapter 6 (Standing), which answers F6:
 | PR | What | Depends on |
 |---|---|---|
 | **A** | The objective model: `Chapter {id, opensAfter, earliest, briefing, objectives[]}`, `Objective {id, text, progress(s): {n, of} \| boolean}`; state `s.guidance.chapters` (opened, done, briefingRead). Ticks in `settleOpening`'s place, every TICK. Save migration (an old save marks every chapter whose objectives are already true as done). | — |
-| **B** | The bar: the collapsed line with chapter chip and counter; the drawer; Show me (reusing the coach's door and ring code); "Also waiting" from `nextStep.ts`; the setting; the `J` hotkey. | A |
+| **B** | The bar: the collapsed line with chapter chip and counter; the drawer; Show me (reusing the coach's door and ring code); "Also waiting" from `nextStep.ts`; milestones as "Unlocked: …" lines, the ticker's Milestone chip removed; the setting; the `J` hotkey. | A |
 | **C** | Port the walkthrough: chapters 1–3 replace `OPENING_STEPS`. Founding keeps its held clock and the dimmed tabs. `opening_step` analytics now report chapters. | A, B |
 | **D** | Year 1: chapters 4–5. Move housing and dining to the Spring and tune it with the sim (`sim/harness/guided.ts` follows objectives instead of the coach). | C |
 | **E** | Years 2–3: chapters 6–10. Gate decision events, demands and promises on their chapters, and add the live-pulls readout for prestige and satisfaction. | D |
@@ -330,24 +334,21 @@ check that the pacing in §4 holds.
 
 ---
 
-## 7. Questions for the owner
+## 7. The owner's answers (20 October 2026)
 
-1. **Satisfaction in year 1.** Plan 104M hid the Students tab until the
-   first summer, because it read as a failing college. Chapter 3 shows the
-   needs inside the bar's expansion. Is that enough, or should a Y1 player
-   never see a need?
-2. **Rewards.** Transport Fever's missions pay out. Should a chapter's
-   completion give something, such as a board grant or a prestige nudge,
-   or should the unlock be the only reward?
-3. **Delaying systems for slow players.** Gating decision events and
-   athletics on chapters means a slow player sees them later than year 3 or
-   4. Is that acceptable, or should a chapter open by date regardless after
-   a limit (say, one year late)?
-4. **Milestones.** Fold the ladder's "Milestone" chip into the bar
-   ("Unlocked: …" as a line under the chapter), or keep it separate?
-5. **Admissions.** Keep the owner's 14 October rule (a careless admit rate
-   is punished) and only explain the cost before the choice, or also add
-   a warning when the choice is extreme (under 10% admitted)?
+1. **Satisfaction in year 1: keep it hidden.** 104M stands. Chapter 3
+   asks for a residence hall and a dining hall and explains why in words;
+   no need is shown as a number before the first commencement. Chapter 6
+   (Y2) is where needs and satisfaction are first shown and explained.
+2. **Rewards: none.** A chapter's reward is what it opens.
+3. **Slow players: let it be slow.** No date forces a chapter open. A
+   player who hasn't finished chapter 8 doesn't see decision events,
+   demands or athletics, whatever the year.
+4. **Milestones: fold them into the bar.** The ticker's Milestone chip is
+   removed; milestones show as "Unlocked: …" lines in the drawer (PR B).
+5. **Admissions: explanation only.** The 14 October rule stands: a
+   careless admit rate is punished. Chapter 5's briefing explains the cost
+   before the first summer's beat. No warning at the choice itself.
 
 ---
 
