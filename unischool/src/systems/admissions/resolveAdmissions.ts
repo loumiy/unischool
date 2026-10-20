@@ -220,7 +220,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `The catalog had room for ${count(ceiling.seatsLeft)} more; the class was held to it.`,
+      message: `The catalog had room for ${count(ceiling.seatsLeft)} more, so the class was held to ${count(ceiling.seatsLeft)}.`,
       kind: 'info',
     });
   }

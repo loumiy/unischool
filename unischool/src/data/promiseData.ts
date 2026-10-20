@@ -238,7 +238,7 @@ export const PROMISES: readonly PromiseDef[] = [
     deal: { endowmentOver: 75000000, yearAtLeast: 15 },
     goal: { endowmentOver: 125000000 },
     years: 15,
-    text: "The endowment has passed the point where it keeps {college} alive and reached the point where it could change what the college does. The Investment Committee has named the next number and would like the college to be judged by it.",
+    text: "The endowment has passed the point where it keeps {college} alive and reached the point where it could change what the college does. The Investment Committee has named the next number and would like the college judged against that number.",
     reward: { endowment: 3000000 },
     penalty: { warmth: -2 },
     kept: "{sum} in the fund, and a college that can choose what it does next.",
