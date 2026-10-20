@@ -711,7 +711,11 @@ export interface GuidanceState {
 }
 
 // See state/opening.ts, which owns the order and the meaning.
-export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'await-course' | 'second-course' | 'needs' | 'site-housing' | 'site-dining' | 'play';
+// Since Plan 106 PR C the walk ends on the first program founded; the steps
+// after it are the objectives' chapters (state/chapters.ts). A save from
+// mid-walk on a retired step ('await-course', 'second-course', 'needs',
+// 'site-housing', 'site-dining') is moved on to 'play' (opening.ts).
+export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'play';
 
 // The four pillars of prestige (Plan 85; systems/prestige/prestigeSystem.ts).
 export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';

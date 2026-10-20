@@ -1,7 +1,7 @@
 import type { GameState } from '../state/types';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { CHAPTER_COPY, DRAWER_WORDS as W, type Door } from '../data/chapterData';
-import { CHAPTERS, absoluteWeek, chapterNumber, currentChapter, nextChapter, objectiveRows, type ObjectiveProgress } from '../state/chapters';
+import { CHAPTERS, absoluteWeek, chapterNumber, currentChapter, nextChapter, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import { count, gameDateOfWeek, prestigeFigure } from '../format';
@@ -85,7 +85,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
                     {copy.briefing.how.map((h) => (
                       <li key={h.text}>
                         <span>{h.text}</span>
-                        {h.door && <button type="button" className="objectives-door" onClick={() => onGo(h.door!)}>{W.showMe}</button>}
+                        {h.door && <button type="button" className="objectives-door" onClick={() => onGo(h.door!, h.hallId, h.ringed ? ringedProgram(s) ?? undefined : undefined)}>{W.showMe}</button>}
                       </li>
                     ))}
                   </ul>

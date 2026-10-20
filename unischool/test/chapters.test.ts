@@ -97,45 +97,45 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   settleChapters(s);
   assert(done(s, 'founding'), 'a college teaching its pillars has done Founding');
   assert(objectiveMet(s, 'develop-second-course'), "a program's second course taught meets the course objective");
-  assert(objectiveMet(s, 'seat-every-student'), 'six courses seat 350 students');
-  assert(done(s, 'seats'), 'Seats for everyone is done without the optional speed');
+  assert(done(s, 'next-course'), 'The next course is done without the optional speed');
   assert(!objectiveMet(s, 'run-at-double'), 'which stays unmet');
-  assert(!opened(s, 'somewhere-to-sleep') && currentChapter(s) === null, 'the Spring chapter waits for its week; none is current');
+  assert(!opened(s, 'somewhere-to-sleep') && currentChapter(s) === null, 'Somewhere to sleep waits for week 10; none is current');
+  assert(!opened(s, 'seats'), 'nor is Seats for everyone open before it');
 
   s.faculty = [];
   settleChapters(s);
   assert(objectiveMet(s, 'appoint-first-professor'), 'an objective stays met after its reading falls');
 
-  const rows = objectiveRows(s, CHAPTERS.find((c) => c.id === 'seats')!);
-  const seatsRow = rows.find((r) => r.id === 'seat-every-student')!;
+  const seatsRow = objectiveRows(s, CHAPTERS.find((c) => c.id === 'seats')!).find((r) => r.id === 'seat-every-student')!;
   assert(typeof seatsRow.progress === 'object' && seatsRow.progress.of === 350, 'a counted objective reads its figure');
-  assert(rows.find((r) => r.id === 'run-at-double')!.optional, 'the speed objective is optional');
+  assert(objectiveRows(s, CHAPTERS.find((c) => c.id === 'next-course')!).find((r) => r.id === 'run-at-double')!.optional, 'the speed objective is optional');
 }
 
 // ---- The next chapter waits for its week, and opens already met ----
 {
   const s = teaching();
-  s.clock.week = 10;
+  s.clock.week = 5;
   site(s, isDorm);
   site(s, isDiningHall);
   settleChapters(s);
-  assert(!opened(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall in week 10 do not open the Spring chapter');
-  s.clock.week = 27;
+  assert(!opened(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall in week 5 do not open Somewhere to sleep');
+  s.clock.week = 10;
   settleChapters(s);
-  assert(opened(s, 'somewhere-to-sleep') && done(s, 'somewhere-to-sleep'), 'in week 27 it opens, and is done on the spot');
+  assert(opened(s, 'somewhere-to-sleep') && done(s, 'somewhere-to-sleep'), 'in week 10 it opens, and is done on the spot');
+  assert(done(s, 'seats') && objectiveMet(s, 'seat-every-student'), 'and Seats for everyone after it, six courses seating 350 students');
 }
 {
   const s = teaching();
-  s.clock.week = 27;
+  s.clock.week = 12;
   settleChapters(s);
-  assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'in week 27 Somewhere to sleep is the chapter');
+  assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'in week 12 Somewhere to sleep is the chapter');
   site(s, isDorm);
   settleChapters(s);
   assert(objectiveMet(s, 'site-residence-hall') && !done(s, 'somewhere-to-sleep'), 'a residence hall alone meets one objective');
   site(s, isDiningHall);
   settleChapters(s);
   assert(done(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall sited finish it');
-  assert(s.guidance!.done['somewhere-to-sleep'] === 27, 'done the week it was finished');
+  assert(s.guidance!.done['somewhere-to-sleep'] === 12, 'done the week it was finished');
 }
 
 // ---- A run from before the objectives is caught up by its date ----
@@ -149,11 +149,11 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
 {
   const s = createInitialState('Chapters');
   delete s.guidance;
-  s.clock.week = 10;
+  s.clock.week = 5;
   s.faculty = [];
   settleChapters(s);
-  assert(done(s, 'founding') && done(s, 'seats'), 'a week-10 save has done the chapters its weeks passed');
-  assert(!opened(s, 'somewhere-to-sleep'), 'and opens the Spring chapter when its week comes');
+  assert(done(s, 'founding') && done(s, 'next-course'), 'a week-5 save has done the chapters its weeks passed');
+  assert(!opened(s, 'somewhere-to-sleep') && !opened(s, 'seats'), 'and opens the rest in turn, from week 10');
 }
 
 // ---- A sandbox keeps no record ----
@@ -169,7 +169,7 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
 {
   let s = teaching();
   s = reducer(s, { type: 'TICK' });
-  assert(done(s, 'seats'), 'a tick settles the chapters');
+  assert(done(s, 'next-course'), 'a tick settles the chapters');
   const marked = reducer(s, { type: 'MARK_GUIDANCE', mark: DOUBLE_SPEED_MARK });
   assert(marked !== s && marked.guidance!.marked.includes(DOUBLE_SPEED_MARK), 'MARK_GUIDANCE records the mark');
   assert(reducer(marked, { type: 'MARK_GUIDANCE', mark: DOUBLE_SPEED_MARK }) === marked, 'a second mark changes nothing');
@@ -185,14 +185,26 @@ for (const c of CHAPTERS) {
   for (const o of c.objectives) assert((CHAPTER_COPY[c.id].objectives[o.id] ?? '').length > 0, `${c.id}'s ${o.id} has words`);
 }
 assert(new Set(CHAPTERS.flatMap((c) => c.objectives.map((o) => o.id))).size === CHAPTERS.flatMap((c) => c.objectives).length, 'objective ids are unique');
-assert(CHAPTERS.every((c, i) => i === 0 || c.earliest >= CHAPTERS[i - 1].earliest), 'chapters open in date order');
+// The briefings (Plan 106 §5): every chapter the drawer shows has one, kept
+// short by rule; no sentence ends on a passive and a pronoun.
+for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
+  const b = CHAPTER_COPY[c.id].briefing;
+  assert(b !== undefined, `${c.id} has a briefing`);
+  if (!b) continue;
+  const sentences = b.what.split(/(?<=\.)\s+/).length;
+  assert(sentences <= 3, `${c.id}: what it is in three sentences at most (${sentences})`);
+  assert(b.how.length >= 1 && b.how.length <= 4, `${c.id}: one to four levers (${b.how.length})`);
+  assert(b.why.length >= 2 && b.why.length <= 4, `${c.id}: two to four links (${b.why.length})`);
+  const all = [b.what, ...b.how.map((h) => h.text), ...b.why.map((y) => y.text)].join(' ');
+  assert(!/\b(by|to|for|with|from|in|on|of) (it|them)[.;]/.test(all), `${c.id}: no sentence ends on a pronoun`);
+}
 
 // ---- PR B: the ticker's chapter chip and the drawer ----
 {
   const s = teaching();
   settleChapters(s);
-  s.guidance!.done = {};
-  s.guidance!.done.founding = 1;
+  s.guidance!.done = { founding: 1, 'next-course': 5, 'somewhere-to-sleep': 12 };
+  s.guidance!.opened = { founding: 1, 'next-course': 1, 'somewhere-to-sleep': 10, seats: 12 };
   s.guidance!.met = s.guidance!.met.filter((id) => id !== 'seat-every-student');
   s.students.classes.freshman += 1000;
   const props = {
@@ -201,7 +213,7 @@ assert(CHAPTERS.every((c, i) => i === 0 || c.earliest >= CHAPTERS[i - 1].earlies
   };
   setSettings({ objectives: 'guided' });
   const strip = renderToStaticMarkup(createElement(LogTicker, props));
-  assert(strip.includes('Chapter 2') && strip.includes('Places for every student'), 'the strip names the chapter and its first objective not met');
+  assert(strip.includes('Chapter 4') && strip.includes('Places for every student'), 'the strip names the chapter and its first objective not met');
   assert(/\d+\/1,350/.test(strip), `with its count (${strip.match(/[\d,]+\/[\d,]+/)?.[0]})`);
   assert(!strip.includes('>Milestone<'), 'and no milestone chip');
   const drawer = renderToStaticMarkup(createElement(LogTicker, { ...props, objectivesOpen: true }));
@@ -210,27 +222,30 @@ assert(CHAPTERS.every((c, i) => i === 0 || c.earliest >= CHAPTERS[i - 1].earlies
 
   setSettings({ objectives: 'off' });
   const off = renderToStaticMarkup(createElement(LogTicker, props));
-  assert(!off.includes('Chapter 2') && off.includes('>Milestone<'), 'Off keeps the strip as it was');
+  assert(!off.includes('Chapter 4') && off.includes('>Milestone<'), 'Off keeps the strip as it was');
   setSettings({ objectives: 'guided' });
 
   const walking = structuredClone(s);
-  walking.events.opening.stage = 'second-course';
+  walking.events.opening.stage = 'found';
   assert(!objectivesShown(walking, 'guided'), 'no chapters while the walkthrough is up');
   assert(!objectivesShown({ ...s, sandbox: true }, 'guided'), 'nor in a sandbox');
 
-  // A briefing, as later PRs write them: what, how with its Show me, why.
-  const copy = CHAPTER_COPY.seats;
-  copy.briefing = { what: 'Each course seats eighty.', how: [{ text: 'Develop a course in the Curriculum', door: 'curriculum' }], why: [{ system: 'Prestige', text: 'crowding lowers its target' }] };
+  // The chapter's briefing: what, how with its Show me, why.
   let went: string | undefined;
   const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
-  assert(html.includes('What it is') && html.includes('Each course seats eighty.') && html.includes('Show me') && html.includes('→ Prestige:'), 'a briefing shows its what, how and why');
+  assert(html.includes('What it is') && html.includes('Every student needs a place in the catalog') && html.includes('Show me') && html.includes('→ Prestige:'), 'a briefing shows its what, how and why');
   assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
-  assert(html.includes('(optional)'), 'an optional objective says so');
   const showMe = findButton(panel, 'Show me');
   showMe?.();
   assert(went === 'curriculum', 'Show me opens its view');
-  delete copy.briefing;
+
+  const early = teaching();
+  settleChapters(early);
+  early.guidance!.done = { founding: 1 };
+  early.guidance!.met = early.guidance!.met.filter((id) => id !== 'develop-second-course');
+  const earlyHtml = renderToStaticMarkup(createElement(ObjectivesPanel, { s: early, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
+  assert(earlyHtml.includes('The next course') && earlyHtml.includes('(optional)'), 'an optional objective says so');
 }
 
 if (failures === 0) {

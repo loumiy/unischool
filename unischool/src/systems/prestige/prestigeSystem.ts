@@ -160,7 +160,7 @@ const CONDITION_FLOOR = 0.5;
 // Plan 85I: the owner halved it, since a full endowment carried a college
 // with no specialization to first place, past what the pillars allow.
 const ENDOWMENT_WEIGHT = 4;
-const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
+export const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.

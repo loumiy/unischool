@@ -11,16 +11,29 @@
 
 import type { ObjectivesMode } from '../settings';
 import type { NextStep } from '../systems/guidance/nextStep';
+import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
+import { COURSE_DEVELOPMENT_SLOTS } from '../systems/techtree/techSystem';
+import { CROWDING_PENALTY } from '../systems/prestige/prestigeSystem';
+import { FOUNDERS_HALL_ID } from './techData';
+import { count, countWord } from '../format';
 
-export type ChapterId = 'founding' | 'seats' | 'somewhere-to-sleep';
+export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats';
 
 // Where a Show me goes: the NEXT line's own doors.
 export type Door = NonNullable<NextStep['go']>;
 
+export interface Lever {
+  text: string;
+  // The view its Show me opens; `ringed` opens it on what the chapter
+  // rings (state/chapters.ts's ringedProgram), `hallId` on that hall.
+  door?: Door;
+  ringed?: true;
+  hallId?: string;
+}
+
 export interface Briefing {
   what: string;
-  // Each lever, with the view its Show me opens.
-  how: { text: string; door?: Door }[];
+  how: Lever[];
   // Each system it feeds or is fed by: "→ {system}: {why}".
   why: { system: string; text: string }[];
 }
@@ -31,7 +44,11 @@ export interface ChapterCopy {
   briefing?: Briefing;
 }
 
+const SEATS = count(SEATS_PER_COURSE);
+const COMMITTEE = countWord(COURSE_DEVELOPMENT_SLOTS);
+
 export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
+  // Taught by the walkthrough's card; never shown in the drawer.
   founding: {
     title: 'Founding',
     objectives: {
@@ -40,12 +57,23 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'found-first-program': 'Found the first program',
     },
   },
-  seats: {
-    title: 'Seats for everyone',
+  'next-course': {
+    title: 'The next course',
     objectives: {
       'develop-second-course': "Develop a program's second course",
-      'seat-every-student': 'Places for every student',
       'run-at-double': 'Run the clock at double speed',
+    },
+    briefing: {
+      what: `A program is ten courses, and the curriculum committee writes each one before it is taught. The committee writes ${COMMITTEE} courses at once, each over ten to fifteen weeks. A program's later courses open once its first is taught.`,
+      how: [
+        { text: "In the Curriculum, a program's row lists its courses: Develop starts one, with a professor to teach it.", door: 'curriculum', ringed: true },
+        { text: "The lamps under the Curriculum button are the committee's seats, one lit for each course being written." },
+        { text: 'The clock runs at double speed from its second button, or press 2. Space pauses it.' },
+      ],
+      why: [
+        { system: 'Seats', text: `every course taught gives the catalog ${SEATS} places, and every student needs one` },
+        { system: 'Faculty', text: 'a professor teaches every course, so a growing catalog needs a growing faculty' },
+      ],
     },
   },
   'somewhere-to-sleep': {
@@ -53,6 +81,37 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     objectives: {
       'site-residence-hall': 'Site a residence hall',
       'site-dining-hall': 'Site a dining hall',
+    },
+    briefing: {
+      what: 'Students need somewhere to sleep and somewhere to eat, and the campus has neither yet. A residence hall gives beds and a dining hall gives meals, each for a set number of students. Most students commute, but they still judge a campus by its beds and its meals.',
+      how: [
+        { text: 'The build menu rings the next residence hall: pick it up and set it down on clear ground.', door: 'build' },
+        { text: 'Then the same for a dining hall.', door: 'build' },
+        { text: 'The cost is paid when a building is placed; it opens when its weeks of building are done.' },
+      ],
+      why: [
+        { system: 'Satisfaction', text: 'beds and meals are two of the needs that make the students content' },
+        { system: 'Admissions', text: "content students speak well of the college, and next summer's applicants hear them" },
+        { system: 'Prestige', text: 'a class that overruns its beds or its meals counts as crowding at the summer' },
+      ],
+    },
+  },
+  seats: {
+    title: 'Seats for everyone',
+    objectives: {
+      'seat-every-student': 'Places for every student',
+    },
+    briefing: {
+      what: `Every student needs a place in the catalog, and each course taught adds ${SEATS}. Until the catalog has a place for everyone, the classrooms are crowded.`,
+      how: [
+        { text: 'Develop more courses in the programs the college teaches, as many at once as the committee has seats.', door: 'curriculum' },
+        { text: 'Found another program in a free slot of Founders Hall, with a professor to teach it.', door: 'hall', hallId: FOUNDERS_HALL_ID },
+        { text: "Appoint a professor from the Faculty tab's market when a course has nobody to teach it.", door: 'faculty' },
+      ],
+      why: [
+        { system: 'Prestige', text: `crowding, averaged over the year, takes up to ${CROWDING_PENALTY} points off prestige's target at the summer` },
+        { system: 'Admissions', text: 'the summer admits no more students than the catalog has places for' },
+      ],
     },
   },
 };

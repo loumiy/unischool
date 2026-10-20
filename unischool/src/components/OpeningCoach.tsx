@@ -12,23 +12,21 @@ import { openingSkipped } from '../analytics/analytics';
 // building panel, Plan 78F) with no backdrop, since the player has to
 // work the screen under it. A step that ends on something done has no Next
 // button, but offers to reopen the door it needs (build menu, Founders
-// Hall's panel, the Curriculum) so wandering off is never a dead end, and every card can
+// Hall's panel) so wandering off is never a dead end, and every card can
 // skip the rest, so a step the player can't finish never holds the clock. A skip asks first
 // (Plan 104C, ConfirmButton's question): the walk doesn't come back. Enter presses Next,
 // guarded so a focused button keeps its own Enter.
-export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOpen, placing, onOpenBuild, onOpenHall, onOpenCurriculum }: {
+export default function OpeningCoach({ s, act, buildOpen, hallOpen, placing, onOpenBuild, onOpenHall }: {
   s: GameState;
   act: (a: Action) => void;
   buildOpen: boolean;
   // Whether Founders Hall's panel is open on the map (see App.tsx).
   hallOpen: boolean;
-  curriculumOpen: boolean;
   // A building in hand: on a phone the map's touch bar (its Place button)
   // takes the top of the screen, so the card steps aside (styles.css).
   placing: boolean;
   onOpenBuild: () => void;
   onOpenHall: () => void;
-  onOpenCurriculum: () => void;
 }) {
   const stage = s.events.opening.stage;
   const step = isCoachStage(stage) ? OPENING_STEPS[stage] : null;
@@ -70,19 +68,16 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, curriculumOp
   const doors = {
     build: { open: buildOpen, label: 'Open the build menu', go: onOpenBuild },
     hall: { open: hallOpen, label: 'Open Founders Hall', go: onOpenHall },
-    curriculum: { open: curriculumOpen, label: 'Open the Curriculum', go: onOpenCurriculum },
   };
   const door = step.door ? doors[step.door] : undefined;
   const doorOpen = door?.open ?? true;
   const doorLabel = door?.label;
-  // Over a tab, the card sits below the tab's header, clear of its Close.
-  const overTab = step.door === 'curriculum' && doorOpen;
   const onDoor = door?.go;
 
   return (
     // On a phone the hall's panel and a tab take the top of the screen, so a
     // step done in one drops the card to the foot, over the dock (styles.css).
-    <aside className={`opening-coach${(step.door === 'hall' && hallOpen) || overTab ? ' under-panel' : ''}${overTab ? ' over-tab' : ''}${placing ? ' placing' : ''}`} role="status" aria-live="polite" aria-label={step.title}>
+    <aside className={`opening-coach${step.door === 'hall' && hallOpen ? ' under-panel' : ''}${placing ? ' placing' : ''}`} role="status" aria-live="polite" aria-label={step.title}>
       <p className="letter-eyebrow">{step.eyebrow}</p>
       <h2>{step.title}</h2>
       <p>{step.body(s)}</p>

@@ -12,8 +12,8 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PR A (the objective model) landed; PR B (the
-bar) is up; the owner
+**Status: In progress. PRs A (the objective model) and B (the bar)
+landed; PR C (the walkthrough ported) is up; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -375,6 +375,38 @@ Example, chapter 6 (Standing), which answers F6:
 - Showing a chapter in the drawer marks its briefing read (`read:<id>`
   through `MARK_GUIDANCE`). Double speed set from the clock marks chapter
   2's optional objective.
+
+**As implemented (PR C):**
+- The walkthrough ends on the first program founded. Its three steps keep
+  the held clock, the quiet screen and the coach card, and chapter 1 is
+  their record. Plan 103's steps 4–7 are retired: a save on one moves on
+  to `play`.
+- **Year 1 is reordered, by the owner's choice (20 October).** The sim put
+  a price on moving housing to the Spring. With the first residence hall
+  and dining hall sited in week 5, the first summer drew 616 applicants at
+  prestige 38.4. In week 27 it drew 545 at 35.0: about 3 applicants and
+  0.15 prestige per week of delay. The owner chose **week 10**. The
+  chapters are now:
+  - 1. Founding;
+  - 2. The next course: a program's second course, plus the optional
+    double speed;
+  - 3. Somewhere to sleep: from week 10;
+  - 4. Seats for everyone: often met before it opens, so it opens met.
+  - §4's later chapters move up one.
+- A walk that ends on its program founded counts the "Somewhere to sleep"
+  letter read, as reaching the old needs step did. A walk skipped earlier
+  keeps it at week 9.
+- The rings follow the chapters, not the walk's stages (`ringedProgram`,
+  `ringedBuilding`). The Curriculum rings the next course while chapter 2
+  waits on it, and the build menu opens on and rings the next residence
+  hall, then dining hall, during chapter 3.
+- Briefings are written for chapters 2–4, which Guided opens by itself the
+  first time each is current. `test/chapters.test.ts` holds them to §5's
+  limits and to the no-pronoun-ending rule.
+- The NEXT line is unchanged. In year 1 it still names a need's figure
+  when nothing else is asked, as it has since Plan 78B. That reaches a
+  guided player only once every student is seated, by which time chapter
+  3's buildings stand.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.

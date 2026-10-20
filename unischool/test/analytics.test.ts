@@ -31,8 +31,7 @@ import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { FOUNDING_VERNACULAR, WALKTHROUGH_PROFESSOR, WALKTHROUGH_PROGRAM } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
-import { FOUNDERS_HALL_ID, programById } from '../src/data/techData';
-import { walkBuilding } from '../src/data/openingData';
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { openingSkipped } from '../src/analytics/analytics';
 
@@ -240,14 +239,9 @@ function testOpening(): void {
   w.site(FOUNDERS_HALL_ID, true);
   w.step({ type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
   w.step({ type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
-  w.until('second-course');
-  const next = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => w.s.tech.find((t) => t.id === id)?.status === 'available')!;
-  w.step({ type: 'START_DEVELOPMENT', nodeId: next, facultyId: WALKTHROUGH_PROFESSOR });
-  w.step({ type: 'ADVANCE_OPENING' });
-  w.site(walkBuilding(w.s)!.id);
-  w.site(walkBuilding(w.s)!.id);
   flush();
-  const walked = 'site-hall,appoint,found,await-course,second-course,needs,site-housing,site-dining,play';
+  // The walk ends on the program founded (Plan 106 PR C).
+  const walked = 'site-hall,appoint,found,play';
   assert(w.s.events.opening.stage === 'play' && steps().join(',') === walked, `each stage reached is an opening_step, in order (${steps().join(',')})`);
   assert(skips().length === 0, 'and a walk finished sends no opening_skipped');
 
