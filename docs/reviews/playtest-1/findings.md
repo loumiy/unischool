@@ -357,6 +357,7 @@ how often the form is opened, `feedback_opened`).*
 | 12 October | 389 | 209 | 1 (★★★★★) | 2 | 6 | 4,091 | 3.37% |
 | 14 October | 548 | 304 | 1 (★★★★★) | 2 | 7 | 5,069 | 3.59% |
 | 15 October | 615 | 341 | 1 (★★★★★) | 2 | 7 | 4,721 | 3.73% |
+| 20 October | 865 | 501 | 2 | 2 | 11 | 1,852 | 3.94% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
@@ -397,6 +398,20 @@ first visit from **chatgpt.com** (1). ChatGPT finds pages by searching the
 web live, through an index like Bing's, so someone asked it something the
 itch.io page answers, probably about a university or campus management
 game.
+
+On 20 October (30 days): 865 views, 501 browser plays, a **second
+rating** (its stars not shown in the snapshot), 11 collections (+4 since
+15 October), and the first **2 downloads** (18 October; the game has no
+download, so probably the itch.io app). The 7-day impressions fell from
+4,721 to 1,852: itch.io's *new and popular* lift has run out, though the
+click-through rate still rose (3.94%). Daily plays fell to about 20 by 17
+October, then rose to about 35 and 55 on 18 and 19 October, the days
+after 0.1.2 went up with its devlog. Referrers: Google 60 (+20 since
+15 October), reddit.com 56 (+12, and 11 from the Android app),
+**foundplay.io 47 (+12; its weekly email counts 31 plays this week, up
+from 12)**, itch.io's front page 29, then the browse pages (tycoon 17,
+13, 9 and 9; *new and popular* for web 14; management 14; city builder
+10 and 10; **college 10**, new), and the studio page 13.
 
 ### PostHog, 11 October
 
