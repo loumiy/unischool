@@ -19,7 +19,9 @@
 
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, nextChapter, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
+import { tabAvailable } from '../src/components/TabNav';
+import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
 import { CHAPTER_COPY } from '../src/data/chapterData';
 import { isDiningHall, isDorm } from '../src/data/openingData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -338,6 +340,42 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
   assert(html.includes('Standing') && /Prestige [\d.]+, its target [\d.]+/.test(html), 'Standing reads prestige against its target');
   assert(/Its pillars: Academics [\d.]+ of [\d.]+ · Research/.test(html) && html.includes('Satisfaction '), 'with each pillar against its most, and the satisfaction');
+}
+
+// ---- PR F: years 4 and 5, a side chapter, and the Athletics tab ----
+{
+  const chain = ['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing', 'a-faculty', 'hall-of-its-own', 'campus-life', 'promises'];
+  const s = teaching();
+  s.clock.year = 4;
+  s.clock.week = 30;
+  s.guidance = { opened: Object.fromEntries(chain.map((id) => [id, 1])), done: Object.fromEntries(chain.map((id) => [id, 1])), met: [], marked: [], gated: true };
+  settleChapters(s);
+  assert(!opened(s, 'the-teams'), 'with no sport club, The teams stays shut');
+  assert(currentChapter(s)?.id === 'running-the-college', 'and the chain goes on without it: Running the college');
+  assert(!tabAvailable(s, 'athletics'), 'a gated run has no Athletics tab before its chapter');
+
+  s.orgs.clubs.push({ ...(s.orgs.clubs[0] ?? {}), sport: 'soccer' } as GameState['orgs']['clubs'][number]);
+  s.ladder.reached.sport = 4;
+  settleChapters(s);
+  assert(opened(s, 'the-teams'), 'a sport club opens The teams beside the chain');
+  assert(tabAvailable(s, 'athletics'), 'and with it the Athletics tab');
+  assert(currentChapter(s)?.id === 'the-teams', 'the drawer shows the open chapter first in order');
+  assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
+
+  const ungated = structuredClone(s);
+  delete ungated.guidance!.gated;
+  ungated.guidance!.opened = {};
+  assert(tabAvailable(ungated, 'athletics') === ladderOpensTab(ungated, 'athletics'), 'an ungated run opens Athletics by the ladder alone');
+
+  s.seats = [{ seatId: 'provost', school: null, holder: 'x', internal: false, policy: 'p', salary: 1 } as NonNullable<GameState['seats']>[number]];
+  s.clock.year = 5;
+  s.clock.week = 1;
+  settleChapters(s);
+  assert(done(s, 'running-the-college') && currentChapter(s)?.id !== 'running-the-college', 'a Provost ends Running the college');
+  assert(opened(s, 'the-long-game'), 'and year 5 opens The long game');
+  s.finance.sweepWeeks = 26;
+  settleChapters(s);
+  assert(done(s, 'the-long-game'), 'a standing sweep ends it');
 }
 
 if (failures === 0) {

@@ -8,6 +8,9 @@ import { computePrestigeTarget } from '../systems/prestige/prestigeSystem';
 import { darkPrograms } from '../systems/techtree/darkness';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import { GRADE_B } from '../data/courseQuality';
+import { milestoneReached } from '../systems/ladder/ladderSystem';
+import { maintenanceFunding } from '../systems/estate/estate';
+import { schoolsFounded } from '../systems/guidance/establish';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
@@ -51,6 +54,10 @@ export interface Chapter {
   objectives: readonly Objective[];
   // A figure the drawer reads live under the objectives (ObjectivesPanel).
   live?: 'standing';
+  // A side chapter (Plan 106 PR F) waits for nothing but its week and
+  // opensWhen, and nothing waits for it: a system some colleges never take
+  // up (athletics) must not hold back the chapters after it.
+  side?: true;
 }
 
 const week = (year: number, w: number) => (year - 1) * WEEKS_PER_YEAR + w;
@@ -194,6 +201,41 @@ export const CHAPTERS: readonly Chapter[] = [
       { id: 'make-a-promise', progress: (s) => (s.promises?.active.length ?? 0) + (s.promises?.settled.length ?? 0) > 0, optional: true },
     ],
   },
+  {
+    // Athletics, once a sport club has formed (ladderData.ts's 'sport'
+    // milestone), and not before year 4. A side chapter: a college that
+    // never fields a team still reaches the chapters after it. The
+    // Athletics tab waits for it in a guided run (gates.ts).
+    id: 'the-teams',
+    earliest: week(4, 1),
+    side: true,
+    opensWhen: (s) => milestoneReached(s, 'sport'),
+    objectives: [
+      { id: 'appoint-athletic-director', progress: (s) => s.orgs.athleticDirector !== null },
+      { id: 'field-a-varsity-team', progress: (s) => s.orgs.teams.length > 0, optional: true },
+    ],
+  },
+  {
+    // The seats and the offices (Plan 89): the routine off the President's
+    // desk, and the faster clock the seats open.
+    id: 'running-the-college',
+    earliest: week(4, 27),
+    objectives: [
+      { id: 'appoint-a-provost', progress: (s) => (s.seats ?? []).some((seat) => seat.seatId === 'provost') },
+      { id: 'open-an-office', progress: (s) => (s.halls[FOUNDERS_HALL_ID] ?? []).some((slot) => slot.office !== undefined), optional: true },
+    ],
+  },
+  {
+    // The endowment, the estate and the road to the first school: the last
+    // chapter of the first five years.
+    id: 'the-long-game',
+    earliest: week(5, 1),
+    objectives: [
+      { id: 'set-a-sweep', progress: (s) => s.finance.sweepWeeks !== undefined },
+      { id: 'full-upkeep', progress: (s) => maintenanceFunding(s) >= 1, optional: true },
+      { id: 'found-a-school', progress: (s) => schoolsFounded(s) > 0, optional: true },
+    ],
+  },
 ];
 
 // The tabs an objective asks to be opened, marked by the shell when they
@@ -268,17 +310,27 @@ export function settleChapters(s: GameState): void {
   s.guidance ??= caughtUp(s);
   const g = s.guidance;
   const now = absoluteWeek(s);
-  for (const c of CHAPTERS) {
-    if (g.done[c.id] !== undefined) continue;
+  // One chapter: opened when it may be, its objectives latched, done when
+  // they are. Whether it is done now.
+  const settle = (c: Chapter): boolean => {
+    if (g.done[c.id] !== undefined) return true;
     if (g.opened[c.id] === undefined) {
-      if (c.earliest > now || (c.opensWhen && !c.opensWhen(s))) return;
+      if (c.earliest > now || (c.opensWhen && !c.opensWhen(s))) return false;
       g.opened[c.id] = now;
     }
     for (const o of c.objectives) {
       if (!g.met.includes(o.id) && isMet(o.progress(s))) g.met.push(o.id);
     }
-    if (!c.objectives.every((o) => o.optional || g.met.includes(o.id))) return;
+    if (!c.objectives.every((o) => o.optional || g.met.includes(o.id))) return false;
     g.done[c.id] = now;
+    return true;
+  };
+  // The chain, each waiting for the one before; then the side chapters.
+  for (const c of CHAPTERS) {
+    if (!c.side && !settle(c)) break;
+  }
+  for (const c of CHAPTERS) {
+    if (c.side) settle(c);
   }
 }
 
@@ -299,7 +351,7 @@ export function chapterNumber(c: Chapter): number {
 export function nextChapter(s: GameState): Chapter | null {
   const g = s.guidance;
   if (!g) return null;
-  return CHAPTERS.find((c) => g.opened[c.id] === undefined) ?? null;
+  return CHAPTERS.find((c) => !c.side && g.opened[c.id] === undefined) ?? null;
 }
 
 // The objective the ticker's one line names: the first not met, required
