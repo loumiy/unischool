@@ -1,8 +1,6 @@
 import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import RadialCurriculum from './RadialCurriculum';
-import { setCurriculumView, useCurriculumView } from './curriculumView';
+import { useCallback, useEffect, useState } from 'react';
 import { useCollapse } from '../components/useCollapse';
 import { walkProgram } from '../data/openingData';
 import { facultyPay } from '../systems/finance/financeSystem';
@@ -566,7 +564,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
   );
 }
 
-export function CourseDrawer(
+function CourseDrawer(
   { s, act, t, lookup, onClose, onGoToCourse, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void; t: Buildable; lookup: Map<string, Buildable>;
@@ -1042,7 +1040,7 @@ function SchoolGroupView(
 
 // Filters turn the map into a worklist (curriculumFilter.ts).
 
-export function FilterBar(
+function FilterBar(
   { filters, onChange, resultCount }:
   { filters: Filters; onChange: (f: Filters) => void; resultCount: number | null },
 ) {
@@ -1126,7 +1124,7 @@ export function FilterBar(
 // Faculty tab. The "what next" strip that stood beside the committee (on
 // offer, near a milestone, ready now, waiting on faculty) is gone; "One
 // course from established" is its milestone item as a filter.
-export function CommitteeBox({ s, lookup, onOpenFaculty }: {
+function CommitteeBox({ s, lookup, onOpenFaculty }: {
   s: GameState; lookup: Map<string, Buildable>; onOpenFaculty?: (field: string) => void;
 }) {
   // The departments short of faculty (neededFacultyFields), most waited on
@@ -1220,31 +1218,7 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
   return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
 }
 
-// The tab (Plan 105): the radial drawing by default, or the rows it
-// replaced, chosen in either view (curriculumView.ts). Seeing a course is
-// recorded here, whichever view draws it; the drawing rings the courses
-// that were new when the tab opened until it is closed.
-export default function CurriculumTab(props: {
-  s: GameState; act: (a: Action) => void;
-  target?: string; onTargetConsumed?: () => void;
-  onOpenFaculty?: (field: string) => void;
-}) {
-  const { s, act } = props;
-  const view = useCurriculumView();
-  const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
-  const fresh = useRef<Set<string>>(new Set());
-  for (const id of unseenIds) fresh.current.add(id);
-  const unseenKey = unseenIds.join('|');
-  useEffect(() => {
-    if (unseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'course', ids: unseenIds });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unseenKey]);
-  return view === 'drawing'
-    ? <RadialCurriculum {...props} fresh={fresh.current} />
-    : <CurriculumList {...props} />;
-}
-
-function CurriculumList(
+export default function CurriculumTab(
   { s, act, target, onTargetConsumed, onOpenFaculty }:
   {
     s: GameState; act: (a: Action) => void;
@@ -1343,6 +1317,13 @@ function CurriculumList(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
 
+  const unseenIds = visibleCourseIds(s).filter((id) => !s.seen.courseIds[id]);
+  const unseenKey = unseenIds.join('|');
+  useEffect(() => {
+    if (unseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'course', ids: unseenIds });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unseenKey]);
+
   const filtering = filtersActive(filters);
   const matches = filtering
     ? visibleCourseIds(s)
@@ -1355,10 +1336,6 @@ function CurriculumList(
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            <span className="segmented switch radial-view-switch" role="group" aria-label="Curriculum view" style={{ ['--seg-count' as string]: 2, ['--seg-index' as string]: 1 }}>
-              <button type="button" aria-pressed="false" onClick={() => setCurriculumView('drawing')}>Drawing</button>
-              <button type="button" className="active" aria-pressed="true">List</button>
-            </span>
             {/* While filtering, the crumb shows the whole-catalogue search. */}
             {filtering && (
               <h2 className="curriculum-crumbs">

@@ -4,7 +4,6 @@ import { founderFigures } from '../state/finalReport';
 import { REPORT_WORDS } from '../data/reportData';
 import { STANDINGS } from '../systems/rivals/rivalsSystem';
 import { MultiChart } from './MultiChart';
-import CurriculumReplay from './CurriculumReplay';
 import HelpHint from './HelpHint';
 import GradeMark from './GradeMark';
 import { count } from '../format';
@@ -13,8 +12,7 @@ import { count } from '../format';
 // shows it and the History tab keeps it: the title and the mark, the
 // guide's last word, six of the seven standings graded over the arc (all
 // but prestige, which the last word reads), the promises, the money, the
-// eras, the founder's figures, all seven charted, and the curriculum as it
-// grew, year by year (Plan 105F).
+// eras, the founder's figures, and all seven charted.
 
 const fill = (t: string, vars: Record<string, string | number>) => t.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 
@@ -94,8 +92,6 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
           }))}
         />
       )}
-
-      <CurriculumReplay s={s} lastYear={report.year} compact />
     </div>
   );
 }

@@ -37,7 +37,6 @@ import { walkProgram } from './data/openingData';
 import type { OpeningStage } from './state/types';
 import FacultyTab, { FACULTY_VIEW_START, MARKET_TARGET, type FacultyViewMemory } from './tabs/FacultyTab';
 import CurriculumTab from './tabs/CurriculumTab';
-import { useCurriculumView } from './tabs/curriculumView';
 import ResearchTab from './tabs/ResearchTab';
 import TreasuryTab from './tabs/TreasuryTab';
 import StudentsTab from './tabs/StudentsTab';
@@ -91,7 +90,6 @@ export default function App() {
   // open. The tab consumes and clears the target, so the same link works
   // twice.
   const [overlay, setOverlay] = useState<{ tab: TabId; target?: string } | null>(null);
-  const curriculumViewNow = useCurriculumView();
   // The front screens (Plan 34): the title the game opens on, and the hall,
   // the settings and the credits, reachable from it and from the menu. The
   // clock is paused while one is up. "Open it here" (Plan 79B) comes back
@@ -552,7 +550,7 @@ export default function App() {
             <TabOverlay
               title={TAB_LABELS[overlay.tab]}
               onClose={holding ? undefined : () => openTab(null)}
-              split={overlay.tab === 'inbox' || (overlay.tab === 'curriculum' && curriculumViewNow === 'drawing')}
+              split={overlay.tab === 'inbox'}
             >
               {overlay.tab === 'faculty' && (
                 <FacultyTab

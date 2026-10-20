@@ -269,78 +269,20 @@ housed program also adds `SEATS_PER_COURSE` to what the school can teach,
 which is the ceiling on its freshman class (see
 [admissions.md](admissions.md)).
 
-## The Curriculum tab: the curriculum from the centre out
+## The Curriculum tab: forty-two rows over one revealed set
 
 The Curriculum tab, like every tab, is **full-bleed**: it owns the viewport and
 the dock is laid over it (see [ui-shell.md](../architecture/ui-shell.md)).
-Since Plan 105 it opens on **one radial drawing of the whole curriculum**
-(`tabs/RadialCurriculum.tsx`, drawn by `components/RadialSvg.tsx` from
-`systems/techtree/radialLayout.ts`), with the rows it replaced kept as a
-second view (**Drawing / List**, `tabs/curriculumView.ts`; the owner's
-decision 1, asked again in a later plan).
 
-**The drawing.** The seven schools are sectors of a circle in the catalog's
-order, each six program wedges; the tiers are rings. A program's **entry
-course** sits on the inner ring around the seal, its **core quartet** on the
-next, its **advanced quartet** beyond, and its **capstone** at the rim; each
-school's **graduate programs** sit beyond the rim as diamonds. Every course has
-one fixed place, so a course always appears where it will stay. The seal at
-the centre counts the courses taught.
+**Its head is the committee.** The curriculum committee's seats sit at the
+head of the tab, and under them one line, **Waiting on faculty**, names the
+departments short of faculty (`neededFacultyFields`, most waited on first),
+with "Faculty →" to the Faculty tab on the first. The strip that stood beside
+the committee until Plan 80B (on offer, near a milestone, ready now, waiting
+on faculty) is gone: the offers live in the hall panel, and its milestone
+item is now a filter.
 
-**Only what the college has opened is drawn.** A course appears when it is
-taught (solid brass), being written (filling like a clock face with the
-committee's progress) or ready to start (a dashed brass ring; one available
-but held, for want of a teacher, cash or a committee seat, has a grey dashed
-ring). A `locked` course, a program with no hall and a graduate program not
-housed are not drawn at all (the owner's decisions 3 and 4); there is no grey
-skeleton of the 473. A housed program begins as a stem from the seal to its
-entry course. Each school's **arc** runs just outside the outermost course
-drawn and fills in its colour as its sixty courses are taught, gold when every
-one is; its **name** sits just outside the arc once a program of it is housed
-(unfounded schools are named, as since Plan 95Q). A distinguished program's
-capstone is a **star**. A dark (unstaffed) program's courses are greyed with a red dashed ring, one
-in transit is drawn at half strength. The **camera fits what is drawn**: a
-young college's few branches fill the stage, and the view eases out as they
-reach the rim. A course newly visible since the tab was last open is ringed
-until it is closed.
-
-**Lines carry progress, not structure.** This is the answer to Plan 2's
-constellation, which spent its drawing on ~336 tier-to-tier edges that all
-said the same thing (see the note at the end of this section). A line runs only
-to a course that is drawn, in its kind: solid to a taught course, dashed to one
-ready to start. The core quartet meets at one junction before fanning to the
-advanced quartet, eight short lines rather than sixteen. **Cross-program
-prerequisites are not drawn** — the owner found them clutter (Plan 105) — and
-are listed in the course's detail instead. The program in focus draws its own
-branch in navy.
-
-**The stage.** The drawing fills the middle of the tab at the largest square
-that fits; it carries no caption except while the pointer is on a course,
-which names it ("PHYS 220 · Solid State Physics — Physics · Advanced · being
-written"). The **left column** holds the committee (below), **View** — the
-whole curriculum or one school, each with its courses taught of sixty and, where
-a course has no instructor, "Staff from the market" — the filters and a key.
-Choosing a school, or its name in the drawing, turns its sector to the top and
-scales it to fill the stage, and only then are its programs' names written
-along their branches (decision 5). The **right column** holds the selected
-course's detail (the course drawer, below) and the program in focus: its
-school, hall, number out of 100 and milestone line, its next start
-(`RowAction`, the hall panel's too), and its courses by ring as course cells.
-Clicking a course selects it and its program; the opening's second course
-(Plan 103) and the hall panel's "Open in Curriculum →" land on their program
-in focus, its school zoomed. Every course is a focusable control: Enter selects
-it, left and right move along its ring, up and down to the nearest course on the
-next ring out or in.
-
-**Its head is the committee.** The curriculum committee's seats head the left
-column (the top of the tab in the List view), and under them one line,
-**Waiting on faculty**, names the departments short of faculty
-(`neededFacultyFields`, most waited on first), with "Faculty →" to the Faculty
-tab on the first. The strip that stood beside the committee until Plan 80B (on
-offer, near a milestone, ready now, waiting on faculty) is gone: the offers
-live in the hall panel, and its milestone item is now a filter.
-
-**Filters make a worklist.** In the drawing a filter dims every course it does not match and lists those it does in the left column, where a click selects one; in the List view it turns the tab into one flat
+**Filters make a worklist.** Any filter turns the tab into one flat
 cross-school list of the courses it names: a search, a status, **Below A**
 (every offered course short of an A, and any left unstaffed; a course in a
 dark program, which has no grade while dark, counts by the grade its
@@ -348,17 +290,6 @@ instructor earns on it, `instructorQuality`), **No instructor**, and **One
 course from established** (the last course, started or not, between a major
 and Established). "Needs attention" (a D or an F) went in Plan 80B: Below A
 and No instructor cover it (`curriculumFilter.ts`).
-
-**The year by year** (Plan 105F, `components/CurriculumReplay.tsx`): the
-History tab's record and the Final Report replay the drawing as it stood at
-the end of any year, with a Play from Year 1 (the owner's decision 2: the
-Curriculum is for what to write next, the replay is the record). It reads each
-course's `completedWeek`, set when the course is first finished
-(`techSystem.ts`'s `completeDevelopment`), cleared when its program is closed,
-and derived for an older save on load from a professor's first week on the
-course, the log, or its program's milestone year.
-
-### The List view: one row per program
 
 **Each row leads with its own next action.** The row's header names its next
 startable course, the strongest free teacher in its department and the grade
@@ -411,9 +342,7 @@ school's hue and mark. Only the tab's grouping moves: the program's home
 school (`homeSchool`) is what founding, research and every reading still
 use, and a section's "Staff from the market" covers the courses it draws.
 
-### Both views
-
-**Faculty chips.** A compact instructor sits with each developed course (in the drawing, in the program card's course cells) —
+**Faculty chips.** A compact instructor sits with each developed course —
 portrait, surname, grade — and chips **drag between courses to swap
 instructors**, with a live grade delta on both courses while dragging, which is
 the entire reason the mechanic is worth building. A drop that is not a legal
@@ -438,6 +367,12 @@ prerequisite in it is a link that scrolls to the course. When nobody in a
 department can take a course, the drawer offers a **search** rather than a
 dead end (see [faculty.md](faculty.md)).
 
+**Almost no edges are drawn, and that is the argument.** 42 programs in a fixed
+1/4/4 shape means the tier chain is ~336 edges all saying the same thing;
+position carries that. What gets highlighted are the **~50 authored
+cross-major bridges** (`techData.ts`'s `CROSS_MAJOR_BRIDGES`), and only when
+they are relevant to what you are looking at.
+
 **Three rules every bridge holds to**, each checked by
 `test/curriculum-graph.test.ts` rather than left to review. A bridge never
 points *up* the tier climb, so a major's establishment is never held behind
@@ -452,14 +387,11 @@ never that school's lab and its founding. The same test refuses two courses
 sharing a title, because the tab shows a title without its code in several
 places.
 
-*(A literal constellation layout was built and abandoned before Plan 14 — see
-`docs/plans/002-academic-core.md`'s "Why the constellation failed": it drew
-every regular edge and the bridges drowned in them, and course names shrank
-to dots. The three-level map that replaced it — school cards, then lanes,
-then the drawer — lasted until Plan 14, whose rows were what the halls model
-needed. Plan 105's drawing is radial again, on four rules that answer that
-failure: the rings carry the tier, lines carry progress, nothing unopened is
-drawn, and names live in the panels.)*
+*(A literal constellation layout was built and abandoned before this — see
+`docs/plans/002-academic-core.md`'s "Why the constellation failed". The
+three-level map that replaced it — school cards, then lanes, then the drawer —
+lasted until Plan 14, whose rows are what the halls model needed: one screen
+where a school's shape is something you can see forming.)*
 
 ## The health chain, and clinical coursework
 

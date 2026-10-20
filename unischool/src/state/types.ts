@@ -400,8 +400,9 @@ export interface Buildable {
   // an older save finished.
   builtYear?: number;
   // The absolute week a course was first finished (Plan 105E: weeks since
-  // founding, eventData.ts's absoluteWeek), which the History tab's replay of
-  // the curriculum reads. Cleared when its program is closed. An older save's
+  // founding, eventData.ts's absoluteWeek). Nothing reads it while the
+  // radial curriculum and its replay are shelved; it is kept so a save carries
+  // it if they return. Cleared when its program is closed. An older save's
   // is derived on load where it can be (persistence.ts's
   // sanitizeCompletedWeeks), else absent.
   completedWeek?: number;
