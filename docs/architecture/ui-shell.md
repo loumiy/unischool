@@ -84,6 +84,28 @@ reading, never a queue: nothing is ticked off, and the line goes quiet when
 nothing is on offer. The log on the left says what just happened; the step on
 the right says what to do about it.
 
+**The objectives** (Plan 106, `state/chapters.ts`, `ObjectivesPanel.tsx`).
+Once the walkthrough is over, the ticker's chapter chip takes the place the
+milestone chip had: "Chapter 2 · Places for every student 480/650", the
+chapter's first objective not met. The next step stays on the strip only
+when it is urgent or no chapter is open. Clicking the chip, or pressing J,
+opens the **objectives drawer** above the ticker. It holds:
+- the chapter and its objectives, each with its count;
+- its briefing (what it is, how to work it with a Show me for each lever,
+  why it matters), when it has one;
+- the next step, under "Also waiting";
+- the milestones: those reached this chapter as "Unlocked", the next with
+  its count, and the whole ladder a button away.
+
+Settings' **Objectives** has three modes:
+- **Guided** (the default) opens a chapter's briefing by itself, once.
+- **Brief** never opens it unasked.
+- **Off** shows the ticker as it was before the chapters, milestone chip
+  and all.
+
+The drawer takes its place on the shell's Escape ladder after the
+milestones and before the log.
+
 ## The inbox
 
 Everything addressed to the president that does not stop the clock is in one

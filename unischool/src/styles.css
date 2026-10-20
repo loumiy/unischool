@@ -3794,6 +3794,37 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .log-ticker-ladder + .log-ticker-next { margin-left: 16px; }
 .log-ticker-ladder-progress { font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 
+/* The objectives (Plan 106; LogTicker.tsx, ObjectivesPanel.tsx): the
+   chapter chip in the ticker, and the drawer it opens above the ticker. */
+.log-ticker-objective { min-width: 0; flex: 0 1 auto; max-width: 48%; }
+.log-ticker-objective-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* On a phone the objective outranks the log line: the strip's log
+   message gives way first, and the chapter's number is enough of a label. */
+@media (max-width: 600px) {
+  .log-ticker-objective { max-width: 72%; flex-shrink: 0.2; }
+  .log-ticker-objective .log-ticker-next-label { padding: 2px 5px; }
+}
+.objectives-popup { left: 16px; width: min(440px, calc(100vw - 32px)); max-height: 60vh; }
+.objectives h3 { margin: 0 0 var(--space-6); }
+.objectives h4 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-2xs); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-muted); }
+.objectives .letter-eyebrow { display: flex; justify-content: space-between; gap: var(--space-8); margin: 0 0 var(--space-4); }
+.objectives-tally { font-variant-numeric: tabular-nums; }
+.objectives-list, .objectives-how, .objectives-why { list-style: none; margin: 0; padding: 0; }
+.objectives-list li { display: flex; align-items: baseline; gap: var(--space-8); padding: 4px 0; }
+.objectives-list li.met { color: var(--ink-muted); }
+.objectives-list li.met .objectives-text { text-decoration: line-through; text-decoration-color: var(--ink-muted); }
+.objectives-mark { flex: none; width: 1.1em; text-align: center; color: var(--school-primary); font-weight: 800; }
+.objectives-text { flex: 1 1 auto; min-width: 0; }
+.objectives-optional { color: var(--ink-muted); }
+.objectives-count { flex: none; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.objectives-how li, .objectives-waiting p { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8); margin: 0; padding: 3px 0; }
+.objectives-why li { padding: 3px 0; }
+.objectives-door { flex: none; font-size: var(--text-xs); padding: 3px 10px; }
+.objectives-waiting p.urgent span { font-weight: 700; }
+.objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }
+.objectives-milestones p { margin: 0 0 var(--space-6); }
+
 /* The ladder (LadderPanel.tsx), in a toolbar popup above the ticker. */
 .ladder-popup { left: 16px; width: min(560px, calc(100vw - 32px)); max-height: 70vh; }
 .ladder-tier h3 { margin: var(--space-12) 0 var(--space-6); color: var(--ink-muted); }

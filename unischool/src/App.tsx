@@ -11,7 +11,7 @@ import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
 import Toasts from './components/Toasts';
 import TitleScreen from './components/TitleScreen';
-import { applySettings, getSettings } from './settings';
+import { applySettings, getSettings, useSettings } from './settings';
 import HallOfFame from './components/HallOfFame';
 import SettingsPanel from './components/SettingsPanel';
 import Credits from './components/Credits';
@@ -24,7 +24,9 @@ import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/T
 import CampusMap from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
-import LogTicker from './components/LogTicker';
+import LogTicker, { objectivesShown } from './components/LogTicker';
+import { CHAPTER_COPY } from './data/chapterData';
+import { currentChapter, DOUBLE_SPEED_MARK, marked, readMark } from './state/chapters';
 import InboxTab from './components/InboxTab';
 import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
 import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
@@ -123,6 +125,7 @@ export default function App() {
   // Escape has to see it.
   const [logOpen, setLogOpen] = useState(false);
   const [ladderOpen, setLadderOpen] = useState(false);
+  const [objectivesOpen, setObjectivesOpen] = useState(false);
   // The founding notes read this session: the one letter the save does not
   // mark (systems/inbox/foundingNote.ts). Everything else the inbox holds
   // is read off the state (Plan 77).
@@ -159,6 +162,36 @@ export default function App() {
   // key: no tab letters, no Escape ladder, no speed keys, no map keys, and
   // no modal or coach card drawn over it.
   const shellLive = s.started && front === null;
+
+  // The objectives (Plan 106 PR B). J opens and closes the drawer. Guided
+  // opens a chapter's briefing by itself the first time the chapter is
+  // current, over a quiet map; showing a chapter marks its briefing read.
+  // Double speed counts toward chapter 2's optional objective: the speed
+  // is the shell's, not the college's, so the shell marks it.
+  const objectivesMode = useSettings().objectives;
+  const chaptersOn = shellLive && objectivesShown(s, objectivesMode);
+  const chapterNow = chaptersOn ? currentChapter(s) : null;
+  useHotkeys((e) => {
+    if (s.pendingInterrupt || !isKey(e, 'objectives')) return;
+    setObjectivesOpen((o) => {
+      if (!o) { setLogOpen(false); setLadderOpen(false); closeBuild(); }
+      return !o;
+    });
+  }, chaptersOn);
+  useEffect(() => {
+    if (!chapterNow || marked(s, readMark(chapterNow.id))) return;
+    if (objectivesOpen) act({ type: 'MARK_GUIDANCE', mark: readMark(chapterNow.id) });
+    else if (objectivesMode === 'guided' && CHAPTER_COPY[chapterNow.id].briefing && !s.pendingInterrupt && !overlay && !buildOpen) {
+      setObjectivesOpen(true);
+      setLogOpen(false);
+      setLadderOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapterNow?.id, objectivesOpen, objectivesMode, s.pendingInterrupt, overlay, buildOpen]);
+  useEffect(() => {
+    if (shellLive && speed === 'double' && s.guidance && !marked(s, DOUBLE_SPEED_MARK)) act({ type: 'MARK_GUIDANCE', mark: DOUBLE_SPEED_MARK });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speed, shellLive]);
 
   // C / F / L / I (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.
@@ -203,6 +236,7 @@ export default function App() {
     setBuildOpenState(false);
     setLogOpen(false);
     setLadderOpen(false);
+    setObjectivesOpen(false);
     setFoundingRead(new Set());
     setOpened(new Set());
     forgetOpened();
@@ -235,7 +269,7 @@ export default function App() {
   const overlays: ShellOverlays = {
     overlayOpen: overlay !== null,
     buildOpen,
-    logOpen: logOpen || ladderOpen,
+    logOpen: logOpen || ladderOpen || objectivesOpen,
     interrupted: s.pendingInterrupt !== null,
     frontUp: front !== null,
   };
@@ -298,6 +332,7 @@ export default function App() {
     // The build menu and the log popups share the bottom-left corner.
     setLogOpen(false);
     setLadderOpen(false);
+    setObjectivesOpen(false);
   }
 
   // The walkthrough's course step (Plan 103B): the Curriculum, on the walk's
@@ -366,6 +401,7 @@ export default function App() {
       setPlacingIdState(null);
       setLogOpen(false);
       setLadderOpen(false);
+      setObjectivesOpen(false);
     } else if (beforeHold.current !== undefined) {
       const back = beforeHold.current;
       beforeHold.current = undefined;
@@ -409,6 +445,7 @@ export default function App() {
   useHotkeys((e) => {
     if (!isKey(e, 'back') || s.pendingInterrupt) return;
     if (ladderOpen) setLadderOpen(false);
+    else if (objectivesOpen) setObjectivesOpen(false);
     else if (logOpen) setLogOpen(false);
     // A building in hand is put down before the menu closes (Plan 34).
     else if (buildOpen && placingId) setPlacingIdState(null);
@@ -510,13 +547,15 @@ export default function App() {
         {/* dock-folded: something is open over the map, so on a phone the
             dock folds to its figures (styles.css's phone rules); each of
             these has its own close, which unfolds it. */}
-        <div className={`app${overlay || buildOpen || logOpen || ladderOpen ? ' dock-folded' : ''}`}>
+        <div className={`app${overlay || buildOpen || logOpen || ladderOpen || objectivesOpen ? ' dock-folded' : ''}`}>
           <LogTicker
             s={s}
             open={logOpen}
-            onSetOpen={(o) => { setLogOpen(o); if (o) { setLadderOpen(false); closeBuild(); } }}
+            onSetOpen={(o) => { setLogOpen(o); if (o) { setLadderOpen(false); setObjectivesOpen(false); closeBuild(); } }}
             ladderOpen={ladderOpen}
-            onSetLadderOpen={(o) => { setLadderOpen(o); if (o) { setLogOpen(false); closeBuild(); } }}
+            onSetLadderOpen={(o) => { setLadderOpen(o); if (o) { setLogOpen(false); setObjectivesOpen(false); closeBuild(); } }}
+            objectivesOpen={objectivesOpen}
+            onSetObjectivesOpen={(o) => { setObjectivesOpen(o); if (o) { setLogOpen(false); setLadderOpen(false); closeBuild(); } }}
             onGo={(go, hallId, programId) => {
             if (go === 'build') setBuildOpen(true);
             else if (go === 'campus') openTab(null);
