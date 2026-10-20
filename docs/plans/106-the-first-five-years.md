@@ -12,8 +12,8 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PRs A–D landed (the model, the bar, the
-walkthrough ported, year 1); PR E (years 2–3 and the gates) is up; the owner
+**Status: In progress. PRs A–E landed (the model, the bar, the
+walkthrough ported, years 1–3 and the gates); PR F (years 4–5) is up; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -464,6 +464,25 @@ Example, chapter 6 (Standing), which answers F6:
   against that most, which is what "a good score" means (F6). It doesn't
   rank "most to gain": that list would put research first in year 2,
   before research can exist.
+
+**As implemented (PR F):**
+- Years 4–5 are three chapters:
+  - **The teams** (Y4 wk 1, once a sport club has formed). Required: an
+    athletic director. Optional: a varsity team. Its briefing answers F2
+    ("unsure what athletics was for") and F3 (the postseason's old powers).
+  - **Running the college** (Y4 wk 27). Required: a Provost. Optional: an
+    office in Founders Hall.
+  - **The long game** (Y5 wk 1). Required: a standing sweep. Optional: the
+    buildings' full upkeep, and a school founded.
+- **The teams is a side chapter** (`side: true`). It waits only for its
+  week and its sport club, and nothing waits for it, so a college that
+  never takes up athletics still reaches the chapters after it.
+  - The drawer shows it when it is open.
+  - "What opens next" never names it.
+- The Athletics tab waits for "The teams" in a guided run (`tabAvailable`,
+  gates.ts), in addition to the ladder's sport-club milestone.
+- §3's later chapters (research, alumni, capital projects, the
+  specialization) are left for PR H; PR G is the Guide.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.

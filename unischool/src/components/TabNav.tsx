@@ -1,4 +1,5 @@
 import type { GameState } from '../state/types';
+import { ATHLETICS_CHAPTER, chapterGateOpen } from '../systems/guidance/gates';
 import { milestoneForTab, tabOfSection, type TabSection } from '../data/ladderData';
 import { ladderOpensSection, ladderOpensTab } from '../systems/ladder/ladderSystem';
 
@@ -33,7 +34,8 @@ export const GATED_TABS: readonly TabId[] = TABS.map((t) => t.id).filter((id) =>
 // The one availability answer, used by the toolbar's icon row, by App (which
 // refuses to open an unavailable tab) and by the unlock log line.
 export function tabAvailable(s: GameState, id: TabId): boolean {
-  return ladderOpensTab(s, id);
+  // Athletics also waits for its chapter in a guided run (Plan 106 PR F).
+  return ladderOpensTab(s, id) && (id !== 'athletics' || chapterGateOpen(s, ATHLETICS_CHAPTER));
 }
 
 // Whether a section of a tab shows: its tab is available and the ladder has

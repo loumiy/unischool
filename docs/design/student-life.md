@@ -352,7 +352,8 @@ way: a **pity timer** makes the next club formation a sport club once a
 student centre has stood two years with none, the varsity fuse is three years
 rather than five, a sport club's row on Student Life says when it may
 petition, and the Athletics tab opens with the first sport club, empty and
-showing the path.
+showing the path. In a guided run it also waits for the chapter "The teams"
+(Plan 106 PR F), from Year 4, which opens with that club.
 
 **The pot and the list** (Plan 21's PR G) are what the department decides.
 Its programs sit in one **ordered list** (`s.orgs.teamOrder` — the order is

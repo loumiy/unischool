@@ -16,9 +16,11 @@ import { COURSE_DEVELOPMENT_SLOTS } from '../systems/techtree/techSystem';
 import { CROWDING_PENALTY } from '../systems/prestige/prestigeSystem';
 import { FOUNDERS_HALL_ID } from './techData';
 import { count, countWord } from '../format';
+import { SEAT_SENIOR_YEARS } from './seatData';
 
 export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
-  | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life' | 'promises';
+  | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life' | 'promises'
+  | 'the-teams' | 'running-the-college' | 'the-long-game';
 
 // Where a Show me goes: the NEXT line's own doors.
 export type Door = NonNullable<NextStep['go']>;
@@ -255,6 +257,67 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       why: [
         { system: 'Rewards', text: 'a kept promise pays its reward, and a missed one costs, the summer it falls due' },
         { system: 'Final Report', text: 'the fiftieth summer counts every promise kept' },
+      ],
+    },
+  },
+  'the-teams': {
+    title: 'The teams',
+    objectives: {
+      'appoint-athletic-director': 'Appoint an athletic director',
+      'field-a-varsity-team': 'Field a varsity team',
+    },
+    briefing: {
+      what: "A sport club the students run can petition to become a varsity team, with a budget and a venue. Varsity teams play their seasons through the year, and the strongest reach the playoffs in week 47. An athletic director runs the department: the coaches, and the order the fund pays the programs in.",
+      how: [
+        { text: 'The Athletics tab lists the clubs, the teams and their venues.', door: 'athletics' },
+        { text: 'Drag the programs in the priority list: the first are the flagships, and the fund pays their whole cost.', door: 'athletics' },
+        { text: "Coaches come from the Athletics tab's own market, apart from the faculty's." },
+      ],
+      why: [
+        { system: 'Prestige', text: "athletics is one of prestige's four pillars, and a title lifts it for good" },
+        { system: 'Admissions', text: "a title swells the next few summers' applicant pools" },
+        { system: 'Rivals', text: 'the old athletic powers keep an edge in the postseason, so titles come slowly at first' },
+      ],
+    },
+  },
+  'running-the-college': {
+    title: 'Running the college',
+    objectives: {
+      'appoint-a-provost': 'Appoint a Provost',
+      'open-an-office': 'Open an office in Founders Hall',
+    },
+    briefing: {
+      what: "A seat takes a domain's routine off the President's desk: the Provost, the Deans and the rest each answer the matters in their domain by a policy the President sets. A seat is for good, and so is its salary. A free program slot in Founders Hall can hold an office instead, each with its own lasting help.",
+      how: [
+        { text: `The foot of the Faculty tab lists the seats: hire from outside, or promote a professor of ${SEAT_SENIOR_YEARS} years for less.`, door: 'faculty' },
+        { text: "A free slot in Founders Hall's panel can open an office.", door: 'hall', hallId: FOUNDERS_HALL_ID },
+        { text: 'With a Provost the clock runs at four times speed; with a Provost and three Deans, at eight.' },
+      ],
+      why: [
+        { system: 'Inbox', text: 'a seat answers the matters in its domain, so fewer reach the President' },
+        { system: 'The clock', text: 'four and eight times speed wait for the seats' },
+        { system: 'Treasury', text: 'every seat and every open office costs something each week' },
+      ],
+    },
+  },
+  'the-long-game': {
+    title: 'The long game',
+    objectives: {
+      'set-a-sweep': 'Set a standing sweep into the endowment',
+      'full-upkeep': "Pay the buildings' full upkeep",
+      'found-a-school': 'Found a school',
+    },
+    briefing: {
+      what: "Cash earns nothing, and the guide judges a college's money by its endowment per student. The endowment pays a draw into income every week, and a standing sweep moves cash above a reserve into it at each quarter's close. Ahead lie the first school, research and the rankings.",
+      how: [
+        { text: "The Treasury's endowment panel sets the sweep and the draw.", door: 'treasury' },
+        { text: "The Treasury's estate panel sets how much of the buildings' upkeep is paid; what goes unpaid becomes a backlog.", door: 'treasury' },
+        { text: 'Six programs of one school in one hall found the school.', door: 'curriculum' },
+      ],
+      why: [
+        { system: 'Prestige', text: "the endowment counts toward prestige's target, and run-down buildings are taken off it" },
+        { system: 'Research', text: 'a founded school opens the first laboratory' },
+        { system: 'Rankings', text: 'a college in the top 30 is offered a specialization, for good' },
       ],
     },
   },
