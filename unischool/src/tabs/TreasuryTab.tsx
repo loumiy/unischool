@@ -85,7 +85,7 @@ function rungNote(s: GameState): string {
     case RUNG_TIGHT: return 'Cash is under a term\'s expenses. Two deficit terms in a row put the college on Deficit.';
     case RUNG_DEFICIT: return 'Two deficit terms in a row. If cash reaches zero, construction and borrowing freeze.';
     case RUNG_FREEZE: return 'No construction or borrowing until two surplus terms. Three terms frozen bring austerity.';
-    case RUNG_AUSTERITY: return 'No construction, no maintenance, and tuition may rise but not fall. Three terms of it bring an interim CFO.';
+    case RUNG_AUSTERITY: return 'No construction, no maintenance, and tuition may rise but not fall. Three terms of austerity bring an interim CFO.';
     default: return `The interim CFO sets the draw and the maintenance, ${d.receivershipTermsLeft === 1 ? 'one term' : `${d.receivershipTermsLeft} terms`} left.`;
   }
 }

@@ -576,7 +576,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
           const bonus = chapter
             ? CHAPTER_SOCIAL_BONUS + (chapter.housed ? CHAPTER_HOUSED_SOCIAL_BONUS : 0)
             : CHAPTER_SOCIAL_BONUS;
-          return `No cash spent. ${ctx.subjectName} is dissolved permanently: up to ${bonus.toFixed(1)} points of social life and ${money(chapter?.upkeepPerWeek ?? 0)} a week of cost go with it${chapter?.housed ? `, and the ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of its house` : ''}. It cannot be re-chartered.`;
+          return `No cash spent. ${ctx.subjectName} is dissolved permanently, taking up to ${bonus.toFixed(1)} points of social life and ${money(chapter?.upkeepPerWeek ?? 0)} a week of cost${chapter?.housed ? `, and the ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of its house` : ''}. It cannot be re-chartered.`;
         },
         cost: () => 0,
         apply: (s, ctx) => {
@@ -747,7 +747,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'wait',
         label: 'Leave it to the open market',
-        describe: () => 'Nothing is spent. The chair stays empty until somebody on the market is hired into it — which costs the team quality for as long as it takes.',
+        describe: () => 'Nothing is spent. The chair stays empty until a head coach is hired from the market, and the team loses quality for as long as the chair is empty.',
         cost: () => 0,
         apply: (s, ctx) => entry(s, `${ctx.subjectName} will go on without the appointment for now.`, 'info'),
       },
