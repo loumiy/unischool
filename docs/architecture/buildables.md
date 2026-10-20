@@ -117,8 +117,9 @@ Plan 105E: weeks since founding), set in `techSystem.ts`'s
 `completeDevelopment` beside a building's `builtYear`, cleared when its program
 is closed (`closeProgram`), and derived on load for a save from before it
 existed (`persistence.ts`'s `sanitizeCompletedWeeks`). Nothing in the
-simulation reads it: it is the record the curriculum's year-by-year replay
-draws from (`components/CurriculumReplay.tsx`).
+simulation reads it. It was the record the curriculum's year-by-year replay
+drew from; the replay is shelved with the radial curriculum (Plan 105), and
+the field is kept so saves carry it if they return.
 
 ### Looks that are not state (Plan 25)
 

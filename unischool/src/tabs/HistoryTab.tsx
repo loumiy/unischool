@@ -15,7 +15,6 @@ import { count, fraction, moneyShort, pct, prestigeFigure, satisfactionFigure } 
 import { rankForecast } from '../systems/administration/forecast';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
-import CurriculumReplay from '../components/CurriculumReplay';
 import { finalReport } from '../state/finalReport';
 import { REPORT_DRAFT_FROM, REPORT_WORDS } from '../data/reportData';
 import FinalReportView from '../components/FinalReportView';
@@ -234,7 +233,6 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <FinalReportPanel s={s} />
         <PromisesPanel s={s} />
         <ChroniclePanel s={s} />
-        {s.tech.some((t) => t.kind === 'course' && t.status === 'done') && <CurriculumReplay s={s} />}
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-title">
@@ -262,7 +260,6 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <FinalReportPanel s={s} />
       <PromisesPanel s={s} />
       <ChroniclePanel s={s} />
-      <CurriculumReplay s={s} />
       <section className="panel">
         <div className="panel-head">
           <div className="panel-head-title">

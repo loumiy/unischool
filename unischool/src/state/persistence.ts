@@ -399,8 +399,7 @@ function noClosuresYet(state: GameState): void {
 // save still knows: the first week a professor on the roster taught it, its
 // completion line in the log, or the year its program was established (a
 // core course) or distinguished (an advanced course or the capstone). With
-// none of them it stays without, and the replay draws it from the start of
-// its last year.
+// none of them it stays without.
 function sanitizeCompletedWeeks(state: GameState): void {
   const now = (state.clock.year - 1) * WEEKS_PER_YEAR + state.clock.week;
   const ok = (w: unknown): w is number => Number.isInteger(w) && (w as number) >= 1 && (w as number) <= now;

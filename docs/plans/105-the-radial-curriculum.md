@@ -7,7 +7,16 @@ the whole curriculum, entry courses at the centre and capstones at the rim,
 that draws only what the college has opened and fills the screen between
 two side panels.*
 
-**Status: Landed.** A, B–D, E–F and G in four commits on one branch. The
+**Status: Landed, and since shelved.** The owner played it and found it too busy and confusing;
+a simplified round (one school at a time, one panel) was mocked up and also
+set aside, and the owner chose to go back to the List. The Curriculum tab is
+the list again, and the History tab and Final Report lose the replay. Only
+105E stays in the game: each course's `completedWeek` is still recorded and
+derived on load, so saves carry it if the drawing returns. The whole build is
+kept in git: it is main at `4f453cf` (PR #388 plus #389's upright school
+names); restoring it is `git revert` of the commit that shelved it.
+
+As landed, before it was shelved: A, B–D, E–F and G in four commits on one branch. The
 owner answered the five decisions as proposed (§4). Two departures, both the
 owner's, made while B landed: the drawing carries no caption until the pointer
 is on a course, and cross-program prerequisites are not drawn at all (§2's
