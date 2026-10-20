@@ -45,7 +45,7 @@ import StudentsTab from './tabs/StudentsTab';
 import HistoryTab, { HISTORY_VIEW_START, type HistoryView } from './tabs/HistoryTab';
 import AthleticsTab from './tabs/AthleticsTab';
 import { freshSeed } from './engine/random';
-import { noteTab } from './analytics/analytics';
+import { guideOpened, noteTab } from './analytics/analytics';
 import './styles.css';
 
 // The playtest panel is in development builds only (Plan 70C): the public
@@ -212,6 +212,7 @@ export default function App() {
     const id = TAB_GUIDE[tab];
     if (!id || s.guidance?.opened[id] === undefined) return undefined;
     return () => {
+      guideOpened(id, 'tab');
       setObjectivesView(id);
       setObjectivesOpen(true);
       setLogOpen(false);
@@ -570,7 +571,7 @@ export default function App() {
             objectivesOpen={objectivesOpen}
             onSetObjectivesOpen={(o) => { setObjectivesOpen(o); setObjectivesView(null); if (o) { setLogOpen(false); setLadderOpen(false); closeBuild(); } }}
             objectivesView={objectivesView}
-            onSetObjectivesView={setObjectivesView}
+            onSetObjectivesView={(id) => { if (id) guideOpened(id, 'list'); setObjectivesView(id); }}
             onGo={(go, hallId, programId) => {
             if (go === 'build') setBuildOpen(true);
             else if (go === 'campus') openTab(null);

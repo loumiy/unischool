@@ -269,6 +269,12 @@ export function runResumed(year: number): void {
 // whether the board's letters were kept. The next stage change observed is
 // that skip's, so it is not sent as a step.
 let walkSkipped = false;
+// A Guide page read again (Plan 106 PR I): from a tab's button or the
+// drawer's list.
+export function guideOpened(chapter: string, from: 'tab' | 'list'): void {
+  track('guide_opened', { chapter, from });
+}
+
 export function openingSkipped(stage: OpeningStage, letters: boolean): void {
   walkSkipped = true;
   track('opening_skipped', { stage, letters });
@@ -290,6 +296,7 @@ export function observe(prev: GameState, next: GameState): void {
       stops: y.stops,
       ...Object.fromEntries(PLAYING_SPEEDS.map((sp) => [`weeks_${sp}`, y.weeks[sp] ?? 0])),
       ...Object.fromEntries(TAB_IDS.map((t) => [`tab_${t}`, y.tabs[t] ?? 0])),
+      objectives: getSettings().objectives,
     });
   }
   if (next.started && prev.started && next.clock.year > prev.clock.year) {

@@ -4,6 +4,8 @@ import { TAGS } from '../data/tagData';
 import { PROMISES } from '../data/promiseData';
 import { REPORT_GRADES } from '../data/reportData';
 import { EDITIONS, PLATFORMS } from '../build';
+import { CHAPTER_COPY, OBJECTIVES_MODES } from '../data/chapterData';
+import { WEEKS_PER_YEAR } from '../state/types';
 
 // THE PLAY STATISTICS' EVENTS (Plan 97E, from Plan 70K): every event the
 // game may send, and every field each may carry. Nothing a player typed
@@ -44,6 +46,9 @@ const OPENING_STAGES = Object.keys(OPENING_STAGES_RECORD) as OpeningStage[];
 export const OPENING_REACHED = OPENING_STAGES.filter((st) => st !== 'welcome');
 export const OPENING_CARDS = OPENING_STAGES.filter((st) => st !== 'play');
 
+// The objectives' chapters (Plan 106 PR I, state/chapters.ts), by id.
+export const CHAPTER_IDS = Object.keys(CHAPTER_COPY);
+
 // On every event (analytics.ts adds them).
 export const COMMON_FIELDS: Readonly<Record<string, FieldKind>> = {
   version: 'build',
@@ -64,6 +69,8 @@ const yearFields: Record<string, FieldKind> = {
   stops: 'number',
   ...Object.fromEntries(PLAYING_SPEEDS.map((sp) => [`weeks_${sp}`, 'number'])),
   ...Object.fromEntries(TAB_IDS.map((t) => [`tab_${t}`, 'number'])),
+  // The Objectives setting this summer (Plan 106 PR I): Guided, Brief or Off.
+  objectives: OBJECTIVES_MODES,
 };
 
 export const EVENTS = {
@@ -84,6 +91,13 @@ export const EVENTS = {
   crashed: { message: 'message', year: 'number' },
   opening_step: { stage: OPENING_REACHED },
   opening_skipped: { stage: OPENING_CARDS, letters: 'boolean' },
+  // The objectives (Plan 106 PR I): a chapter opened, done (and how many
+  // weeks it took), its briefing first shown, and a Guide page read again
+  // from a tab's button or the drawer's list.
+  chapter_opened: { chapter: CHAPTER_IDS, year: 'number' },
+  chapter_done: { chapter: CHAPTER_IDS, year: 'number', weeks_open: 'number' },
+  briefing_read: { chapter: CHAPTER_IDS },
+  guide_opened: { chapter: CHAPTER_IDS, from: ['tab', 'list'] },
 } as const satisfies Record<string, Record<string, FieldKind>>;
 
 export type EventName = keyof typeof EVENTS;
@@ -160,6 +174,26 @@ export function stateEvents(prev: GameState, next: GameState, walkSkipped = fals
   const from = prev.events.opening.stage;
   const to = next.events.opening.stage;
   if (from !== to && to !== 'welcome' && !(walkSkipped && to === 'play')) out.push({ name: 'opening_step', fields: { stage: to } });
+  // The chapters (Plan 106 PR I): opened, done, briefing read. Not on the
+  // settle that first writes a run's record, which catches an older save
+  // up all at once (state/chapters.ts's caughtUp).
+  const was = prev.guidance;
+  const now = next.guidance;
+  if (was && now) {
+    const year = (week: number) => Math.floor((week - 1) / WEEKS_PER_YEAR) + 1;
+    for (const [id, week] of Object.entries(now.opened)) {
+      if (was.opened[id] === undefined && CHAPTER_IDS.includes(id)) out.push({ name: 'chapter_opened', fields: { chapter: id, year: year(week) } });
+    }
+    for (const [id, week] of Object.entries(now.done)) {
+      if (was.done[id] === undefined && CHAPTER_IDS.includes(id)) {
+        out.push({ name: 'chapter_done', fields: { chapter: id, year: year(week), weeks_open: week - (now.opened[id] ?? week) } });
+      }
+    }
+    for (const mark of now.marked) {
+      const id = mark.startsWith('read:') ? mark.slice('read:'.length) : null;
+      if (id && !was.marked.includes(mark) && CHAPTER_IDS.includes(id)) out.push({ name: 'briefing_read', fields: { chapter: id } });
+    }
+  }
   // The summer closed: RESOLVE_ADMISSIONS turned the calendar.
   if (next.clock.year > prev.clock.year) {
     const year = prev.clock.year;
