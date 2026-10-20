@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { CloseIcon } from './icons';
+import { DRAWER_WORDS } from '../data/chapterData';
 
 // The full-viewport frame every view other than the campus map renders in
 // (see App.tsx): a titled header, a close button and a scroll container.
@@ -13,16 +14,25 @@ import { CloseIcon } from './icons';
 // scrolls its own panes (the inbox's list and reading pane, Plan 77).
 // No `onClose`: the view cannot be left (the inbox while a stop waits on
 // an answer, Plan 77).
-export default function TabOverlay({ title, onClose, split = false, children }: {
+// `onGuide`: the tab's Guide button (Plan 106 PR G), which opens the
+// briefing of the chapter that introduced it; absent until that chapter
+// has opened.
+export default function TabOverlay({ title, onClose, split = false, onGuide, children }: {
   title: string;
   onClose?: () => void;
   split?: boolean;
+  onGuide?: () => void;
   children: ReactNode;
 }) {
   return (
     <div className="tab-overlay" role="dialog" aria-modal="false" aria-label={title}>
       <div className="tab-overlay-head">
         <h2>{title}</h2>
+        {onGuide && (
+          <button type="button" className="tab-overlay-guide" onClick={onGuide} aria-label={DRAWER_WORDS.guideTab(title)}>
+            ? {DRAWER_WORDS.guide}
+          </button>
+        )}
         {onClose ? (
           <button type="button" className="tab-overlay-close" onClick={onClose} aria-label={`Close ${title}`}>
             Close <CloseIcon />

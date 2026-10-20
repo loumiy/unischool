@@ -10,6 +10,7 @@
 // adds to; name the actor first, and never end on a passive and a pronoun.
 
 import type { ObjectivesMode } from '../settings';
+import type { TabId } from '../components/TabNav';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { COURSE_DEVELOPMENT_SLOTS } from '../systems/techtree/techSystem';
@@ -352,6 +353,10 @@ export const DRAWER_WORDS = {
   between: (title: string, when: string) => `${title} opens ${when}.`,
   waitingOn: (title: string) => `${title} opens when the chapter before it is done.`,
   allDone: 'Every chapter so far is done.',
+  guide: 'Guide',
+  guideList: 'Read again',
+  back: 'Back to the objectives',
+  guideTab: (tab: string) => `The Guide on ${tab}`,
   live: 'Now',
   prestigeNow: (now: string, target: string) => `Prestige ${now}, its target ${target}`,
   pillars: 'Its pillars',
@@ -359,4 +364,17 @@ export const DRAWER_WORDS = {
   takenOff: 'Taken off',
   satisfactionNow: (now: string) => `Satisfaction ${now}.`,
   drag: (need: string) => `${need} is pulling it down most.`,
+};
+
+// THE GUIDE (Plan 106 PR G): each tab's "Guide" button opens the briefing
+// of the chapter that introduced its system, once that chapter has opened.
+// A tab with no chapter yet (Research, until PR H) has no button.
+export const TAB_GUIDE: Partial<Record<TabId, ChapterId>> = {
+  curriculum: 'next-course',
+  faculty: 'a-faculty',
+  students: 'standing',
+  history: 'standing',
+  treasury: 'paying-for-it',
+  inbox: 'campus-life',
+  athletics: 'the-teams',
 };

@@ -364,3 +364,9 @@ export function leadObjective(s: GameState, c: Chapter): ReturnType<typeof objec
 // A chapter's briefing read: marked when the drawer first shows it, so
 // Guided opens it by itself only once.
 export const readMark = (id: string) => `read:${id}`;
+
+// The Guide (Plan 106 PR G): every chapter with a briefing that the run
+// has opened, in the order they came; read again from the drawer.
+export function guideChapters(s: GameState): Chapter[] {
+  return CHAPTERS.filter((c) => s.guidance?.opened[c.id] !== undefined && CHAPTER_COPY[c.id].briefing !== undefined);
+}

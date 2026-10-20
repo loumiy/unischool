@@ -45,10 +45,12 @@ function progressText(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)} of ${figure(p.target, p.unit)} ${p.unit}`;
 }
 
-export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, objectivesOpen, onSetObjectivesOpen, onGo, inboxOpen, onOpenMarket }: {
+export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, objectivesOpen, onSetObjectivesOpen, objectivesView = null, onSetObjectivesView, onGo, inboxOpen, onOpenMarket }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
   objectivesOpen: boolean; onSetObjectivesOpen: (open: boolean) => void;
+  // The Guide's page, when the drawer reads a chapter met before (PR G).
+  objectivesView?: string | null; onSetObjectivesView?: (id: string | null) => void;
   onGo: (go: NonNullable<NextStep['go']>, hallId?: string, programId?: string) => void;
   inboxOpen: boolean;
   // A retirement's notice opens the market in its field (Plan 84D).
@@ -137,13 +139,17 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           <LogStrip s={s} onOpenMarket={onOpenMarket ? (field) => { onSetOpen(false); onOpenMarket(field); } : undefined} />
         </ToolbarPopup>
       )}
-      {objectivesOpen && chaptersOn && (
+      {/* The Guide reads whatever the setting: Off hides the chapters, not
+          what a tab's Guide button asks for. */}
+      {objectivesOpen && (chaptersOn || objectivesView !== null) && (
         <ToolbarPopup title={DRAWER_WORDS.title} onClose={() => onSetObjectivesOpen(false)} className="objectives-popup">
           <ObjectivesPanel
             s={s}
             waiting={step}
             onGo={(go, hallId, programId) => { onSetObjectivesOpen(false); onGo(go, hallId, programId); }}
             onOpenLadder={() => onSetLadderOpen(true)}
+            view={objectivesView}
+            onView={onSetObjectivesView}
           />
         </ToolbarPopup>
       )}

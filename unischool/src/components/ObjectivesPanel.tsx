@@ -1,7 +1,7 @@
 import type { GameState } from '../state/types';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { CHAPTER_COPY, DRAWER_WORDS as W, type Door } from '../data/chapterData';
-import { CHAPTERS, absoluteWeek, chapterNumber, currentChapter, nextChapter, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import { absoluteWeek, chapterById, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import { count, gameDateOfWeek, prestigeFigure, satisfactionFigure } from '../format';
@@ -57,19 +57,28 @@ function StandingLive({ s }: { s: GameState }) {
   );
 }
 
-export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
+export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, onView }: {
   s: GameState;
   // The NEXT line (nextStep.ts): what waits besides the chapter.
   waiting: NextStep | null;
   onGo: (go: Door, hallId?: string, programId?: string) => void;
   onOpenLadder: () => void;
+  // The Guide (PR G): a chapter met before, read again in place of the
+  // current one; null for the current. `onView` turns the page.
+  view?: string | null;
+  onView?: (id: string | null) => void;
 }) {
-  const chapter = currentChapter(s);
+  const current = currentChapter(s);
+  // The page asked for, unless it is the current chapter's: that one reads
+  // as the objectives themselves.
+  const asked = view !== null ? chapterById(view) ?? null : null;
+  const reading = asked && asked.id !== current?.id ? asked : null;
+  const chapter = reading ?? current;
   const copy = chapter ? CHAPTER_COPY[chapter.id] : null;
   const rows = chapter ? objectiveRows(s, chapter) : [];
   const required = rows.filter((r) => !r.optional);
   const coming = chapter ? null : nextChapter(s);
-  const done = CHAPTERS.filter((c) => s.guidance?.done[c.id] !== undefined);
+  const guide = guideChapters(s).filter((c) => c.id !== chapter?.id);
 
   const since = chapter ? s.guidance!.opened[chapter.id] : absoluteWeek(s) - 52;
   const unlocked = MILESTONES
@@ -81,6 +90,9 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
 
   return (
     <div className="objectives">
+      {reading && onView && (
+        <button type="button" className="objectives-back" onClick={() => onView(null)}>← {W.back}</button>
+      )}
       {chapter && copy ? (
         <section className="objectives-chapter">
           <p className="letter-eyebrow">
@@ -142,7 +154,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
         </p>
       )}
 
-      {waiting && (
+      {!reading && waiting && (
         <section className="objectives-waiting">
           <h4>{W.waiting}</h4>
           <p className={waiting.urgent ? 'urgent' : undefined}>
@@ -152,7 +164,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
         </section>
       )}
 
-      <section className="objectives-milestones">
+      {!reading && <section className="objectives-milestones">
         <h4>{W.milestones}</h4>
         {unlocked.map((m) => (
           <p key={m.id} className="objectives-unlocked"><strong>{W.unlocked}: {m.name}.</strong> {m.opens.join('; ')}</p>
@@ -164,10 +176,17 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder }: {
           </p>
         )}
         <button type="button" className="objectives-door" onClick={onOpenLadder}>{W.allMilestones}</button>
-      </section>
+      </section>}
 
-      {done.length > 0 && (
-        <p className="objectives-done">{W.done}: {done.map((c) => CHAPTER_COPY[c.id].title).join(' · ')}</p>
+      {guide.length > 0 && onView && (
+        <section className="objectives-guide">
+          <h4>{W.guide} · {W.guideList}</h4>
+          <p>
+            {guide.map((c) => (
+              <button key={c.id} type="button" className="objectives-guide-link" onClick={() => onView(c.id)}>{CHAPTER_COPY[c.id].title}</button>
+            ))}
+          </p>
+        </section>
       )}
     </div>
   );

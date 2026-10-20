@@ -12,8 +12,9 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PRs A–E landed (the model, the bar, the
-walkthrough ported, years 1–3 and the gates); PR F (years 4–5) is up; the owner
+**Status: In progress. PRs A–F landed (the model, the bar, the
+walkthrough ported, the first five years' chapters and the gates); PR G
+(the Guide) is up; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -483,6 +484,24 @@ Example, chapter 6 (Standing), which answers F6:
   gates.ts), in addition to the ladder's sport-club milestone.
 - §3's later chapters (research, alumni, capital projects, the
   specialization) are left for PR H; PR G is the Guide.
+
+**As implemented (PR G):**
+- The Guide lives in the drawer:
+  - a "Read again" list of every chapter met that has a briefing;
+  - each page shows that chapter's objectives as they stand, its live
+    readout and its briefing, with a way back;
+  - the current chapter's page is the objectives themselves.
+- Each tab's "? Guide" button opens its chapter's page
+  (`TAB_GUIDE`: Curriculum → The next course, Faculty → A faculty,
+  Students and History → Standing, Treasury → Paying for it, Inbox →
+  Campus life, Athletics → The teams). The button appears once that
+  chapter has opened, and works whatever the Objectives setting.
+- **HelpHints are kept, not retired.** A briefing is the overview: what,
+  how and why, in a few lines. A HelpHint is the reference: the exact rule
+  beside the control it governs (the draw rate's 4%, the committee's
+  seats). Retiring one would lose the detail where it is used, so §2's
+  "begin retiring HelpHints" is dropped. The Guide is where the overview
+  is found again.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.
