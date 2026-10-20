@@ -95,7 +95,7 @@ export function advanceOpening(s: GameState): void {
 
 // Every program's first course: the walk's second course is any other.
 let entryIds: Set<string> | null = null;
-function laterCourseStarted(s: GameState): boolean {
+export function laterCourseStarted(s: GameState): boolean {
   entryIds ??= new Set(programs().map((p) => p.entryCourseId));
   return s.tech.some((t) => t.kind === 'course' && (t.status === 'developing' || t.status === 'done') && !entryIds!.has(t.id));
 }

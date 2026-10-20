@@ -58,6 +58,9 @@ export type Action =
   // `keepLetters`: skipping from a mid-walk card leaves the first year's
   // letters on; the welcome's decline turns them off too.
   | { type: 'SKIP_OPENING'; keepLetters?: boolean }
+  // Something the objectives count that the college's state doesn't
+  // record: a speed set, a page read (state/chapters.ts).
+  | { type: 'MARK_GUIDANCE'; mark: string }
   // Courses only; placeables use PLACE_BUILDABLE. `facultyId` is omitted only
   // by the headless sim, letting the engine pick the strongest eligible teacher.
   | { type: 'START_DEVELOPMENT'; nodeId: string; facultyId?: string }
@@ -497,6 +500,7 @@ function foundState(
     milestones: {},
     seen: { courseIds: {}, buildableIds: {}, tabIds: {} },
     ladder: foundingLadder(1),
+    guidance: { opened: {}, done: {}, met: [], marked: [] },
   };
 
   holdBackUnreached(state);
