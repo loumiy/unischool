@@ -109,7 +109,7 @@ export const TRAINING_WORDS = {
     thisYear: 'Already trained this year.',
   },
   trainedBadge: 'Trained',
-  trainedBadgeTitle: (times: number, points: number) => `Trained at the institute ${times === 1 ? 'once' : `${times} times`}: +${points} teaching, and potential with it`,
+  trainedBadgeTitle: (times: number, points: number) => `Trained at the institute ${times === 1 ? 'once' : `${times} times`}: +${points} teaching, and potential raised to match`,
   inTraining: (until: string) => `At the institute: one course fewer until ${until}`,
 
   // The log.

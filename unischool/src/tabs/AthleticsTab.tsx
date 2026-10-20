@@ -323,7 +323,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           <>
             <Figure label="Gate" value={`${money(pot.earned)}/yr`} hint="What the programs earn at the gate in a year, which goes into the same fund." />
             <Figure label="Fund" value={`${money(pot.pot)}/yr`} hint="The subsidy and the gate together: what the programs take from, in the order of the cards." />
-            <Figure label="Programs take" value={`${money(pot.drawn)}/yr`} hint={`What the programs take from the fund to compete, in the order of the cards until the fund runs out: a flagship its sport's whole cost, any other program up to ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of it.`} />
+            <Figure label="Programs take" value={`${money(pot.drawn)}/yr`} hint={`What the programs take from the fund to compete, in the order of the cards until the fund runs out: a flagship its sport's whole cost, any other program up to ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its sport's cost.`} />
             <Figure label="Back to the college" value={pot.surplus > 0 ? `${money(pot.surplus)}/yr` : 'nothing'} hint="The subsidy the programs do not take is never charged, and the gate they leave is paid to the college each week." />
           </>
         )}

@@ -91,7 +91,7 @@ export function demolitionBlock(s: GameState, t: Buildable): string | null {
   if (t.historic) return 'It has been declared historic.';
   const slots = s.halls[t.id];
   if (slots?.some((slot) => slot.programId !== null)) return 'Its programs must be moved out first.';
-  if (s.research.initiatives[t.id]) return 'A research project is under way in it.';
+  if (s.research.initiatives[t.id]) return 'A research project is under way in this building.';
   if (!templateOf(t.id)) return 'It cannot be built again.';
   return null;
 }

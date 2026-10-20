@@ -134,7 +134,7 @@ export function teamSlowed(earned: number, quality: number): string {
 // The team quality in the Athletics tab's help (Plan 85C), as the college's
 // specialization leaves it (Plan 85D).
 export function teamLimitHelp(knee: number, chosen: Pillar | null): string {
-  if (chosen === 'athletics') return 'The college is specialized in athletics: a program\'s quality comes as easily above ' + knee + ' as below it, and the established powers keep only a quarter of their edge over it in the postseason.';
+  if (chosen === 'athletics') return 'The college is specialized in athletics: a program\'s quality comes as easily above ' + knee + ' as below it, and the established powers keep only a quarter of their edge over the college in the postseason.';
   return chosen
     ? `The college is specialized in ${PILLAR_WORDS[chosen]}, so above ${knee} each point of a program's quality comes harder and 100 is out of reach, and the established powers are stronger still in a semifinal and a final: a title is rare.`
     : `Without a specialization in athletics, each point of a program's quality comes harder above ${knee} and 100 is out of reach, and the established powers are stronger still in a semifinal and a final, so a title is rare.`;
@@ -337,7 +337,7 @@ export const CHOICE_WORDS = {
   less: 'Less',
   moreLabel: (name: string, open: boolean) => `${open ? 'Show less about' : 'Show more about'} ${name.replace(/^The /, 'the ')}`,
   yours: (value: number, rank: number) => `The college stands at ${value.toFixed(0)}, #${rank} in the pillar.`,
-  rivals: (count: number) => (count === 0 ? 'No rival is specialized in it.' : `${count} rival${count === 1 ? ' is' : 's are'} specialized in it`),
+  rivals: (count: number) => (count === 0 ? 'No rival has specialized in this pillar.' : `${count} rival${count === 1 ? ' has' : 's have'} specialized in this pillar`),
   strongestRival: (name: string, value: number) => `; the strongest, ${name}, stands at ${value.toFixed(0)}.`,
   choose: (name: string) => `Choose ${name.replace(/^The /, 'the ')}`,
   confirm: 'Confirm',

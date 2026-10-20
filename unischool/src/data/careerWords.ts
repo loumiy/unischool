@@ -66,7 +66,7 @@ export const CAREER_WORDS = {
 
   // Training at the Faculty Training Institute (Plan 85E).
   trained: (year: number, from: number, to: number) =>
-    `Trained at the Faculty Training Institute in Year ${year}: teaching ${from} → ${to}, and their potential with it.`,
+    `Trained at the Faculty Training Institute in Year ${year}: teaching ${from} → ${to}, and their potential raised to match.`,
   trainingNow: (until: string) => `At the institute this term: one course fewer until ${until}.`,
   notTrained: 'Not trained at the institute yet.',
   trainingPoints: (points: number) => `Training has added ${points} to their teaching in all.`,

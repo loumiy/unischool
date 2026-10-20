@@ -208,7 +208,7 @@ export function tickResearch(s: GameState): void {
     const participants = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
     if (participants.length === 0) {
       const topic = researchTopic(initiative.topicId);
-      log(s, `"${topic?.name ?? 'A project'}" has been abandoned — nobody is left on it.`, 'bad', 'research-concluded', initiative.labId);
+      log(s, `"${topic?.name ?? 'A project'}" has been abandoned — nobody is left on the project.`, 'bad', 'research-concluded', initiative.labId);
       concludeInitiative(s, initiative, true);
       continue;
     }
