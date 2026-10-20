@@ -17,7 +17,7 @@ import { CROWDING_PENALTY } from '../systems/prestige/prestigeSystem';
 import { FOUNDERS_HALL_ID } from './techData';
 import { count, countWord } from '../format';
 
-export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats';
+export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer';
 
 // Where a Show me goes: the NEXT line's own doors.
 export type Door = NonNullable<NextStep['go']>;
@@ -111,6 +111,45 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       why: [
         { system: 'Prestige', text: `crowding, averaged over the year, takes up to ${CROWDING_PENALTY} points off prestige's target at the summer` },
         { system: 'Admissions', text: 'the summer admits no more students than the catalog has places for' },
+      ],
+    },
+  },
+  'paying-for-it': {
+    title: 'Paying for it',
+    objectives: {
+      'open-treasury': 'Open the Treasury',
+      'weekly-surplus': 'Take in more each week than the college spends',
+    },
+    briefing: {
+      what: 'Tuition comes in every week, and salaries, upkeep and teaching go out every week. A building or a course is paid for in full when it starts. Cash under a term of expenses worries the board, and term after term of deficit walks the college down its scale, as far as a construction freeze.',
+      how: [
+        { text: "The funds figure on the dock opens the Treasury: the week's income and costs, line by line.", door: 'treasury' },
+        { text: "When cash falls short of a building, the build menu offers a loan for the difference, repaid weekly." },
+        { text: "The Treasury's board scale says where the books stand, from sound down to an interim CFO." },
+      ],
+      why: [
+        { system: 'Building', text: 'every building and course is paid from cash, and a freeze stops them all' },
+        { system: 'Faculty', text: 'salaries are paid every week, and every appointment adds one' },
+        { system: 'Admissions', text: "tuition is most of the income, and each summer sets the next class's price" },
+      ],
+    },
+  },
+  'first-summer': {
+    title: 'The first summer',
+    objectives: {
+      'set-first-class': "Set the first class's price and admit rate",
+    },
+    briefing: {
+      what: "Week 52 is the summer, and the year stops there for three pages: the year in review with its report card, admissions, and the students' petitions. In admissions the price comes first, and it holds for that class's four years. The applicants it drew come next, then the share the college admits.",
+      how: [
+        { text: "Tuition: the slider says whether a price is in line with the college's standing. The applicants show only once it is set." },
+        { text: 'Admit rate: every consequence shows before the choice, the places left in the catalog among them.' },
+        { text: 'The report card grades each part of prestige, and shows the step prestige takes next.' },
+      ],
+      why: [
+        { system: 'Treasury', text: "a class's tuition is income for four years, so a class admitted too small leaves four years short" },
+        { system: 'Enrollment', text: 'the admit rate sets how many come, and a thin class thins the income and the classrooms both' },
+        { system: 'Prestige', text: "the report card is prestige's verdict on the year, and next year starts from it" },
       ],
     },
   },

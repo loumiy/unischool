@@ -3,6 +3,7 @@ import { totalEnrolled, WEEKS_PER_YEAR } from './types';
 import { CHAPTER_COPY, type ChapterId } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
+import { weeklyNet } from '../systems/finance/financeSystem';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
@@ -102,7 +103,36 @@ export const CHAPTERS: readonly Chapter[] = [
       },
     ],
   },
+  {
+    // The money, before the summer sets next year's (Plan 106 §4, chapter 5
+    // of the plan's numbering before PR C added The next course). Week 30
+    // at the earliest, leaving the summer its own chapter.
+    id: 'paying-for-it',
+    earliest: week(1, 30),
+    objectives: [
+      { id: 'open-treasury', progress: (s) => marked(s, tabMark('treasury')) },
+      // Optional: a college running a deficit still meets its first summer's
+      // chapter, the one that explains where the income comes from.
+      { id: 'weekly-surplus', progress: (s) => weeklyNet(s) > 0, optional: true },
+    ],
+  },
+  {
+    // The first summer (week 52): the briefing says what the price and the
+    // admit rate do before the beat asks, and no warning comes at the
+    // choice (§7.5: a careless admit rate is still punished). Done when the
+    // summer has closed.
+    id: 'first-summer',
+    earliest: week(1, 46),
+    objectives: [
+      { id: 'set-first-class', progress: (s) => s.history.length >= 1 },
+    ],
+  },
 ];
+
+// The tabs an objective asks to be opened, marked by the shell when they
+// are (App.tsx), since an open tab is the shell's, not the college's.
+export const tabMark = (tab: string) => `tab:${tab}`;
+export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury']);
 
 // What a chapter rings while its objective waits, as the walkthrough's
 // steps did (Plan 103): the program whose next course the Curriculum
