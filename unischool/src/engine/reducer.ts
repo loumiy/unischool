@@ -183,7 +183,9 @@ export function reduceInPlace(s: GameState, action: Action): GameState {
   return withRandom(s, () => {
     const next = reduce(s, s, action);
     if (isSandbox(next)) settleSandbox(next);
-    settleChapters(next);
+    // The objectives on the tick only, so a refused action still leaves
+    // `s` as it was; what an action met is counted by the next week.
+    if (action.type === 'TICK') settleChapters(next);
     return next;
   });
 }
