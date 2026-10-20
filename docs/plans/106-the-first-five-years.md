@@ -162,8 +162,9 @@ OBJECTIVES
  ○ Give Elm Hall three programs of one school                    0/3
 
 WHAT IT IS
- Founders Hall has six program slots. Academic halls hold more, and a
- hall that houses three programs of one school is claimed by it …
+ Founders Hall has six program slots, and each academic hall adds six
+ more. When three programs of one school share a hall, that school
+ claims the hall and gives it its name …
 
 HOW
  · Build menu › Academic › Elm Hall                              [Show me]
@@ -295,6 +296,17 @@ The template every chapter's briefing follows, kept short by rule:
 - **Why it matters**: 2–4 links, each "→ System: one clause".
 - **Live**: when the chapter is about a number, its current value and its
   top three pulls. Nothing to write; it is read from state.
+
+Two rules for the sentences themselves (the owner, 20 October):
+
+- **Say what a number adds to.** "Academic halls hold more" can be read
+  as more than six programs in one hall; "each academic hall adds six
+  more" can't.
+- **Don't end a sentence on a passive and a pronoun.** "A hall … is
+  claimed by it" makes the reader search back for "it". Name the actor
+  and put it first: "that school claims the hall". The authored data
+  does this in many places; new text avoids it, and old text is fixed
+  when it is touched.
 
 Example, chapter 6 (Standing), which answers F6:
 
