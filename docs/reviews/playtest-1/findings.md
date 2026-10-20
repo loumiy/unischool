@@ -325,7 +325,12 @@ marked **0.1.x** and fixed in a patch.*
   for whichever need is short (`nextStep.ts`'s `ATTRIBUTE_BUILD`,
   "a library would raise it" for academic) without asking whether it
   already stands, and academic satisfaction also reads the courses'
-  quality. *1 player · service (S2).* Not yet traced further.
+  quality. *1 player · service (S2).* **Fixed** (19–20 October, for
+  0.1.3): the line reads academic's two parts; with no library it asks
+  for one, with a library short of seats it asks for more seats (a story
+  or another), and with the seats enough it says the teaching is what
+  would raise it and opens the Faculty tab (`nextStep.ts`'s
+  `academicRemedy`).
 
 - **Placing one path square sends every walker to re-plan.** "Placing a
   single square of path causes all the people walking around to

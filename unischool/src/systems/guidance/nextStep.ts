@@ -16,6 +16,7 @@ import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { countWord, pct, satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
+import { ACADEMIC_LIBRARY_POINTS, libraryPoints } from '../satisfaction/satisfactionSystem';
 import { PARK_WORDS } from '../../data/researchParkData';
 import { slotFree } from '../administration/offices';
 import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
@@ -88,6 +89,21 @@ const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, string> = {
 
 // Shortfall line on the 0..100 attribute scale.
 export const ATTRIBUTE_SHORTFALL = 50;
+
+// What would raise academic, read off its two parts (satisfactionSystem.ts):
+// the library's seats, and the teaching. Through 0.1.2 the line always asked
+// for a library, and a player with one standing and its seats enough was
+// told to build one (Playtest 1, S2): academic also reads the courses'
+// teaching, which no building raises.
+export function academicRemedy(s: GameState): { text: string; go: TabId | 'build'; library: boolean } {
+  if (libraryPoints(s) < ACADEMIC_LIBRARY_POINTS) {
+    const stands = s.tech.some((t) => t.effects?.satisfactionAttribute === 'academic' && standsOnCampus(t));
+    return stands
+      ? { text: 'more library seats would raise it (a story on the library, or another)', go: 'build', library: true }
+      : { text: ATTRIBUTE_BUILD.academic, go: 'build', library: true };
+  }
+  return { text: 'the library has room; better teaching would raise it', go: 'faculty', library: false };
+}
 
 function letterAsk(s: GameState): NextStep | null {
   if (s.events.opening.skipped) return null;
@@ -268,6 +284,12 @@ function shortfall(s: GameState): NextStep | null {
   if (coming) {
     const name = coming.story ? `${coming.building.name}'s new story` : coming.building.name;
     return { text: `${need} — ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, intent: { kind: 'wait' } };
+  }
+  if (worst.key === 'academic') {
+    const remedy = academicRemedy(s);
+    // With the library's seats enough, nothing to build: the guided player
+    // waits on the line, as on any reading it cannot act on.
+    return { text: `${need}: ${remedy.text}`, go: remedy.go, intent: remedy.library ? { kind: 'build-for', attribute: 'academic' } : { kind: 'wait' } };
   }
   return { text: `${need}: ${ATTRIBUTE_BUILD[worst.key]}`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
 }
