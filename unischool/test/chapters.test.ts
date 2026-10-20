@@ -174,7 +174,8 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   delete s.guidance;
   s.clock.year = 5;
   settleChapters(s);
-  assert(CHAPTERS.every((c) => done(s, c.id)), 'a year-5 save has done every chapter so far');
+  assert(CHAPTERS.filter((c) => c.earliest <= (5 - 1) * 52 + 1).every((c) => done(s, c.id)), 'a year-5 save has done every chapter its date has passed');
+  assert(!opened(s, 'capital-projects'), 'and opens the later ones when their years come');
 }
 {
   const s = createInitialState('Chapters');
@@ -398,6 +399,37 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   const tab = renderToStaticMarkup(createElement(TabOverlay, { title: 'History', onClose: () => {}, onGuide: () => {}, children: null }));
   assert(tab.includes('tab-overlay-guide') && tab.includes('The Guide on History'), "a tab carries its Guide button");
   assert(!renderToStaticMarkup(createElement(TabOverlay, { title: 'Research', onClose: () => {}, children: null })).includes('tab-overlay-guide'), 'and a tab with no chapter has none');
+}
+
+// ---- PR H: past the first five years, as side chapters ----
+{
+  const s = teaching();
+  s.clock.year = 6;
+  s.clock.week = 1;
+  settleChapters(s);
+  delete s.guidance;
+  settleChapters(s);
+  for (const id of ['research', 'alumni', 'capital-projects', 'specialization']) {
+    assert(CHAPTERS.find((c) => c.id === id)?.side === true, `${id} is a side chapter`);
+  }
+  // A fresh record at year 6, the first five years done.
+  const firstFive = CHAPTERS.filter((c) => c.earliest <= (5 - 1) * 52 + 1 && c.id !== 'research').map((c) => c.id);
+  s.guidance = { opened: Object.fromEntries(firstFive.map((id) => [id, 1])), done: Object.fromEntries(firstFive.map((id) => [id, 1])), met: [], marked: [] };
+  s.alumni = [];
+  settleChapters(s);
+  assert(!opened(s, 'research'), 'Research waits for a founded school');
+  assert(!opened(s, 'alumni'), 'The alumni waits for a class out in the world');
+  s.milestones['school-founded:Social Sciences & Humanities'] = true as never;
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'research', 'a school founded opens Research');
+  assert(!opened(s, 'capital-projects') && !opened(s, 'specialization'), 'capital projects and the specialization wait for their years');
+  s.clock.year = 15;
+  settleChapters(s);
+  assert(opened(s, 'capital-projects') && opened(s, 'specialization'), 'by year 15 both are open, Research unfinished or not');
+  s.specializationOffered = 15;
+  settleChapters(s);
+  assert(done(s, 'specialization'), 'the board offering the choice ends the specialization chapter');
+  assert(TAB_GUIDE.research === 'research', "and the Research tab's Guide names it");
 }
 
 if (failures === 0) {

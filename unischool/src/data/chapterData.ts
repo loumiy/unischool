@@ -21,7 +21,8 @@ import { SEAT_SENIOR_YEARS } from './seatData';
 
 export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
   | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life' | 'promises'
-  | 'the-teams' | 'running-the-college' | 'the-long-game';
+  | 'the-teams' | 'running-the-college' | 'the-long-game'
+  | 'research' | 'alumni' | 'capital-projects' | 'specialization';
 
 // Where a Show me goes: the NEXT line's own doors.
 export type Door = NonNullable<NextStep['go']>;
@@ -322,6 +323,82 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       ],
     },
   },
+  research: {
+    title: 'Research',
+    objectives: {
+      'site-a-lab': 'Site a laboratory',
+      'commission-research': 'Commission a research project',
+      'answer-the-charter': 'Answer the board on the university charter',
+    },
+    briefing: {
+      what: "A founded school can build a laboratory, and each laboratory works on one research project at a time: a topic, a team drawn from the faculty, and its funding. A project runs from half a year to three, and ends in papers, grants and, now and then, a breakthrough. Once a laboratory is at work, the board offers the college a university's name.",
+      how: [
+        { text: 'The build menu lists a laboratory once a school is founded.', door: 'build' },
+        { text: 'The Research tab commissions a project in an idle laboratory: choose the topic, the team and the funding.', door: 'research' },
+        { text: 'A team draws on the research half of its professors, the figure beside their teaching.' },
+      ],
+      why: [
+        { system: 'Prestige', text: "research is one of prestige's four pillars, and the empty one until now" },
+        { system: 'Treasury', text: 'grants pay back part of what a project costs' },
+        { system: 'Faculty', text: "a project's team is one to three professors, and their research decides what it finds" },
+      ],
+    },
+  },
+  alumni: {
+    title: 'The alumni',
+    objectives: {
+      'appoint-advancement': 'Appoint a VP of Advancement',
+      'run-a-campaign': 'Run a campaign',
+    },
+    briefing: {
+      what: "Every graduating class leaves warm or cool toward the college, by how its four years went, and gives to the annual fund by that warmth. A campaign asks the alumni for one thing over several years, and only a VP of Advancement can run one. What a campaign raises goes to its purpose and nothing else.",
+      how: [
+        { text: 'The foot of the Faculty tab lists the seats: the VP of Advancement is one.', door: 'faculty' },
+        { text: "History's record shows each class's warmth and what the alumni gave.", door: 'history' },
+        { text: 'Campaigns run one at a time, and each cools the alumni a little.' },
+      ],
+      why: [
+        { system: 'Treasury', text: 'the annual fund and the campaigns are income no tuition brings' },
+        { system: 'Endowment', text: 'an endowment campaign grows the fund the guide judges the college by' },
+        { system: 'Students', text: "today's contentment is tomorrow's giving" },
+      ],
+    },
+  },
+  'capital-projects': {
+    title: 'Capital projects',
+    objectives: {
+      'begin-a-project': 'Begin a capital project',
+    },
+    briefing: {
+      what: "From year 10 the build menu offers capital projects: an arts center, a law school, a graduate college and more, each years in the building and costing millions. Half of one can be paid from the endowment. Several house a graduate program of their own.",
+      how: [
+        { text: "The build menu's capital projects category lists each, with its cost, its weeks and what it needs.", door: 'build' },
+        { text: "The Treasury's endowment panel shows how much of the fund a project can draw on.", door: 'treasury' },
+      ],
+      why: [
+        { system: 'Prestige', text: 'each pillar has a share that only its capital projects fill' },
+        { system: 'Curriculum', text: 'a graduate program opens with the project that houses it' },
+      ],
+    },
+  },
+  specialization: {
+    title: 'A specialization',
+    objectives: {
+      'offered-specialization': 'Be offered a specialization',
+      'choose-specialization': 'Choose one',
+    },
+    briefing: {
+      what: "When the college first stands in the guide's top 30, or from year 20 in the top 10 of any one pillar, the board offers it a specialization: academics, research, student life or athletics, chosen once and for good. The chosen pillar's own share of prestige opens, with a building and a program only that choice brings. The choice can be put off a year at a time.",
+      how: [
+        { text: "History's guide shows the college's rank overall and in each pillar.", door: 'history' },
+        { text: 'The offer comes as a page of its own, each pillar with what it would open; "Not this year" puts it off.' },
+      ],
+      why: [
+        { system: 'Prestige', text: "each pillar's specialization share fills only for the pillar chosen" },
+        { system: 'Rivals', text: 'the offer page says how many rivals have specialized in each pillar' },
+      ],
+    },
+  },
 };
 
 // The drawer's own words (components/ObjectivesPanel.tsx).
@@ -377,4 +454,5 @@ export const TAB_GUIDE: Partial<Record<TabId, ChapterId>> = {
   treasury: 'paying-for-it',
   inbox: 'campus-life',
   athletics: 'the-teams',
+  research: 'research',
 };

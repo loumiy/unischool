@@ -12,9 +12,9 @@ to explain a system in depth. A system introduced to the player is fully
 explained: what it does, how to work it, and why it matters to the
 others.*
 
-**Status: In progress. PRs A–F landed (the model, the bar, the
-walkthrough ported, the first five years' chapters and the gates); PR G
-(the Guide) is up; the owner
+**Status: In progress. PRs A–G landed (the model, the bar, the
+walkthrough ported, the first five years' chapters and the gates, the
+Guide); PR H (the later chapters) is up; the owner
 answered §7's five questions on 20 October.**
 
 ---
@@ -502,6 +502,23 @@ Example, chapter 6 (Standing), which answers F6:
   seats). Retiring one would lose the detail where it is used, so §2's
   "begin retiring HelpHints" is dropped. The Guide is where the overview
   is found again.
+
+**As implemented (PR H):**
+- Four chapters past the first five years, all **side chapters**. Each
+  opens when its system first comes within reach, and none waits for
+  another:
+  - **Research** (from Y5, once a school is founded). Required: site a
+    laboratory, and commission a project. Optional: answer the charter.
+    This answers F2's "research projects somewhat confusing": a project's
+    scale (half a year to three), its team of one to three, and what it
+    returns.
+  - **The alumni** (from Y6, once a class has graduated). Required: a VP of
+    Advancement. Optional: a campaign.
+  - **Capital projects** (Y10). Required: begin one.
+  - **A specialization** (Y15). Required: be offered one. Optional: choose
+    it. It is a long goal, with its terms told well before the offer comes.
+- The Research tab's Guide button now has a chapter.
+- No new gate: these systems already open on their own conditions.
 
 Each PR reruns the guided and natural sim players (Plans 58 and 65) to
 check that the pacing in §4 holds.
