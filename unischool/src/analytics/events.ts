@@ -40,7 +40,7 @@ const MARKS = REPORT_GRADES.map((g) => g.letter);
 // on. Nothing is reached at the welcome. Since Plan 106 PR C the walk ends
 // on its program founded; the steps after it are chapters.
 const OPENING_STAGES_RECORD: Record<OpeningStage, true> = {
-  welcome: true, 'site-hall': true, appoint: true, found: true, play: true,
+  welcome: true, 'site-hall': true, found: true, play: true,
 };
 const OPENING_STAGES = Object.keys(OPENING_STAGES_RECORD) as OpeningStage[];
 export const OPENING_REACHED = OPENING_STAGES.filter((st) => st !== 'welcome');

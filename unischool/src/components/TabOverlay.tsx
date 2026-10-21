@@ -30,7 +30,7 @@ export default function TabOverlay({ title, onClose, split = false, onGuide, chi
         <h2>{title}</h2>
         {onGuide && (
           <button type="button" className="tab-overlay-guide" onClick={onGuide} aria-label={DRAWER_WORDS.guideTab(title)}>
-            ? {DRAWER_WORDS.guide}
+            {DRAWER_WORDS.guide}
           </button>
         )}
         {onClose ? (

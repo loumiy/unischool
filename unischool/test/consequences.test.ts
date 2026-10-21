@@ -93,10 +93,12 @@ console.log('consequences tests');
 
 // ---- a bad year, through the reducer, says so ----
 {
-  const atSummer = toSummer(teachingCollege('Attrition'));
+  const founded = teachingCollege('Attrition');
+  // At the founding prestige before Plan 107F, 42: a pool big enough to
+  // fill the room, which this reads; the founding's own is balance.test.ts's.
+  founded.self.reputation = 42;
+  const atSummer = toSummer(founded);
   withYearAverage(atSummer, 30);
-  // Crowding's pull on the pool is its own test (crowding-pool.test.ts).
-  atSummer.students.crowdingYearSum = 0;
   const before = atSummer.students.classes;
   const staying = before.freshman + before.sophomore + before.junior;
   const outcome = projectAdmissions(

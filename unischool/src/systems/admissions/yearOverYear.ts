@@ -33,29 +33,19 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['cohortDemand', 'new pulls'],
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
-  ['crowding', 'crowding'],
   ['lift', 'a one-year lift'],
 ];
 
-// Crowding is a penalty, so its factor rising means the campus crowded
-// less than the year before. The line says the direction in words ("crowding
-// eased: +312%", the colon added where it is shown), since a bare "overcrowding +312%" reads as more of it
-// (Plan 78F). Every other factor's name reads the right way round.
-export function crowdingLabel(change: number): string {
-  return change >= 0 ? 'crowding eased' : 'crowding grew';
-}
-
 // The year's lift (Plan 79C) is there one summer. A summer with one names
 // it, whichever way it moved against last year's; a summer without one, read
-// against a summer that had one, says it ended. Shown with a colon, as
-// crowding's is.
+// against a summer that had one, says it ended. Shown with a colon.
 export function liftLabel(liftFactorNow: number): string {
   return liftFactorNow > 1 ? 'a one-year lift' : "last year's lift ended";
 }
 
 // The labels that are phrases, shown with a colon before the figure.
 export function takesColon(key: keyof FunnelFactors): boolean {
-  return key === 'crowding' || key === 'lift';
+  return key === 'lift';
 }
 
 // Moves smaller than this are rounding and are left off the line.
@@ -76,7 +66,7 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
     if (!(before > 0)) continue;
     const change = (factorOf(now.factors, key) ?? 1) / before - 1;
     if (Math.abs(change) < MOVE_FLOOR) continue;
-    const named = key === 'crowding' ? crowdingLabel(change) : key === 'lift' ? liftLabel(now.factors.lift ?? 1) : label;
+    const named = key === 'lift' ? liftLabel(now.factors.lift ?? 1) : label;
     parts.push({ key, label: named, change });
   }
   parts.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
@@ -92,11 +82,15 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
 // so an unchanged strategy is a click-through; the first summer carries the
 // founding rate. Beds never limit the rate (housing is a need, not a cap),
 // so they are named only as what admitting more does: when next year's
-// students would already fill the beds there are.
-export function admitRateOpening(firstSummer: boolean, openingRate: number, beds: number, studentsNextYear: number): string {
-  const where = firstSummer
-    ? `The admit rate opens at the founding rate, ${pct(openingRate)}`
-    : `The admit rate opens where last summer set it, ${pct(openingRate)}`;
+// students would already fill the beds there are. When the seats left
+// hold less than that rate, it opens at the most they hold, and says so
+// (Plan 107G).
+export function admitRateOpening(firstSummer: boolean, openingRate: number, beds: number, studentsNextYear: number, roomRate = 1): string {
+  const where = openingRate > roomRate
+    ? `The admit rate opens at ${pct(roomRate)}, the most the seats left will hold (${firstSummer ? 'the founding rate' : 'last summer\'s'} is ${pct(openingRate)})`
+    : firstSummer
+      ? `The admit rate opens at the founding rate, ${pct(openingRate)}`
+      : `The admit rate opens where last summer set it, ${pct(openingRate)}`;
   const crowds = beds > 0 && studentsNextYear >= beds ? `; admitting more crowds ${count(beds)} beds` : '';
   return `${where}${crowds}.`;
 }

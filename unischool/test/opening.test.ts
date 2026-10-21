@@ -149,9 +149,8 @@ const CALENDAR = OPENING_LETTERS.filter((l) => !l.arrives);
   s = reducer(s, { type: 'RESOLVE_LETTER', skipAll: false });
   assert(nextStep(s)?.text === OPENING_LETTERS[0].ask(s).text, `after the first letter the line is its ask (${nextStep(s)?.text})`);
   assert(nextStep(s)?.go === 'hall' && nextStep(s)?.hallId === FOUNDERS_HALL_ID && nextStep(s)?.intent?.kind === 'found', "and it opens Founders Hall's panel, where a program is founded");
-  // Appoint the founding market's English professor and found English:
-  // the college is still crowded, so the ask moves on to its courses.
-  s = reducer(s, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  // Found English, its professor on the payroll since the founding (Plan
+  // 107A): the college is still crowded, so the ask moves on to its courses.
   s = reducer(s, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
   assert(s.halls[FOUNDERS_HALL_ID][0].programId === WALKTHROUGH_PROGRAM, 'English is founded');
   assert(!OPENING_LETTERS[0].done(s), 'but eighty places coming is not a place for every student');
@@ -229,7 +228,7 @@ const siteAnywhere = (s: GameState, id: string) => {
 };
 // A guided walk done to its program founded: English, with Bennett.
 const walkToCourse = (name: string) => reducer(
-  reducer(siteHall(reducer(foundWalk(name), { type: 'ADVANCE_OPENING' })), { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR }),
+  siteHall(reducer(foundWalk(name), { type: 'ADVANCE_OPENING' })),
   { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR },
 );
 {
@@ -239,10 +238,11 @@ const walkToCourse = (name: string) => reducer(
   assert(FOUNDERS_HALL_ID in headless.placements, 'with Founders Hall pre-placed');
   assert(headless.events.opening.read.length === 0, 'and no letter read');
   assert(createInitialState('Plain').events.opening.stage === 'play', 'createInitialState defaults to a headless founding');
-  assert(headless.faculty.length === 0 && headless.tech.every((t) => t.kind !== 'course' || t.status !== 'done'), 'the college opens with no professor and no course (Plan 80D)');
+  assert(headless.tech.every((t) => t.kind !== 'course' || t.status !== 'done'), 'the college opens with no course (Plan 80D)');
+  assert(headless.faculty.map((f) => f.name).join(', ') === 'Dr. Grace Bennett, Dr. Priya Iyer, Dr. John Okafor', `and its founding faculty on the payroll (Plan 107A: ${headless.faculty.map((f) => f.name).join(', ')})`);
+  assert(!headless.candidates.some((c) => headless.faculty.some((f) => f.id === c.id)), 'none of them still on the market');
   assert(headless.halls[FOUNDERS_HALL_ID].every((slot) => slot.programId === null), 'and Founders Hall empty');
   assert(headless.programOffers.join(',') === FOUNDING_PROGRAMS.join(','), `the founding pillars are on offer (${headless.programOffers.join(', ')})`);
-  assert(headless.candidates.some((c) => c.id === WALKTHROUGH_PROFESSOR && c.field === programById(WALKTHROUGH_PROGRAM)!.field), 'and Dr. Grace Bennett, in English, is on the market');
 
   // Guided: held, and the hall waits to be sited.
   let s = foundWalk('Walk');
@@ -274,16 +274,12 @@ const walkToCourse = (name: string) => reducer(
   s = siteHall(s);
   assert(FOUNDERS_HALL_ID in s.placements, 'the hall is sited');
   assert(s.finance.cash === cash, 'and nothing was charged for it');
-  assert(s.events.opening.stage === 'appoint', 'the hall standing moves the walk on, to the first professor');
-  assert(openingHoldsClock(s), 'the clock is still held');
-
-  // Appoint Dr. Grace Bennett from the founding market.
+  assert(s.events.opening.stage === 'found' && openingHoldsClock(s), 'the hall standing moves the walk on, to the first program, the clock still held');
   s = reducer(s, { type: 'ADVANCE_OPENING' });
-  assert(s.events.opening.stage === 'appoint', 'Next does nothing here either');
-  s = reducer(s, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
-  assert(s.faculty.some((f) => f.id === WALKTHROUGH_PROFESSOR), 'Bennett is on the payroll');
-  assert(s.events.opening.stage === 'found' && openingHoldsClock(s), 'and the walk asks for the program, the clock still held');
-  assert(OPENING_STEPS.found.body(s).includes('Found English into the program slot'), `the card names English (${OPENING_STEPS.found.body(s).slice(0, 80)})`);
+  assert(s.events.opening.stage === 'found', 'Next does nothing here either');
+  // Any of the three (Plan 107A): no program named, no professor named.
+  const choose = OPENING_STEPS.found.body(s);
+  assert(choose === 'Programs are what the college teaches. Three are on offer in Founders Hall, each with its professor already appointed. Click the ringed slot, pick any one, and found it.', `the card offers the choice (${choose})`);
 
   // Found English: its entry course goes to the committee, and the walk is
   // over (Plan 106 PR C): the chapters take it from here.
@@ -327,15 +323,6 @@ const walkToCourse = (name: string) => reducer(
   assert(after.clock.year === 2, 'and the year turns over');
 }
 
-// --- the walkthrough: a professor appointed before the hall stands ---------
-{
-  let s = reducer(foundWalk('Early'), { type: 'ADVANCE_OPENING' });
-  s = reducer(s, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
-  assert(s.events.opening.stage === 'site-hall', 'appointing first leaves the hall to site');
-  s = siteHall(s);
-  assert(s.events.opening.stage === 'found', 'and once it stands the walk goes straight to the program');
-}
-
 // --- the walkthrough: skipping, at each step --------------------------------
 {
   // From the welcome: letters declined, the hall unsited, the clock held.
@@ -362,19 +349,13 @@ const walkToCourse = (name: string) => reducer(
   h = siteHall(h);
   assert(!openingHoldsClock(h) && nextStep(h)?.text === OPENING_LETTERS[0].ask(h).text, `sited, the line is the first letter's ask (${nextStep(h)?.text})`);
 
-  // From the professor's step: the hall stands, so the clock runs.
-  let a = siteHall(reducer(foundWalk('Skip appoint'), { type: 'ADVANCE_OPENING' }));
-  assert(a.events.opening.stage === 'appoint', 'on the professor\'s step');
-  a = reducer(a, { type: 'SKIP_OPENING', keepLetters: true });
-  assert(a.events.opening.stage === 'play' && !openingHoldsClock(a), 'skipped, the clock runs');
-  assert(nextStep(a)?.intent?.kind === 'found' && nextStep(a)?.hallId === FOUNDERS_HALL_ID, `and the line asks for a program in Founders Hall (${nextStep(a)?.text})`);
-
-  // From the program's step.
-  let f = reducer(siteHall(reducer(foundWalk('Skip found'), { type: 'ADVANCE_OPENING' })), { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  // From the program's step: the hall stands, so the clock runs.
+  let f = siteHall(reducer(foundWalk('Skip found'), { type: 'ADVANCE_OPENING' }));
   assert(f.events.opening.stage === 'found', 'on the program\'s step');
   f = reducer(f, { type: 'SKIP_OPENING', keepLetters: true });
   assert(f.events.opening.stage === 'play' && !openingHoldsClock(f), 'skipped, the clock runs');
-  assert(f.faculty.length === 1 && Object.values(f.halls).flat().every((slot) => slot.programId === null), 'with Bennett appointed and nothing founded');
+  assert(Object.values(f.halls).flat().every((slot) => slot.programId === null), 'with nothing founded');
+  assert(nextStep(f)?.intent?.kind === 'found' && nextStep(f)?.hallId === FOUNDERS_HALL_ID, `and the line asks for a program in Founders Hall (${nextStep(f)?.text})`);
 }
 
 // --- the retired steps (Plan 106 PR C) ---------------------------------------
@@ -391,14 +372,13 @@ const walkToCourse = (name: string) => reducer(
 
   // Skipped from the program's step, the letters kept: nothing marked the
   // needs letter read, so it comes at week 9 as it always did.
-  let k = reducer(siteHall(reducer(foundWalk('Skip letters'), { type: 'ADVANCE_OPENING' })), { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  let k = siteHall(reducer(foundWalk('Skip letters'), { type: 'ADVANCE_OPENING' }));
   k = reducer(k, { type: 'SKIP_OPENING', keepLetters: true });
   const sent = playYear(k).letters.map((l) => l.id);
   assert(sent.includes(NEEDS_LETTER_ID), `skipped before the program, the needs letter comes (${sent.join(',')})`);
 
   // A save at 'play' (an old save, or a headless run) stays there.
   let headless = foundWalk('No step', false);
-  headless = reducer(headless, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
   headless = reducer(headless, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
   for (let i = 0; i < 10; i += 1) headless = headless.pendingInterrupt ? reducer(headless, defaultAnswer(headless)!) : reducer(headless, { type: 'TICK' });
   assert(headless.events.opening.stage === 'play', 'a run at play stays at play');
@@ -409,23 +389,20 @@ const walkToCourse = (name: string) => reducer(
   const words = (stage: GameState['events']['opening']['stage'], s: GameState) => OPENING_STEPS[stage as 'welcome'].body(s).toLowerCase();
   const w = foundWalk('Order');
   const site = reducer(w, { type: 'ADVANCE_OPENING' });
-  const appoint = siteHall(site);
-  const found = reducer(appoint, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+  const found = siteHall(site);
   // A card names no step it doesn't lead to: the welcome and the hall's
-  // step no professor, program or course; choosing the program no course.
+  // step no professor, program or course; choosing the program no course,
+  // no professor by name and no program to prefer (Plan 107A).
   for (const [stage, s, banned] of [
     ['welcome', w, ['professor', 'program', 'course', 'in that order']],
-    ['site-hall', site, ['professor', 'program', 'course']],
-    ['appoint', appoint, ['course']],
+    ['site-hall', site, ['professor', 'program', 'course', 'clear']],
+    ['found', found, ['course', 'bennett', 'iyer', 'okafor', 'english', 'mathematics', 'economics']],
   ] as const) {
     const said = banned.filter((term) => words(stage, s).includes(term));
     assert(said.length === 0, `${stage}: names no later step (${said.join(', ')})`);
   }
-  // Choosing the program reads program, then professor (decision 8).
-  const pick = OPENING_STEPS.appoint.body(appoint);
-  assert(OPENING_STEPS.appoint.title === 'Choose the first program', `the step is choosing a program (${OPENING_STEPS.appoint.title})`);
-  assert(pick.includes('English, with Dr. Grace Bennett; Mathematics, with Dr. Priya Iyer; and Economics, with Dr. John Okafor'), `the three founding candidates as three programs (${pick})`);
-  assert(words('found', found).indexOf('course') >= 0, 'courses come in when the program is founded');
+  assert(OPENING_STEPS.found.title === 'Choose the first program', `the step is choosing a program (${OPENING_STEPS.found.title})`);
+  assert(words('site-hall', site).includes('anywhere on the map'), 'the hall goes anywhere on the map');
 }
 
 // --- the walkthrough never opens a gated tab (Plan 104M) -------------------
@@ -440,9 +417,8 @@ const walkToCourse = (name: string) => reducer(
   check();
   w = reducer(w, { type: 'ADVANCE_OPENING' }); check();
   w = siteHall(w); check();
-  w = reducer(w, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR }); check();
   w = reducer(w, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR }); check();
-  assert(seen.join(',') === 'welcome,site-hall,appoint,found', `every card checked (${seen.join(',')})`);
+  assert(seen.join(',') === 'welcome,site-hall,found', `every card checked (${seen.join(',')})`);
   assert(Object.values(OPENING_STEPS).every((step) => step.door === undefined || step.door === 'build' || step.door === 'hall'), 'no card has a door to a tab');
 }
 
@@ -473,10 +449,9 @@ const walkToCourse = (name: string) => reducer(
 
   const welcome = foundWalk('Ask');
   const siteStep = reducer(welcome, { type: 'ADVANCE_OPENING' });
-  const appointStep = siteHall(siteStep);
-  const foundStep = reducer(appointStep, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
-  const steps = [welcome, siteStep, appointStep, foundStep];
-  assert(steps.map((x) => x.events.opening.stage).join(',') === 'welcome,site-hall,appoint,found',
+  const foundStep = siteHall(siteStep);
+  const steps = [welcome, siteStep, foundStep];
+  assert(steps.map((x) => x.events.opening.stage).join(',') === 'welcome,site-hall,found',
     `every card is reached (${steps.map((x) => x.events.opening.stage).join(',')})`);
 
   for (const s of steps) {

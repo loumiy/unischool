@@ -26,7 +26,8 @@ import { REPORT_WORDS } from '../src/data/reportData';
 import { STANDINGS } from '../src/systems/rivals/rivalsSystem';
 import { pillarRule } from '../src/data/prestigeWords';
 import { GRADE_POINTS, meanGradeLetter } from '../src/data/courseQuality';
-import { PILLARS, pillarBreakdown, teachingCeiling } from '../src/systems/prestige/prestigeSystem';
+import { PILLARS, prestigeBreakdown, teachingCeiling } from '../src/systems/prestige/prestigeSystem';
+import { prestigeFigure } from '../src/format';
 
 let checks = 0;
 let failures = 0;
@@ -101,20 +102,27 @@ const HOMES: Record<HistoryView, string[]> = {
   const views = (['prestige', 'record', 'guide'] as HistoryView[]).map((v) => unescape(render(s, v)));
   const said = views.map((html) => html.split(pillarRule()).length - 1);
   assert(said[0] === 1 && said[1] === 0 && said[2] === 0, `the rule is said once, in Prestige (${said.join(', ')})`);
-  assert(views[0].indexOf(pillarRule()) < views[0].indexOf('standing-rows'), 'at its head, above the rows');
+  assert(views[0].indexOf(pillarRule()) > views[0].indexOf('glance-details'), 'under Details, below the meters (Plan 107D)');
 }
 
-// ---- One scale per pillar row ----
+// ---- At a glance: one figure per pillar, and a meter (Plan 107D) ----
 {
   const s = launch();
-  const text = unescape(render(s, 'prestige')).replace(/<[^>]+>/g, '');
+  const html = unescape(render(s, 'prestige'));
+  const breakdown = prestigeBreakdown(s);
+  const longest = Math.max(...breakdown.inputs.filter((i) => i.pillar).map((i) => i.weight));
   for (const p of PILLARS) {
-    const made = pillarBreakdown(s, p);
-    const figure = `${made.target.toFixed(1)} of ${made.max} → `;
-    assert(text.includes(figure), `${p} reads its standing, then its points of prestige (${figure})`);
+    const input = breakdown.inputs.find((i) => i.key === p)!;
+    const row = html.slice(html.indexOf(`glance-pillar pillar-${p}`));
+    const figure = row.replace(/<[^>]+>/g, ' ').match(/[+−]?\d+\.\d/)?.[0];
+    const want = `${input.contribution >= 0.05 ? '+' : ''}${input.contribution.toFixed(1)}`;
+    assert(figure === want, `${p}'s row reads one figure, what it adds (${figure} for ${want})`);
+    const meter = row.match(/glance-meter" style="width:([\d.]+)%/)?.[1];
+    assert(meter !== undefined && Math.abs(Number(meter) - input.weight / longest * 100) < 0.01, `and a meter as long as the most it can add (${meter}%)`);
   }
-  assert((text.match(/points of prestige/g) ?? []).length >= PILLARS.length, 'each pillar\'s worth in points of prestige');
-  assert(!/stands at [\d.]+ of 150/.test(text), 'and no second scale in the line under it');
+  const text = html.slice(0, html.indexOf('glance-details')).replace(/<[^>]+>/g, '');
+  assert(!/ of 150 → /.test(text) && !/points of prestige/.test(text), 'no pillar line reads two scales');
+  assert(!text.includes(prestigeFigure(breakdown.target)) || prestigeFigure(breakdown.target) === prestigeFigure(breakdown.current), 'and the target is not shown as a figure (Plan 98B)');
 }
 
 // ---- The teaching standard, by its own measure ----

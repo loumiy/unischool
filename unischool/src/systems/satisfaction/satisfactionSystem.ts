@@ -15,6 +15,7 @@ import { priceTolerance } from '../admissions/admissionsSystem';
 import { clamp } from '../../math';
 import { DOWNTOWN_WORDS, offCampusShare } from '../../data/downtownData';
 import { pct } from '../../format';
+import { instructionCapacity, instructionCoverage } from '../techtree/instructionCapacity';
 
 // Satisfaction is the weighted sum of five attributes, each fed by its own
 // facilities. Ratio attributes compare servesPopulation against enrolled
@@ -106,6 +107,14 @@ function affordabilityBonus(s: GameState): number {
 // ACADEMIC_LIBRARY_POINTS (a fifth until Plan 80F, two fifths since).
 export const ACADEMIC_TEACHING_POINTS = 60;
 export const ACADEMIC_LIBRARY_POINTS = 40;
+// A place in class (Plan 107E): the catalog's seats against the students,
+// up to ACADEMIC_SEAT_POINTS off the academic need, in proportion to the
+// share without one. Seats were crowding's to count, on prestige, until
+// Plan 107E retired it; a student without a class is a discontented one.
+export const ACADEMIC_SEAT_POINTS = 30;
+export function seatShortfallPoints(s: GameState): number {
+  return ACADEMIC_SEAT_POINTS * (1 - instructionCoverage(s));
+}
 // The courses are read as grade points (courseQuality.ts's GRADE_POINTS,
 // the same reading prestige's teaching ceiling takes): nothing at a C's
 // points or below, full credit at the points these students expect, a
@@ -233,7 +242,7 @@ export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttribut
   const academicTeaching = teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS;
   // Sensible neighbors (systems/estate/pairing.ts), a couple of points at most.
   const pairing = pairingBumps(s);
-  const academic = clamp(academicTeaching + academicLibrary + pairing.academic + facultyMorale(s), ATTRIBUTE_SCORE_FLOOR, 100);
+  const academic = clamp(academicTeaching + academicLibrary + pairing.academic + facultyMorale(s) - seatShortfallPoints(s), ATTRIBUTE_SCORE_FLOOR, 100);
 
   const socialRatio = ratioScore(servedPopulationFor(s, 'social'), enrolled, expectedRatio(s, 'social'), SOCIAL_PENALTY_CURVATURE);
   const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
@@ -325,6 +334,8 @@ export function attributeDetail(s: GameState, attribute: keyof SatisfactionAttri
     // in what an average earns as the college rises.
     bonuses.push({ label: `Average course grade (${meanGradeLetter(meanGradePoints(campusCourseScores(s)))})`, value: teaching });
     bonuses.push({ label: 'Library seats', value: libraryPoints(s) });
+    const short = seatShortfallPoints(s);
+    if (short > 0.05) bonuses.push({ label: `Class seats (${pct(instructionCoverage(s))} of the students have one)`, value: -short });
   }
   if (attribute === 'social') {
     const pride = clamp(s.self.reputation / REPUTATION_PRIDE_PRESTIGE_MAX, 0, 1) * REPUTATION_PRIDE_MAX_BONUS;
@@ -392,6 +403,8 @@ export interface SatisfactionDrag {
   has: number;
   wants: number;
   library?: { has: number; wants: number };
+  // Class seats, when the catalog is short of them (Plan 107E).
+  seats?: { has: number; wants: number };
 }
 export function satisfactionDrag(s: GameState): SatisfactionDrag | null {
   if (satisfactionWeeklyChange(s) > -DRAG_FLOOR) return null;
@@ -406,6 +419,7 @@ export function satisfactionDrag(s: GameState): SatisfactionDrag | null {
       has: teachingAgainstStandard(s) * ACADEMIC_TEACHING_POINTS,
       wants: ACADEMIC_TEACHING_POINTS,
       library: { has: libraryPoints(s), wants: ACADEMIC_LIBRARY_POINTS },
+      ...(seatShortfallPoints(s) > 0.05 ? { seats: { has: Math.round(instructionCapacity(s)), wants: totalEnrolled(s.students) } } : {}),
     };
   }
   const detail = attributeDetail(s, need);

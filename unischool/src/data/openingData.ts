@@ -1,8 +1,7 @@
 import type { Buildable, GameState, OpeningStage } from '../state/types';
 import { servingPopulation, totalEnrolled } from '../state/types';
 import { programById } from './techData';
-import { FOUNDING_MARKET, WALKTHROUGH_PROGRAM, WALKTHROUGH_PROFESSOR } from './foundingData';
-import { count, countWord, money } from '../format';
+import { count, countWord } from '../format';
 
 // ---------------------------------------------------------------------
 // The opening walkthrough's copy, one card per stage (state/opening.ts,
@@ -25,33 +24,12 @@ function list(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-const programName = (id: string) => programById(id)?.name ?? id;
-
-// The programs on offer that a founding professor is listed for, as
-// "English, with Dr. Grace Bennett".
-function foundingPrograms(s: GameState): string[] {
-  return s.programOffers.flatMap((id) => {
-    const field = programById(id)?.field;
-    const p = FOUNDING_MARKET.find((x) => x.field === field && s.candidates.some((c) => c.id === x.id));
-    return p ? [`${programName(id)}, with ${p.name}`] : [];
-  });
-}
-
-// The program the found step names: the walkthrough's, if its professor was
-// appointed; else an offer someone on the payroll can teach.
-function programToFound(s: GameState): string {
-  if (s.faculty.some((f) => f.id === WALKTHROUGH_PROFESSOR) || s.faculty.length === 0) return WALKTHROUGH_PROGRAM;
+// The programs on offer somebody on the payroll can teach: at the founding,
+// the three the founding faculty came for (Plan 107A).
+function teachableOffers(s: GameState): string[] {
   const fields = new Set(s.faculty.map((f) => f.field));
-  return s.programOffers.find((id) => fields.has(programById(id)?.field ?? '')) ?? WALKTHROUGH_PROGRAM;
+  return s.programOffers.filter((id) => fields.has(programById(id)?.field ?? ''));
 }
-
-// A few weeks, in words.
-const WEEK_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-function weeksAway(n: number): string {
-  return `${WEEK_WORDS[n] ?? n} ${n === 1 ? 'week' : 'weeks'}`;
-}
-
-const professor = FOUNDING_MARKET.find((p) => p.id === WALKTHROUGH_PROFESSOR)!;
 
 export function housedPrograms(s: GameState): string[] {
   return Object.values(s.halls).flatMap((slots) => slots.map((slot) => slot.programId)).filter((id): id is string => id !== null);
@@ -123,34 +101,21 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
   'site-hall': {
     eyebrow: 'Step one',
     title: 'Raise Founders Hall',
-    body: () => 'Every building comes from the build menu at the foot of the screen. Click Founders Hall to pick it up, then click a clear stretch of ground to set it down — its footprint follows the pointer.',
+    // "Anywhere on the map" (Plan 107A): "a clear stretch of ground" read as
+    // a warning about the trees, which a building clears.
+    body: () => 'Every building comes from the build menu at the foot of the screen. Click Founders Hall to pick it up, then click anywhere on the map to set it down — its footprint follows the pointer.',
     door: 'build',
   },
-  // Choosing a program, with its professor (Plan 104L, the owner's decision
-  // 8): the three founding candidates read as three programs, each with the
-  // professor who would teach it. Done when the professor is appointed.
-  appoint: {
+  // Choosing the first program (Plan 107A): any of the three on offer, each
+  // with its professor already appointed. No names and no favourite; the
+  // tile and the button carry the cost.
+  found: {
     eyebrow: 'Step two',
     title: 'Choose the first program',
     body: (s) => {
-      const offered = foundingPrograms(s);
-      const n = countWord(offered.length);
-      const choice = offered.length > 0
-        ? ` ${n[0].toUpperCase()}${n.slice(1)} ${offered.length === 1 ? 'is' : 'are'} on offer: ${offered.length > 1 ? `${offered.slice(0, -1).join('; ')}; and ${offered[offered.length - 1]}` : offered[0]}.`
-        : '';
-      return `The college teaches in programs, each with a professor to teach it.${choice} Click the ringed program slot, choose ${programName(WALKTHROUGH_PROGRAM)}, and appoint ${professor.name}. An appointment costs nothing up front; the salary is paid weekly.`;
-    },
-    door: 'hall',
-  },
-  found: {
-    eyebrow: 'Step three',
-    title: 'Found the first program',
-    body: (s) => {
-      const id = programToFound(s);
-      const entry = s.tech.find((t) => t.id === programById(id)?.entryCourseId);
-      const course = entry ? `${entry.name.split(' · ')[1] ?? entry.name}, for ${money(entry.cost)}` : 'its first course';
-      const total = programById(id)?.courseIds.length ?? 10;
-      return `A program is taught in courses, ${countWord(total)} of them, each written by the curriculum committee before it is taught. Found ${programName(id)} into the program slot: its first course, ${course}, goes to the committee and is taught ${weeksAway(entry?.duration ?? 4)} from now. Each course taught gives the catalog eighty places. Until there are places for all ${totalEnrolled(s.students)} students the college is crowded: the next courses, and the professors to teach them, come first.`;
+      const n = teachableOffers(s).length;
+      const offered = n > 1 ? `${countWord(n)[0].toUpperCase()}${countWord(n).slice(1)} are on offer in Founders Hall, each with its professor already appointed.` : 'One is on offer in Founders Hall, with its professor already appointed.';
+      return `Programs are what the college teaches. ${offered} Click the ringed slot, pick any one, and found it.`;
     },
     door: 'hall',
   },

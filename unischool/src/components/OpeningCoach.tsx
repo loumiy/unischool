@@ -77,7 +77,9 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, placing, onO
   return (
     // On a phone the hall's panel and a tab take the top of the screen, so a
     // step done in one drops the card to the foot, over the dock (styles.css).
-    <aside className={`opening-coach${step.door === 'hall' && hallOpen ? ' under-panel' : ''}${placing ? ' placing' : ''}`} role="status" aria-live="polite" aria-label={step.title}>
+    // Raising Founders Hall, it sits on the left edge, between the pennant
+    // and the build menu, where the eye already is (Plan 107A).
+    <aside className={`opening-coach${s.events.opening.stage === 'site-hall' ? ' left' : ''}${step.door === 'hall' && hallOpen ? ' under-panel' : ''}${placing ? ' placing' : ''}`} role="status" aria-live="polite" aria-label={step.title}>
       <p className="letter-eyebrow">{step.eyebrow}</p>
       <h2>{step.title}</h2>
       <p>{step.body(s)}</p>

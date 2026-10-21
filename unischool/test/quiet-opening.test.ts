@@ -62,12 +62,11 @@ const TABS = ['Curriculum', 'Faculty', 'Students', 'History', 'Inbox'];
 const shutOf = (b: Map<string, boolean>) => [...b.entries()].filter(([k, off]) => off && !k.endsWith('×')).map(([k]) => k);
 
 const siteStep = reducer(found(), { type: 'ADVANCE_OPENING' });
-const appointStep = siteHall(siteStep);
-const foundStep = reducer(appointStep, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+const foundStep = siteHall(siteStep);
 const played = reducer(foundStep, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
-assert([siteStep, appointStep, foundStep, played].map((x) => x.events.opening.stage).join(',') === 'site-hall,appoint,found,play', 'the walk reaches each step');
+assert([siteStep, foundStep, played].map((x) => x.events.opening.stage).join(',') === 'site-hall,found,play', 'the walk reaches each step');
 
-for (const [s, door] of [[siteStep, 'build'], [appointStep, 'campus'], [foundStep, 'campus']] as const) {
+for (const [s, door] of [[siteStep, 'build'], [foundStep, 'campus']] as const) {
   const stage = s.events.opening.stage;
   assert(openingQuietDoor(s) === door, `${stage}: the step's door is ${door}`);
   const html = bar(s);
@@ -92,7 +91,7 @@ for (const [s, door] of [[siteStep, 'build'], [appointStep, 'campus'], [foundSte
 }
 
 // A skip lifts it at once, from any of the three.
-for (const s of [siteStep, appointStep, foundStep]) {
+for (const s of [siteStep, foundStep]) {
   const skipped = reducer(s, { type: 'SKIP_OPENING', keepLetters: true });
   const shut = shutOf(buttons(bar(skipped)));
   assert(openingQuietDoor(skipped) === null && shut.length === 0, `skipped from ${s.events.opening.stage}: nothing is shut (${shut.join(', ')})`);

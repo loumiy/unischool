@@ -611,8 +611,8 @@ function assertHallsInvariants(s: GameState, label: string): void {
   assert(founding.tech.find((t) => t.id === FOUNDERS_HALL_ID)?.slots === ACADEMIC_HALL_SLOTS, 'Founders Hall is seeded with six slots like every other hall');
   assert(founding.programOffers.join(',') === FOUNDING_PROGRAMS.join(','), `the founding pillars are the offers (${founding.programOffers.join(', ')})`);
   assert(new Set(FOUNDING_PROGRAMS.map((id) => programById(id)!.school)).size === FOUNDING_PROGRAMS.length, 'each of a school of its own (Plan 52)');
-  assert(FOUNDING_PROGRAMS.every((id) => founding.candidates.some((c) => c.field === programById(id)!.field)), 'and the market lists someone to teach each');
-  assert(founding.faculty.length === 0 && founding.tech.every((t) => t.kind !== 'course' || t.status !== 'done'), 'nobody on the payroll and no course developed at founding');
+  assert(founding.tech.every((t) => t.kind !== 'course' || t.status !== 'done'), 'no course developed at founding');
+  assert(FOUNDING_PROGRAMS.every((id) => founding.faculty.some((f) => f.field === programById(id)!.field)), 'and a professor on the payroll for each founding program (Plan 107A)');
 
   // The college teaching its pillars, as most suites start (fixtures/teaching.ts).
   let s = fresh();

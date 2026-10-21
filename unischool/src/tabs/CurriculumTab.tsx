@@ -22,7 +22,7 @@ import { hallDisplayName } from '../systems/techtree/schools';
 import { courseHoldReason, crossMajorPrereqs, milestoneLine, programProgress, tierBands, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { facultyQualityTier } from '../data/facultyData';
-import type { CourseQuality } from '../data/courseQuality';
+import { GRADE_A, type CourseQuality } from '../data/courseQuality';
 import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
@@ -918,9 +918,10 @@ function ProgramRowView(
   const hallId = hallOfCourse(s, program.entryCourseId);
   const hall = hallId ? lookup.get(hallId) : undefined;
   const dark = unstaffedPrograms(s).has(program.id);
-  // Every program starts as its one line (Plan 76B); the cells open on
-  // demand.
-  const [collapsed, toggle] = useCollapse(`program:${program.id}`, true);
+  // A program is open while it has courses to develop, and folds to its
+  // one line once every course is developed (Plan 107C; Plan 76B folded
+  // every program).
+  const [collapsed, toggle] = useCollapse(`program:${program.id}`, progress.total > 0 && progress.done === progress.total);
 
   return (
     <section
@@ -959,8 +960,8 @@ function ProgramRowView(
 }
 
 // Collapsing (Plan 60, components/useCollapse.ts): a school starts open
-// while incomplete and folded once complete, and a program always starts
-// folded to its one line (Plan 76B).
+// while incomplete and folded once complete, and so does a program (Plan
+// 107C). A player's click holds until the section next finishes.
 
 // A school's group: heading (name once founded, color and mark before; see
 // data/schoolPalette.ts), grade and rows.
@@ -1073,9 +1074,13 @@ function FilterBar(
         className={`curriculum-chip${filters.grade === 'belowA' ? ' on' : ''}`}
         aria-pressed={filters.grade === 'belowA'}
         onClick={() => onChange({ ...filters, grade: filters.grade === 'belowA' ? 'all' : 'belowA' })}
-        title="Courses under 78 out of 100, the top band, or unstaffed"
+        title={`Courses scoring under ${GRADE_A}, the top band, or unstaffed`}
       >
-        Below 78
+        {/* Named, with the top band's colour, so the line reads as the one
+            the course figures are coloured by rather than a number from
+            nowhere (Plan 107H). */}
+        <span className="grade-swatch" aria-hidden="true" />
+        Below top band
       </button>
       <button
         type="button"
@@ -1291,7 +1296,7 @@ export default function CurriculumTab(
   }, []);
   useEffect(() => {
     if (!target) return;
-    // A department, No instructor, or Below 78 (History › Prestige's
+    // A department, No instructor, or Below top band (History › Prestige's
     // teaching line, Plan 95S): the tab opens filtered.
     const filtered = targetFilters(target);
     if (target.startsWith('program:')) {
@@ -1358,7 +1363,7 @@ export default function CurriculumTab(
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" />
             <HelpHint
               align="end"
-              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's number out of 100 (its courses' average), its courses done of ten and its next start: the course, the strongest free teacher and the number they would teach it at, which is their own teaching less what harder material asks (a little for upper-level courses, more for advanced ones, the capstone and graduate work). Develop takes it. Open a line (▸) for its courses and "choose…", which picks somebody else. Below 78 and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both numbers preview while it is held.`}
+              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's number out of 100 (its courses' average), its courses done of ten and its next start: the course, the strongest free teacher and the number they would teach it at, which is their own teaching less what harder material asks (a little for upper-level courses, more for advanced ones, the capstone and graduate work). Develop takes it. Open a line (▸) for its courses and "choose…", which picks somebody else. Below top band (under ${GRADE_A}) and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both numbers preview while it is held.`}
             />
           </span>
         </div>

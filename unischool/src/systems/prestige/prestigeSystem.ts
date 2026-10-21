@@ -3,7 +3,7 @@ import { campusBeauty } from '../estate/beauty';
 import { conditionOf, historicPrestige } from '../estate/estate';
 import { isPlaceableKind } from '../../state/campusMap';
 import type { GameState, Pillar, ReportCard, SatisfactionAttributes } from '../../state/types';
-import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
+import { servingPopulation, standsOnCampus, totalEnrolled, WEEKS_PER_YEAR } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
 import { meanGradeLetter, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
@@ -25,8 +25,9 @@ export { specializationOf };
 // computed from durable inputs. It moves in two ways: the summer report card
 // (gradeYear) steps it toward the year's score, falling faster than rising,
 // and a weekly tremor (tickPrestige) keeps it alive between summers. Welfare
-// and crowding are graded on the year's average so a dorm finished in week
-// 50 cannot game them. Selectivity is not an input: the admit rate is itself
+// is graded on the year's average so a dorm finished in week 50 cannot game
+// it. A campus short of beds, meals or class seats pays in satisfaction,
+// not here: Plan 107E retired the crowding penalty. Selectivity is not an input: the admit rate is itself
 // a function of prestige. Every score is clamped to 0..1 before weighting,
 // so no input exceeds its weight and the prestige/quality loop cannot spiral.
 
@@ -47,6 +48,42 @@ export const PRESTIGE_FALL_RATE = 0.30;
 // climb from the founding's low fifties to 150 takes about forty.
 export const PRESTIGE_MAX_RISE = 2.1;
 
+// An easier climb in the early game (Plan 107F, the owner's note that
+// prestige took too long to show a college doing well). Through year
+// EARLY_UNTIL_YEAR a summer closes EARLY_RISE_RATE of the gap, up to
+// EARLY_MAX_RISE; both taper in a straight line to the rates above by year
+// EARLY_FADE_YEAR, so from there every college climbs as it did. And part
+// of the rise comes week by week, so the figure moves during the year
+// rather than only at its summer: EARLY_WEEKLY_SHARE of the summer's step
+// spread over the year's weeks, fading the same way. By year, not by
+// standing: a college that stays small is not helped for fifty years.
+export const EARLY_RISE_RATE = 0.45;
+export const EARLY_MAX_RISE = 6;
+const EARLY_UNTIL_YEAR = 5;
+const EARLY_FADE_YEAR = 10;
+const EARLY_WEEKLY_SHARE = 1 / 3;
+// 0 in the early years, 1 once the help is gone.
+function earlyFade(year: number): number {
+  return clamp01((year - EARLY_UNTIL_YEAR) / (EARLY_FADE_YEAR - EARLY_UNTIL_YEAR));
+}
+export function riseRateIn(year: number): number {
+  return EARLY_RISE_RATE + (PRESTIGE_RISE_RATE - EARLY_RISE_RATE) * earlyFade(year);
+}
+export function maxRiseIn(year: number): number {
+  return EARLY_MAX_RISE + (PRESTIGE_MAX_RISE - EARLY_MAX_RISE) * earlyFade(year);
+}
+// A summer's step from `prestige` toward `target`, in `year`.
+export function summerStep(prestige: number, target: number, year: number): number {
+  const gap = target - prestige;
+  return gap >= 0 ? Math.min(gap * riseRateIn(year), maxRiseIn(year)) : gap * PRESTIGE_FALL_RATE;
+}
+// The week's share of the early rise: nothing once the early years are
+// over, or above the target.
+function earlyWeeklyRise(prestige: number, target: number, year: number): number {
+  if (target <= prestige) return 0;
+  return (EARLY_WEEKLY_SHARE * (1 - earlyFade(year)) * summerStep(prestige, target, year)) / WEEKS_PER_YEAR;
+}
+
 // Weekly movement between summers; the summer step is the beat.
 const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
 
@@ -54,7 +91,7 @@ const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
 // is a standing of its own on the prestige scale, from PILLAR_FLOOR (a
 // college with nothing) to PRESTIGE_MAX (every term in full), and prestige's
 // target is these shares of the four, plus the adjustments that stay outside
-// every pillar (endowment, and the condition and crowding penalties).
+// every pillar (endowment, and the condition penalty).
 // Athletics counts least, by the owner's decision; tuned in Plan 85C.
 export type { Pillar };
 export const PILLARS: readonly Pillar[] = ['academics', 'research', 'studentLife', 'athletics'];
@@ -160,7 +197,6 @@ const CONDITION_FLOOR = 0.5;
 // Plan 85I: the owner halved it, since a full endowment carried a college
 // with no specialization to first place, past what the pillars allow.
 const ENDOWMENT_WEIGHT = 4;
-export const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
@@ -619,8 +655,6 @@ export function pillarScore(s: GameState, pillar: Pillar): number {
 // baseline is the pillars' floor, so the pillar inputs sum to the weighted
 // mean of their values.
 export function prestigeBreakdown(s: GameState): StandingBreakdown {
-  const coverages = crowdingCoverages(s);
-  const worst = coverages[0];
   const pillars = PILLARS.map((p) => {
     const made = pillarBreakdown(s, p);
     const input = weigh(
@@ -640,16 +674,9 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       'condition', 'Condition of the buildings', CONDITION_PENALTY, conditionScore(s),
       'The buildings\' mean condition: a fully maintained campus costs nothing, a run-down one up to four points.',
     ),
-    penalise(
-      'crowding', 'Crowding', CROWDING_PENALTY, crowdingScore(s),
-      `Averaged over the year. Today the worst is ${worst.label} at ${pct(worst.coverage)}`
-        + (worst.coverage >= CROWDING_GRACE
-          ? '.'
-          : ` (${coverages.slice(1).map((c) => `${c.label} ${pct(c.coverage)}`).join(', ')}).`),
-    ),
   ], prestigeReadings(s), {
-    riseRate: PRESTIGE_RISE_RATE,
-    maxRise: PRESTIGE_MAX_RISE,
+    riseRate: riseRateIn(s.clock.year),
+    maxRise: maxRiseIn(s.clock.year),
     fallRate: PRESTIGE_FALL_RATE,
     reportCard: s.self.reportCard,
   }, teachingCeiling(s));
@@ -697,8 +724,10 @@ export function concentrationScore(s: GameState): number {
   return clamp01(deepestSchool(s)?.depth ?? 0);
 }
 
-// Crowding: the worst coverage ratio as a shortfall below CROWDING_GRACE,
-// averaged over the year. Health below its population gate counts as fully
+// The needs a class physically overruns (Plan 71): beds, dining, health and
+// class seats, worst first. No longer a prestige term (Plan 107E): the
+// next-step line names the worst under CROWDING_GRACE, and the harness's
+// players build for it. Health below its population gate counts as fully
 // covered, as in the satisfaction and demand systems.
 export const CROWDING_GRACE = 0.85;
 
@@ -737,24 +766,6 @@ export function crowdingCoverages(s: GameState): CoverageReading[] {
   return out.sort((a, b) => a.coverage - b.coverage);
 }
 
-// This week's shortfall — what tickPrestige accumulates.
-export function crowdingShortfallNow(s: GameState): number {
-  const worst = crowdingCoverages(s)[0].coverage;
-  return clamp01((CROWDING_GRACE - worst) / CROWDING_GRACE);
-}
-
-export function crowdingScore(s: GameState): number {
-  return s.students.crowdingYearWeeks > 0
-    ? clamp01(s.students.crowdingYearSum / s.students.crowdingYearWeeks)
-    : crowdingShortfallNow(s);
-}
-
-// What the crowding term takes from prestige's grade, in points: the
-// admissions decision's projection reads it (Plan 95P, the second review's
-// B3-5).
-export function crowdingPoints(s: GameState): number {
-  return CROWDING_PENALTY * crowdingScore(s);
-}
 
 function reading(
   key: string, label: string, score: number, detail: string,
@@ -792,10 +803,7 @@ export function gradeYear(s: GameState): ReportCard {
   const grades: Record<string, number> = {};
   for (const input of made.inputs) grades[input.key] = input.contribution;
   const before = s.self.reputation;
-  const gap = made.target - before;
-  const rate = gap >= 0 ? PRESTIGE_RISE_RATE : PRESTIGE_FALL_RATE;
-  const step = gap >= 0 ? Math.min(gap * rate, PRESTIGE_MAX_RISE) : gap * rate;
-  const after = clamp(before + step, PRESTIGE_MIN, PRESTIGE_MAX);
+  const after = clamp(before + summerStep(before, made.target, s.clock.year), PRESTIGE_MIN, PRESTIGE_MAX);
   return { year: s.clock.year, score: made.target, grades, before, after };
 }
 
@@ -935,16 +943,19 @@ export function athleticStanding(s: GameState): number {
 // How far prestige moves this week, by the tick's own step (Plan 98B): what
 // the dock's arrow reads, since the target itself is not shown.
 export function prestigeWeeklyChange(s: GameState): number {
-  return drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE) - s.self.reputation;
+  return weekOfPrestige(s.self.reputation, computePrestigeTarget(s), s.clock.year) - s.self.reputation;
+}
+
+// One week: the tremor, and in the early years the early rise (Plan 107F).
+function weekOfPrestige(prestige: number, target: number, year: number): number {
+  return clamp(drift(prestige, target, PRESTIGE_TREMOR_RATE) + earlyWeeklyRise(prestige, target, year), PRESTIGE_MIN, PRESTIGE_MAX);
 }
 
 // Academic standing trembles toward its target; the other two are set to
 // their pillars (Plan 98E). Kept in one function so invariants.test.ts can confine
 // every writer to this file.
 export function tickPrestige(s: GameState): void {
-  s.students.crowdingYearSum += crowdingShortfallNow(s);
-  s.students.crowdingYearWeeks += 1;
-  s.self.reputation = drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE);
+  s.self.reputation = weekOfPrestige(s.self.reputation, computePrestigeTarget(s), s.clock.year);
   // The research and student-life pillars as they stand (Plan 98E). Since
   // Plan 85I the pillars are read live, so these two fields are each pillar
   // as of this week, not a stock lagging toward it; what still reads them

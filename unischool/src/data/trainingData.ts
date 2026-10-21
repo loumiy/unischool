@@ -1,5 +1,6 @@
 import type { Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus } from '../state/types';
+import { GRADE_A } from './courseQuality';
 
 // ---------------------------------------------------------------------
 // The faculty training program (Plan 85E): the academics specialization's
@@ -105,7 +106,7 @@ export const TRAINING_WORDS = {
     : `${name} teaches one course fewer until ${until}: ${course} will be left without an instructor.`),
   whyNot: {
     noPicks: (year: number) => `No training picks are left in Year ${year}.`,
-    topGrade: 'Already teaches at 78 or more, the top band.',
+    topGrade: `Already teaches at ${GRADE_A} or more, the top band.`,
     thisYear: 'Already trained this year.',
   },
   trainedBadge: 'Trained',

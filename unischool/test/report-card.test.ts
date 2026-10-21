@@ -17,6 +17,7 @@ import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
   applyReportCard, computePrestigeTarget, gradeYear, pillarBreakdown, prestigeBreakdown,
   PILLAR_SPAN, PILLAR_WEIGHTS, PRESTIGE_FALL_RATE, PRESTIGE_MAX_RISE, PRESTIGE_RISE_RATE, setPrestigeForPlaytest,
+  EARLY_MAX_RISE, EARLY_RISE_RATE, maxRiseIn, riseRateIn,
 } from '../src/systems/prestige/prestigeSystem';
 import { milestoneSchools } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
@@ -47,11 +48,8 @@ function fresh(): GameState {
 }
 
 // A college with something to its name: one school founded and
-// distinguished, every program of it established and distinguished, and a
-// year uncrowded.
+// distinguished, every program of it established and distinguished.
 function accomplished(s: GameState): void {
-  s.students.crowdingYearSum = 0;
-  s.students.crowdingYearWeeks = 1;
   const school = milestoneSchools().find((x) => x.schoolName === 'Engineering')!;
   s.milestones['school-founded:Engineering'] = true;
   s.milestones['school-distinguished:Engineering'] = true;
@@ -88,11 +86,11 @@ console.log('report card tests');
   setPrestigeForPlaytest(s, target - 30);
   const up = gradeYear(s);
   assert(near(up.score, target), 'the card grades the live target');
-  const climb = Math.min(30 * PRESTIGE_RISE_RATE, PRESTIGE_MAX_RISE);
-  assert(near(up.after - up.before, climb), `thirty below its grade, a school climbs ${climb}: the rise rate's share, at most ${PRESTIGE_MAX_RISE} (${(up.after - up.before).toFixed(2)})`);
+  const climb = Math.min(30 * riseRateIn(s.clock.year), maxRiseIn(s.clock.year));
+  assert(near(up.after - up.before, climb), `thirty below its grade, a school climbs ${climb.toFixed(2)}: the rise rate's share in its year, capped (${(up.after - up.before).toFixed(2)})`);
   setPrestigeForPlaytest(s, target - 5);
   const near5 = gradeYear(s);
-  assert(near(near5.after - near5.before, Math.min(5 * PRESTIGE_RISE_RATE, PRESTIGE_MAX_RISE)), 'five below it, the rise rate alone decides');
+  assert(near(near5.after - near5.before, Math.min(5 * riseRateIn(s.clock.year), maxRiseIn(s.clock.year))), 'five below it, the rise rate alone decides');
 
   setPrestigeForPlaytest(s, target + 30);
   const down = gradeYear(s);
@@ -103,6 +101,11 @@ console.log('report card tests');
   // at year ten, and the steeper fall turned the found era's dips into
   // collapses.
   assert(near(PRESTIGE_RISE_RATE, 0.20) && near(PRESTIGE_FALL_RATE, 0.30), 'at the fitted rates');
+  // An easier climb in the early game (Plan 107F): 0.45 and up to 6 a
+  // summer through year 5, tapering to the fitted pair by year 10.
+  assert(near(riseRateIn(1), EARLY_RISE_RATE) && near(maxRiseIn(5), EARLY_MAX_RISE) && near(EARLY_RISE_RATE, 0.45) && near(EARLY_MAX_RISE, 6), 'in the first five years, the early rates');
+  assert(near(riseRateIn(7.5), (EARLY_RISE_RATE + PRESTIGE_RISE_RATE) / 2) && near(maxRiseIn(7.5), (EARLY_MAX_RISE + PRESTIGE_MAX_RISE) / 2), 'halfway by year seven and a half');
+  assert(near(riseRateIn(10), PRESTIGE_RISE_RATE) && near(maxRiseIn(30), PRESTIGE_MAX_RISE), 'and the fitted pair from year 10');
 
   setPrestigeForPlaytest(s, target);
   const flat = gradeYear(s);
@@ -122,11 +125,10 @@ console.log('report card tests');
     assert(s.self.reputation > last, `year ${year}: a low school with a good grade climbs (${last.toFixed(1)} -> ${s.self.reputation.toFixed(1)})`);
     last = s.self.reputation;
   }
-  // Plan 67: the climb is at most PRESTIGE_MAX_RISE a summer, so ten
-  // summers close no more than ten times that, and no less than the rise
-  // rate or the cap allows each year.
+  // Plan 67: the climb is capped each summer, by its year's cap (Plan
+  // 107F), and is the rise rate's share of the gap below the cap.
   let expected = 20;
-  for (let year = 1; year <= 10; year += 1) expected += Math.min((target - expected) * PRESTIGE_RISE_RATE, PRESTIGE_MAX_RISE);
+  for (let year = 1; year <= 10; year += 1) expected += Math.min((target - expected) * riseRateIn(s.clock.year), maxRiseIn(s.clock.year));
   assert(near(s.self.reputation, expected), `and climbs at the rise rate, capped (${s.self.reputation.toFixed(1)} against ${expected.toFixed(1)})`);
 }
 
@@ -138,20 +140,16 @@ console.log('report card tests');
   assert(made.inputs.every((i) => card.grades[i.key] !== undefined), 'every input is graded');
   assert(made.inputs.every((i) => near(card.grades[i.key], i.contribution)), 'at the contribution the breakdown shows');
   assert(Object.keys(card.grades).length === made.inputs.length, 'and nothing else is');
-  assert(card.grades.crowding <= 0, 'the crowding grade is a subtraction');
+  assert(card.grades.crowding === undefined, 'and crowding is not one (Plan 107E)');
 }
 
-// ---- the penalty can take a school below what its curriculum earned ----
+// ---- a campus short of beds and seats is not marked down here (Plan 107E) ----
 {
   const s = fresh();
-  s.students.crowdingYearSum = 0;
-  s.students.crowdingYearWeeks = 0;
   const made = prestigeBreakdown(s);
-  const crowding = made.inputs.find((i) => i.key === 'crowding')!;
   const earned = made.inputs.filter((i) => !i.penalty).reduce((sum, i) => sum + i.contribution, made.baseline);
-  assert(crowding.contribution < 0, 'a founding campus with nothing built is crowded');
-  assert(made.target < earned, `and its target sits below what its inputs earned (${made.target.toFixed(1)} < ${earned.toFixed(1)})`);
-  assert(near(made.target, Math.max(made.min, earned + crowding.contribution)), 'by exactly the penalty');
+  assert(made.inputs.filter((i) => i.penalty).map((i) => i.key).join(',') === 'condition', 'the one penalty is the buildings\' condition');
+  assert(near(made.target, Math.min(made.max, Math.max(made.min, earned + made.inputs.find((i) => i.key === 'condition')!.contribution))), 'so a founding campus with nothing built keeps what its inputs earned');
 }
 
 // ---- the weight budget ----
@@ -164,7 +162,7 @@ console.log('report card tests');
   assert(near(PILLAR_WEIGHTS.academics + PILLAR_WEIGHTS.research + PILLAR_WEIGHTS.studentLife + PILLAR_WEIGHTS.athletics, 1), 'the pillars\' shares sum to one');
   assert(near(weight('academics'), 0.35 * PILLAR_SPAN) && near(weight('research'), 0.25 * PILLAR_SPAN)
     && near(weight('studentLife'), 0.25 * PILLAR_SPAN) && near(weight('athletics'), 0.15 * PILLAR_SPAN), 'academics 35%, research 25%, student life 25%, athletics 15%');
-  assert(weight('endowment') === 4 && weight('crowding') === 25 && weight('condition') === 4, 'endowment four (Plan 85I: it was eight), crowding up to twenty-five, condition up to four');
+  assert(weight('endowment') === 4 && weight('condition') === 4 && !made.inputs.some((i) => i.key === 'crowding'), 'endowment four (Plan 85I: it was eight), condition up to four, and no crowding (Plan 107E)');
   // Inside a pillar, the terms keep their old weights' proportions.
   const within = (p: Parameters<typeof pillarBreakdown>[1], a: string, b: string) => {
     const inputs = pillarBreakdown(s, p).inputs;
@@ -182,8 +180,6 @@ console.log('report card tests');
   const start = fresh();
   assert(start.self.reportCard === null, 'no summer has graded a founding school');
   const atSummer = toSummer(start);
-  assert(atSummer.students.crowdingYearWeeks > 0, 'the crowding accumulator has a year in it by the summer');
-  assert(atSummer.students.satisfactionYearWeeks === atSummer.students.crowdingYearWeeks, 'ticked in step with the satisfaction accumulator');
   const expected = gradeYear(atSummer);
   const before = atSummer.self.reputation;
   // The summer is four beats (Plan 16's PR A), answered one per call by the
@@ -195,12 +191,11 @@ console.log('report card tests');
   assert(near(s.self.reportCard!.score, expected.score), 'graded on the state before the funnel ran');
   assert(near(s.self.reportCard!.before, before), 'from the prestige the summer opened at');
   assert(near(s.self.reputation, expected.after), 'and prestige stepped to the card\'s figure');
-  assert(s.students.crowdingYearWeeks === 0 && s.students.crowdingYearSum === 0, 'the crowding accumulator is reset for the new year');
   assert(s.history[s.history.length - 1].prestige === s.self.reputation, 'the year\'s snapshot records the stepped standing');
   assert(s.log.some((l) => l.message.startsWith('Report card for Year')), 'and the log says so');
   const made = prestigeBreakdown(s);
   assert(made.summer?.reportCard === s.self.reportCard, 'the breakdown carries the card for the panel');
-  assert(near(made.summer!.riseRate, PRESTIGE_RISE_RATE) && near(made.summer!.fallRate, PRESTIGE_FALL_RATE), 'and both rates');
+  assert(near(made.summer!.riseRate, riseRateIn(s.clock.year)) && near(made.summer!.fallRate, PRESTIGE_FALL_RATE), 'and both rates, for its year');
 }
 
 // ---- between summers, a tremor ----
@@ -211,8 +206,13 @@ console.log('report card tests');
   const before = s.self.reputation;
   const s1 = reducer(s, { type: 'TICK' });
   const moved = s1.self.reputation - before;
-  assert(moved > 0 && moved < 0.05, `a week forty below its target moves prestige by a tremor (${moved.toFixed(4)})`);
-  assert(s1.students.crowdingYearWeeks === 1, 'and feeds the crowding accumulator one week');
+  assert(moved > 0 && moved < 0.06, `a week forty below its target moves prestige by a tremor, and in the early years a share of the early rise (${moved.toFixed(4)})`);
+  // Past the early years, the tremor alone.
+  const later = fresh();
+  later.clock.year = 12;
+  const tLater = computePrestigeTarget(later);
+  const l1 = reducer(later, { type: 'TICK' });
+  assert(Math.abs(l1.self.reputation - later.self.reputation) <= Math.abs(tLater - later.self.reputation) * 0.0003, `in year 12 the week is the tremor alone (${(l1.self.reputation - later.self.reputation).toFixed(4)})`);
 }
 
 console.log(`report card: ${checks} checks, ${failures} failures`);

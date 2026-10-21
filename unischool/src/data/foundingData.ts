@@ -139,9 +139,11 @@ export const FOUNDING_VERNACULAR: Vernacular = 'georgian';
 // Years 1–2 (its lowest is about $0.1M, the reserve it keeps).
 export const FOUNDING_PRESET: FoundingPreset = {
   startingCash: 2_900_000,
-  // A new college opens near the grade it can earn in its first years
-  // (Plan 95N, the second review's B3-1): 42 with Founders Hall's 1.5. At
-  // 51.5 every college fell for three or four summers.
-  startingReputation: 40.5,
+  // A new college opens at the pillars' floor, 32 with Founders Hall's 1.5:
+  // a college with nothing (Plan 107F). Plan 95N opened it at 42, near the
+  // grade it could earn in its first years, so it barely moved for five;
+  // from 32 it climbs every summer of them, a college doing well seen to.
+  // Below the applicant pool's zero (24) the first classes would not come.
+  startingReputation: 30.5,
   startingApplicantPool: 150,
 };

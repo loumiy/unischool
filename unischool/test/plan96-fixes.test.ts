@@ -11,7 +11,6 @@ import { litDaysAt } from '../src/components/DayTicker';
 import { liveFlashes } from '../src/components/CommitteeLamps';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { DOMAIN_LABEL } from '../src/systems/inbox/inbox';
-import { crowdingSentence } from '../src/components/InterruptModal';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE, HEALTH_PHASE_IN, healthPhaseIn } from '../src/data/facilitiesData';
 
 let checks = 0;
@@ -41,8 +40,6 @@ const fromPresident = [...EVENT_CATALOGUE, CHARTER_EVENT].filter((e) => /^the pr
 assert(fromPresident.length === 0, `no letter is from the President (${fromPresident.map((e) => e.id).join(', ')})`);
 assert(EVENT_CATALOGUE.find((e) => e.id === 'the-insurance-renewal')?.from === 'Buildings and grounds', 'the insurance renewal comes from buildings and grounds');
 
-// The summer's crowding line.
-assert(crowdingSentence('dining', 0.51, 9.94) === 'Dining feeds only 51% of this class: holds prestige back by 9.9', `the crowding line reads plainly (${crowdingSentence('dining', 0.51, 9.94)})`);
 
 // Health phases in past its gate (96I), so the class that crosses 1,500
 // is not met by a need the college could not yet build for.

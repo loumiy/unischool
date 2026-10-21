@@ -142,7 +142,7 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
     weeklySalaries: `${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}; salaries rise with tenure`,
     seatUpkeep: `${count(s.students.capacity)} beds`,
     instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section a week; ${sectionsNote}`,
-    servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} for crowding` : ''}`,
+    servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} with the classrooms full` : ''}`,
     scaleCost: `the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)}`,
     academicUpkeep: `running ${coursesDone} courses and the teaching buildings they sit in`,
     facilityUpkeep: 'libraries, dining, rec and labs',

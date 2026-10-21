@@ -110,13 +110,18 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   assert(!opened(s, 'somewhere-to-sleep') && currentChapter(s) === null, 'Somewhere to sleep waits for week 10; none is current');
   assert(!opened(s, 'seats'), 'nor is Seats for everyone open before it');
 
-  s.faculty = [];
+  for (const slots of Object.values(s.halls)) for (const slot of slots) slot.programId = null;
   settleChapters(s);
-  assert(objectiveMet(s, 'appoint-first-professor'), 'an objective stays met after its reading falls');
+  assert(objectiveMet(s, 'found-first-program'), 'an objective stays met after its reading falls');
 
   const seatsRow = objectiveRows(s, CHAPTERS.find((c) => c.id === 'seats')!).find((r) => r.id === 'seat-every-student')!;
   assert(typeof seatsRow.progress === 'object' && seatsRow.progress.of === 350, 'a counted objective reads its figure');
   assert(objectiveRows(s, CHAPTERS.find((c) => c.id === 'next-course')!).find((r) => r.id === 'run-at-double')!.optional, 'the speed objective is optional');
+  // Chapter 8 asks for the Faculty tab; a search is one way to fill a field (Plan 107B).
+  const faculty = objectiveRows(s, CHAPTERS.find((c) => c.id === 'a-faculty')!);
+  assert(faculty[0].id === 'open-faculty' && !faculty[0].optional, 'A faculty opens with the Faculty tab, required');
+  assert(faculty.find((r) => r.id === 'post-a-search')!.optional, 'and posting a search is optional');
+  assert(MARKED_TABS.has('faculty'), 'opening the Faculty tab is marked');
 }
 
 // ---- The next chapter waits for its week, and opens already met ----
@@ -266,7 +271,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   let went: string | undefined;
   const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
-  assert(html.includes('What it is') && html.includes('Every student needs a place in the catalog') && html.includes('Show me') && html.includes('→ Prestige:'), 'a briefing shows its what, how and why');
+  assert(html.includes('What it is') && html.includes('Every student needs a place in the catalog') && html.includes('Show me') && html.includes('→ Satisfaction:'), 'a briefing shows its what, how and why');
   assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
   const showMe = findButton(panel, 'Show me');
   showMe?.();

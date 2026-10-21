@@ -146,10 +146,6 @@ export interface StudentBody {
   satisfactionYearSum: number;
   satisfactionYearWeeks: number;
   priorYearAvgSatisfaction: number; // last completed year's average, read by the funnel
-  // Crowding shortfall, accumulated the same way: the report card grades the
-  // year's average. Reset with satisfaction at RESOLVE_ADMISSIONS.
-  crowdingYearSum: number;
-  crowdingYearWeeks: number;
   applicantPool: number; // most recent cycle's total applicants (set by the annual funnel)
   // Applicants drawn once by something finished during the year (a grand
   // landmark, a milestone; Plan 79C): the next summer's funnel adds them to
@@ -177,7 +173,8 @@ export interface FunnelFactors {
   beauty?: number;
   // The identity tags' pull (Plan 31), 1 at none. Absent before it.
   tags?: number;
-  // Last year's overcrowding (Plan 71), 1 at none. Absent before it.
+  // Last year's overcrowding (Plans 71 to 106), 1 at none: a record from a
+  // save before Plan 107E retired it. Nothing reads it.
   crowding?: number;
   // The year's one-summer lift (students.applicantLift, Plan 79C), as the
   // pool with it over the pool without: 1 at none. Absent before it.
@@ -718,7 +715,7 @@ export interface GuidanceState {
 // after it are the objectives' chapters (state/chapters.ts). A save from
 // mid-walk on a retired step ('await-course', 'second-course', 'needs',
 // 'site-housing', 'site-dining') is moved on to 'play' (opening.ts).
-export type OpeningStage = 'welcome' | 'site-hall' | 'appoint' | 'found' | 'play';
+export type OpeningStage = 'welcome' | 'site-hall' | 'found' | 'play';
 
 // The four pillars of prestige (Plan 85; systems/prestige/prestigeSystem.ts).
 export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';

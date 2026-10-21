@@ -73,7 +73,7 @@ import {
 } from '../../src/systems/admissions/admissionsSystem';
 import { deriveCohortSignals } from '../../src/systems/admissions/cohorts';
 import { projectConsequences } from '../../src/systems/admissions/consequences';
-import { CROWDING_GRACE, crowdingScore, teachingCeiling, prestigeBreakdown } from '../../src/systems/prestige/prestigeSystem';
+import { CROWDING_GRACE, crowdingCoverages, teachingCeiling, prestigeBreakdown } from '../../src/systems/prestige/prestigeSystem';
 import { athleticRank, playerRank, rankBy } from '../../src/systems/rivals/rivalsSystem';
 import { canAppoint, heldSeat, seatCandidates, staffingSeats } from '../../src/systems/delegation/seats';
 import { STAFFING_POLICY, seatDef } from '../../src/data/seatData';
@@ -155,7 +155,7 @@ export interface Row {
   athleticRank: number;
   satisfaction: number;
   attributes: SatisfactionAttributes;
-  crowding: number;           // the year's crowding shortfall so far, 0..1
+  crowding: number;           // the worst need's shortfall below CROWDING_GRACE this week, 0..1 (no longer a prestige term, Plan 107E)
   courses: number;
   gradCourses: number;
   programs: number;
@@ -339,7 +339,7 @@ class Journal {
       athleticRank: athleticRank(s),
       satisfaction: s.students.satisfaction,
       attributes: { ...s.students.satisfactionBreakdown },
-      crowding: crowdingScore(s),
+      crowding: Math.max(0, Math.min(1, (CROWDING_GRACE - crowdingCoverages(s)[0].coverage) / CROWDING_GRACE)),
       courses: done.filter((t) => t.graduateProgram === undefined).length,
       gradCourses: done.filter((t) => t.graduateProgram !== undefined).length,
       programs: Object.values(s.halls).flat().filter((x) => x.programId !== null).length,
