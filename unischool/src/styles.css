@@ -4200,6 +4200,27 @@ body:has(.building-info-panel) .pennant { display: none; }
   animation: dust-puff 900ms ease-out both; }
 @keyframes dust-puff { from { opacity: 0.9; transform: scale(0.3); } to { opacity: 0; transform: scale(1.5); } }
 
+/* A lab's news (components/labNews.ts): a paper, a grant or a breakthrough
+   rises over the lab and fades. Still under reduced motion, stacked. */
+.lab-news { pointer-events: none; }
+.lab-news text { font-family: var(--display); font-weight: 800; font-size: 13px; text-anchor: middle;
+  fill: #f6f1e2; stroke: rgba(20, 26, 16, 0.85); stroke-width: 3.5px; stroke-linejoin: round; paint-order: stroke;
+  transform-box: fill-box; transform-origin: center; animation: lab-news-rise 2200ms ease-out both; }
+.lab-news.grant text { fill: #b9eba0; font-size: 15px; }
+.lab-news.breakthrough text { fill: var(--gold); font-size: 17px; animation-name: lab-news-burst; }
+.lab-news.still text { animation: none; }
+@keyframes lab-news-rise {
+  0% { opacity: 0; transform: translateY(6px); }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-34px); } }
+@keyframes lab-news-burst {
+  0% { opacity: 0; transform: translateY(6px) scale(0.6); }
+  15% { opacity: 1; transform: translateY(0) scale(1.15); }
+  25% { transform: translateY(-4px) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-34px) scale(1); } }
+
 /* Modals rise into place. */
 .modal { animation: modal-in 150ms ease-out; }
 @keyframes modal-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
