@@ -6,7 +6,8 @@
 // each, in Founders Hall's first three program slots. This puts a new
 // college there directly: the three founding-market professors appointed
 // (Bennett f3, Iyer f4, Okafor f2), their programs housed and each one's
-// first two courses developed and taught by them. Not a game path; the
+// first two courses developed and taught by them (since Plan 107A the three
+// are appointed at the founding). Not a game path; the
 // opening itself is test/opening.test.ts's.
 
 import type { GameState } from '../../src/state/types';
@@ -28,13 +29,13 @@ export function teachingCourseIds(): string[] {
 // Turns a newly founded college (createInitialState) into one teaching the
 // pillars. Mutates and returns it.
 export function teachPillars(s: GameState): GameState {
+  // On the payroll from the founding since Plan 107A; appointed here for a
+  // state made before it.
   const teacherOf = new Map<string, string>();
   for (const p of FOUNDING_MARKET) {
     const i = s.candidates.findIndex((c) => c.id === p.id);
-    if (i < 0) continue;
-    const [person] = s.candidates.splice(i, 1);
-    appointFaculty(s, person);
-    teacherOf.set(p.field, person.id);
+    if (i >= 0) appointFaculty(s, s.candidates.splice(i, 1)[0]);
+    if (s.faculty.some((f) => f.id === p.id)) teacherOf.set(p.field, p.id);
   }
   FOUNDING_PROGRAMS.forEach((programId, slot) => {
     const program = programById(programId)!;

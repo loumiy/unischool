@@ -1651,6 +1651,14 @@ export function readSave(raw: string): { state: GameState; savedAt: number | nul
   return { state: payload.state, savedAt: typeof payload.savedAt === 'number' ? payload.savedAt : null };
 }
 
+// The walkthrough's appointing step went with Plan 107A (the founding faculty
+// is on the payroll): a save held on it resumes on the founding step, where
+// a professor it appointed teaches what it founds.
+function sanitizeOpening(state: GameState): void {
+  const opening = state.events?.opening as { stage: string } | undefined;
+  if (opening?.stage === 'appoint') opening.stage = 'found';
+}
+
 // Returns the saved run, or null if it is missing, unreadable, too old or
 // too new, or not shaped like a GameState. A corrupt save must never stop
 // the app booting. A run this version cannot read is set aside, not lost,
@@ -1709,6 +1717,7 @@ export function adoptSave(state: GameState): boolean {
 }
 
 function sanitize(state: GameState): void {
+  sanitizeOpening(state);
   sanitizePlacements(state);
   // Halls after placements (a hall's slots are real only while it stands),
   // offers after halls (an offer is real only while its program is unhoused).

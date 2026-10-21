@@ -6,20 +6,21 @@ import { awaitsSite } from './campusMap';
 // The opening walkthrough: the first clicks of a new school, with the clock
 // held until each step is actually done. The stage lives in state
 // (s.events.opening.stage) so a refresh or a mid-walk save resumes on the
-// same step. Since Plan 80D the college opens with nothing to teach — no
-// professor, no course — so the walk founds its first program:
+// same step. Since Plan 80D the college opens with nothing to teach, and
+// since Plan 107A with its founding faculty on the payroll (Dr. Grace
+// Bennett, Dr. Priya Iyer and Dr. John Okafor, foundingData.ts), so the
+// walk founds its first program:
 //
 //   welcome    Next, or "Skip the walkthrough and the letters". Every later
 //              card can skip the rest, letters kept. Either skip asks first
 //              (Plan 104C, components/OpeningCoach.tsx).
 //   site-hall  Founders Hall is not pre-placed in a guided founding; done
 //              when the hall stands on the map (siting is free).
-//   appoint    appoint the college's first professor from the founding
-//              market (Dr. Grace Bennett, English, foundingData.ts); done
-//              when anyone is on the payroll.
-//   found      found a program into Founders Hall, English with her; done
-//              when a program is housed. Its entry course goes to the
-//              committee.
+//   found      choose any of the three programs on offer and found it into
+//              Founders Hall; done when a program is housed. Its entry
+//              course goes to the committee. (Plan 104L's separate
+//              appointing step went with Plan 107A; a save held on it is
+//              carried to this one on load, persistence.ts.)
 //   play       the clock runs. The objectives take over (Plan 106 PR C,
 //              state/chapters.ts): the next course, somewhere to sleep, a
 //              place for every student. The "Somewhere to sleep" letter is
@@ -61,13 +62,12 @@ export function openingHoldsClock(s: GameState): boolean {
 // The first three steps keep the screen quiet (Plan 104F, from R10–R11):
 // the toolbar's tabs are shut and its figures dimmed but readable, all but
 // the door the step needs: the build menu to site the hall, the map
-// (Founders Hall's panel) to appoint and to found. Null once the walk is
+// (Founders Hall's panel) to found. Null once the walk is
 // done or skipped.
 export type QuietDoor = 'build' | 'campus';
 export function openingQuietDoor(s: GameState): QuietDoor | null {
   switch (s.events.opening.stage) {
     case 'site-hall': return 'build';
-    case 'appoint':
     case 'found': return 'campus';
     default: return null;
   }
@@ -90,18 +90,16 @@ export function laterCourseStarted(s: GameState): boolean {
 function stepDone(s: GameState, stage: OpeningStage): boolean {
   switch (stage) {
     case 'site-hall': return !foundersHallUnsited(s);
-    case 'appoint': return s.faculty.length > 0;
     case 'found': return housedPrograms(s).length > 0;
     default: return false;
   }
 }
 
-const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = { 'site-hall': 'appoint', appoint: 'found', found: 'play' };
-const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome', 'site-hall', 'appoint', 'found', 'play']);
+const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = { 'site-hall': 'found', found: 'play' };
+const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome', 'site-hall', 'found', 'play']);
 
 // The steps that end when the thing was done, called after every action
-// that could do one. Moves on through every step already done, so a
-// professor appointed before the hall stands skips the appointing. A walk
+// that could do one. Moves on through every step already done. A walk
 // that ends on its program founded counts the needs letter read: the
 // chapter "Somewhere to sleep" asks for the same buildings (Plan 106 PR C).
 export function settleOpening(s: GameState): void {

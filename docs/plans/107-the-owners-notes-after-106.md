@@ -255,6 +255,18 @@ Read against `main` at `e0be96a` (Plan 106 PR I).
 *Note 7.* This needs the owner's eye before code. §3 Q5 offers a mock-up
 first.
 
+**Picked by the owner (21 October), from the mock-up:** variant A, the
+meters, with two changes.
+- **No "Most room to grow" line.** Early on it named Research, which no
+  player can touch before the first lab, so it read as a blame with no
+  remedy.
+- **B's arrow in place of a target figure.** The head reads the figure and
+  ↗ or ↘. The track keeps its pale reach toward the target, unlabelled,
+  and "About +1.3 next summer" stays.
+
+What is written below is the plan as proposed; where it disagrees with
+these two points, they win.
+
 The panel answers three questions, in this order, with one number each
 and the rest drawn:
 

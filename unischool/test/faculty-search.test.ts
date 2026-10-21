@@ -86,7 +86,9 @@ console.log('faculty search tests');
   const horizon = SEARCH_WEEKS;
   function weeksToListing(withSearch: boolean, rngSeed: number): number {
     seedRandom(rngSeed);
-    let s = createInitialState('Thin');
+    // The run's own stream takes the seed: the script stream above does not
+    // reach a founded state's draws, so without it every trial was the same.
+    let s = createInitialState('Thin', undefined, undefined, false, rngSeed);
     s.candidates = s.candidates.filter((c) => c.field !== FIELD);
     if (withSearch) s = reducer(s, { type: 'POST_SEARCH', field: FIELD });
     for (let w = 1; w <= horizon; w += 1) {

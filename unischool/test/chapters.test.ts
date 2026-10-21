@@ -110,9 +110,9 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   assert(!opened(s, 'somewhere-to-sleep') && currentChapter(s) === null, 'Somewhere to sleep waits for week 10; none is current');
   assert(!opened(s, 'seats'), 'nor is Seats for everyone open before it');
 
-  s.faculty = [];
+  for (const slots of Object.values(s.halls)) for (const slot of slots) slot.programId = null;
   settleChapters(s);
-  assert(objectiveMet(s, 'appoint-first-professor'), 'an objective stays met after its reading falls');
+  assert(objectiveMet(s, 'found-first-program'), 'an objective stays met after its reading falls');
 
   const seatsRow = objectiveRows(s, CHAPTERS.find((c) => c.id === 'seats')!).find((r) => r.id === 'seat-every-student')!;
   assert(typeof seatsRow.progress === 'object' && seatsRow.progress.of === 350, 'a counted objective reads its figure');

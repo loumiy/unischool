@@ -14,7 +14,6 @@ import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
 import { NEED_WORD } from '../data/needWords';
 import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
-import { FOUNDING_MARKET, WALKTHROUGH_PROGRAM } from '../data/foundingData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
@@ -452,7 +451,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     : null;
   const canFound = founding !== null && canFoundProgram(s, founding);
   // The opening walkthrough's steps done in this panel (state/opening.ts).
-  const walking = s.events.opening.stage === 'appoint' || s.events.opening.stage === 'found';
+  const walking = s.events.opening.stage === 'found';
   const free = slots.filter(slotFree).length;
   const school = dedicatedSchool(s, t.id);
   // Claimed by a school (Plan 100: three of its programs), short of a
@@ -481,11 +480,9 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
     const mark = schoolMark(program.school);
     const [code] = (course?.name ?? program.entryCourseId).split(' · ');
     const selected = pickedProgram === program.id;
-    // The walkthrough's program, rung until it is picked.
-    const ringed = walking && t.id === FOUNDERS_HALL_ID && program.id === WALKTHROUGH_PROGRAM && pickedProgram === null;
-    // A founding program is shown with the professor who would teach it
-    // (Plan 104L), so the program comes first and the professor with it.
-    const founder = FOUNDING_MARKET.find((p) => p.field === course?.requiresFaculty && s.candidates.some((c) => c.id === p.id));
+    // The walkthrough rings every offer until one is picked: the choice is
+    // the player's (Plan 107A).
+    const ringed = walking && t.id === FOUNDERS_HALL_ID && pickedProgram === null;
     return (
       <button
         key={program.id}
@@ -498,7 +495,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         <span className="hall-offer-code" style={{ color: mark.hue }}>{mark.motif} {code}</span>
         <span className="hall-offer-name">{program.name}</span>
         <span className="hall-offer-meta">
-          {founder ? `with ${founder.name}` : `${moneyShort(course?.cost ?? 0)} · ${course?.requiresFaculty ?? '—'}`}
+          {`${moneyShort(course?.cost ?? 0)} · ${course?.requiresFaculty ?? '—'}`}
         </span>
       </button>
     );

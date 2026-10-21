@@ -58,7 +58,6 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     title: 'Founding',
     objectives: {
       'site-founders-hall': 'Raise Founders Hall',
-      'appoint-first-professor': 'Appoint the first professor',
       'found-first-program': 'Found the first program',
     },
   },
@@ -90,7 +89,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     briefing: {
       what: 'Students need somewhere to sleep and somewhere to eat, and the campus has neither yet. A residence hall gives beds and a dining hall gives meals, each for a set number of students. Most students commute, but they still judge a campus by its beds and its meals.',
       how: [
-        { text: 'The build menu rings the next residence hall: pick it up and set it down on clear ground.', door: 'build' },
+        { text: 'The build menu rings the next residence hall: pick it up and set it down anywhere on the map.', door: 'build' },
         { text: 'Then the same for a dining hall.', door: 'build' },
         { text: 'The cost is paid when a building is placed; it opens when its weeks of building are done.' },
       ],

@@ -69,14 +69,13 @@ export const DOUBLE_SPEED_MARK = 'speed-2x';
 
 export const CHAPTERS: readonly Chapter[] = [
   {
-    // The walkthrough's three steps (state/opening.ts), with the clock held
+    // The walkthrough's two steps (state/opening.ts), with the clock held
     // and the screen quiet: the coach card teaches them, so the drawer never
     // shows this chapter. It is the record that they were done.
     id: 'founding',
     earliest: week(1, 1),
     objectives: [
       { id: 'site-founders-hall', progress: (s) => !foundersHallUnsited(s) },
-      { id: 'appoint-first-professor', progress: (s) => s.faculty.length > 0 },
       { id: 'found-first-program', progress: (s) => housedPrograms(s).length > 0 },
     ],
   },

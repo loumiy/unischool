@@ -372,9 +372,8 @@ export default function App() {
 
   // The opening walkthrough drives the shell (see state/opening.ts). Each
   // transition into a stage acts once: 'site-hall' opens the build menu,
-  // 'appoint' closes it, drops the pickup and opens Founders Hall's panel
-  // (where the first professor is appointed and the first program founded),
-  // 'found' opens the panel unless 'appoint' already has, and 'play' starts
+  // 'found' closes it, drops the pickup and opens Founders Hall's panel
+  // (where the first program is founded), and 'play' starts
   // the clock (the game opens paused) when the walk ends there or is
   // skipped. On mount, a save resumed mid-walk acts on the door-opening
   // stages but not on the clock. The ref holds the last stage acted on so
@@ -387,9 +386,8 @@ export default function App() {
     if (prev === stage) return;
     actedStage.current = stage;
     if (stage === 'site-hall') setBuildOpen(true);
-    // Appointing and founding happen in the hall's panel, so that is what
-    // opens; the panel stays open from one step to the next.
-    else if (stage === 'appoint' || (stage === 'found' && prev !== 'appoint')) {
+    // Founding happens in the hall's panel, so that is what opens.
+    else if (stage === 'found') {
       closeBuild();
       setPlacingIdState(null);
       inspectHall(FOUNDERS_HALL_ID);

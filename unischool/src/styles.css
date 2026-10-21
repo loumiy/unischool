@@ -3736,12 +3736,18 @@ button.inbox-row:hover { background: var(--cream-hi); }
 /* A note, like the notes over the map: the same height (the note's).
    Pinned top-right, beside the main menu and the map tools (Plan 78F): top-
    center it covered the hall the player had just set down near the middle,
-   and top-left is the building panel's. On a phone there is no side to
+   and top-left is the building panel's, bar the first step's (below). On a phone there is no side to
    spare, so it spans the width under the menu's corner as before. */
 .opening-coach { position: fixed; z-index: 30; top: 16px; right: calc(var(--corner-menu-height) + 32px);
   width: min(400px, calc(100vw - var(--corner-menu-height) - 64px)); box-sizing: border-box; padding: var(--space-16) var(--space-24);
   background: var(--cream); color: var(--ink); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   box-shadow: var(--elevation-note); animation: popup-rise 0.25s ease-out; }
+/* Raising Founders Hall (Plan 107A): on the left edge, under the pennant and
+   over the build menu, where the eye already is; top-right drew it away. On
+   a screen too short for the gap it stays top-right. */
+@media (min-width: 761px) and (min-height: 820px) {
+  .opening-coach.left { left: 16px; right: auto; top: 156px; width: min(400px, calc(100vw - 32px)); }
+}
 @media (max-width: 760px) {
   .opening-coach { right: 16px; left: 16px; width: auto; }
   .opening-coach.under-panel { top: auto; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);

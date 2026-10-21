@@ -237,11 +237,10 @@ function testOpening(): void {
   const w = walk('Walked');
   w.step({ type: 'ADVANCE_OPENING' });
   w.site(FOUNDERS_HALL_ID, true);
-  w.step({ type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
   w.step({ type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
   flush();
   // The walk ends on the program founded (Plan 106 PR C).
-  const walked = 'site-hall,appoint,found,play';
+  const walked = 'site-hall,found,play';
   assert(w.s.events.opening.stage === 'play' && steps().join(',') === walked, `each stage reached is an opening_step, in order (${steps().join(',')})`);
   assert(skips().length === 0, 'and a walk finished sends no opening_skipped');
 
@@ -252,8 +251,8 @@ function testOpening(): void {
   k.site(FOUNDERS_HALL_ID, true);
   k.skip(true);
   flush();
-  assert(k.s.events.opening.stage === 'play' && steps().join(',') === 'site-hall,appoint', `skipped on the professor's card: the steps before it (${steps().join(',')})`);
-  assert(skips().join(',') === 'appoint:true', `and opening_skipped with the card and the letters kept (${skips().join(',')})`);
+  assert(k.s.events.opening.stage === 'play' && steps().join(',') === 'site-hall,found', `skipped on the program's card: the steps before it (${steps().join(',')})`);
+  assert(skips().join(',') === 'found:true', `and opening_skipped with the card and the letters kept (${skips().join(',')})`);
 
   // Skipped from the welcome, the letters declined.
   sent = [];

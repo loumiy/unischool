@@ -28,7 +28,7 @@ import { reducer } from '../src/engine/reducer';
 import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import { admitRate, priceTier, priceTolerance } from '../src/systems/admissions/admissionsSystem';
-import { FOUNDING_PRESET, STARTING_TUITION } from '../src/data/foundingData';
+import { FOUNDING_PRESET, STARTING_TUITION, WALKTHROUGH_PROFESSOR } from '../src/data/foundingData';
 import {
   BEYOND_NEED_FROM, BEYOND_NEED_UPKEEP, FACILITY_UPKEEP_SHARE, LIBRARY_TIER1_ID, PRICE_UPKEEP_TYPES, REC_CENTER_TIER2_ID, RETAIL_FOOD_SHARE,
   initialFacilities, nextLibraryFloor, nextVenueExpansion, priceUpkeep,
@@ -36,7 +36,7 @@ import {
 import { TOWER_RETAIL_UPKEEP_PER_WEEK, initialDorms } from '../src/data/campusData';
 import { EXTENSION_COST_SHARE, facilityUpkeepOf, isPriceUpkept } from '../src/systems/estate/estate';
 import { attributeCoverage, computeSatisfactionBreakdown, servedPopulationFor } from '../src/systems/satisfaction/satisfactionSystem';
-import { financeBreakdown } from '../src/systems/finance/financeSystem';
+import { facultyPay, financeBreakdown } from '../src/systems/finance/financeSystem';
 import { readSave, SAVE_VERSION } from '../src/state/persistence';
 import { buildTabOf } from '../src/components/BuildPopup';
 import { beyondNeedUpkeep, needCapacity, needUseSentence } from '../src/systems/estate/beyondNeed';
@@ -82,7 +82,11 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   assert(s.self.reputation === 42, `a new college opens at prestige 42 (${s.self.reputation})`);
   assert(STARTING_TUITION > 16_000 && priceTier(STARTING_TUITION, priceTolerance(s.self.reputation)) === 'fair', 'the founding price is up, and fair');
   assert(Object.values(s.finance.tuitionByClass).every((p) => p === STARTING_TUITION), 'every founding class pays it');
-  assert(s.finance.cash === FOUNDING_PRESET.startingCash && FOUNDING_PRESET.startingCash === 2_900_000, 'the founding funds are $2.9M');
+  // Plan 107A: and the first year of the two founding salaries the walk no
+  // longer waits on.
+  const carried = s.faculty.filter((f) => f.id !== WALKTHROUGH_PROFESSOR).reduce((n, f) => n + Math.round(facultyPay(s, f.salary)), 0);
+  assert(FOUNDING_PRESET.startingCash === 2_900_000 && s.faculty.length === 3 && carried > 0 && s.finance.cash === FOUNDING_PRESET.startingCash + carried,
+    `the founding funds are $2.9M, and two founding salaries' first year (${s.finance.cash})`);
 }
 
 // ---- 2. facility upkeep is a share of the price ----

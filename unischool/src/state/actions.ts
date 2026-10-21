@@ -17,12 +17,14 @@ import { seedTrees } from '../data/treeData';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool } from '../data/facultyData';
+import { appointFaculty } from '../systems/faculty/facultySystem';
+import { facultyPay } from '../systems/finance/financeSystem';
 import { admitRate } from '../systems/admissions/admissionsSystem';
 import { RESEARCH_STANDING_BASELINE, SOCIAL_STANDING_BASELINE } from '../systems/prestige/prestigeSystem';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import {
   FOUNDING_PRESET, FOUNDING_VERNACULAR, STARTING_ENDOWMENT, STARTING_TUITION,
-  FOUNDING_CLASSES, FOUNDING_PROGRAMS,
+  FOUNDING_CLASSES, FOUNDING_PROGRAMS, FOUNDING_MARKET, WALKTHROUGH_PROFESSOR,
 } from '../data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 import { OPENING_LETTERS } from '../data/eventData';
@@ -417,8 +419,7 @@ function foundState(
       incomingQuality: 50,
       lastFunnel: null,
     },
-    // Nobody on the payroll: the first professors are appointed from the
-    // founding market (initialCandidatePool).
+    // The founding market's three are appointed below, from the candidates.
     faculty: [],
     tech,
     developing: {},
@@ -503,6 +504,7 @@ function foundState(
     guidance: { opened: {}, done: {}, met: [], marked: [] },
   };
 
+  appointFoundingFaculty(state);
   holdBackUnreached(state);
   unlockAvailable(state);
 
@@ -519,3 +521,24 @@ function foundState(
 }
 
 export { WEEKS_PER_YEAR };
+
+// The founding faculty (Plan 107A): the founding market's three professors,
+// one for each program on offer, are on the payroll from the first week, so
+// the walkthrough's first choice is a program and nothing else. Before it,
+// one was appointed in the walkthrough and the other two whenever the
+// player got to them; the founding funds carry the first year of those two
+// salaries, so the opening's money stands where it did.
+function appointFoundingFaculty(s: GameState): void {
+  const appointed: string[] = [];
+  for (const p of FOUNDING_MARKET) {
+    const i = s.candidates.findIndex((c) => c.id === p.id);
+    if (i === -1) continue;
+    const [person] = s.candidates.splice(i, 1);
+    appointFaculty(s, person);
+    appointed.push(`${person.name} (${person.field})`);
+    if (person.id !== WALKTHROUGH_PROFESSOR) s.finance.cash += Math.round(facultyPay(s, person.salary));
+  }
+  if (appointed.length === 0) return;
+  const names = appointed.length > 1 ? `${appointed.slice(0, -1).join(', ')} and ${appointed[appointed.length - 1]}` : appointed[0];
+  s.log.unshift({ year: 1, week: 1, message: `${names} make up the founding faculty.`, kind: 'info' });
+}
