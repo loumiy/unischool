@@ -230,7 +230,7 @@ button, input, select, textarea { font-size: inherit; }
 .dept-action, .dept-bulk button, .next-up-door, .report-card-actions button,
 .new-college-btn, .school-restaff, .course-drawer-action, .course-drawer-appoint,
 .row-action-develop, .row-action-secondary, .facility-commit, .faculty-card-foot button, .coach-release,
-.offer-add, .ad-mascot-roll, .ad-decline, .letter-skip, .admissions-lock, .opening-coach-actions button,
+.offer-add, .ad-mascot-roll, .ad-decline, .letter-skip, .admissions-lock, .admissions-send, .opening-coach-actions button,
 .segmented > button, .curriculum-chip, .tab-overlay-close, .tab-overlay-guide, .title-primary, .startup-begin-btn,
 .objectives-door, .objectives-back, .objectives-guide-link,
 :where(.modal-actions, .final-page-leave) > button {
@@ -244,11 +244,11 @@ button, input, select, textarea { font-size: inherit; }
   background: var(--school-secondary); color: var(--school-on-secondary); }
 /* Primary, the secondary fill: the one primary action on a card (a row, a
    dialog, a drawer), never more than one per card. */
-.btn-primary, .admissions-lock, .row-action-develop, .course-drawer-action, .facility-commit, .faculty-card-foot button.appoint,
+.btn-primary, .admissions-lock, .admissions-send, .row-action-develop, .course-drawer-action, .facility-commit, .faculty-card-foot button.appoint,
 .dept-action.appoint, .opening-coach-actions button, .map-touch-bar button.primary,
 .title-primary, .startup-begin-btn, :where(.modal-actions, .final-page-leave) > button {
   background: var(--school-secondary); color: var(--school-on-secondary); }
-:is(.btn-primary, .admissions-lock, .row-action-develop, .course-drawer-action, .facility-commit, .faculty-card-foot button.appoint,
+:is(.btn-primary, .admissions-lock, .admissions-send, .row-action-develop, .course-drawer-action, .facility-commit, .faculty-card-foot button.appoint,
 .dept-action.appoint, .opening-coach-actions button, .map-touch-bar button.primary,
 .title-primary, .startup-begin-btn, :where(.modal-actions, .final-page-leave) > button):hover:not(:disabled) {
   background: var(--school-secondary); color: var(--school-on-secondary); transform: translate(-1px, -1px); box-shadow: var(--shadow-1-hover); }
@@ -270,7 +270,7 @@ button, input, select, textarea { font-size: inherit; }
 .dept-action, .dept-bulk button, .next-up-door, .report-card-actions button,
 .new-college-btn, .school-restaff, .course-drawer-action, .course-drawer-appoint,
 .row-action-develop, .row-action-secondary, .facility-commit, .faculty-card-foot button, .coach-release,
-.offer-add, .ad-mascot-roll, .ad-decline, .letter-skip, .admissions-lock, .opening-coach-actions button,
+.offer-add, .ad-mascot-roll, .ad-decline, .letter-skip, .admissions-lock, .admissions-send, .opening-coach-actions button,
 .segmented > button, .curriculum-chip, .title-primary, .startup-begin-btn, :where(.modal-actions, .final-page-leave) > button):disabled {
   opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
 /* A dialog's action row: its bare buttons are the dialog's primary action. */
@@ -4334,3 +4334,72 @@ body:has(.building-info-panel) .pennant { display: none; }
 .pillar-rule { margin: 0 0 var(--space-8); }
 @media (max-width: 1100px) { .spec-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .spec-cards { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- The summer's admissions, as a page (AdmissionsPage.tsx, Plan 108) ----------
+   The whole screen, as the Final Report's is: the price, the applicants as
+   a cloud on a GPA by SAT plot with the admit rate a line across it, and
+   the hall the class pours into. */
+.admissions-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; background: var(--cream);
+  display: flex; flex-direction: column; gap: var(--space-16); padding: var(--space-24); box-sizing: border-box; }
+.admissions-page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-16); flex-wrap: wrap; }
+.admissions-page-head h2 { margin: 0; font-size: var(--text-4xl); }
+.admissions-page-eyebrow { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-xs);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--school-primary); }
+.admissions-page-steps { display: flex; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.admissions-page-steps li { padding: var(--space-6) var(--space-12); border: 2px solid var(--outline); border-radius: var(--radius-sm);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--ink-muted); }
+.admissions-page-steps li.done { background: var(--cream-hi); color: var(--ink); }
+.admissions-page-steps li.current { background: var(--school-secondary); color: var(--school-on-secondary); }
+.admissions-page-body { display: flex; gap: var(--space-24); align-items: flex-start; flex-wrap: wrap; }
+.admissions-stage { flex: 999 1 640px; min-width: 0; background: var(--cream-hi); border: 2px solid var(--outline);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-2); overflow: hidden; }
+.admissions-svg { display: block; width: 100%; height: auto; max-height: calc(100vh - 140px); touch-action: none; user-select: none; }
+.admissions-svg.cutting { cursor: crosshair; }
+.admissions-svg .adm-title { font-family: var(--display); font-weight: 800; font-size: 16px; fill: var(--ink); }
+.admissions-svg .adm-sub { font-size: 12px; fill: var(--ink-muted); }
+.admissions-svg .adm-grid { stroke: var(--cream-lo); stroke-width: 1; }
+.admissions-svg .adm-tick { font-size: 11px; fill: var(--ink-muted); }
+.admissions-svg .adm-axis { font-family: var(--display); font-weight: 800; font-size: 12px; letter-spacing: 0.06em; fill: var(--ink); }
+.admissions-svg .adm-frame { fill: none; stroke: var(--outline); stroke-width: 1.5; }
+.admissions-svg .adm-zone { fill: color-mix(in srgb, var(--school-secondary) 18%, transparent); }
+.admissions-svg .adm-ghost line { stroke: var(--ink-muted); stroke-width: 1.5; stroke-dasharray: 5 5; }
+.admissions-svg .adm-ghost text { font-size: 11px; fill: var(--ink-muted); }
+.admissions-svg .adm-full line { stroke: var(--bad-on-light); stroke-width: 2; stroke-dasharray: 2 4; }
+.admissions-svg .adm-full text { font-size: 11px; font-weight: 700; fill: var(--bad-on-light); }
+.admissions-svg .adm-seat { fill: var(--cream); stroke: var(--parchment-line); stroke-width: 1.2; }
+.admissions-svg .adm-dot { stroke-width: 1.2; }
+.admissions-svg .adm-dot.in { stroke: var(--outline); }
+.admissions-svg .adm-dot.out { fill: var(--cream-lo); stroke: var(--parchment-line); }
+.admissions-svg .adm-cut { stroke: var(--school-primary); stroke-width: 3; }
+.admissions-svg .adm-handle circle { fill: var(--school-secondary); stroke: var(--outline); stroke-width: 2; cursor: grab; }
+.admissions-svg .adm-handle:focus { outline: none; }
+.admissions-svg .adm-handle:focus-visible circle { stroke: var(--school-primary); stroke-width: 4; }
+.admissions-svg .adm-handle-label rect { fill: var(--outline); }
+.admissions-svg .adm-handle-label text { font-family: var(--display); font-weight: 800; font-size: 12px; fill: var(--cream); }
+.admissions-svg .adm-legend text { font-size: 12px; fill: var(--ink); }
+.admissions-svg .adm-legend circle { stroke: var(--outline); stroke-width: 1; }
+.admissions-svg .adm-legend .adm-legend-count { font-weight: 700; }
+.admissions-svg .adm-class { font-family: var(--display); font-weight: 800; font-size: 26px; fill: var(--school-primary); }
+.admissions-panel { flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: var(--space-16); }
+.admissions-card { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-xl);
+  padding: var(--space-16) var(--space-16); display: flex; flex-direction: column; gap: var(--space-8); }
+.admissions-card.waiting { opacity: 0.55; }
+.admissions-card .stat { font-size: var(--text-sm); color: var(--ink-muted); margin: 0; line-height: 1.45; }
+.admissions-card-eyebrow { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-xs);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--school-primary); }
+.admissions-price strong { font-family: var(--display); font-weight: 800; font-size: var(--text-4xl); }
+.admissions-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); margin: 0; }
+.admissions-figures dt { font-size: var(--text-xs); color: var(--ink-muted); }
+.admissions-figures dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-2xl); }
+.admissions-figures dd.sub { font-family: var(--sans); font-weight: 500; font-size: var(--text-xs); color: var(--ink-muted); }
+.admissions-change .good, .admissions-effect .good { color: var(--ok-on-light); }
+.admissions-change .bad, .admissions-effect .bad { color: var(--bad-on-light); }
+.admissions-effect { display: flex; flex-direction: column; gap: 3px; }
+.admissions-effect-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-8); font-size: var(--text-sm); color: var(--ink-muted); }
+.admissions-effect-head strong { font-family: var(--display); font-weight: 800; font-size: var(--text-md); }
+.admissions-effect-value { font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
+.admissions-effect-bar { display: block; height: 6px; background: var(--cream-lo); border-radius: 3px; overflow: hidden; }
+.admissions-effect-bar span { display: block; height: 100%; }
+.admissions-effect-bar span.good { background: var(--ok-on-light); }
+.admissions-effect-bar span.bad { background: var(--bad-on-light); }
+.admissions-send { font-size: var(--text-lg); padding: var(--space-12) var(--space-24); }

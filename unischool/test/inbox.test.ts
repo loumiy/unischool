@@ -244,8 +244,10 @@ function fresh(): GameState {
   const before = fresh();
   assert(!arrivalsIn(before, s).some((t) => t.open === INTERRUPT_ITEM_ID), 'the inbox opens on a stop, so no slip announces it');
 
+  s.pendingInterrupt = { type: 'summer', payload: { beat: 2, tuition: 1, admitRate: 0.5 } };
+  assert(inboxItems(s)[0].subject === `Year ${s.clock.year}: Students`, 'the summer, by its beat');
   s.pendingInterrupt = { type: 'summer', payload: { beat: 1, tuition: 1, admitRate: 0.5 } };
-  assert(inboxItems(s)[0].subject === `Year ${s.clock.year}: Admissions`, 'the summer, by its beat');
+  assert(inboxItems(s)[0]?.id !== INTERRUPT_ITEM_ID, 'but its admissions is a page of its own, not an item (Plan 108)');
 
   s.pendingInterrupt = { type: 'summer', payload: { beat: 0, final: true, tuition: 1, admitRate: 0.5 } };
   assert(finalReportUp(s) && !inboxItems(s).some((i) => i.tier === 'hold'), 'the Final Report keeps its page');

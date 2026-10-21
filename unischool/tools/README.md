@@ -158,10 +158,9 @@ npm run shot -- node_modules/.tmp/out.json docs/images/tab-curriculum.png --tab=
   --press=".collapse-toggle" --press=".collapse-toggle >> nth=1" --press=".collapse-toggle >> nth=2" --scale=2
 npm run scenario -- summer --name Halifax --colors royal-gold node_modules/.tmp/summer.json
 npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png \
-  --size=1600,1700 --click="Continue" --click="Set tuition for the year" \
-  --press=".cohort-breakdown h3" --press=".cohort-breakdown h3" \
-  --press=".cohort-breakdown h3" --press=".cohort-breakdown h3" \
-  --element=.modal --scale=2
+  --size=1440,900 --click="Continue" --click="Lock the price" \
+  --press=".admissions-page-eyebrow" --press=".admissions-page-eyebrow" \
+  --press=".admissions-page-eyebrow" --scale=2
 ```
 
 ### The share image
