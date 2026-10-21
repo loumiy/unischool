@@ -74,7 +74,7 @@ toward what the school earned that year — slowly up, faster down — rather
 than a tally that jumps when something finishes, so standing is earned over
 decades and can be lost. The freshman class cannot exceed the seats the
 catalogue has room to teach; everything else — beds, dining, health — is
-crowding, which costs standing and students rather than capping them.
+the students' satisfaction, which word of mouth carries to the next pool.
 
 Money is the pacing mechanism, and cost leads revenue — every commitment is
 charged up front while every payoff waits for the next summer admissions
@@ -162,13 +162,13 @@ different pair of school colours.
 | | |
 |---|---|
 | ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: a figure row of course slots, then the faculty as a grid of faces, each with a grade for teaching and research, a quirk and the courses they carry](docs/images/tab-faculty.png) |
-| **Curriculum** — the catalogue by school and program, each with who teaches it and the grade they earn; a finished school folds away. | **Faculty** — the people: a grid of faces, each with a career, quirks and the courses they carry, under one row of figures; the market and the departments a switch away. |
+| **Curriculum** — the catalogue by school and program, each with who teaches it and the grade they earn; a finished school folds away. | **Faculty** — the people: a grid of faces, each with a career, quirks and the courses they carry, under one row of figures, or as a table or a plot of teaching against research; the market and the departments a switch away. |
 | ![The Research tab: every lab with its initiative, team, depth and progress](docs/images/tab-research.png) | ![The Students tab: what the guidebooks say, satisfaction by attribute, clubs and Greek chapters](docs/images/tab-students.png) |
 | **Research** — each lab's running initiative: the topic, the team, the depth and what it has produced. | **Students** — satisfaction by attribute and what serves it, the clubs, the chapters and the demands. |
 | ![The Athletics tab: the department at the side, and every varsity program folded to one line with its rank, its last season and its quality](docs/images/tab-athletics.png) | ![The History tab on its Prestige view: the four pillars, each on its own scale, and every input that grades prestige](docs/images/tab-history.png) |
-| **Athletics** — the director, the subsidy and the gate at the side; every program one line, its rank in its sport and its last season, opening to its staff and money. | **History** — three views: prestige with its four pillars and every input that grades them, the record and the legacy once sealed, and the guide. |
+| **Athletics** — the director, the subsidy and the gate at the side; every program one line, its rank in its sport and its last season, opening to its staff and money. | **History** — three views: prestige at a glance, a meter for each of its four pillars with every input that grades them under *Details*, the record and the legacy once sealed, and the guide. |
 | ![The Treasury tab: the weekly income statement, advancement and the balance](docs/images/tab-treasury.png) | |
-| **Treasury** — the weekly income statement, the endowment campaign, the named funds and the balance sheet, reached through the funds figure. | |
+| **Treasury** — the operating budget as one board: the year's revenue and expenses, cash across the years, and the levers; the endowment, its named funds and the buildings a switch away. Reached through the funds figure. | |
 
 ## Run it
 
@@ -180,9 +180,9 @@ npm run dev
 
 Open the printed localhost URL. Name your school, pick its architecture and
 its colours, and a short walkthrough takes you through the first clicks —
-raise Founders Hall, choose the first program and the professor who will
-teach it, develop its next course, then house and feed the students —
-before the college is yours to run.
+raise Founders Hall and found the first program. From there the first five
+years run as chapters in the NEXT bar, each a few objectives with a
+briefing a click away (J), until the college is yours to run.
 
 ## Controls
 

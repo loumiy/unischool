@@ -3,12 +3,13 @@
 **Status:** published, 8 October 2026, at
 [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool);
 0.1.1 went live on 13 October 2026. 0.1.2 was built on 16 October 2026
-(the Release workflow's run 4, from `main` at `4f5b83e`), and its
-description below goes up with it.
+(the Release workflow's run 4, from `main` at `4f5b83e`) and went up the
+same day. 0.1.3 is ready on `main` (21 October 2026), not yet built or
+uploaded; its description below goes up with it.
 The owner rewrote the description on itch.io; the text below is the
-owner's, with the changes for 0.1.1 and 0.1.2. The first draft (Plan
-97I) was built from [`steam-page.md`](steam-page.md), cut to what an early
-playtest page needs. Every line says only what the game does on
+owner's, with the changes for 0.1.1, 0.1.2 and 0.1.3. The first draft
+(Plan 97I) was built from [`steam-page.md`](steam-page.md), cut to what
+an early playtest page needs. Every line says only what the game does on
 `main` today. "AI" never sits beside "school simulator" (the second
 review's §2).
 
@@ -50,6 +51,14 @@ the fullscreen button and no automatic start.
 
 ## The description
 
+The text for 0.1.3, proposed on 21 October 2026 for the owner to agree.
+Three changes for 0.1.3:
+- the first line says "now 0.1.3";
+- *Make the big decisions* says the summer's admissions are a page of
+  their own, the applicants drawn as a cloud;
+- *What to expect* says the walkthrough is short and the first five years
+  run as chapters of objectives, which can be turned down or off.
+
 The text for 0.1.2, agreed with the owner on 16 October 2026. Four
 changes for 0.1.2:
 - the first line now says "now 0.1.2";
@@ -66,7 +75,7 @@ the line into the page's **Description**. The bold lines are its headings.
 
 ---
 
-**An early playtest build, now 0.1.2. Your feedback will help inform version 1.0.0!**
+**An early playtest build, now 0.1.3. Your feedback will help inform version 1.0.0!**
 
 UniSchool is a university management simulation about watching a small
 college become a robust institution.
@@ -113,8 +122,9 @@ attracting attention, decide what to do with its growing reputation.
 Every summer brings another year of consequences.
 
 How much should you charge for tuition? How many students should you
-admit? Where should the next major investment go? Should you expand into a
-new field or deepen the ones you already have?
+admit? On admissions day the applicants rain in as a cloud, and you draw
+the line. Where should the next major investment go? Should you expand
+into a new field or deepen the ones you already have?
 
 You won't always know exactly what those decisions will produce. The
 students who arrive, the professors you attract, the opportunities that
@@ -147,8 +157,10 @@ And after the report, you can keep playing.
 
 **What to expect**
 
-- Your first run opens with a short walkthrough, about five minutes, that
-  founds your first program with you. You can skip it.
+- Your first run opens with a short walkthrough that founds your first
+  program with you (you can skip it). After it, the first five years run
+  as chapters: a few objectives at a time, each with a briefing a click
+  away. Settings can turn them down to a line or off.
 - A full run is fifty years: roughly two to four hours, depending on the
   speed you play at, over as many sittings as you like. Growth is slow on
   purpose, and money paces the first decades.
@@ -168,8 +180,8 @@ And after the report, you can keep playing.
 - Or leave a comment below.
 
 What I most want to know: where you stopped, and why; whether you reached
-the specialization; whether the opening walkthrough made sense; and what
-you thought of the summers and the Final Report.
+the specialization; whether the walkthrough and the chapters made sense;
+and what you thought of the summers and the Final Report.
 
 **Play statistics**
 
