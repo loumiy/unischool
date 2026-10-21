@@ -82,7 +82,7 @@ boundary, and what a section, a service and a salary cost rises with the
 school's standing. A cash shortfall stalls expansion; it never ends the run.
 
 <p align="center">
-  <img src="docs/images/summer-admissions.png" alt="The summer admissions decision" width="420">
+  <img src="docs/images/summer-admissions.png" alt="The summer admissions page: the applicants on a GPA by SAT plot, the admit rate a line across them, and the hall they fill" width="720">
 </p>
 
 <p align="center"><em>The summer decision: set a price blind, see the pool it

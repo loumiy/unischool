@@ -43,6 +43,26 @@ and entering the guide keeps its own moment.
 
 ## Admissions: the summer's second beat
 
+**A page of its own** ([Plan 108](../plans/108-admissions-day.md)). The
+other beats are answered in the inbox; admissions takes the whole screen,
+as the Final Report does (`components/AdmissionsPage.tsx`). The decisions
+below are the same two. What changes is how they are drawn:
+
+- the pool the locked price drew rains in as a **cloud of applicants** on a
+  GPA by SAT plot, coloured by cohort (`components/applicantCloud.ts`),
+  each of the funnel's three quality bands in its own slice of the plot;
+- the **admit rate is a line across the cloud**, dragged or moved with the
+  arrow keys. The funnel admits the best of the pool first, so admitting
+  everything above the line *is* the admit rate, and the commit sends the
+  rate as before. The line stops where the class would fill the room, and
+  last summer's rate shows as a dashed line;
+- money, mood and the tightest need update beside it (`projectConsequences`);
+- **Send the offers** pours the admitted into the hall's seats, then the
+  Students beat opens in the inbox.
+
+The cohort cards and the slow ticking reveal described below went with the
+inbox card; the year-over-year line and the price's tier stay.
+
 Admissions is **a once-a-year decision, in the summer**. The player sets
 exactly **two** levers for the coming year: **tuition** and the **admit rate**.
 There is no scholarship rate and no discount — what a family is quoted is what
