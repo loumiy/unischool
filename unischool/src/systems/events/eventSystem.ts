@@ -1,5 +1,5 @@
 import { restaffPlan } from '../faculty/restaffing';
-import { chapterGateOpen, MATTERS_CHAPTER } from '../guidance/gates';
+import { chapterGateOpen, guidedRun, MATTERS_CHAPTER } from '../guidance/gates';
 import { raiseCharter, raiseFestival, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState, NewsLetter } from '../../state/types';
@@ -253,7 +253,8 @@ function weightedPick(
 // letter that is due fires on a quiet week and is marked read at fire time
 // so it never re-fires. A calendar letter is due from its week of year one
 // and never after it; a letter with `arrives` is due while that holds, in
-// any year, and is recorded read unsent if its ask was done before it came.
+// any year, and is recorded read unsent if its ask was done before it came,
+// or in a guided run if a chapter teaches the same.
 // Yields to everything earned and to the one-shot questions.
 export function fireOpeningLetter(s: GameState): boolean {
   if (s.events.opening.skipped) return false;
@@ -264,6 +265,7 @@ export function fireOpeningLetter(s: GameState): boolean {
     if (!due) continue;
     read.push(letter.id);
     if (letter.arrives && letter.done(s)) continue;
+    if (letter.chapter && guidedRun(s)) continue;
     s.pendingInterrupt = { type: 'letter', payload: { id: letter.id } };
     return true;
   }

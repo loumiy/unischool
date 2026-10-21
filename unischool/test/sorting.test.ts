@@ -210,27 +210,34 @@ function letter(id: string) {
   const s = college('Line');
   assert(nextStep(s)?.text.startsWith('Establish') !== true, 'with Founders Hall the only academic hall, nothing asks for a school');
   stand(s, 'HALL-01', 20);
-  const quiet = nextStep(s);
-  assert(quiet?.intent?.kind !== 'move', `Elm Hall standing empty is not a move to make (${quiet?.text})`);
+  // Schools grow in the halls the college builds, never Founders Hall (the
+  // owner's notes after Plan 107): Science, the most in Founders Hall,
+  // starts in Elm Hall, bringing its programs in.
+  const start = nextStep(s);
+  assert(start?.text === 'Establish Science (0 of 6): move Mathematics into Elm Hall' && start.intent?.kind === 'move' && start.intent.hallId === 'HALL-01',
+    `Elm Hall standing empty, the school with most in Founders Hall moves into it (${start?.text})`);
 
-  // A Science program on offer: Science is closest to six, in Founders Hall.
+  // A Science program on offer: founded there, not moved.
   s.programOffers = ['PHYS', 'HIST'];
   const grow = nextStep(s);
-  assert(grow?.text === 'Establish Science (2 of 6): found Physics in Founders Hall', `the school closest to six is named, with its count (${grow?.text})`);
-  assert(grow?.go === 'hall' && grow.hallId === FOUNDERS_HALL_ID && grow.intent?.kind === 'found' && grow.intent.programId === 'PHYS', 'at the hall it is growing in, Founders Hall included, founding its program there');
+  assert(grow?.text === "Establish Science (0 of 6): found Physics in Elm Hall, one of three more Science programs that make it Science's hall", `the school is named, with its count in the hall (${grow?.text})`);
+  assert(grow?.go === 'hall' && grow.hallId === 'HALL-01' && grow.intent?.kind === 'found' && grow.intent.programId === 'PHYS', 'founding its program in the built hall, never Founders Hall');
 
-  // Nothing of Science on offer: the line gives way to a free slot.
-  s.programOffers = ['HIST'];
-  const founders = nextStep(s);
-  assert(founders?.hallId === FOUNDERS_HALL_ID && founders.text.startsWith('Founders Hall has a free program slot'), `anything else goes to Founders Hall (${founders?.text})`);
-
-  // Founders Hall full: room is made by moving another school's program to
-  // a hall with a free slot, and the words say so.
-  for (const [i, id] of ['CIVE', 'FILM'].entries()) s.halls[FOUNDERS_HALL_ID][4 + i] = { programId: id };
+  // Two of Science in Elm Hall: it is closest there, Founders Hall's count
+  // aside.
+  s.halls['HALL-01'][0] = { programId: 'PHYS' };
+  s.halls['HALL-01'][1] = { programId: 'CHEM' };
   s.programOffers = [];
+  const two = nextStep(s);
+  assert(two?.text === 'Establish Science (2 of 6): move Mathematics into Elm Hall', `the count is the built hall's (${two?.text})`);
+
+  // Elm Hall full, with Oak Hall standing: room is made by moving another
+  // school's program to a hall with a free slot, and the words say so.
+  stand(s, 'HALL-02', 40);
+  for (const [i, id] of ['HIST', 'CIVE', 'FILM', 'ECON'].entries()) s.halls['HALL-01'][2 + i] = { programId: id };
   const room = nextStep(s);
-  assert(room?.text === 'Establish Science (2 of 6): move English to Elm Hall to make room', `a full hall makes room (${room?.text})`);
-  assert(room?.intent?.kind === 'move' && room.intent.hallId === 'HALL-01' && !['MATH', 'PSYC'].includes(room.intent.programId), 'and makes room with another school\'s program');
+  assert(!!room?.text.startsWith('Establish Science (2 of 6): move ') && room.text.endsWith(' to Oak Hall to make room'), `a full hall makes room (${room?.text})`);
+  assert(room?.intent?.kind === 'move' && room.intent.hallId === 'HALL-02' && !['PHYS', 'CHEM'].includes(room.intent.programId), 'and makes room with another school\'s program');
 
   // A school claiming a purchased hall offers its own programs (Plan 78D).
   const t = college('Own');
@@ -341,9 +348,9 @@ function letter(id: string) {
   s.pendingInterrupt = null;
   const moving = letter('moving-in');
   const body = moving.body(s);
-  assert(body.includes('any hall, Founders Hall included') && body.includes('Science is closest, with two programs in Founders Hall'), `it says what a school is, and which is closest (${body})`);
+  assert(body.includes('its schools grow in the halls it builds') && body.includes('Science has the most programs in Founders Hall, and Elm Hall has room for them'), `it says where schools grow, and which is closest (${body})`);
   assert(!/Move \w+ into|moves first/.test(body), 'and asks for no move');
-  assert(moving.ask(s).text === 'Establish Science (2 of 6): no Science program is on offer', `its ask is the school, and what it waits on (${moving.ask(s).text})`);
+  assert(moving.ask(s).text === 'Establish Science (0 of 6): move Mathematics into Elm Hall', `its ask is the school, in the built hall (${moving.ask(s).text})`);
 
   // Three Science programs in Elm Hall: halfway, and "A school takes shape".
   let t = reducer(s, { type: 'RELOCATE_PROGRAM', programId: 'MATH', hallId: 'HALL-01', slot: 0 });
@@ -393,6 +400,7 @@ function letter(id: string) {
   const s = college('Intents');
   stand(s, 'HALL-01', 20);
   s.students.satisfactionBreakdown.health = 20;
+  s.tech.find((t) => t.facilityType === 'healthCenter' && t.tier === 1)!.status = 'available';
   // Science whole in Elm Hall, so nothing waits to be founded there.
   programs().filter((p) => p.school === 'Science' && p.kind !== 'graduate').forEach((p, i) => { s.halls['HALL-01'][i] = { programId: p.id }; });
   s.halls[FOUNDERS_HALL_ID][1] = { programId: null };

@@ -319,7 +319,8 @@ const walkToCourse = (name: string) => reducer(
   assert(!letters.some((l) => l.id === OPENING_LETTERS[0].id), 'the first letter is never sent — the welcome was it');
   const calendar = letters.filter((l) => CALENDAR.some((c) => c.id === l.id));
   assert(!letters.some((l) => l.id === NEEDS_LETTER_ID), 'nor the needs letter — its chapter was it');
-  assert(calendar.map((l) => l.id).join(',') === CALENDAR.slice(1).filter((l) => l.id !== NEEDS_LETTER_ID).map((l) => l.id).join(','), `the rest of the calendar arrives in order (${letters.map((l) => l.id).join(',')})`);
+  assert(!letters.some((l) => OPENING_LETTERS.find((x) => x.id === l.id)?.chapter !== undefined) && after.events.opening.read.includes('summer-is-coming'), 'nor one a chapter teaches: "The first summer" was "Summer is coming"');
+  assert(calendar.map((l) => l.id).join(',') === CALENDAR.slice(1).filter((l) => l.id !== NEEDS_LETTER_ID && l.chapter === undefined).map((l) => l.id).join(','), `the rest of the calendar arrives in order (${letters.map((l) => l.id).join(',')})`);
   assert(after.clock.year === 2, 'and the year turns over');
 }
 

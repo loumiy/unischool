@@ -288,9 +288,14 @@ export function suggestedMove(s: GameState, programId: string): { hallId: string
 
 // ---------------------------------------------------------------------
 // Establishing a school (Plan 80D): a school is six programs of one school
-// in one hall, any academic hall, Founders Hall included. Nothing asks for
-// a particular move; the letters and the next-step line name the school
-// closest to six (establish.ts in systems/guidance).
+// in one hall. Nothing asks for a particular move; the letters and the
+// next-step line name the school closest to six (establish.ts in
+// systems/guidance). Six of one school in Founders Hall would still found
+// it, but the guidance never aims there: Founders Hall is where the college
+// begins and, since Plan 89, where its offices go, and schools grow in the
+// halls the college builds (the owner's notes after Plan 107: "Moving in"
+// told the player to establish a school in Founders Hall by moving a
+// program out of it).
 // ---------------------------------------------------------------------
 
 export interface SchoolProgress {
@@ -301,30 +306,44 @@ export interface SchoolProgress {
 }
 
 // The school not yet founded that is closest to six in one standing
-// academic hall: the most of its majors in one hall, ties to the hall with
-// more free program slots, then Founders Hall first. Null when no major of
-// an unfounded school is housed.
+// academic hall other than Founders Hall: the most of its majors in one
+// hall, ties to the hall with more free program slots. With none of an
+// unfounded school's majors in such a hall yet, the school with most in
+// Founders Hall, aimed at the built hall with most room (none housed
+// there). Null when no major of an unfounded school is housed, or no hall
+// but Founders Hall stands.
 export function closestSchool(s: GameState): SchoolProgress | null {
   let best: (SchoolProgress & { free: number }) | null = null;
-  const hallIds = Object.keys(s.halls).sort((a, b) => (a === FOUNDERS_HALL_ID ? -1 : b === FOUNDERS_HALL_ID ? 1 : 0));
-  for (const hallId of hallIds) {
+  let roomiest: { hallId: string; free: number } | null = null;
+  for (const hallId of Object.keys(s.halls)) {
     const hall = s.tech.find((t) => t.id === hallId);
-    if (!hall || !isAcademicHall(hall) || hall.status !== 'done') continue;
+    if (hallId === FOUNDERS_HALL_ID || !hall || !isAcademicHall(hall) || hall.status !== 'done') continue;
     const slots = s.halls[hallId];
-    // A hall with an office in it (Founders Hall, Plan 89) can never hold
-    // six programs, so no school is established there: its programs count
-    // toward their schools' other halls, and move out to them.
+    // A hall with an office in it can never hold six programs.
     if (slots.some((slot) => slot.office !== undefined)) continue;
     const free = slots.filter(slotFree).length;
-    const counts = new Map<string, number>();
-    for (const slot of slots) {
-      const program = slot.programId ? programById(slot.programId) : undefined;
-      if (!program || program.kind === 'graduate' || isSchoolFounded(s, program.school)) continue;
-      counts.set(program.school, (counts.get(program.school) ?? 0) + 1);
-    }
-    for (const [school, housed] of counts) {
+    if (free > 0 && (roomiest === null || free > roomiest.free)) roomiest = { hallId, free };
+    for (const [school, housed] of unfoundedCounts(s, hallId)) {
       if (best === null || housed > best.housed || (housed === best.housed && free > best.free)) best = { school, hallId, housed, free };
     }
   }
-  return best ? { school: best.school, hallId: best.hallId, housed: best.housed } : null;
+  if (best) return { school: best.school, hallId: best.hallId, housed: best.housed };
+  if (!roomiest) return null;
+  let founders: { school: string; housed: number } | null = null;
+  for (const [school, housed] of unfoundedCounts(s, FOUNDERS_HALL_ID)) {
+    if (founders === null || housed > founders.housed) founders = { school, housed };
+  }
+  return founders ? { school: founders.school, hallId: roomiest.hallId, housed: 0 } : null;
+}
+
+// Each unfounded school's undergraduate majors in a hall, in slot order of
+// its first.
+function unfoundedCounts(s: GameState, hallId: string): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const slot of s.halls[hallId] ?? []) {
+    const program = slot.programId ? programById(slot.programId) : undefined;
+    if (!program || program.kind === 'graduate' || isSchoolFounded(s, program.school)) continue;
+    counts.set(program.school, (counts.get(program.school) ?? 0) + 1);
+  }
+  return counts;
 }
