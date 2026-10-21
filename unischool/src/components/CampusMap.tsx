@@ -50,6 +50,8 @@ import {
 } from './isoProjection';
 import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
+import { labNewsIn, type LabNews } from './labNews';
+import { linesSince } from './audio/director';
 import { setMapProbe, setMapReview } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
 import { registerArt, type ArtScope } from './canvasPaint';
@@ -61,6 +63,13 @@ import { slotFree } from '../systems/administration/offices';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
 const DUST_MS = 900;
+// How long a lab's news hangs over it (labNews.ts), and the step between two
+// out of one lab in a week.
+const LAB_NEWS_MS = 2200;
+const LAB_NEWS_STEP_MS = 800;
+// Drawn at a size for the screen, not the map, within these scales, so the
+// news reads at any zoom; the zoom it lands at holds while it rises.
+const LAB_NEWS_SCALE = [0.8, 5] as const;
 
 // The campus map: the game's base layer, always on screen (see App.tsx).
 // It reads `s.placements` + `s.tech` and dispatches PLACE_BUILDABLE; it owns
@@ -1340,6 +1349,30 @@ export default function CampusMap({
     ));
   }, [s.placements]);
 
+  // A lab's news (labNews.ts): a paper, a grant or a breakthrough rises over
+  // the lab the week it lands. A load or a new run is where the run stands,
+  // not news; reduced motion shows it still, for as long.
+  const [labNews, setLabNews] = useState<readonly (LabNews & { key: number; still: boolean; scale: number })[]>([]);
+  const heardRef = useRef<GameState['log'][number] | undefined>(undefined);
+  const labNewsKeyRef = useRef(0);
+  useEffect(() => {
+    const fresh = linesSince(s.log, heardRef.current);
+    heardRef.current = s.log[0];
+    if (!fresh) return;
+    const still = reducedMotion();
+    const scale = Math.max(LAB_NEWS_SCALE[0], Math.min(LAB_NEWS_SCALE[1], 1 / viewRef.current.zoom));
+    const made = labNewsIn(fresh, (id) => s.placements[id] !== undefined)
+      .map((n) => ({ ...n, key: labNewsKeyRef.current++, still, scale }));
+    if (made.length === 0) return;
+    const keys = new Set(made.map((n) => n.key));
+    setLabNews((cur) => [...cur, ...made]);
+    const last = Math.max(...made.map((n) => n.order));
+    pulseTimersRef.current.push(window.setTimeout(
+      () => setLabNews((cur) => cur.filter((n) => !keys.has(n.key))),
+      LAB_NEWS_MS + last * LAB_NEWS_STEP_MS,
+    ));
+  }, [s.log, s.placements]);
+
   // Whether a placed building is on the screen now (Plan 70H: a toast
   // speaks for one finished out of sight). Read by Toasts.tsx through
   // mapProbe.ts, so the map need not know about toasts.
@@ -2541,6 +2574,17 @@ export default function CampusMap({
                   {[-1, -0.4, 0.3, 1].map((k, i) => (
                     <circle key={i} cx={k * spread} cy={(i % 2 ? -0.3 : 0.2) * spread * 0.5} r={spread * 0.35} style={{ animationDelay: `${i * 40}ms` }} />
                   ))}
+                </g>
+              );
+            })}
+            {labNews.map((n) => {
+              const placed = layout.placed.find(({ t }) => t.id === n.lab);
+              if (!placed) return null;
+              const { size, centre } = labelLayout(placed.t.name, placed.t, placed.p, layout.vernacular);
+              const y = centre.y - size * 0.6 - HALL_MARK_LIFT - LAB_MARK_R - 6;
+              return (
+                <g key={n.key} className={`lab-news ${n.kind}${n.still ? ' still' : ''}`} transform={`translate(${centre.x.toFixed(2)} ${y.toFixed(2)}) scale(${n.scale.toFixed(3)})`} aria-hidden="true">
+                  <text style={{ animationDelay: `${n.order * LAB_NEWS_STEP_MS}ms` }} y={n.still ? -n.order * 16 : 0}>{n.text}</text>
                 </g>
               );
             })}

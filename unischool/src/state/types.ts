@@ -1547,6 +1547,9 @@ export interface LogEntry {
   // The id of what the line is about, if any, for grouping and for a toast
   // to open the right place.
   subject?: string;
+  // The money the line is about (a grant's award), for the figure that
+  // rises over its lab on the map.
+  amount?: number;
 }
 
 // Deep enough that a completion is still readable weeks later. Lives here

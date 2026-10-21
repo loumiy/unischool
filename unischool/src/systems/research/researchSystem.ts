@@ -29,8 +29,8 @@ import { SPONSORED_GRANT_CHANCE_LIFT, SPONSORED_GRANT_SIZE_LIFT } from '../../da
 // in them. Reports are queued, not fired, because only one interrupt can be
 // pending; an award's effects apply the week it is won.
 
-function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad', topic?: LogTopic, subject?: string): void {
-  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind, topic, subject });
+function log(s: GameState, message: string, kind: 'info' | 'good' | 'bad', topic?: LogTopic, subject?: string, amount?: number): void {
+  s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind, topic, subject, ...(amount !== undefined ? { amount } : {}) });
 }
 
 // The player commissions each run (topic, team, depth, facility); idle
@@ -70,7 +70,7 @@ function publish(s: GameState, initiative: Initiative, participants: Faculty[]):
     s.research.grantIncome += scaled;
     initiative.grantIncome += scaled;
     const funder = rollGrantFunder(vocab);
-    log(s, `${funder.charAt(0).toUpperCase()}${funder.slice(1)} has awarded ${money(scaled)} to ${where}.`, 'good', 'grant', initiative.labId);
+    log(s, `${funder.charAt(0).toUpperCase()}${funder.slice(1)} has awarded ${money(scaled)} to ${where}.`, 'good', 'grant', initiative.labId, scaled);
   }
 
   if (initiative.publications % PUBLICATIONS_PER_CANDIDATE_PULL === 0) {

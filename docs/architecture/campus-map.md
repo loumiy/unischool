@@ -155,7 +155,8 @@ providers, and memoised values kept from recording to recording. Colors,
 strokes and pointer events come from the stylesheet, probed once per
 chain of classes, season and map class.
 
-The labels, hall and lab marks, the ghost and the dust stay SVG over it.
+The labels, hall and lab marks, the ghost, the dust and a lab's news stay
+SVG over it.
 
 `mapCanvas.ts` composites the canvas each frame:
 
@@ -361,8 +362,14 @@ path, a tree, a lamp, a bench or a bed. Under any other tool the right button
 deletes only what that tool lays (`CampusMap.tsx`'s `otherPathTool`): the
 paving tool's lifts paths and leaves the trees, the planting tool's fells,
 and a lamp's or a bench's lifts the one clicked.
-Weathering (`ageMarks.tsx`) reads `Buildable.builtYear`. All of it is
-drawing only.
+Weathering (`ageMarks.tsx`) reads `Buildable.builtYear`. A lab's news
+(`labNews.ts`) rises over its mark the week it lands and fades: a paper
+("+1 monograph", in the discipline's word), a grant with its amount
+("+$1.3M", from the log line's `amount`) and a breakthrough, one after
+another when a lab has several. It is read from the week's new log lines;
+a load, and lines from more than one week at once, raise nothing. It is
+drawn at a size for the screen, and still under reduced motion. All of it
+is drawing only.
 
 **Paths have three surfaces** (`state/paving.ts`): the flagged walk every
 path had before materials, cobbles and brick. A saved tile stores `true` for
