@@ -1,3 +1,5 @@
+import { GRADE_A, GRADE_B, GRADE_C, GRADE_D } from './courseQuality';
+
 // The administration's seats (Plan 28, from v2's seats.json). Each covers a
 // domain of routine events, is filled once and paid for for good, and
 // answers by one of three policies. Salaries are annual, at a prestige-50
@@ -53,11 +55,11 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'collegial', rule: 'popular', label: 'Keep the students on side' },
       {
         id: STAFFING_POLICY, rule: 'popular', label: 'Staff the weakest courses first', staffs: true,
-        note: 'Each week, weakest first, puts the best free instructor in its field on each course under 78, when they would lift it a band (past 30, 44, 62 or 78). Never hires or dismisses. Answers the routine as Keep the students on side does.',
+        note: `Each week, weakest first, puts the best free instructor in its field on each course below the top band, when they would lift it a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Answers the routine as Keep the students on side does.`,
       },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments, the faculty\'s routine, and, on Staff the weakest courses first, who teaches the courses under 78. Usually the first seat a college fills, and the one that opens game speed 4×.',
+    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments, the faculty\'s routine, and, on Staff the weakest courses first, who teaches the courses below the top band. Usually the first seat a college fills, and the one that opens game speed 4×.',
   },
   {
     id: 'dean', title: 'Dean', domain: 'academic', perSchool: true,
@@ -68,7 +70,7 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'collegial', rule: 'popular', label: 'Keep the students happy' },
       {
         id: STAFFING_POLICY, rule: 'popular', label: 'Staff the weakest courses first', staffs: true,
-        note: 'With no Provost, each week, weakest first, puts the best free instructor in its field on each of the school\'s courses under 78, when they would lift it a band (past 30, 44, 62 or 78). Never hires or dismisses. Answers the routine as Keep the students happy does.',
+        note: `With no Provost, each week, weakest first, puts the best free instructor in its field on each of the school's courses below the top band, when they would lift it a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Answers the routine as Keep the students happy does.`,
       },
     ],
     defaultPolicy: 'collegial',

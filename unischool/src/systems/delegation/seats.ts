@@ -292,7 +292,7 @@ export function tickStaffing(s: GameState): void {
     });
     const rest = moves.length - named.length;
     const list = rest > 0
-      ? `${named.join(', ')}, and ${rest} more onto ${rest === 1 ? 'a course' : 'courses'} under 78`
+      ? `${named.join(', ')}, and ${rest} more onto ${rest === 1 ? 'a course' : 'courses'} below the top band`
       : named.length > 1 ? `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}` : named[0];
     s.log.unshift({
       year: s.clock.year, week: s.clock.week, kind: 'info',
