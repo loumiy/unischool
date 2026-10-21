@@ -918,9 +918,10 @@ function ProgramRowView(
   const hallId = hallOfCourse(s, program.entryCourseId);
   const hall = hallId ? lookup.get(hallId) : undefined;
   const dark = unstaffedPrograms(s).has(program.id);
-  // Every program starts as its one line (Plan 76B); the cells open on
-  // demand.
-  const [collapsed, toggle] = useCollapse(`program:${program.id}`, true);
+  // A program is open while it has courses to develop, and folds to its
+  // one line once every course is developed (Plan 107C; Plan 76B folded
+  // every program).
+  const [collapsed, toggle] = useCollapse(`program:${program.id}`, progress.total > 0 && progress.done === progress.total);
 
   return (
     <section
@@ -959,8 +960,8 @@ function ProgramRowView(
 }
 
 // Collapsing (Plan 60, components/useCollapse.ts): a school starts open
-// while incomplete and folded once complete, and a program always starts
-// folded to its one line (Plan 76B).
+// while incomplete and folded once complete, and so does a program (Plan
+// 107C). A player's click holds until the section next finishes.
 
 // A school's group: heading (name once founded, color and mark before; see
 // data/schoolPalette.ts), grade and rows.

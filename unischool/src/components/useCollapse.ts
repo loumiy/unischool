@@ -5,10 +5,15 @@ import { useState } from 'react';
 // remembered for the session (module state, so it survives a tab switch).
 // Keys are namespaced by their caller ("program:", "school:", "team:"), so
 // one map serves the Curriculum's programs (Plan 76B) and Athletics'
-// (Plan 95I).
+// (Plan 95I). When the caller's rule turns from open to folded (a program
+// or school just finished, Plan 107C), an earlier click gives way and the
+// section folds: finishing is news. A click after that is kept as before.
 const collapseOverrides = new Map<string, boolean>();
+const lastDefaults = new Map<string, boolean>();
 export function useCollapse(key: string, foldedByDefault: boolean): [boolean, () => void] {
   const [, bump] = useState(0);
+  if (foldedByDefault && lastDefaults.get(key) === false) collapseOverrides.delete(key);
+  lastDefaults.set(key, foldedByDefault);
   const collapsed = collapseOverrides.get(key) ?? foldedByDefault;
   return [collapsed, () => { collapseOverrides.set(key, !collapsed); bump((n) => n + 1); }];
 }
