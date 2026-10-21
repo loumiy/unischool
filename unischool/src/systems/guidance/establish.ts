@@ -12,8 +12,8 @@ import { countWord, weeksProse } from '../../format';
 // line give once a second academic hall stands: "Establish a school: six
 // programs of {school} in one hall (n of 6)", for the school closest to six
 // (schools.ts's closestSchool). It replaced the forced move into the first
-// purchased hall: a school is six programs of one school in any hall,
-// Founders Hall included, and where a school grows is the player's choice.
+// purchased hall: a school is six programs of one school in a hall the
+// college built, and which one is the player's choice.
 // The intent is the guided player's (sim/harness/guided.ts) way there:
 // found the school's program on offer into the hall, or bring one of its
 // programs in, or make room in a full hall by moving another school's
@@ -119,7 +119,8 @@ function establishIntent(s: GameState, p: SchoolProgress): StepIntent {
     return { kind: 'wait' };
   }
   // A full hall: another school's program moves to a standing academic hall
-  // with room, the one with most of its own school first.
+  // with room, the one with most of its own school first, Founders Hall
+  // last.
   for (const other of s.halls[p.hallId]) {
     const program = other.programId ? programById(other.programId) : undefined;
     if (!program || program.school === p.school || program.kind === 'graduate' || isInTransit(s, program.id)) continue;
@@ -128,7 +129,8 @@ function establishIntent(s: GameState, p: SchoolProgress): StepIntent {
         const hall = s.tech.find((t) => t.id === hallId);
         return hallId !== p.hallId && !!hall && isAcademicHall(hall) && hall.status === 'done' && freeSlot(s, hallId) >= 0;
       })
-      .sort((a, b) => Number(homeSchool(s, b)?.school === program.school) - Number(homeSchool(s, a)?.school === program.school));
+      .sort((a, b) => Number(homeSchool(s, b)?.school === program.school) - Number(homeSchool(s, a)?.school === program.school)
+        || Number(a === FOUNDERS_HALL_ID) - Number(b === FOUNDERS_HALL_ID));
     if (targets.length > 0) return { kind: 'move', programId: program.id, hallId: targets[0], slot: freeSlot(s, targets[0]) };
   }
   return { kind: 'wait' };

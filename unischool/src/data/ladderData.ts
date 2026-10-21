@@ -161,7 +161,7 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: coursesDone(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
     buildables: ['HALL-01'],
     tabs: [],
-    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site: six program slots, one program to each, and when six programs of one school share a hall, that school is founded.`,
+    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site.`,
     opens: ['Academic halls: six program slots each, and the way a school is founded'],
   },
   {
@@ -196,8 +196,8 @@ export const MILESTONES: readonly Milestone[] = [
     ...prestige(REC_CENTER_TIER2_PRESTIGE_GATE),
     buildables: ['REC-T2', 'AMENITY-CHAPEL'],
     tabs: [],
-    letter: 'People outside the county know the name now, and the fitness buildings can be finished with an athletics complex.',
-    opens: ['Sports & Recreation Complex: the top of the fitness buildings', 'The Chapel: a small stone landmark'],
+    letter: 'People outside the county know the name now. The fitness buildings can be finished with a Sports & Recreation Complex once the tennis courts stand, and the college has earned a chapel.',
+    opens: ['Sports & Recreation Complex: the top of the fitness buildings, after the gym, the pool and the tennis courts', 'The Chapel: a small stone landmark'],
   },
   {
     id: 'school',

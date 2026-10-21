@@ -17,8 +17,12 @@ export const MATTERS_CHAPTER = 'campus-life';
 export const PROMISES_CHAPTER = 'promises';
 export const ATHLETICS_CHAPTER = 'the-teams';
 
-export function chapterGateOpen(s: GameState, chapterId: string): boolean {
+// A run the chapters guide.
+export function guidedRun(s: GameState): boolean {
   const g = s.guidance;
-  if (!g?.gated || g.marked.includes(OBJECTIVES_OFF_MARK)) return true;
-  return g.opened[chapterId] !== undefined;
+  return !!g?.gated && !g.marked.includes(OBJECTIVES_OFF_MARK);
+}
+
+export function chapterGateOpen(s: GameState, chapterId: string): boolean {
+  return !guidedRun(s) || s.guidance!.opened[chapterId] !== undefined;
 }

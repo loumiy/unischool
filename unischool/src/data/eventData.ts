@@ -1037,8 +1037,8 @@ export function offeredChoices(s: GameState, event: DecisionEvent, ctx: Decision
 // is never sent after it. A letter with `arrives` waits on the college
 // instead, in any year: these teach the line of play, which is to seat the
 // students first (the college opens with nothing to teach, Plan 80D), then
-// to found schools: six programs of one school in one hall, any hall,
-// Founders Hall included. No letter asks for a particular move
+// to found schools: six programs of one school in one of the halls the
+// college builds. No letter asks for a particular move
 // (systems/guidance/establish.ts).
 // =====================================================================
 
@@ -1064,6 +1064,11 @@ export interface OpeningLetter {
   // quiet week this holds, in any year. One whose ask is already done by
   // then is recorded read and never sent.
   arrives?: (s: GameState) => boolean;
+  // A chapter of the objectives (state/chapters.ts) that teaches the same:
+  // in a guided run the letter is recorded read unsent, as the needs
+  // letter is once the walkthrough ends (Plan 106 PR C), and its ask still
+  // carries the next-step line.
+  chapter?: string;
   title: string;
   body: (s: GameState) => string;
   ask: (s: GameState) => LetterAsk;
@@ -1117,6 +1122,7 @@ function seatAsk(s: GameState): LetterAsk {
 function closestLine(s: GameState): string {
   const p = closestSchool(s);
   if (!p) return '';
+  if (p.housed === 0) return ` ${p.school} has the most programs in Founders Hall, and ${hallName(s, p.hallId)} has room for them.`;
   return p.housed === 1
     ? ` ${p.school} is as close as any, with one program in ${hallName(s, p.hallId)}.`
     : ` ${p.school} is closest, with ${count(p.housed)} programs in ${hallName(s, p.hallId)}.`;
@@ -1155,6 +1161,9 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     week: 1,
     // The ladder's 'curriculum' milestone opens the first hall.
     arrives: (s) => s.tech.some((t) => t.id === FIRST_HALL_ID && t.status !== 'locked'),
+    // The chapter "A hall of its own" says the same, and the milestone's
+    // note before it.
+    chapter: 'hall-of-its-own',
     title: 'A hall of its own',
     body: (s) => {
       const schools = [...new Set((s.halls[FOUNDERS_HALL_ID] ?? [])
@@ -1197,6 +1206,8 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   {
     id: 'summer-is-coming',
     week: 48,
+    // The chapter "The first summer" says the same from week 46.
+    chapter: 'first-summer',
     title: 'Summer is coming',
     body: () => 'At week 52 the clock stops for the summer, and it stops once. Three steps: the year in review, admissions and the students. Admissions asks two things — the price, and how much of the applicant pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a college nobody has heard of cannot charge what a famous one does.',
     ask: () => ({ text: 'Summer at week 52: the price locks for four years', intent: { kind: 'wait' } }),
@@ -1211,7 +1222,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     title: 'Moving in',
     body: (s) => {
       const elm = hallName(s, FIRST_HALL_ID);
-      return `${elm} stands, with six program slots. A school is six programs of one school in one hall — any hall, Founders Hall included — and the sixth founds it; a hall other than Founders Hall takes the school's name. Three programs of one school in a hall make it that school's: from then it offers that school's programs in place of the three on offer, and the three again once that school has none left to found.${closestLine(s)} Where a school grows is yours to choose: found its programs into the hall it is growing in, or move them there. A program moving out of Founders Hall is closed for ${count(FOUNDERS_MOVE_WEEKS)} weeks; between other halls, ${count(RELOCATION_WEEKS)}.`;
+      return `${elm} stands, with six program slots. Founders Hall is where the college began; its schools grow in the halls it builds. Three programs of one school in a hall make it that school's: from then it offers that school's programs in place of the three on offer, and the three again once that school has none left to found. Six found the school, and the hall takes its name.${closestLine(s)} Found the school's programs into its hall, or move them there from Founders Hall, which takes ${count(FOUNDERS_MOVE_WEEKS)} weeks; a move between other halls takes ${count(RELOCATION_WEEKS)}. Each program that leaves Founders Hall frees a slot there, for another program or, in time, an office of the administration.`;
     },
     ask: (s) => schoolAsk(s),
     done: (s) => foundedSchools(s).length > 0,

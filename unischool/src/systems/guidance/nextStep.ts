@@ -21,6 +21,7 @@ import { PARK_WORDS } from '../../data/researchParkData';
 import { slotFree } from '../administration/offices';
 import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
 import { initiativeOffers } from '../../data/researchData';
+import { milestoneById, milestoneForBuildable } from '../../data/ladderData';
 import { financeBreakdown } from '../finance/financeSystem';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
@@ -78,14 +79,32 @@ function firstClause(text: string): string {
 // 78F: one word each, so NEXT's "Academic is at 38" is the tab's row).
 const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = NEED_LABELS;
 
-// What would raise each, named in the line (the build menu opens on it).
-const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, string> = {
-  academic: 'a library would raise it',
-  social: 'a student center or a recreation building would raise it',
-  basicNeeds: 'a dining hall would raise it',
-  health: 'a health center or a gym would raise it',
-  housing: 'a residence hall would raise it',
+// What would raise each, named in the line (the build menu opens on it),
+// and the buildings the words name. A student center or a health center
+// waits on the ladder (ladderData.ts), and through Plan 107 the line asked
+// for one weeks before the build menu had it: until one opens, the line
+// names whatever else serves the need, or when the named ones open.
+const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, { text: string; names: (t: Buildable) => boolean }> = {
+  academic: { text: 'a library would raise it', names: (t) => t.facilityType === 'library' },
+  social: { text: 'a student center or a recreation building would raise it', names: (t) => t.facilityType === 'studentCenter' || t.facilityType === 'recCenter' },
+  basicNeeds: { text: 'a dining hall would raise it', names: (t) => t.facilityType === 'diningHall' },
+  health: { text: 'a health center or a gym would raise it', names: (t) => t.facilityType === 'healthCenter' || t.facilityType === 'gym' },
+  housing: { text: 'a residence hall would raise it', names: (t) => t.kind === 'dorm' },
 };
+
+// What raises an attribute, as the line says it: the buildings it names
+// once any of them is open to build; else another building that serves
+// the need, on the menu now (the Campus Quad, for social); else what the
+// ladder waits on, which is only something to know.
+export function attributeRemedy(s: GameState, key: keyof SatisfactionAttributes): { text: string; go?: 'build'; intent: StepIntent } {
+  const build = ATTRIBUTE_BUILD[key];
+  const serves = (t: Buildable) => (t.kind === 'facility' && t.effects?.satisfactionAttribute === key) || (key === 'housing' && t.kind === 'dorm');
+  if (s.tech.some((t) => build.names(t) && t.status !== 'locked')) return { text: build.text, go: 'build', intent: { kind: 'build-for', attribute: key } };
+  const other = s.tech.find((t) => serves(t) && t.status === 'available');
+  if (other) return { text: `the ${other.name} would raise it`, go: 'build', intent: { kind: 'build-for', attribute: key } };
+  const gate = s.tech.filter(build.names).map((t) => milestoneById(milestoneForBuildable(t.id) ?? '')).find((m) => m !== undefined && s.ladder.reached[m.id] === undefined);
+  return { text: gate ? `${build.text}, and the first opens with ${gate.condition}` : build.text, intent: { kind: 'wait' } };
+}
 
 // Shortfall line on the 0..100 attribute scale.
 export const ATTRIBUTE_SHORTFALL = 50;
@@ -100,7 +119,7 @@ export function academicRemedy(s: GameState): { text: string; go: TabId | 'build
     const stands = s.tech.some((t) => t.effects?.satisfactionAttribute === 'academic' && standsOnCampus(t));
     return stands
       ? { text: 'more library seats would raise it (a story on the library, or another)', go: 'build', library: true }
-      : { text: ATTRIBUTE_BUILD.academic, go: 'build', library: true };
+      : { text: ATTRIBUTE_BUILD.academic.text, go: 'build', library: true };
   }
   return { text: 'the library has room; better teaching would raise it', go: 'faculty', library: false };
 }
@@ -291,7 +310,8 @@ function shortfall(s: GameState): NextStep | null {
     // waits on the line, as on any reading it cannot act on.
     return { text: `${need}: ${remedy.text}`, go: remedy.go, intent: remedy.library ? { kind: 'build-for', attribute: 'academic' } : { kind: 'wait' } };
   }
-  return { text: `${need}: ${ATTRIBUTE_BUILD[worst.key]}`, go: 'build', intent: { kind: 'build-for', attribute: worst.key } };
+  const remedy = attributeRemedy(s, worst.key);
+  return { text: `${need}: ${remedy.text}`, ...(remedy.go ? { go: remedy.go } : {}), intent: remedy.intent };
 }
 
 // Crowding (Plan 95P, the second review's B3-5): a need the class overruns,
@@ -316,7 +336,8 @@ function crowding(s: GameState, rest: NextStep | null): NextStep | null {
     const name = coming.story ? `${coming.building.name}'s new story` : coming.building.name;
     return { text: `${need}; ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, ...intent };
   }
-  return { text: `${need}; ${ATTRIBUTE_BUILD[worst.attribute]}`, go: 'build', ...intent };
+  const remedy = attributeRemedy(s, worst.attribute);
+  return { text: `${need}; ${remedy.text}`, ...(remedy.go ? { go: remedy.go } : {}), ...intent };
 }
 
 // A program gone dark with an unstaffed course (Plan 59), when the payroll

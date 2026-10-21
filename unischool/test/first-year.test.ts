@@ -147,6 +147,27 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   assert(opened?.intent?.kind === 'build-for' && opened.text === 'Housing is at 12 out of 100: a residence hall would raise it', `once open, the line reads the need afresh (${opened?.text})`);
 }
 
+// --- the line names only what the build menu has (the owner's notes after
+// Plan 107: "Social is at 15" asked for a student center before one opened)
+{
+  const s = teachingCollege('Not Yet');
+  s.events.opening.read = ['doors-open'];
+  s.students.satisfactionBreakdown = { academic: 70, social: 15, basicNeeds: 70, health: 70, housing: 70 };
+  const named = s.tech.filter((t) => t.facilityType === 'studentCenter' || t.facilityType === 'recCenter');
+  for (const t of named) t.status = 'locked';
+  const quad = s.tech.find((t) => t.facilityType === 'quad' && t.tier === 1)!;
+  quad.status = 'available';
+  const lawn = nextStep(s);
+  assert(lawn?.text === 'Social is at 15 out of 100: the Campus Quad would raise it' && lawn.intent?.kind === 'build-for' && lawn.go === 'build', `before the student center, the quad (${lawn?.text})`);
+  quad.status = 'done';
+  const later = nextStep(s);
+  assert(later?.text === 'Social is at 15 out of 100: a student center or a recreation building would raise it, and the first opens with a fourth program founded', `then when they open (${later?.text})`);
+  assert(later?.intent?.kind === 'wait' && later.go === undefined, 'which is only something to know');
+  named[0].status = 'available';
+  const open = nextStep(s);
+  assert(open?.text === 'Social is at 15 out of 100: a student center or a recreation building would raise it' && open.intent?.kind === 'build-for', `once open, the line asks for one (${open?.text})`);
+}
+
 // --- the academic line asks for a library only when one would help (S2) ------
 {
   const s = teachingCollege('Library');
