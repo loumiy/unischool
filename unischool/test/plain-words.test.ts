@@ -88,6 +88,8 @@ console.log('plain words tests');
   assert(admitRateOpening(false, 0.38, 0, 688) === 'The admit rate opens where last summer set it, 38%.', 'later summers open at last summer\'s');
   assert(admitRateOpening(false, 0.38, 350, 688) === 'The admit rate opens where last summer set it, 38%; admitting more crowds 350 beds.', 'beds already full are named as what admitting more does');
   assert(admitRateOpening(false, 0.38, 1_200, 688) === 'The admit rate opens where last summer set it, 38%.', 'beds to spare are not named');
+  assert(admitRateOpening(true, 0.86, 0, 688, 0.62) === 'The admit rate opens at 62%, the most the seats left will hold (the founding rate is 86%).', 'a founding rate above the room opens at the room');
+  assert(admitRateOpening(false, 0.5, 0, 688, 0.62) === 'The admit rate opens where last summer set it, 50%.', 'a rate inside the room opens where it was');
 }
 
 if (failures === 0) {

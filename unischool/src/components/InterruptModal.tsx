@@ -259,6 +259,13 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
   const maxAdmitRate = outcome.applicants > 0
     ? Math.max(0.01, Math.min(1, ceiling.seatsLeft / outcome.applicants))
     : 1;
+  // The rate as it stands: the choice held to the room. The opening rate
+  // (the founding's, or last summer's) can sit above it, and a price change
+  // moves the room's edge, so the label, the thumb and the commit all read
+  // this one figure (Plan 107G). The pool doesn't depend on the rate, so
+  // the outcome above is already this rate's.
+  const admitRate = Math.min(admitRateChoice, maxAdmitRate);
+  const sliderMax = Math.max(0.01, Math.round(maxAdmitRate * 100) / 100);
   // What committing this pair would do to money and mood, for the three
   // continuing classes plus the incoming one; the same advance the reducer
   // commits with.
@@ -387,20 +394,16 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
               consequence visible before it is taken. */}
           <label className="admissions-field">
             <span>
-              Admit rate <strong>{pct(admitRateChoice)}</strong>
+              Admit rate <strong>{pct(admitRate)}</strong>
             </span>
-            <input type="range" min={0.01} max={Math.max(0.01, Math.round(maxAdmitRate * 100) / 100)} step={0.01} value={Math.min(admitRateChoice, maxAdmitRate)}
+            <input type="range" min={0.01} max={sliderMax} step={0.01} value={Math.min(admitRate, sliderMax)}
               onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
             {/* Why it opens where it does (Plan 78F). */}
             <span className="outcome-note">
-              {admitRateOpening(!s.students.lastFunnel, payload.admitRate, s.students.capacity, consequence.totalEnrolled)}
+              {admitRateOpening(!s.students.lastFunnel, payload.admitRate, s.students.capacity, consequence.totalEnrolled, maxAdmitRate)}
             </span>
-            {maxAdmitRate < 1 && (
-              <span className="outcome-note">
-                {outcome.capped
-                  ? `Held to the room: ${count(ceiling.seatsLeft)} fit of the ${count(outcome.applicants * Math.min(admitRateChoice, 1))} this share would admit.`
-                  : `The admit rate stops at ${pct(maxAdmitRate)}, where the class fills the room.`}
-              </span>
+            {maxAdmitRate < 1 && payload.admitRate <= maxAdmitRate && (
+              <span className="outcome-note">{`The admit rate stops at ${pct(maxAdmitRate)}, where the class fills the room.`}</span>
             )}
           </label>
 
@@ -480,7 +483,7 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
           </div>
 
           <div className="modal-actions">
-            <button onClick={() => onCommit({ tuition, admitRate: Math.min(admitRateChoice, maxAdmitRate) })}>
+            <button onClick={() => onCommit({ tuition, admitRate })}>
               Set the policy
             </button>
           </div>

@@ -27,6 +27,7 @@ import {
   relocateProgram,
   closeProgram,
   swapInstructors,
+  unlockAvailable,
 } from '../systems/techtree/techSystem';
 import { postSearch } from '../systems/faculty/facultySearch';
 import { endInitiative } from '../systems/research/researchSystem';
@@ -161,16 +162,35 @@ export function reducer(state: GameState, action: Action): GameState {
   // Clone so systems can mutate freely, and bind the clone's random stream
   // for every draw this action makes.
   const s: GameState = structuredClone(state);
-  return withRandom(s, () => settled(state, reduce(state, s, action)));
+  return withRandom(s, () => settled(state, reduce(state, s, action), action));
 }
 
 // A sandbox run is settled after every action that changed it
 // (systems/sandbox): what started is finished, and the funds are full.
-function settled(state: GameState, next: GameState): GameState {
+function settled(state: GameState, next: GameState, action: Action): GameState {
+  if (next !== state) settleUnlocks(next, action);
   if (next !== state && isSandbox(next)) settleSandbox(next);
   // And the objectives (Plan 106): whatever changed may have met one.
   if (next !== state) settleChapters(next);
   return next;
+}
+
+// What a player's action opens, it opens at once (Plan 107G): the ladder's
+// milestones and the build menu's unlocks are otherwise read only by the
+// week's tick, so the first class set in the summer opened the Students tab
+// a week into Year 2, and a team granted varsity found its venue in the
+// menu a week later. Not on the tick (which runs both itself), not on a new
+// run, and not while the opening walkthrough holds the clock, whose quiet
+// first steps no letter may interrupt. The headless player's reducer
+// (reduceInPlace) leaves them to the tick, as it does the objectives: it
+// can't tell a refused action from one that changed nothing, and a refused
+// one must leave the state as it was.
+const UNSETTLED: ReadonlySet<Action['type']> = new Set(['TICK', 'START_GAME', 'RESET', 'SAVE_GAME', 'SAVE_FAILED']);
+function settleUnlocks(s: GameState, action: Action): void {
+  // A save not yet carried forward (a test's raw fixture) has no ladder to settle.
+  if (UNSETTLED.has(action.type) || !s.started || !s.ladder?.reachedWeek || openingHoldsClock(s)) return;
+  tickLadder(s);
+  unlockAvailable(s);
 }
 
 // The reducer without the clone (Plan 57), for a headless player that owns

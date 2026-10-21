@@ -92,11 +92,15 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
 // so an unchanged strategy is a click-through; the first summer carries the
 // founding rate. Beds never limit the rate (housing is a need, not a cap),
 // so they are named only as what admitting more does: when next year's
-// students would already fill the beds there are.
-export function admitRateOpening(firstSummer: boolean, openingRate: number, beds: number, studentsNextYear: number): string {
-  const where = firstSummer
-    ? `The admit rate opens at the founding rate, ${pct(openingRate)}`
-    : `The admit rate opens where last summer set it, ${pct(openingRate)}`;
+// students would already fill the beds there are. When the seats left
+// hold less than that rate, it opens at the most they hold, and says so
+// (Plan 107G).
+export function admitRateOpening(firstSummer: boolean, openingRate: number, beds: number, studentsNextYear: number, roomRate = 1): string {
+  const where = openingRate > roomRate
+    ? `The admit rate opens at ${pct(roomRate)}, the most the seats left will hold (${firstSummer ? 'the founding rate' : 'last summer\'s'} is ${pct(openingRate)})`
+    : firstSummer
+      ? `The admit rate opens at the founding rate, ${pct(openingRate)}`
+      : `The admit rate opens where last summer set it, ${pct(openingRate)}`;
   const crowds = beds > 0 && studentsNextYear >= beds ? `; admitting more crowds ${count(beds)} beds` : '';
   return `${where}${crowds}.`;
 }

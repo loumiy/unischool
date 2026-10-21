@@ -7,9 +7,10 @@ words and buttons, the Curriculum's folding, a prestige panel you can read
 at a glance, prestige that moves early, crowding gone, three bugs and one
 label.*
 
-**Status: Proposed.** §3 lists the questions for the owner. The PRs below
-show the recommended answer to each, so the plan can go ahead once the
-owner has replied.
+**Status: In progress.** The owner took every recommendation in §3 (21
+October), and asked for D's panel to be mocked up before it is built: two
+variants, meters and rings, at
+https://claude.ai/artifact/HqgEg2kaTqmNq2V8EoKp1Z.
 
 ---
 
@@ -427,9 +428,9 @@ Q7):
 - **Test:** no player-facing string contains a literal grade threshold,
   checked against `GRADE_A`.
 
-## 3. Questions for the owner
+## 3. Decisions, settled by the owner (21 October)
 
-| # | Question | Recommended |
+| # | Question | Decided |
 |---|---|---|
 | 1 | Three salaries from week 1 cost the founding year roughly a full year of two extra professors. Should founding cash rise to cover it? | **Yes: raise `startingCash` by the first year of Iyer's and Okafor's pay**, so the opening's economy stays where Plan 95N set it. |
 | 2 | Does the card move left only for "Raise Founders Hall", or for every walkthrough step? | **Only that step.** Once the hall is placed, its panel takes the top-left, 440px wide. |
