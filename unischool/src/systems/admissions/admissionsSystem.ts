@@ -154,6 +154,18 @@ const QUALITY_BAND_BASE = { top: 0.20, mid: 0.50, low: 0.30 };
 const QUALITY_BAND_FLOOR = 0.05;             // no band ever fully vanishes
 const PRESTIGE_QUALITY_SHIFT = 0.35;         // mass moved top<-low per unit of (prestige-ref)/ref
 const TUITION_QUALITY_SHIFT = 0.25;          // mass moved top->low per unit of tuition/ref
+// The early climb (Plan 108). At a fair price the tuition term grows with
+// prestige and cancelled its lift, so the top band sat on its floor and the
+// pool hardly changed from prestige 30 to 70: a young college doing well saw
+// the same applicants year after year. So the mix takes an extra shift: what
+// it takes for the top band, at a fair price, to climb in a straight line
+// from EARLY_TOP_SHARE.from at EARLY_MIX_FROM to .at by EARLY_MIX_AT and hold
+// there until the curve passes it (the low nineties), when the shift is
+// nothing. A shift, not a floor, so a price above what families expect
+// still costs quality as before.
+const EARLY_MIX_FROM = 30;
+const EARLY_MIX_AT = 75;
+const EARLY_TOP_SHARE = { from: 0.05, at: 0.14 };
 
 // 0..100 per band, used only to average the enrolled class's quality for
 // prestige.
@@ -231,13 +243,27 @@ function wordOfMouthFactor(satisfaction: number): number {
 // The quality mix (top/mid/low, summing to 1). `drag` is the athlete band
 // drag (cohorts.ts's athleteBandDrag), taken off the top and added to the
 // low; zero for every reader but the realized class.
+// The early climb's shifts at a prestige: `top` raises the top band's raw
+// share, at a fair price, to the climb's line; `low` takes from the low band
+// only what that adds above the floor, so a college on the floor today is
+// where it was.
+function earlyLift(prestige: number): { top: number; low: number } {
+  const u = clamp((prestige - EARLY_MIX_FROM) / (EARLY_MIX_AT - EARLY_MIX_FROM), 0, 1);
+  const want = EARLY_TOP_SHARE.from + (EARLY_TOP_SHARE.at - EARLY_TOP_SHARE.from) * u;
+  const fair = QUALITY_BAND_BASE.top
+    + PRESTIGE_QUALITY_SHIFT * (prestige - PRESTIGE_REFERENCE) / PRESTIGE_REFERENCE
+    - TUITION_QUALITY_SHIFT * (priceTolerance(prestige) / TUITION_REFERENCE);
+  return { top: Math.max(0, want - fair), low: Math.max(0, want - Math.max(fair, QUALITY_BAND_FLOOR)) };
+}
+
 function qualityMix(prestige: number, tuition: number, drag: number = 0): Record<QualityBand, number> {
   const shift =
     PRESTIGE_QUALITY_SHIFT * (prestige - PRESTIGE_REFERENCE) / PRESTIGE_REFERENCE -
     TUITION_QUALITY_SHIFT * (Math.max(tuition, 0) / TUITION_REFERENCE) -
     drag;
-  const top = clamp(QUALITY_BAND_BASE.top + shift, QUALITY_BAND_FLOOR, 1);
-  const low = clamp(QUALITY_BAND_BASE.low - shift, QUALITY_BAND_FLOOR, 1);
+  const lift = earlyLift(prestige);
+  const top = clamp(QUALITY_BAND_BASE.top + shift + lift.top, QUALITY_BAND_FLOOR, 1);
+  const low = clamp(QUALITY_BAND_BASE.low - shift - lift.low, QUALITY_BAND_FLOOR, 1);
   const mid = QUALITY_BAND_BASE.mid;
   const sum = top + mid + low;
   return { top: top / sum, mid: mid / sum, low: low / sum };
