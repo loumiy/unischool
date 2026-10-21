@@ -7,10 +7,10 @@ words and buttons, the Curriculum's folding, a prestige panel you can read
 at a glance, prestige that moves early, crowding gone, three bugs and one
 label.*
 
-**Status: In progress.** The owner took every recommendation in §3 (21
-October), and asked for D's panel to be mocked up before it is built: two
-variants, meters and rings, at
-https://claude.ai/artifact/HqgEg2kaTqmNq2V8EoKp1Z.
+**Status: Landed on the branch (21 October 2026), A–H.** The owner took
+every recommendation in §3 and picked D's panel from a mock-up of two
+variants (https://claude.ai/artifact/HqgEg2kaTqmNq2V8EoKp1Z). §4 records
+where the PRs landed differently.
 
 ---
 
@@ -451,6 +451,41 @@ Q7):
 | 5 | The prestige panel (D): mock up first, or build straight from §2 D? | **A mock-up first**, an artifact with two variants, as for the Curriculum in Plan 105. |
 | 6 | How low should prestige start, and how fast should it rise early? | **Start ~20.** Every summer of years 1–5 should rise by 3–6 when the player does the chapters. Year 10 lands at the low edge of today's band, Year 20+ unchanged. |
 | 7 | "Below 78" → which? (a) **Below top band** with a colour swatch; (b) **Weakest courses**, the bottom third; (c) a threshold the player sets. | **(a)**: one fixed line, named, the same colour as the numbers it filters. |
+
+## 4. As implemented
+
+Where the PRs landed differently from §2, and why.
+
+- **A.** The appointing step is gone from the walk's stages too (no
+  `appoint` in `OpeningStage`); a save held on it is carried to `found` on
+  load (`persistence.ts`'s `sanitizeOpening`). The founding funds carry the
+  first year of Iyer's and Okafor's pay (decision 1), about $200k. The
+  first letter, for an unguided college, names the founding faculty. The
+  ring falls on all three offer tiles. `faculty-search.test.ts`'s twelve
+  trials took one seed between them; each now takes its own.
+- **B.** The drawer's buttons joined the register's selector lists rather
+  than taking `.btn` in the markup, as the other register buttons do. The
+  Guide button loses its "?".
+- **C.** As planned. A row folds when it finishes even if the player had
+  opened it before (`useCollapse` remembers the default each override was
+  made against).
+- **D.** The owner's pick of the mock-up (variant A, no "most room to grow",
+  B's arrow). The track has no pale reach toward the target either, since
+  the target is not shown (Plan 98B); "About +x next summer" shows only
+  with the Office of Institutional Research, whose forecast it is. The
+  Standing chapter's readout keeps its words.
+- **E.** As planned, but the coverage helpers keep their names
+  (`crowdingCoverages`, `CROWDING_GRACE`): NEXT and the harness read them,
+  and a rename was churn. Class seats cost the academic need up to 30
+  points, linearly. Measured: the players that under-build (Lean, Selective)
+  end well above their baseline (Lean +12 at year 50), because crowding
+  cost them that much; they now pay in satisfaction instead.
+- **F.** The founding prestige is **32**, not about 20 (decision 6): below
+  24 the applicant pool is its floor, and the first classes would not come.
+  At 32 the first pool is half the old one, and enrolment and cash catch up
+  by year 3. The early help is **by year** (full through year 5, gone by
+  year 10), not by standing as §2 proposed: by standing, a college that
+  stays small was helped for fifty years.
 
 ## Rules for every PR in this plan
 

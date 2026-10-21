@@ -133,6 +133,9 @@ console.log('intake ceiling tests');
 // ---- the summer, through the reducer: the class is held to the room ----
 {
   const start = fresh();
+  // At the founding prestige before Plan 107F, 42: a pool big enough to
+  // fill the room, which this reads; the founding's own is balance.test.ts's.
+  start.self.reputation = 42;
   const atSummer = toSummer(start);
   const ceiling = intakeCeiling(atSummer);
   const wide = projectAdmissions(atSummer.self.reputation, atSummer.finance.listedTuition, atSummer.students.capacity, atSummer.students.priorYearAvgSatisfaction, undefined, 1);

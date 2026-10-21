@@ -77,9 +77,10 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   assert(monotone, 'standing always makes a college more selective by default');
 
   const s = createInitialState('Opening');
-  // Plan 95N: the college opens at 42, its admit rate from the old opening.
+  // Plan 107F: the college opens at 32, the pillars' floor (Plan 95N's 42
+  // before it), its admit rate from the old opening.
   assert(near(s.students.admitRate, admitRate(FOUNDING_ADMIT_PRESTIGE)), 'a new college opens its slider at the founding admit rate');
-  assert(s.self.reputation === 42, `a new college opens at prestige 42 (${s.self.reputation})`);
+  assert(s.self.reputation === 32, `a new college opens at prestige 32 (${s.self.reputation})`);
   assert(STARTING_TUITION > 16_000 && priceTier(STARTING_TUITION, priceTolerance(s.self.reputation)) === 'fair', 'the founding price is up, and fair');
   assert(Object.values(s.finance.tuitionByClass).every((p) => p === STARTING_TUITION), 'every founding class pays it');
   // Plan 107A: and the first year of the two founding salaries the walk no

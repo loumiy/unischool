@@ -152,14 +152,23 @@ scale, and prestige steps toward that score by a share of the gap —
 `src/systems/prestige/prestigeSystem.ts`'s `gradeYear`). A climb is capped at
 `PRESTIGE_MAX_RISE` (2.1) a summer ([Plan 67](../plans/067-pacing-tuning.md), 2.1 since Plan 68):
 a college that has outgrown its standing earns it a year at a time, so the
-climb from the founding's low fifties to 150 takes about forty years whatever
-order the catalogue fills in. It never jumps to
-the score: a long-established school's prestige is sticky, and a school that
-falls short falls faster than it climbs. Between summers a weekly tremor, a
-tenth of the old drift, keeps the toolbar number alive. Welfare and crowding
-are graded on the year's *average*, because those are the two a player could
-game by timing a dorm's completion in week 50; everything else on state at
-the summer.
+climb to 150 takes about forty years whatever order the catalogue fills in.
+It never jumps to the score: a long-established school's prestige is sticky,
+and a school that falls short falls faster than it climbs. Between summers a
+weekly tremor, a tenth of the old drift, keeps the toolbar number alive.
+Welfare is graded on the year's *average*, because a player could game it by
+timing a dorm's completion in week 50; everything else on state at the
+summer.
+
+**The early game climbs faster** ([Plan 107](../plans/107-the-owners-notes-after-106.md)
+PR F, the owner's note that prestige took too long to show a college doing
+well). A college opens at **32**, the pillars' floor, a college with nothing
+(42 from Plan 95N to 106). Through year 5 a summer closes 45% of the gap, up
+to 6 points, tapering in a straight line to the rates above by year 10; and
+a third of that step comes week by week through the year, so the figure
+moves before the first summer. By year, not by standing, so a college that
+stays small is not helped for fifty years. 32 and not lower: below 24 the
+applicant pool is its floor, and the first classes would not come.
 
 **Prestige is the blend of four pillars** ([Plan 85](../plans/085-specializations.md)
 PR B, by the owner's decision). Until then prestige *was* academic standing,
@@ -182,18 +191,17 @@ constants, and Plan 85C tunes them. A term keeps its old weight where it had
 one: academics' and student life's are prestige's, research's the research
 standing's, athletics' the campus life standing's (the flagships' is new, at
 the titles' weight). A capital project's lift is points on its pillar, on top
-of its terms. Three **adjustments** stay outside every pillar:
+of its terms. Two **adjustments** stay outside every pillar:
 
 - **financial resources per student** (+4, endowment against the enrolled
   body; +8 until Plan 85I, when the owner halved it) — what the late-game endowment campaigns buy;
 - **condition of the buildings** (up to −4) — only neglect counts;
-- **crowding** — a *penalty* of up to 25, not an input: the worst of the
-  housing, dining and health coverage ratios and the instruction-capacity
-  ratio, averaged over the year as a shortfall below 85% coverage (Plan 71
-  dropped the library and social space: a college that has not built one is
-  short of it, not overcrowded). A subtraction, so it can take a school
-  *below* what its pillars earned. The same reading shrinks next year's
-  applicant pool (see [admissions.md](admissions.md)).
+
+**Crowding is not one** (Plan 107 PR E, by the owner's decision; a penalty
+of up to 25 from Plan 71 to 106). A campus short of beds, meals or health
+pays in satisfaction, which already counts them, and class seats are part
+of the academic need (up to 30 points off it, in proportion to the students
+without a place). Word of mouth carries all of it to the next pool.
 
 **No pillar is capped; each holds a share only its specialization fills**
 (the owner's decision in [Plan 85](../plans/085-specializations.md) PR D's
@@ -472,8 +480,10 @@ differently.
 
 **The report card is shown.** The Prestige panel carries the summer model in
 its note — which way the year's grade is pulling, in words — and
-each row shows last summer's grade beside what it is worth now; the crowding
-row is drawn as the subtraction it is. Under the inputs sits one **reading**
+each row shows last summer's grade beside what it is worth now. Since
+Plan 107 PR D the panel is drawn first and written second: the figure and
+its direction, a track to 150, a meter per pillar as long as the most it
+can add, and the rest under Details. Under the inputs sits one **reading**
 that counts for nothing: **instruction capacity**, the seats the housed
 catalogue can teach, which is the ceiling on enrollment (see
 [admissions.md](admissions.md)). A school whose grade drops thirty points

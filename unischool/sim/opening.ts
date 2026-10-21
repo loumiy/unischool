@@ -46,7 +46,6 @@ export interface OpeningYear {
   stickerShock: number;
   capacityFactor: number;
   wordOfMouth: number;
-  crowding: number;
   beauty: number;
   cohortDemand: number;
 }
@@ -72,7 +71,6 @@ function readYear(s: GameState, year: number, netPerWeek: number, pricedAt: numb
     stickerShock: f?.stickerShock ?? 1,
     capacityFactor: f?.capacityFactor ?? 1,
     wordOfMouth: f?.wordOfMouth ?? 1,
-    crowding: f?.crowding ?? 1,
     beauty: f?.beauty ?? 1,
     cohortDemand: f?.cohortDemand ?? 1,
   };
@@ -145,10 +143,10 @@ export function openingText(runs: Array<{ player: string; seed: number; years: O
       out.push(`| ${y.year} | ${k(y.tuition)} | ${k(y.tolerance)} | ${n0(y.applicants)} | ${n0(y.enrolled)} | ${money(y.netPerWeek)} | ${money(y.cash)} | ${d1(y.prestige)} → ${d1(y.prestigeTarget)} | ${d1(y.satisfaction)} | ${y.coursesDone} (${y.coursesDeveloping}) |`);
     }
     out.push('', 'The pool, factor by factor (applicants are about their product):', '');
-    out.push('| Year | Prestige pool | Price | Sticker shock | Beds | Word of mouth | Crowding | Beauty | Cohorts |');
-    out.push('|---|---|---|---|---|---|---|---|---|');
+    out.push('| Year | Prestige pool | Price | Sticker shock | Beds | Word of mouth | Beauty | Cohorts |');
+    out.push('|---|---|---|---|---|---|---|---|');
     for (const y of run.years) {
-      out.push(`| ${y.year} | ${n0(y.prestigePool)} | ${d2(y.priceFactor)} | ${d2(y.stickerShock)} | ${d2(y.capacityFactor)} | ${d2(y.wordOfMouth)} | ${d2(y.crowding)} | ${d2(y.beauty)} | ${d2(y.cohortDemand)} |`);
+      out.push(`| ${y.year} | ${n0(y.prestigePool)} | ${d2(y.priceFactor)} | ${d2(y.stickerShock)} | ${d2(y.capacityFactor)} | ${d2(y.wordOfMouth)} | ${d2(y.beauty)} | ${d2(y.cohortDemand)} |`);
     }
     out.push('');
   }

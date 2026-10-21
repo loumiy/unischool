@@ -3,7 +3,7 @@ import { campusBeauty } from '../estate/beauty';
 import { conditionOf, historicPrestige } from '../estate/estate';
 import { isPlaceableKind } from '../../state/campusMap';
 import type { GameState, Pillar, ReportCard, SatisfactionAttributes } from '../../state/types';
-import { servingPopulation, standsOnCampus, totalEnrolled } from '../../state/types';
+import { servingPopulation, standsOnCampus, totalEnrolled, WEEKS_PER_YEAR } from '../../state/types';
 import { graduatePrograms, milestoneSchools } from '../../data/techData';
 import { campusAverageCourseQuality, campusCourseScores } from '../faculty/facultyAssignment';
 import { meanGradeLetter, meanGradePoints, teachingQualityScore } from '../../data/courseQuality';
@@ -47,6 +47,42 @@ export const PRESTIGE_FALL_RATE = 0.30;
 // its catalog in a decade reached the cap in fifteen years; with it the
 // climb from the founding's low fifties to 150 takes about forty.
 export const PRESTIGE_MAX_RISE = 2.1;
+
+// An easier climb in the early game (Plan 107F, the owner's note that
+// prestige took too long to show a college doing well). Through year
+// EARLY_UNTIL_YEAR a summer closes EARLY_RISE_RATE of the gap, up to
+// EARLY_MAX_RISE; both taper in a straight line to the rates above by year
+// EARLY_FADE_YEAR, so from there every college climbs as it did. And part
+// of the rise comes week by week, so the figure moves during the year
+// rather than only at its summer: EARLY_WEEKLY_SHARE of the summer's step
+// spread over the year's weeks, fading the same way. By year, not by
+// standing: a college that stays small is not helped for fifty years.
+export const EARLY_RISE_RATE = 0.45;
+export const EARLY_MAX_RISE = 6;
+const EARLY_UNTIL_YEAR = 5;
+const EARLY_FADE_YEAR = 10;
+const EARLY_WEEKLY_SHARE = 1 / 3;
+// 0 in the early years, 1 once the help is gone.
+function earlyFade(year: number): number {
+  return clamp01((year - EARLY_UNTIL_YEAR) / (EARLY_FADE_YEAR - EARLY_UNTIL_YEAR));
+}
+export function riseRateIn(year: number): number {
+  return EARLY_RISE_RATE + (PRESTIGE_RISE_RATE - EARLY_RISE_RATE) * earlyFade(year);
+}
+export function maxRiseIn(year: number): number {
+  return EARLY_MAX_RISE + (PRESTIGE_MAX_RISE - EARLY_MAX_RISE) * earlyFade(year);
+}
+// A summer's step from `prestige` toward `target`, in `year`.
+export function summerStep(prestige: number, target: number, year: number): number {
+  const gap = target - prestige;
+  return gap >= 0 ? Math.min(gap * riseRateIn(year), maxRiseIn(year)) : gap * PRESTIGE_FALL_RATE;
+}
+// The week's share of the early rise: nothing once the early years are
+// over, or above the target.
+function earlyWeeklyRise(prestige: number, target: number, year: number): number {
+  if (target <= prestige) return 0;
+  return (EARLY_WEEKLY_SHARE * (1 - earlyFade(year)) * summerStep(prestige, target, year)) / WEEKS_PER_YEAR;
+}
 
 // Weekly movement between summers; the summer step is the beat.
 const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
@@ -639,8 +675,8 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
       'The buildings\' mean condition: a fully maintained campus costs nothing, a run-down one up to four points.',
     ),
   ], prestigeReadings(s), {
-    riseRate: PRESTIGE_RISE_RATE,
-    maxRise: PRESTIGE_MAX_RISE,
+    riseRate: riseRateIn(s.clock.year),
+    maxRise: maxRiseIn(s.clock.year),
     fallRate: PRESTIGE_FALL_RATE,
     reportCard: s.self.reportCard,
   }, teachingCeiling(s));
@@ -767,10 +803,7 @@ export function gradeYear(s: GameState): ReportCard {
   const grades: Record<string, number> = {};
   for (const input of made.inputs) grades[input.key] = input.contribution;
   const before = s.self.reputation;
-  const gap = made.target - before;
-  const rate = gap >= 0 ? PRESTIGE_RISE_RATE : PRESTIGE_FALL_RATE;
-  const step = gap >= 0 ? Math.min(gap * rate, PRESTIGE_MAX_RISE) : gap * rate;
-  const after = clamp(before + step, PRESTIGE_MIN, PRESTIGE_MAX);
+  const after = clamp(before + summerStep(before, made.target, s.clock.year), PRESTIGE_MIN, PRESTIGE_MAX);
   return { year: s.clock.year, score: made.target, grades, before, after };
 }
 
@@ -910,14 +943,19 @@ export function athleticStanding(s: GameState): number {
 // How far prestige moves this week, by the tick's own step (Plan 98B): what
 // the dock's arrow reads, since the target itself is not shown.
 export function prestigeWeeklyChange(s: GameState): number {
-  return drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE) - s.self.reputation;
+  return weekOfPrestige(s.self.reputation, computePrestigeTarget(s), s.clock.year) - s.self.reputation;
+}
+
+// One week: the tremor, and in the early years the early rise (Plan 107F).
+function weekOfPrestige(prestige: number, target: number, year: number): number {
+  return clamp(drift(prestige, target, PRESTIGE_TREMOR_RATE) + earlyWeeklyRise(prestige, target, year), PRESTIGE_MIN, PRESTIGE_MAX);
 }
 
 // Academic standing trembles toward its target; the other two are set to
 // their pillars (Plan 98E). Kept in one function so invariants.test.ts can confine
 // every writer to this file.
 export function tickPrestige(s: GameState): void {
-  s.self.reputation = drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE);
+  s.self.reputation = weekOfPrestige(s.self.reputation, computePrestigeTarget(s), s.clock.year);
   // The research and student-life pillars as they stand (Plan 98E). Since
   // Plan 85I the pillars are read live, so these two fields are each pillar
   // as of this week, not a stock lagging toward it; what still reads them
