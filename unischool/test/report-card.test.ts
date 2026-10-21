@@ -47,11 +47,8 @@ function fresh(): GameState {
 }
 
 // A college with something to its name: one school founded and
-// distinguished, every program of it established and distinguished, and a
-// year uncrowded.
+// distinguished, every program of it established and distinguished.
 function accomplished(s: GameState): void {
-  s.students.crowdingYearSum = 0;
-  s.students.crowdingYearWeeks = 1;
   const school = milestoneSchools().find((x) => x.schoolName === 'Engineering')!;
   s.milestones['school-founded:Engineering'] = true;
   s.milestones['school-distinguished:Engineering'] = true;
@@ -138,20 +135,16 @@ console.log('report card tests');
   assert(made.inputs.every((i) => card.grades[i.key] !== undefined), 'every input is graded');
   assert(made.inputs.every((i) => near(card.grades[i.key], i.contribution)), 'at the contribution the breakdown shows');
   assert(Object.keys(card.grades).length === made.inputs.length, 'and nothing else is');
-  assert(card.grades.crowding <= 0, 'the crowding grade is a subtraction');
+  assert(card.grades.crowding === undefined, 'and crowding is not one (Plan 107E)');
 }
 
-// ---- the penalty can take a school below what its curriculum earned ----
+// ---- a campus short of beds and seats is not marked down here (Plan 107E) ----
 {
   const s = fresh();
-  s.students.crowdingYearSum = 0;
-  s.students.crowdingYearWeeks = 0;
   const made = prestigeBreakdown(s);
-  const crowding = made.inputs.find((i) => i.key === 'crowding')!;
   const earned = made.inputs.filter((i) => !i.penalty).reduce((sum, i) => sum + i.contribution, made.baseline);
-  assert(crowding.contribution < 0, 'a founding campus with nothing built is crowded');
-  assert(made.target < earned, `and its target sits below what its inputs earned (${made.target.toFixed(1)} < ${earned.toFixed(1)})`);
-  assert(near(made.target, Math.max(made.min, earned + crowding.contribution)), 'by exactly the penalty');
+  assert(made.inputs.filter((i) => i.penalty).map((i) => i.key).join(',') === 'condition', 'the one penalty is the buildings\' condition');
+  assert(near(made.target, Math.min(made.max, Math.max(made.min, earned + made.inputs.find((i) => i.key === 'condition')!.contribution))), 'so a founding campus with nothing built keeps what its inputs earned');
 }
 
 // ---- the weight budget ----
@@ -164,7 +157,7 @@ console.log('report card tests');
   assert(near(PILLAR_WEIGHTS.academics + PILLAR_WEIGHTS.research + PILLAR_WEIGHTS.studentLife + PILLAR_WEIGHTS.athletics, 1), 'the pillars\' shares sum to one');
   assert(near(weight('academics'), 0.35 * PILLAR_SPAN) && near(weight('research'), 0.25 * PILLAR_SPAN)
     && near(weight('studentLife'), 0.25 * PILLAR_SPAN) && near(weight('athletics'), 0.15 * PILLAR_SPAN), 'academics 35%, research 25%, student life 25%, athletics 15%');
-  assert(weight('endowment') === 4 && weight('crowding') === 25 && weight('condition') === 4, 'endowment four (Plan 85I: it was eight), crowding up to twenty-five, condition up to four');
+  assert(weight('endowment') === 4 && weight('condition') === 4 && !made.inputs.some((i) => i.key === 'crowding'), 'endowment four (Plan 85I: it was eight), condition up to four, and no crowding (Plan 107E)');
   // Inside a pillar, the terms keep their old weights' proportions.
   const within = (p: Parameters<typeof pillarBreakdown>[1], a: string, b: string) => {
     const inputs = pillarBreakdown(s, p).inputs;
@@ -182,8 +175,6 @@ console.log('report card tests');
   const start = fresh();
   assert(start.self.reportCard === null, 'no summer has graded a founding school');
   const atSummer = toSummer(start);
-  assert(atSummer.students.crowdingYearWeeks > 0, 'the crowding accumulator has a year in it by the summer');
-  assert(atSummer.students.satisfactionYearWeeks === atSummer.students.crowdingYearWeeks, 'ticked in step with the satisfaction accumulator');
   const expected = gradeYear(atSummer);
   const before = atSummer.self.reputation;
   // The summer is four beats (Plan 16's PR A), answered one per call by the
@@ -195,7 +186,6 @@ console.log('report card tests');
   assert(near(s.self.reportCard!.score, expected.score), 'graded on the state before the funnel ran');
   assert(near(s.self.reportCard!.before, before), 'from the prestige the summer opened at');
   assert(near(s.self.reputation, expected.after), 'and prestige stepped to the card\'s figure');
-  assert(s.students.crowdingYearWeeks === 0 && s.students.crowdingYearSum === 0, 'the crowding accumulator is reset for the new year');
   assert(s.history[s.history.length - 1].prestige === s.self.reputation, 'the year\'s snapshot records the stepped standing');
   assert(s.log.some((l) => l.message.startsWith('Report card for Year')), 'and the log says so');
   const made = prestigeBreakdown(s);
@@ -212,7 +202,6 @@ console.log('report card tests');
   const s1 = reducer(s, { type: 'TICK' });
   const moved = s1.self.reputation - before;
   assert(moved > 0 && moved < 0.05, `a week forty below its target moves prestige by a tremor (${moved.toFixed(4)})`);
-  assert(s1.students.crowdingYearWeeks === 1, 'and feeds the crowding accumulator one week');
 }
 
 console.log(`report card: ${checks} checks, ${failures} failures`);

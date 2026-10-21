@@ -33,29 +33,19 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['cohortDemand', 'new pulls'],
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
-  ['crowding', 'crowding'],
   ['lift', 'a one-year lift'],
 ];
 
-// Crowding is a penalty, so its factor rising means the campus crowded
-// less than the year before. The line says the direction in words ("crowding
-// eased: +312%", the colon added where it is shown), since a bare "overcrowding +312%" reads as more of it
-// (Plan 78F). Every other factor's name reads the right way round.
-export function crowdingLabel(change: number): string {
-  return change >= 0 ? 'crowding eased' : 'crowding grew';
-}
-
 // The year's lift (Plan 79C) is there one summer. A summer with one names
 // it, whichever way it moved against last year's; a summer without one, read
-// against a summer that had one, says it ended. Shown with a colon, as
-// crowding's is.
+// against a summer that had one, says it ended. Shown with a colon.
 export function liftLabel(liftFactorNow: number): string {
   return liftFactorNow > 1 ? 'a one-year lift' : "last year's lift ended";
 }
 
 // The labels that are phrases, shown with a colon before the figure.
 export function takesColon(key: keyof FunnelFactors): boolean {
-  return key === 'crowding' || key === 'lift';
+  return key === 'lift';
 }
 
 // Moves smaller than this are rounding and are left off the line.
@@ -76,7 +66,7 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
     if (!(before > 0)) continue;
     const change = (factorOf(now.factors, key) ?? 1) / before - 1;
     if (Math.abs(change) < MOVE_FLOOR) continue;
-    const named = key === 'crowding' ? crowdingLabel(change) : key === 'lift' ? liftLabel(now.factors.lift ?? 1) : label;
+    const named = key === 'lift' ? liftLabel(now.factors.lift ?? 1) : label;
     parts.push({ key, label: named, change });
   }
   parts.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));

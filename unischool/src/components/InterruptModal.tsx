@@ -451,15 +451,6 @@ function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction,
                 hint={FIGURE_HINTS.tightestNeed}
                 value={<CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} />}
               />
-              {/* What the body costs prestige (Plan 95P, the second review's
-                  B3-5): nothing while every need is 85% covered or better. */}
-              {consequence.crowding > 0 && (
-                <Figure
-                  label="Crowding"
-                  hint={FIGURE_HINTS.projectedCrowding}
-                  value={<span className="crowding-cost">{crowdingSentence(consequence.crowdingWorst.label, consequence.crowdingWorst.coverage, consequence.crowding)}</span>}
-                />
-              )}
               {consequence.totalEnrolled > SCALE_FREE_BELOW && (() => {
                 // The break (Plan 36): what the next thousand would pay at this
                 // price against what they would cost at this size.
@@ -1320,15 +1311,6 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 // What s.pendingInterrupt calls for (docs/architecture/interrupts.md): the
 // Enter key for the read-and-continue stops, and the Final Report's page.
 // Every other stop is answered in the inbox (InterruptContent, below).
-// The summer's crowding line in words (Plan 96E): the worst-covered need,
-// its coverage, and what it holds prestige back by ("Dining feeds only 51%
-// of this class: holds prestige back by 9.9"; Plan 98B).
-const CROWDING_VERB: Record<string, string> = { dining: 'feeds', housing: 'houses' };
-export function crowdingSentence(label: string, coverage: number, points: number): string {
-  const need = label.charAt(0).toUpperCase() + label.slice(1);
-  return `${need} ${CROWDING_VERB[label] ?? 'covers'} only ${pct(coverage)} of this class: holds prestige back by ${Math.abs(points).toFixed(1)}`;
-}
-
 export default function InterruptModal({ s, act, onNewCollege }: { s: GameState; act: (a: Action) => void; onNewCollege?: () => void }) {
   const interrupt = s.pendingInterrupt;
 

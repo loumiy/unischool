@@ -22,7 +22,7 @@ export const FIGURE_HINTS = {
   funds: 'Operating funds, and what the week adds or takes at today\'s rates; a deficit, or a matter left unanswered, can push them below zero, and the board reviews them every term.',
   rank: (field: number): Sentence => `Of ${field} colleges, by prestige.`,
   enrolled: 'Students on the books across all four classes, set each summer by the class the college admits and who does not return.',
-  prestige: `Prestige, graded each summer: the blend of ${pillarWeightsWords()}, with the endowment added and neglect and crowding taken off.`,
+  prestige: `Prestige, graded each summer: the blend of ${pillarWeightsWords()}, with the endowment added and neglect taken off.`,
   // The lowest need and its figure (Plan 78B), so the chip says where to look.
   satisfaction: (need: string, figure: string): Sentence => `How content the students are, out of 100; the lowest of the five needs is ${need}, at ${figure}.`,
   // The committee (Plan 80E): what it is writing, and whether there is room
@@ -56,7 +56,6 @@ export const FIGURE_HINTS = {
   projectedSatisfaction: 'Which way this class moves satisfaction, in points, once it is on the campus.',
   tightestNeed: 'Beds or dining, whichever will be more stretched, as a share of what the students will need, now and with this class.',
   priceTolerance: 'What families will pay at the college\'s prestige.',
-  projectedCrowding: 'Once this class enrols, the worst-covered of beds, dining, health and class seats, against 85%.',
   notReturning: 'Students who leave before graduating.',
   nextThousand: 'What a thousand more students would pay each at this price, against what teaching, serving and administering them would cost at this size.',
   tuitionLocked: 'The price this class pays every year until it graduates.',
@@ -90,12 +89,13 @@ export interface DragFacts {
   has: number;
   wants: number;
   library?: { has: number; wants: number };
+  seats?: { has: number; wants: number };
 }
 export function dragLine(d: DragFacts): Sentence {
   const why = d.need === 'housing'
     ? `${count(d.has)} beds, ${count(d.wants)} wanted`
     : d.need === 'academic'
-      ? `teaching earns ${count(d.has)} of its ${count(d.wants)} points${d.library ? `, the library ${count(d.library.has)} of its ${count(d.library.wants)}` : ''}`
+      ? `teaching earns ${count(d.has)} of its ${count(d.wants)} points${d.library ? `, the library ${count(d.library.has)} of its ${count(d.library.wants)}` : ''}${d.seats ? `, and the catalog seats ${count(d.seats.has)} of ${count(d.seats.wants)} students` : ''}`
       : `${count(d.has)} served of the ${count(d.wants)} it takes`;
   return `${NEED_LABELS[d.need]} is the drag: ${why}.` as Sentence;
 }

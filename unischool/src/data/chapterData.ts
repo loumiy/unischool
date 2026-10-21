@@ -14,7 +14,6 @@ import type { TabId } from '../components/TabNav';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { COURSE_DEVELOPMENT_SLOTS } from '../systems/techtree/techSystem';
-import { CROWDING_PENALTY } from '../systems/prestige/prestigeSystem';
 import { FOUNDERS_HALL_ID } from './techData';
 import { count, countWord } from '../format';
 import { SEAT_SENIOR_YEARS } from './seatData';
@@ -96,7 +95,6 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       why: [
         { system: 'Satisfaction', text: 'beds and meals are two of the needs that make the students content' },
         { system: 'Admissions', text: "content students speak well of the college, and next summer's applicants hear them" },
-        { system: 'Prestige', text: 'a class that overruns its beds or its meals counts as crowding at the summer' },
       ],
     },
   },
@@ -106,14 +104,14 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'seat-every-student': 'Places for every student',
     },
     briefing: {
-      what: `Every student needs a place in the catalog, and each course taught adds ${SEATS}. Until the catalog has a place for everyone, the classrooms are crowded.`,
+      what: `Every student needs a place in the catalog, and each course taught adds ${SEATS}. Until the catalog has a place for everyone, the students short of one are less content.`,
       how: [
         { text: 'Develop more courses in the programs the college teaches, as many at once as the committee has seats.', door: 'curriculum' },
         { text: 'Found another program in a free slot of Founders Hall, with a professor to teach it.', door: 'hall', hallId: FOUNDERS_HALL_ID },
         { text: "Appoint a professor from the Faculty tab's market when a course has nobody to teach it.", door: 'faculty' },
       ],
       why: [
-        { system: 'Prestige', text: `crowding, averaged over the year, takes up to ${CROWDING_PENALTY} points off prestige's target at the summer` },
+        { system: 'Satisfaction', text: 'class seats are part of the academic need: every student without one pulls it down' },
         { system: 'Admissions', text: 'the summer admits no more students than the catalog has places for' },
       ],
     },
@@ -166,7 +164,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'prestige-rising': "Prestige's target above prestige",
     },
     briefing: {
-      what: "Prestige is the college's name in the world, and satisfaction is how content its students are. Each drifts week by week toward a target. Prestige's target blends four pillars, academics, research, student life and athletics, with the endowment, less crowding and run-down buildings; both figures move slowly.",
+      what: "Prestige is the college's name in the world, and satisfaction is how content its students are. Each drifts week by week toward a target. Prestige's target blends four pillars, academics, research, student life and athletics, with the endowment, less run-down buildings; both figures move slowly.",
       how: [
         { text: "History shows prestige's target and what makes up each pillar; the readout above gives each pillar's points now.", door: 'history' },
         { text: 'The Students tab shows the five needs and the one pulling satisfaction down most.', door: 'students' },

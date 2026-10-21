@@ -66,7 +66,6 @@ export function withOldPark(s: GameState): void {
 export function intoCrisis(s: GameState): void {
   s.students.satisfaction = 35;
   s.students.satisfactionYearSum = 35 * s.students.satisfactionYearWeeks;
-  s.students.crowdingYearSum = 0.6 * s.students.crowdingYearWeeks;
   for (const key of ['freshman', 'sophomore', 'junior', 'senior'] as const) {
     s.students.classes[key] = Math.round(s.students.classes[key] * 1.5);
   }

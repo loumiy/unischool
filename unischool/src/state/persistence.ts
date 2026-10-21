@@ -1657,6 +1657,9 @@ export function readSave(raw: string): { state: GameState; savedAt: number | nul
 function sanitizeOpening(state: GameState): void {
   const opening = state.events?.opening as { stage: string } | undefined;
   if (opening?.stage === 'appoint') opening.stage = 'found';
+  // And the crowding accumulators, which went with Plan 107E.
+  const students = state.students as unknown as Record<string, unknown> | undefined;
+  if (students) { delete students.crowdingYearSum; delete students.crowdingYearWeeks; }
 }
 
 // Returns the saved run, or null if it is missing, unreadable, too old or

@@ -271,7 +271,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   let went: string | undefined;
   const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
-  assert(html.includes('What it is') && html.includes('Every student needs a place in the catalog') && html.includes('Show me') && html.includes('→ Prestige:'), 'a briefing shows its what, how and why');
+  assert(html.includes('What it is') && html.includes('Every student needs a place in the catalog') && html.includes('Show me') && html.includes('→ Satisfaction:'), 'a briefing shows its what, how and why');
   assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
   const showMe = findButton(panel, 'Show me');
   showMe?.();

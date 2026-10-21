@@ -95,8 +95,6 @@ console.log('consequences tests');
 {
   const atSummer = toSummer(teachingCollege('Attrition'));
   withYearAverage(atSummer, 30);
-  // Crowding's pull on the pool is its own test (crowding-pool.test.ts).
-  atSummer.students.crowdingYearSum = 0;
   const before = atSummer.students.classes;
   const staying = before.freshman + before.sophomore + before.junior;
   const outcome = projectAdmissions(

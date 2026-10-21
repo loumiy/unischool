@@ -281,7 +281,6 @@ export function createPreStartState(): GameState {
       capacity: 0, satisfaction: 0,
       satisfactionBreakdown: { academic: 0, social: 0, basicNeeds: 0, health: 0, housing: 0 },
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 0,
-      crowdingYearSum: 0, crowdingYearWeeks: 0,
       applicantPool: 0, applicantLift: 0, admitRate: 0, incomingQuality: 0,
       lastFunnel: null,
     },
@@ -410,7 +409,6 @@ function foundState(
       satisfactionBreakdown: { academic: 70, social: 70, basicNeeds: 70, health: 70, housing: 70 },
       // Matches WORD_OF_MOUTH_NEUTRAL, so year 1 gets no word-of-mouth swing.
       satisfactionYearSum: 0, satisfactionYearWeeks: 0, priorYearAvgSatisfaction: 70,
-      crowdingYearSum: 0, crowdingYearWeeks: 0,
       applicantPool: preset.startingApplicantPool,
       applicantLift: 0,
       // Seeded from the old opening (Plan 95N), so the lower opening

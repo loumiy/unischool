@@ -16,7 +16,7 @@
 import { teachingCollege } from './fixtures/teaching';
 import type { Buildable, FunnelRecord } from '../src/state/types';
 import { courseHoldReason, crossMajorPrereqs } from '../src/systems/techtree/programProgress';
-import { admitRateOpening, crowdingLabel, poolChange } from '../src/systems/admissions/yearOverYear';
+import { admitRateOpening, poolChange } from '../src/systems/admissions/yearOverYear';
 import { projectAdmissions } from '../src/systems/admissions/admissionsSystem';
 
 let checks = 0;
@@ -66,20 +66,15 @@ console.log('plain words tests');
   assert(courseHoldReason(s, find('ENGL101')) === null, 'a course taught has no reason');
 }
 
-// --- the crowding part says its direction --------------------------------
+// --- crowding is no part of the pool (Plan 107E) --------------------------
 {
-  assert(crowdingLabel(3.12) === 'crowding eased', 'a factor that rose is crowding that eased');
-  assert(crowdingLabel(-0.2) === 'crowding grew', 'and one that fell is crowding that grew');
   const now = projectAdmissions(50, 16_000, 350, 70);
+  assert(now.factors.crowding === undefined, 'the funnel records no crowding factor');
   const last: FunnelRecord = {
     year: 1, applicants: now.applicants, cohorts: {} as FunnelRecord['cohorts'],
-    factors: { ...now.factors, crowding: (now.factors.crowding ?? 1) / 4.12 },
+    factors: { ...now.factors, crowding: 0.25 },
   };
-  const part = poolChange(now, last)?.parts.find((p) => p.key === 'crowding');
-  assert(part?.label === 'crowding eased' && part.change > 3, `the reveal's part reads "crowding eased" with its figure (${part?.label} ${part?.change})`);
-  const worse: FunnelRecord = { ...last, factors: { ...now.factors, crowding: (now.factors.crowding ?? 1) * 1.5 } };
-  assert(poolChange(now, worse)?.parts.find((p) => p.key === 'crowding')?.label === 'crowding grew', 'and "crowding grew" when it grew');
-  assert(!(poolChange(now, last)?.parts ?? []).some((p) => p.label === 'overcrowding'), 'the bare factor name is gone');
+  assert(!(poolChange(now, last)?.parts ?? []).some((p) => p.label.includes('crowding')), "and the reveal names none, against an old save's");
 }
 
 // --- why the admit rate opens where it does ------------------------------

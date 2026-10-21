@@ -14,8 +14,9 @@ import { createInitialState } from '../src/state/actions';
 import { programs } from '../src/data/techData';
 import { teachPillars, teachingCourseIds } from './fixtures/teaching';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../src/data/facilitiesData';
+import { ACADEMIC_SEAT_POINTS, attributeDetail, computeSatisfactionBreakdown, seatShortfallPoints } from '../src/systems/satisfaction/satisfactionSystem';
 import {
-  computePrestigeTarget, concentrationScore, crowdingCoverages, crowdingScore, crowdingShortfallNow,
+  computePrestigeTarget, concentrationScore, crowdingCoverages,
   pillarBreakdown, prestigeBreakdown, prestigeReadings, researchStandingBreakdown, socialStandingBreakdown, welfareScore,
 } from '../src/systems/prestige/prestigeSystem';
 import {
@@ -82,12 +83,10 @@ console.log('standing readings tests');
   assert(['academics', 'research', 'studentLife', 'athletics'].every((k) => keys.includes(k)), 'the four pillars are inputs (Plan 85B)');
   assert(pillarBreakdown(s, 'academics').inputs.some((i) => i.key === 'concentration') && pillarBreakdown(s, 'studentLife').inputs.some((i) => i.key === 'welfare'),
     'concentration is an academics term, and welfare a student-life one');
-  const crowding = made.inputs.find((i) => i.key === 'crowding')!;
-  assert(crowding.penalty === true, 'crowding is the penalty');
-  assert(crowding.contribution <= 0, 'and subtracts');
+  assert(!keys.includes('crowding'), 'crowding is no input (Plan 107E)');
   const condition = made.inputs.find((i) => i.key === 'condition')!;
-  assert(condition.penalty === true && condition.contribution === 0, 'estate condition is the other penalty (Plan 31), and a new estate owes nothing');
-  assert(made.inputs.filter((i) => i.key !== 'crowding' && i.key !== 'condition').every((i) => !i.penalty), 'nothing else subtracts');
+  assert(condition.penalty === true && condition.contribution === 0, 'estate condition is the one penalty (Plan 31), and a new estate owes nothing');
+  assert(made.inputs.filter((i) => i.key !== 'condition').every((i) => !i.penalty), 'nothing else subtracts');
   assert(made.readings.map((r) => r.key).join(',') === 'capacity', 'instruction capacity is the one reading left');
   const inputKeys = new Set(keys);
   assert(made.readings.every((r) => !inputKeys.has(r.key)), 'no reading is also an input');
@@ -179,32 +178,20 @@ console.log('standing readings tests');
   assert(near(instructionCoverage(s), 1), 'nobody enrolled is fully covered rather than divided by zero');
 }
 
-// ---- crowding: the worst of four coverages, as a shortfall below 85% ----
+// ---- the needs a class overruns: the worst of four coverages ----
+// No longer a prestige term (Plan 107E); class seats cost satisfaction.
 {
   const s = fresh();
   // Founding: nothing built, nothing developed — every ratio but the dormant
-  // one is short, and the reading says so in full.
+  // one is short.
   const coverages = crowdingCoverages(s);
   assert(coverages.length === 4, 'four ratios: housing, dining, health and instruction (Plan 71)');
   assert(coverages[0].coverage <= coverages[coverages.length - 1].coverage, 'sorted worst first');
   assert(totalEnrolled(s.students) < HEALTH_CENTER_TIER1_POPULATION_GATE, 'the founding body is below the health gate');
   assert(coverages.find((c) => c.label === 'health')!.coverage === 1, 'health below its gate reads covered, not short');
-  assert(near(crowdingShortfallNow(s), 1), 'a campus with nothing built is as crowded as it gets');
 
-  // Nobody enrolled: every ratio reads full, and nothing is short.
-  const empty = fresh();
-  empty.students.classes = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
-  assert(near(crowdingShortfallNow(empty), 0), 'nobody to crowd reads no shortfall');
-
-  // The INPUT reads the year's average, not the week: before any week has
-  // accumulated it is the live reading, and after it is the mean.
-  assert(near(crowdingScore(empty), 0), 'with nothing accumulated the input is the live reading');
-  empty.students.crowdingYearSum = 0.5 * 10;
-  empty.students.crowdingYearWeeks = 10;
-  assert(near(crowdingScore(empty), 0.5), 'and once weeks have accumulated it is their average');
-
-  // The formula, driven through the one ratio this test controls exactly:
-  // give the campus enough of everything else that instruction is the worst.
+  // Driven through the one ratio this test controls exactly: give the
+  // campus enough of everything else that instruction is the worst.
   const t = fresh();
   const seats = instructionCapacity(t);
   t.students.capacity = 1_000_000;
@@ -214,19 +201,21 @@ console.log('standing readings tests');
     { id: 'TEST-SOCIAL', kind: 'facility', facilityType: 'studentCenter', name: 'Test Center', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'social', servesPopulation: 1_000_000 } },
     { id: 'TEST-HEALTH', kind: 'facility', facilityType: 'healthCenter', name: 'Test Clinic', description: '', cost: 0, duration: 0, prereqs: [], status: 'done', effects: { satisfactionAttribute: 'health', servesPopulation: 1_000_000 } },
   );
-  // The grace is 0.85 since PR G fitted it (the plan opened at 0.9).
-  for (const [ratio, expected] of [[1, 0], [0.85, 0], [0.55, (0.85 - 0.55) / 0.85], [0.425, 0.5], [0.1, (0.85 - 0.1) / 0.85]] as const) {
+  for (const ratio of [1, 0.85, 0.55, 0.25] as const) {
     const enrolled = Math.round(seats / ratio);
     t.students.classes = { freshman: enrolled, sophomore: 0, junior: 0, senior: 0 };
     const worst = crowdingCoverages(t)[0];
     // At a full ratio every reading ties at 1, so only the value is pinned there.
     if (ratio < 1) assert(worst.label === 'instruction', `at ${ratio} instruction is the worst ratio (${worst.label})`);
     assert(near(worst.coverage, ratio, 1e-3), `and it reads ${ratio}`);
-    assert(near(crowdingShortfallNow(t), expected, 1e-3), `instruction covering ${ratio} reads a shortfall of ${expected.toFixed(3)} (${crowdingShortfallNow(t).toFixed(3)})`);
+    // Seats short cost the academic need in proportion (Plan 107E).
+    assert(near(seatShortfallPoints(t), ACADEMIC_SEAT_POINTS * (1 - ratio), 0.05), `instruction covering ${ratio} costs academic satisfaction ${(ACADEMIC_SEAT_POINTS * (1 - ratio)).toFixed(1)} (${seatShortfallPoints(t).toFixed(1)})`);
   }
-  t.students.classes = { freshman: Math.round(seats / 0.55), sophomore: 0, junior: 0, senior: 0 };
-  const crowding = prestigeBreakdown(t).inputs.find((i) => i.key === 'crowding')!;
-  assert(crowding.contribution < -8 && crowding.contribution > -10, `feeding 55% costs around nine of ${crowding.weight} (${crowding.contribution.toFixed(1)})`);
+  t.students.classes = { freshman: Math.round(seats / 0.5), sophomore: 0, junior: 0, senior: 0 };
+  const full = { ...t, students: { ...t.students, classes: { freshman: Math.round(seats), sophomore: 0, junior: 0, senior: 0 } } };
+  assert(computeSatisfactionBreakdown(t).academic < computeSatisfactionBreakdown(full).academic, 'half the students without a seat read a lower academic need than all seated');
+  assert(attributeDetail(t, 'academic').bonuses.some((b) => b.label.startsWith('Class seats') && b.value < 0), "and the academic need's drawer names the seats as what it lacks");
+  assert(!prestigeBreakdown(t).inputs.some((i) => i.key === 'crowding'), 'prestige reads none of it');
 }
 
 // ---- concentration: the deepest school, founded and distinguished ----

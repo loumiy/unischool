@@ -25,8 +25,9 @@ export { specializationOf };
 // computed from durable inputs. It moves in two ways: the summer report card
 // (gradeYear) steps it toward the year's score, falling faster than rising,
 // and a weekly tremor (tickPrestige) keeps it alive between summers. Welfare
-// and crowding are graded on the year's average so a dorm finished in week
-// 50 cannot game them. Selectivity is not an input: the admit rate is itself
+// is graded on the year's average so a dorm finished in week 50 cannot game
+// it. A campus short of beds, meals or class seats pays in satisfaction,
+// not here: Plan 107E retired the crowding penalty. Selectivity is not an input: the admit rate is itself
 // a function of prestige. Every score is clamped to 0..1 before weighting,
 // so no input exceeds its weight and the prestige/quality loop cannot spiral.
 
@@ -54,7 +55,7 @@ const PRESTIGE_TREMOR_RATE = PRESTIGE_DRIFT_RATE / 10;
 // is a standing of its own on the prestige scale, from PILLAR_FLOOR (a
 // college with nothing) to PRESTIGE_MAX (every term in full), and prestige's
 // target is these shares of the four, plus the adjustments that stay outside
-// every pillar (endowment, and the condition and crowding penalties).
+// every pillar (endowment, and the condition penalty).
 // Athletics counts least, by the owner's decision; tuned in Plan 85C.
 export type { Pillar };
 export const PILLARS: readonly Pillar[] = ['academics', 'research', 'studentLife', 'athletics'];
@@ -160,7 +161,6 @@ const CONDITION_FLOOR = 0.5;
 // Plan 85I: the owner halved it, since a full endowment carried a college
 // with no specialization to first place, past what the pillars allow.
 const ENDOWMENT_WEIGHT = 4;
-export const CROWDING_PENALTY = 25;          // the most crowding can SUBTRACT (see crowdingScore below)
 
 // Same band as rivalsSystem.ts's RIVAL_REPUTATION_MIN/MAX, so the player's
 // prestige and rivals' reputation stay on one comparable scale.
@@ -619,8 +619,6 @@ export function pillarScore(s: GameState, pillar: Pillar): number {
 // baseline is the pillars' floor, so the pillar inputs sum to the weighted
 // mean of their values.
 export function prestigeBreakdown(s: GameState): StandingBreakdown {
-  const coverages = crowdingCoverages(s);
-  const worst = coverages[0];
   const pillars = PILLARS.map((p) => {
     const made = pillarBreakdown(s, p);
     const input = weigh(
@@ -639,13 +637,6 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     penalise(
       'condition', 'Condition of the buildings', CONDITION_PENALTY, conditionScore(s),
       'The buildings\' mean condition: a fully maintained campus costs nothing, a run-down one up to four points.',
-    ),
-    penalise(
-      'crowding', 'Crowding', CROWDING_PENALTY, crowdingScore(s),
-      `Averaged over the year. Today the worst is ${worst.label} at ${pct(worst.coverage)}`
-        + (worst.coverage >= CROWDING_GRACE
-          ? '.'
-          : ` (${coverages.slice(1).map((c) => `${c.label} ${pct(c.coverage)}`).join(', ')}).`),
     ),
   ], prestigeReadings(s), {
     riseRate: PRESTIGE_RISE_RATE,
@@ -697,8 +688,10 @@ export function concentrationScore(s: GameState): number {
   return clamp01(deepestSchool(s)?.depth ?? 0);
 }
 
-// Crowding: the worst coverage ratio as a shortfall below CROWDING_GRACE,
-// averaged over the year. Health below its population gate counts as fully
+// The needs a class physically overruns (Plan 71): beds, dining, health and
+// class seats, worst first. No longer a prestige term (Plan 107E): the
+// next-step line names the worst under CROWDING_GRACE, and the harness's
+// players build for it. Health below its population gate counts as fully
 // covered, as in the satisfaction and demand systems.
 export const CROWDING_GRACE = 0.85;
 
@@ -737,24 +730,6 @@ export function crowdingCoverages(s: GameState): CoverageReading[] {
   return out.sort((a, b) => a.coverage - b.coverage);
 }
 
-// This week's shortfall — what tickPrestige accumulates.
-export function crowdingShortfallNow(s: GameState): number {
-  const worst = crowdingCoverages(s)[0].coverage;
-  return clamp01((CROWDING_GRACE - worst) / CROWDING_GRACE);
-}
-
-export function crowdingScore(s: GameState): number {
-  return s.students.crowdingYearWeeks > 0
-    ? clamp01(s.students.crowdingYearSum / s.students.crowdingYearWeeks)
-    : crowdingShortfallNow(s);
-}
-
-// What the crowding term takes from prestige's grade, in points: the
-// admissions decision's projection reads it (Plan 95P, the second review's
-// B3-5).
-export function crowdingPoints(s: GameState): number {
-  return CROWDING_PENALTY * crowdingScore(s);
-}
 
 function reading(
   key: string, label: string, score: number, detail: string,
@@ -942,8 +917,6 @@ export function prestigeWeeklyChange(s: GameState): number {
 // their pillars (Plan 98E). Kept in one function so invariants.test.ts can confine
 // every writer to this file.
 export function tickPrestige(s: GameState): void {
-  s.students.crowdingYearSum += crowdingShortfallNow(s);
-  s.students.crowdingYearWeeks += 1;
   s.self.reputation = drift(s.self.reputation, computePrestigeTarget(s), PRESTIGE_TREMOR_RATE);
   // The research and student-life pillars as they stand (Plan 98E). Since
   // Plan 85I the pillars are read live, so these two fields are each pillar

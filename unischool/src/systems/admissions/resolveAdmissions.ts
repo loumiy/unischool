@@ -13,7 +13,7 @@ import { summariseYears } from '../chronicle/chronicle';
 import { SEMICENTENNIAL_YEAR } from '../../state/types';
 import { advanceClasses, priceTolerance, projectAdmissions, trailingYearSatisfaction } from './admissionsSystem';
 import { netTuition } from '../alumni/funds';
-import { cohortCounts, crowdingForPool, deriveCohortSignals } from './cohorts';
+import { cohortCounts, deriveCohortSignals } from './cohorts';
 import { attritionReasons, summerAttrition } from './consequences';
 import { applyReportCard, gradeYear } from '../prestige/prestigeSystem';
 import { intakeCeiling } from '../techtree/instructionCapacity';
@@ -98,16 +98,11 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   const reportCard = gradeYear(s);
 
   // Word of mouth: the trailing-year average satisfaction scales next
-  // year's applicant pool. Record it, then reset this year's accumulators
-  // (including the crowding one the report card just read).
+  // year's applicant pool. Record it, then reset this year's accumulators.
   const priorYearAvgSatisfaction = trailingYearSatisfaction(s);
-  // The year's overcrowding, read before its accumulators reset (Plan 71).
-  const crowding = crowdingForPool(s);
   s.students.priorYearAvgSatisfaction = priorYearAvgSatisfaction;
   s.students.satisfactionYearSum = 0;
   s.students.satisfactionYearWeeks = 0;
-  s.students.crowdingYearSum = 0;
-  s.students.crowdingYearWeeks = 0;
 
   // The funnel sizes the freshman class from demand and the player's chosen
   // admit rate; capacity only scales the pool. outcome.admitRate is the
@@ -123,7 +118,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
     netTuition(s, s.finance.listedTuition),
     s.students.capacity,
     priorYearAvgSatisfaction,
-    { ...deriveCohortSignals(s), crowding },
+    deriveCohortSignals(s),
     chosenAdmitRate,
     ceiling.seatsLeft,
   );

@@ -73,9 +73,6 @@ console.log('reveal year-over-year tests');
   let s = toSummer(createInitialState('Compose'));
   assert(poolChange(projectAdmissions(50, 16_000, 0, 70), s.students.lastFunnel) === null, 'the first summer has nothing to be read against');
 
-  // No crowding, so the second summer's projection (neutral signals) reads
-  // the same factor (crowding has its own test, crowding-pool.test.ts).
-  s.students.crowdingYearSum = 0;
   s = reducer(s, { type: 'RESOLVE_ADMISSIONS', tuition: 16_000, admitRate: s.students.admitRate, approvedPetitionIds: [] });
   const last = s.students.lastFunnel;
   assert(last !== null && last.year === 1, 'the boundary records the funnel it ran');
