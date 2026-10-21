@@ -159,7 +159,7 @@ const TUITION_QUALITY_SHIFT = 0.25;          // mass moved top->low per unit of 
 // prestige.
 const QUALITY_BAND_SCORE = { top: 90, mid: 55, low: 20 };
 
-type QualityBand = 'top' | 'mid' | 'low';
+export type QualityBand = 'top' | 'mid' | 'low';
 
 // The emergent outcome of the funnel for a given policy.
 export interface AdmissionsProjection {
@@ -170,6 +170,9 @@ export interface AdmissionsProjection {
   cohortDemandMultiplier: number;
   // Realized applicants over the pool with no sticker shock (1.0 = none).
   stickerShockMultiplier: number;
+  // The pool by quality band, best first (Plan 108: the admissions page
+  // draws the pool from it), summing to `applicants`.
+  poolByBand: Record<QualityBand, number>;
   admits: number;              // skimmed top band first, clipped to the seats left
   admitRate: number;           // admits / applicants — below the chosen rate if a thin band ran out or the ceiling clipped
   // The intake cap given (instructionCapacity.ts's intakeCeiling), and
@@ -424,6 +427,7 @@ export function projectAdmissions(
     wordOfMouthMultiplier: wordOfMouth,
     cohortDemandMultiplier: cohortDemand,
     stickerShockMultiplier,
+    poolByBand: { ...pool },
     admits: Math.round(admits),
     admitRate: applicants > 0 ? admits / applicants : 0,
     seatsLeft,

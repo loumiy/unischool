@@ -80,10 +80,20 @@ export function finalReportUp(s: GameState): boolean {
   return p?.final === true && p.beat === 0;
 }
 
+// Whether the pending interrupt is answered on a page of its own rather
+// than in the inbox: the Final Report, and the summer's admissions (Plan
+// 108).
+export function interruptPageUp(s: GameState): boolean {
+  const i = s.pendingInterrupt;
+  if (i?.type !== 'summer') return false;
+  const p = i.payload as SummerPayload | undefined;
+  return finalReportUp(s) || (p?.beat === 1 && !p.final);
+}
+
 // The pending interrupt as a row: who it is from and what it is about.
 export function interruptItem(s: GameState): InboxItem | null {
   const i = s.pendingInterrupt;
-  if (!i || finalReportUp(s)) return null;
+  if (!i || interruptPageUp(s)) return null;
   const [from, subject] = interruptWords(s, i.type, i.payload);
   return {
     id: INTERRUPT_ITEM_ID, kind: 'interrupt', tier: 'hold', ref: i.type, from, subject,

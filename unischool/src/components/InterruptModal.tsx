@@ -1,5 +1,4 @@
-import { servedPopulationFor } from '../systems/satisfaction/satisfactionSystem';
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type {
   Coach, GameState, InitiativeReport, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
@@ -19,17 +18,9 @@ import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { REPORT_WORDS } from '../data/reportData';
 import { PromiseOffer } from '../tabs/PromisesPanel';
 import FinalReportView from './FinalReportView';
-import { tuitionFloor } from '../systems/finance/distress';
+import AdmissionsPage, { admissionsPageUp } from './AdmissionsPage';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
-import { TUITION_SLIDER_MAX } from '../data/foundingData';
-import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
-import { aidPerStudent, netTuition } from '../systems/alumni/funds';
-import { intakeCeiling } from '../systems/techtree/instructionCapacity';
-import { deriveCohortSignals, cohortBreakdown, type CohortSignals } from '../systems/admissions/cohorts';
-import { COHORT_COLOR } from './cohortColors';
-import { projectConsequences } from '../systems/admissions/consequences';
-import { admitRateOpening, poolChange, takesColon } from '../systems/admissions/yearOverYear';
 import { computePrestigeTarget, pillarValue, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { restaffPlan } from '../systems/faculty/restaffing';
@@ -40,9 +31,7 @@ import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import RankingsTable from './RankingsTable';
 import SpecializationChoice from './SpecializationChoice';
-import AnimatedNumber from './AnimatedNumber';
 import Figure from './Figure';
-import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
 import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
@@ -52,48 +41,13 @@ import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
-import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, satisfactionShown, signed, signedMoney, signedPct, weeksShort } from '../format';
+import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, signed, signedPct, weeksShort } from '../format';
 import { promisesOf } from '../systems/promises/promises';
-import { admissionsRange } from '../systems/administration/effects';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
 function interruptBody(): { title: string; body: string } {
   return { title: 'A matter set aside', body: 'The matter this concerned has lapsed. Nothing has changed.' };
-}
-
-interface AdmissionsDraft {
-  tuition: number;
-  admitRate: number;
-  lockedTuition?: number;
-}
-
-// The reveal ticks slower than any other number: it is the payoff for a price
-// already committed, so it is worth waiting on. The pool and the cohort cards
-// share the duration so the panel fills as one reveal.
-const REVEAL_MS = 2_600;
-
-const NEED_LABEL: Record<'housing' | 'basicNeeds', string> = {
-  housing: 'Beds',
-  basicNeeds: 'Dining', // the need is dining; health is its own (Plan 96E)
-};
-
-// Coverage is clamped to 1, so a covered school reads "adequate" with no
-// delta; a percentage appears only once the class would leave the campus
-// short.
-function CoverageValue({ now, next }: { now: number; next: number }) {
-  if (next >= 1) return <span className="coverage-adequate">adequate</span>;
-  const delta = Math.round(next * 100) - Math.round(now * 100);
-  return (
-    <>
-      <AnimatedNumber value={next * 100} format={(n) => `${count(n)}% covered`} />
-      {delta !== 0 && (
-        <span className={`consequence-delta ${delta > 0 ? 'good' : 'bad'}`}>
-          {signed(delta)}
-        </span>
-      )}
-    </>
-  );
 }
 
 // ---------------------------------------------------------------------
@@ -132,355 +86,6 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
         </label>
       ))}
     </div>
-  );
-}
-
-// Label and tone for each PriceTier (admissionsSystem.ts).
-const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> = {
-  bargain: { label: 'a bargain for the college\'s prestige', className: 'price-tier-bargain' },
-  fair: { label: 'in line with the college\'s prestige', className: 'price-tier-fair' },
-  expensive: { label: 'more than the college\'s prestige supports', className: 'price-tier-expensive' },
-  reckless: { label: 'far above what the college\'s prestige supports', className: 'price-tier-reckless' },
-};
-
-// "Fair" spans 0.7 to 1.15 of what prestige supports, about $6,000 at most
-// standings, so the tag says where in it the price sits (the merge review,
-// Plan 70E), still without naming the number.
-function fairPosition(ratio: number): string {
-  if (ratio < 0.9) return ' — on the gentle side';
-  if (ratio > 1.05) return ' — at the top of it';
-  return '';
-}
-
-function PriceTierTag({ tier, ratio }: { tier: PriceTier; ratio: number }) {
-  const copy = PRICE_TIER_COPY[tier];
-  return <span className={`price-tier-tag ${copy.className}`}>{copy.label}{tier === 'fair' ? fairPosition(ratio) : ''}</span>;
-}
-
-// Font steps measured against the card: the mono figure runs ~12px per
-// character at 20px, so 7, 9 and 10 characters each need a smaller size to
-// fit the card's 78px of usable width.
-function SIZE_FOR_LENGTH(length: number): string {
-  if (length >= 10) return 'count-xxs';
-  if (length >= 9) return 'count-xs';
-  if (length >= 7) return 'count-sm';
-  return '';
-}
-
-// One cohort's card (Plan 90): the audience's name on a strip of its own
-// colour, the head count big with the change from last summer beside it, and
-// two bars, now and last year, on `scale`, which all eight cards share so
-// they compare with each other too. The driver (what pulls this audience)
-// waits on hover, as both a styled tooltip and a native `title` for keyboard
-// and touch. The arrow on the strip says whether the audience is drawn above
-// or below neutral (the pull), which the count's colour used to say.
-function CohortCard({ label, color, driverLabel, pull, applicants, lastYear, scale, revealMs, note }: {
-  label: string; color: string; driverLabel: string; pull: number; applicants: number;
-  // The cause named, where a cohort has one (e.g. a title); shown in the
-  // tooltip.
-  note?: string;
-  // Last summer's count (students.lastFunnel), so the card reads as a
-  // change. Null at the first summer.
-  lastYear: number | null;
-  // The largest count on any card, this year or last; at least 1.
-  scale: number;
-  revealMs: number;
-}) {
-  const pullWord = pull > 1 ? 'drawn above its usual share' : pull < 1 ? 'drawn below its usual share' : undefined;
-  // The figure shrinks, not the card. Sized by the final value's length, not
-  // the displayed one, so the reveal's count-up does not resize the text.
-  const sizeClass = SIZE_FOR_LENGTH(count(applicants).length);
-  const delta = lastYear === null ? null : applicants - lastYear;
-  const width = (n: number) => `${Math.min(100, (n / scale) * 100)}%`;
-  return (
-    <div className="cohort-card"
-      style={{ '--cohort': color } as CSSProperties}
-      title={note ? `${driverLabel}. ${note}` : driverLabel}>
-      <span className="cohort-card-label">
-        <span>{label}</span>
-        {pullWord && <span className="cohort-card-pull" role="img" aria-label={pullWord}>{pull > 1 ? '▲' : '▼'}</span>}
-      </span>
-      <span className="cohort-card-figures">
-        <span className={`cohort-card-count ${sizeClass}`}>
-          <AnimatedNumber value={applicants} durationMs={revealMs} revealFrom={0} />
-        </span>
-        {delta !== null && (
-          <span className={`cohort-card-delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}`} title={`Against ${count(lastYear ?? 0)} last summer`}>
-            {delta === 0 ? '±0' : signed(delta)}
-          </span>
-        )}
-      </span>
-      <span className="cohort-card-bars" aria-hidden="true">
-        <span className="cohort-card-bar"><span>now</span><i style={{ width: width(applicants) }} /></span>
-        {lastYear !== null && <span className="cohort-card-bar last"><span>last yr</span><i style={{ width: width(lastYear) }} /></span>}
-      </span>
-      <span className="cohort-card-tip" role="tooltip">{driverLabel}{pullWord && <><br />{pullWord}</>}{note && <><br />{note}</>}</span>
-    </div>
-  );
-}
-
-// The summer's third beat (docs/design/admissions.md): the player sets
-// tuition blind and it locks, then sets the admit rate with every consequence
-// previewed. Selectivity and enrollment are emergent outcomes of the funnel
-// (admissionsSystem.ts). This is the only place tuition is ever set.
-function AdmissionsInterruptForm({ payload, s, prestige, capacity, satisfaction, cohortSignals, onLock, onCommit }: {
-  payload: AdmissionsDraft;
-  // For the consequence projection alone (consequences.ts), which advances a
-  // copy of the classes through the real finance and satisfaction functions.
-  s: GameState;
-  prestige: number;
-  capacity: number;
-  satisfaction: number;
-  cohortSignals: CohortSignals;
-  // Records the blind price in the payload, so a reload keeps it locked.
-  onLock: (tuition: number) => void;
-  // Carries the decision into the payload (types.ts's SummerPayload) and
-  // moves on to the Students beat, where the year turns over.
-  onCommit: (decision: SummerDecision) => void;
-}) {
-  // Under austerity the board lets tuition rise, never fall (distress.ts);
-  // the slider starts there, so the preview is the price the reducer keeps.
-  const floor = tuitionFloor(s);
-  const [tuition, setTuition] = useState(payload.lockedTuition ?? Math.max(floor, payload.tuition));
-  const [admitRateChoice, setAdmitRateChoice] = useState(payload.admitRate);
-  // Set blind, then locked with no way back: a price you could revise after
-  // seeing the pool would be a lookup table, not a decision.
-  const tuitionLocked = payload.lockedTuition !== undefined;
-
-  // Seats the catalog has left after graduation, from the same function
-  // the reducer clips with. The admit-rate slider shrinks to fit.
-  const ceiling = intakeCeiling(s);
-  // Live preview of the emergent outcomes, computed with the very function
-  // the reducer commits with — so the numbers shown are the numbers applied.
-  // Applicants read the price net of the scholarship funds' aid (Plan 101F).
-  const outcome = projectAdmissions(prestige, netTuition(s, tuition), capacity, satisfaction, cohortSignals, admitRateChoice, ceiling.seatsLeft);
-  // The rate at which the class fills the room: past it the slider buys
-  // nothing, so it ends there.
-  const maxAdmitRate = outcome.applicants > 0
-    ? Math.max(0.01, Math.min(1, ceiling.seatsLeft / outcome.applicants))
-    : 1;
-  // The rate as it stands: the choice held to the room. The opening rate
-  // (the founding's, or last summer's) can sit above it, and a price change
-  // moves the room's edge, so the label, the thumb and the commit all read
-  // this one figure (Plan 107G). The pool doesn't depend on the rate, so
-  // the outcome above is already this rate's.
-  const admitRate = Math.min(admitRateChoice, maxAdmitRate);
-  const sliderMax = Math.max(0.01, Math.round(maxAdmitRate * 100) / 100);
-  // What committing this pair would do to money and mood, for the three
-  // continuing classes plus the incoming one; the same advance the reducer
-  // commits with.
-  const consequence = projectConsequences(s, outcome.enrolled, tuition, outcome.avgIncomingQuality);
-  const netDelta = consequence.weeklyNet - consequence.weeklyNetNow;
-  // From the figures as shown, so the delta is the difference a player reads.
-  const moodDelta = satisfactionShown(consequence.satisfactionTarget) - satisfactionShown(consequence.satisfactionTargetNow);
-  // What prestige lets the school charge before demand falls away, shown so
-  // a player pricing above their standing can see why the pool shrinks.
-  const tolerance = priceTolerance(prestige);
-  const priceTierNow = priceTier(netTuition(s, tuition), tolerance);
-  const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
-  // The cards' bars share one scale, the largest count this summer or last
-  // (Plan 90); at least 1, so an empty pool divides by nothing.
-  const lastCohorts = s.students.lastFunnel?.cohorts;
-  const cohortScale = Math.max(1, ...cohorts.map((c) => Math.max(c.applicants, lastCohorts?.[c.id] ?? 0)));
-  // Why the pool moved: each factor's share of the change against last
-  // summer. Null at the first summer.
-  const change = poolChange(outcome, s.students.lastFunnel);
-  const poolRange = admissionsRange(s, outcome.applicants);
-
-  return (
-    <>
-      <h2>Admissions</h2>
-      {!tuitionLocked && (
-        <p className="admissions-prompt">
-          What will the college charge next year? The pool it draws shows once the price is set.
-        </p>
-      )}
-
-      {/* The price, set blind: the only feedback is the tier. The slider
-          ends at TUITION_SLIDER_MAX (foundingData.ts). */}
-      <label className="admissions-field">
-        <span>
-          Tuition <strong className={`price-tier-value ${PRICE_TIER_COPY[priceTierNow].className}`}>{money(tuition)}/yr</strong>
-          {/* The scholarship funds' aid (Plan 101F): what applicants read. */}
-          {aidPerStudent(s) > 0 && <span className="stat"> · {money(netTuition(s, tuition))}/yr after aid</span>}
-        </span>
-        <input type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition}
-          disabled={tuitionLocked}
-          onChange={(e) => setTuition(Number(e.target.value))} />
-        <PriceTierTag tier={priceTierNow} ratio={tolerance > 0 ? tuition / tolerance : 1} />
-        {/* What families will pay at this prestige, beside the tier (Plan
-            96I; the backlog's "the price is set blind"): above it, the
-            pool shrinks faster and the strongest applicants go elsewhere. */}
-        <span className="price-tolerance" title={FIGURE_HINTS.priceTolerance}>Families expect about {money(Math.round(tolerance / 100) * 100)}</span>
-      </label>
-      {floor > 0 && (
-        <p className="admissions-prompt">The board holds tuition where it is: it may rise, not fall.</p>
-      )}
-
-      {/* The Admissions Office (Plan 89E): a range for the pool at this
-          price before it is set, around the same projection the reveal
-          shows. The price is no longer set quite blind. */}
-      {!tuitionLocked && poolRange && (
-        <p className="admissions-prompt admissions-range">
-          The Admissions Office expects {count(poolRange.low)}–{count(poolRange.high)} applicants at this price.
-        </p>
-      )}
-
-      {!tuitionLocked && (
-        <button type="button" className="admissions-lock" onClick={() => onLock(tuition)}>
-          Set tuition for the year
-        </button>
-      )}
-
-      {tuitionLocked && (
-        <>
-          {/* THE REVEAL. What that price actually drew. */}
-          <dl className="admissions-outcomes">
-            <Figure
-              className="reveal"
-              // The year's lift (Plan 79C), named where it is counted.
-              label={outcome.lift > 0
-                ? <>Applicant pool <span className="outcome-note">(+{count(outcome.lift)} this year only)</span></>
-                : 'Applicant pool'}
-              hint={FIGURE_HINTS.applicants}
-              value={<>
-                <AnimatedNumber value={outcome.applicants} durationMs={REVEAL_MS} revealFrom={0} />
-                {change && (
-                  <span className={`consequence-delta ${change.change >= 0 ? 'good' : 'bad'}`}>{signedPct(change.change)}</span>
-                )}
-              </>}
-            />
-            {change && (
-              <div className="pool-change">
-                <dt>Against last summer's {count(change.lastApplicants)}</dt>
-                <dd className="pool-change-parts">
-                  {change.parts.length === 0
-                    ? 'nothing moved'
-                    : change.parts.map((p) => (
-                      <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{p.label}{takesColon(p.key) ? ':' : ''} {signedPct(p.change)}</span>
-                    ))}
-                </dd>
-              </div>
-            )}
-            <Figure
-              className="reveal"
-              label="Room for"
-              hint={FIGURE_HINTS.room}
-              value={<AnimatedNumber value={ceiling.seatsLeft} durationMs={REVEAL_MS} revealFrom={0} />}
-            />
-          </dl>
-          <p className="admissions-ceiling-note">
-            {count(ceiling.capacity)} places across the courses now taught
-            {ceiling.moving > 0 ? `, counting ${count(ceiling.moving)} in programs moving halls` : ''}; {count(ceiling.stayingOn)} return next year.
-            {ceiling.nextSummer > ceiling.capacity
-              && ` Next summer the catalog will hold ${count(ceiling.nextSummer)}, counting the courses now in development.`}
-          </p>
-
-          <div className="cohort-breakdown">
-            <h3>Who this pulls in</h3>
-            <div className="cohort-cards">
-              {cohorts.map((c) => (
-                <CohortCard
-                  key={c.id} label={c.label} color={COHORT_COLOR[c.id]} driverLabel={c.driverLabel} pull={c.pull} applicants={c.applicants} note={c.note}
-                  lastYear={lastCohorts ? lastCohorts[c.id] ?? 0 : null}
-                  scale={cohortScale}
-                  revealMs={REVEAL_MS}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* THE SECOND DECISION, and the opposite posture: every
-              consequence visible before it is taken. */}
-          <label className="admissions-field">
-            <span>
-              Admit rate <strong>{pct(admitRate)}</strong>
-            </span>
-            <input type="range" min={0.01} max={sliderMax} step={0.01} value={Math.min(admitRate, sliderMax)}
-              onChange={(e) => setAdmitRateChoice(Number(e.target.value))} />
-            {/* Why it opens where it does (Plan 78F). */}
-            <span className="outcome-note">
-              {admitRateOpening(!s.students.lastFunnel, payload.admitRate, s.students.capacity, consequence.totalEnrolled, maxAdmitRate)}
-            </span>
-            {maxAdmitRate < 1 && payload.admitRate <= maxAdmitRate && (
-              <span className="outcome-note">{`The admit rate stops at ${pct(maxAdmitRate)}, where the class fills the room.`}</span>
-            )}
-          </label>
-
-          <dl className="admissions-outcomes">
-            <Figure label="Freshman class" value={<AnimatedNumber value={outcome.enrolled} />} hint={FIGURE_HINTS.freshmen} />
-            <Figure label="Incoming quality" value={<AnimatedNumber value={outcome.avgIncomingQuality} format={(n) => `${count(n)}/100`} />} hint={FIGURE_HINTS.incomingQuality} />
-          </dl>
-
-          {/* The projection line (Plan 29): the class against last year's,
-              and the whole body against the beds and dining it will need. */}
-          <p className="admissions-projection">
-            A class of {count(outcome.enrolled)} against {count(s.students.classes.freshman)} last year:
-            {' '}{count(consequence.totalEnrolled)} students next year, for {count(s.students.capacity)} beds
-            {' '}and dining for {count(servedPopulationFor(s, 'basicNeeds'))}.
-          </p>
-
-          {/* What committing does to the whole school, including the three
-              older classes still paying their locked price. */}
-          <div className="consequence-panel">
-            <h3>Projections</h3>
-            <dl className="admissions-outcomes">
-              <Figure
-                label="Weekly net"
-                hint={FIGURE_HINTS.projectedNet}
-                value={<>
-                  <AnimatedNumber value={consequence.weeklyNet} format={(n) => `${money(n)}/wk`} />
-                  <span className={`consequence-delta ${netDelta >= 0 ? 'good' : 'bad'}`}>
-                    {signedMoney(netDelta)}
-                  </span>
-                </>}
-              />
-              <Figure
-                label="Satisfaction"
-                hint={FIGURE_HINTS.projectedSatisfaction}
-                value={<>
-                  {/* The change this class makes, not the target it sets
-                      (Plan 98B). */}
-                  <span className={`consequence-delta ${moodDelta >= 0 ? 'good' : 'bad'}`}>
-                    {moodDelta > 0 ? '▲ ' : moodDelta < 0 ? '▼ ' : ''}{moodDelta === 0 ? 'no change' : `${signed(moodDelta)} points`}
-                  </span>
-                </>}
-              />
-              <Figure
-                label={NEED_LABEL[consequence.tightestNeed]}
-                hint={FIGURE_HINTS.tightestNeed}
-                value={<CoverageValue now={consequence.tightestCoverageNow} next={consequence.tightestCoverage} />}
-              />
-              {consequence.totalEnrolled > SCALE_FREE_BELOW && (() => {
-                // The break (Plan 36): what the next thousand would pay at this
-                // price against what they would cost at this size.
-                const cost = marginalStudentCost(s, 1_000, undefined, consequence.totalEnrolled) * WEEKS_PER_YEAR;
-                return (
-                  <Figure
-                    label="The next thousand"
-                    hint={FIGURE_HINTS.nextThousand}
-                    value={<span className={`next-thousand ${tuition >= cost ? '' : 'bad'}`}>pay {money(tuition)} each, cost {money(cost)}</span>}
-                  />
-                );
-              })()}
-              {consequence.notReturning > 0 && (
-                <Figure
-                  label={<>Not returning <span className="outcome-note">({consequence.attritionReasons.length > 0 ? consequence.attritionReasons.join(', ') : 'a bad year'})</span></>}
-                  hint={FIGURE_HINTS.notReturning}
-                  value={<AnimatedNumber value={consequence.notReturning} />}
-                />
-              )}
-            </dl>
-          </div>
-
-          <div className="modal-actions">
-            <button onClick={() => onCommit({ tuition, admitRate })}>
-              Set the policy
-            </button>
-          </div>
-        </>
-      )}
-    </>
   );
 }
 
@@ -661,16 +266,8 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
       ) : payload.beat === 0 ? (
         <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} onSave={() => act({ type: 'SAVE_GAME' })} />
       ) : payload.beat === 1 ? (
-        <AdmissionsInterruptForm
-          payload={{ tuition: payload.tuition, admitRate: payload.admitRate, lockedTuition: payload.lockedTuition }}
-          s={s}
-          prestige={s.self.reputation}
-          capacity={s.students.capacity}
-          satisfaction={trailingYearSatisfaction(s)}
-          cohortSignals={deriveCohortSignals(s)}
-          onLock={(tuition) => act({ type: 'LOCK_TUITION', tuition })}
-          onCommit={(d) => act({ type: 'RESOLVE_SUMMER_BEAT', decision: d })}
-        />
+        // Answered on its own page (Plan 108, AdmissionsPage.tsx).
+        <p>Admissions is open on its own page.</p>
       ) : (
         <StudentsBeat
           s={s}
@@ -1372,6 +969,9 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
       </div>
     );
   }
+
+  // The summer's admissions is a page of its own (Plan 108).
+  if (summer && admissionsPageUp(s)) return <AdmissionsPage key="admissions" s={s} act={act} />;
 
   // Every other stop is answered in the inbox (Plan 77, InboxTab.tsx),
   // which App.tsx opens on it and holds open until it is resolved.

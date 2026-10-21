@@ -29,7 +29,7 @@ import { CHAPTER_COPY, TAB_GUIDE } from './data/chapterData';
 import { currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
 import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import InboxTab from './components/InboxTab';
-import { finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
+import { interruptPageUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
 import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
@@ -145,8 +145,9 @@ export default function App() {
   const unseen = useRef<{ run: GameState; memory: UnseenMemory } | null>(null);
   // A stop (an interrupt) is answered in the inbox (Plan 77): while one is
   // up, the inbox is the only view, opened on it, with no way out but an
-  // answer. The Final Report keeps its own page.
-  const holding = s.pendingInterrupt !== null && !finalReportUp(s);
+  // answer. The Final Report and the summer's admissions keep their own
+  // pages (Plan 108).
+  const holding = s.pendingInterrupt !== null && !interruptPageUp(s);
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // Sound (Plan 34): the director hears the run, not the title screen or
@@ -518,10 +519,10 @@ export default function App() {
     );
   }
 
-  // A modal (the Final Report's page, or the walkthrough's welcome) makes
+  // A modal (a page of its own, or the walkthrough's welcome) makes
   // everything behind it inert: no clicks, no focus, nothing read out. Every
   // other stop is answered in the inbox, which the shell holds open.
-  const modalUp = shellLive && (finalReportUp(s) || stage === 'welcome');
+  const modalUp = shellLive && (interruptPageUp(s) || stage === 'welcome');
 
   return (
     <>
