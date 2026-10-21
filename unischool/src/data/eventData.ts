@@ -1140,8 +1140,12 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     title: 'The doors open',
     body: (s) => {
       const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
+      // The founding faculty is on the payroll (Plan 107A); a save from
+      // before it may still list them on the market.
+      const faculty = FOUNDING_MARKET.filter((p) => s.faculty.some((f) => f.id === p.id)).map((p) => `${p.name} in ${p.field}`);
       const listed = FOUNDING_MARKET.filter((p) => s.candidates.some((c) => c.id === p.id)).map((p) => `${p.name} in ${p.field}`);
-      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books, and nobody is on the payroll to teach them: not one professor, not one course, and Founders Hall, the only building we own, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and the market lists ${list(listed)}` : ''}. ` : ''}Open Founders Hall on the map and found a program into a free program slot, with the professor who will teach it: whoever the program needs can be appointed from the market beside it, and its first course goes to the curriculum committee the moment it is founded. Each course taught gives the catalog eighty places. Until there is a place for every student the college is crowded, and seating them is the first thing the money is for.`;
+      const staff = faculty.length > 0 ? `the founding faculty is ${list(faculty)}` : 'nobody is on the payroll to teach them';
+      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books and ${staff}, but there is not one course yet, and Founders Hall, the only building we own, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and the market lists ${list(listed)}` : ''}. ` : ''}Open Founders Hall on the map and found a program into a free program slot: its first course goes to the curriculum committee the moment it is founded. Each course taught gives the catalog eighty places, and a place for every student is the first thing the money is for.`;
     },
     ask: seatAsk,
     done: (s) => housedAnywhere(s) && !studentsUnseated(s),
