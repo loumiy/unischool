@@ -117,6 +117,11 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   const seatsRow = objectiveRows(s, CHAPTERS.find((c) => c.id === 'seats')!).find((r) => r.id === 'seat-every-student')!;
   assert(typeof seatsRow.progress === 'object' && seatsRow.progress.of === 350, 'a counted objective reads its figure');
   assert(objectiveRows(s, CHAPTERS.find((c) => c.id === 'next-course')!).find((r) => r.id === 'run-at-double')!.optional, 'the speed objective is optional');
+  // Chapter 8 asks for the Faculty tab; a search is one way to fill a field (Plan 107B).
+  const faculty = objectiveRows(s, CHAPTERS.find((c) => c.id === 'a-faculty')!);
+  assert(faculty[0].id === 'open-faculty' && !faculty[0].optional, 'A faculty opens with the Faculty tab, required');
+  assert(faculty.find((r) => r.id === 'post-a-search')!.optional, 'and posting a search is optional');
+  assert(MARKED_TABS.has('faculty'), 'opening the Faculty tab is marked');
 }
 
 // ---- The next chapter waits for its week, and opens already met ----

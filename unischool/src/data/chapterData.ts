@@ -184,8 +184,9 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   'a-faculty': {
     title: 'A faculty',
     objectives: {
-      'post-a-search': 'Post a search for a professor',
+      'open-faculty': 'Open the Faculty tab',
       'every-program-staffed': 'Every program staffed',
+      'post-a-search': 'Post a search, when the market has nobody in a field',
       'appoint-a-b': 'Appoint a professor who teaches at B or better',
     },
     briefing: {

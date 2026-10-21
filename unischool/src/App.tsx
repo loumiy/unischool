@@ -198,7 +198,8 @@ export default function App() {
     if (shellLive && objectivesMode === 'off' && s.guidance?.gated && !marked(s, OBJECTIVES_OFF_MARK)) act({ type: 'MARK_GUIDANCE', mark: OBJECTIVES_OFF_MARK });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objectivesMode, shellLive, s.guidance?.gated]);
-  // A tab an objective asks to be opened (chapter 5's Treasury).
+  // A tab an objective asks to be opened (chapter 5's Treasury, chapter 8's
+  // Faculty).
   const openTabId = overlay?.tab;
   useEffect(() => {
     if (!shellLive || !openTabId || !MARKED_TABS.has(openTabId) || !s.guidance || marked(s, tabMark(openTabId))) return;

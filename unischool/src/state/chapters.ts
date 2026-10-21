@@ -162,9 +162,12 @@ export const CHAPTERS: readonly Chapter[] = [
     // The faculty market, grades, ranks and searches (F2, S1, F1).
     id: 'a-faculty',
     earliest: week(2, 14),
+    // The tab first, and a search only as one way to find somebody
+    // (Plan 107B).
     objectives: [
-      { id: 'post-a-search', progress: (s) => Object.keys(s.searches).length > 0 },
+      { id: 'open-faculty', progress: (s) => marked(s, tabMark('faculty')) },
       { id: 'every-program-staffed', progress: (s) => darkPrograms(s).size === 0 },
+      { id: 'post-a-search', progress: (s) => Object.keys(s.searches).length > 0, optional: true },
       { id: 'appoint-a-b', progress: (s) => s.faculty.some((f) => f.teaching >= GRADE_B), optional: true },
     ],
   },
@@ -290,7 +293,7 @@ export const CHAPTERS: readonly Chapter[] = [
 // The tabs an objective asks to be opened, marked by the shell when they
 // are (App.tsx), since an open tab is the shell's, not the college's.
 export const tabMark = (tab: string) => `tab:${tab}`;
-export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history']);
+export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history', 'faculty']);
 
 // What a chapter rings while its objective waits, as the walkthrough's
 // steps did (Plan 103): the program whose next course the Curriculum

@@ -224,7 +224,8 @@ button, input, select, textarea { font-size: inherit; }
 .new-college-btn, .school-restaff, .course-drawer-action, .course-drawer-appoint,
 .row-action-develop, .row-action-secondary, .facility-commit, .faculty-card-foot button, .coach-release,
 .offer-add, .ad-mascot-roll, .ad-decline, .letter-skip, .admissions-lock, .opening-coach-actions button,
-.segmented > button, .curriculum-chip, .tab-overlay-close, .title-primary, .startup-begin-btn,
+.segmented > button, .curriculum-chip, .tab-overlay-close, .tab-overlay-guide, .title-primary, .startup-begin-btn,
+.objectives-door, .objectives-back, .objectives-guide-link,
 :where(.modal-actions, .final-page-leave) > button {
   border: 2px solid var(--outline); border-radius: var(--radius-pill); box-shadow: var(--shadow-1);
   background: var(--cream-hi); color: var(--ink); padding: var(--space-4) var(--space-12);
@@ -232,7 +233,7 @@ button, input, select, textarea { font-size: inherit; }
 /* Cream, the default: the secondary fill on hover. */
 :is(.btn, .menu-btn, .panel-action, .building-info-jump, .facility-start, .relocate-slot, .map-touch-bar button,
 .dept-action, .dept-bulk button, .next-up-door, .report-card-actions button,
-.new-college-btn, .school-restaff):hover:not(:disabled) {
+.new-college-btn, .school-restaff, .objectives-door):hover:not(:disabled) {
   background: var(--school-secondary); color: var(--school-on-secondary); }
 /* Primary, the secondary fill: the one primary action on a card (a row, a
    dialog, a drawer), never more than one per card. */
@@ -247,10 +248,10 @@ button, input, select, textarea { font-size: inherit; }
 /* Quiet: no fill, the same outline and offset (a pale edge would read as
    disabled). */
 .btn-quiet, .row-action-secondary, .course-drawer-appoint, .offer-add, .ad-mascot-roll, .ad-decline, .letter-skip,
-.opening-coach-actions button.secondary {
+.opening-coach-actions button.secondary, .objectives-back, .objectives-guide-link {
   background: transparent; color: var(--ink); }
 :is(.btn-quiet, .row-action-secondary, .course-drawer-appoint, .offer-add, .ad-mascot-roll, .ad-decline, .letter-skip,
-.opening-coach-actions button.secondary):hover:not(:disabled) {
+.opening-coach-actions button.secondary, .objectives-back, .objectives-guide-link):hover:not(:disabled) {
   background: var(--cream-lo); color: var(--ink); transform: none; box-shadow: var(--shadow-1); }
 /* Destructive: a red outline at rest; pink once armed (below). */
 .btn-danger, .faculty-card-foot button.dismiss, .coach-release, .dept-action.reassign {
@@ -314,7 +315,7 @@ button, input, select, textarea { font-size: inherit; }
   border: 2px solid var(--outline); border-radius: var(--radius-sm); background: var(--cream-hi); color: var(--ink);
   box-shadow: var(--shadow-1); cursor: pointer; }
 .close-btn svg, .tab-overlay-close svg { width: 12px; height: 12px; display: block; }
-.close-btn:hover, .tab-overlay-close:hover { background: var(--outline); color: var(--cream); }
+.close-btn:hover, .tab-overlay-close:hover, .tab-overlay-guide:hover { background: var(--outline); color: var(--cream); }
 
 /* Headings: three title levels, one section head, one eyebrow. */
 /* A screen's title: a full-bleed tab, the founding card. */
@@ -3827,7 +3828,8 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives-back { margin: 0 0 var(--space-8); font-size: var(--text-xs); padding: 3px 10px; }
 .objectives-guide p { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 0; }
 .objectives-guide-link { font-size: var(--text-xs); padding: 3px 10px; }
-.tab-overlay-guide { margin-left: auto; margin-right: var(--space-8); font-size: var(--text-xs); padding: 4px 12px; }
+.tab-overlay-guide { display: inline-flex; align-items: center; margin-left: auto; margin-right: var(--space-8);
+  padding: var(--space-6) var(--space-12); font-size: var(--text-sm); }
 
 /* The ladder (LadderPanel.tsx), in a toolbar popup above the ticker. */
 .ladder-popup { left: 16px; width: min(560px, calc(100vw - 32px)); max-height: 70vh; }
