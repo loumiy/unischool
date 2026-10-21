@@ -52,6 +52,12 @@ function assert(cond: boolean, msg: string): void {
     assert(Math.abs(back - admittedDots(cloud, rate) / cloud.dots.length) < 1e-9, `a line drawn for ${rate} admits that share back (${back.toFixed(3)})`);
   }
   assert(satOf(0) === 400 && satOf(1) === 1600 && gpaOf(0) === 2 && gpaOf(1) === 4, 'SAT 400–1600, GPA 2.0–4.0');
+  // The hall doesn't redraw with the price: on one basis, a smaller or a
+  // larger pool keeps the same seats, and the larger is a denser cloud.
+  const dear = applicantCloud({ top: 100, mid: 400, low: 300 }, [1], 700, 42, 2400);
+  const cheap = applicantCloud({ top: 500, mid: 1500, low: 1000 }, [1], 700, 42, 2400);
+  assert(dear.per === cheap.per && dear.seatDots === cheap.seatDots, `the seats hold still while the price moves (${dear.seatDots} and ${cheap.seatDots})`);
+  assert(cheap.dots.length > MAX_DOTS && cheap.dots.length > dear.dots.length, 'and a pool past the basis is a denser cloud');
   const tiny = applicantCloud({ top: 10, mid: 20, low: 10 }, [1], 5000, 1);
   assert(tiny.per === Math.ceil(5000 / MAX_DOTS) && tiny.seatDots <= MAX_DOTS, 'a room bigger than the pool sets the scale, so the hall fits too');
 }

@@ -134,12 +134,20 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
   const tolerance = priceTolerance(prestige);
   const tier = priceTier(netTuition(s, tuition), tolerance);
   const cohorts = cohortBreakdown(cohortSignals, tolerance, tuition, outcome.applicants);
+  // One dot to a seat, on a scale the price doesn't move: the room, or the
+  // pool at half what families expect, whichever is larger. A cheaper price
+  // is a denser cloud; the hall's seats stay as they are.
+  const scaleBasis = useMemo(
+    () => Math.max(ceiling.seatsLeft, projectAdmissions(prestige, netTuition(s, Math.max(floor, tolerance / 2)), capacity, satisfaction, cohortSignals, 1, ceiling.seatsLeft).applicants),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ceiling.seatsLeft, s.clock.year],
+  );
   // The cloud holds still for a summer: seeded by the year, drawn from the
   // locked price's pool.
   const cloud: ApplicantCloud = useMemo(
-    () => applicantCloud(outcome.poolByBand, cohorts.map((c) => c.applicants), ceiling.seatsLeft, s.clock.year * 7919 + 17),
+    () => applicantCloud(outcome.poolByBand, cohorts.map((c) => c.applicants), ceiling.seatsLeft, s.clock.year * 7919 + 17, scaleBasis),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tuition, ceiling.seatsLeft, s.clock.year, outcome.applicants],
+    [tuition, ceiling.seatsLeft, s.clock.year, outcome.applicants, scaleBasis],
   );
   // The admit rate: the line's share of the cloud, held to the room (Plan
   // 107G), or the opening rate held to it before the line is touched.

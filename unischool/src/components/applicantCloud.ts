@@ -27,7 +27,7 @@ export interface ApplicantCloud {
   seatDots: number;      // the seats left, in dots
 }
 
-// The most dots drawn, so a pool of fifty thousand stays a cloud.
+// The dots the scale is set for, so a pool of fifty thousand stays a cloud.
 export const MAX_DOTS = 400;
 
 // Each band's slice of the composite scale, best first.
@@ -52,10 +52,14 @@ function stream(seed: number): () => number {
 
 // The cloud for a pool: `bands` the pool by band, `cohorts` its applicants
 // by cohort (any order; only the shares are read), `seatsLeft` the room.
-// One scale for both, so a dot that flows into the hall is one seat.
-export function applicantCloud(bands: Record<QualityBand, number>, cohorts: readonly number[], seatsLeft: number, seed: number): ApplicantCloud {
+// One scale for both, so a dot that flows into the hall is one seat. The
+// scale is set by `basis` (by default the larger of the pool and the room),
+// which a caller holds still while the price moves: the room is the same
+// whatever is charged, so its seats mustn't redraw with the price. A pool
+// bigger than the basis is simply a denser cloud, past MAX_DOTS.
+export function applicantCloud(bands: Record<QualityBand, number>, cohorts: readonly number[], seatsLeft: number, seed: number, basis?: number): ApplicantCloud {
   const applicants = BANDS.reduce((n, b) => n + Math.max(0, bands[b]), 0);
-  const per = Math.max(1, Math.ceil(Math.max(applicants, seatsLeft) / MAX_DOTS));
+  const per = Math.max(1, Math.ceil((basis ?? Math.max(applicants, seatsLeft)) / MAX_DOTS));
   const rnd = stream(seed);
   const dots: ApplicantDot[] = [];
   for (const band of BANDS) {
