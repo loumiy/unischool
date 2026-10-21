@@ -17,10 +17,39 @@ archive, and what is left here waits for later.*
 
 ---
 
-## Shipped in 0.1.2
+## Shipped in 0.1.3
+
+*Everything merged after the 0.1.2 build (`4f5b83e`) to 21 October 2026,
+from the playtest's players since 0.1.2 (F5, F6, S2) and the owner's own
+play; the upload is the owner's. What players see is in
+[`docs/store/changelog.md`](docs/store/changelog.md).*
+
+- [Plan 106](docs/plans/106-the-first-five-years.md): the walkthrough ends
+  at the founding, and the first five years run as chapters of objectives
+  in the NEXT bar, with briefings, the Guide, side chapters for later
+  systems, tabs gated on their chapter, and the chapters in the play
+  statistics.
+- [Plan 107](docs/plans/107-the-owners-notes-after-106.md): the founding
+  faculty on the payroll and a first program any of three, chapter 8 and
+  the Faculty tab, Curriculum rows open until done, prestige at a glance,
+  crowding retired, prestige that moves early, the admit rate held to the
+  room, unlocks on the spot, and *Below top band*.
+- [Plan 108](docs/plans/108-admissions-day.md): the summer's admissions as
+  a page of their own, and an early climb in the applicant pool's quality.
+- The Treasury as one board; the Faculty as cards, a table or a plot; a
+  lab's news over it on the map; the owner's notes on the letters and the
+  NEXT line.
+- Fixes: a claimed hall whose school has nothing left takes the global
+  offers, and the Research Park opens with the specialization (F5); NEXT
+  asks for a library only when one would help (S2).
+- [Plan 105](docs/plans/105-the-radial-curriculum.md)'s radial curriculum
+  landed and was shelved before the build; only each course's
+  `completedWeek` stays.
+
+## Shipped in 0.1.2 (16 October 2026)
 
 *Plan 104, from the playtest's players since 0.1.1 (T1, R9–R11, F2, S1),
-merged 16 October 2026; the upload is the owner's. What players see is in
+merged and uploaded 16 October 2026. What players see is in
 [`docs/store/changelog.md`](docs/store/changelog.md).*
 
 - [Plan 104](docs/plans/104-version-0-1-2.md): develop a course from its

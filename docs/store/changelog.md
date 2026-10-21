@@ -5,7 +5,120 @@ point to the development records in `docs/plans/`.*
 
 ---
 
-## 0.1.2
+## 0.1.3
+
+*The first five years rebuilt as chapters (Plan 106), the owner's notes
+after playing them (Plan 107), the summer's admissions as a page of its
+own (Plan 108), the Treasury and the Faculty redrawn, and F5's and S2's
+bugs fixed.*
+
+### The first five years
+
+- **Chapters with objectives.** The walkthrough now ends once the first
+  program is founded. From there, the first five years run as chapters,
+  one or two a season: *The next course*, *Somewhere to sleep*, *Seats
+  for everyone*, *Paying for it*, *The first summer*, *Standing*, *A
+  faculty*, *A hall of its own*, *Campus life*, *Promises*, *Running the
+  college* and *The long game*. Each has a few objectives that tick
+  themselves when they're met. (106A, C–F)
+- **The NEXT bar opens.** Click the chapter's chip, or press J, and the
+  bar opens into a drawer: the chapter's objectives with their counts, a
+  short briefing (what it is, how, and why it matters) with *Show me*,
+  what else is waiting, and the milestones folded in, replacing the
+  ticker's milestone chip. (106B)
+- **Tabs open with their chapter.** In a guided run, a tab opens when the
+  chapter that explains it begins, and the board's matters, the students'
+  demands and the Athletics tab wait for theirs. (106E–F)
+- **Side chapters for later systems**: *The teams* from year 4 once a
+  sport club forms, and *Research*, *The alumni*, *Capital projects* and
+  *A specialization* when each first comes within reach. They wait for
+  nothing and nothing waits for them. (106F, H)
+- **The Guide.** Every briefing you've met can be read again from the
+  drawer, and each tab's header has a Guide button to the chapter that
+  introduced it. (106G)
+- **Objectives: Guided, Brief or Off**, in Settings. Brief keeps the
+  objectives to one line; Off is the ticker as it was, and nothing waits
+  for a chapter. (106B)
+- **The founding faculty start on the payroll.** Dr. Bennett, Dr. Iyer
+  and Dr. Okafor are appointed at the founding, and the funds carry their
+  first year. The first program can be any of the three on offer, and the
+  first letter names them. (107A)
+
+### New
+
+- **Admissions day.** The summer's admissions leave the inbox for a page
+  of their own. You still set the price blind, then the applicants rain
+  in as a cloud on a GPA by SAT plot, coloured by cohort. The admit rate
+  is a line across the cloud, the money, the mood and the tightest need
+  update beside it, and the admitted class pours into the hall's seats.
+  The decisions are the same two as before. (108A)
+- **Prestige at a glance.** History › Prestige shows the figure and which
+  way it's heading, a track to 150, and a meter for each pillar, as long
+  as the most it can add and filled as far as you've earned it. The
+  detail is under *Details*. (107D)
+- **The Treasury as one board.** The year's revenue and expenses down the
+  left, each line saying what drives it; cash and the year's net across
+  the years in the middle; and the levers on the right (tuition, the
+  endowment draw, maintenance funding), with what a year at those rates
+  comes to. The endowment and the buildings have views of their own.
+- **The faculty as a table or a plot.** A Cards / Table / Plot switch over
+  the Faculty and the market. The table reads ninety professors in two
+  screens and sorts by any column; the plot puts every professor at their
+  teaching and research, with the faculty's medians across it and the
+  market's candidates as rings.
+- **A lab's news on the map.** A paper, a grant or a breakthrough rises
+  over its lab the week it lands.
+
+### Changed
+
+- **Prestige moves early.** A new college opens at 32 and climbs faster
+  through its first five years, and some of each year's step comes week
+  by week, so the figure moves before the first summer. From year 10 on
+  it's paced as before. (107F)
+- **Crowding is gone.** Prestige no longer drops for a campus short of
+  beds, meals or health care, and the applicant pool no longer shrinks
+  for it: satisfaction already counts them, and word of mouth carries it.
+  Class seats are now part of the academic need, named when they're what
+  pulls satisfaction down. (107E)
+- **A young college's applicants improve as it grows.** At a fair price,
+  the share of strong applicants climbs from prestige 30 to 75, so the
+  incoming class gets better in the early decades instead of holding
+  still. (108B)
+- **The admit rate stays where you put it.** The slider used to open at
+  86% with its thumb at the room's edge; now the figure, the thumb and the
+  offer agree, and the note says when the room limits it. (107G)
+- **Unlocks happen on the spot.** The Students tab opens on Year 2,
+  Week 1, and a team granted varsity finds its venue in the build menu
+  straight away. (107G)
+- **The Faculty tab is chapter 8's**, and a search is one way to fill a
+  post, not the only one. (107B)
+- **Curriculum rows stay open** while a program has courses to develop,
+  and fold when it's done. The filter is *Below top band*, with the band's
+  colour beside it. (107C, H)
+- **The NEXT line** names only buildings the build menu has, asks for a
+  library only when one would help (with one standing and enough seats,
+  it points to the teaching), and never aims a school at Founders Hall.
+- **Fewer repeated letters.** In a guided run, *Summer is coming* and *A
+  hall of its own* give way to the chapters that say the same.
+
+### Fixed
+
+- **A claimed hall's empty slots refused every program** late in a run,
+  when its school had nothing left to found. Such a hall now takes the
+  college's offers, and when the whole catalog is founded the "+" says
+  so. (F5)
+- **The Research Park didn't appear** after choosing the research
+  specialization until every lab had finished a project. It now opens
+  with the choice, as the other specializations' buildings do. (F5)
+
+### Saves
+
+A save from 0.1.2 opens in 0.1.3. Its chapters are caught up to its date,
+and a run still on one of the old walkthrough steps plays on from there.
+
+---
+
+## 0.1.2 — 16 October 2026
 
 *From the first players' notes since 0.1.1, sequenced in Plan 104, with
 the grounds, the sandbox and the title theme that landed beside it.*
