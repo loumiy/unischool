@@ -12,7 +12,6 @@ import { SECTION_HEADINGS } from '../data/statChips';
 import { HistoryChart } from '../components/HistoryChart';
 import { MultiChart } from '../components/MultiChart';
 import { count, fraction, moneyShort, pct, prestigeFigure, satisfactionFigure } from '../format';
-import { rankForecast } from '../systems/administration/forecast';
 import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
@@ -22,11 +21,10 @@ import ReportCardActions from '../components/ReportCardActions';
 import { hallEntryFor } from '../state/hall';
 import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
-import { collegeSpecialization } from '../systems/prestige/milestone';
-import { Standing, StandingFigure, type BelowALink } from './StandingBreakdown';
+import type { BelowALink } from './StandingBreakdown';
+import { PrestigeGlance } from './PrestigeGlance';
 import { BELOW_A_TARGET, belowACount } from './curriculumFilter';
 import RankingsPanel from './RankingsPanel';
-import { pillarRule } from '../data/prestigeWords';
 
 // Institutional History: the one screen that shows the decades. It reads
 // s.history (state/history.ts) and live readings, and stores nothing of its
@@ -54,34 +52,28 @@ const VIEW_OF_SECTION: Record<string, HistoryView> = {
   'history.rankings': 'guide',
 };
 
-// Prestige (Plans 80C, 85B): the Prestige chip's page, its breakdown and
-// nothing else: the four pillars' blend, each pillar's make-up under its
-// row. Its head says the pillar rule, the one place it is said in full
-// (Plan 95E's PILLAR_RULE_HOME; Plan 95H).
+// Prestige (Plans 80C, 85B; at a glance since Plan 107D): the Prestige
+// chip's page. The figure and its direction, a meter per pillar, and the
+// rest under Details (PrestigeGlance.tsx), where the pillar rule is still
+// said in full (Plan 95E's PILLAR_RULE_HOME; Plan 95H).
 function PrestigePanel({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   const breakdown = prestigeBreakdown(s);
-  const forecast = rankForecast(s);
   return (
     <section className="panel" {...sectionAnchor('history.prestige')}>
-      <div className="panel-head">
-        <div className="panel-head-title">
-          <h2>{SECTION_HEADINGS['history.prestige']}</h2>
-          <StandingFigure breakdown={breakdown} />
-        </div>
-        <HelpHint
-          align="end"
-          text="Prestige is the college's overall standing, the number the guide ranks: the four pillars' blend, with the endowment added and neglect and crowding subtracted. It is graded each summer and steps toward the grade — slowly up, quickly down — and trembles toward it between summers. Each pillar's row reads its standing and what that standing is worth in points of prestige. The pale part of a bar is what an input reaches on its own; the solid part is what it is worth after its multiplier. A bar whose figure reads − is a penalty, subtracted. Each pillar opens to show what it is made of, and each is ranked in the standings, in the guide's view. The college's specialization, once chosen, opens its own share."
-        />
-      </div>
-      <p className="stat pillar-rule">{pillarRule()}</p>
-      <p className="stat specialization-status">{collegeSpecialization(s)}</p>
-      {forecast && (
-        <p className="stat rank-forecast">
-          The Office of Institutional Research: graded today, the summer would leave the college at {prestigeFigure(forecast.prestige)},
-          {' '}#{forecast.rank} in the guide{forecast.rank === forecast.now ? ', where it stands now' : ` (#${forecast.now} now)`}.
-        </p>
-      )}
-      <Standing breakdown={breakdown} titled={false} belowA={belowA} />
+      <PrestigeGlance
+        s={s}
+        breakdown={breakdown}
+        belowA={belowA}
+        head={(
+          <div className="panel-head-title">
+            <h2>{SECTION_HEADINGS['history.prestige']}</h2>
+            <HelpHint
+              align="start"
+              text="Prestige is the college's overall standing, the number the guide ranks. Each pillar's meter is as long as the most it can add and filled as far as the college has earned it; the figure beside it is what it adds now. It is graded each summer and steps toward the grade, slowly up and quickly down. Details shows what each pillar is made of."
+            />
+          </div>
+        )}
+      />
     </section>
   );
 }
