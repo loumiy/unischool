@@ -60,6 +60,7 @@ import type { Crowd, CrowdSink } from './Walkers';
 import { occasion, registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
 import { slotFree } from '../systems/administration/offices';
+import { LOOK_MARKS, marked, type LookMove } from '../state/chapters';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
 const DUST_MS = 900;
@@ -1289,6 +1290,16 @@ export default function CampusMap({
   // draws at it. Not persisted.
   const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
   setCamera(camera);
+  // The camera's moves, marked once each for the Looking around chapter
+  // (state/chapters.ts). Through a ref, since the wheel and the keys bind
+  // once; the set keeps a drag from asking again before the state arrives.
+  const lookedRef = useRef(new Set<LookMove>());
+  const lookRef = useRef((_move: LookMove) => {});
+  lookRef.current = (move) => {
+    if (!live.guidance || lookedRef.current.has(move) || marked(live, LOOK_MARKS[move])) return;
+    lookedRef.current.add(move);
+    act({ type: 'MARK_GUIDANCE', mark: LOOK_MARKS[move] });
+  };
   // A quarter turn is being animated (turnBy): every frame draws the whole
   // scene, the land around it and the walkers at the angle reached (Plan
   // 82); the walkers go unclipped and the ring's in-between views are not
@@ -1637,6 +1648,7 @@ export default function CampusMap({
     setTurning(false);
   }
   function turnBy(steps: number) {
+    lookRef.current('turn');
     const st = stanceRef.current;
     st.view = ((st.view + steps) % VIEWS.length + VIEWS.length) % VIEWS.length;
     const pitch = PITCHES[st.pitch];
@@ -1681,11 +1693,13 @@ export default function CampusMap({
     const st = stanceRef.current;
     const next = Math.min(PITCHES.length - 1, Math.max(0, st.pitch + steps));
     if (next === st.pitch) return;
+    lookRef.current('tilt');
     cancelTurn();
     st.pitch = next;
     applyCamera({ azimuth: VIEWS[st.view], pitch: PITCHES[st.pitch] });
   }
   function resetCamera() {
+    lookRef.current('home');
     cancelTurn();
     stanceRef.current = { view: 0, pitch: DEFAULT_PITCH_INDEX };
     applyCamera(DEFAULT_CAMERA);
@@ -1736,7 +1750,10 @@ export default function CampusMap({
         d.moved = true;
         svgRef.current?.classList.add('panning');
       }
-      if (d.moved) applyView({ x: d.startView.x + dx, y: d.startView.y + dy, zoom: viewRef.current.zoom });
+      if (d.moved) {
+        applyView({ x: d.startView.x + dx, y: d.startView.y + dy, zoom: viewRef.current.zoom });
+        lookRef.current('pan');
+      }
     }
     function onUp() {
       const d = dragRef.current;
@@ -1787,6 +1804,7 @@ export default function CampusMap({
           y: view.y + (dy / len) * KEY_PAN_SPEED * dt,
           zoom: view.zoom,
         });
+        lookRef.current('pan');
       }
       frame = requestAnimationFrame(step);
     }
@@ -2011,6 +2029,7 @@ export default function CampusMap({
       if (touches.size < 2) return;
       const [a, b] = [...touches.values()];
       applyView(pinchView(g.startView, g.startMid, g.startDist, midpoint(a, b), distance(a, b), zoomFloor(), MAX_ZOOM));
+      lookRef.current('zoom');
       return;
     }
     const dx = p.x - g.start.x;
@@ -2019,7 +2038,10 @@ export default function CampusMap({
       g.moved = true;
       if (g.mode === 'pan') svgRef.current?.classList.add('panning');
     }
-    if (g.mode === 'pan' && g.moved) applyView({ x: g.startView.x + dx, y: g.startView.y + dy, zoom: viewRef.current.zoom });
+    if (g.mode === 'pan' && g.moved) {
+      applyView({ x: g.startView.x + dx, y: g.startView.y + dy, zoom: viewRef.current.zoom });
+      lookRef.current('pan');
+    }
     if (g.mode === 'ghost') {
       const tile = tileFromEvent(e);
       if (tile) setHover((cur) => (cur && cur.row === tile.row && cur.col === tile.col ? cur : tile));
@@ -2089,6 +2111,7 @@ export default function CampusMap({
       const worldX = (px - cur.x) / cur.zoom;
       const worldY = (py - cur.y) / cur.zoom;
       applyView({ x: px - worldX * nextZoom, y: py - worldY * nextZoom, zoom: nextZoom });
+      lookRef.current('zoom');
     }
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
@@ -2108,6 +2131,7 @@ export default function CampusMap({
     const worldX = (cx - cur.x) / cur.zoom;
     const worldY = (cy - cur.y) / cur.zoom;
     applyView({ x: cx - worldX * nextZoom, y: cy - worldY * nextZoom, zoom: nextZoom });
+    lookRef.current('zoom');
   }
 
   // Every placeable Buildable that has cleared its gate and isn't sited yet

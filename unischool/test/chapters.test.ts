@@ -19,7 +19,7 @@
 
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, guideChapters, nextChapter, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, nextChapter, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
 import { CHAPTER_COPY, TAB_GUIDE } from '../src/data/chapterData';
@@ -107,7 +107,8 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   assert(objectiveMet(s, 'develop-second-course'), "a program's second course taught meets the course objective");
   assert(done(s, 'next-course'), 'The next course is done without the optional speed');
   assert(!objectiveMet(s, 'run-at-double'), 'which stays unmet');
-  assert(!opened(s, 'somewhere-to-sleep') && currentChapter(s) === null, 'Somewhere to sleep waits for week 10; none is current');
+  assert(!opened(s, 'somewhere-to-sleep'), 'Somewhere to sleep waits for week 10');
+  assert(currentChapter(s)?.id === 'looking-around', 'and Looking around fills the weeks before it');
   assert(!opened(s, 'seats'), 'nor is Seats for everyone open before it');
 
   for (const slots of Object.values(s.halls)) for (const slot of slots) slot.programId = null;
@@ -236,6 +237,29 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   assert(!/\b(by|to|for|with|from|in|on|of) (it|them)[.;]/.test(all), `${c.id}: no sentence ends on a pronoun`);
 }
 
+// ---- Looking around (F7): the camera, a chapter that steps aside ----
+{
+  let s = teaching();
+  settleChapters(s);
+  const around = CHAPTERS.find((c) => c.id === 'looking-around')!;
+  assert(opened(s, 'looking-around') && !done(s, 'looking-around'), 'The next course done, Looking around opens');
+  assert(objectiveRows(s, around).every((r) => !r.optional), 'every camera move is asked for');
+  for (const move of ['pan', 'turn', 'tilt', 'zoom'] as const) s = reducer(s, { type: 'MARK_GUIDANCE', mark: LOOK_MARKS[move] });
+  assert(objectiveMet(s, 'look-turn') && !done(s, 'looking-around'), 'four moves meet four objectives, Home still waiting');
+
+  s.clock.week = 10;
+  settleChapters(s);
+  assert(opened(s, 'somewhere-to-sleep'), 'it holds nothing back: Somewhere to sleep opens in week 10');
+  assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'and is the chapter shown, Looking around stepping aside');
+  s = reducer(s, { type: 'MARK_GUIDANCE', mark: LOOK_MARKS.home });
+  assert(done(s, 'looking-around'), 'Home finishes it');
+
+  const early = teaching();
+  early.guidance = { opened: {}, done: {}, met: [], marked: Object.values(LOOK_MARKS), gated: true };
+  settleChapters(early);
+  assert(done(early, 'looking-around'), 'moves made before it opens count: it opens met');
+}
+
 // ---- PR B: the ticker's chapter chip and the drawer ----
 {
   const s = teaching();
@@ -250,7 +274,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   };
   setSettings({ objectives: 'guided' });
   const strip = renderToStaticMarkup(createElement(LogTicker, props));
-  assert(strip.includes('Chapter 4') && strip.includes('Places for every student'), 'the strip names the chapter and its first objective not met');
+  assert(strip.includes('Chapter 5') && strip.includes('Places for every student'), 'the strip names the chapter and its first objective not met');
   assert(/\d+\/1,350/.test(strip), `with its count (${strip.match(/[\d,]+\/[\d,]+/)?.[0]})`);
   assert(!strip.includes('>Milestone<'), 'and no milestone chip');
   const drawer = renderToStaticMarkup(createElement(LogTicker, { ...props, objectivesOpen: true }));

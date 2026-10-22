@@ -18,7 +18,7 @@ import { FOUNDERS_HALL_ID } from './techData';
 import { count, countWord } from '../format';
 import { SEAT_SENIOR_YEARS } from './seatData';
 
-export type ChapterId = 'founding' | 'next-course' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
+export type ChapterId = 'founding' | 'next-course' | 'looking-around' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
   | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life' | 'promises'
   | 'the-teams' | 'running-the-college' | 'the-long-game'
   | 'research' | 'alumni' | 'capital-projects' | 'specialization';
@@ -76,6 +76,29 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       why: [
         { system: 'Seats', text: `every course taught gives the catalog ${SEATS} places, and every student needs one` },
         { system: 'Faculty', text: 'a professor teaches every course, so a growing catalog needs a growing faculty' },
+      ],
+    },
+  },
+  'looking-around': {
+    title: 'Looking around',
+    objectives: {
+      'look-pan': 'Pan across the campus',
+      'look-turn': 'Turn the view',
+      'look-tilt': 'Tilt the view',
+      'look-zoom': 'Zoom in or out',
+      'look-home': 'Bring back the opening view',
+    },
+    briefing: {
+      what: 'The campus is seen from one corner at a time, so a tall building hides whatever stands behind it. The view pans, turns a quarter round, tilts and zooms, and moving it changes nothing on the campus.',
+      how: [
+        { text: 'W, A, S and D, or the arrows, pan the map; so does dragging it.' },
+        { text: 'Q and E turn the view a quarter round, to see behind a building.' },
+        { text: 'Z and X tilt it, and the scroll wheel zooms in and out.' },
+        { text: 'Home brings back the view the college opened on.' },
+      ],
+      why: [
+        { system: 'Building', text: 'a spot behind a tall building, and the way a path reaches it, show once the view turns' },
+        { system: 'Paths', text: 'a path laid behind a building is hidden from one corner and plain from the next' },
       ],
     },
   },
