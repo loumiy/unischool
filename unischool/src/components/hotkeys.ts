@@ -90,12 +90,13 @@ export function isActivationTarget(target: EventTarget | null): boolean {
 // Which map keys are live given what is open over the map. A front screen
 // (the title, hall, settings or credits), a full-screen tab, the log popup
 // or an interrupt silences the map. The build popup has
-// no backdrop and is where the map's tools are used from, so it takes only
+// no backdrop and is where the map's tools are used from (the objectives
+// drawer, also without one, counts as it: App.tsx), so it takes only
 // Escape (App.tsx's Escape ladder enables the map's back-out exactly when it
 // has nothing left to close); pan, R and P stay live under it.
 export interface ShellOverlays {
   overlayOpen: boolean;   // a full-screen tab is up
-  buildOpen: boolean;     // the build popup is up — note the map is still visible under it
+  buildOpen: boolean;     // the build popup or the objectives drawer is up — the map is still visible under it
   logOpen: boolean;       // the log popup is up
   interrupted: boolean;   // a decision modal has halted the clock
   frontUp: boolean;       // a front screen covers the whole game
