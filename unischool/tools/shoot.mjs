@@ -187,7 +187,7 @@ const renderer = await waitForMap(page);
 if (flags.includes('--bare')) {
   await page.addStyleTag({ content: `
     .pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
-    .toast, .tooltip, [role="tooltip"] { display: none !important; }
+    .toast, .tooltip, [role="tooltip"], .objectives-popup { display: none !important; }
     :root { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
   ` });
   await page.waitForTimeout(800);

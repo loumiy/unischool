@@ -1,0 +1,49 @@
+// Area 7, review III: real 0.1.2 saves (built by 0.1.2's own reducer) on each
+// walkthrough step, written as 0.1.2's persistence writes them.
+import { writeFileSync } from 'node:fs';
+import { reducer } from '../../src/engine/reducer';
+import { createPreStartState } from '../../src/state/actions';
+import { defaultAnswer } from '../../src/engine/defaultAnswers';
+import { FOUNDERS_HALL_ID } from '../../src/data/techData';
+import { WALKTHROUGH_PROFESSOR, WALKTHROUGH_PROGRAM, FOUNDING_VERNACULAR } from '../../src/data/foundingData';
+import { FOUNDING_COLORS, schoolColorsOf } from '../../src/data/schoolColors';
+import { centredPlacement, firstFreeSpot, footprintOf } from '../../src/state/campusMap';
+import { SAVE_VERSION } from '../../src/state/persistence';
+import type { GameState } from '../../src/state/types';
+
+const out = process.argv[2];
+const store = new Map<string, string>();
+(globalThis as unknown as { localStorage: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); }, removeItem: (k: string) => { store.delete(k); } };
+
+const write = (name: string, s: GameState) => {
+  writeFileSync(`${out}/${name}.json`, JSON.stringify({ version: SAVE_VERSION, savedAt: Date.now(), state: s, game: { version: '0.1.2', build: '4f5b83e', edition: 'full', platform: 'web' } }));
+  console.log(name, s.events.opening.stage, `Y${s.clock.year}W${s.clock.week}`, 'faculty', s.faculty.length, 'cands', s.candidates.length);
+};
+let s = reducer(createPreStartState(), { type: 'START_GAME', name: 'Oldsave', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true, seed: 4242 });
+write('v012-welcome', s);
+s = reducer(s, { type: 'ADVANCE_OPENING' });
+write('v012-site-hall', s);
+const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
+const spot = centredPlacement(footprintOf(hall));
+s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
+write('v012-appoint', s);
+s = reducer(s, { type: 'HIRE_FACULTY', facultyId: WALKTHROUGH_PROFESSOR });
+write('v012-found', s);
+s = reducer(s, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
+write('v012-await-course', s);
+for (let i = 0; i < 80 && s.events.opening.stage !== 'second-course'; i += 1) s = s.pendingInterrupt ? reducer(s, defaultAnswer(s)!) : reducer(s, { type: 'TICK' });
+write('v012-second-course', s);
+const second = s.tech.find((t) => t.kind === 'course' && t.status === 'available' && t.id.startsWith('ENGL'))!;
+s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: second.id, facultyId: WALKTHROUGH_PROFESSOR });
+write('v012-needs', s);
+s = reducer(s, { type: 'ADVANCE_OPENING' });
+write('v012-site-housing', s);
+const siteAnywhere = (st: GameState, id: string) => { const b = st.tech.find((t) => t.id === id)!; const sp = firstFreeSpot(st, b, footprintOf(b))!; return reducer(st, { type: 'PLACE_BUILDABLE', buildableId: id, row: sp.row, col: sp.col, facing: 0 }); };
+s = siteAnywhere(s, s.tech.find((t) => t.kind === 'dorm' && t.status === 'available')!.id);
+write('v012-site-dining', s);
+s = siteAnywhere(s, s.tech.find((t) => t.facilityType === 'diningHall' && t.status === 'available')!.id);
+write('v012-play-y1', s);
+// A run that skipped at the welcome, and a guided run played to year 3.
+let k = reducer(createPreStartState(), { type: 'START_GAME', name: 'Skipper', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true, seed: 7 });
+k = reducer(k, { type: 'SKIP_OPENING' });
+write('v012-skipped', k);
