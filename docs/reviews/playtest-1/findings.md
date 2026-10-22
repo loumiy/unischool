@@ -128,7 +128,11 @@ marked **0.1.x** and fixed in a patch.*
   was reading a menu (the Faculty screen) when the calendar reached the
   summer and the End of Year overview forced itself open, "quite jarring,
   particularly when it happened repeatedly while I was trying to read
-  something else." *1 player · service (S2).*
+  something else." *1 player · service (S2, again as S3).*
+  On 0.1.3's stream it happened twice more: "sometimes you're reading in
+  a menu and then … this year in review pops up and just takes over";
+  "if you're not actually familiar with the menus it can be a little bit
+  off." The reviewer assumed it was intentional.
 - **The screens after the first course are text-heavy.** "After setting up
   an English literature course, the next few screens were quite
   overwhelmingly text heavy." Those are Plan 103's new steps (the next
@@ -144,8 +148,37 @@ marked **0.1.x** and fixed in a patch.*
   College" showed as "Baltimoor / e College": the banner sizes the name
   by its total length and lets a word break. Plan 104 as K. *Owner, from
   S1's video.*
-- **A red Confirm read as Cancel.** On the stream, a red "confirm"
-  button was taken for a cancel. *1 player · service (S3).*
+- **A red Confirm read as Cancel.** Moving programs into Elm Hall, the
+  reviewer thought the moves were under way and waited, then found none
+  had started: "I never clicked Confirm … because that was red … I just
+  saw the red and kind of assumed it was cancel." The co-host would have
+  expected the move to start at the first click. *1 player · service
+  (S3).*
+- **The board's letters are hard to parse.** The sweep letter ("Money
+  doing nothing … The board suggests a standing sweep …") read aloud:
+  "I find this language kind of hard to digest … it's the structure of
+  those sentences. I just don't find that's natural English to read",
+  and the same of the year's opening line ("The first class [is]
+  … and the college year behind it") and History's readout ("The
+  readout above gives each pillar's points now"). The hall-claim letter:
+  "That's an awful lot of saying 'social science and humanities'." The
+  most specific examples yet behind the wordy-text finding. *1 player ·
+  service (S3).*
+- **"Would not return this summer: dining, study space."** In the year
+  in review, "Nine students would not return this summer … I'm not sure
+  what that means." *1 player · service (S3).*
+- **"Open the Treasury" met without the player noticing.** The chapter
+  moved on to chapter 7 and the reviewer asked "am I missing key
+  steps? … I didn't open that Treasury", then wondered whether the board
+  letter's door had opened it for him. *1 player · service (S3).*
+- **No sign of how long a move has left.** With programs in transit to
+  Elm Hall: "do we have an indicator of how long is left to move?" He
+  didn't find one on the map or the panel. *1 player · service (S3).*
+- **The briefings' shape works; their length doesn't yet.** The co-host:
+  "It's a lot of text. I quite like how it's broken up with what it is,
+  how and why it matters. That's quite a nice way of presenting it." The
+  objective chips along the foot: "a nice little touch … not intrusive."
+  *1 player and a co-host · service (S3).*
 - **The full-screen menus are a lot at first.** "Slightly overwhelming
   for new players, though visually impressive"; the UI outside the large
   info windows "clean and well-designed". *1 player · service (S3).*
@@ -212,6 +245,19 @@ marked **0.1.x** and fixed in a patch.*
   it was "unclear which courses were meant to be moved vs. others". The
   objective asks for any program moved into the new hall; nothing says
   which, or why one rather than another. *1 player · service (S3).*
+  From the transcript: the briefing's line ("A program moves from its
+  hall's panel: four weeks out of Founders Hall, twelve from anywhere
+  else") "is not resonating with me"; *Go* brought him to the new hall's
+  empty slots, which offer programs to found, and he took them for the
+  way to move one ("this looks like it's founding newer courses"). The
+  owner explained in chat (open Founders Hall, pick a program, move it).
+  He'd first clicked a program the chapter didn't mean, and suggested the
+  ones to move be highlighted, while doubting that would sit with the rest
+  of the game. "I think this is broadly where I got stuck last time."
+- **Rotating a building took a while to find.** "It took me a while to
+  figure out how to rotate … you see the little icon in the corner for
+  the rotating. I think I should be able to click that?" (It is: the ⟳
+  on the ghost, or R.) *1 player · service (S3).*
 
 - **Where to found the next program.** A few months in, S2 wanted a
   third subject and couldn't remember where the eight program slots
@@ -294,6 +340,13 @@ marked **0.1.x** and fixed in a patch.*
   *1 player · form (F7).*
 
 ## 4 · Strategy
+
+- **Short of money for the first academic hall.** In year 5 the
+  reviewer couldn't afford Elm Hall ($2.5M) and asked "is there anything
+  I can do to earn more cash?", trying higher dining prices; "this is
+  roughly where I got to last time. So I wonder if this is something I
+  am doing wrong or maybe this is expected." Cash rose "quite a bit" soon
+  after, and he built it. *1 player · service (S3).*
 
 - **Finding a decent teacher, and waiting to add more classes,** were the
   most frustrating part of a full run. The faculty market and the pace of
@@ -429,6 +482,8 @@ marked **0.1.x** and fixed in a patch.*
   recalculate where they're going, even when the path is nowhere near
   them … This happens with every click when placing paths." Not a
   failure, an unnecessary calculation. *1 player · service (S2).*
+  Still so on 0.1.3: "every time you place a path segment, they'll change
+  where they're going … not really a big deal." (S3)
 
 - **A red ghost with no reason.** S1 couldn't place buildings in several
   spots and never got a reason: more housing in year two, while housing
@@ -1120,6 +1175,20 @@ one.*
     likely to try it.
   - *Next step, theirs:* "Review tutorial text for sentence clarity and
     text volume."
+  - *From the stream's transcript* (an automatic transcript, garbled in
+    places; the owner was in the chat): Founders Hall placed close to the
+    road this time; the briefing's shape liked by the co-host; the year in
+    review interrupting twice; the admissions page "very smooth … that's
+    definitely new"; the sweep letter and History's readout read aloud as
+    hard English; "Open the Treasury" met without noticing; the path
+    re-planning still there; the objective chips "not intrusive"; short of
+    $2.5M for Elm Hall in year 5; the move-a-program step, with the
+    owner's help in chat; the red Confirm; no sign of a move's weeks left;
+    the hall-claim letter's repeated "social science and humanities". The
+    pace "not dragging … quite nice to take it in at a slow pace". A
+    viewer would leave the stream on in the background for the music. The
+    co-host noted the game is "very American-centric" about universities,
+    though "it broadly translates".
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
