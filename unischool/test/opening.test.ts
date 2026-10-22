@@ -252,7 +252,7 @@ const walkToCourse = (name: string) => reducer(
   // The welcome welcomes (Plan 104L): the college, and the building it
   // begins with; no list of tasks, no order to remember.
   const welcome = OPENING_STEPS.welcome.body(s);
-  assert(welcome === 'The Walk board wishes you well. Three hundred and fifty students have enrolled, and the college is yours to build. It begins with one building, Founders Hall, where the first classes will meet.', `the welcome's words (${welcome})`);
+  assert(welcome === 'Welcome to Walk. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.', `the welcome's words (${welcome})`);
   assert(nextStep(s) === null, 'the next-step line is silent while the walk holds the clock');
   const week = s.clock.week;
   s = reducer(s, { type: 'TICK' });
@@ -279,7 +279,7 @@ const walkToCourse = (name: string) => reducer(
   assert(s.events.opening.stage === 'found', 'Next does nothing here either');
   // Any of the three (Plan 107A): no program named, no professor named.
   const choose = OPENING_STEPS.found.body(s);
-  assert(choose === 'Programs are what the college teaches. Three are on offer in Founders Hall, each with its professor already appointed. Click the ringed slot, pick any one, and found it.', `the card offers the choice (${choose})`);
+  assert(choose === 'Programs are the subjects your college teaches. Three are on offer in Founders Hall, and each already has a professor. Click the ringed slot, pick one, and click Found.', `the card offers the choice (${choose})`);
 
   // Found English: its entry course goes to the committee, and the walk is
   // over (Plan 106 PR C): the chapters take it from here.
@@ -340,9 +340,9 @@ const walkToCourse = (name: string) => reducer(
   s = reducer(s, { type: 'TICK' });
   assert(s.clock.week === week, 'no week passes');
   const site = nextStep(s);
-  assert(site?.intent?.kind === 'site' && site.go === 'build' && site.text.startsWith('Site Founders Hall'), `the next-step line says to site it (${site?.text})`);
+  assert(site?.intent?.kind === 'site' && site.go === 'build' && site.text.startsWith('Place Founders Hall'), `the next-step line says to site it (${site?.text})`);
   s = siteHall(s);
-  assert(!openingHoldsClock(s) && nextStep(s)?.text.startsWith('Site Founders Hall') !== true, 'sited, the clock runs');
+  assert(!openingHoldsClock(s) && nextStep(s)?.text.startsWith('Place Founders Hall') !== true, 'sited, the clock runs');
   const { letters } = playYear(s);
   assert(letters.length === 0, 'no letter is sent this run');
 
@@ -351,7 +351,7 @@ const walkToCourse = (name: string) => reducer(
   h = reducer(h, { type: 'SKIP_OPENING', keepLetters: true });
   assert(h.events.opening.stage === 'play' && !h.events.opening.skipped, 'skipping the rest keeps the letters');
   assert(!(FOUNDERS_HALL_ID in h.placements) && openingHoldsClock(h), 'but the hall stays unplaced and the clock held');
-  assert(nextStep(h)?.text.startsWith('Site Founders Hall') === true, 'and the line says to site it');
+  assert(nextStep(h)?.text.startsWith('Place Founders Hall') === true, 'and the line says to site it');
   h = siteHall(h);
   assert(!openingHoldsClock(h) && nextStep(h)?.text === OPENING_LETTERS[0].ask(h).text, `sited, the line is the first letter's ask (${nextStep(h)?.text})`);
 

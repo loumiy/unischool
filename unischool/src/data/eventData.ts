@@ -1111,11 +1111,11 @@ function housedAnywhere(s: GameState): boolean {
 // student has a place (systems/guidance/seating.ts).
 function seatAsk(s: GameState): LetterAsk {
   if (!housedAnywhere(s)) {
-    return { text: 'Found a program in Founders Hall, with a professor to teach it', go: 'hall', hallId: FOUNDERS_HALL_ID, intent: { kind: 'found', hallId: FOUNDERS_HALL_ID } };
+    return { text: 'Found a program in Founders Hall', go: 'hall', hallId: FOUNDERS_HALL_ID, intent: { kind: 'found', hallId: FOUNDERS_HALL_ID } };
   }
   const ask = seatingAsk(s);
   if (ask) return ask;
-  return { text: `Places for ${countOf(placesComing(s))} of ${countOf(totalEnrolled(s.students))} students, counting courses under way: more when the committee has room`, go: 'curriculum', intent: { kind: 'wait' } };
+  return { text: `Places for ${countOf(placesComing(s))} of ${countOf(totalEnrolled(s.students))} students, counting courses under way. More can start when the committee has room`, go: 'curriculum', intent: { kind: 'wait' } };
 }
 
 // The school closest to six in one hall, as a letter says it.
@@ -1124,7 +1124,7 @@ function closestLine(s: GameState): string {
   if (!p) return '';
   if (p.housed === 0) return ` ${p.school} has the most programs in Founders Hall, and ${hallName(s, p.hallId)} has room for them.`;
   return p.housed === 1
-    ? ` ${p.school} is as close as any, with one program in ${hallName(s, p.hallId)}.`
+    ? ` ${p.school} is closest, with one program in ${hallName(s, p.hallId)}.`
     : ` ${p.school} is closest, with ${count(p.housed)} programs in ${hallName(s, p.hallId)}.`;
 }
 
@@ -1150,8 +1150,8 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       // before it may still list them on the market.
       const faculty = FOUNDING_MARKET.filter((p) => s.faculty.some((f) => f.id === p.id)).map((p) => `${p.name} in ${p.field}`);
       const listed = FOUNDING_MARKET.filter((p) => s.candidates.some((c) => c.id === p.id)).map((p) => `${p.name} in ${p.field}`);
-      const staff = faculty.length > 0 ? `the founding faculty is ${list(faculty)}` : 'nobody is on the payroll to teach them';
-      return `The ${s.self.name} board wishes you well. Three hundred and fifty students are on the books and ${staff}, but there is not one course yet, and Founders Hall, the only building we own, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and the market lists ${list(listed)}` : ''}. ` : ''}Open Founders Hall on the map and found a program into a free program slot: its first course goes to the curriculum committee the moment it is founded. Each course taught gives the catalog eighty places, and a place for every student is the first thing the money is for.`;
+      const staff = faculty.length > 0 ? `your founding faculty is ${list(faculty)}` : 'nobody has been hired to teach them';
+      return `Welcome to ${s.self.name}. 350 students have enrolled, and ${staff}. But there isn't a single course yet, and Founders Hall, your only building, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and you can hire ${list(listed)} from the market` : ''}. ` : ''}Open Founders Hall on the map and found a program in a free slot. Its first course goes to the curriculum committee straight away. Each course you teach gives 80 students a place in class, and every student needs one.`;
     },
     ask: seatAsk,
     done: (s) => housedAnywhere(s) && !studentsUnseated(s),
@@ -1173,11 +1173,11 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       // The price and the weeks are the hall's own (Plan 76C): a typed sum
       // outlived the Plan 71 retune.
       const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
-      const terms = hall ? `, ${money(hall.cost)}, ${count(hall.duration)} weeks to build` : '';
-      const roof = schools.length === 0 ? '' : ` Founders Hall teaches ${count(schools.length)} ${schools.length === 1 ? 'school' : 'schools'} under one roof${schools.length > 1 ? ` — ${list(schools)}` : ''}.`;
-      return `${count(FIRST_HALL_COURSE_GATE)[0].toUpperCase()}${count(FIRST_HALL_COURSE_GATE).slice(1)} courses: this college has a curriculum.${roof} ${elm} is the first hall the college can build: six program slots more${terms}. Site it now; which school grows where is yours to decide.`;
+      const terms = hall ? `, costs ${money(hall.cost)} and takes ${count(hall.duration)} weeks to build` : '';
+      const roof = schools.length === 0 ? '' : ` Founders Hall holds programs from ${schools.length === 1 ? 'one school' : `${count(schools.length)} schools (${list(schools)})`}.`;
+      return `You now teach ${count(FIRST_HALL_COURSE_GATE)} courses, and the college needs more room.${roof} You can build ${elm}, your first academic hall. It adds six program slots${terms}. Place it now. You decide which school grows where.`;
     },
-    ask: (s) => ({ text: `Site ${hallName(s, FIRST_HALL_ID)}`, go: 'build', intent: { kind: 'site', buildableIds: [FIRST_HALL_ID] } }),
+    ask: (s) => ({ text: `Place ${hallName(s, FIRST_HALL_ID)}`, go: 'build', intent: { kind: 'site', buildableIds: [FIRST_HALL_ID] } }),
     done: (s) => FIRST_HALL_ID in s.placements,
   },
   {
@@ -1188,10 +1188,10 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       // What the students lack and the figures behind it, read as the letter
       // is written (openingData.ts, shared with the walkthrough's needs step).
       // No figure for satisfaction: it shows from the first summer (Plan 104M).
-      return `Students need somewhere to sleep and somewhere to eat.${campusFigures(s)}${campusLack(s)} A college with nowhere to sleep and nowhere to eat talks itself down, and next summer's applicants hear it. Site a residence hall and a dining hall.`;
+      return `Your students need somewhere to sleep and somewhere to eat.${campusFigures(s)}${campusLack(s)} Students talk, and next summer's applicants will hear about it. Place a residence hall and a dining hall.`;
     },
     ask: (s) => ({
-      text: 'Site a residence hall and a dining hall', go: 'build',
+      text: 'Place a residence hall and a dining hall', go: 'build',
       // The next of each the college has not sited yet.
       intent: {
         kind: 'site',
@@ -1209,8 +1209,8 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     // The chapter "The first summer" says the same from week 46.
     chapter: 'first-summer',
     title: 'Summer is coming',
-    body: () => 'At week 52 the clock stops for the summer, and it stops once. Three steps: the year in review, admissions and the students. Admissions asks two things — the price, and how much of the applicant pool to take. Understand one thing before you set the price: it is set blind, it locks, and the class that pays it pays it for four years. What a family is quoted is what they pay, and a college nobody has heard of cannot charge what a famous one does.',
-    ask: () => ({ text: 'Summer at week 52: the price locks for four years', intent: { kind: 'wait' } }),
+    body: () => "At week 52 the year pauses for the summer. You'll see three pages: the year in review, admissions, and the students. In admissions you make two choices: the tuition, and how many applicants to admit. Set tuition carefully. You set it before you see the applicants, you can't change it later, and this class pays it for all four years. A college nobody has heard of can't charge what a famous one does.",
+    ask: () => ({ text: 'Summer at week 52: tuition is fixed for four years', intent: { kind: 'wait' } }),
     // Done when the summer comes, not the moment the letter is read (Plan 35).
     done: (s) => s.clock.week >= WEEKS_PER_YEAR || s.pendingInterrupt?.type === 'summer',
   },
@@ -1222,7 +1222,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     title: 'Moving in',
     body: (s) => {
       const elm = hallName(s, FIRST_HALL_ID);
-      return `${elm} stands, with six program slots. Founders Hall is where the college began; its schools grow in the halls it builds. Three programs of one school in a hall make it that school's: from then it offers that school's programs in place of the three on offer, and the three again once that school has none left to found. Six found the school, and the hall takes its name.${closestLine(s)} Found the school's programs into its hall, or move them there from Founders Hall, which takes ${count(FOUNDERS_MOVE_WEEKS)} weeks; a move between other halls takes ${count(RELOCATION_WEEKS)}. Each program that leaves Founders Hall frees a slot there, for another program or, in time, an office of the administration.`;
+      return `${elm} is open, with six program slots. Your schools will grow in halls like this one. When three programs from one school share a hall, it becomes that school's hall. After that, its free slots offer only that school's programs, until none are left to found. Six programs in one hall found the school, and the hall takes its name.${closestLine(s)} Found new programs in the hall, or move them in from Founders Hall. A move from Founders Hall takes ${count(FOUNDERS_MOVE_WEEKS)} weeks, and a move between other halls takes ${count(RELOCATION_WEEKS)}. Every program that leaves Founders Hall frees a slot there for another program, or later for an office.`;
     },
     ask: (s) => schoolAsk(s),
     done: (s) => foundedSchools(s).length > 0,
@@ -1240,13 +1240,13 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     title: 'A school takes shape',
     body: (s) => {
       const p = closestSchool(s);
-      if (!p) return 'A school needs six programs of one school in one hall.';
+      if (!p) return 'A school needs six of its programs in one hall.';
       const hall = hallName(s, p.hallId);
       const claim = claimedSchool(s, p.hallId);
       const offers = claim && claim.school === p.school && schoolOffers(s, p.hallId).length > 0
-        ? ` ${hall} is ${p.school}'s hall now: it offers every ${p.school} program the college can found, in place of the offers, until none is left.`
+        ? `${hall} now belongs to ${p.school}. Its free slots offer only ${p.school} programs until you've founded them all. `
         : '';
-      return `${p.school} has ${count(p.housed)} of six in ${hall}.${offers} ${count(6 - p.housed)[0].toUpperCase()}${count(6 - p.housed).slice(1)} more ${p.school} ${6 - p.housed === 1 ? 'program' : 'programs'} there found the School of ${p.school}.`;
+      return `${offers}${p.school} has ${count(p.housed)} of the six programs it needs in ${hall}. Found ${count(6 - p.housed)} more there to create the School of ${p.school}.`;
     },
     ask: (s) => schoolAsk(s),
     done: (s) => foundedSchools(s).length > 0,

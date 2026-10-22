@@ -45,9 +45,9 @@ export function schoolsFounded(s: GameState): number {
 
 // The goal, and with a step the step after it.
 export function establishText(p: SchoolProgress | null, second = false, step?: string): string {
-  if (!p) return `Establish ${second ? 'another' : 'a'} school: six programs of one school in one hall`;
+  if (!p) return `Establish ${second ? 'another' : 'a'} school: put six programs from one school in one hall`;
   if (step) return `Establish ${second ? 'another school, ' : ''}${p.school} (${p.housed} of 6): ${step}`;
-  return `Establish ${second ? 'another' : 'a'} school: six programs of ${p.school} in one hall (${p.housed} of 6)`;
+  return `Establish ${second ? 'another' : 'a'} school: put six ${p.school} programs in one hall (${p.housed} of 6)`;
 }
 
 // The step as the line says it, from the intent (Plan 95O). A founding
@@ -64,7 +64,7 @@ function stepText(s: GameState, p: SchoolProgress, intent: StepIntent): string |
       // Another school's program, moved out of a full hall to make room.
       return programById(intent.programId)?.school === p.school
         ? `move ${programName(intent.programId)} into ${hallName(intent.hallId)}`
-        : `move ${programName(intent.programId)} to ${hallName(intent.hallId)} to make room`;
+        : `move ${programName(intent.programId)} out to ${hallName(intent.hallId)} to make room`;
     case 'found': {
       if (!intent.programId) return undefined;
       const program = programById(intent.programId);
@@ -78,7 +78,7 @@ function stepText(s: GameState, p: SchoolProgress, intent: StepIntent): string |
       // school's (Plan 100).
       const short = intent.hallId !== FOUNDERS_HALL_ID && !claimedSchool(s, intent.hallId) ? CLAIM_AT - p.housed : 0;
       const tail = short === 1 ? ` to make it ${p.school}'s hall`
-        : short > 1 ? `, one of ${countWord(short)} more ${p.school} programs that make it ${p.school}'s hall` : '';
+        : short > 1 ? ` (${countWord(short)} more make it ${p.school}'s hall)` : '';
       return `found ${programName(intent.programId)} in ${hallName(intent.hallId)}${tail}`;
     }
     case 'wait': {
@@ -89,7 +89,7 @@ function stepText(s: GameState, p: SchoolProgress, intent: StepIntent): string |
         .sort((a, b) => transitWeeks(s, a) - transitWeeks(s, b))[0];
       if (arriving) return `${programName(arriving)} arrives in ${weeksProse(transitWeeks(s, arriving))}`;
       return freeSlot(s, p.hallId) >= 0
-        ? `no ${p.school} program is on offer`
+        ? `wait for a ${p.school} program to be offered`
         : `${hallName(p.hallId)} is full, and no other hall has room`;
     }
     default:

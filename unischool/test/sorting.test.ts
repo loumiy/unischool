@@ -199,7 +199,7 @@ function letter(id: string) {
   s.halls['HALL-01'][0] = { programId: 'PHYS' };
   s.programOffers = ['CHEM'];
   const line = nextStep(s)?.text ?? '';
-  assert(line.endsWith("in Elm Hall, one of two more Science programs that make it Science's hall"), `a hall short of three says how many more claim it (${line})`);
+  assert(line.endsWith("in Elm Hall (two more make it Science's hall)"), `a hall short of three says how many more claim it (${line})`);
   s.halls['HALL-01'][1] = { programId: 'BIOL' };
   const last = nextStep(s)?.text ?? '';
   assert(last.endsWith("in Elm Hall to make it Science's hall"), `and the last of them (${last})`);
@@ -220,7 +220,7 @@ function letter(id: string) {
   // A Science program on offer: founded there, not moved.
   s.programOffers = ['PHYS', 'HIST'];
   const grow = nextStep(s);
-  assert(grow?.text === "Establish Science (0 of 6): found Physics in Elm Hall, one of three more Science programs that make it Science's hall", `the school is named, with its count in the hall (${grow?.text})`);
+  assert(grow?.text === "Establish Science (0 of 6): found Physics in Elm Hall (three more make it Science's hall)", `the school is named, with its count in the hall (${grow?.text})`);
   assert(grow?.go === 'hall' && grow.hallId === 'HALL-01' && grow.intent?.kind === 'found' && grow.intent.programId === 'PHYS', 'founding its program in the built hall, never Founders Hall');
 
   // Two of Science in Elm Hall: it is closest there, Founders Hall's count
@@ -335,9 +335,9 @@ function letter(id: string) {
   assert(fired(s) === 'a-hall-of-its-own', 'Elm Hall opening brings "A hall of its own", in year three as in year one');
   s.pendingInterrupt = null;
   const hall = letter('a-hall-of-its-own');
-  assert(hall.ask(s).text === 'Site Elm Hall' && hall.ask(s).go === 'build', `its ask is to site Elm Hall (${hall.ask(s).text})`);
-  assert(!hall.body(s).includes('undefined') && hall.body(s).includes('Elm Hall is the first hall'), 'and its body names the hall to build');
-  assert(nextStep(s)?.text === 'Site Elm Hall', 'the line carries the ask past year one');
+  assert(hall.ask(s).text === 'Place Elm Hall' && hall.ask(s).go === 'build', `its ask is to site Elm Hall (${hall.ask(s).text})`);
+  assert(!hall.body(s).includes('undefined') && hall.body(s).includes('You can build Elm Hall'), 'and its body names the hall to build');
+  assert(nextStep(s)?.text === 'Place Elm Hall', 'the line carries the ask past year one');
 
   s.placements['HALL-01'] = { row: 10, col: 20, w: 7, h: 5 };
   assert(hall.done(s), 'siting it is done');
@@ -348,7 +348,7 @@ function letter(id: string) {
   s.pendingInterrupt = null;
   const moving = letter('moving-in');
   const body = moving.body(s);
-  assert(body.includes('its schools grow in the halls it builds') && body.includes('Science has the most programs in Founders Hall, and Elm Hall has room for them'), `it says where schools grow, and which is closest (${body})`);
+  assert(body.includes('Your schools will grow in halls like this one') && body.includes('Science has the most programs in Founders Hall, and Elm Hall has room for them'), `it says where schools grow, and which is closest (${body})`);
   assert(!/Move \w+ into|moves first/.test(body), 'and asks for no move');
   assert(moving.ask(s).text === 'Establish Science (0 of 6): move Mathematics into Elm Hall', `its ask is the school, in the built hall (${moving.ask(s).text})`);
 
@@ -361,7 +361,7 @@ function letter(id: string) {
   assert(fired(t) === 'a-school-grows', '"A school takes shape" comes at three in one hall');
   t.pendingInterrupt = null;
   const grows = letter('a-school-grows');
-  assert(grows.body(t).startsWith('Science has three of six in Elm Hall.'), `it counts them (${grows.body(t)})`);
+  assert(grows.body(t).includes('Science has three of the six programs it needs in Elm Hall.'), `it counts them (${grows.body(t)})`);
   assert(grows.ask(t).text === 'Establish Science (3 of 6): found Biology in Elm Hall' && grows.ask(t).hallId === 'HALL-01', `and asks for the school (${grows.ask(t).text})`);
 
   // Six: the school is founded, and both asks are done.

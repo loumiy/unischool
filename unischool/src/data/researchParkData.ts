@@ -153,5 +153,5 @@ export const PARK_WORDS = {
 
   // The next-step line, at a lab that has not finished a research project
   // (nextStep.ts's idleLab).
-  unprovenLab: (lab: string) => `${lab} has not finished a research project yet — commission one`,
+  unprovenLab: (lab: string) => `${lab} hasn't finished a research project yet: start one`,
 };

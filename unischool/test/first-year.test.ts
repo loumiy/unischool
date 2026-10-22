@@ -117,7 +117,7 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   s.students.satisfactionBreakdown = { academic: 70, social: 45, basicNeeds: 70, health: 70, housing: 12 };
   // Nothing going up: the line asks for a residence hall, at the build menu.
   const none = nextStep(s);
-  assert(none?.intent?.kind === 'build-for' && none.text === 'Housing is at 12 out of 100: a residence hall would raise it' && none.go === 'build', `with nothing going up, the line asks for one (${none?.text})`);
+  assert(none?.intent?.kind === 'build-for' && none.text === 'Housing is at 12 out of 100: build a residence hall' && none.go === 'build', `with nothing going up, the line asks for one (${none?.text})`);
 
   // Two residence halls going up: the line names the first to open, and its site.
   const dorms = s.tech.filter((t) => t.kind === 'dorm' && t.status !== 'done' && !(t.id in s.placements)).slice(0, 2);
@@ -128,7 +128,7 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
     s.placements[t.id] = { row: 30 + i * 6, col: 30, w: 4, h: 4 };
   });
   const up = nextStep(s);
-  assert(up?.text === `Housing is at 12 out of 100 — ${dorms[1].name} opens in 9 weeks`, `the line names the building going up and when it opens (${up?.text})`);
+  assert(up?.text === `Housing is at 12 out of 100. ${dorms[1].name} opens in 9 weeks`, `the line names the building going up and when it opens (${up?.text})`);
   assert(up?.go === 'hall' && up.hallId === dorms[1].id, 'and opens its site on the map, not the build menu');
   assert(up?.intent?.kind === 'wait', 'so the guided player does not build twice');
 
@@ -144,7 +144,7 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
     delete s.developing[t.id];
   }
   const opened = nextStep(s);
-  assert(opened?.intent?.kind === 'build-for' && opened.text === 'Housing is at 12 out of 100: a residence hall would raise it', `once open, the line reads the need afresh (${opened?.text})`);
+  assert(opened?.intent?.kind === 'build-for' && opened.text === 'Housing is at 12 out of 100: build a residence hall', `once open, the line reads the need afresh (${opened?.text})`);
 }
 
 // --- the line names only what the build menu has (the owner's notes after
@@ -158,14 +158,14 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   const quad = s.tech.find((t) => t.facilityType === 'quad' && t.tier === 1)!;
   quad.status = 'available';
   const lawn = nextStep(s);
-  assert(lawn?.text === 'Social is at 15 out of 100: the Campus Quad would raise it' && lawn.intent?.kind === 'build-for' && lawn.go === 'build', `before the student center, the quad (${lawn?.text})`);
+  assert(lawn?.text === 'Social is at 15 out of 100: build the Campus Quad' && lawn.intent?.kind === 'build-for' && lawn.go === 'build', `before the student center, the quad (${lawn?.text})`);
   quad.status = 'done';
   const later = nextStep(s);
-  assert(later?.text === 'Social is at 15 out of 100: a student center or a recreation building would raise it, and the first opens with a fourth program founded', `then when they open (${later?.text})`);
+  assert(later?.text === 'Social is at 15 out of 100: build a student center or a recreation building, which opens with a fourth program founded', `then when they open (${later?.text})`);
   assert(later?.intent?.kind === 'wait' && later.go === undefined, 'which is only something to know');
   named[0].status = 'available';
   const open = nextStep(s);
-  assert(open?.text === 'Social is at 15 out of 100: a student center or a recreation building would raise it' && open.intent?.kind === 'build-for', `once open, the line asks for one (${open?.text})`);
+  assert(open?.text === 'Social is at 15 out of 100: build a student center or a recreation building' && open.intent?.kind === 'build-for', `once open, the line asks for one (${open?.text})`);
 }
 
 // --- the academic line asks for a library only when one would help (S2) ------
@@ -177,12 +177,12 @@ const render = (s: GameState, onOpenBuild?: () => void) =>
   library.status = 'available';
   delete s.placements[library.id];
   const none = nextStep(s);
-  assert(none?.text === 'Academic is at 30 out of 100: a library would raise it' && none.intent?.kind === 'build-for', `with no library, the line asks for one (${none?.text})`);
+  assert(none?.text === 'Academic is at 30 out of 100: build a library' && none.intent?.kind === 'build-for', `with no library, the line asks for one (${none?.text})`);
   library.status = 'done';
   s.placements[library.id] = { row: 30, col: 30, w: 4, h: 4 };
   assert(libraryPoints(s) >= ACADEMIC_LIBRARY_POINTS, `one library seats this college (${libraryPoints(s)} of ${ACADEMIC_LIBRARY_POINTS})`);
   const built = nextStep(s);
-  assert(!!built?.text.endsWith('the library has room; better teaching would raise it') && built.go === 'faculty' && built.intent?.kind === 'wait',
+  assert(!!built?.text.endsWith('better teaching would raise it (the library has room)') && built.go === 'faculty' && built.intent?.kind === 'wait',
     `with the library's seats enough, it names the teaching, not another library (${built?.text})`);
 }
 

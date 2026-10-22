@@ -63,11 +63,11 @@ export function campusLack(s: GameState): string {
     has(isDiningHall) ? '' : 'there is nowhere on campus to eat',
     has((t) => t.facilityType === 'library') ? '' : 'there is no library',
   ].filter((w) => w !== '');
-  return wants.length > 0 ? ` As it stands, ${list(wants)}.` : '';
+  return wants.length > 0 ? ` Right now, ${list(wants)}.` : '';
 }
 export function campusFigures(s: GameState): string {
   const seats = s.tech.filter(isDiningHall).reduce((n, t) => n + servingPopulation(t), 0);
-  return ` The college has ${count(totalEnrolled(s.students))} students, ${count(s.students.capacity)} beds and ${count(seats)} dining seats.`;
+  return ` You have ${count(totalEnrolled(s.students))} students, ${count(s.students.capacity)} beds and ${count(seats)} dining seats.`;
 }
 
 // The walkthrough's skip (Plan 104C): one click arms it and it asks, since
@@ -76,7 +76,7 @@ export function campusFigures(s: GameState): string {
 export const SKIP_WORDS = {
   welcome: 'Skip the walkthrough and the letters',
   rest: 'Skip the rest of the walkthrough',
-  question: 'Skip the walkthrough? It doesn’t come back this run.',
+  question: 'Skip the walkthrough? You can’t bring it back in this game.',
   confirm: 'Skip',
   keep: 'Keep the walkthrough',
 };
@@ -95,7 +95,7 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     // It introduces the college and the one building it begins with (Plan
     // 104L): S1 read the old list of three tasks, in an order the walk then
     // didn't play, twice. Each step introduces its own thing when it comes.
-    body: (s) => `The ${s.self.name} board wishes you well. Three hundred and fifty students have enrolled, and the college is yours to build. It begins with one building, Founders Hall, where the first classes will meet.`,
+    body: (s) => `Welcome to ${s.self.name}. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
     next: 'Next',
   },
   'site-hall': {
@@ -103,7 +103,7 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     title: 'Raise Founders Hall',
     // "Anywhere on the map" (Plan 107A): "a clear stretch of ground" read as
     // a warning about the trees, which a building clears.
-    body: () => 'Every building comes from the build menu at the foot of the screen. Click Founders Hall to pick it up, then click anywhere on the map to set it down — its footprint follows the pointer.',
+    body: () => 'Buildings come from the build menu at the bottom of the screen. Click Founders Hall to pick it up. Then click anywhere on the map to place it.',
     door: 'build',
   },
   // Choosing the first program (Plan 107A): any of the three on offer, each
@@ -114,8 +114,8 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     title: 'Choose the first program',
     body: (s) => {
       const n = teachableOffers(s).length;
-      const offered = n > 1 ? `${countWord(n)[0].toUpperCase()}${countWord(n).slice(1)} are on offer in Founders Hall, each with its professor already appointed.` : 'One is on offer in Founders Hall, with its professor already appointed.';
-      return `Programs are what the college teaches. ${offered} Click the ringed slot, pick any one, and found it.`;
+      const offered = n > 1 ? `${countWord(n)[0].toUpperCase()}${countWord(n).slice(1)} are on offer in Founders Hall, and each already has a professor.` : 'One is on offer in Founders Hall, and it already has a professor.';
+      return `Programs are the subjects your college teaches. ${offered} Click the ringed slot, pick one, and click Found.`;
     },
     door: 'hall',
   },

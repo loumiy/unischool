@@ -75,7 +75,7 @@ export function seatingAsk(s: GameState): SeatingAsk | null {
     const hall = s.tech.find((t) => t.id === hallId)?.name ?? 'Founders Hall';
     const housed = Object.values(s.halls).some((slots) => slots.some((slot) => slot.programId !== null));
     return {
-      text: `${places}: found ${housed ? 'another' : 'a'} program in ${hall}, with a professor to teach it`,
+      text: `${places}: found ${housed ? 'another' : 'a'} program in ${hall}`,
       go: 'hall', hallId, intent: { kind: 'found', hallId },
     };
   }
@@ -84,8 +84,8 @@ export function seatingAsk(s: GameState): SeatingAsk | null {
   const needs = field !== undefined && !hasFreeFacultySlot(s, field);
   return {
     text: needs
-      ? `${places}: appoint a ${field} professor to develop ${courseName(course)}`
-      : `${places}: develop ${courseName(course)}, ${SEATS_PER_COURSE} more`,
+      ? `${places}: hire a ${field} professor to develop ${courseName(course)}`
+      : `${places}: develop ${courseName(course)} for ${SEATS_PER_COURSE} more`,
     go: 'curriculum', intent: { kind: 'develop', courseId: course.id },
   };
 }

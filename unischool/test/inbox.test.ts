@@ -89,7 +89,7 @@ function fresh(): GameState {
   badge = inboxBadge(inboxItems(s));
   assert(badge.urgent, 'in its last week the count turns red');
   const p = inboxPointer(s);
-  assert(p !== null && p.go === 'inbox' && p.urgent === true && p.text.startsWith('Lapses this week:'), `and NEXT points at the inbox ("${p?.text}")`);
+  assert(p !== null && p.go === 'inbox' && p.urgent === true && p.text.startsWith('Answer this week:'), `and NEXT points at the inbox ("${p?.text}")`);
 
   withEvent(s, weekOf(s), 'b');
   const order = inboxItems(s).filter((i) => i.tier === 'decide').map((i) => i.ref);
@@ -176,7 +176,7 @@ function fresh(): GameState {
   const b = inboxItems(s).find((i) => i.kind === 'board')!;
   assert(b.tier === 'letter' && b.unread, 'the board\'s letter is a letter');
   const p = inboxPointer(s);
-  assert(p?.text === 'The board has written' && p.urgent === true && p.go === 'inbox', 'and NEXT points at it');
+  assert(p?.text === 'The board has written to you' && p.urgent === true && p.go === 'inbox', 'and NEXT points at it');
   s = reducer(s, { type: 'READ_BOARD_LETTER' });
   assert(!inboxItems(s).some((i) => i.kind === 'board'), 'noted, it leaves the queue');
   s.finance.distress!.letters = ['idle-cash'];

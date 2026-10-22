@@ -124,7 +124,7 @@ export const MILESTONES: readonly Milestone[] = [
     reached: (s) => housedPrograms(s) >= CAMPUS_LIFE_PROGRAMS,
     buildables: ['SCTR-T1', 'REC-T1', 'AMENITY-STATUE'],
     tabs: [],
-    letter: 'The college teaches four subjects now. The board thinks the students have earned somewhere to be when they are not in class.',
+    letter: 'You teach four programs now. The board thinks your students have earned somewhere to spend time between classes.',
     opens: [
       'Student Center: somewhere to be between classes, and a lift to social life',
       'Recreation Center: somewhere to play, and a lift to social life',
@@ -149,7 +149,7 @@ export const MILESTONES: readonly Milestone[] = [
     tabs: ['students'],
     // Students' guidebook, clubs and funnel open with the tab itself.
     sections: ['history.record'],
-    letter: 'The first class has walked, and the college has a year behind it: enough to see the year laid out, how content the students were and what they need, what the guidebooks make of it, and the clubs the students have started.',
+    letter: 'Your first year is over. The Students tab is open now. It shows how happy your students are, what they need, what the guidebooks say about you, and the clubs students have started. History keeps a record of each year.',
     opens: ['History: the record of each year', 'Students: satisfaction and the five needs it is made of, what the guidebooks say, the clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
   },
   {
@@ -161,7 +161,7 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: coursesDone(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
     buildables: ['HALL-01'],
     tabs: [],
-    letter: `${FIRST_HALL_COURSE_GATE} courses is a curriculum, and a curriculum outgrows one building. The first academic hall is yours to site.`,
+    letter: `You now teach ${FIRST_HALL_COURSE_GATE} courses, and the college needs more room. You can build your first academic hall.`,
     opens: ['Academic halls: six program slots each, and the way a school is founded'],
   },
   {
