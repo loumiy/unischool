@@ -159,7 +159,7 @@ marked **0.1.x** and fixed in a patch.*
   "I find this language kind of hard to digest … it's the structure of
   those sentences. I just don't find that's natural English to read",
   and the same of the year's opening line ("The first class [is]
-  … and the college year behind it") and History's readout ("The
+  … and the college year behind it") and the *Standing* briefing ("The
   readout above gives each pillar's points now"). The hall-claim letter:
   "That's an awful lot of saying 'social science and humanities'." The
   most specific examples yet behind the wordy-text finding. *1 player ·
@@ -1179,7 +1179,7 @@ one.*
     places; the owner was in the chat): Founders Hall placed close to the
     road this time; the briefing's shape liked by the co-host; the year in
     review interrupting twice; the admissions page "very smooth … that's
-    definitely new"; the sweep letter and History's readout read aloud as
+    definitely new"; the sweep letter and the *Standing* briefing read aloud as
     hard English; "Open the Treasury" met without noticing; the path
     re-planning still there; the objective chips "not intrusive"; short of
     $2.5M for Elm Hall in year 5; the move-a-program step, with the
