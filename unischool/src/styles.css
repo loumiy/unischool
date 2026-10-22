@@ -1276,11 +1276,6 @@ button.build-tile { font-family: inherit; }
 /* A building under the cursor, found on the canvas (the SVG's buildings
    carry the pointer themselves, .campus-building). */
 .campus-map-svg.over-building:not(.panning) { cursor: pointer; }
-.campus-map-ghost .campus-rotate-btn { pointer-events: auto; }
-.campus-rotate-btn { cursor: pointer; }
-.campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
-.campus-rotate-btn:hover circle { fill: #efe1b8; }
-.campus-rotate-btn text { font-size: var(--text-base); fill: var(--ink); pointer-events: none; }
 
 /* Drawn pathways (pathways.tsx), autotiled: the curb runs only along edges
    with no neighbor, so a run reads as a walkway and a block as a plaza. */

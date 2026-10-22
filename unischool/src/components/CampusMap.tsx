@@ -2528,12 +2528,7 @@ export default function CampusMap({
           height="100%"
           role="group"
           aria-label="Campus map"
-          onMouseLeave={(e) => {
-            // Moving onto the rotate control (in the ghost SVG) isn't leaving
-            // the map.
-            if (e.relatedTarget instanceof Node && ghostSvgRef.current?.contains(e.relatedTarget)) return;
-            leaveMap();
-          }}
+          onMouseLeave={leaveMap}
           onMouseMove={onMapMouseMove}
           onMouseDown={onMapMouseDown}
           onPointerDown={onMapPointerDown}
@@ -2617,8 +2612,7 @@ export default function CampusMap({
 
         {/* The ghost's own layer: a second <svg> over the map, so moving the
             ghost doesn't repaint the scene under it. Same pan/zoom transform
-            (applyView writes both); no pointer events except the rotate
-            control (see styles.css). */}
+            (applyView writes both); no pointer events (see styles.css). */}
         <svg ref={ghostSvgRef} className="campus-map-ghost" width="100%" height="100%" aria-hidden="true">
           <g ref={ghostWorldRef}>
               {preview && (
@@ -2641,30 +2635,6 @@ export default function CampusMap({
                     );
                   })()}
 
-                  {/* The rotate control, pinned to the ghost's right corner
-                      on screen (boxFaces' B, whichever grid corner that is)
-                      inside the world <g>, so it tracks the ghost. */}
-                  {canRotateSelected && (() => {
-                    const at = boxFaces(preview.col, preview.row, preview.w, preview.h, 0, 0).B;
-                    return (
-                      <g
-                        className="campus-rotate-btn"
-                        transform={`translate(${at.x.toFixed(1)}, ${at.y.toFixed(1)})`}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); setFacing(nextFacing); }}
-                        onMouseLeave={(e) => {
-                          if (e.relatedTarget instanceof Node && svgRef.current?.contains(e.relatedTarget)) return;
-                          leaveMap();
-                        }}
-                        role="button"
-                        aria-label="Rotate building 90 degrees"
-                      >
-                        <circle r={13} />
-                        <text textAnchor="middle" dominantBaseline="central">⟳</text>
-                        <title>Rotate (R)</title>
-                      </g>
-                    );
-                  })()}
                 </>
               )}
 
@@ -2754,7 +2724,7 @@ export default function CampusMap({
             <>
               <HelpHint
                 align="end"
-                text="Where the college physically grows. Pick a building from the build menu (the toolbar's Build button) and place it here: the cost is charged at once, and it goes up where it is put. Press R, or click the ⟳ on the ghost, to turn it 90 degrees; with the bench tool, R turns the bench. A building needs empty ground for its whole footprint and a way to walk to it from the road along the south edge; when one is refused, the ghost says why. Press P (or use the Build menu's Paths tile, then Paving, Cobbles or Brick beside it) to lay walkways, free: drag with the left button to pave, right click to delete, and hold Shift for a straight run. The Build menu's Grounds tab also plants trees by species, and sets lamps, banner lamps, benches and flower beds anywhere on open ground; its Eraser deletes any of them, paths and trees included. Paths shape the quads and count toward campus beauty. Every tab opens as a full screen over this one; the Campus button, the tab's Close, or Escape returns here. Keys: W/A/S/D or the arrows pan; Q/E turn the view, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses, 1 to 4 set the speed, M mutes. Drag the map (or hold the scroll wheel) to pan; scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the curved-arrow buttons turn the view, ⤓ ⤒ tilt it, and ⌂ brings back the opening view."
+                text="Where the college physically grows. Pick a building from the build menu (the toolbar's Build button) and place it here: the cost is charged at once, and it goes up where it is put. Press R to turn it 90 degrees; with the bench tool, R turns the bench. A building needs empty ground for its whole footprint and a way to walk to it from the road along the south edge; when one is refused, the ghost says why. Press P (or use the Build menu's Paths tile, then Paving, Cobbles or Brick beside it) to lay walkways, free: drag with the left button to pave, right click to delete, and hold Shift for a straight run. The Build menu's Grounds tab also plants trees by species, and sets lamps, banner lamps, benches and flower beds anywhere on open ground; its Eraser deletes any of them, paths and trees included. Paths shape the quads and count toward campus beauty. Every tab opens as a full screen over this one; the Campus button, the tab's Close, or Escape returns here. Keys: W/A/S/D or the arrows pan; Q/E turn the view, Z/X tilt it, Home brings back the opening view; R rotates, P draws, Escape backs out one layer at a time; C, F and L open the Curriculum, Faculty and Students tabs; Space pauses, 1 to 4 set the speed, M mutes. Drag the map (or hold the scroll wheel) to pan; scroll or pinch to zoom. On a touch screen, one finger pans, two pinch to zoom, a tap opens a building, and a picked-up building is set down with a tap or a drag and built with Place; the curved-arrow buttons turn the view, ⤓ ⤒ tilt it, and ⌂ brings back the opening view."
               />
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

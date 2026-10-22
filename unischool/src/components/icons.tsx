@@ -443,7 +443,7 @@ export function RemoveIcon() {
 }
 
 // The camera's quarter turn, mirrored for the left. The owner's pick, though
-// it is close to the ⟳ that turns a building (R, the ghost's handle).
+// it is close to the ⟳ that once turned a building on the ghost.
 // Lucide's "rotate-cw" (Plan 93; see LUCIDE_LICENSE.txt).
 export function TurnViewIcon({ direction }: { direction: 'left' | 'right' }) {
   return (
