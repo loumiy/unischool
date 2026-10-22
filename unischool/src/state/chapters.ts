@@ -58,6 +58,10 @@ export interface Chapter {
   // opensWhen, and nothing waits for it: a system some colleges never take
   // up (athletics) must not hold back the chapters after it.
   side?: true;
+  // A side chapter that steps aside: the drawer shows it only while no
+  // chapter of the chain is open, so a habit it teaches never covers the
+  // college's own next lesson.
+  yields?: true;
 }
 
 const week = (year: number, w: number) => (year - 1) * WEEKS_PER_YEAR + w;
@@ -66,6 +70,10 @@ export const absoluteWeek = (s: GameState) => week(s.clock.year, s.clock.week);
 // A mark the player made outside the college's state (MARK_GUIDANCE).
 export const marked = (s: GameState, mark: string) => s.guidance?.marked.includes(mark) ?? false;
 export const DOUBLE_SPEED_MARK = 'speed-2x';
+// The camera's moves, marked by the map when the player makes them
+// (CampusMap.tsx), by key, mouse or touch alike.
+export const LOOK_MARKS = { pan: 'look:pan', turn: 'look:turn', tilt: 'look:tilt', zoom: 'look:zoom', home: 'look:home' } as const;
+export type LookMove = keyof typeof LOOK_MARKS;
 
 export const CHAPTERS: readonly Chapter[] = [
   {
@@ -88,6 +96,24 @@ export const CHAPTERS: readonly Chapter[] = [
       { id: 'develop-second-course', progress: laterCourseStarted },
       { id: 'run-at-double', progress: (s) => marked(s, DOUBLE_SPEED_MARK), optional: true },
     ],
+  },
+  {
+    // The camera (F7: "I could not see the paths behind buildings"): pan,
+    // turn, tilt, zoom and Home, once the first course has company. A side
+    // chapter that yields: it fills the weeks before Somewhere to sleep,
+    // steps aside for any chapter of the chain, and holds nothing back, so a
+    // player who never tilts the view still meets every system. A move made
+    // before it opens counts, and a save already under way meets it in its
+    // next quiet stretch.
+    id: 'looking-around',
+    earliest: week(1, 1),
+    side: true,
+    yields: true,
+    opensWhen: (s) => s.guidance?.done['next-course'] !== undefined,
+    objectives: (Object.keys(LOOK_MARKS) as LookMove[]).map((move) => ({
+      id: `look-${move}`,
+      progress: (s: GameState) => marked(s, LOOK_MARKS[move]),
+    })),
   },
   {
     // Week 10 at the earliest, so year one comes in two sittings (Plan 106
@@ -319,7 +345,8 @@ export function isMet(p: ObjectiveProgress): boolean {
 export function currentChapter(s: GameState): Chapter | null {
   const g = s.guidance;
   if (!g) return null;
-  return CHAPTERS.find((c) => g.opened[c.id] !== undefined && g.done[c.id] === undefined) ?? null;
+  const open = CHAPTERS.filter((c) => g.opened[c.id] !== undefined && g.done[c.id] === undefined);
+  return open.find((c) => !c.yields) ?? open[0] ?? null;
 }
 
 export function objectiveMet(s: GameState, id: string): boolean {

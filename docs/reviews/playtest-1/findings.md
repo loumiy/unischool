@@ -88,6 +88,13 @@ marked **0.1.x** and fixed in a patch.*
   can be more free with the camera? I could not see the paths behind
   buildings." Playing in the Mission style, F7 also "found the towers not
   so nice." *1 player · form (F7).*
+  The camera already turns (Q/E), tilts (Z/X), pans and zooms; the
+  owner's reading (22 October) is that F7 didn't know how. **Decided: a
+  chapter that has the player use every camera move.** *Looking around*
+  opens once *The next course* is done and asks for a pan, a turn, a
+  tilt, a zoom and Home, by key, mouse or touch. It is a side chapter
+  that steps aside for any chapter of the chain, so it fills the weeks
+  before *Somewhere to sleep* and never holds a later system back.
 
 ## 2 · UI and text
 
@@ -460,6 +467,7 @@ marked **0.1.x** and fixed in a patch.*
   real too: the Estate tab's help and the building's "Condition" line
   speak only of wear, while condition also lowers the campus's beauty and
   prestige, and a large backlog brings events.
+  **Left as it is** (the owner, 22 October).
 
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Not yet traced in the code. *Owner.*
