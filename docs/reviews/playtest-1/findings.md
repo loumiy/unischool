@@ -442,6 +442,25 @@ marked **0.1.x** and fixed in a patch.*
   drop the lab condition** (the owner, 18 October): the park opens with
   the research specialization.
 
+- **A tower under renovation hides the church behind it from clicks.**
+  "When renovating the tower, I could not access the church behind, which
+  was only the case during the renovation." *1 player · form (F7).*
+  The cause, traced (not yet reproduced in play): the scaffolding is
+  drawn as one box over the tower's whole footprint, as tall as the tower
+  and its spire plus 4% (`CampusMap.tsx`, `boxFaces(…, wallHeightOf(t) *
+  1.04)`), while the Bell Tower's shaft is under half its 3×3 footprint
+  wide and the Campanile's under a third. So the scaffold is a wall two
+  to three times the tower's width and taller than the chapel's nave,
+  and unlike the other site overlays (`.campus-site-frame`, `.campus-age`)
+  it still takes clicks: a click on the chapel behind lands on the tower.
+  Walking and the building's working are untouched. The smallest fix is
+  `pointer-events: none` on `.campus-site-shell`; the better-looking one
+  sizes the scaffold from the landmark's own volumes (`landmarkVolumes`).
+  F7's other half, that renovating's consequences are never shown, is
+  real too: the Estate tab's help and the building's "Condition" line
+  speak only of wear, while condition also lowers the campus's beauty and
+  prestige, and a large backlog brings events.
+
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Not yet traced in the code. *Owner.*
 
