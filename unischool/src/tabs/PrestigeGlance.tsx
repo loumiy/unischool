@@ -8,7 +8,7 @@ import {
 import { rankForecast } from '../systems/administration/forecast';
 import { collegeSpecialization } from '../systems/prestige/milestone';
 import { pillarRule } from '../data/prestigeWords';
-import { AthleticsIcon, CurriculumIcon, ResearchIcon, StudentLifeIcon } from '../components/icons';
+import { PILLAR_ICONS } from '../components/icons';
 import type { BelowALink } from './StandingBreakdown';
 
 // ---------------------------------------------------------------------
@@ -24,13 +24,6 @@ import type { BelowALink } from './StandingBreakdown';
 // college with the Office of Institutional Research also reads the
 // summer's step.
 // ---------------------------------------------------------------------
-
-const PILLAR_ICONS: Record<Pillar, () => ReactNode> = {
-  academics: CurriculumIcon,
-  research: ResearchIcon,
-  studentLife: StudentLifeIcon,
-  athletics: AthleticsIcon,
-};
 
 // Which way the summer will take it: up, down or level.
 export function prestigeDirection(breakdown: StandingBreakdown): 'up' | 'down' | 'level' {

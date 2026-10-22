@@ -434,7 +434,7 @@ it.
 | `P` | Arm the path tool. Left button draws, right button deletes paths; a ghost tile marks the square under the cursor. |
 | `Q` `E` | Turn the campus view a quarter turn; `Z` `X` tilt it flatter or steeper; `Home` returns to the opening view. On a touch screen the same moves are buttons in the map's folding "Map tools" pill (Plans 70F and 70G): zoom, turn, tilt and the opening view (Plan 80H took away the quad names' `N` and `Aa`). |
 | `R` | Turn the picked-up building a quarter, same as the ⟳ on its footprint ghost; the ghost marks its front. |
-| `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. |
+| `Esc` | One ladder, top down: the activity-log popup, then the build menu, then the open view; on the map, back out of the path tool, then a picked-up building, then an open info panel. While a stop holds the clock the ladder stands aside; the specialization's page (Plan 110) takes it itself: an armed choice, then the page, back to its letter. |
 | `Enter` | Dismiss the interrupt on screen (every type with a plain "continue", the summer's Review beat and a letter included — not its Admissions or Students beats, which are real choices). |
 | `C` `F` `L` `I` | Open (or close) Curriculum, Faculty, Students, the Inbox. |
 

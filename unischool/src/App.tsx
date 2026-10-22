@@ -148,6 +148,13 @@ export default function App() {
   // answer. The Final Report and the summer's admissions keep their own
   // pages (Plan 108).
   const holding = s.pendingInterrupt !== null && !interruptPageUp(s);
+  // The specialization's page (Plan 110): opened from its letter in the
+  // inbox, over everything, and closed back to the letter. Kept against the
+  // year the offer stands in, so an offer put off is a letter again the next
+  // summer, never the page.
+  const [specializationFor, setSpecializationFor] = useState<string | null>(null);
+  const specializationKey = s.pendingInterrupt?.type === 'specialization' ? `${s.self.name}:${s.clock.year}` : null;
+  const specializationOpen = specializationKey !== null && specializationFor === specializationKey;
   const toolbarRef = useCssHeightVar('--toolbar-height');
 
   // Sound (Plan 34): the director hears the run, not the title screen or
@@ -659,6 +666,7 @@ export default function App() {
                     else setBuildOpen(true);
                   }}
                   onShowOnMap={inspectHall}
+                  onOpenSpecialization={() => setSpecializationFor(specializationKey)}
                 />
               )}
             </TabOverlay>
@@ -687,7 +695,12 @@ export default function App() {
       {/* Outside .app's stacking context, so the backdrop covers the menu
           and the pennant too. Neither draws over a front screen: the modal
           waits, unanswered, for the player to come back to the game. */}
-      {shellLive && <InterruptModal s={s} act={act} onNewCollege={newCollege} />}
+      {shellLive && (
+        <InterruptModal
+          s={s} act={act} onNewCollege={newCollege}
+          specializationOpen={specializationOpen} onCloseSpecialization={() => setSpecializationFor(null)}
+        />
+      )}
       {/* The walkthrough's card (OpeningCoach.tsx); renders nothing once
           the stage is 'play'. Opens doors through the same setters, so the
           one-slot rule holds. */}

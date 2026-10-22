@@ -133,6 +133,19 @@
   --pillar-research: #33706a;
   --pillar-studentLife: #8c4a3f;
   --pillar-athletics: #a98a3c;
+  /* The same four, lit for the specialization's page (Plan 110): a step
+     brighter, and deep enough to carry cream text at 4.5:1. */
+  --pillar-academics-lit: #3b5ba5;
+  --pillar-research-lit: #26766c;
+  --pillar-studentLife-lit: #b4503d;
+  --pillar-athletics-lit: #8f6a12;
+  /* The board's room, the specialization's page (Plan 110): the hall of
+     fame's wood in shadow, its edge and offset black, its ink cream. */
+  --board-room: #1b1611;
+  --board-room-edge: #0c0a08;
+  --board-room-shadow: rgba(0, 0, 0, 0.5);
+  --board-room-ink: #f7f2e8;
+  --board-room-muted: #d9d0bf;
 
   /* The standing body's eight cohorts (EnrollmentTab.tsx): muted, mid-dark
      pigments that sit on cream and carry a light label. */
@@ -4296,44 +4309,165 @@ body:has(.building-info-panel) .pennant { display: none; }
 .toolbar-funds-btn .money-negative { display: inline-block; animation: red-pulse 900ms ease-out 1; }
 @keyframes red-pulse { 0% { transform: scale(1); } 30% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
-/* The specialization (Plan 85D, components/SpecializationChoice.tsx): the
-   four side by side on a wide screen, two by two in the middle, one above
-   the next on a phone. Each card's choose button asks twice. */
-.modal[data-interrupt="specialization"] > p { max-width: 72ch; }
-.spec-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); margin: var(--space-12) 0; }
-.spec-card { display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-12); background: var(--cream-hi);
-  border: 2px solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); min-width: 0; }
-.spec-card-head h3 { margin: 2px 0 0; font-family: var(--display); font-weight: 800; font-size: var(--text-lg); line-height: 1.2; }
-.spec-card-pillar { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--school-primary); }
-.spec-card .spec-card-worth { margin: 4px 0 0; font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--school-primary); }
-/* Three lines a card (Plan 95F): what it is, what it adds now, how its share fills. */
-.spec-card-lines { margin: 0; padding-left: 16px; list-style: disc; font-size: var(--text-sm); line-height: 1.4; }
-.spec-card-lines li + li { margin-top: 3px; }
-/* The comparison: prestige and rank were the share full today. */
-.spec-card-foot { margin-top: auto; display: grid; gap: var(--space-8); padding-top: var(--space-8); border-top: 1px solid var(--parchment-line); }
-.spec-card .spec-card-compare { margin: 0; font-size: var(--text-sm); font-weight: 700; }
-.spec-card-more { font-size: var(--text-sm); line-height: 1.4; }
-.spec-card-more ul { margin: 0 0 4px; padding-left: 16px; list-style: disc; color: var(--ink-muted); }
-.spec-card-more li + li { margin-top: 3px; }
-.spec-card-more p { margin: 0 0 4px; font-size: inherit; }
-.spec-card-more li.spec-card-park { font-style: italic; }
-.spec-card .spec-card-toggle { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-2); background: none; border: none; box-shadow: none;
-  color: var(--school-primary); padding: 0 var(--space-2); font-family: var(--display); font-size: var(--text-xs); }
-.spec-strongest { font-weight: 700; }
-.spec-card-yours { font-weight: 700; }
-.spec-card .confirm-button { display: grid; gap: 6px; }
-.spec-card-choose { width: 100%; padding: var(--space-8) var(--space-12); }
-.spec-card .confirm-button { align-items: stretch; }
-.spec-later { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); font-size: var(--text-sm); color: var(--ink-muted); }
 .specialization-status { margin: 0 0 var(--space-8); }
 /* History's three views (Plan 95H): the switch heads the tab, and the
    pillar rule heads Prestige, said once. */
 .history-views { display: flex; }
 .history-views .segmented.switch { min-width: min(100%, 420px); }
 .pillar-rule { margin: 0 0 var(--space-8); }
-@media (max-width: 1100px) { .spec-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .spec-cards { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- The specialization (SpecializationChoice.tsx, Plan 110) ----------
+   The board's letter in the inbox: one sentence and the four pillars'
+   ranks in their colours. Behind it, the page: the board's room in dark
+   walnut, the question over four panels, each in its pillar's colour with
+   what it builds drawn on it, where the college stands, what it adds and
+   how its share fills. Choosing lifts the panel, dims the rest and asks on
+   a bar under them. */
+:is(.spec-page, .spec-letter-ranks) .pillar-academics { --spec-hue: var(--pillar-academics-lit); }
+:is(.spec-page, .spec-letter-ranks) .pillar-research { --spec-hue: var(--pillar-research-lit); }
+:is(.spec-page, .spec-letter-ranks) .pillar-studentLife { --spec-hue: var(--pillar-studentLife-lit); }
+:is(.spec-page, .spec-letter-ranks) .pillar-athletics { --spec-hue: var(--pillar-athletics-lit); }
+.spec-letter-ranks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-8); margin: var(--space-12) 0 var(--space-4); padding: 0; list-style: none; }
+.spec-letter-ranks li { display: flex; flex-direction: column; gap: 2px; padding: var(--space-6) var(--space-8); min-width: 0;
+  border: 2px solid var(--spec-hue); border-radius: var(--radius-md); background: color-mix(in srgb, var(--spec-hue) 8%, var(--cream-hi)); }
+.spec-letter-pillar { font-size: var(--text-xs); font-weight: 700; color: var(--spec-hue); }
+.spec-letter-rank { font-family: var(--display); font-weight: 800; font-size: var(--text-xl); }
+
+.spec-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; box-sizing: border-box; outline: none;
+  background: radial-gradient(ellipse 70% 40% at 50% 0%, color-mix(in srgb, var(--school-secondary) 14%, transparent), transparent 70%), var(--board-room);
+  color: var(--board-room-ink); animation: spec-fade 260ms ease-out both; }
+.spec-page-inner { display: flex; flex-direction: column; gap: var(--space-16); max-width: 1480px; min-height: 100%; margin: 0 auto;
+  padding: var(--space-24); box-sizing: border-box; }
+.spec-page-head { display: flex; align-items: flex-start; gap: var(--space-24); }
+/* The pennant's banner, at the page's corner. */
+.spec-page-pennant { flex: none; display: flex; width: 100px; height: 112px; padding: 4px; box-sizing: border-box;
+  background: var(--school-secondary); clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%); }
+.spec-page-pennant span { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 6px 14px; text-align: center;
+  background: var(--school-primary); color: var(--school-on-primary); clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-sm); line-height: 1.15; overflow-wrap: break-word; hyphens: auto; }
+.spec-page-heading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-6); }
+.spec-page .dateline { margin: 0; color: var(--school-secondary); }
+.spec-page-heading h2 { margin: 0; font-size: var(--text-5xl); line-height: 1.04; letter-spacing: -0.015em; color: var(--board-room-ink); text-wrap: balance; }
+.spec-page-rule { margin: 0; max-width: 120ch; font-size: var(--text-base); line-height: 1.5; color: var(--board-room-muted); }
+.spec-page-side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-8); flex: none; }
+.spec-page-actions { display: flex; gap: var(--space-8); }
+.spec-page-later { margin: 0; font-size: var(--text-sm); color: var(--board-room-muted); }
+.spec-page-chips { display: flex; gap: var(--space-8); margin: 0; }
+.spec-page-chips div { padding: var(--space-4) var(--space-12); background: var(--cream-hi); color: var(--ink);
+  border: 2px solid var(--outline); border-radius: var(--radius-md); box-shadow: 3px 3px 0 var(--board-room-shadow); }
+.spec-page-chips dt { font-size: var(--text-xs); font-weight: 600; color: var(--ink-muted); }
+.spec-page-chips dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-2xl); line-height: 1.15; }
+.spec-page-chips small { font-family: var(--sans); font-size: var(--text-sm); font-weight: 600; color: var(--ink-muted); }
+
+.spec-panels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-16); align-items: stretch; }
+.spec-panel { display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--cream-hi); color: var(--ink);
+  border: 2px solid var(--board-room-edge); border-radius: var(--radius-xl); box-shadow: 6px 6px 0 var(--board-room-shadow);
+  transition: transform 180ms ease, opacity 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+  /* They drop in one at a time as the page opens. Backwards only: once
+     landed, the armed lift and the dimming are the rules'. */
+  animation: spec-drop 560ms cubic-bezier(0.3, 0, 0.3, 1) backwards; animation-delay: calc(var(--i, 0) * 240ms + 260ms); }
+.spec-panel.is-armed { transform: translateY(-10px); box-shadow: 10px 12px 0 var(--board-room-shadow);
+  outline: 4px solid var(--school-secondary); outline-offset: 4px; }
+.spec-panel.is-dimmed { opacity: 0.34; filter: saturate(0.45); }
+.spec-panel-head { display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-12) var(--space-16) var(--space-12);
+  background: var(--spec-hue); color: var(--cream-hi); }
+.spec-panel-label { display: flex; align-items: center; gap: var(--space-12); min-width: 0; }
+.spec-panel-medallion { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  border-radius: 50%; background: var(--cream-hi); color: var(--spec-hue); border: 2px solid var(--board-room-edge); box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35); }
+.spec-panel-medallion svg { width: 22px; height: 22px; }
+.spec-panel-pillar { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); letter-spacing: 0.12em; text-transform: uppercase; }
+.spec-panel-strongest { margin-left: auto; padding: 2px var(--space-8); white-space: nowrap;
+  background: var(--school-secondary); color: var(--school-on-secondary); border: 2px solid var(--board-room-edge); border-radius: var(--radius-pill);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); letter-spacing: 0.06em; text-transform: uppercase; }
+.spec-panel-head h3 { margin: 0; min-height: 2.2em; font-family: var(--display); font-weight: 800; font-size: var(--text-2xl);
+  line-height: 1.1; color: inherit; text-wrap: balance; }
+.spec-panel-summary { margin: 0; min-height: 2.8em; font-size: var(--text-base); font-style: italic; line-height: 1.4; }
+/* The stage: what the specialization builds, drawn, over a pool of light. */
+.spec-panel-stage { display: flex; flex-direction: column; align-items: center; gap: var(--space-6); padding: var(--space-4) var(--space-12) var(--space-12);
+  background: radial-gradient(ellipse 85% 75% at 50% 58%, color-mix(in srgb, var(--spec-hue) 55%, white), transparent 72%), var(--spec-hue);
+  border-top: 2px solid rgba(12, 10, 8, 0.22); }
+.spec-panel-drawing { display: block; width: 100%; height: 120px; filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.3)); }
+.spec-panel-builds { align-self: stretch; display: flex; flex-direction: column; gap: 2px; margin: 0; padding: var(--space-4) var(--space-12) var(--space-6);
+  border-radius: var(--radius-md); background: rgba(12, 10, 8, 0.32); color: var(--cream-hi); }
+.spec-panel-builds-kind { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); letter-spacing: 0.1em; text-transform: uppercase; }
+.spec-panel-builds-name { font-size: var(--text-md); font-weight: 700; line-height: 1.3; }
+/* Where it stands: the rank, the value, and the bar to 150. */
+.spec-panel-standing { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-8) var(--space-16) var(--space-12); border-top: 2px solid var(--board-room-edge); }
+.spec-panel-standing-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8); margin: 0;
+  font-size: var(--text-xs); color: var(--ink-muted); }
+.spec-panel-standing-head .eyebrow { color: var(--ink-muted); }
+.spec-panel-rank { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8); margin: 0; }
+.spec-panel-rank-figure { font-family: var(--display); font-weight: 800; font-size: var(--text-3xl); line-height: 1; }
+.spec-panel-rank-figure small, .spec-panel-value { font-family: var(--sans); font-size: var(--text-sm); font-weight: 600; color: var(--ink-muted); }
+.spec-panel-value b { font-family: var(--display); font-weight: 800; font-size: var(--text-xl); color: var(--ink); }
+.spec-meter { position: relative; padding: 6px 0 4px; }
+.spec-meter-track { position: relative; display: block; height: 14px; box-sizing: border-box; overflow: hidden;
+  border: 2px solid var(--outline); border-radius: 8px; background: var(--cream-lo); }
+.spec-meter-share, .spec-swatch-share { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--spec-hue) 55%, transparent) 0 3px, transparent 3px 7px); }
+.spec-meter-share { position: absolute; top: 0; bottom: 0; right: 0; border-left: 2px solid var(--spec-hue); }
+.spec-meter-fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--spec-hue); }
+.spec-meter-top { position: absolute; top: 0; bottom: -2px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--outline); }
+.spec-panel-worth { display: flex; align-items: center; gap: var(--space-6); margin: 0; font-size: var(--text-sm); font-weight: 700; color: var(--spec-hue); }
+.spec-swatch-share { flex: none; width: 18px; height: 10px; border: 1.5px solid var(--spec-hue); border-radius: 3px; }
+.spec-panel-note { display: flex; align-items: flex-start; gap: var(--space-6); margin: 0; font-size: var(--text-sm); line-height: 1.4; color: var(--ink-muted); }
+.spec-swatch-top { flex: none; width: 4px; height: 14px; margin: 2px 7px 0; border-radius: 2px; background: var(--outline); }
+.spec-panel-note b { color: var(--ink); font-weight: 700; }
+/* What it adds, and how its share fills. */
+.spec-panel-gains { flex: 1 1 auto; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--space-6) var(--space-8); align-content: start;
+  margin: 0; padding: var(--space-8) var(--space-16) var(--space-12); border-top: 2px dashed var(--parchment-line); font-size: var(--text-base); line-height: 1.42; }
+.spec-panel-gains dt { padding-top: 2px; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--spec-hue); }
+.spec-panel-gains dd { margin: 0; }
+.spec-panel-gains .spec-panel-park { grid-column: 1 / -1; font-style: italic; color: var(--ink-muted); }
+.spec-panel-foot { display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-8) var(--space-16) var(--space-12);
+  background: var(--cream); border-top: 2px solid var(--board-room-edge); }
+.spec-panel-compare { margin: 0; font-size: var(--text-sm); font-weight: 700; }
+.spec-panel-choose { width: 100%; min-height: 44px; background: var(--spec-hue); color: var(--cream-hi); font-size: var(--text-xl); }
+.spec-panel-choose:hover:not(:disabled) { background: var(--spec-hue); color: var(--cream-hi); transform: translate(-1px, -1px); box-shadow: var(--shadow-1-hover); }
+.spec-panel-selected { display: flex; align-items: center; justify-content: center; gap: var(--space-6); min-height: 44px; margin: 0; box-sizing: border-box;
+  border: 2px solid var(--spec-hue); border-radius: var(--radius-pill); background: var(--cream-hi); color: var(--spec-hue);
+  font-family: var(--display); font-weight: 800; font-size: var(--text-xl); }
+.spec-panel-selected svg { width: 20px; height: 20px; }
+/* The second ask, held at the foot of the screen while the page scrolls. */
+.spec-armed { position: sticky; bottom: var(--space-16); z-index: 1; margin-top: auto; display: flex; align-items: center; gap: var(--space-16);
+  padding: var(--space-16) var(--space-24); background: var(--spec-hue); color: var(--cream-hi);
+  border: 2px solid var(--board-room-edge); border-radius: var(--radius-xl); box-shadow: 6px 6px 0 var(--board-room-shadow);
+  animation: spec-rise 220ms ease-out backwards; }
+.spec-armed .spec-panel-medallion { width: 52px; height: 52px; }
+.spec-armed .spec-panel-medallion svg { width: 28px; height: 28px; }
+.spec-armed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.spec-armed-text h3 { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-3xl); line-height: 1.1; color: inherit; }
+.spec-armed-text p { margin: 0; max-width: 90ch; font-size: var(--text-md); line-height: 1.45; }
+.spec-armed-actions { flex: none; display: flex; gap: var(--space-12); }
+.spec-armed-back { background: transparent; color: var(--cream-hi); border-color: var(--cream-hi); box-shadow: none; }
+.spec-armed-back:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: var(--cream-hi); }
+.spec-armed-confirm { padding: var(--space-8) var(--space-24); font-size: var(--text-xl); }
+/* Under reduced motion the panels are there at once, delay and all. */
+:root[data-motion='reduce'] :is(.spec-page, .spec-panel, .spec-armed) { animation: none; }
+@keyframes spec-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes spec-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+/* A panel falls into place, lands a little past it and settles. */
+@keyframes spec-drop {
+  0% { opacity: 0; transform: translateY(-80px); }
+  45% { opacity: 1; }
+  62% { transform: translateY(8px); }
+  80% { transform: translateY(-3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 1100px) { .spec-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .spec-page-inner { padding: var(--space-16); }
+  .spec-page-head { flex-wrap: wrap; gap: var(--space-12); }
+  .spec-page-pennant { display: none; }
+  .spec-page-heading h2 { font-size: var(--text-4xl); }
+  .spec-page-side { width: 100%; align-items: stretch; }
+  .spec-page-actions { justify-content: flex-end; }
+  .spec-panels { grid-template-columns: minmax(0, 1fr); }
+  .spec-armed { flex-wrap: wrap; padding: var(--space-16); }
+  .spec-armed-actions { width: 100%; }
+  .spec-armed-actions > button { flex: 1; }
+}
+@media (max-width: 560px) { .spec-letter-ranks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* ---------- The summer's admissions, as a page (AdmissionsPage.tsx, Plan 108) ----------
    The whole screen, as the Final Report's is: the price, the applicants as
