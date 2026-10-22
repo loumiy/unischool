@@ -41,6 +41,12 @@ marked **0.1.x** and fixed in a patch.*
   people walking around the campus", and the changing seasons; placing
   the first building gave "old-school *The Sims* vibes" (with D1, the
   second to say so); "I'll definitely play more of it."
+  S3, the same reviewer on a livestream about a week later (0.1.3, to
+  year 6): the low-poly style cohesive across menus and game, the seasons
+  and animations a highlight, the music "meditative" and "soothing", the
+  hand-drawn circles around professors and the students' pathfinding;
+  "a strong step up"; compared favourably to *Two Point University* as a
+  more serious take on the genre, and worth recommending.
   R12, from the screenshot and the page: "It feels like a classic tycoon
   game right out the gate."
   The quotes worth reusing are collected in
@@ -110,13 +116,23 @@ marked **0.1.x** and fixed in a patch.*
   ("Somewhere to Sleep, Somewhere to Eat") are a minor dislike. With D1,
   S1's board letter and F6's "UI is kinda hard to read", the most
   repeated finding of the playtest: the game is easier than its words
-  make it look. *4 players · service (S2), discord (D1), service (S1),
-  form (F6).*
+  make it look. *4 players · service (S2, S3), discord (D1), service
+  (S1), form (F6).*
+  S3, the same reviewer a week on (0.1.3): onboarding "noticeably
+  improved", the next objective always in view, but the text still
+  "hard to absorb large blocks while also learning mechanics", and its
+  sentences "unnatural and hard to parse". Suggested: set flavour text
+  apart from the essential instruction, and front-load less, bringing in
+  context as the player progresses.
 - **A year-end screen opens over whatever the player is reading.** S2
   was reading a menu (the Faculty screen) when the calendar reached the
   summer and the End of Year overview forced itself open, "quite jarring,
   particularly when it happened repeatedly while I was trying to read
-  something else." *1 player · service (S2).*
+  something else." *1 player · service (S2, again as S3).*
+  On 0.1.3's stream it happened twice more: "sometimes you're reading in
+  a menu and then … this year in review pops up and just takes over";
+  "if you're not actually familiar with the menus it can be a little bit
+  off." The reviewer assumed it was intentional.
 - **The screens after the first course are text-heavy.** "After setting up
   an English literature course, the next few screens were quite
   overwhelmingly text heavy." Those are Plan 103's new steps (the next
@@ -132,6 +148,40 @@ marked **0.1.x** and fixed in a patch.*
   College" showed as "Baltimoor / e College": the banner sizes the name
   by its total length and lets a word break. Plan 104 as K. *Owner, from
   S1's video.*
+- **A red Confirm read as Cancel.** Moving programs into Elm Hall, the
+  reviewer thought the moves were under way and waited, then found none
+  had started: "I never clicked Confirm … because that was red … I just
+  saw the red and kind of assumed it was cancel." The co-host would have
+  expected the move to start at the first click. *1 player · service
+  (S3).*
+- **The board's letters are hard to parse.** The sweep letter ("Money
+  doing nothing … The board suggests a standing sweep …") read aloud:
+  "I find this language kind of hard to digest … it's the structure of
+  those sentences. I just don't find that's natural English to read",
+  and the same of the year's opening line ("The first class [is]
+  … and the college year behind it") and the *Standing* briefing ("The
+  readout above gives each pillar's points now"). The hall-claim letter:
+  "That's an awful lot of saying 'social science and humanities'." The
+  most specific examples yet behind the wordy-text finding. *1 player ·
+  service (S3).*
+- **"Would not return this summer: dining, study space."** In the year
+  in review, "Nine students would not return this summer … I'm not sure
+  what that means." *1 player · service (S3).*
+- **"Open the Treasury" met without the player noticing.** The chapter
+  moved on to chapter 7 and the reviewer asked "am I missing key
+  steps? … I didn't open that Treasury", then wondered whether the board
+  letter's door had opened it for him. *1 player · service (S3).*
+- **No sign of how long a move has left.** With programs in transit to
+  Elm Hall: "do we have an indicator of how long is left to move?" He
+  didn't find one on the map or the panel. *1 player · service (S3).*
+- **The briefings' shape works; their length doesn't yet.** The co-host:
+  "It's a lot of text. I quite like how it's broken up with what it is,
+  how and why it matters. That's quite a nice way of presenting it." The
+  objective chips along the foot: "a nice little touch … not intrusive."
+  *1 player and a co-host · service (S3).*
+- **The full-screen menus are a lot at first.** "Slightly overwhelming
+  for new players, though visually impressive"; the UI outside the large
+  info windows "clean and well-designed". *1 player · service (S3).*
 - **The UI is hard to read at times.** "The game is somewhat confusing,
   the UI is kinda hard to read at times." *1 player · form (F6).*
 - **The board's opening letter took two reads.** "350 students are on
@@ -190,6 +240,24 @@ marked **0.1.x** and fixed in a patch.*
   do next; they asked whether that was normal. It is (the walkthrough ends
   there), but the hand-off reads as the tutorial breaking. The owner's
   reply: maybe stretch the tutorial out longer. *1 player · reddit (R2).*
+
+- **The program-moving step: which to move?** In *A hall of its own*,
+  it was "unclear which courses were meant to be moved vs. others". The
+  objective asks for any program moved into the new hall; nothing says
+  which, or why one rather than another. *1 player · service (S3).*
+  From the transcript: the briefing's line ("A program moves from its
+  hall's panel: four weeks out of Founders Hall, twelve from anywhere
+  else") "is not resonating with me"; *Go* brought him to the new hall's
+  empty slots, which offer programs to found, and he took them for the
+  way to move one ("this looks like it's founding newer courses"). The
+  owner explained in chat (open Founders Hall, pick a program, move it).
+  He'd first clicked a program the chapter didn't mean, and suggested the
+  ones to move be highlighted, while doubting that would sit with the rest
+  of the game. "I think this is broadly where I got stuck last time."
+- **Rotating a building took a while to find.** "It took me a while to
+  figure out how to rotate … you see the little icon in the corner for
+  the rotating. I think I should be able to click that?" (It is: the ⟳
+  on the ghost, or R.) *1 player · service (S3).*
 
 - **Where to found the next program.** A few months in, S2 wanted a
   third subject and couldn't remember where the eight program slots
@@ -272,6 +340,13 @@ marked **0.1.x** and fixed in a patch.*
   *1 player · form (F7).*
 
 ## 4 · Strategy
+
+- **Short of money for the first academic hall.** In year 5 the
+  reviewer couldn't afford Elm Hall ($2.5M) and asked "is there anything
+  I can do to earn more cash?", trying higher dining prices; "this is
+  roughly where I got to last time. So I wonder if this is something I
+  am doing wrong or maybe this is expected." Cash rose "quite a bit" soon
+  after, and he built it. *1 player · service (S3).*
 
 - **Finding a decent teacher, and waiting to add more classes,** were the
   most frustrating part of a full run. The faculty market and the pace of
@@ -407,6 +482,8 @@ marked **0.1.x** and fixed in a patch.*
   recalculate where they're going, even when the path is nowhere near
   them … This happens with every click when placing paths." Not a
   failure, an unnecessary calculation. *1 player · service (S2).*
+  Still so on 0.1.3: "every time you place a path segment, they'll change
+  where they're going … not really a big deal." (S3)
 
 - **A red ghost with no reason.** S1 couldn't place buildings in several
   spots and never got a reason: more housing in year two, while housing
@@ -1062,6 +1139,56 @@ owner as "one of the OG members of the server". About 30 minutes on
     it almost feel a bit more complicated than it is." "I'll definitely
     play more of it." "Hopefully you don't introduce loads of natural
     disasters like SimCity and stress me out!"
+
+### Indie Game Booster — the livestream (received 22 October)
+
+*The same service, playing on a livestream, about a week after S2; the
+owner pasted the stream's notes, a summary in the service's words rather
+than quotes. Most likely 0.1.3 (the objectives at the foot of the screen
+are its chapters). Reached year 6. Counted as S2's player, not a new
+one.*
+
+- **S3** · Indie Game Booster, live.
+  - *First impressions and onboarding:* onboarding "noticeably improved"
+    since the playthrough a week before. The tutorial's structure is
+    clear: the next objective always visible at the bottom of the UI, a
+    single click to get there. Text volume still a concern, "hard to
+    absorb large blocks while also learning mechanics"; suggestions:
+    distinguish flavour text from essential instruction more clearly, and
+    front-load less, bringing in context as the player progresses. The
+    full-screen menus "slightly overwhelming for new players, though
+    visually impressive". A red "confirm" button was mistaken for a
+    cancel. The program-moving step confused: "unclear which courses were
+    meant to be moved vs. others".
+  - *Visuals and feel:* the art style praised throughout, low-poly and
+    cohesive across the menus and the game; the seasonal changes and
+    animations a highlight; the music "meditative" and "soothing",
+    atmospheric enough for background audio; the hand-drawn-style circles
+    around professors and the students' pathfinding appreciated; the UI
+    outside the large info windows "clean and well-designed".
+  - *Overall verdict:* "a strong step up" from the week before. The
+    tutorial's language and sentence structure "still feels unnatural and
+    hard to parse", worth revisiting "if collective feedback echoes this,
+    not just one opinion". Only reached year 6 of about 50, so hadn't seen
+    a campus at scale. Compared favourably to *Two Point University* as a
+    more serious take on the genre. Worth recommending; several viewers
+    likely to try it.
+  - *Next step, theirs:* "Review tutorial text for sentence clarity and
+    text volume."
+  - *From the stream's transcript* (an automatic transcript, garbled in
+    places; the owner was in the chat): Founders Hall placed close to the
+    road this time; the briefing's shape liked by the co-host; the year in
+    review interrupting twice; the admissions page "very smooth … that's
+    definitely new"; the sweep letter and the *Standing* briefing read aloud as
+    hard English; "Open the Treasury" met without noticing; the path
+    re-planning still there; the objective chips "not intrusive"; short of
+    $2.5M for Elm Hall in year 5; the move-a-program step, with the
+    owner's help in chat; the red Confirm; no sign of a move's weeks left;
+    the hall-claim letter's repeated "social science and humanities". The
+    pace "not dragging … quite nice to take it in at a slow pace". A
+    viewer would leave the stream on in the background for the music. The
+    co-host noted the game is "very American-centric" about universities,
+    though "it broadly translates".
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
