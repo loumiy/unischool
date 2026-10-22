@@ -30,7 +30,7 @@ import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import RankingsTable from './RankingsTable';
-import SpecializationChoice from './SpecializationChoice';
+import { SpecializationLetter, SpecializationPage } from './SpecializationChoice';
 import Figure from './Figure';
 import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
@@ -906,9 +906,19 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 }
 
 // What s.pendingInterrupt calls for (docs/architecture/interrupts.md): the
-// Enter key for the read-and-continue stops, and the Final Report's page.
-// Every other stop is answered in the inbox (InterruptContent, below).
-export default function InterruptModal({ s, act, onNewCollege }: { s: GameState; act: (a: Action) => void; onNewCollege?: () => void }) {
+// Enter key for the read-and-continue stops, and the pages: the Final
+// Report's, the summer's admissions and, opened from its letter, the
+// specialization's. Every other stop is answered in the inbox
+// (InterruptContent, below).
+export default function InterruptModal({ s, act, onNewCollege, specializationOpen = false, onCloseSpecialization }: {
+  s: GameState;
+  act: (a: Action) => void;
+  onNewCollege?: () => void;
+  // The specialization's page (Plan 109), opened from its letter in the
+  // inbox (App.tsx keeps whether it is open).
+  specializationOpen?: boolean;
+  onCloseSpecialization?: () => void;
+}) {
   const interrupt = s.pendingInterrupt;
 
   // Enter continues the read-and-continue interrupts, each through its own
@@ -973,6 +983,20 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
   // The summer's admissions is a page of its own (Plan 108).
   if (summer && admissionsPageUp(s)) return <AdmissionsPage key="admissions" s={s} act={act} />;
 
+  // The specialization's page (Plan 109), over the inbox that holds its
+  // letter: closed, the letter is where it was.
+  if (interrupt.type === 'specialization' && specializationOpen) {
+    const close = () => onCloseSpecialization?.();
+    return (
+      <SpecializationPage
+        key="specialization"
+        s={s}
+        onClose={close}
+        onResolve={(pillar) => { close(); act({ type: 'RESOLVE_SPECIALIZATION', pillar }); }}
+      />
+    );
+  }
+
   // Every other stop is answered in the inbox (Plan 77, InboxTab.tsx),
   // which App.tsx opens on it and holds open until it is resolved.
   return null;
@@ -981,8 +1005,11 @@ export default function InterruptModal({ s, act, onNewCollege }: { s: GameState;
 // The pending interrupt's content, as the inbox's reading pane shows it.
 // It keeps the modal's card (`.modal`, with `.modal-inbox` placing it in
 // the pane), so every view reads as it did over the map. `onOpenBuild` is a
-// letter's door to the build menu (Plan 78B).
-export function InterruptContent({ s, act, onOpenBuild }: { s: GameState; act: (a: Action) => void; onOpenBuild?: () => void }) {
+// letter's door to the build menu (Plan 78B); `onOpenSpecialization` the
+// specialization letter's to its page (Plan 109).
+export function InterruptContent({ s, act, onOpenBuild, onOpenSpecialization }: {
+  s: GameState; act: (a: Action) => void; onOpenBuild?: () => void; onOpenSpecialization?: () => void;
+}) {
   const interrupt = s.pendingInterrupt;
   if (!interrupt) return null;
   const decision = interrupt.type === 'decision-event'
@@ -1036,7 +1063,7 @@ export function InterruptContent({ s, act, onOpenBuild }: { s: GameState; act: (
           onOpenBuild={onOpenBuild}
         />
       ) : interrupt.type === 'specialization' ? (
-        <SpecializationChoice s={s} onResolve={(pillar) => act({ type: 'RESOLVE_SPECIALIZATION', pillar })} />
+        <SpecializationLetter s={s} onOpen={onOpenSpecialization} onLater={() => act({ type: 'RESOLVE_SPECIALIZATION', pillar: null })} />
       ) : interrupt.type === 'catalogue-letter' ? (
         <CatalogueLetterView s={s} instanceId={(interrupt.payload as { instanceId?: string } | undefined)?.instanceId ?? ''} act={act} />
       ) : decision ? (

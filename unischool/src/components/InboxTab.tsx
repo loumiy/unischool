@@ -68,7 +68,7 @@ function splitAnswer(l: LogEntry): { subject: string; how: string; lapsed: boole
   return { subject: l.message.slice(0, cut), how, lapsed: how.startsWith('Nobody answered') };
 }
 
-export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onSeen, onOpenTab, onShowOnMap }: {
+export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onSeen, onOpenTab, onShowOnMap, onOpenSpecialization }: {
   s: GameState;
   act: (a: Action) => void;
   // An item to open on arrival (an arrival toast's Open), consumed once.
@@ -82,6 +82,8 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   onSeen: (id: string) => void;
   onOpenTab: (tab: TabId | 'build') => void;
   onShowOnMap: (buildableId: string) => void;
+  // The specialization letter's "Convene the board" (Plan 109, App.tsx).
+  onOpenSpecialization?: () => void;
 }) {
   const items = inboxItems(s, { read });
   const [filter, setFilter] = useState<Filter>('all');
@@ -244,7 +246,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
         {filter === 'answered'
           ? (answer ? <AnswerView l={answer} /> : null)
           : selected ? (
-            <ReadingPane key={selected.id} s={s} act={act} item={selected} onOpenTab={onOpenTab} />
+            <ReadingPane key={selected.id} s={s} act={act} item={selected} onOpenTab={onOpenTab} onOpenSpecialization={onOpenSpecialization} />
           ) : (
             <div className="inbox-quiet">
               <h3 className="heading-panel">Nothing to read</h3>
@@ -303,17 +305,18 @@ function CharterAnswer({ s, act, p, e }: {
   );
 }
 
-function ReadingPane({ s, act, item, onOpenTab }: {
+function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization }: {
   s: GameState;
   act: (a: Action) => void;
   item: InboxItem;
   onOpenTab: (tab: TabId | 'build') => void;
+  onOpenSpecialization?: () => void;
 }) {
   if (item.kind === 'interrupt') {
     return (
       <div className="inbox-hold">
         <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Nothing moves until this is answered.</p>
-        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} />
+        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} onOpenSpecialization={onOpenSpecialization} />
       </div>
     );
   }

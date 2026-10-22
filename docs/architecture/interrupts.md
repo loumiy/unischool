@@ -8,8 +8,9 @@ inbox (Plan 77): the shell opens the inbox on it, pinned first under "The clock
 waits" and read in its modal card (`InterruptModal.tsx`'s `InterruptContent`),
 and holds the inbox open, with every other view shut, until the player
 resolves it by dispatching an action, which clears it and lets the clock
-resume; the player is then put back where they were. The Final Report alone
-keeps a page of its own over everything (Plan 60).
+resume; the player is then put back where they were. The Final Report (Plan
+60) and the summer's admissions (Plan 108) keep pages of their own over
+everything, and the specialization's letter opens one (Plan 109).
 
 Everything that needs to stop time rides on this one mechanism:
 
@@ -78,8 +79,12 @@ Everything that needs to stop time rides on this one mechanism:
   specialization is chosen (`systems/prestige/milestone.ts`). It is raised
   after the page has turned, on the new year's first week before it runs,
   so its answer (`RESOLVE_SPECIALIZATION`, a pillar or null for "not this
-  year") clears it without moving the clock. A page in the inbox
-  (`SpecializationChoice.tsx`); choosing asks twice. The game's default
+  year") clears it without moving the clock. A short letter in the inbox,
+  whose *Convene the board* opens a page of its own over everything (Plan
+  109, `SpecializationChoice.tsx`): `App.tsx` keeps whether it is open,
+  against the offer's year, and `InterruptModal` shows it, over the inbox
+  that still holds the stop; its Close and Escape go back to the letter.
+  Choosing asks twice, on the page's own bar. The game's default
   answer puts it off; the harness's players choose by their own rule
   (`sim/harness/specialization.ts`). The board's notice before it is a
   board letter, which stops nothing.
@@ -269,7 +274,7 @@ with the clock.
 An interrupt is one of three widths, chosen by what it is
 (`src/components/modalLayout.ts`): **narrow** for a question with a short
 answer (a decision event, a demand, a research report, a single
-milestone), **wide** for a decision with a panel beside it (the summer's review,
+milestone, the specialization's letter), **wide** for a decision with a panel beside it (the summer's review,
 admissions and students beats, the athletic director's cards, a championship, a
 burst of milestones as cards), **page** for a table to read (the Final Report
 and the rankings entry). The summer changes width between beats

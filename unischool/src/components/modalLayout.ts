@@ -24,13 +24,14 @@ export function modalWidth(interrupt: PendingInterrupt): ModalWidth {
     }
     case 'rankings-entry':
     case 'annual-report':
-    // The four specializations side by side (Plan 85D).
-    case 'specialization':
       return 'page';
     case 'athletic-director':
     case 'championship':
       return 'wide';
     case 'first-sport-club':
+    // The board's letter; the four specializations are a page of their own
+    // behind it (Plan 109, SpecializationChoice.tsx).
+    case 'specialization':
       return 'narrow';
     case 'milestone': {
       const entries = (interrupt.payload as MilestonePayload | undefined)?.entries ?? [];

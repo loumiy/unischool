@@ -1,9 +1,9 @@
 import type { GameState, Pillar } from '../state/types';
-import { decimal, pct } from '../format';
-import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINED_SHARE_FOR_FULL, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
-import { LANDMARK_WINDOW_YEARS, LANDMARK_YEARS_FOR_FULL, PARK_RESEARCH_BOOST, PARK_WORDS, landmarkYears, landmarksCounted, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
-import { COMPLEX_POINTS_FOR_FULL, COMPLEX_WINDOW_YEARS, COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
-import { DOWNTOWN_WORDS, FESTIVAL_POINTS_FOR_FULL, FESTIVAL_WINDOW_YEARS, OFF_CAMPUS_SHARE, downtownReading, festivalPoints } from './downtownData';
+import { decimal, moneyShort, pct } from '../format';
+import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINED_SHARE_FOR_FULL, TRAINING_INSTITUTE_ID, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
+import { LANDMARK_WINDOW_YEARS, LANDMARK_YEARS_FOR_FULL, PARK_RESEARCH_BOOST, PARK_WORDS, RESEARCH_PARK_ID, landmarkYears, landmarksCounted, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
+import { ATHLETICS_COMPLEX_ID, COMPLEX_POINTS_FOR_FULL, COMPLEX_WINDOW_YEARS, COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
+import { DISTRICT_YEARS_TO_FULL, DOWNTOWN_WORDS, FESTIVAL_POINTS_FOR_FULL, FESTIVAL_WINDOW_YEARS, OFF_CAMPUS_SHARE, downtownReading, festivalPoints } from './downtownData';
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -306,41 +306,70 @@ export function opensLine(pillar: Pillar, weight: number): string {
   return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, ${weight} of the pillar's ${PILLAR_MAX} points, ${card.fills}.`;
 }
 
+// The specialization's own building, drawn on its panel (Plan 109): the
+// capital project only a college specialized in it may build. Student
+// life's is no building but the downtown, drawn from the town beside the
+// campus (components/specializationPreview.tsx).
+export const SPECIALIZATION_BUILDINGS: Readonly<Record<Pillar, string | null>> = {
+  academics: TRAINING_INSTITUTE_ID,
+  research: RESEARCH_PARK_ID,
+  studentLife: null,
+  athletics: ATHLETICS_COMPLEX_ID,
+};
+
+// The choice (Plan 85D), since Plan 109 a short letter in the inbox and a
+// page of its own behind it (components/SpecializationChoice.tsx).
 export const CHOICE_WORDS = {
   title: 'A specialization',
-  from: 'The board',
-  // Two sentences (Plan 95F); `rule` is prestigeWords.ts's pillarShareRule
-  // (Plan 95E: the rule is said in one place).
-  // Plan 95R: by the route that brought it, the overall ranking first; a
-  // college that has slipped from both since the offer is asked again all
-  // the same.
-  intro: (rank: number, milestone: number, best: { pillar: Pillar; rank: number }, pillarRank: number, rule: string) => {
+  from: 'From the board',
+  // The letter's one sentence: where the college stands, by the route that
+  // brought the offer (Plan 95R), the overall ranking first; a college that
+  // has slipped from both since the offer is asked again all the same. The
+  // rule (prestigeWords.ts's pillarShareRule, said in one place, Plan 95E)
+  // heads the page instead.
+  offer: (rank: number, milestone: number, best: { pillar: Pillar; rank: number }, pillarRank: number) => {
     const where = rank <= milestone ? `stands #${rank} in the guide, in the top ${milestone},`
       : best.rank <= pillarRank ? `stands #${best.rank} in ${PILLAR_WORDS[best.pillar]}, in the top ${pillarRank} of a pillar's standing,`
         : `has stood in the guide's top ${milestone} or a pillar's top ${pillarRank},`;
-    return `The college ${where} and the board asks it to choose, once and for good, the one pillar it means to be the very best at. ${rule}`;
+    return `The college ${where} and the board asks it to choose, once and for good, the one pillar it means to be the very best at.`;
   },
-  // The college's strongest pillar, and where the rivals have gone (Plan
-  // 95F, the second review's B3-6): one line above the cards.
-  strongest: (pillar: Pillar, rank: number, rivals: Readonly<Record<Pillar, number>>) => {
-    const each = (['academics', 'research', 'studentLife', 'athletics'] as const)
-      .map((p, i) => `${rivals[p]}${i === 0 ? ` specialize${rivals[p] === 1 ? 's' : ''}` : ''} in ${PILLAR_WORDS[p]}`);
-    return `The college's strongest pillar is ${PILLAR_WORDS[pillar]} (#${rank}). Of the rivals, ${each.slice(0, -1).join(', ')} and ${each[each.length - 1]}.`;
-  },
+  ranksLabel: 'Where the college stands in each pillar',
+  convene: 'Convene the board',
+  // The page: the question, the rule under it, and what stays empty.
+  question: (name: string) => `What will ${name} be known for?`,
+  forGood: 'Whichever the college chooses, the other three pillars\' shares stay empty, for good.',
+  prestige: 'Prestige',
+  rank: 'Rank',
+  of: (n: number) => `of ${n}`,
+  close: 'Close',
+  // A panel: its building, where the college stands, what it adds and how
+  // its share fills.
+  strongestTag: 'Strongest pillar',
+  builds: (cost: number) => `Capital project · ${moneyShort(cost)}`,
+  grows: `Beside the campus · about ${DISTRICT_YEARS_TO_FULL} years`,
+  downtown: 'A downtown district and a spring festival',
+  standing: 'Where it stands',
+  outOf: (max: number) => `/ ${max}`,
+  meter: (pillar: Pillar, value: number, max: number, top: number | null) =>
+    `The college at ${value.toFixed(0)} of ${max} in ${PILLAR_WORDS[pillar]}${top === null ? '' : `; the top specialist at ${top.toFixed(0)}`}.`,
+  topSpecialist: 'Top specialist',
+  noSpecialist: 'No rival has specialized in this pillar.',
+  rivalsHere: (count: number) => `${count} rival${count === 1 ? ' specializes' : 's specialize'} here`,
+  adds: 'Adds',
+  fills: 'Fills',
   // The share, in points of prestige (Plan 95F: "worth 34 points" was the
   // pillar's, and read largest where it is worth least).
   worth: (points: number) => `Up to ${decimal(points, 1)} points of prestige`,
   // The comparison: the college as it would be with the share full today.
   compare: (before: number, after: number, rankBefore: number, rankAfter: number) =>
     `Full today: prestige ${decimal(before, 1)} → ${decimal(after, 1)}, ${rankAfter === rankBefore ? `still #${rankBefore}` : `#${rankBefore} → #${rankAfter}`}.`,
-  more: 'More',
-  less: 'Less',
-  moreLabel: (name: string, open: boolean) => `${open ? 'Show less about' : 'Show more about'} ${name.replace(/^The /, 'the ')}`,
-  yours: (value: number, rank: number) => `The college stands at ${value.toFixed(0)}, #${rank} in the pillar.`,
-  rivals: (count: number) => (count === 0 ? 'No rival has specialized in this pillar.' : `${count} rival${count === 1 ? ' has' : 's have'} specialized in this pillar`),
-  strongestRival: (name: string, value: number) => `; the strongest, ${name}, stands at ${value.toFixed(0)}.`,
-  choose: (name: string) => `Choose ${name.replace(/^The /, 'the ')}`,
+  choose: (pillar: Pillar) => `Choose ${PILLAR_WORDS[pillar]}`,
+  selected: 'Selected',
+  // Choosing asks twice (Plan 47), on the page's own bar: the warning says
+  // what is lost, so the armed button is a plain Confirm.
+  armed: (pillar: Pillar) => `Specialize in ${PILLAR_WORDS[pillar]}, for good?`,
   confirm: 'Confirm',
+  back: 'Back',
   warning: (pillar: Pillar) => `The college will be specialized in ${PILLAR_WORDS[pillar]} for good. It cannot be changed or undone.`,
   later: 'Not this year',
   laterNote: 'The offer will come back next summer.',

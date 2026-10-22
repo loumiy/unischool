@@ -1,3 +1,5 @@
+import type { Pillar } from '../state/types';
+
 // Inline SVG icons, no icon library at runtime. Some are drawn here; the
 // owner picked others, icon by icon, from Lucide (Plan 93), copied in as
 // their shapes so callers are unchanged (Lucide's licence beside this file,
@@ -464,3 +466,12 @@ export function StatusIcon({ status }: { status: Status }) {
     </svg>
   );
 }
+
+// Each prestige pillar's glyph: History › Prestige's meters and the
+// specialization's panels (Plan 109), the one set for both.
+export const PILLAR_ICONS: Readonly<Record<Pillar, () => React.JSX.Element>> = {
+  academics: CurriculumIcon,
+  research: ResearchIcon,
+  studentLife: StudentLifeIcon,
+  athletics: AthleticsIcon,
+};
