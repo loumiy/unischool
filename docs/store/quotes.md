@@ -40,6 +40,7 @@ of a store page.
 | "I've been looking for exactly this type of game for a long time." | a playtester, on the feedback form | F2 |
 | "An alarmingly believable university simulator." | a Redditor on r/WebGames | R10 |
 | "Wow, deeply impressed by this game." ★★★★★ | an itch.io rating | I2 |
+| "If I didn't know this was a playtest, I … thought it was a completed game." | a playtester, after a finished run | F8 |
 
 ## Everything, by what it praises
 
@@ -82,6 +83,9 @@ of a store page.
 - "Yes, I think there is a good pathway for replay ability." (F1, after a
   full run)
 - "Dominating in the athletics with 22-0 seasons." (F3, best moment)
+- "I like management games like this, especially ones where it isn't too
+  rigid but not completely free that it left me clueless as well." (F8,
+  on playing again)
 - "Unlocking and expanding the campus." (F1, best moment)
 - A streamer kept playing after the owner left the stream: "even without
   fully understanding what to do, he was hooked." (T1, the owner's notes)
@@ -98,6 +102,9 @@ of a store page.
 ### Verdicts
 
 - "I'd give it a nine out of ten. It feels one of a kind." (S1)
+- "If I didn't know this was a playtest, I wouldn't have figured it out
+  and thought it was a completed game." (F8, after a finished run at
+  rank 1)
 - "Wow, deeply impressed by this game, tried it and it's wow!" ★★★★★ (I2)
 - "I've spent money on Steam for games way worse than this." (T1)
 - "I reeeally enjoyed playing." (F2)
@@ -109,6 +116,7 @@ of a store page.
 - "Its giving proper throughback [throwback] to the original Sims vibes."
   (D1)
 - "Really liked visual style on the buildings/scene." (D1)
+- "Thanks for the beautiful game!" (F7)
 - "This reminds me of games I used to play." (T1)
 - "The starting point where you're placing your first building really
   gave me old-school The Sims vibes." (S2)
@@ -121,5 +129,6 @@ of a store page.
 ## What players would pay
 
 From the feedback form's "What would you pay?": $10–15 (F1, after a full
-run, and again as F3), $5–10 (F2). Not a quote, but worth knowing next to
+run, and again as F3; F8, after a finished run), $5–10 (F2, F4), under
+$5 (F5, F6, F7). Not a quote, but worth knowing next to
 the store's price.

@@ -25,9 +25,16 @@ marked **0.1.x** and fixed in a patch.*
   details." Also "looks pretty good", "looked like a fun concept",
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
-  building game I played in a long long time". *10 players · reddit (R1,
-  R3, R4, R8, R9, R12), comment (I1, I2, I3), live (T1), form (F1, F2, F3, F4, F6),
-  discord (D1), service (S1, S2).*
+  building game I played in a long long time". *16 players · reddit (R1,
+  R3, R4, R8, R9, R12), comment (I1, I2, I3), live (T1), form (F1, F2, F3, F4, F6,
+  F7, F8), discord (D1), service (S1, S2).*
+  F8, after a finished run at rank 1: "If I didn't know this was a
+  playtest, I wouldn't have figured it out and thought it was a completed
+  game"; best moment, turning schools distinguished and then founding the
+  graduate programs, "to try and better the quality of the faculties";
+  would play again, a game "that isn't too rigid but not completely free";
+  would pay $10–15. F7: "quite fun", "thanks for the beautiful game", and
+  "quite some fun" reading the course names.
   S2, a playtesting service's reviewer, about 30 minutes on 0.1.2: "I
   found this really soothing to play"; the music and audio "almost like a
   form of meditation"; loved the art style, "particularly the little
@@ -76,6 +83,11 @@ marked **0.1.x** and fixed in a patch.*
   reason to play again: a player doesn't see the Gothic library until
   they found a Gothic college. Kept in mind under *Direction, not plan*
   in `BACKLOG.md`.
+
+- **The camera hides what stands behind a building.** "Do you warrant I
+  can be more free with the camera? I could not see the paths behind
+  buildings." Playing in the Mission style, F7 also "found the towers not
+  so nice." *1 player · form (F7).*
 
 ## 2 · UI and text
 
@@ -146,6 +158,22 @@ marked **0.1.x** and fixed in a patch.*
   attribute and its effect to be explained. *1 player · form (F2).*
 - **The walkthrough is skipped by players who don't read.** T1 skimmed
   it and was a little overwhelmed. *1 player · live (T1).*
+- **Where a debt is paid off.** "Debts were quite confusing: where do I
+  pay them off? I must have missed that. Not that it really impacted the
+  game." *1 player · form (F7).*
+- **"Fill from market" doesn't say where the teachers come from.** When
+  teachers retired, F7 couldn't tell whether it would move the good
+  teachers already on the payroll or hire from the market, so filled
+  the slots by hand "to avoid getting a C teacher." *1 player · form
+  (F7).*
+- **The promises are hard to find again.** "I had trouble finding the
+  promises I had made and was never sure where they were." From the runs
+  before 0.1.3, which adds a *Promises* chapter. *1 player · form (F7).*
+- **A decision waiting reads like the news.** F8 missed a few "to be
+  decided" events "since it also works the same way as the news, but it
+  could be because of user error too." With T1's quiet letters, the
+  second player to miss something waiting on them. *1 player · form
+  (F8).*
 
 ## 3 · Intuitive gameplay
 
@@ -223,6 +251,17 @@ marked **0.1.x** and fixed in a patch.*
   with prestige, health becomes a need past a population), but the game
   shows a trend arrow and the lowest need on hover, never the reason in
   words. *1 player · service (S1).*
+- **The art gallery and the hospital look decorative.** F7 placed them
+  "distractedly" thinking they were "just decorative / for stats, and not
+  that I could have a course in them." *1 player · form (F7).*
+- **Income swings as the acceptance rate moves.** Changing the share of
+  applicants admitted made the weekly earnings "completely nonlinear: it
+  became positive, negative, positive, etc. I really did not know why
+  that was." *1 player · form (F7).*
+- **Renovating every building by hand, with no stakes shown.** "Manually
+  having to renovate all buildings was annoying, further the consequences
+  were never expressed, though I presume it's bad for my reputation."
+  *1 player · form (F7).*
 
 ## 4 · Strategy
 
@@ -278,6 +317,19 @@ marked **0.1.x** and fixed in a patch.*
   just keep adding programs, met the same system from the other side.
   *1 player · form (F4).*
 
+- **The last years are empty, and money stops mattering.** "I felt like
+  the last years were mostly about getting all the courses, and little
+  more"; "the last 10-15 years were mostly empty"; "money was kind of
+  never a problem", and with research "an absurd amount of money … useful
+  in the beginning, but at a certain point.." Little reason to replay
+  "apart from choosing a track for the university." *1 player · form
+  (F7).*
+- **A scientist drawn by research is no better than the market.** "When
+  scientists are attracted by research and I get the notification, I
+  would expect them to be at least somewhat good; could you add a bonus
+  for teachers attracted by research? … it just felt underwhelming." *1
+  player · form (F7).*
+
 ## Asked for in play
 
 - **An ordinance system "like in the SimCity series"**: standing policies
@@ -285,8 +337,18 @@ marked **0.1.x** and fixed in a patch.*
 
 - **More ways to make the campus its own.** More than benches and
   trees: decorative options, architectural styles, elements that carry
-  the university's identity, so each campus feels personal. *1 player ·
-  form (F2).*
+  the university's identity, so each campus feels personal. F7: the
+  style is "only a decision made in the beginning.... beyond that, there
+  are practically only paths and basic trees I can place"; "outdoor
+  personalisation is needed." F8, who "likes to decorate", was excited by
+  0.1.2's grounds. *2 players · form (F2, F7).*
+
+- **Campuses as levels, and land bought by the plot.** F7: "Maybe you
+  have the medical campus, then another, then another": specialised
+  campuses that lengthen the game and shorten each run, perhaps with two
+  specializations offered per level. And "a plot system where you have to
+  pay for more plots", though "that may also prove problematic with the
+  very big buildings". *1 player · form (F7).*
 
 - **A skill tree** beside research and the specialization: invest in
   arts and culture to unlock cultural facilities or events, in finance
@@ -552,6 +614,7 @@ questions, six of them typed answers.
 | Version | Date | What it fixed |
 |---|---|---|
 | `0.1.1` (`f57916d`) | 13 October | Plans 98–103, before most of these findings: halls claimed by three, events that do what they say, save slots, and a longer opening (the next course, the needs, a residence and a dining hall). |
+| `0.1.3` (`b1f2114`) | 21 October | Plans 106–108: the first five years as chapters with objectives, the owner's notes after them, admissions day as a page of its own; the Treasury and the Faculty redrawn; the claimed hall's offers and the Research Park (F5), and NEXT's library hint (S2). |
 | `0.1.2` (`4f5b83e`) | 16 October | Plan 104, bar B: develop the next course from the hall (T1, R2); a skip that asks first (R9); the opening measured; a quieter screen for the first three steps (R10–R11); teaching as numbers, not letters (S1, F1, F2); a reason for every refused placement, and the ghost agreeing with the click (S1); needs out of 100 and what pulls satisfaction down (S1); no teaching overload (S1); the pennant (S1); the welcome letter (S1); the Students tab and satisfaction after the first summer (S1). |
 
 ## The replies
@@ -804,6 +867,85 @@ that in mind.*
     doesnt have to be."
   - *Would pay:* under $5. "I would pay under $5 if some more was built
     out. For as it is, I would prefer that it stay free."
+
+- **F7** · 21 October, 22:05 UTC · 0.1.3 (build `b1f2114`, itch.io),
+  sent from year 1 week 2, rank 75: a new college, so the answers are
+  about the runs before it ("I played a while ago (10d)"). The install id
+  has no PostHog events (statistics probably off), so no run to match.
+  - *How long:* 1–2 hours.
+  - *A moment you didn't know what to do next?* "I played a while ago
+    (10d) and remember getting lost in the beginning, though after
+    restarting I managed. Debts were quite confusing: where do I pay them
+    off? I must have missed that. Not that it really impacted the game."
+  - *Best moment:* "Overall, the game was quite fun."
+  - *Most frustrating:* "See Q2. Also, when all of a sudden some teachers
+    retired, the button that says "fill from market" is confusing: since I
+    was accumulating good teachers, would that mean it assigns to first
+    the best teachers I already pay, or directly from the market? I found
+    myself filling the slots manually to avoid getting a C teacher."
+  - *Play again?* "Well, apart from choosing a a track for the
+    university, there really is little reason. What I found sad is the
+    little amount of costomisation. See the last Q."
+  - *Would pay:* under $5.
+  - *Anything else:* "While I like the idea of the style of the campus,
+    that is only a decision made in the beginning.... beyond that, there
+    are practically only paths and basic trees I can place. Also, playing
+    with the mission style I found the towers not so nice. When I placed
+    the art gallery and the hospital, I had distractedly thought that they
+    were just decorative / for stats, and not that I could have a course
+    in them. I felt like the last years were mostly about getting all the
+    courses, and little more. Also, money was kind of never a problem. I
+    had trouble finding the promises I had made and was never sure where
+    they were. Also, when changing how much % of the applicants I would
+    accept, somehow my earning / week was completely nonlinear: it became
+    positive, negative, positive, etc. I really did not know why that was.
+    Since I was focusing on research though, I had an absurd amount of
+    money. I mean, it is useful in the beginning, but at a certain point..
+    I don't know how you approached the rendering, but do you warrant I
+    can be more free with the camera? I could not see the paths behind
+    buildings... Also, when renovating the tower, I could not access the
+    church behind, which was only the case during the renovation. Manually
+    having to renovate all buildings was annoying, further the
+    consequences were never expressed, though I presume it's bad for my
+    reputation. I would maybe like a plot system where you have to pay for
+    more plots, that would maybe make it more organised. However That may
+    also prove problematic with the very big buildings... I would suggest
+    levels: Maybe you have the medical campus, then another, then
+    another... I saw you put a lot of effort with the course names and had
+    quite some fun reading them. Having specialised campuses could make
+    the game quite longer, and maybe shorten a bit the individual runs
+    since the last 10 -15 years were mostly empty. This could connect
+    nicely with choosing a specialisation; maybe you only have 2 opetions
+    per level? maybe none at all? idk. In any event, outdoor
+    personalisation is needed. When scientists are attracted by research
+    and I get the notification, I would expect them to be at least
+    somewhat good; could you add a bonus for teachers attracted by
+    research? Idk, it just felt underwhelming... Thanks for the beautiful
+    game! I hope I could help! I saw your last update with the better
+    student stats and it looked quite nice. I was lucky to find the game
+    when it had just released!"
+
+- **F8** · 21 October, 15:25 UTC · 0.1.2 (build `4f5b83e`, itch.io),
+  sent from year 50 week 52, rank 1: a finished run. PostHog (install id
+  matched): first seen 11 October on 0.1.0, then 0.1.1 and 0.1.2; four
+  runs, one specialization, one Final Report finished, 144 played
+  minutes to year 50.
+  - *How long:* 4+ hours.
+  - *A moment you didn't know what to do next?* "No, it was pretty clear"
+  - *Best moment:* "When turning the school into distinguished schools and
+    later the graduate school programs, it was fun to try and better the
+    quality of the faculties."
+  - *Most frustrating:* "I think missing a few "to be decided" events
+    since it also works the same way as the news, but it could be because
+    of user error too."
+  - *Play again?* "Yes, I like management games like this, especially
+    ones where it isn't too rigid but not completely free that it left me
+    clueless as well."
+  - *Would pay:* $10–15.
+  - *Anything else:* "I played since the first or two days since being
+    published and the newest update makes me very excited as someone who
+    likes to decorate. If I didn't know this was a playtest, I wouldn't
+    have figured it out and thought it was a completed game."
 
 ### We Playtest Games — a service's unsolicited playtest (16 October)
 
