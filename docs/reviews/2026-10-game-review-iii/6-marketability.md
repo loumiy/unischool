@@ -99,8 +99,9 @@ The route still holds: Steam page first, demo next, Next Fest in June 2027, laun
 
 By the owner's account the current cover art is AI-generated, and he has asked an artist for a title-screen background to replace this one. Nothing in the repository names a painter. **The reviewer's judgment:** its details read as generated. The banner on the left lamp post carries a temple-front mark with four columns, where the game's mark has three (I-U-I, `Logo.tsx`), above a line of unreadable lettering.
 
-Four places still say no picture is generated:
+Five places still say no picture is generated:
 - `ai-disclosure.md:44–45`: "No picture in the game comes from an image generator";
+- the itch.io form's Graphics row at `ai-disclosure.md:116`: "No image generator";
 - the Steam text drafted at `ai-disclosure.md:90`, the same claim;
 - the short form at `:131–132`, "No image, sound or voice comes from a generator", which is repeated in `README.md:273`;
 - `README.md:115–116`: "everything on screen is drawn from data".
@@ -115,7 +116,7 @@ The itch.io form note (`itch-page.md:212`) says "No image generator", although t
 - PC Gamer's line on AI capsule art ("signpost waste") is about exactly the picture a stranger meets first.
 
 **Fix.**
-1. **Today (S):** list which pictures were generated (the cover by the owner's account; the title background if, as it appears, it was too), then correct the four places above to say so. For example: "The title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art." Add a line for marketing text: "the store text and the trailer's captions were written with the same assistant." Put a one-line correction in the next devlog.
+1. **Today (S):** list which pictures were generated (the cover by the owner's account; the title background if, as it appears, it was too), then correct the five places above, and the itch.io note below them, to say so. For example: "The title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art." Add a line for marketing text: "the store text and the trailer's captions were written with the same assistant." Put a one-line correction in the next devlog.
 2. **Better (S–M):** until the commission arrives, draw the title screen over the game's own campus. `tools/itchCover.mjs` already composes one (the autumn campus under a band of sky). Review II's B6-1 asked for this too. The build then holds no generated image, the "no image generator" line is true again, and the demo needs no art disclosure.
 3. **Never put the AI cover on Steam,** not even as a placeholder (see C6-2's fallback).
 

@@ -24,7 +24,7 @@ Where the 5,000 new words went: the chapters (2,567), the faculty's table and pl
 §5's limits are what at most 3 sentences, how at most 4 levers, and why 2–4 links. `test/chapters.test.ts` holds every chapter to them, and every chapter passes (`data/c2-opening.md`, the last table). **The limits count sentences, not words.** So the sentences grew to fill them:
 
 - **Briefings run 99–159 words** (median 126). The *what* paragraphs run 30–68 words in three sentences, an average of 16 words a sentence. The longest is 39 words (*A specialization*). Seven are 25 or more.
-- **The drawer at a chapter's first opening is 184–255 words**: objectives, briefing, *Also waiting*, milestones and the Guide's list (`data/c2-opening.md`). Plan 106 §5's own sample briefing (what, how, why) is about 95 words.
+- **The drawer at a chapter's first opening is 181–270 words**: objectives, briefing, *Also waiting*, milestones and the Guide's list (`data/c2-opening.md`). Plan 106 §5's own sample briefing (what, how, why) is about 95 words.
 - **The owner's second rule holds**: no sentence ends on a passive and a pronoun. The first rule ("say what a number adds to") is kept in *A hall of its own* ("each academic hall adds six more").
 
 **The worst sentences, with rewrites:**

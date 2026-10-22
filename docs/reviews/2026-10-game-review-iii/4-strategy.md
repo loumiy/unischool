@@ -194,7 +194,7 @@ So until 20 October the guardrail passed because the harness's blind player was 
 
 - **T1's mistake no longer bites.** Before 107 three summers at 1% put the college 24 weeks in the red and into a loan, which is what T1 saw on 0.1.1 and climbed out of. Now the same line never goes into the red, and by Y20 it stands *ahead* of the as-is line. It still costs about five points of prestige at Y10.
 - **Admitting the room's maximum is free.** With crowding gone it never costs prestige; class seats pull the academic need, but satisfaction stays 82–91.
-- **The Idle player (does nothing at all) rises.** On seed 12345 it climbs from 32 to 42.3 in ten years; before 107 it fell from 42 to 16 by Y5. Part of this is 107F's design (the college opens at the pillars' floor, so it cannot fall far), but the climb comes from the early help, which reads the year, not what the college did. Doing nothing no longer reads as failing.
+- **The Idle player (does nothing at all) rises.** On seed 12345 it climbs from 32 to 42.3 in ten years; before 107 it fell from 42 to 16 by Y5. Part of this is 107F's design: the college opens at the pillars' floor, so it cannot fall far, and it rises toward its own target above that floor (before 107 it also climbed back, 16 to 30 by Y11, with no help). The early help, which reads the year and not what the college did, speeds the rise: 32.0 → 33.2 under full help through Y5, then about 9 points in Y5–Y11 as it fades. Doing nothing no longer reads as failing.
 
 | Prestige at the start of years 1–11, seed 12345 | Y1 | Y2 | Y3 | Y4 | Y5 | Y6 | Y11 |
 |---|---|---|---|---|---|---|---|

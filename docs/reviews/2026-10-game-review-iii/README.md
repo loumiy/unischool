@@ -31,15 +31,15 @@ Finding ids move on a letter again: `C1-1` … for the areas, `I7-1` … for the
 The exception: **a 0.1.2 save left on one of the walkthrough's later steps crashes 0.1.3 on Continue, every time** (I7-1). Loading such a save from a slot or a file writes it over the live run first. 0.1.3 went up on itch.io at 21:04 UTC on 21 October, so this is in players' hands now. The fix is an hour.
 
 **Plans 106–108 answered the right problem and made new ones.** The walkthrough is fixed: two cards of about 50 words. The admissions page is the best-explained decision in the game (areas 2, 3 and 6 agree). But the chapters that replaced the walkthrough:
-1. **Can stop a run's guidance for good.** *Paying for it* requires opening the Treasury, which has no tab button: it opens only from the cash figure. Before a chapter asked, players opened it about once in ten years. A skimmer sat on Chapter 5 from week 30 of year 1 to year 3 and beyond, and every matter, demand, promise and later chapter waited behind it (C3-1). *The teams* asks for an athletic director that can't be had for two years, and held the ticker for 135 weeks (C3-2). The first summer's briefing, T1's lesson, waits behind both, so it misses the players it was written for (C2-3).
-2. **Moved the reading rather than cutting it.** A newcomer still reads about 1,390 words before year two (review II: 1,400–1,800). The drawer opens by itself at each chapter with 184–256 words, covers the map's left third, and scrolls at both screen sizes. The first one opens in the first minute after the walk, asking for a course that can't start for four weeks (C2-1, C3-3). That is the moment the statistics flag: a third of 0.1.2's founded runs ended before the first summer.
+1. **Can stop a run's guidance for good.** *Paying for it* requires opening the Treasury, which has no tab button: it opens from the cash figure, or from the briefing's *Show me*, which a skimmer who shuts the drawer never uses. Before a chapter asked, players opened it about once in ten years. A skimmer sat on Chapter 5 from week 30 of year 1 to year 3 and beyond, and every matter, demand, promise and later main chapter waited behind it (C3-1). *The teams* asks for an athletic director that can't be had until the club's third-year petition, and held the ticker for 143 weeks (C3-2). The first summer's briefing, T1's lesson, waits behind both, so it misses the players it was written for (C2-3).
+2. **Moved the reading rather than cutting it.** A newcomer still reads about 1,340 words before year two (review II: 1,400–1,800). The drawer opens by itself at each chapter with 181–270 words, 99–159 of them the briefing; it covers the map's left third, and scrolls at both screen sizes. The first one opens in the first minute after the walk, asking for a course that can't start for four weeks (C2-1, C3-3). That is the moment the statistics flag: a third of 0.1.2's founded runs ended before the first summer.
 3. **State ten rules that aren't so**, in text written in the last two days: "about five minutes" for a two-step walk; courses "over ten to fifteen weeks"; a board that "worries" at a level that does nothing; History "shows prestige's target", which Plan 98B removed (C2-2). The chapters are the answer to "I didn't know how it works"; a false rule in one costs trust in all of them.
 
-**The strategies still build one college.** Five goal players of seven end at 37,120–37,840 students, 415–420 courses and twenty teams. The specialization changes the title, the lead pillar and one building, not the build. It now arrives at exactly year 20 for six goals of seven and for every real player who got there, so it reads as a date, not a milestone (C4-1, C4-7). Championships is now a real strategy: 49–66 titles and a top-12 finish, against 0 titles and 50th.
+**The strategies still build one college.** Five goal players of seven end at 37,120–37,840 students, 415–420 courses and twenty teams. The specialization changes the title, the lead pillar and one building, not the build. It now arrives at exactly year 20 for six goals of seven, and 12 of the 15 real players who chose did so in year 21, so it reads as a date, not a milestone (C4-1, C4-7). Championships is now a real strategy: 49–66 titles and a top-12 finish, against 0 titles and 50th.
 
 **Two of the game's own rules no longer hold.**
 - **Teaching doesn't decide the top.** The teaching-blind player now finishes first; the target is 11th–25th. Bisected, the guardrail only ever passed because the NEXT line kept asking that player for a library it already had (S2's bug, fixed on 20 October). With teaching worth about 7 points of prestige at most, the hiring that players called the most frustrating part buys little (C4-2).
-- **Early mistakes cost little.** Since Plan 107, T1's three summers at 1% never go into the red, and a college that does nothing at all rises from 32 to 42 in ten years: the early help reads the year, not what the college did (C4-3).
+- **Early mistakes cost little.** Since Plan 107, T1's three summers at 1% never go into the red, and a college that does nothing at all rises from 32 to 42 in ten years, toward its own target above the founding floor, where before Plan 107 it fell to 16 first. The early help, which reads the year rather than what the college did, speeds that rise (C4-3).
 
 Late money is $9.5B at year 40 (C4-5), and the happiest college is still graded F (C4-6).
 
@@ -65,8 +65,8 @@ Effort: S an hour, M a PR, L a plan.
 ### 1. No chapter may hold the run — every guided player who skims, years 1–6, S
 
 - **Findings:**
-  - C3-1: Chapter 5's one required objective is a click on the cash figure, which doesn't look like a button, and everything after it waits;
-  - C3-2: *The teams* asks for what can't be done for two years, and the ticker shows it over the chapters beneath;
+  - C3-1: Chapter 5's one required objective is opening the Treasury, which has no tab button: a skimmer must find the cash figure, which doesn't look like a button, and every later main chapter waits;
+  - C3-2: *The teams* asks for what can't be done until the club's third-year petition (38–143 weeks in the runs), and the ticker shows it over the chapters beneath;
   - C2-3: *The first summer* waits behind chapters 4 and 5, and the letter it replaced is retired in a guided run;
   - I7-2: the sport club, the varsity petition and the athletic director arrive before their chapter, and the letters say a shut tab is open;
   - C3-7: three chair's letters still stop the clock beside the chapter that says the same.
@@ -80,7 +80,7 @@ Effort: S an hour, M a PR, L a plan.
 ### 2. The drawer as a line, not a page — every guided player, from the first minute, S–M
 
 - **Findings:**
-  - C2-1: 184–256 words at each chapter, opened by itself, scrolling at both sizes;
+  - C2-1: 181–270 words at each chapter (the briefing 99–159 of them), opened by itself, scrolling at both sizes;
   - C3-3: the first one opens a minute after the walk and asks for a course that can't start;
   - C2-6: prestige explained in three vocabularies, and the target figure back;
   - C3-5: two counts of the same places, 80 apart.
@@ -122,7 +122,7 @@ Effort: S an hour, M a PR, L a plan.
 
 - **Findings:**
   - C3-4: a matter pauses the clock with an 8-second toast as its only sign (T1; Plan 104B still held);
-  - I7-3: the summer swaps the tab being read for the Inbox (S2);
+  - I7-3: any stop that holds the clock, the summer above all, swaps the tab being read for the Inbox (S2);
   - C4-4: each new matter takes 2×, 4× and 8× away;
   - C3-6: an idle committee with nothing on the ticker.
 - **Fix:**
@@ -211,11 +211,11 @@ Effort: S an hour, M a PR, L a plan.
 ### Fix first, whatever the ranking
 
 Small and certain. Each one loses or overwrites a player's data, misleads every player of a kind, or breaks a tool the next review needs:
-- **I7-1: the 0.1.2 save that crashes 0.1.3.** `sanitizeOpening` carries every retired stage to `play`; `OpeningCoach` returns `null` for a stage it doesn't know. Add a test that loads each retired stage and draws the card. Ship it as 0.1.3.1: 0.1.3 is live.
-- **C3-10: appointing the athletic director renames the teams.** The pick always sends the mascot suggestion, and the reducer writes any non-empty mascot (`InterruptModal.tsx:675`, `reducer.ts:697`). Write it only when the college has none.
+- **I7-1: the 0.1.2 save that crashes 0.1.3.** Make `sanitizeOpening` carry every retired stage to `play` (today it carries only `appoint`, to `found`), and make `OpeningCoach` return `null` for a stage it doesn't know (today it throws). Add a test that loads each retired stage and draws the card. Ship it as 0.1.3.1: 0.1.3 is live.
+- **C3-10: appointing the athletic director renames the teams.** The pick always sends the mascot suggestion, and the reducer writes any non-empty mascot (`InterruptModal.tsx:675`, `reducer.ts:698`; `defaultAnswers.ts:108` does the same when the stop is answered for the player). Write it only when the college has none.
 - **C2-2's first three rules:** the "five minutes", the course weeks and the board's freeze, which every guided player reads in the first ten minutes.
 - **C3-1's Chapter 5:** make "Open the Treasury" optional. Until then, skimmers on 0.1.3 lose every system the chapters gate.
-- **C6-1: the four "no image generator" lines**, before any store form is filled in.
+- **C6-1: the "no image generator" lines** (six places in the store drafts and the README), before any store form is filled in.
 - **I7-5: the scenario saves.** They sit on Chapter 5 with a briefing over the map, which broke three review tools, and `demand` still never stops.
 
 ## The play statistics, in one table
@@ -230,7 +230,7 @@ From [`data/play-statistics.md`](data/play-statistics.md), founded runs, sandbox
 | Specializations offered (saves loaded from files included) | 7 | 5 | 3 |
 | Reached year 50 | 3 | 1 | 1 |
 
-0.1.3's chapters are untested by outside players: its six runs are the owner's. The next read should look at `chapter_opened` and `chapter_done`, and above all at how many runs sit on *Paying for it*.
+0.1.3's chapters are untested by outside players: the six runs seen so far are almost certainly the owner's. The next read should look at `chapter_opened` and `chapter_done`, and above all at how many runs sit on *Paying for it*.
 
 ## The tools
 

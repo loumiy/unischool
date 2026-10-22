@@ -45,7 +45,7 @@ Plan 86, area 3. Commit read: `b1f2114` (0.1.3), production build in
 | Y3W1 | *Campus life*. Show me ("site it from the build menu") opens the menu on Grounds; the Student Center is under Social. | Mild (C3-9) |
 | Y3W2 | First student demand, which pauses the clock. The only sign is a toast bottom right; the ticker still shows the last log line. | **Yes** for T1 (C3-4) |
 | Y3W36 | "…: post a search in Philosophy" → posted, 26 weeks. The search turned up a candidate at Y4W1 (a log line). The NEXT line kept saying "found Philosophy in Elm Hall" without saying the candidate had come. | Mild |
-| Y4W1 | *The teams* opens and asks "Appoint an athletic director". There is no way to: the Athletics tab says "No Athletic Director. The board will put candidates forward before long", and the club "may petition in Year 6". The chapter stayed on the ticker for **135 weeks**. | **Yes** (C3-2) |
+| Y4W1 | *The teams* opens and asks "Appoint an athletic director". There is no way to: the Athletics tab says "No Athletic Director. The board will put candidates forward before long", and the club "may petition in Year 6". The chapter stayed on the ticker for **143 weeks**. | **Yes** (C3-2) |
 | Y4W37 | Hired a Provost from the Faculty tab's foot ($320k) for *Running the college*; 4× opened. | No |
 | Y4W52 | Admissions: "Admit rate 34%: the most the seats left will hold (last summer's is 86%)". | No. 107G holds. |
 | Y5W1 | *The long game* opens done but for the sweep; Show me opens the Treasury on the budget view, not the Endowment view where the sweep is. | Mild (C3-9) |
@@ -65,7 +65,7 @@ Plan 86, area 3. Commit read: `b1f2114` (0.1.3), production build in
 
 **Brief** behaves as designed: the line only, and the same gates. **Off** is 0.1.2's ticker ("MILESTONE … NEXT Places for 80 of 350"), and the gates open at once.
 
-**Real time and weeks per chapter** (careful): chapters 2–8 took 0–15 weeks each and no chapter waited on a date it couldn't meet, except *The teams* (135 weeks) and *Research* (open from Y5W1, unmet at Y6W41). Full table in `data/c3-sessions.md`.
+**Real time and weeks per chapter** (careful): chapters 2–8 took 0–15 weeks each and no chapter waited on a date it couldn't meet, except *The teams* (143 weeks) and *Research* (open from Y5W1, unmet at Y6W41). Full table in `data/c3-sessions.md`.
 
 **Words.**
 - **The walk** is about 110 words: S2's and D1's complaint is answered.
@@ -153,8 +153,8 @@ Plan 106 §1a's fifteen, and playtest-1's areas 2 and 3 as the brief lists them.
 | Id | Finding | Severity | Effort | Continues |
 |---|---|---|---|---|
 | C3-1 | A player who never opens the Treasury stays on Chapter 5 for good, and everything after it waits | major | S | — (area 7's note under I7-2) |
-| C3-2 | *The teams* asks for an athletic director nobody can appoint for two years | major | S | — |
-| C3-3 | The first minute after the walk is a 132-word drawer over the map | major | S | D1, S2 |
+| C3-2 | *The teams* asks for an athletic director nobody can appoint until the club's third-year petition | major | S | — |
+| C3-3 | The first minute after the walk is a drawer over the map with a 132-word briefing | major | S | D1, S2 |
 | C3-4 | A matter still stops the clock with only a toast to say so | major | S | T1 (Plan 104B held) |
 | C3-5 | Two counts of the same places, 80 apart, side by side | minor | S | — |
 | C3-6 | The committee sits idle with nothing on the ticker | minor | S | was B3-9 |
@@ -189,12 +189,12 @@ Plan 106 §1a's fifteen, and playtest-1's areas 2 and 3 as the brief lists them.
 - Either way, no required objective should be a click the game can't ring.
 - Mark the tab when *Show me* is used from the drawer too. It is, through the shell; the gap is the skimmer who never opens the drawer.
 
-### C3-2. *The teams* asks for an athletic director nobody can appoint for two years — major, S
+### C3-2. *The teams* asks for an athletic director nobody can appoint until the club's third-year petition — major, S
 
 **What.**
 - **What it asks.** *The teams* opens at Y4 W1 once a sport club has formed (`chapters.ts:211-218`). Its one required objective is "Appoint an athletic director".
 - **What the game allows.** The AD comes only as the board's offer, and only once a varsity team exists (`eventSystem.ts:132-135`). A team comes from a petition at week 39, three years after the club formed (`VARSITY_PETITION_MIN_TENURE_YEARS = 3`, `studentLifeData.ts:1022`). Nothing in the Athletics tab appoints one: "No Athletic Director. The board will put candidates forward before long." The club "may petition in Year 6".
-- **In play.** The chapter sat on the ticker from Y4 W1 to Y6 W40: **135 weeks**. The briefing's two *Show me*s open a tab with nothing to do, and the second points at a priority list with no programs in it.
+- **In play.** The chapter sat on the ticker from Y4 W1 to Y6 W40: **143 weeks**. How long depends on when the club formed: 38 weeks for area 7's harness player. The briefing's two *Show me*s open a tab with nothing to do, and the second points at a priority list with no programs in it.
 - **The chain.** *The teams* is a side chapter, so the chain went on. But the ticker shows the first open chapter (`currentChapter`, `chapters.ts:319-323`). *Running the college*, *The long game* and *Research* were open under it, and the ticker said "Appoint an athletic director" through all of them. The drawer showed *The teams* too; the others were reachable only through the Guide's "Read again".
 - **Area 7's I7-2** is the same seam from the other side: the stops come before the chapter.
 
@@ -205,7 +205,7 @@ Plan 106 §1a's fifteen, and playtest-1's areas 2 and 3 as the brief lists them.
 - Make the ticker show the first open **main** chapter. A side chapter belongs in the drawer as a second section, not on the strip.
 - **Test:** no required objective may be impossible on the week its chapter opens (a harness check over the guided players).
 
-### C3-3. The first minute after the walk is a 132-word drawer over the map — major, S
+### C3-3. The first minute after the walk is a drawer over the map with a 132-word briefing — major, S
 
 ![1280×720: the step-one card stays top right; the drawer that opens by itself in week 1 covers the hall panel; Send the offers below the fold](img/c3-laptop-720.jpg)
 

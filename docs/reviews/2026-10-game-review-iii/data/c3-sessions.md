@@ -25,7 +25,7 @@ Year 6 W41, most of it the tools' reloads and my reading of the code.
 | 9 A hall of its own | Y2W27 (Elm placed W14, opened W39) | Y2W40 | 13 | English moved to Elm Hall | drawer: 143 |
 | 10 Campus life | Y3W1 | Y3W1 | 0 | Student Center sited | drawer: 145 |
 | 11 Promises | Y3W46 | Y4W1 | 7 | the third summer | drawer: 109 |
-| 12 The teams (side) | Y4W1 | **Y6W40** | **135** | AD offer arrived only after the first varsity team (Y6W39) | drawer: 147 |
+| 12 The teams (side) | Y4W1 | **Y6W40** | **143** | AD offer arrived only after the first varsity team (Y6W39) | drawer: 147 |
 | 13 Running the college | Y4W27 | Y4W37 | 10 | Provost hired from outside ($320k) | drawer: 156 |
 | 14 The long game | Y5W1 | Y5W1 | 0 | sweep set (school and upkeep already met) | drawer: 141 |
 | 15 Research (side) | Y5W1 | open at Y6W41 | — | no lab sited: NEXT said "Site Oak Hall" | drawer: 162 |

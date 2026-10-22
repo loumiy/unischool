@@ -35,7 +35,7 @@ One reader, a model. Judgments of feel are labeled as the reviewer's. The script
 
 | Finding | Players | On 0.1.3 |
 |---|---|---|
-| The game is easier than its words: too many words, read twice (S2, D1, S1, F6) | 4 | **Still holds, in a new place.** The walkthrough is short now (coach cards of 49–54 words, two steps). The words moved into the drawer, which opens by itself onto 184–255 words at each new chapter and covers a third of the map (C2-1). Some of those words are wrong (C2-2), which is the "read and re-read" problem at its worst. |
+| The game is easier than its words: too many words, read twice (S2, D1, S1, F6) | 4 | **Still holds, in a new place.** The walkthrough is short now (coach cards of 49–54 words, two steps). The words moved into the drawer, which opens by itself onto 181–270 words at each new chapter and covers a third of the map (C2-1). Some of those words are wrong (C2-2), which is the "read and re-read" problem at its worst. |
 | The screens after the first course were text-heavy (D1) | 1 | **Answered for the walk, moved to the drawer** (C2-1). |
 | The board's opening letter took two reads (S1) | 1 | **Fixed** (104L): the welcome is 55 words of welcome. |
 | A need's score reads as a clock (S1) | 1 | **Fixed** (104I): "79 /100" in the dial. |
@@ -93,7 +93,7 @@ Saves: `founding`, `year-8-balanced` (Y9), `crisis` (Y16), `year-25-rich` (Y26),
 - one drawer between chapters (54);
 - the summer (504).
 
-That is **about 1,390 words before year two**, against review II's 1,400–1,800. *Paying for it* (255) opened in the first week of year 2, and *The first summer* not at all, since the newcomer had not seated every student by week 46 (C2-3). Year 2 adds three more briefings (*Paying for it*, *Standing*, *A faculty*: 255, 256 and 239) and the second summer (487). **The reviewer's judgment:** about the same total as review II, in smaller pieces, and almost all of it optional. The words are not too many. Too many of them land in the same eight square inches over the map, and some are not true (C2-1, C2-2).
+That is **about 1,340 words before year two**, against review II's 1,400–1,800. *Paying for it* (255) opened in the first week of year 2, and *The first summer* not at all, since the newcomer had not seated every student by week 46 (C2-3). Year 2 adds three more briefings (*Paying for it*, *Standing*, *A faculty*: 255, 256 and 239) and the second summer (487). **The reviewer's judgment:** about the same total as review II, in smaller pieces, and almost all of it optional. The words are not too many. Too many of them land in the same eight square inches over the map, and some are not true (C2-1, C2-2).
 
 **What earns its place.** The reviewer's judgment, from the captures.
 
@@ -143,7 +143,7 @@ Cited, not repeated:
 
 **What.** Plan 106's rule was that more explanation must not mean more reading: a veteran reads one line, and the rest is a click away. The strip keeps that rule: "CHAPTER 7 Open the Students tab", 13–17 words with the log line. The drawer breaks it.
 
-- **It opens by itself** at every chapter with a briefing, in Guided, the default (`App.tsx:180–189`), unless a tab is open at that moment. The scripted newcomer met six chapters with briefings in its first two years (year 1 weeks 1, 10 and 12; year 2 weeks 1, 2 and 14), and the hall chapter follows when the first academic hall opens. Each is **184–256 words**, against the 95 words of Plan 106 §5's own example briefing. The objectives come first, then the briefing, then *Also waiting* (one NEXT line, 15–25 words), then *Milestones* (one "Next milestone" and an *All milestones* button), then the Guide's list, which grows by a button a chapter (`data/c2-opening.md`).
+- **It opens by itself** at every chapter with a briefing, in Guided, the default (`App.tsx:180–189`), unless a tab is open at that moment. The scripted newcomer met six chapters with briefings in its first two years (year 1 weeks 1, 10 and 12; year 2 weeks 1, 2 and 14), and the hall chapter follows when the first academic hall opens. Each drawer is **181–270 words** (`data/c2-opening.md`); the briefing itself is 99–159 of them, against the 95 words of Plan 106 §5's own example. The objectives come first, then the briefing, then *Also waiting* (one NEXT line, 15–25 words), then *Milestones* (one "Next milestone" and an *All milestones* button), then the Guide's list, which grows by a button a chapter (`data/c2-opening.md`).
 - **It covers the map's left third** (440 × 540 px at 1440×900, 432 px tall at 1280×720) and **scrolls at both sizes**: its content is 683–869 px. At 1280×720 the first screen holds the objectives, the live readout and the *what* paragraph. *How*, with its *Show me* buttons, is below the fold ([image](img/c2-drawer-1280.jpg)).
 - **The test counts sentences, not words** (`test/chapters.test.ts`). So the three sentences of *what* run 30–68 words and the longest sentence is 39 (`2d`). Every chapter passes §5 and still reads long.
 - **The NEXT line repeats the chapter.** Through year 1 the drawer's *Also waiting* and the strip's NEXT both say "Places for 80 of 350 students, counting courses under way: found another program in Founders Hall, with a professor to teach it" (25 words) under a chapter that asks for the same thing.
