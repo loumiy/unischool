@@ -44,7 +44,7 @@ import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
 import { tabAvailable } from '../src/components/TabNav';
 import { NEEDS_LETTER_ID } from '../src/data/openingData';
-import { currentChapter, ringedBuilding, ringedProgram } from '../src/state/chapters';
+import { currentChapter, LOOK_MARKS, ringedBuilding, ringedProgram } from '../src/state/chapters';
 import { awaitsSite, centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
@@ -300,6 +300,11 @@ const walkToCourse = (name: string) => reducer(
   const second = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => s.tech.find((t) => t.id === id)?.status === 'available')!;
   s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: second, facultyId: WALKTHROUGH_PROFESSOR });
   assert(done(s, 'next-course') && ringedProgram(s) === null, 'a second course under way ends the chapter and the ring');
+
+  // Looking around: the camera's four moves before the chapter after it.
+  assert(currentChapter(s)?.id === 'looking-around', `Looking around is the chapter (${currentChapter(s)?.id})`);
+  for (const mark of [LOOK_MARKS.pan, LOOK_MARKS.turn, LOOK_MARKS.tilt, LOOK_MARKS.zoom]) s = reducer(s, { type: 'MARK_GUIDANCE', mark });
+  assert(done(s, 'looking-around'), 'pan, turn, tilt and zoom finish it');
 
   // Somewhere to sleep from week 10: the build menu rings a residence
   // hall, then a dining hall. The Students tab stays shut (Plan 104M).

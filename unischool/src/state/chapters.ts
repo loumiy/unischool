@@ -58,10 +58,6 @@ export interface Chapter {
   // opensWhen, and nothing waits for it: a system some colleges never take
   // up (athletics) must not hold back the chapters after it.
   side?: true;
-  // A side chapter that steps aside: the drawer shows it only while no
-  // chapter of the chain is open, so a habit it teaches never covers the
-  // college's own next lesson.
-  yields?: true;
 }
 
 const week = (year: number, w: number) => (year - 1) * WEEKS_PER_YEAR + w;
@@ -99,20 +95,16 @@ export const CHAPTERS: readonly Chapter[] = [
   },
   {
     // The camera (F7: "I could not see the paths behind buildings"): pan,
-    // turn, tilt, zoom and Home, once the first course has company. A side
-    // chapter that yields: it fills the weeks before Somewhere to sleep,
-    // steps aside for any chapter of the chain, and holds nothing back, so a
-    // player who never tilts the view still meets every system. A move made
-    // before it opens counts, and a save already under way meets it in its
-    // next quiet stretch.
+    // turn, tilt and zoom, each required before Somewhere to sleep opens
+    // (the owner, 22 October), and Home, optional. A move made before it
+    // opens counts. A save already past it, with a later chapter open, has
+    // it caught up (settleChapters).
     id: 'looking-around',
     earliest: week(1, 1),
-    side: true,
-    yields: true,
-    opensWhen: (s) => s.guidance?.done['next-course'] !== undefined,
     objectives: (Object.keys(LOOK_MARKS) as LookMove[]).map((move) => ({
       id: `look-${move}`,
       progress: (s: GameState) => marked(s, LOOK_MARKS[move]),
+      ...(move === 'home' ? { optional: true as const } : {}),
     })),
   },
   {
@@ -345,8 +337,7 @@ export function isMet(p: ObjectiveProgress): boolean {
 export function currentChapter(s: GameState): Chapter | null {
   const g = s.guidance;
   if (!g) return null;
-  const open = CHAPTERS.filter((c) => g.opened[c.id] !== undefined && g.done[c.id] === undefined);
-  return open.find((c) => !c.yields) ?? open[0] ?? null;
+  return CHAPTERS.find((c) => g.opened[c.id] !== undefined && g.done[c.id] === undefined) ?? null;
 }
 
 export function objectiveMet(s: GameState, id: string): boolean {
@@ -403,9 +394,19 @@ export function settleChapters(s: GameState): void {
     g.done[c.id] = now;
     return true;
   };
+  // A chapter added to the chain after a save had passed its place (Looking
+  // around, after 0.1.3): unopened while a later one is open, it is caught
+  // up as done rather than holding back a run already beyond it.
+  const chain = CHAPTERS.filter((c) => !c.side);
+  chain.forEach((c, i) => {
+    if (g.opened[c.id] === undefined && chain.slice(i + 1).some((later) => g.opened[later.id] !== undefined)) {
+      g.opened[c.id] = now;
+      g.done[c.id] = now;
+    }
+  });
   // The chain, each waiting for the one before; then the side chapters.
-  for (const c of CHAPTERS) {
-    if (!c.side && !settle(c)) break;
+  for (const c of chain) {
+    if (!settle(c)) break;
   }
   for (const c of CHAPTERS) {
     if (c.side) settle(c);

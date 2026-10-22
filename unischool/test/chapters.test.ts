@@ -88,6 +88,11 @@ function site(s: GameState, test: (t: Buildable) => boolean): void {
 // A college teaching its pillars: Founders Hall standing, three programs
 // housed and two courses each taught.
 const teaching = () => teachPillars(createInitialState('Chapters'));
+// Looking around's four required moves, made: the chapters after it open.
+const looked = (s: GameState) => {
+  s.guidance!.marked.push(LOOK_MARKS.pan, LOOK_MARKS.turn, LOOK_MARKS.tilt, LOOK_MARKS.zoom);
+  return s;
+};
 
 // ---- A guided founding opens the first chapter, nothing met ----
 {
@@ -107,8 +112,8 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   assert(objectiveMet(s, 'develop-second-course'), "a program's second course taught meets the course objective");
   assert(done(s, 'next-course'), 'The next course is done without the optional speed');
   assert(!objectiveMet(s, 'run-at-double'), 'which stays unmet');
-  assert(!opened(s, 'somewhere-to-sleep'), 'Somewhere to sleep waits for week 10');
-  assert(currentChapter(s)?.id === 'looking-around', 'and Looking around fills the weeks before it');
+  assert(currentChapter(s)?.id === 'looking-around', 'Looking around is the chapter');
+  assert(!opened(s, 'somewhere-to-sleep'), 'and Somewhere to sleep waits for it');
   assert(!opened(s, 'seats'), 'nor is Seats for everyone open before it');
 
   for (const slots of Object.values(s.halls)) for (const slot of slots) slot.programId = null;
@@ -127,7 +132,7 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
 
 // ---- The next chapter waits for its week, and opens already met ----
 {
-  const s = teaching();
+  const s = looked(teaching());
   s.clock.week = 5;
   site(s, isDorm);
   site(s, isDiningHall);
@@ -139,7 +144,7 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
   assert(done(s, 'seats') && objectiveMet(s, 'seat-every-student'), 'and Seats for everyone after it, six courses seating 350 students');
 }
 {
-  const s = teaching();
+  const s = looked(teaching());
   s.clock.week = 12;
   settleChapters(s);
   assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'in week 12 Somewhere to sleep is the chapter');
@@ -154,7 +159,7 @@ const teaching = () => teachPillars(createInitialState('Chapters'));
 
 // ---- The money and the first summer (PR D) ----
 {
-  let s = teaching();
+  let s = looked(teaching());
   s.clock.week = 12;
   site(s, isDorm);
   site(s, isDiningHall);
@@ -237,27 +242,34 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   assert(!/\b(by|to|for|with|from|in|on|of) (it|them)[.;]/.test(all), `${c.id}: no sentence ends on a pronoun`);
 }
 
-// ---- Looking around (F7): the camera, a chapter that steps aside ----
+// ---- Looking around (F7): the camera's moves, before Somewhere to sleep ----
 {
   let s = teaching();
   settleChapters(s);
   const around = CHAPTERS.find((c) => c.id === 'looking-around')!;
-  assert(opened(s, 'looking-around') && !done(s, 'looking-around'), 'The next course done, Looking around opens');
-  assert(objectiveRows(s, around).every((r) => !r.optional), 'every camera move is asked for');
-  for (const move of ['pan', 'turn', 'tilt', 'zoom'] as const) s = reducer(s, { type: 'MARK_GUIDANCE', mark: LOOK_MARKS[move] });
-  assert(objectiveMet(s, 'look-turn') && !done(s, 'looking-around'), 'four moves meet four objectives, Home still waiting');
+  assert(opened(s, 'looking-around') && currentChapter(s)?.id === 'looking-around', 'The next course done, Looking around is the chapter');
+  const rows = objectiveRows(s, around);
+  assert(['look-pan', 'look-turn', 'look-tilt', 'look-zoom'].every((id) => !rows.find((r) => r.id === id)!.optional), 'pan, turn, tilt and zoom are required');
+  assert(rows.find((r) => r.id === 'look-home')!.optional, 'and Home is optional');
 
   s.clock.week = 10;
   settleChapters(s);
-  assert(opened(s, 'somewhere-to-sleep'), 'it holds nothing back: Somewhere to sleep opens in week 10');
-  assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'and is the chapter shown, Looking around stepping aside');
-  s = reducer(s, { type: 'MARK_GUIDANCE', mark: LOOK_MARKS.home });
-  assert(done(s, 'looking-around'), 'Home finishes it');
+  assert(!opened(s, 'somewhere-to-sleep'), 'it holds Somewhere to sleep back, week 10 or not');
+  for (const move of ['pan', 'turn', 'tilt'] as const) s = reducer(s, { type: 'MARK_GUIDANCE', mark: LOOK_MARKS[move] });
+  assert(objectiveMet(s, 'look-turn') && !done(s, 'looking-around'), 'three moves meet three objectives, zoom still waiting');
+  s = reducer(s, { type: 'MARK_GUIDANCE', mark: LOOK_MARKS.zoom });
+  assert(done(s, 'looking-around') && !objectiveMet(s, 'look-home'), 'the fourth finishes it, without Home');
+  assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'and Somewhere to sleep opens');
 
-  const early = teaching();
-  early.guidance = { opened: {}, done: {}, met: [], marked: Object.values(LOOK_MARKS), gated: true };
+  const early = looked(teaching());
   settleChapters(early);
   assert(done(early, 'looking-around'), 'moves made before it opens count: it opens met');
+
+  const before = teaching();
+  before.clock.week = 12;
+  before.guidance = { opened: { founding: 1, 'next-course': 1, 'somewhere-to-sleep': 10 }, done: { founding: 1, 'next-course': 5 }, met: [], marked: [] };
+  settleChapters(before);
+  assert(done(before, 'looking-around') && currentChapter(before)?.id === 'somewhere-to-sleep', 'a save already past its place has it caught up, not held back');
 }
 
 // ---- PR B: the ticker's chapter chip and the drawer ----

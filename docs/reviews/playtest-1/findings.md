@@ -92,9 +92,10 @@ marked **0.1.x** and fixed in a patch.*
   owner's reading (22 October) is that F7 didn't know how. **Decided: a
   chapter that has the player use every camera move.** *Looking around*
   opens once *The next course* is done and asks for a pan, a turn, a
-  tilt, a zoom and Home, by key, mouse or touch. It is a side chapter
-  that steps aside for any chapter of the chain, so it fills the weeks
-  before *Somewhere to sleep* and never holds a later system back.
+  tilt and a zoom, by key, mouse or touch, all four required before
+  *Somewhere to sleep* opens; Home is optional. (First built as a side
+  chapter that stepped aside; in play it was passed over, so the owner
+  made it a step of the chain.)
 
 ## 2 · UI and text
 
