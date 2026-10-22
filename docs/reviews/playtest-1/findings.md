@@ -41,6 +41,12 @@ marked **0.1.x** and fixed in a patch.*
   people walking around the campus", and the changing seasons; placing
   the first building gave "old-school *The Sims* vibes" (with D1, the
   second to say so); "I'll definitely play more of it."
+  S3, the same reviewer on a livestream about a week later (0.1.3, to
+  year 6): the low-poly style cohesive across menus and game, the seasons
+  and animations a highlight, the music "meditative" and "soothing", the
+  hand-drawn circles around professors and the students' pathfinding;
+  "a strong step up"; compared favourably to *Two Point University* as a
+  more serious take on the genre, and worth recommending.
   R12, from the screenshot and the page: "It feels like a classic tycoon
   game right out the gate."
   The quotes worth reusing are collected in
@@ -110,8 +116,14 @@ marked **0.1.x** and fixed in a patch.*
   ("Somewhere to Sleep, Somewhere to Eat") are a minor dislike. With D1,
   S1's board letter and F6's "UI is kinda hard to read", the most
   repeated finding of the playtest: the game is easier than its words
-  make it look. *4 players · service (S2), discord (D1), service (S1),
-  form (F6).*
+  make it look. *4 players · service (S2, S3), discord (D1), service
+  (S1), form (F6).*
+  S3, the same reviewer a week on (0.1.3): onboarding "noticeably
+  improved", the next objective always in view, but the text still
+  "hard to absorb large blocks while also learning mechanics", and its
+  sentences "unnatural and hard to parse". Suggested: set flavour text
+  apart from the essential instruction, and front-load less, bringing in
+  context as the player progresses.
 - **A year-end screen opens over whatever the player is reading.** S2
   was reading a menu (the Faculty screen) when the calendar reached the
   summer and the End of Year overview forced itself open, "quite jarring,
@@ -132,6 +144,11 @@ marked **0.1.x** and fixed in a patch.*
   College" showed as "Baltimoor / e College": the banner sizes the name
   by its total length and lets a word break. Plan 104 as K. *Owner, from
   S1's video.*
+- **A red Confirm read as Cancel.** On the stream, a red "confirm"
+  button was taken for a cancel. *1 player · service (S3).*
+- **The full-screen menus are a lot at first.** "Slightly overwhelming
+  for new players, though visually impressive"; the UI outside the large
+  info windows "clean and well-designed". *1 player · service (S3).*
 - **The UI is hard to read at times.** "The game is somewhat confusing,
   the UI is kinda hard to read at times." *1 player · form (F6).*
 - **The board's opening letter took two reads.** "350 students are on
@@ -190,6 +207,11 @@ marked **0.1.x** and fixed in a patch.*
   do next; they asked whether that was normal. It is (the walkthrough ends
   there), but the hand-off reads as the tutorial breaking. The owner's
   reply: maybe stretch the tutorial out longer. *1 player · reddit (R2).*
+
+- **The program-moving step: which to move?** In *A hall of its own*,
+  it was "unclear which courses were meant to be moved vs. others". The
+  objective asks for any program moved into the new hall; nothing says
+  which, or why one rather than another. *1 player · service (S3).*
 
 - **Where to found the next program.** A few months in, S2 wanted a
   third subject and couldn't remember where the eight program slots
@@ -1062,6 +1084,42 @@ owner as "one of the OG members of the server". About 30 minutes on
     it almost feel a bit more complicated than it is." "I'll definitely
     play more of it." "Hopefully you don't introduce loads of natural
     disasters like SimCity and stress me out!"
+
+### Indie Game Booster — the livestream (received 22 October)
+
+*The same service, playing on a livestream, about a week after S2; the
+owner pasted the stream's notes, a summary in the service's words rather
+than quotes. Most likely 0.1.3 (the objectives at the foot of the screen
+are its chapters). Reached year 6. Counted as S2's player, not a new
+one.*
+
+- **S3** · Indie Game Booster, live.
+  - *First impressions and onboarding:* onboarding "noticeably improved"
+    since the playthrough a week before. The tutorial's structure is
+    clear: the next objective always visible at the bottom of the UI, a
+    single click to get there. Text volume still a concern, "hard to
+    absorb large blocks while also learning mechanics"; suggestions:
+    distinguish flavour text from essential instruction more clearly, and
+    front-load less, bringing in context as the player progresses. The
+    full-screen menus "slightly overwhelming for new players, though
+    visually impressive". A red "confirm" button was mistaken for a
+    cancel. The program-moving step confused: "unclear which courses were
+    meant to be moved vs. others".
+  - *Visuals and feel:* the art style praised throughout, low-poly and
+    cohesive across the menus and the game; the seasonal changes and
+    animations a highlight; the music "meditative" and "soothing",
+    atmospheric enough for background audio; the hand-drawn-style circles
+    around professors and the students' pathfinding appreciated; the UI
+    outside the large info windows "clean and well-designed".
+  - *Overall verdict:* "a strong step up" from the week before. The
+    tutorial's language and sentence structure "still feels unnatural and
+    hard to parse", worth revisiting "if collective feedback echoes this,
+    not just one opinion". Only reached year 6 of about 50, so hadn't seen
+    a campus at scale. Compared favourably to *Two Point University* as a
+    more serious take on the genre. Worth recommending; several viewers
+    likely to try it.
+  - *Next step, theirs:* "Review tutorial text for sentence clarity and
+    text volume."
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
