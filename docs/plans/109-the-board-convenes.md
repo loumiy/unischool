@@ -71,6 +71,11 @@ It read like any other letter.
   - The panels drop in one at a time as the page opens, each landing a
     little past its place and settling; under reduced motion they
     are there at once. Two columns under 1100 px, one on a phone.
+  - The letter does the page's work while it is read: the standings and
+    each share full today are read once for the state and kept, and the
+    four drawings are made one to a task and kept, so opening the page
+    no longer stops the main thread for 100–150 ms as the panels start
+    to fall (measured on the production build).
 - **Words** in `specializationData.ts`'s `CHOICE_WORDS`: `intro` and the
   strongest line go (the letter has `offer`, the page the rule), as do
   More and the card's long lines, now behind the "?".

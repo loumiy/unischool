@@ -2,12 +2,12 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { institutionName, type GameState, type Pillar } from '../state/types';
 import { CloseIcon, PILLAR_ICONS, StatusIcon } from './icons';
 import HelpHint from './HelpHint';
-import SpecializationPreview from './specializationPreview';
+import SpecializationPreview, { drawPreviewsAhead } from './specializationPreview';
 import { isKey, useHotkeys } from './hotkeys';
 import { decimal, gameDate } from '../format';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { PILLAR_LABELS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK } from '../systems/prestige/prestigeSystem';
-import { shareFullProjection, specializationOptions, strongestStanding, type SpecializationOption } from '../systems/prestige/milestone';
+import { shareFullProjection, specializationOptions, strongestStanding, type ShareFullProjection, type SpecializationOption } from '../systems/prestige/milestone';
 import { pillarShareRule, specializationShareWorth } from '../data/prestigeWords';
 import { CHOICE_WORDS, SPECIALIZATION_BUILDINGS, SPECIALIZATION_CARDS, choiceParkNote, opensLine } from '../data/specializationData';
 
@@ -36,15 +36,44 @@ import { CHOICE_WORDS, SPECIALIZATION_BUILDINGS, SPECIALIZATION_CARDS, choicePar
 // words are in data/specializationData.ts.
 // ---------------------------------------------------------------------
 
+// What the letter and the page read, once for a state: the four options,
+// the strongest pillar, the guide's rank, and each share full today. The
+// clock is held while either is up, so the page opens on what the letter
+// already read rather than reading it again as its panels drop in.
+interface ChoiceStandings {
+  options: SpecializationOption[];
+  strongest: { pillar: Pillar; rank: number };
+  rank: number;
+  full: Record<Pillar, ShareFullProjection>;
+}
+const READ = new WeakMap<GameState, ChoiceStandings>();
+function standingsOf(s: GameState): ChoiceStandings {
+  const kept = READ.get(s);
+  if (kept) return kept;
+  const options = specializationOptions(s);
+  const read: ChoiceStandings = {
+    options,
+    strongest: strongestStanding(s),
+    rank: playerRank(s),
+    full: Object.fromEntries(options.map((o) => [o.pillar, shareFullProjection(s, o.pillar)])) as Record<Pillar, ShareFullProjection>,
+  };
+  READ.set(s, read);
+  return read;
+}
+
 export function SpecializationLetter({ s, onOpen, onLater }: { s: GameState; onOpen?: () => void; onLater: () => void }) {
   const W = CHOICE_WORDS;
+  const read = standingsOf(s);
+  // The page's drawings, made while the letter is read.
+  const opens = onOpen !== undefined;
+  useEffect(() => (opens ? drawPreviewsAhead(s) : undefined), [s, opens]);
   return (
     <>
       <p className="letter-eyebrow">{W.from} · {gameDate(s.clock.year, s.clock.week)}</p>
       <h2>{W.title}</h2>
-      <p className="letter-body">{W.offer(playerRank(s), SPECIALIZATION_MILESTONE_RANK, strongestStanding(s), SPECIALIZATION_PILLAR_RANK)}</p>
+      <p className="letter-body">{W.offer(read.rank, SPECIALIZATION_MILESTONE_RANK, read.strongest, SPECIALIZATION_PILLAR_RANK)}</p>
       <ul className="spec-letter-ranks" aria-label={W.ranksLabel}>
-        {specializationOptions(s).map((o) => (
+        {read.options.map((o) => (
           <li key={o.pillar} className={`pillar-${o.pillar}`}>
             <span className="spec-letter-pillar">{PILLAR_LABELS[o.pillar]}</span>
             <span className="spec-letter-rank">#{o.rank}</span>
@@ -64,8 +93,7 @@ export function SpecializationPage({ s, onResolve, onClose }: { s: GameState; on
   const [armed, setArmed] = useState<Pillar | null>(null);
   const page = useRef<HTMLDivElement>(null);
   const name = institutionName(s.self);
-  const options = specializationOptions(s);
-  const strongest = strongestStanding(s).pillar;
+  const read = standingsOf(s);
   const field = s.rivals.length + 1;
 
   // Focus comes to the page, so the keyboard and a screen reader start on it.
@@ -97,16 +125,16 @@ export function SpecializationPage({ s, onResolve, onClose }: { s: GameState; on
             <p className="spec-page-later">{W.laterNote}</p>
             <dl className="spec-page-chips">
               <div><dt>{W.prestige}</dt><dd>{decimal(s.self.reputation, 1)}</dd></div>
-              <div><dt>{W.rank}</dt><dd>#{playerRank(s)} <small>{W.of(field)}</small></dd></div>
+              <div><dt>{W.rank}</dt><dd>#{read.rank} <small>{W.of(field)}</small></dd></div>
             </dl>
           </div>
         </header>
 
         <div className="spec-panels">
-          {options.map((o, i) => (
+          {read.options.map((o, i) => (
             <PillarPanel
-              key={o.pillar} s={s} o={o} index={i} field={field}
-              strongest={o.pillar === strongest} armed={armed}
+              key={o.pillar} s={s} o={o} full={read.full[o.pillar]} index={i} field={field}
+              strongest={o.pillar === read.strongest.pillar} armed={armed}
               onChoose={() => setArmed(o.pillar)}
             />
           ))}
@@ -123,14 +151,13 @@ function along(value: number): string {
   return `${(Math.max(0, Math.min(PRESTIGE_MAX, value)) / PRESTIGE_MAX) * 100}%`;
 }
 
-function PillarPanel({ s, o, index, field, strongest, armed, onChoose }: {
-  s: GameState; o: SpecializationOption; index: number; field: number;
+function PillarPanel({ s, o, full, index, field, strongest, armed, onChoose }: {
+  s: GameState; o: SpecializationOption; full: ShareFullProjection; index: number; field: number;
   strongest: boolean; armed: Pillar | null; onChoose: () => void;
 }) {
   const W = CHOICE_WORDS;
   const card = SPECIALIZATION_CARDS[o.pillar];
   const Icon = PILLAR_ICONS[o.pillar];
-  const full = shareFullProjection(s, o.pillar);
   const id = SPECIALIZATION_BUILDINGS[o.pillar];
   const project = id === null ? undefined : s.tech.find((t) => t.id === id);
   // A park that already stands (Plan 85F): what this choice makes of it.

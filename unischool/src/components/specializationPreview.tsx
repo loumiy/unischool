@@ -1,6 +1,7 @@
+import type { ReactElement } from 'react';
 import { CAMPUS_GRID_HEIGHT, type Buildable, type GameState, type Pillar, type SchoolColors, type Vernacular } from '../state/types';
 import BuildingMotif, { drawnHeightOf, materialOf } from './buildingMotifs';
-import { FittedDrawing, thumbKey } from './BuildThumb';
+import { FittedDrawing, drawFitted, thumbKey } from './BuildThumb';
 import { boxFaces, polyPoints, project } from './isoProjection';
 import { castShadow } from './light';
 import { ROAD_FIRST_ROW, orientedFootprint } from '../state/campusMap';
@@ -8,6 +9,7 @@ import { districtCentre, landOf, ringView, type RingSprite } from './ringLand';
 import { RingSpritesArt } from './Surroundings';
 import { DISTRICT_STEPS, FESTIVAL_SCALES } from '../data/downtownData';
 import { SPECIALIZATION_BUILDINGS } from '../data/specializationData';
+import { PILLARS } from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
 // What each specialization builds, drawn on its panel of the choice (Plan
@@ -125,19 +127,40 @@ function vernacularOf(s: GameState, id: string): Vernacular {
   return s.placements[id]?.vernacular ?? s.self.vernacular;
 }
 
-export default function SpecializationPreview({ s, pillar }: { s: GameState; pillar: Pillar }) {
+// A pillar's drawing: the key it is kept under, and what draws it.
+function previewOf(s: GameState, pillar: Pillar): { key: string; node: () => ReactElement } | null {
   const id = SPECIALIZATION_BUILDINGS[pillar];
   if (id === null) {
     const { name, vernacular, colors } = s.self;
-    return (
-      <FittedDrawing
-        drawKey={`spec-downtown|${name}|${vernacular}|${colors.primary}|${colors.secondary}`}
-        node={() => <DowntownDrawing name={name} vernacular={vernacular} colors={colors} />}
-      />
-    );
+    return {
+      key: `spec-downtown|${name}|${vernacular}|${colors.primary}|${colors.secondary}`,
+      node: () => <DowntownDrawing name={name} vernacular={vernacular} colors={colors} />,
+    };
   }
   const t = s.tech.find((x) => x.id === id);
   if (!t) return null;
   const v = vernacularOf(s, id);
-  return <FittedDrawing drawKey={`spec-plate|${thumbKey(t, v)}`} node={() => <PlateDrawing t={t} vernacular={v} />} />;
+  return { key: `spec-plate|${thumbKey(t, v)}`, node: () => <PlateDrawing t={t} vernacular={v} /> };
+}
+
+// Draws the four while the letter is read, one to a task, so the page
+// opens on drawings already kept and its panels drop in without the main
+// thread stopping to draw them. Returns the way to call it off.
+export function drawPreviewsAhead(s: GameState): () => void {
+  const jobs = PILLARS.map((p) => previewOf(s, p)).filter((j) => j !== null);
+  let timer = 0;
+  const next = (i: number) => {
+    if (i >= jobs.length) return;
+    timer = window.setTimeout(() => {
+      drawFitted(jobs[i].key, jobs[i].node());
+      next(i + 1);
+    }, i === 0 ? 120 : 40);
+  };
+  next(0);
+  return () => window.clearTimeout(timer);
+}
+
+export default function SpecializationPreview({ s, pillar }: { s: GameState; pillar: Pillar }) {
+  const job = previewOf(s, pillar);
+  return job && <FittedDrawing drawKey={job.key} node={job.node} />;
 }
