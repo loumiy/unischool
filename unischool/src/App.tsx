@@ -301,11 +301,13 @@ export default function App() {
   // The map's keys answer only while the player is looking at the map. The
   // build popup has no backdrop and is where the map's tools live, so it
   // takes only Escape from the map; panning, R and P keep working under it.
+  // The objectives drawer is the same kind of card, and Looking around asks
+  // for the camera's keys while it is open, so it counts as one too.
   // See hotkeys.ts, which owns both rules.
   const overlays: ShellOverlays = {
     overlayOpen: overlay !== null,
-    buildOpen,
-    logOpen: logOpen || ladderOpen || objectivesOpen,
+    buildOpen: buildOpen || objectivesOpen,
+    logOpen: logOpen || ladderOpen,
     interrupted: s.pendingInterrupt !== null,
     frontUp: front !== null,
   };
