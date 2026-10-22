@@ -1,0 +1,96 @@
+# seeds 1 (Natural, Guided)
+ok   Natural seed 1 "O'Brien College" 623s
+# Guided, Completionist, Selective, Lean, Idle x seeds 1-3 x 50 years (Idle before the tool repair)
+ok   Guided seed 1 "O'Brien College" 259s
+ok   Guided seed 2 "Ælfric & Sons" 224s
+ok   Guided seed 3 "北京大学" 189s
+ok   Completionist seed 1 "Ælfric & Sons" 344s
+ok   Completionist seed 2 "北京大学" 158s
+ok   Completionist seed 3 "جامعة النور" 171s
+ok   Selective seed 1 "北京大学" 40s
+ok   Selective seed 2 "جامعة النور" 43s
+ok   Selective seed 3 "LongnameLongnameLongname" 47s
+ok   Lean seed 1 "جامعة النور" 74s
+ok   Lean seed 2 "LongnameLongnameLongname" 69s
+ok   Lean seed 3 "X" 63s
+FAIL Idle seed 1 "LongnameLongnameLongname" 1s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+FAIL Idle seed 2 "X" 1s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+FAIL Idle seed 3 "O'Brien College" 1s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+15 runs, 3 with problems
+# Natural seeds 2-3
+ok   Natural seed 2 "Ælfric & Sons" 243s
+ok   Natural seed 3 "北京大学" 296s
+2 runs, 0 with problems
+# odd names, Lean and Idle x 6 x 30 years (Idle before the repair)
+ok   Lean seed 1 "Z̷a̸l̵g̶o̷ College" 39s
+ok   Lean seed 2 "<b>Bold</b> & "Quoted"" 38s
+ok   Lean seed 3 "  Leading  Spaces" 59s
+ok   Lean seed 4 "Ångström-Ñúñez École" 47s
+ok   Lean seed 5 "O'Neil-D'Arcy" 51s
+ok   Lean seed 6 "🎓 Univ 🦉" 52s
+FAIL Idle seed 1 "<b>Bold</b> & "Quoted"" 1s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+FAIL Idle seed 2 "  Leading  Spaces" 1s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+FAIL Idle seed 3 "Ångström-Ñúñez École" 1s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+FAIL Idle seed 4 "O'Neil-D'Arcy" 1s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+FAIL Idle seed 5 "🎓 Univ 🦉" 2s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+FAIL Idle seed 6 "Z̷a̸l̵g̶o̷ College" 2s
+  y1 round trip changed s.hallClaims: undefined → {}
+  y1 the reload plays on differently: s.hallClaims: undefined → {}
+  y2 round trip changed s.hallClaims: undefined → {}
+  y2 the reload plays on differently: s.hallClaims: undefined → {}
+  y3 round trip changed s.hallClaims: undefined → {}
+12 runs, 6 with problems
+# Idle again after the repair (50 years x seeds 1-5; 30 years x the six odd names)
+ok   Idle seed 1 "O'Brien College" 62s
+ok   Idle seed 2 "Ælfric & Sons" 55s
+ok   Idle seed 3 "北京大学" 51s
+ok   Idle seed 4 "جامعة النور" 64s
+ok   Idle seed 5 "LongnameLongnameLongname" 75s
+5 runs, 0 with problems
+ok   Idle seed 1 "Z̷a̸l̵g̶o̷ College" 31s
+ok   Idle seed 2 "<b>Bold</b> & "Quoted"" 16s
+ok   Idle seed 3 "  Leading  Spaces" 17s
+ok   Idle seed 4 "Ångström-Ñúñez École" 15s
+ok   Idle seed 5 "O'Neil-D'Arcy" 15s
+ok   Idle seed 6 "🎓 Univ 🦉" 17s
+6 runs, 0 with problems

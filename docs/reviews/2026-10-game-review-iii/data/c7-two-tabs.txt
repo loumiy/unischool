@@ -1,0 +1,12 @@
+1. both tabs continued at Year 9, week 2; A's banner: true, B's: false
+   A asked to play on 8 s: at Year 9, week 2
+ok   1. the October repro: a fresh tab continues at Year 9, week 2
+2. A pressed "Open it here": at Year 9, week 2, banner false; B's banner: true
+   A played on to Year 9, week 2 and, hidden, saved Year 9, week 2
+   B (at Year 9, week 2) closed; the save reads Year 9, week 2
+ok   2. taken back: a fresh tab continues at Year 9, week 2
+ok   3. a stale Continue: B loaded Year 9, week 2, A saved Year 9, week 5, B's Continue opened Year 9, week 5; A's banner: true
+ok   3. after both close: a fresh tab continues at Year 9, week 5
+4. side by side: A played Year 9, week 2 → Year 9, week 5 unsaved; B continued at Year 9, week 2; A's banner: true; the save reads Year 9, week 5
+   both closed; B's banner: true; the save reads Year 9, week 5
+ok   4. side by side: a fresh tab continues at Year 9, week 5 (A's 3 unsaved weeks kept)

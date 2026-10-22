@@ -20,7 +20,8 @@
 //     is the pillar's weight times the share's points; its comparison line
 //     is prestigeSystem's target on a copy with that share full, ranked by
 //     the guide's own function; the strongest pillar is the best-ranked;
-//     the intro is two sentences;
+//     the letter's offer is one sentence, by the route that brought it
+//     (Plan 110), and the rule heads the page;
 //   - the harness's rule: the strongest pillar (value, then rank on a
 //     tie), or a fixed pick.
 //
@@ -414,21 +415,27 @@ function closeSummer(s: GameState): GameState {
   // Nothing touched the game's own state.
   assert(s.self.reputation === reputation && PILLARS.every((p) => pillarBreakdown(s, p).inputs.find((i) => i.key === 'specialization')!.contribution === 0), 'the state itself is untouched');
 
-  // The strongest pillar, above the cards (B3-6): the best rank, and the
-  // rivals in each.
+  // The strongest pillar, tagged on its panel (B3-6): the best rank, and
+  // the rivals in each, counted on every panel.
   const options = specializationOptions(s);
   const strongest = strongestStanding(s);
   assert(strongest.rank === Math.min(...options.map((o) => o.rank)), `the strongest pillar is the best-ranked (${strongest.pillar}, #${strongest.rank})`);
   assert(PILLARS.reduce((n, p) => n + strongest.rivals[p], 0) === s.rivals.filter((r) => PILLARS.includes(r.specialization)).length, 'and every specialized rival is counted once');
-  const line = CHOICE_WORDS.strongest(strongest.pillar, strongest.rank, strongest.rivals);
-  assert(line.includes(`(#${strongest.rank})`) && PILLARS.every((p) => line.includes(`${strongest.rivals[p]}`)), `the line names it ("${line}")`);
+  assert(PILLARS.every((p) => options.find((o) => o.pillar === p)!.rivals === strongest.rivals[p]), 'each panel counts its own pillar\'s');
 
-  // The intro: two sentences, the second the rule's own.
-  const intro = CHOICE_WORDS.intro(12, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 40 }, SPECIALIZATION_PILLAR_RANK, pillarShareRule());
-  assert(intro.split(/(?<=\.)\s+/).length === 2 && intro.endsWith(pillarShareRule()) && intro.includes('#12 in the guide'), `the intro is two sentences ("${intro}")`);
+  // The letter (Plan 110): one sentence, where the college stands.
+  const offer = CHOICE_WORDS.offer(12, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 40 }, SPECIALIZATION_PILLAR_RANK);
+  assert(offer.split(/(?<=\.)\s+/).length === 1 && offer.includes('#12 in the guide') && !offer.includes(pillarShareRule()), `the offer is one sentence ("${offer}")`);
   // By the pillar's route (Plan 95R): the pillar, not the guide.
-  const byPillar = CHOICE_WORDS.intro(44, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 6 }, SPECIALIZATION_PILLAR_RANK, pillarShareRule());
-  assert(byPillar.includes('#6 in athletics') && !byPillar.includes('#44') && byPillar.endsWith(pillarShareRule()), `by a pillar, the intro names it ("${byPillar}")`);
+  const byPillar = CHOICE_WORDS.offer(44, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 6 }, SPECIALIZATION_PILLAR_RANK);
+  assert(byPillar.includes('#6 in athletics') && !byPillar.includes('#44'), `by a pillar, the offer names it ("${byPillar}")`);
+  // The page: the question by the college's name, the rule under it.
+  assert(CHOICE_WORDS.question('Halifax College') === 'What will Halifax College be known for?', `the page asks by name (${CHOICE_WORDS.question('Halifax College')})`);
+  // A choice names its pillar, and the second ask what is lost.
+  for (const p of PILLARS) {
+    const word = p === 'studentLife' ? 'student life' : p;
+    assert(CHOICE_WORDS.choose(p) === `Choose ${word}` && CHOICE_WORDS.armed(p).includes(word) && CHOICE_WORDS.warning(p).includes('cannot be changed or undone'), `${p}: "${CHOICE_WORDS.choose(p)}", then "${CHOICE_WORDS.armed(p)}"`);
+  }
 }
 
 // ---- The harness's rule ----

@@ -33,7 +33,8 @@ for (let i = 0; i < argv.length; i++) {
   flags[k] = v ?? (VALUE_FLAGS.includes(k) ? argv[++i] : 'true');
 }
 const out = flags.out ?? 'node_modules/.tmp/gallery';
-const SIZES = { desktop: { width: 1440, height: 900 }, phone: { width: 390, height: 844 } };
+// `laptop` (Plan 86's ground rules, the third review): 1280×720.
+const SIZES = { desktop: { width: 1440, height: 900 }, laptop: { width: 1280, height: 720 }, phone: { width: 390, height: 844 } };
 const sizes = (flags.sizes ?? 'desktop,phone').split(',');
 const shots = flags['no-shots'] === undefined;
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
@@ -89,8 +90,28 @@ async function closeTop(page) {
   await page.waitForTimeout(300);
 }
 
+// The summer's admissions are a page of their own (Plan 108), not a modal:
+// the price, locked; the standard, once the applicants have rained in; then
+// the offers sent, which pours the class into the hall and moves the summer on.
+async function admissionsPage(page, ctx) {
+  const adm = page.locator('.admissions-page');
+  if (!(await adm.count())) return false;
+  if (await page.locator('.admissions-lock').count()) {
+    await capture(page, ctx, 'admissions page: the price');
+    await page.locator('.admissions-lock').click().catch(() => {});
+    await page.waitForTimeout(2400);
+  }
+  if (await page.locator('.admissions-send').count()) {
+    await capture(page, ctx, 'admissions page: the standard');
+    await page.locator('.admissions-send').click().catch(() => {});
+    await page.waitForTimeout(3400);
+  }
+  return true;
+}
+
 async function stepModals(page, ctx) {
   for (let k = 0; k < 16; k++) {
+    if (await admissionsPage(page, ctx)) continue;
     const modal = page.locator('.modal').first();
     if (!(await modal.count())) return;
     const type = (await modal.getAttribute('data-interrupt')) ?? 'modal';
@@ -120,6 +141,16 @@ async function inboxPane(page, ctx) {
 // The Faculty tab's other views and one person opened (Plan 84). On a phone
 // the person opens over the tab, and Escape closes it first.
 async function facultyViews(page, ctx) {
+  // The people as cards, a table or a plot (Plan 90 and after): the two
+  // that are not the default, then back to cards.
+  for (const layout of ['Table', 'Plot']) {
+    const b = page.locator('.faculty-layouts button', { hasText: layout }).first();
+    if (!(await b.count())) continue;
+    await b.click().catch(() => {});
+    await capture(page, ctx, `Faculty ${layout.toLowerCase()}`);
+  }
+  const cards = page.locator('.faculty-layouts button', { hasText: 'Cards' }).first();
+  if (await cards.count()) await cards.click().catch(() => {});
   for (const view of ['Market', 'Departments']) {
     const b = page.locator('.dept-views button', { hasText: view }).first();
     if (!(await b.count())) continue;
@@ -138,6 +169,13 @@ async function facultyViews(page, ctx) {
 // History's other two views (Plan 95H); the tab opens on Prestige, and is
 // set back to it so the next save's tour opens there too.
 async function historyViews(page, ctx) {
+  // Prestige at a glance (Plan 107D): its Details, opened.
+  const details = page.locator('.glance-details summary').first();
+  if (await details.count()) {
+    await details.click().catch(() => {});
+    await capture(page, ctx, 'History Prestige details');
+    await details.click().catch(() => {});
+  }
   for (const view of ['The record', 'The guide']) {
     const b = page.locator('.history-views button', { hasText: view }).first();
     if (!(await b.count())) continue;
@@ -148,8 +186,28 @@ async function historyViews(page, ctx) {
   if (await back.count()) await back.click().catch(() => {});
 }
 
+// The objectives drawer (Plan 106): the NEXT bar's chip opens it; the
+// Guide's first page read again, if the run has one.
+async function objectivesDrawer(page, ctx) {
+  const chip = page.locator('button.log-ticker-objective').first();
+  if (!(await chip.count()) || !(await chip.isVisible().catch(() => false))) return;
+  // Guided opens a chapter's briefing by itself on load; the chip would shut it.
+  if (!(await page.locator('.objectives-popup').count())) await chip.click().catch(() => {});
+  await page.waitForTimeout(300);
+  if (!(await page.locator('.objectives-popup').count())) return;
+  await capture(page, ctx, 'objectives drawer');
+  const link = page.locator('.objectives-guide-link').first();
+  if (await link.count()) {
+    const title = (await link.innerText().catch(() => '')).trim();
+    await link.click().catch(() => {});
+    await capture(page, ctx, `Guide: ${title}`);
+  }
+  await closeTop(page);
+}
+
 async function tour(page, ctx) {
   await pause(page);
+  await objectivesDrawer(page, ctx);
   for (const tab of TABS) {
     const btn = page.locator(`button[aria-label^="${tab}"]`).first();
     if (!(await btn.count()) || !(await btn.isVisible().catch(() => false)) || await btn.isDisabled()) continue;
@@ -158,6 +216,12 @@ async function tour(page, ctx) {
     if (tab === 'Inbox') await inboxPane(page, ctx);
     if (tab === 'Faculty') await facultyViews(page, ctx);
     if (tab === 'History') await historyViews(page, ctx);
+    // A tab's Guide button (Plan 106 PR G), once: the drawer over the tab.
+    if (tab === 'Faculty' && await page.locator('.tab-overlay-guide').count()) {
+      await page.locator('.tab-overlay-guide').first().click().catch(() => {});
+      await capture(page, ctx, `Guide on ${tab}`);
+      await closeTop(page);
+    }
     await closeTop(page);
   }
   const build = page.locator('button:has-text("Build")').last();
@@ -170,6 +234,12 @@ async function tour(page, ctx) {
   if (await menu.count()) {
     await menu.click().catch(() => {});
     await capture(page, ctx, 'main menu');
+    // The save slots (Plan 98D), opened in the menu.
+    const slots = page.locator('.main-menu-popup button:has-text("Save slots")').first();
+    if (await slots.count()) {
+      await slots.click().catch(() => {});
+      await capture(page, ctx, 'save slots');
+    }
     const settings = page.locator('.main-menu-popup button:has-text("Settings")').first();
     if (await settings.count()) {
       await settings.click().catch(() => {});

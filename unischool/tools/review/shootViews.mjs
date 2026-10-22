@@ -97,7 +97,15 @@ for (const savePath of saves) {
   page = await context.newPage();
   page.on('pageerror', (e) => errors.push(`${name}: ${String(e)}`));
   await page.goto(URL, { waitUntil: 'domcontentloaded' });
-  await page.evaluate((s) => { localStorage.clear(); localStorage.setItem('unischool.save', s); }, save);
+  // Objectives on Brief (Plan 106): on Guided a save past the walkthrough
+  // opens its chapter's briefing drawer over the map by itself, which
+  // covered a third of every view (review III, area 1). Stats answered,
+  // so the title screen's question is not in the way either.
+  await page.evaluate((s) => {
+    localStorage.clear();
+    localStorage.setItem('unischool.save', s);
+    localStorage.setItem('unischool.settings.v1', JSON.stringify({ objectives: 'brief', stats: 'off', feedbackPrompts: false }));
+  }, save);
   await page.goto(URL, { waitUntil: 'networkidle' });
   const cont = page.locator('.title-primary');
   if (await cont.count()) await cont.first().click();

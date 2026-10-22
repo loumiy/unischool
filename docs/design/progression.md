@@ -288,13 +288,29 @@ late, and kept:
   milestone, read on the summer's own week after the field has moved (the
   table the summer's review prints), and stands for good.
 - **The choice** is raised at that summer's close, after the page has
-  turned (so it holds no week), as a page of its own in the inbox: the four
-  specializations side by side, each with its pillar and the share of it
-  it opens, its mechanics (those still to come are said to be), the college's
-  value and rank in the pillar, and the rivals already specialized in it
-  with the strongest of them. Choosing asks twice (Plan 47's confirm): the
-  choice is permanent, saved as `s.specialization` with the summer's year
+  turned (so it holds no week). Since [Plan 110](../plans/110-the-board-convenes.md)
+  it comes as a short letter from the board in the inbox (where the college
+  stands, the four pillars' ranks, *Convene the board* and *Not this year*),
+  and *Convene the board* opens a page of its own over everything: *What
+  will ‹the college› be known for?*, the pillar rule under it, and four
+  panels in the pillars' colours. Each panel draws what the specialization
+  builds with the map's own art (the Faculty Training Institute, the
+  Research Park and the Athletic Performance Complex on a plate of grass,
+  with their price; the downtown, full grown and dressed for a festival in
+  the college's colours); shows where the college stands in the pillar
+  (its rank, its value out of 150 on a bar whose last stretch, the share
+  only that specialization fills, is hatched, the top rival specialist
+  marked on it and named, and how many rivals have chosen it); says what
+  it adds and how its share fills (the share in the pillar's own points
+  and every mechanic behind a "?"); and gives prestige and rank were the
+  share full today. The strongest pillar is tagged. Choosing asks twice
+  (Plan 47's confirm): the panel lifts, the others dim, and a bar under
+  them says what is lost and what comes first, with Confirm and Back
+  (Escape backs out, then closes the page to the letter). The choice is
+  permanent, saved as `s.specialization` with the summer's year
   (`specializationYear`), and the chronicle marks the year.
+
+  ![The specialization's page: four panels in the pillars' colours, each with its building drawn, its rank and bar to 150, what it adds and how it fills, and its choose button](../images/specialization.png)
 - **Not this year** leaves the offer standing: the choice comes back at
   the close of every summer until it is made, even if the college has
   slipped below the milestone since. The game never chooses for the player
