@@ -68,7 +68,8 @@ It read like any other letter.
     foot of the screen: *Specialize in ‹pillar›, for good?*, the warning
     and what comes first (the card's first mechanic), Back and Confirm.
     Escape backs out.
-  - The panels rise in turn as the page opens; under reduced motion they
+  - The panels drop in one at a time as the page opens, each landing a
+    little past its place and settling; under reduced motion they
     are there at once. Two columns under 1100 px, one on a phone.
 - **Words** in `specializationData.ts`'s `CHOICE_WORDS`: `intro` and the
   strongest line go (the letter has `offer`, the page the rule), as do
