@@ -1,0 +1,238 @@
+save-launch.json Y25W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 62 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Places for 25,440 of 25,760 students, counting courses under way: develop Neuroanatomy, 80 more
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-playtest.json Y25W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 62 (founders on payroll f3,f2; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Chemistry Labs is idle — commission research
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v100.json Y7W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 26 (founders on payroll f3,f2; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Accounting program is one course from being established — ACCT 140 · Accounting Information Systems
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v101.json Y7W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 26 (founders on payroll f3,f2; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Accounting program is one course from being established — ACCT 140 · Accounting Information Systems
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v102.json Y7W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 26 (founders on payroll f3,f2; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Accounting program is one course from being established — ACCT 140 · Accounting Information Systems
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v78-charter.json Y9W33
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 43 (founders on payroll f2,f3; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Founders Hall has a free program slot — Music is on offer
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v79.json Y3W44
+  stage play -> load play -> settle play; held at load false; interrupt letter
+  chapters opened 10/18, done 10; current - []; next promises; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 13 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Science (4 of 6): found Biology in Elm Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v80.json Y9W1
+  stage play -> load play -> settle play; held at load false; interrupt rankings-entry
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 40 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Founders Hall has a free program slot — Software Engineering, Music, Computer Science are on offer
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v81-confidence.json Y9W1
+  stage play -> load play -> settle play; held at load false; interrupt catalogue-letter
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 40 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Computer Science (5 of 6): found Software Engineering in Chestnut Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v81-opening.json Y9W1
+  stage play -> load play -> settle play; held at load false; interrupt catalogue-letter
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 40 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Computer Science (5 of 6): found Software Engineering in Chestnut Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v81-quads.json Y9W1
+  stage play -> load play -> settle play; held at load false; interrupt catalogue-letter
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 40 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Computer Science (5 of 6): found Software Engineering in Chestnut Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v81-recruiting.json Y21W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 80 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: See Experimental Economics Lab's project through
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v81.json Y9W1
+  stage play -> load play -> settle play; held at load false; interrupt catalogue-letter
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 40 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Computer Science (5 of 6): found Software Engineering in Chestnut Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v82.json Y9W1
+  stage play -> load play -> settle play; held at load false; interrupt catalogue-letter
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 40 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Computer Science (5 of 6): found Software Engineering in Chestnut Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v83.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 41 (founders on payroll f2,f3,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Computer Science (5 of 6): found Software Engineering in Chestnut Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v84.json Y9W1
+  stage play -> load play -> settle play; held at load false; interrupt milestone
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 39 (founders on payroll f2,f3; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Founders Hall has a free program slot — Computer Science, Software Engineering, Data Science are on offer
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v85.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 30 (founders on payroll f3,f2; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Maple Hall has room for Health Science (3 of 6): Kinesiology or 1 more on offer there
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v86.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 38 (founders on payroll f3,f2; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Places for 5,280 of 5,440 students, counting courses under way: found another program in Chestnut Hall, with a professor to teach it
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v87.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 35 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Economics program is one course from being established — ECON 120 · Econometrics
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v88.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 33 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Economics program is one course from being established — ECON 120 · Econometrics
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v89.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 28 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Marketing program is one course from being established — MRKT 130 · Digital Marketing Strategy
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v90.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 28 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Marketing program is one course from being established — MRKT 130 · Digital Marketing Strategy
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v91.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 28 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Marketing program is one course from being established — MRKT 130 · Digital Marketing Strategy
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v92.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 28 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Marketing program is one course from being established — MRKT 130 · Digital Marketing Strategy
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v93.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 33 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Establish Engineering (3 of 6): move Data Science to Chestnut Hall to make room
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v94.json Y29W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 73 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Places for 28,720 of 28,800 students, counting courses under way: develop Clinical Neuroscience & Disorders, 80 more
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v95.json Y9W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 33 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Economics program is one course from being established — ECON 120 · Econometrics
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v96.json Y29W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 73 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Places for 28,720 of 28,800 students, counting courses under way: develop Clinical Neuroscience & Disorders, 80 more
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v97.json Y31W1
+  stage play -> load play -> settle play; held at load false; interrupt letter
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 73 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Site the Research Park
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v98.json Y40W6
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 86 (founders on payroll -; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+save-v99.json Y4W2
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 12/18, done 12; current - []; next running-the-college; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 12 (founders on payroll f3,f2,f4; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: Nothing on offer has a hall to go to — site Oak Hall
+  round trip same; 4 weeks: 4 played; invariants after: ok
+year-34-specialization.unischool.json Y34W1
+  stage play -> load play -> settle play; held at load false; interrupt specialization
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 76 (founders on payroll -; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+year-50-final-report.unischool.json Y50W52
+  stage play -> load play -> settle play; held at load false; interrupt summer
+  chapters opened 18/18, done 18; current - []; next -; gated false
+  tabs curriculum,faculty,research,students,athletics,history,inbox,treasury
+  faculty 93 (founders on payroll -; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+year-6-summer.unischool.json Y6W52
+  stage play -> load play -> settle play; held at load false; interrupt summer
+  chapters opened 16/18, done 16; current - []; next -; gated false
+  tabs curriculum,faculty,students,athletics,history,inbox,treasury
+  faculty 26 (founders on payroll f3,f2; founders still candidates -; dup ids -); crowding fields left -
+  NEXT: The Accounting program is one course from being established — ACCT 140 · Accounting Information Systems
+  round trip same; 4 weeks: 4 played; invariants after: ok

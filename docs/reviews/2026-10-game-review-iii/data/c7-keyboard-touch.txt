@@ -1,0 +1,28 @@
+✓ the map is up (canvas)
+✓ the list is visually hidden
+✓ no building is lit before the keyboard reaches the list
+✓ Tab reaches the map's buildings (4 presses, on Meadow House)
+✓ one Tab stop for 28 buildings
+✓ the focused building is lit on the map
+✓ the arrow keys move from building to building (Meadow House → Maple Hall · 6 of 6 → The Original Commons → The Grand Table → Library → Campus Quad → Student Center → Chemistry Labs → Recreation Center)
+✓ the arrow keys do not pan the map while the list has the focus
+✓ the list runs top to bottom as the map reads
+✓ Enter inspects the focused building
+✓ Escape closes its panel
+✓ Home and End reach the ends (Meadow House … Natatorium, under construction)
+✓ leaving the list puts the light out
+✓ Shift+Tab comes back to the building it left
+✓ no page errors
+---- touch
+✓ the map is up (canvas)
+✓ one finger pans by its travel ({"x":512,"y":-467,"zoom":0.4} → {"x":412,"y":-537,"zoom":0.4})
+✓ two fingers spread to twice the gap zoom in (0.40 → 0.80)
+✓ the camera buttons show once the map is touched and its tools are open
+✓ a tap on a building opens its panel (Founders Hall)
+✓ a building is picked up from the build tray by touch
+✓ the touch bar shows while placing
+  (300, 180): not enough clear ground
+✓ a tap sets the ghost down without building
+✓ Place is offered where the site is clear
+✓ Place builds and puts the bar away
+✓ no page errors

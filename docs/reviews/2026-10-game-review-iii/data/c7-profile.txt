@@ -1,0 +1,18 @@
+/tmp/claude-0/-home-claude/d6d2bcd3-a237-5faa-b02c-37b9a7844e6a/scratchpad/saves/year-40-done.json at 1440×900, 6s per speed, the canvas map
+speed        fps    p95 frame   long tasks   long-task ms   clock after
+Paused       60.0      16.7 ms            0              0   ?
+Play         46.7      33.4 ms           16           1168   ?
+2×           48.6      33.4 ms           18           2184   ?
+4×           (locked)
+/tmp/claude-0/-home-claude/d6d2bcd3-a237-5faa-b02c-37b9a7844e6a/scratchpad/saves/guided-y30-clear.json at 1440×900, 6s per speed, the canvas map
+speed        fps    p95 frame   long tasks   long-task ms   clock after
+Paused       54.5      33.3 ms            2            194   Year 31 · Fall term · Week 2
+Play         31.4      99.9 ms           44           4628   Year 31 · Fall term · Week 3
+2×           31.4      83.4 ms           42           4872   Year 31 · Fall term · Week 6
+4×           (locked)
+/tmp/claude-0/-home-claude/d6d2bcd3-a237-5faa-b02c-37b9a7844e6a/scratchpad/saves/natural-y50-clear.json at 1440×900, 6s per speed, the canvas map
+speed        fps    p95 frame   long tasks   long-task ms   clock after
+Paused       58.4      16.8 ms            0              0   ?
+Play         23.4     133.3 ms           63           6199   ?
+2×           49.5      33.4 ms           12           1134   ?
+4×           (locked)

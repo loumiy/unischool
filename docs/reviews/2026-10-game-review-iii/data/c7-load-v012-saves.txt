@@ -1,0 +1,77 @@
+v012-appoint.json Y1W1
+  stage appoint -> load found -> settle found; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 0 (founders on payroll -; founders still candidates f3,f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 0 played; invariants after: ok
+v012-await-course.json Y1W1
+  stage await-course -> load await-course -> settle await-course; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 1 (founders on payroll f3; founders still candidates f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+v012-found.json Y1W1
+  stage found -> load found -> settle found; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 1 (founders on payroll f3; founders still candidates f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 0 played; invariants after: ok
+v012-needs.json Y1W5
+  stage needs -> load needs -> settle needs; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 1 (founders on payroll f3; founders still candidates f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+v012-play-y1.json Y1W5
+  stage play -> load play -> settle play; held at load false; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 1 (founders on payroll f3; founders still candidates f4,f2; dup ids -); crowding fields left -
+  NEXT: Places for 160 of 350 students, counting courses under way: found another program in Founders Hall, with a professor to teach it
+  round trip same; 4 weeks: 4 played; invariants after: ok
+v012-second-course.json Y1W5
+  stage second-course -> load second-course -> settle second-course; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 1 (founders on payroll f3; founders still candidates f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+v012-site-dining.json Y1W5
+  stage site-dining -> load site-dining -> settle site-dining; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 1 (founders on payroll f3; founders still candidates f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+v012-site-hall.json Y1W1
+  stage site-hall -> load site-hall -> settle site-hall; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 0 (founders on payroll -; founders still candidates f3,f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 0 played; invariants after: ok
+v012-site-housing.json Y1W5
+  stage site-housing -> load site-housing -> settle site-housing; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 1 (founders on payroll f3; founders still candidates f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 4 played; invariants after: ok
+v012-skipped.json Y1W1
+  stage play -> load play -> settle play; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 0 (founders on payroll -; founders still candidates f3,f4,f2; dup ids -); crowding fields left -
+  NEXT: Site Founders Hall: the clock waits until it stands
+  round trip same; 4 weeks: 0 played; invariants after: ok
+v012-welcome.json Y1W1
+  stage welcome -> load welcome -> settle welcome; held at load true; interrupt -
+  chapters opened 0/18, done 0; current - []; next -; gated false
+  tabs curriculum,faculty,history,inbox,treasury
+  faculty 0 (founders on payroll -; founders still candidates f3,f4,f2; dup ids -); crowding fields left -
+  NEXT: -
+  round trip same; 4 weeks: 0 played; invariants after: ok

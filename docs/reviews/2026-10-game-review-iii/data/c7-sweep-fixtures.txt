@@ -1,0 +1,74 @@
+
+> unischool@0.1.3 review:sweep
+> rolldown tools/review/sweep.ts -o node_modules/.tmp/sweep.mjs -f esm -p node && node node_modules/.tmp/sweep.mjs --fixtures --players Guided,Idle --years 5
+
+<DIR>/sweep.mjs  chunk │ size: 1,036.74 kB
+
+√ rolldown v1.2.5 Finished in 344.36 ms
+ok   save-launch.json Guided 45s
+ok   save-launch.json Idle 15s
+ok   save-playtest.json Guided 50s
+ok   save-playtest.json Idle 31s
+ok   save-v100.json Guided 42s
+ok   save-v100.json Idle 12s
+ok   save-v101.json Guided 37s
+ok   save-v101.json Idle 9s
+ok   save-v102.json Guided 24s
+ok   save-v102.json Idle 13s
+ok   save-v78-charter.json Guided 25s
+ok   save-v78-charter.json Idle 13s
+ok   save-v79.json Guided 17s
+ok   save-v79.json Idle 12s
+ok   save-v80.json Guided 37s
+ok   save-v80.json Idle 18s
+ok   save-v81-confidence.json Guided 29s
+ok   save-v81-confidence.json Idle 15s
+ok   save-v81-opening.json Guided 30s
+ok   save-v81-opening.json Idle 16s
+ok   save-v81-quads.json Guided 25s
+ok   save-v81-quads.json Idle 9s
+ok   save-v81-recruiting.json Guided 58s
+ok   save-v81-recruiting.json Idle 20s
+ok   save-v81.json Guided 15s
+ok   save-v81.json Idle 7s
+ok   save-v82.json Guided 12s
+ok   save-v82.json Idle 5s
+ok   save-v83.json Guided 13s
+ok   save-v83.json Idle 6s
+ok   save-v84.json Guided 11s
+ok   save-v84.json Idle 6s
+ok   save-v85.json Guided 14s
+ok   save-v85.json Idle 7s
+ok   save-v86.json Guided 9s
+ok   save-v86.json Idle 3s
+ok   save-v87.json Guided 10s
+ok   save-v87.json Idle 3s
+ok   save-v88.json Guided 11s
+ok   save-v88.json Idle 6s
+ok   save-v89.json Guided 12s
+ok   save-v89.json Idle 6s
+ok   save-v90.json Guided 10s
+ok   save-v90.json Idle 8s
+ok   save-v91.json Guided 16s
+ok   save-v91.json Idle 9s
+ok   save-v92.json Guided 20s
+ok   save-v92.json Idle 10s
+ok   save-v93.json Guided 24s
+ok   save-v93.json Idle 10s
+ok   save-v94.json Guided 45s
+ok   save-v94.json Idle 12s
+ok   save-v95.json Guided 15s
+ok   save-v95.json Idle 7s
+ok   save-v96.json Guided 39s
+ok   save-v96.json Idle 12s
+ok   save-v97.json Guided 28s
+ok   save-v97.json Idle 20s
+ok   save-v98.json Guided 33s
+ok   save-v98.json Idle 53s
+ok   save-v99.json Guided 20s
+ok   save-v99.json Idle 14s
+62 runs, 0 with problems
+
+real	19m26.798s
+user	7m1.324s
+sys	0m5.693s
