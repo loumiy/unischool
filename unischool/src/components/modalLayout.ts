@@ -30,7 +30,7 @@ export function modalWidth(interrupt: PendingInterrupt): ModalWidth {
       return 'wide';
     case 'first-sport-club':
     // The board's letter; the four specializations are a page of their own
-    // behind it (Plan 109, SpecializationChoice.tsx).
+    // behind it (Plan 110, SpecializationChoice.tsx).
     case 'specialization':
       return 'narrow';
     case 'milestone': {

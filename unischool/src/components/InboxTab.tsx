@@ -82,7 +82,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   onSeen: (id: string) => void;
   onOpenTab: (tab: TabId | 'build') => void;
   onShowOnMap: (buildableId: string) => void;
-  // The specialization letter's "Convene the board" (Plan 109, App.tsx).
+  // The specialization letter's "Convene the board" (Plan 110, App.tsx).
   onOpenSpecialization?: () => void;
 }) {
   const items = inboxItems(s, { read });

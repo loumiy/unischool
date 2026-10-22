@@ -52,6 +52,9 @@ const context = await chromium.launchPersistentContext(profile, {
   ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
 });
 const page = context.pages()[0] ?? await context.newPage();
+// A step that finds nothing fails after DRIVE_TIMEOUT ms (Playwright's 30 s
+// by default), so a session can afford a miss (review III, area 3).
+if (process.env.DRIVE_TIMEOUT) page.setDefaultTimeout(Number(process.env.DRIVE_TIMEOUT));
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`console.${m.type()}: ${m.text()}`); });

@@ -21,7 +21,8 @@ each one.
 | [The merged game](2026-09-merge-review.md) | after Plan 34, with Plan 35's fixes | Plans 35, 36 |
 | [Consistency review](2026-09-consistency-review.md) (images in [`2026-09-consistency-review/`](2026-09-consistency-review/)) | the game except its balance | Plans 43, 44, 46–49 |
 | [A full review of the game](2026-10-game-review/README.md) (Plan 73), and [its status after Plan 85](2026-10-game-review/STATUS.md) | `58fa3fd`, after Plan 72 | Plans 74–80, 85 |
-| [A second full review](2026-10-game-review-ii/README.md) (Plan 86) | `4062bfb`, after Plan 85 | — (awaiting the owner's triage) |
+| [A second full review](2026-10-game-review-ii/README.md) (Plan 86), and [its status after 0.1.3](2026-10-game-review-ii/STATUS.md) | `4062bfb`, after Plan 85 | Plan 95, the third review |
+| [A third full review](2026-10-game-review-iii/README.md) (Plan 109) | `b1f2114` (0.1.3), after Plan 108 | — (awaiting the owner's triage) |
 | [The owner's second playthrough](2026-10-owners-playthrough-ii.md) | `60bac7e`, after Plan 95 | — (awaiting the owner's decisions) |
 
 ## Harness reports

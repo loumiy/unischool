@@ -306,7 +306,7 @@ export function opensLine(pillar: Pillar, weight: number): string {
   return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, ${weight} of the pillar's ${PILLAR_MAX} points, ${card.fills}.`;
 }
 
-// The specialization's own building, drawn on its panel (Plan 109): the
+// The specialization's own building, drawn on its panel (Plan 110): the
 // capital project only a college specialized in it may build. Student
 // life's is no building but the downtown, drawn from the town beside the
 // campus (components/specializationPreview.tsx).
@@ -317,7 +317,7 @@ export const SPECIALIZATION_BUILDINGS: Readonly<Record<Pillar, string | null>> =
   athletics: ATHLETICS_COMPLEX_ID,
 };
 
-// The choice (Plan 85D), since Plan 109 a short letter in the inbox and a
+// The choice (Plan 85D), since Plan 110 a short letter in the inbox and a
 // page of its own behind it (components/SpecializationChoice.tsx).
 export const CHOICE_WORDS = {
   title: 'A specialization',

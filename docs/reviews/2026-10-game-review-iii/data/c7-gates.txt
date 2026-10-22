@@ -1,0 +1,61 @@
+== Guided seed 7 (tabs opened as asked)
+Y2W1 INTERRUPT before Campus life: first-sport-club:
+Y2W1 sport milestone reached; athletics tab available: false
+Y2W1 interrupt before Campus life: first-sport-club
+Y3W15 chapter opened: campus-life
+Y3W15 chapter done: campus-life
+Y3W22 first decision event: hellenic-council; campus-life open: true
+Y4W2 chapter opened: the-teams
+Y4W2 athletics tab available
+Y4W41 first varsity team; athletics tab available: true; AD no
+Y4W43 chapter done: the-teams
+Y4W43 athletic director hired; athletics tab available: true
+end Y7W2: current running-the-college; opened founding,next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing,a-faculty,hall-of-its-own,campus-life,promises,the-teams,running-the-college,research,alumni
+== Guided seed 11 (tabs opened as asked)
+Y3W1 INTERRUPT before Campus life: first-sport-club:
+Y3W1 sport milestone reached; athletics tab available: false
+Y3W1 interrupt before Campus life: first-sport-club
+Y3W18 chapter opened: campus-life
+Y3W18 chapter done: campus-life
+Y3W32 first decision event: naming-rights; campus-life open: true
+Y4W2 chapter opened: the-teams
+Y4W2 athletics tab available
+Y5W40 first varsity team; athletics tab available: true; AD no
+Y5W42 chapter done: the-teams
+Y5W42 athletic director hired; athletics tab available: true
+end Y7W2: current running-the-college; opened founding,next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing,a-faculty,hall-of-its-own,campus-life,promises,the-teams,running-the-college,research,alumni
+== Lean seed 7
+Y3W1 INTERRUPT before Campus life: first-sport-club:
+Y3W1 sport milestone reached; athletics tab available: false
+Y3W1 interrupt before Campus life: first-sport-club
+Y4W2 chapter opened: the-teams
+Y4W2 athletics tab available
+Y5W39 INTERRUPT before Campus life: decision-event:varsity-petition
+Y5W40 INTERRUPT before Campus life: athletic-director:
+Y5W40 first varsity team; athletics tab available: true; AD no
+Y5W42 chapter done: the-teams
+Y5W42 athletic director hired; athletics tab available: true
+Y6W40 chapter opened: campus-life
+Y6W40 chapter done: campus-life
+Y8W2 first decision event: hellenic-council; campus-life open: true
+end Y11W2: current running-the-college; opened founding,next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing,a-faculty,hall-of-its-own,the-teams,alumni,campus-life,promises,running-the-college,research,capital-projects
+== Selective seed 7
+Y3W1 INTERRUPT before Campus life: first-sport-club:
+Y3W1 sport milestone reached; athletics tab available: false
+Y3W1 interrupt before Campus life: first-sport-club
+Y4W2 chapter opened: the-teams
+Y4W2 athletics tab available
+Y5W39 INTERRUPT before Campus life: decision-event:varsity-petition
+Y5W40 INTERRUPT before Campus life: athletic-director:
+Y5W40 first varsity team; athletics tab available: true; AD no
+Y5W42 chapter done: the-teams
+Y5W42 athletic director hired; athletics tab available: true
+Y8W28 chapter opened: campus-life
+Y8W28 chapter done: campus-life
+Y9W9 first decision event: naming-rights; campus-life open: true
+end Y11W2: current running-the-college; opened founding,next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing,a-faculty,hall-of-its-own,the-teams,alumni,campus-life,promises,running-the-college,research,capital-projects
+Y2W1 INTERRUPT before Campus life: first-sport-club:
+Y4W39 INTERRUPT before Campus life: decision-event:varsity-petition
+Y4W40 INTERRUPT before Campus life: athletic-director:
+Y13W1 INTERRUPT before Campus life: rankings-entry:
+end Y13W1: current paying-for-it; opened founding,next-course,somewhere-to-sleep,seats,paying-for-it,the-teams,research,alumni,capital-projects

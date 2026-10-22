@@ -1,4 +1,4 @@
-# Plan 109 — The board convenes
+# Plan 110 — The board convenes
 
 *The owner's brief (22 October 2026): specialization should feel like a
 bigger moment. "Right now it reads like just another email." A short email

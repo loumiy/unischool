@@ -46,6 +46,17 @@ const OUT = (() => { const i = argv.indexOf('--out'); return i >= 0 ? argv[i + 1
 
 // ---- Which screen a file's words are read on ----
 const SCREENS: Array<[RegExp, string]> = [
+  // The third review: Plans 89–108's files, which fell into "Other".
+  [/data\/chapterData\.ts$|components\/ObjectivesPanel\.tsx$/, 'Objectives (chapters, briefings, the Guide)'],
+  [/components\/AdmissionsPage\.tsx$|components\/applicantCloud\.ts$/, 'Admissions page (summer)'],
+  [/components\/FoundersOffices\.tsx$|data\/officeData\.ts$|systems\/administration\//, 'Founders Hall offices'],
+  [/data\/speedUpData\.ts$|components\/SpeedUpOffers\.tsx$/, 'Speed-ups (letters)'],
+  [/components\/hotkeys\.ts$/, 'Settings'],
+  [/components\/SaveSlots\.tsx$/, 'Menu'],
+  [/tabs\/(PrestigeGlance)\.tsx$|data\/prestigeWords\.ts$/, 'History tab'],
+  [/tabs\/(FacultyPlot|FacultyTable)\.tsx$/, 'Faculty tab'],
+  [/tabs\/TreasuryCashChart\.tsx$/, 'Treasury tab'],
+  [/components\/CommitteeLamps\.tsx$/, 'Dock and toolbar'],
   [/components\/InterruptModal\.tsx$/, 'Modals (summer, events, letters)'],
   [/components\/EventChoices\.tsx$/, 'Modals (summer, events, letters)'],
   [/components\/InboxTab\.tsx$|systems\/inbox\//, 'Inbox'],
@@ -383,6 +394,8 @@ const JARGON = [
   'initiative', 'depth', 'landmark program', 'breakthrough', 'petition', 'digest', 'chapter', 'hellenic',
   // Plans 84 and 85.
   'pillar', 'specialization', 'potential', 'training pick',
+  // Plans 89–108.
+  'objective', 'briefing', 'top band', 'sweep', 'office', 'composite',
 ];
 
 // One line per glossary hit, the debug panel left out (it is not read).
@@ -390,6 +403,9 @@ function glossaryReport(rows: StringRow[]): string[] {
   const out: string[] = [];
   for (const r of rows) {
     if (r.screen.startsWith('Debug')) continue;
+    // The save slots (Plan 98D) are a slot of their own, on the menu, which
+    // the glossary's rule (written for halls and professors) predates.
+    if (/components\/SaveSlots\.tsx$/.test(r.file)) continue;
     for (const { rule, match } of glossaryHits(r.text)) {
       out.push(`- “${match}”, ${rule.word} (${rule.says}) — ${r.screen}, \`${r.file}:${r.line}\`: ${r.text.slice(0, 140)}${r.text.length > 140 ? '…' : ''}`);
     }

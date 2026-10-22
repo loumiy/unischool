@@ -148,7 +148,7 @@ export default function App() {
   // answer. The Final Report and the summer's admissions keep their own
   // pages (Plan 108).
   const holding = s.pendingInterrupt !== null && !interruptPageUp(s);
-  // The specialization's page (Plan 109): opened from its letter in the
+  // The specialization's page (Plan 110): opened from its letter in the
   // inbox, over everything, and closed back to the letter. Kept against the
   // year the offer stands in, so an offer put off is a letter again the next
   // summer, never the page.

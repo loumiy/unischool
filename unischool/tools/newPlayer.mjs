@@ -1,19 +1,22 @@
 // A new player, scripted: passes the title screen, founds a college in a
 // headless Chromium, follows the opening walkthrough by doing what each step
-// asks (through the UI, the way a player would: since Plan 80D, site
-// Founders Hall, appoint Dr. Grace Bennett from the founding market in the
-// hall's panel, and found English with her; since Plan 103, develop the next
-// course and site a residence hall and a dining hall, each on the first
-// clear ground out from the centre), then plays the first year
+// asks (through the UI, the way a player would: since Plan 107A, site
+// Founders Hall, then pick the ringed slot's first offer and found it; the
+// founding faculty are already appointed), then plays the first year
 // at the fastest speed open to it (2× until a Provost opens 4×), answering
-// every stop and every matter with its last button. A matter that pauses
-// the clock on arrival (Plan 78E) is opened from its notice, answered in the
-// inbox, and the clock resumed. It reports what it was shown, how long each
-// step took, and where it stalled: a step it could not complete, or a clock
-// that stopped with nothing on screen asking for anything.
+// every stop and every matter with its last button. Since Plan 106 the
+// walkthrough ends at the founding and the chapters take over; this player
+// does none of their objectives (it is the player who skims), and logs the
+// chapter line on the ticker each time it changes, so a run shows where a
+// do-nothing first year leaves the chapters. A drawer Guided opens by itself
+// is closed. A matter that pauses the clock on arrival (Plan 78E) is opened
+// from its notice, answered in the inbox, and the clock resumed. It reports
+// what it was shown, how long each step took, and where it stalled: a step
+// it could not complete, or a clock that stopped with nothing on screen
+// asking for anything.
 //
 //   npm run dev                              # in one shell
-//   npm run newplayer [-- --timeout=180]     # writes node_modules/.tmp/newplayer-*.png on a stall
+//   npm run newplayer [-- --timeout=180] [-- --years=1]   # writes node_modules/.tmp/newplayer-*.png on a stall
 //   CAMPUS_URL=http://localhost:5174/ npm run newplayer   # a dev server on another port
 //
 // Nothing in src/ imports it.
@@ -22,6 +25,8 @@ import { chromium } from 'playwright-core';
 
 const flag = (name, fallback) => process.argv.find((f) => f.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
 const TIMEOUT_S = Number(flag('timeout', '180'));
+// The year to stop at (Plan 106's chapters run to year 5): 2 plays year one.
+const UNTIL_YEAR = Number(flag('years', '1')) + 1;
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 const SHOTS = 'node_modules/.tmp';
 
@@ -96,7 +101,7 @@ let lastClock = '';
 let lastMove = Date.now();
 while (Date.now() - started < TIMEOUT_S * 1000) {
   const c = await clock();
-  if (c && Number(c[1]) >= 2) { note(`reached ${c[0]}`); break; }
+  if (c && Number(c[1]) >= UNTIL_YEAR) { note(`reached ${c[0]}`); break; }
 
   // The walkthrough's letters: read, then take the step it offers.
   const welcome = page.locator('.modal[data-interrupt="welcome"]');
@@ -136,8 +141,9 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
     }
     if (await visible('.campus-map-svg.placing') && !(await setDown())) note('no clear ground found near the centre');
     if (await visible('.hall-offer-tile')) {
-      // The ringed program (English), else the first; then its professor:
-      // appointed from the market beside it when nobody can teach it yet.
+      // A ringed offer (Plan 107A rings all three), else the first; then its
+      // professor, appointed from the market beside it when nobody on the
+      // payroll can teach it (an old save's founding market).
       if (!(await visible('.hall-offer-tile.selected')) && !(await clickFirst('.hall-offer-tile.opening-target'))) await clickFirst('.hall-offer-tile');
       if (!(await visible('.hall-offer-picker .instructor-options'))) {
         const appoint = page.locator('.hall-offer-picker .course-drawer-appoint');
@@ -177,6 +183,18 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
     }
   }
 
+  // The chapter line (Plan 106), noted whenever it changes; the drawer that
+  // Guided opens by itself on a new chapter is closed, as a skimmer would.
+  const chapter = page.locator('.log-ticker-objective');
+  if (await chapter.count()) {
+    const text = (await chapter.first().innerText({ timeout: 1000 }).catch(() => '')).replace(/\s+/g, ' ').trim();
+    if (text && !seen.has(`chapter:${text}`)) { seen.add(`chapter:${text}`); note(`chapter line: ${text}${c ? ` (${c[0]})` : ''}`); }
+  }
+  if (await visible('.objectives-popup')) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+  }
+
   // The NEXT line, noted whenever it changes.
   const next = page.locator('.log-ticker-next-text');
   if (await next.count()) {
@@ -204,4 +222,4 @@ console.log(`\nended at ${final?.[0] ?? 'no clock'} after ${elapsed()}s`);
 console.log(stalls.length ? `stalls:\n  ${stalls.join('\n  ')}` : 'no stalls');
 if (errors.length) console.log(`page errors:\n  ${errors.join('\n  ')}`);
 await browser.close();
-process.exit(stalls.length || errors.length || !final || Number(final[1]) < 2 ? 1 : 0);
+process.exit(stalls.length || errors.length || !final || Number(final[1]) < UNTIL_YEAR ? 1 : 0);

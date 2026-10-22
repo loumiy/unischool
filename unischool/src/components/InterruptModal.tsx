@@ -914,7 +914,7 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
   s: GameState;
   act: (a: Action) => void;
   onNewCollege?: () => void;
-  // The specialization's page (Plan 109), opened from its letter in the
+  // The specialization's page (Plan 110), opened from its letter in the
   // inbox (App.tsx keeps whether it is open).
   specializationOpen?: boolean;
   onCloseSpecialization?: () => void;
@@ -983,7 +983,7 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
   // The summer's admissions is a page of its own (Plan 108).
   if (summer && admissionsPageUp(s)) return <AdmissionsPage key="admissions" s={s} act={act} />;
 
-  // The specialization's page (Plan 109), over the inbox that holds its
+  // The specialization's page (Plan 110), over the inbox that holds its
   // letter: closed, the letter is where it was.
   if (interrupt.type === 'specialization' && specializationOpen) {
     const close = () => onCloseSpecialization?.();
@@ -1006,7 +1006,7 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
 // It keeps the modal's card (`.modal`, with `.modal-inbox` placing it in
 // the pane), so every view reads as it did over the map. `onOpenBuild` is a
 // letter's door to the build menu (Plan 78B); `onOpenSpecialization` the
-// specialization letter's to its page (Plan 109).
+// specialization letter's to its page (Plan 110).
 export function InterruptContent({ s, act, onOpenBuild, onOpenSpecialization }: {
   s: GameState; act: (a: Action) => void; onOpenBuild?: () => void; onOpenSpecialization?: () => void;
 }) {

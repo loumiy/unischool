@@ -133,13 +133,13 @@
   --pillar-research: #33706a;
   --pillar-studentLife: #8c4a3f;
   --pillar-athletics: #a98a3c;
-  /* The same four, lit for the specialization's page (Plan 109): a step
+  /* The same four, lit for the specialization's page (Plan 110): a step
      brighter, and deep enough to carry cream text at 4.5:1. */
   --pillar-academics-lit: #3b5ba5;
   --pillar-research-lit: #26766c;
   --pillar-studentLife-lit: #b4503d;
   --pillar-athletics-lit: #8f6a12;
-  /* The board's room, the specialization's page (Plan 109): the hall of
+  /* The board's room, the specialization's page (Plan 110): the hall of
      fame's wood in shadow, its edge and offset black, its ink cream. */
   --board-room: #1b1611;
   --board-room-edge: #0c0a08;
@@ -4316,7 +4316,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .history-views .segmented.switch { min-width: min(100%, 420px); }
 .pillar-rule { margin: 0 0 var(--space-8); }
 
-/* ---------- The specialization (SpecializationChoice.tsx, Plan 109) ----------
+/* ---------- The specialization (SpecializationChoice.tsx, Plan 110) ----------
    The board's letter in the inbox: one sentence and the four pillars'
    ranks in their colours. Behind it, the page: the board's room in dark
    walnut, the question over four panels, each in its pillar's colour with

@@ -288,7 +288,7 @@ late, and kept:
   milestone, read on the summer's own week after the field has moved (the
   table the summer's review prints), and stands for good.
 - **The choice** is raised at that summer's close, after the page has
-  turned (so it holds no week). Since [Plan 109](../plans/109-the-board-convenes.md)
+  turned (so it holds no week). Since [Plan 110](../plans/110-the-board-convenes.md)
   it comes as a short letter from the board in the inbox (where the college
   stands, the four pillars' ranks, *Convene the board* and *Not this year*),
   and *Convene the board* opens a page of its own over everything: *What

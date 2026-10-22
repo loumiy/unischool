@@ -10,7 +10,7 @@ and holds the inbox open, with every other view shut, until the player
 resolves it by dispatching an action, which clears it and lets the clock
 resume; the player is then put back where they were. The Final Report (Plan
 60) and the summer's admissions (Plan 108) keep pages of their own over
-everything, and the specialization's letter opens one (Plan 109).
+everything, and the specialization's letter opens one (Plan 110).
 
 Everything that needs to stop time rides on this one mechanism:
 

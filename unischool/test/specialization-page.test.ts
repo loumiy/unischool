@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------
-// The specialization as a letter and a page (Plan 109,
+// The specialization as a letter and a page (Plan 110,
 // components/SpecializationChoice.tsx). What is worth pinning:
 //
 //   - the stop's card in the inbox is a short letter: the board's one

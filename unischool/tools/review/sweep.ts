@@ -53,6 +53,12 @@ const years = Number(flag('years', '30'));
 // did not come back whole.
 function firstDifference(a: unknown, b: unknown, path = 's'): string | null {
   if (Object.is(a, b)) return null;
+  // An absent record and an empty one read the same: since Plan 100B the
+  // load settles the halls' claims, so a college that never founded a
+  // program (the Idle player) comes back with `hallClaims: {}` where it had
+  // none (review III, area 7).
+  const empty = (v: unknown) => v === undefined || (typeof v === 'object' && v !== null && !Array.isArray(v) && Object.keys(v).length === 0);
+  if (empty(a) && empty(b)) return null;
   if (typeof a !== typeof b || a === null || b === null || typeof a !== 'object') return `${path}: ${JSON.stringify(a)?.slice(0, 60)} → ${JSON.stringify(b)?.slice(0, 60)}`;
   if (Array.isArray(a) !== Array.isArray(b)) return `${path}: array against object`;
   const keys = new Set([...Object.keys(a as object), ...Object.keys(b as object)]);

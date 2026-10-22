@@ -12,7 +12,7 @@ import { pillarShareRule, specializationShareWorth } from '../data/prestigeWords
 import { CHOICE_WORDS, SPECIALIZATION_BUILDINGS, SPECIALIZATION_CARDS, choiceParkNote, opensLine } from '../data/specializationData';
 
 // ---------------------------------------------------------------------
-// The choice (Plan 85D, systems/prestige/milestone.ts), since Plan 109 in
+// The choice (Plan 85D, systems/prestige/milestone.ts), since Plan 110 in
 // two parts, so that it reads as the moment it is rather than one more
 // letter:
 //

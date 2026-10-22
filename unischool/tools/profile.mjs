@@ -93,7 +93,9 @@ async function sample(seconds) {
       p95: frames[Math.floor(frames.length * 0.95)] ?? 0,
       longTasks: w.__long,
       longMs: w.__longMs,
-      week: document.body.innerText.match(/Year \d+ · [^\n]*Week \d+/)?.[0] ?? '?',
+      // The toolbar's calendar carries the whole date in its label; the
+      // drawn year and week sit apart (review III, area 7).
+      week: document.querySelector('.toolbar-calendar')?.getAttribute('aria-label') ?? '?',
     };
   });
 }

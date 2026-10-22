@@ -468,7 +468,7 @@ export function StatusIcon({ status }: { status: Status }) {
 }
 
 // Each prestige pillar's glyph: History › Prestige's meters and the
-// specialization's panels (Plan 109), the one set for both.
+// specialization's panels (Plan 110), the one set for both.
 export const PILLAR_ICONS: Readonly<Record<Pillar, () => React.JSX.Element>> = {
   academics: CurriculumIcon,
   research: ResearchIcon,

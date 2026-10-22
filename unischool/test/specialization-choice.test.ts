@@ -21,7 +21,7 @@
 //     is prestigeSystem's target on a copy with that share full, ranked by
 //     the guide's own function; the strongest pillar is the best-ranked;
 //     the letter's offer is one sentence, by the route that brought it
-//     (Plan 109), and the rule heads the page;
+//     (Plan 110), and the rule heads the page;
 //   - the harness's rule: the strongest pillar (value, then rank on a
 //     tie), or a fixed pick.
 //
@@ -423,7 +423,7 @@ function closeSummer(s: GameState): GameState {
   assert(PILLARS.reduce((n, p) => n + strongest.rivals[p], 0) === s.rivals.filter((r) => PILLARS.includes(r.specialization)).length, 'and every specialized rival is counted once');
   assert(PILLARS.every((p) => options.find((o) => o.pillar === p)!.rivals === strongest.rivals[p]), 'each panel counts its own pillar\'s');
 
-  // The letter (Plan 109): one sentence, where the college stands.
+  // The letter (Plan 110): one sentence, where the college stands.
   const offer = CHOICE_WORDS.offer(12, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 40 }, SPECIALIZATION_PILLAR_RANK);
   assert(offer.split(/(?<=\.)\s+/).length === 1 && offer.includes('#12 in the guide') && !offer.includes(pillarShareRule()), `the offer is one sentence ("${offer}")`);
   // By the pillar's route (Plan 95R): the pillar, not the guide.
