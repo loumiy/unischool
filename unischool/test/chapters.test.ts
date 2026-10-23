@@ -231,7 +231,13 @@ assert(new Set(CHAPTERS.flatMap((c) => c.objectives.map((o) => o.id))).size === 
 // The briefings (Plan 106 §5): every chapter the drawer shows has one, kept
 // short by rule; no sentence ends on a passive and a pronoun.
 for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
-  const b = CHAPTER_COPY[c.id].briefing;
+  // Plan 112's shape: a paragraph, and each objective's own help.
+  const copy = CHAPTER_COPY[c.id];
+  if (copy.about !== undefined) {
+    assert(c.objectives.every((o) => copy.help?.[o.id]?.text), `${c.id}: every objective has its help`);
+    continue;
+  }
+  const b = copy.briefing;
   assert(b !== undefined, `${c.id} has a briefing`);
   if (!b) continue;
   const sentences = b.what.split(/(?<=\.)\s+/).length;
@@ -398,10 +404,14 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   assert(currentChapter(s)?.id === 'running-the-college', 'and the chain goes on without it: Running the college');
   assert(!tabAvailable(s, 'athletics'), 'a gated run has no Athletics tab before its chapter');
 
-  s.orgs.clubs.push({ ...(s.orgs.clubs[0] ?? {}), sport: 'soccer' } as GameState['orgs']['clubs'][number]);
+  // A sport club alone opens nothing (Plan 112B): the petition does.
+  s.orgs.clubs.push({ ...s.orgs.clubs[0], id: 'club-soccer', sport: 'soccer', varsityLastAskedYear: null } as GameState['orgs']['clubs'][number]);
+  settleChapters(s);
+  assert(!opened(s, 'the-teams') && !tabAvailable(s, 'athletics'), 'a sport club alone opens neither The teams nor the Athletics tab');
+  s.orgs.clubs.at(-1)!.varsityLastAskedYear = 4;
   s.ladder.reached.sport = 4;
   settleChapters(s);
-  assert(opened(s, 'the-teams'), 'a sport club opens The teams beside the chain');
+  assert(opened(s, 'the-teams'), 'a varsity petition opens The teams beside the chain');
   assert(tabAvailable(s, 'athletics'), 'and with it the Athletics tab');
   assert(currentChapter(s)?.id === 'the-teams', 'the drawer shows the open chapter first in order');
   assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
@@ -425,7 +435,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
 // ---- PR G: the Guide ----
 {
   for (const [tab, id] of Object.entries(TAB_GUIDE)) {
-    assert(CHAPTERS.some((c) => c.id === id) && CHAPTER_COPY[id!].briefing !== undefined, `the ${tab} tab's Guide names a chapter with a briefing (${id})`);
+    assert(CHAPTERS.some((c) => c.id === id) && (CHAPTER_COPY[id!].briefing !== undefined || CHAPTER_COPY[id!].about !== undefined), `the ${tab} tab's Guide names a chapter with a page (${id})`);
   }
   const s = teaching();
   s.clock.year = 2;

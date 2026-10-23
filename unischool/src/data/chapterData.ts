@@ -18,6 +18,7 @@ import { FOUNDERS_HALL_ID } from './techData';
 import { count, countWord } from '../format';
 import { SEAT_SENIOR_YEARS } from './seatData';
 import { GRADE_B } from './courseQuality';
+import { AD_OFFER_COOLDOWN_YEARS, VARSITY_PETITION_MIN_TENURE_YEARS } from './studentLifeData';
 
 export type ChapterId = 'founding' | 'next-course' | 'looking-around' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
   | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life' | 'promises'
@@ -45,7 +46,11 @@ export interface Briefing {
 
 export interface ChapterCopy {
   title: string;
+  // The drawer's paragraph under the title (Plan 112).
+  about?: string;
   objectives: Record<string, string>;
+  // Each objective's help and its Show me, by objective id (Plan 112).
+  help?: Record<string, Lever>;
   briefing?: Briefing;
 }
 
@@ -286,24 +291,36 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       ],
     },
   },
+  // Opens at the first varsity petition and walks the department in the
+  // order it comes (Plan 112B): nothing asks for the Athletic Director
+  // before a team exists to direct.
   'the-teams': {
     title: 'The teams',
+    about: `A sport club has asked to go varsity. A varsity team plays a season against the other colleges, and the best reach the playoffs in week 47. It needs an Athletic Director over the department, a head coach, an assistant coach and a trainer, and a venue for its sport. Athletics is one of prestige's four pillars, and a title raises it for good.`,
     objectives: {
-      'appoint-athletic-director': 'Hire an Athletic Director',
       'field-a-varsity-team': 'Field a varsity team',
+      'appoint-athletic-director': 'Hire an Athletic Director',
+      'staff-the-team': "Fill the team's three staff posts",
+      'build-the-venue': "Build the team's venue",
     },
-    briefing: {
-      what: 'A sport club can ask to become a varsity team, with a budget and a venue. Varsity teams play through the year, and the best reach the playoffs in week 47. The Athletic Director runs the department, including the coaches and which programs the fund pays first.',
-      how: [
-        { text: 'The Athletics tab lists your clubs, teams and venues.', door: 'athletics' },
-        { text: 'Drag the programs into order in the priority list. The fund pays the whole cost of the flagships at the top.', door: 'athletics' },
-        { text: 'Hire coaches from the market in the Athletics tab. It is separate from the faculty market.' },
-      ],
-      why: [
-        { system: 'Prestige', text: "athletics is one of prestige's four pillars, and a title raises it for good" },
-        { system: 'Admissions', text: 'a title brings more applicants for the next few summers' },
-        { system: 'Rivals', text: 'the old athletic powers have an edge in the playoffs, so your first titles come slowly' },
-      ],
+    help: {
+      'field-a-varsity-team': {
+        text: `When a sport club petitions to go varsity, choose Go varsity. If you turned it down, the club asks again in ${countWord(VARSITY_PETITION_MIN_TENURE_YEARS)} years, and nothing else in athletics can start until a team exists.`,
+        door: 'athletics',
+      },
+      'appoint-athletic-director': {
+        text: `You can't search for an Athletic Director yourself. The board sends you three candidates soon after your first team goes varsity, and not before, so this one may mean waiting. If you appoint nobody, the board tries again in ${countWord(AD_OFFER_COOLDOWN_YEARS)} years.`,
+        door: 'athletics',
+      },
+      'staff-the-team': {
+        text: "Every team needs a head coach, an assistant coach and a trainer. In the Athletics tab, open the team's card and click Hire on an empty post, then hire from the market below. An empty post weakens the team, and the tab's button shows ! until every post is filled.",
+        door: 'athletics',
+      },
+      'build-the-venue': {
+        text: "Going varsity adds the team's venue to the build menu. Open the build menu, click the ringed venue, and place it on the map. The team plays once it is built, and later teams of the same kind share it.",
+        door: 'build',
+        ringed: true,
+      },
     },
   },
   'running-the-college': {

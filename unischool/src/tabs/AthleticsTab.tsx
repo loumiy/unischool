@@ -12,7 +12,7 @@ import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import {
   ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, COLLEGE_PULL_MAX,
-  NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_CLASSES, RECRUITING_FULL_LIFT, SCHOLARSHIP_LEVELS, SCHOLARSHIP_ORDER, TRAINER_FIELD,
+  AD_OFFER_COOLDOWN_YEARS, NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_CLASSES, RECRUITING_FULL_LIFT, SCHOLARSHIP_LEVELS, SCHOLARSHIP_ORDER, TRAINER_FIELD,
   annualScholarships, ceilingResolved, coachProfile, collegePull, departmentPot, orderedTeams,
   recruitingTarget, scholarshipCostFor, sportById, teamQuality, teamQualityEarned, TEAM_QUALITY_KNEE, varsityEligibleYear, venueForCategory,
 } from '../data/studentLifeData';
@@ -27,6 +27,7 @@ import { count, decimal, money, moneyShort, pct, weeksShort } from '../format';
 import { ReleaseIcon } from '../components/icons';
 import { switchStyle } from '../components/segmentedSwitch';
 import { useCollapse } from '../components/useCollapse';
+import { teamsRing, type TeamsRing } from '../state/chapters';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -65,6 +66,14 @@ function coachInSlot(team: VarsityTeam, role: Role): Coach | null {
   return role === 'head' ? team.headCoach : role === 'assistant' ? team.assistantCoach : team.trainer;
 }
 
+// The post The teams rings (Plan 112B, state/chapters.ts's teamsRing): the
+// first open one on the team it walks, in seat order.
+function ringedRole(team: VarsityTeam, ring: TeamsRing | null): Role | null {
+  if (ring?.step !== 'staff' || ring.teamId !== team.id) return null;
+  return ROLE_ORDER.find((role) => !coachInSlot(team, role)) ?? null;
+}
+const RING = ' opening-target';
+
 // The market's panel, where an open seat's "Hire" goes.
 const MARKET_ID = 'athletics-market';
 function goToMarket() {
@@ -78,7 +87,7 @@ function goToMarket() {
 // it (face, name, quality and salary; the ceiling and age in its tooltip, a
 // Release button), or an open seat with a dashed blank face and a link to
 // the market below, where hiring happens.
-function StaffSeat({ act, team, role }: { act: (a: Action) => void; team: VarsityTeam; role: Role }) {
+function StaffSeat({ act, team, role, ringed }: { act: (a: Action) => void; team: VarsityTeam; role: Role; ringed: boolean }) {
   const coach = coachInSlot(team, role);
 
   if (!coach) {
@@ -87,7 +96,7 @@ function StaffSeat({ act, team, role }: { act: (a: Action) => void; team: Varsit
         <span className="staff-seat-role">{ROLE_SEAT[role]}</span>
         <span className="staff-seat-face" aria-hidden="true" />
         <span className="staff-seat-name">Open</span>
-        <button type="button" className="staff-seat-hire" aria-label={`Hire ${aChair(role)}: see the market`} onClick={goToMarket}>
+        <button type="button" className={`staff-seat-hire${ringed ? RING : ''}`} aria-label={`Hire ${aChair(role)}: see the market`} onClick={goToMarket}>
           Hire <span aria-hidden="true">→</span>
         </button>
       </div>
@@ -157,6 +166,9 @@ function fieldLabel(field: string): string {
 // faculty hiring, this tab is where a coaching shortage is felt.
 function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const [showAll, setShowAll] = useState(false);
+  const ring = teamsRing(s);
+  const ringedTeam = ring ? s.orgs.teams.find((x) => x.id === ring.teamId) : undefined;
+  const ringed = ringedTeam ? ringedRole(ringedTeam, ring) : null;
 
   const listed = s.orgs.coachCandidates.map((c) => ({ c, openings: openingsFor(s, c) }));
   const wanted = listed.filter((row) => row.openings.length > 0);
@@ -209,7 +221,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                       <button
                         key={`${team.id}:${role}`}
                         type="button"
-                        className="panel-action"
+                        className={`panel-action${team.id === ringedTeam?.id && role === ringed ? RING : ''}`}
                         title={`${team.name} — ${CHAIR_LABEL[role]}`}
                         onClick={() => act({ type: 'HIRE_COACH', candidateId: c.id, teamId: team.id, role })}
                       >
@@ -236,6 +248,22 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
 
 // The department, in the side column: the director, the two standings the
 // department moves, the subsidy dial and the pot in a few lines.
+// Why the director's chair is empty, and what it waits for (Plan 112B, the
+// owner: a player should not hunt for a way to hire one when there is
+// nothing to do but wait). The board's offer is the only way in
+// (eventSystem.ts's fireAthleticDirectorOffer), and it waits for a team.
+function adWaiting(s: GameState): string {
+  if (s.orgs.teams.length === 0) {
+    return 'No Athletic Director yet. The post waits for your first varsity team. Once a team goes varsity, the board sends you candidates, and until then there is nothing to do.';
+  }
+  const asked = s.orgs.athleticDirectorAskedWeek;
+  if (asked > 0) {
+    const year = Math.floor((asked - 1 + AD_OFFER_COOLDOWN_YEARS * WEEKS_PER_YEAR) / WEEKS_PER_YEAR) + 1;
+    return `No Athletic Director yet. You appointed none of the board's candidates, and it sends more in Year ${year}.`;
+  }
+  return 'No Athletic Director yet. The board will send you candidates in the next few weeks.';
+}
+
 function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const active = s.orgs.teams.filter((t) => t.status === 'active');
   const ad = s.orgs.athleticDirector;
@@ -266,9 +294,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
             </span>
           </>
         ) : (
-          <p className="empty-note department-ad-empty">
-            No Athletic Director yet. The board will send you candidates before long.
-          </p>
+          <p className="empty-note department-ad-empty">{adWaiting(s)}</p>
         )}
       </div>
 
@@ -439,18 +465,35 @@ function SportScore({ s, team }: { s: GameState; team: VarsityTeam }) {
 // A program's next action, for its folded line (Plan 95I): the open chair
 // to fill, the head coach's first; otherwise what holds it back (a venue
 // to wait on, a postseason ban); otherwise nothing.
-function NextAction({ s, team }: { s: GameState; team: VarsityTeam }) {
-  if (team.status !== 'active') {
-    return <span className="team-card-next">waiting on {venueForCategory(s, team.venueCategory)?.name ?? 'a venue'}</span>;
+// A team waiting on its venue: while the venue is on offer and not yet
+// sited, a door to the build menu, which opens on it ringed while The teams
+// is open (state/chapters.ts's ringedBuilding); once it is going up, what
+// the team waits on.
+function VenueWait({ s, team, ring, onOpenBuild }: { s: GameState; team: VarsityTeam; ring: TeamsRing | null; onOpenBuild?: () => void }) {
+  const venue = venueForCategory(s, team.venueCategory);
+  if (venue?.status === 'available' && !(venue.id in s.placements) && onOpenBuild) {
+    const ringed = ring?.step === 'venue' && ring.teamId === team.id;
+    return (
+      <button type="button" className={`staff-seat-hire team-card-next${ringed ? RING : ''}`} onClick={onOpenBuild}>
+        Build {venue.name} <span aria-hidden="true">→</span>
+      </button>
+    );
   }
+  return <span className="team-card-next">waiting on {venue?.name ?? 'a venue'}</span>;
+}
+
+function NextAction({ s, team, ring, onOpenBuild }: { s: GameState; team: VarsityTeam; ring: TeamsRing | null; onOpenBuild?: () => void }) {
+  // The posts first, then the venue: The teams' order (Plan 112B), so a team
+  // waiting on its venue still says what it lacks in staff.
   const open = ROLE_ORDER.find((role) => !coachInSlot(team, role));
   if (open) {
     return (
-      <button type="button" className="staff-seat-hire team-card-next" onClick={goToMarket}>
+      <button type="button" className={`staff-seat-hire team-card-next${ringedRole(team, ring) ? RING : ''}`} onClick={goToMarket}>
         Hire {aChair(open)} <span aria-hidden="true">→</span>
       </button>
     );
   }
+  if (team.status !== 'active') return <VenueWait s={s} team={team} ring={ring} onOpenBuild={onOpenBuild} />;
   if (team.postseasonBanThroughYear !== undefined && s.clock.year <= team.postseasonBanThroughYear) {
     return <span className="team-card-next">postseason ban through {team.postseasonBanThroughYear}</span>;
   }
@@ -561,9 +604,11 @@ function CutProgram({ s, act, team }: { s: GameState; act: (a: Action) => void; 
 // Every program starts folded to its one line (Plan 95I, as Plan 76B
 // folded the Curriculum's): the scoreboard, its quality, its band and its
 // next action. It opens in place for the rest.
-function TeamCard({ s, act, team, funding, rank }: {
-  s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding; rank?: number;
+function TeamCard({ s, act, team, funding, rank, onOpenBuild }: {
+  s: GameState; act: (a: Action) => void; team: VarsityTeam; funding?: ProgramFunding; rank?: number; onOpenBuild?: () => void;
 }) {
+  const ring = teamsRing(s);
+  const ringed = ringedRole(team, ring);
   const quality = teamQuality(team, s);
   const staffAnnual = (team.headCoach?.salary ?? 0) + (team.assistantCoach?.salary ?? 0) + (team.trainer?.salary ?? 0);
   const weeklyCost = team.upkeepPerWeek + staffAnnual / WEEKS_PER_YEAR;
@@ -601,7 +646,7 @@ function TeamCard({ s, act, team, funding, rank }: {
           <span className="team-card-line">
             {team.status === 'active' && <SportScore s={s} team={team} />}
             <span className="team-card-quality">quality <strong>{quality}</strong></span>
-            <NextAction s={s} team={team} />
+            <NextAction s={s} team={team} ring={ring} onOpenBuild={onOpenBuild} />
           </span>
         )}
       </div>
@@ -615,7 +660,7 @@ function TeamCard({ s, act, team, funding, rank }: {
               <span className="team-held" title={teamSlowed(teamQualityEarned(team, s), quality)}> slowed</span>
             )}
           </span>
-          <span>{team.status === 'active' ? venue?.name ?? 'venue' : `waiting on ${venue?.name ?? 'a venue'}`}</span>
+          {team.status === 'active' ? <span>{venue?.name ?? 'venue'}</span> : <VenueWait s={s} team={team} ring={ring} onOpenBuild={onOpenBuild} />}
           <span>{moneyShort(weeklyCost)}/wk</span>
           {funding && (
             <span title={`Takes ${money(funding.drawn)} of the ${money(funding.cost)}/yr it costs to compete`}>
@@ -629,7 +674,7 @@ function TeamCard({ s, act, team, funding, rank }: {
         {team.status === 'active' && <Recruiting s={s} act={act} team={team} flagship={funding?.band === 'flagship'} />}
         {/* Three seats side by side, an open one dashed (Plan 90). */}
         <div className="team-card-staff" role="group" aria-label="Staff">
-          {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} />)}
+          {ROLE_ORDER.map((role) => <StaffSeat key={role} act={act} team={team} role={role} ringed={role === ringed} />)}
         </div>
         <CutProgram s={s} act={act} team={team} />
       </>}
@@ -640,7 +685,7 @@ function TeamCard({ s, act, team, funding, rank }: {
 // The priority list: programs in the player's order, dragged, with the line
 // drawn under the flagships. Only the order is dispatched; the bands are
 // read back off the pot.
-function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
+function PriorityList({ s, act, onOpenBuild }: { s: GameState; act: (a: Action) => void; onOpenBuild?: () => void }) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const pot = departmentPot(s);
@@ -672,7 +717,8 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
       </div>
       {ordered.length === 0 ? (
         <div className="empty-note">
-          {/* Before any team: the first sport club and what comes next. */}
+          {/* Before any team, which since Plan 112B means a petition turned
+              down: the sport clubs and when each may ask again. */}
           <p>No sport club has gone varsity yet.</p>
           {s.orgs.clubs.filter((c) => c.sport !== null).length > 0 && (
             <ul className="org-list">
@@ -705,7 +751,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
                     onDragOver={(e) => { e.preventDefault(); if (over !== team.id) setOver(team.id); }}
                     onDrop={(e) => { e.preventDefault(); drop(team.id); setDragging(null); setOver(null); }}
                   >
-                    <TeamCard s={s} act={act} team={team} funding={funding} rank={i + 1} />
+                    <TeamCard s={s} act={act} team={team} funding={funding} rank={i + 1} onOpenBuild={onOpenBuild} />
                   </div>
                 </li>
               </Fragment>
@@ -718,7 +764,7 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
           )}
           {awaiting.map((team) => (
             <li key={team.id} className="priority-slot awaiting">
-              <TeamCard s={s} act={act} team={team} />
+              <TeamCard s={s} act={act} team={team} onOpenBuild={onOpenBuild} />
             </li>
           ))}
         </ul>
@@ -727,7 +773,8 @@ function PriorityList({ s, act }: { s: GameState; act: (a: Action) => void }) {
   );
 }
 
-export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
+// `onOpenBuild` opens the build menu: a team's door to its venue (Plan 112B).
+export default function AthleticsTab({ s, act, onOpenBuild }: { s: GameState; act: (a: Action) => void; onOpenBuild?: () => void }) {
   const teams = s.orgs.teams;
 
   return (
@@ -740,7 +787,7 @@ export default function AthleticsTab({ s, act }: { s: GameState; act: (a: Action
       </div>
 
       <div className="athletics-main">
-        <PriorityList s={s} act={act} />
+        <PriorityList s={s} act={act} onOpenBuild={onOpenBuild} />
 
         {/* The market last: you notice an empty chair, then look for someone. */}
         {teams.length > 0 && <TheMarket s={s} act={act} />}

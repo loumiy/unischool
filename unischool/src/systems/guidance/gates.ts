@@ -4,7 +4,8 @@ import type { GameState } from '../../state/types';
 // until the chapter that explains it has opened: the inbox's matters and
 // the students' demands until "Campus life", the board's promises until
 // "Promises", the Athletics tab until "The teams" (PR F, TabNav.tsx's
-// tabAvailable). A pure reading of the record state/chapters.ts keeps, so the
+// tabAvailable), which opens with the first varsity petition as the ladder
+// does (Plan 112B), so the gate only keeps the two in step. A pure reading of the record state/chapters.ts keeps, so the
 // systems can ask without importing the chapters themselves.
 //
 // No gate holds a run that isn't guided: a headless founding (the sims),

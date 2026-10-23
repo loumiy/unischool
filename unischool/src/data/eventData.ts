@@ -968,7 +968,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             ready
               ? `${venue!.name} is already built, so the team plays varsity at once.`
               : `${venue ? venue.name : 'A shared venue'} appears in the build menu. The team plays varsity once it's built, and shares it with any other team that uses the same kind of venue.`
-          );
+          ) + (s.orgs.athleticDirector ? '' : ' The board then sends you candidates for Athletic Director, a post that waits for your first varsity team.');
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {

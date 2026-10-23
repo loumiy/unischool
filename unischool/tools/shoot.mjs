@@ -160,8 +160,9 @@ if (tab) {
     process.exit(2);
   }
   if (tab === 'treasury') await page.locator('.toolbar-funds-btn').first().click();
-  // The inbox's label carries its count ("Inbox, 3 to decide", Plan 77).
-  else await page.getByRole('button', { name: label, exact: tab !== 'inbox' }).first().click();
+  // The inbox's label carries its count ("Inbox, 3 to decide", Plan 77),
+  // and Athletics an open post (Plan 112B).
+  else await page.getByRole('button', { name: label, exact: tab !== 'inbox' && tab !== 'athletics' }).first().click();
   await page.waitForSelector('.tab-overlay', { timeout: 10_000 });
   // The tab's own entry animations, and any chart that draws on mount.
   await page.waitForTimeout(1_200);

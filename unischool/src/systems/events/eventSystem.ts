@@ -13,7 +13,7 @@ import {
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
 import { ELITE_CLOSE_ABOVE_PRESTIGE } from '../rivals/rivalsSystem';
-import { coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
+import { AD_OFFER_COOLDOWN_YEARS, coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
 import { random } from '../../engine/random';
 
 // Event cadence (content lives in data/eventData.ts; see
@@ -95,7 +95,7 @@ function fireCharter(s: GameState): boolean {
 // AD_OFFER_COOLDOWN_WEEKS, so a school that cannot afford a director early
 // does not lose athletics for the run. Candidates are rolled here and
 // carried in the payload so the modal hires exactly who it shows.
-const AD_OFFER_COOLDOWN_WEEKS = 3 * WEEKS_PER_YEAR;
+const AD_OFFER_COOLDOWN_WEEKS = AD_OFFER_COOLDOWN_YEARS * WEEKS_PER_YEAR;
 
 // Championships queue like milestones but drain one per modal.
 function fireChampionshipReport(s: GameState): boolean {
