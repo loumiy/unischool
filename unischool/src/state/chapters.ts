@@ -9,11 +9,11 @@ import { darkPrograms } from '../systems/techtree/darkness';
 import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import { RESEARCH_PARK_ID } from '../data/researchParkData';
 import { GRADE_B } from '../data/courseQuality';
-import { varsityAsked } from '../data/ladderData';
 import { openChairs, venueForCategory } from '../data/studentLifeData';
 import { schoolsFounded } from '../systems/guidance/establish';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
+import { placesComing } from '../systems/guidance/seating';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
 // one season's lesson each, in the manner of Transport Fever's missions:
@@ -41,8 +41,11 @@ import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
 // (sitedAny, foundersHallUnsited), which systems/ may not.
 
 // An objective's reading: met or not, or a count toward a figure. A count
-// is met when it reaches the figure.
-export type ObjectiveProgress = boolean | { n: number; of: number };
+// is met when it reaches the figure. `coming` is a second count the drawer
+// shows beside it while the two differ: Seats for everyone's places with
+// the courses under way (Plan 114E, the third review's C3-5), which the
+// NEXT line counts (seating.ts's placesComing).
+export type ObjectiveProgress = boolean | { n: number; of: number; coming?: number };
 
 export interface Objective {
   id: string;
@@ -152,7 +155,7 @@ export const CHAPTERS: readonly Chapter[] = [
         id: 'seat-every-student',
         progress: (s) => {
           const of = totalEnrolled(s.students);
-          return { n: Math.min(instructionCapacity(s), of), of };
+          return { n: Math.min(instructionCapacity(s), of), of, coming: Math.min(placesComing(s), of) };
         },
       },
     ],
@@ -236,19 +239,21 @@ export const CHAPTERS: readonly Chapter[] = [
     ],
   },
   {
-    // Athletics, from the first varsity petition (Plan 112B; ladderData.ts's
-    // varsityAsked), walked in the order it happens: the team fielded, the
-    // Athletic Director the board then offers, the team's three posts, and
-    // its venue. Whenever the petition comes, since the Athletics tab waits
-    // for this chapter in a guided run (gates.ts) and must not wait longer
-    // than the petition. A side chapter: a college that never fields a team
+    // Athletics, from the first varsity team (Plan 114E, the third review's
+    // C3-2: it opened on the petition, ladderData.ts's varsityAsked, so a
+    // petition turned down opened a chapter whose team could not come for
+    // years). The ladder's rung still opens on the petition; in a guided run
+    // the Athletics tab and the mascot stop wait for this chapter (gates.ts),
+    // so after a refusal they wait for a team too. A save that opened it on
+    // a refusal keeps it open. Walked in the order it happens: the Athletic
+    // Director the board offers once a team exists, the posts of every team,
+    // and the venues. A side chapter: a college that never fields a team
     // still reaches the chapters after it.
     id: 'the-teams',
     earliest: week(1, 1),
     side: true,
-    opensWhen: varsityAsked,
+    opensWhen: (s) => s.orgs.teams.length > 0,
     objectives: [
-      { id: 'field-a-varsity-team', progress: (s) => s.orgs.teams.length > 0 },
       { id: 'appoint-athletic-director', progress: (s) => s.orgs.athleticDirector !== null },
       {
         id: 'staff-the-team',
@@ -370,7 +375,7 @@ export function ringedBuilding(s: GameState): Buildable | null {
 }
 
 // A chapter opened and not yet done, side chapters included (currentChapter
-// names only the first).
+// names only one).
 function chapterOpen(s: GameState, id: ChapterId): boolean {
   return s.guidance?.opened[id] !== undefined && s.guidance.done[id] === undefined;
 }
@@ -415,12 +420,22 @@ export function isMet(p: ObjectiveProgress): boolean {
   return typeof p === 'boolean' ? p : p.n >= p.of;
 }
 
-// The chapter open and not yet done, or null: between chapters (the next
-// waits for its week) and after the last.
+// The chapter the ticker and the drawer show: the open main chapter, else
+// the first open side chapter, or null between chapters (the next waits for
+// its week) and after the last. A side chapter never stands over the main
+// one (Plan 114E, C3-2); the others open are openSideChapters'.
 export function currentChapter(s: GameState): Chapter | null {
   const g = s.guidance;
   if (!g) return null;
-  return CHAPTERS.find((c) => g.opened[c.id] !== undefined && g.done[c.id] === undefined) ?? null;
+  const open = CHAPTERS.filter((c) => g.opened[c.id] !== undefined && g.done[c.id] === undefined);
+  return open.find((c) => !c.side) ?? open[0] ?? null;
+}
+
+// The side chapters open beside the current one, in order: the Guide's list
+// names them first (ObjectivesPanel), so they are a click away.
+export function openSideChapters(s: GameState): Chapter[] {
+  const current = currentChapter(s);
+  return CHAPTERS.filter((c) => c.side && c !== current && chapterOpen(s, c.id));
 }
 
 export function objectiveMet(s: GameState, id: string): boolean {

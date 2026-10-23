@@ -87,11 +87,17 @@ the right says what to do about it.
 **The objectives** (Plan 106, `state/chapters.ts`, `ObjectivesPanel.tsx`).
 Once the walkthrough is over, the ticker's chapter chip takes the place the
 milestone chip had: "Chapter 2 · Places for every student 480/650", the
-chapter's first objective not met. The next step stays on the strip only
+chapter's first objective not met. The chapter is the open chain chapter;
+a side chapter (The teams, Research and the later ones) shows only when no
+chain chapter is open, and while one is, the drawer's Guide lists the side
+chapters open beside it first, marked "open now" (Plan 114E). The next step stays on the strip only
 when it is urgent or no chapter is open. Clicking the chip, or pressing J,
 opens the **objectives drawer** above the ticker. It holds:
 - the chapter's number and title, a short paragraph about it, and its
-  objectives, each with its count and a circled (?) (Plan 112A). The (?)
+  objectives, each with its count and a circled (?) (Plan 112A). Seats for
+  everyone adds the places with courses under way while they differ, the
+  count the next step reads: "240/350 taught · 320 with courses under way"
+  (Plan 114E). The (?)
   opens a small popover anchored to it (`HelpHint.tsx`; Escape or a click
   elsewhere shuts it, one open at a time) with the objective's help, how
   to meet it, and a Show me that opens the view it needs and rings what

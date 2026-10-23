@@ -22,7 +22,10 @@
 
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
+import { placesComing } from '../src/systems/guidance/seating';
+import { isUndergraduateCourse } from '../src/systems/techtree/techSystem';
+import { isHoused } from '../src/systems/techtree/programOffers';
+import { CHAPTERS, currentChapter, openSideChapters, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
@@ -44,7 +47,8 @@ import { bindScriptStream } from '../src/engine/random';
 import { SPORTS } from '../src/data/studentLifeData';
 import { varsityAsked } from '../src/data/ladderData';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
-import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall } from '../src/data/techData';
+import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall, programOfCourse } from '../src/data/techData';
+import { count } from '../src/format';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
 import { PILLARS } from '../src/systems/prestige/prestigeSystem';
 
@@ -141,6 +145,20 @@ const looked = (s: GameState) => {
   assert(faculty[0].id === 'open-faculty' && !faculty[0].optional, 'A faculty opens with the Faculty tab, required');
   assert(faculty.find((r) => r.id === 'post-a-search')!.optional, 'and posting a search is optional');
   assert(MARKED_TABS.has('faculty'), 'opening the Faculty tab is marked');
+}
+
+// ---- Seats for everyone counts what the NEXT line counts (Plan 114E, C3-5) ----
+{
+  const s = looked(teaching());
+  s.students.classes.freshman += 400;
+  const row = () => objectiveRows(s, CHAPTERS.find((c) => c.id === 'seats')!).find((r) => r.id === 'seat-every-student')!.progress as { n: number; of: number; coming?: number };
+  assert(row().coming === row().n, `with no course under way the two counts agree (${row().n}, ${row().coming})`);
+  const course = s.tech.find((t) => isUndergraduateCourse(t) && t.status === 'available' && isHoused(s, programOfCourse(t.id)!))!;
+  course.status = 'developing';
+  assert(row().coming === Math.min(placesComing(s), row().of) && row().coming! > row().n, `a course under way adds to the second count (${row().n}, ${row().coming})`);
+  s.guidance = { opened: { seats: 1 }, done: {}, met: [], marked: [] };
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} })).replace(/<[^>]+>/g, '');
+  assert(html.includes(`${count(row().n)}/${count(row().of)} taught · ${count(row().coming!)} with courses under way`), 'the drawer shows both');
 }
 
 // ---- The next chapter waits for its week, and opens already met ----
@@ -458,9 +476,18 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   s.orgs.clubs.at(-1)!.varsityLastAskedYear = 4;
   s.ladder.reached.sport = 4;
   settleChapters(s);
-  assert(opened(s, 'the-teams'), 'a varsity petition opens The teams beside the chain');
+  assert(!opened(s, 'the-teams') && !tabAvailable(s, 'athletics'), 'a petition alone, turned down, opens neither (Plan 114E)');
+  s.orgs.teams.push({ id: 'team-soccer', sport: 'soccer', status: 'awaitingVenue', venueCategory: 'soccerField' } as unknown as GameState['orgs']['teams'][number]);
+  settleChapters(s);
+  assert(opened(s, 'the-teams'), 'a varsity team opens The teams beside the chain');
   assert(tabAvailable(s, 'athletics'), 'and with it the Athletics tab');
-  assert(currentChapter(s)?.id === 'the-teams', 'the drawer shows the open chapter first in order');
+  // The ticker and the drawer show the main chapter over a side one, and
+  // the Guide lists the side one first (Plan 114E, C3-2).
+  assert(currentChapter(s)?.id === 'running-the-college', `the main chapter is current, not the side one (${currentChapter(s)?.id})`);
+  assert(openSideChapters(s).map((c) => c.id).join(',') === 'the-teams', 'and The teams is open beside it');
+  const drawer = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, onView: () => {} }));
+  const guideAt = drawer.indexOf('objectives-guide');
+  assert(guideAt > 0 && drawer.indexOf('The teams', guideAt) > guideAt && drawer.slice(guideAt).includes('open now'), 'the Guide names The teams, open now');
   assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
 
   const ungated = structuredClone(s);

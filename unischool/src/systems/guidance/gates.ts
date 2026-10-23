@@ -4,8 +4,9 @@ import type { GameState } from '../../state/types';
 // until the chapter that explains it has opened: the inbox's matters and
 // the students' demands until "Campus life", the Athletics tab until "The
 // teams" (PR F, TabNav.tsx's tabAvailable), which opens with the first
-// varsity petition as the ladder does (Plan 112B), so the gate only keeps
-// the two in step; the first sport club's mascot stop waits for it too, and
+// varsity team (Plan 114E), where the ladder opens the tab at the petition
+// (Plan 112B): a petition turned down keeps both shut until a team exists;
+// the first sport club's mascot stop waits for it too, and
 // the petition itself, a decision event, for "Campus life" (Plan 113C). The board's promises waited for "Promises" until that
 // chapter went (Plan 112A); they come from the third summer, guided or not.
 // A pure reading of the record state/chapters.ts keeps, so the

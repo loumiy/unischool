@@ -1,7 +1,7 @@
 import type { GameState } from '../state/types';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { CHAPTER_COPY, DRAWER_WORDS as W, type Door } from '../data/chapterData';
-import { absoluteWeek, chapterById, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import { absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import HelpHint from './HelpHint';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
@@ -29,7 +29,11 @@ function milestoneCount(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)}/${figure(p.target, p.unit)}`;
 }
 function objectiveCount(p: ObjectiveProgress): string | null {
-  return typeof p === 'boolean' ? null : `${count(Math.min(p.n, p.of))}/${count(p.of)}`;
+  if (typeof p === 'boolean') return null;
+  const n = `${count(Math.min(p.n, p.of))}/${count(p.of)}`;
+  // A second count, while it differs (Plan 114E): the places with the
+  // courses under way, as the NEXT line counts them.
+  return p.coming !== undefined && p.coming !== p.n ? W.withComing(n, count(p.coming)) : n;
 }
 
 // How many milestones the drawer lists as unlocked at most.
@@ -84,7 +88,10 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
   const rows = chapter ? objectiveRows(s, chapter) : [];
   const required = rows.filter((r) => !r.optional);
   const coming = chapter ? null : nextChapter(s);
-  const guide = guideChapters(s).filter((c) => c.id !== chapter?.id);
+  // The Guide's list: the side chapters open beside the current one first
+  // (Plan 114E: the ticker shows the main chapter only), then the rest.
+  const alsoOpen = openSideChapters(s).filter((c) => hasPage(c.id));
+  const guide = [...alsoOpen, ...guideChapters(s).filter((c) => !alsoOpen.includes(c))].filter((c) => c.id !== chapter?.id);
 
   const since = chapter ? s.guidance!.opened[chapter.id] : absoluteWeek(s) - 52;
   const unlocked = MILESTONES
@@ -171,7 +178,10 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
           <h4>{W.guide} · {W.guideList}</h4>
           <p>
             {guide.map((c) => (
-              <button key={c.id} type="button" className="objectives-guide-link" onClick={() => onView(c.id)}>{CHAPTER_COPY[c.id].title}</button>
+              <button key={c.id} type="button" className="objectives-guide-link" onClick={() => onView(c.id)}>
+                {CHAPTER_COPY[c.id].title}
+                {alsoOpen.includes(c) && <span className="objectives-optional"> ({W.guideOpen})</span>}
+              </button>
             ))}
           </p>
         </section>

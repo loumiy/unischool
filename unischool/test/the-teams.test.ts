@@ -1,9 +1,11 @@
 // ---------------------------------------------------------------------
 // The teams (Plan 112B, the owner's notes for 0.1.4): the Athletics tab and
-// its chapter wait for the first varsity petition, not the first sport club;
-// the chapter walks the department in the order it comes (the team, the
-// Athletic Director, the three posts, the venue), never asking for the
-// director before a team exists; once the director is hired the Athletics
+// its chapter wait for the first varsity petition, not the first sport club,
+// and since Plan 114E the chapter (and, guided, the tab) for the first team,
+// so a petition turned down opens neither; the chapter walks the department
+// in the order it comes (the Athletic Director, every team's posts, the
+// venue), never asking for the director before a team exists; once the
+// director is hired the Athletics
 // tab rings the next thing to click; and the tab's button carries the alert
 // badge while any team has a post open.
 //
@@ -16,6 +18,7 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { CHAPTERS, objectiveMet, objectiveRows, ringedBuilding, settleChapters, teamsRing } from '../src/state/chapters';
 import { CHAPTER_COPY } from '../src/data/chapterData';
+import { ATHLETICS_CHAPTER, chapterGateOpen } from '../src/systems/guidance/gates';
 import { tabAvailable } from '../src/components/TabNav';
 import { milestoneReached, tickLadder } from '../src/systems/ladder/ladderSystem';
 import { findDecisionEvent } from '../src/data/eventData';
@@ -109,12 +112,28 @@ const tab = (s: GameState) => renderToStaticMarkup(createElement(AthleticsTab, {
   const yes = answer(petition(structuredClone(s)), 'establish');
   assert(yes.orgs.teams.length === 1, 'Go varsity fields a team');
   assert(milestoneReached(yes, 'sport') && opened(yes, 'the-teams') && tabAvailable(yes, 'athletics'), 'and the same answer opens the rung, The teams and the Athletics tab');
-  assert(objectiveMet(yes, 'field-a-varsity-team') && !objectiveMet(yes, 'appoint-athletic-director'), 'with the team fielded and the director still to come');
+  assert(!objectiveMet(yes, 'appoint-athletic-director'), 'with the director still to come');
 
-  const no = answer(petition(structuredClone(s)), 'decline');
-  assert(no.orgs.teams.length === 0 && opened(no, 'the-teams') && tabAvailable(no, 'athletics'), 'a petition turned down opens them too');
-  assert(!objectiveMet(no, 'field-a-varsity-team'), 'with the team still to field');
-  assert(tab(no).includes('waits for your first varsity team'), 'and the tab says the director waits for the first varsity team');
+  // A petition turned down (Plan 114E, C3-2): the rung is reached, but the
+  // chapter, and in a guided run the tab and the mascot stop, wait for a team.
+  const asked = petition(structuredClone(s));
+  const ctx = (asked.pendingInterrupt!.payload as { ctx: never }).ctx;
+  const no = answer(asked, 'decline');
+  assert(no.orgs.teams.length === 0 && milestoneReached(no, 'sport'), 'a petition turned down reaches the rung, with no team');
+  assert(!opened(no, 'the-teams') && !tabAvailable(no, 'athletics') && !chapterGateOpen(no, ATHLETICS_CHAPTER), 'but opens neither The teams nor, guided, the Athletics tab and the mascot stop');
+  const noUngated = structuredClone(no);
+  delete noUngated.guidance!.gated;
+  assert(tabAvailable(noUngated, 'athletics') && tab(noUngated).includes('waits for your first varsity team'), 'a run that is not guided opens the tab by the rung, saying the director waits for a team');
+  // The club asks again, and this time goes varsity.
+  no.pendingInterrupt = { type: 'decision-event', payload: { eventId: 'varsity-petition', ctx } };
+  const later = answer(no, 'establish');
+  assert(later.orgs.teams.length === 1 && opened(later, 'the-teams') && tabAvailable(later, 'athletics'), 'the next petition accepted opens The teams and the tab');
+  // A save that opened the chapter on a refusal keeps it open.
+  const kept = structuredClone(no);
+  kept.pendingInterrupt = null;
+  kept.guidance!.opened['the-teams'] = 1;
+  settleChapters(kept);
+  assert(opened(kept, 'the-teams') && !done(kept, 'the-teams') && tabAvailable(kept, 'athletics'), 'a save that opened The teams on a refusal keeps it, and its tab, open');
 
   // A save from before: the old rung, reached by a club, keeps the tab.
   const old = structuredClone(s);
@@ -131,14 +150,17 @@ const tab = (s: GameState) => renderToStaticMarkup(createElement(AthleticsTab, {
 {
   const teams = CHAPTERS.find((c) => c.id === 'the-teams')!;
   const ids = teams.objectives.map((o) => o.id);
-  assert(ids.join(',') === 'field-a-varsity-team,appoint-athletic-director,staff-the-team,build-the-venue', `the team, the director, the posts, the venue (${ids.join(',')})`);
+  // "Field a varsity team" went (Plan 114E, §2): met the day the chapter
+  // opens, so the director leads.
+  assert(ids.join(',') === 'appoint-athletic-director,staff-the-team,build-the-venue', `the director, the posts, the venue (${ids.join(',')})`);
+  assert(CHAPTER_COPY['the-teams'].about!.startsWith('A sport club has gone varsity.') && !Object.values(CHAPTER_COPY['the-teams'].help ?? {}).some((h) => /turned it down|asks again/.test(h.text)), 'the page opens on a team gone varsity, with no help about a refusal');
   assert(teams.side === true, 'a side chapter, so a college that never fields a team is not held back');
   assert(teams.objectives.every((o) => !o.optional), 'every step required');
   const copy = CHAPTER_COPY['the-teams'];
   assert(copy.about !== undefined && ids.every((id) => copy.help?.[id]?.text), 'a paragraph, and help for every objective');
   assert(/waits for your first varsity team|soon after your first team goes varsity, and not before/.test(copy.help!['appoint-athletic-director'].text), 'the director\'s help says it waits for the first varsity team');
   assert(copy.help!['build-the-venue'].door === 'build' && copy.help!['build-the-venue'].ringed === true, 'the venue\'s Show me opens the build menu ringed');
-  assert(ids.slice(0, 3).every((id) => copy.help![id].door === 'athletics'), 'the others open the Athletics tab');
+  assert(ids.slice(0, 2).every((id) => copy.help![id].door === 'athletics'), 'the others open the Athletics tab');
 }
 
 // ---- The walk: from the director's hire, the posts, then the venue ----
@@ -176,6 +198,15 @@ const tab = (s: GameState) => renderToStaticMarkup(createElement(AthleticsTab, {
   settleChapters(s);
   assert(objectiveMet(s, 'build-the-venue') && done(s, 'the-teams'), 'the venue sited ends the chapter');
   assert(teamsRing(s) === null && ringedBuilding(s) === null, 'and the rings with it');
+}
+
+// ---- Every team's posts (Plan 114E): the words and the count agree ----
+{
+  const s = answer(petition(college()), 'establish');
+  s.orgs.teams.push({ ...structuredClone(s.orgs.teams[0]), id: 'team-second' });
+  const row = objectiveRows(s, CHAPTERS.find((c) => c.id === 'the-teams')!).find((r) => r.id === 'staff-the-team')!;
+  const p = row.progress as { n: number; of: number };
+  assert(p.n === 0 && p.of === 6 && /every team's/.test(row.text) && !/three/.test(row.text), `two teams read 0/6 under words for every team ("${row.text}" ${p.n}/${p.of})`);
 }
 
 // ---- The badge: an open post on any team ----

@@ -29,7 +29,7 @@ import { PROJECTS } from './projectData';
 import { SEAT_SENIOR_YEARS } from './seatData';
 import { GRADE_B } from './courseQuality';
 import { PARK_RESEARCH_BOOST } from './researchParkData';
-import { AD_OFFER_COOLDOWN_YEARS, VARSITY_PETITION_MIN_TENURE_YEARS } from './studentLifeData';
+import { AD_OFFER_COOLDOWN_YEARS } from './studentLifeData';
 
 export type ChapterId = 'founding' | 'next-course' | 'looking-around' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
   | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life'
@@ -246,23 +246,19 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'answer-a-matter': { text: 'The Inbox lists each matter, its choices and the weeks left to answer. A demand names a building the students want, and a deadline. Meet it and satisfaction rises.', door: 'inbox' },
     },
   },
-  // Opens at the first varsity petition and walks the department in the
-  // order it comes (Plan 112B): nothing asks for the Athletic Director
-  // before a team exists to direct.
+  // Opens with the first varsity team (Plan 114E: it opened at the petition,
+  // turned down or not) and walks the department in the order it comes
+  // (Plan 112B). The posts and the venues count every team, so the words
+  // say every team's (Plan 114E: "the team's three posts" read 0/6 with two).
   'the-teams': {
     title: 'The teams',
-    about: `A sport club has asked to go varsity. A varsity team plays a season against the other colleges, and the best reach the playoffs in week ${PLAYOFF_WEEK}. It needs an Athletic Director over the department, a head coach, an assistant coach, a trainer, and a venue for its sport.`,
+    about: `A sport club has gone varsity. A varsity team plays a season against the other colleges, and the best reach the playoffs in week ${PLAYOFF_WEEK}. It needs an Athletic Director over the department, a head coach, an assistant coach, a trainer, and a venue for its sport.`,
     objectives: {
-      'field-a-varsity-team': 'Field a varsity team',
       'appoint-athletic-director': 'Hire an Athletic Director',
-      'staff-the-team': "Fill the team's three staff posts",
-      'build-the-venue': "Build the team's venue",
+      'staff-the-team': "Fill every team's staff posts",
+      'build-the-venue': "Build every team's venue",
     },
     help: {
-      'field-a-varsity-team': {
-        text: `When a sport club petitions to go varsity, choose Go varsity. If you turned it down, the club asks again in ${countWord(VARSITY_PETITION_MIN_TENURE_YEARS)} years, and nothing else in athletics can start until a team exists.`,
-        door: 'athletics',
-      },
       'appoint-athletic-director': {
         text: `You can't search for an Athletic Director yourself. The board sends you three candidates soon after your first team goes varsity, and not before, so this one may mean waiting. If you appoint nobody, the board tries again in ${countWord(AD_OFFER_COOLDOWN_YEARS)} years.`,
         door: 'athletics',
@@ -381,6 +377,11 @@ export const DRAWER_WORDS = {
   allDone: 'Every chapter so far is done.',
   guide: 'Guide',
   guideList: 'Read again',
+  // A side chapter open beside the one shown (Plan 114E): the Guide names it
+  // first.
+  guideOpen: 'open now',
+  // Seats for everyone's two counts while they differ (Plan 114E, C3-5).
+  withComing: (taught: string, coming: string) => `${taught} taught · ${coming} with courses under way`,
   back: 'Back to the objectives',
   guideTab: (tab: string) => `The Guide on ${tab}`,
   live: 'Now',
