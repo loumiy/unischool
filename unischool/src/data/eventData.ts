@@ -23,6 +23,7 @@ import { schoolOffers } from '../systems/techtree/programOffers';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
 import { count as countOf, money } from '../format';
+import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { campusFigures, campusLack, NEEDS_LETTER_ID } from './openingData';
 import { clamp } from '../math';
 import { random } from '../engine/random';
@@ -1159,7 +1160,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const faculty = FOUNDING_MARKET.filter((p) => s.faculty.some((f) => f.id === p.id)).map((p) => `${p.name} in ${p.field}`);
       const listed = FOUNDING_MARKET.filter((p) => s.candidates.some((c) => c.id === p.id)).map((p) => `${p.name} in ${p.field}`);
       const staff = faculty.length > 0 ? `your founding faculty is ${list(faculty)}` : 'nobody has been hired to teach them';
-      return `Welcome to ${s.self.name}. 350 students have enrolled, and ${staff}. But there isn't a single course yet, and Founders Hall, your only building, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and you can hire ${list(listed)} from the market` : ''}. ` : ''}Open Founders Hall on the map and found a program in a free slot. Its first course goes to the curriculum committee straight away. Each course you teach gives 80 students a place in class, and every student needs one.`;
+      return `Welcome to ${s.self.name}. ${countOf(totalEnrolled(s.students))} students have enrolled, and ${staff}. But there isn't a single course yet, and Founders Hall, your only building, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and you can hire ${list(listed)} from the market` : ''}. ` : ''}Open Founders Hall on the map and found a program in a free slot. Its first course goes to the curriculum committee straight away. Each course you teach gives ${countOf(SEATS_PER_COURSE)} students a place in class, and every student needs one.`;
     },
     ask: seatAsk,
     done: (s) => housedAnywhere(s) && !studentsUnseated(s),
@@ -1299,17 +1300,21 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const park = PROJECTS.find((p) => p.id === RESEARCH_PARK_ID)?.project;
       const parkOpens = park ? `from Year ${park.fromYear}` : 'in time';
       const graduateYear = PROJECTS.find((p) => p.id === 'PROJ-GRADUATE')?.project.fromYear ?? 15;
-      return `${list(labs)} ${labs.length === 1 ? 'is' : 'are'} ready. A lab runs one research project at a time. You pick a topic and a team, fund it, and see it through. Start a project in each lab from the Research tab. The deepest work, Landmark research, needs the Research Park (${parkOpens}). Only a college that specializes in research can build it. Doctorates come separately. The Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
+      return `${list(labs)} ${labs.length === 1 ? 'is' : 'are'} ready. A lab runs one research project at a time. You pick a topic and a team, fund it, and see it through. Start a project from the Research tab. The deepest work, Landmark research, needs the Research Park (${parkOpens}). Only a college that specializes in research can build it. Doctorates come separately. The Graduate College opens from Year ${graduateYear}, once any school teaches every one of its courses.`;
     },
+    // One project seen through is the lesson; a lab after the first has
+    // nothing the first didn't teach (Plan 114A: the ask had tracked every
+    // lab since the park stopped needing them, the third review's C2-2).
     ask: (s) => {
-      const lab = standingLabs(s).find((t) => !finishedLab(s, t.id));
-      if (!lab) return { text: 'Every lab has finished a research project', intent: { kind: 'wait' } };
-      const running = !!s.research.initiatives[lab.id];
-      return running
-        ? { text: `Wait for the project in ${lab.name} to finish`, intent: { kind: 'wait' } }
-        : { text: `Commission research in ${lab.name}`, intent: { kind: 'research', labId: lab.id } };
+      const labs = standingLabs(s);
+      if (labs.some((t) => finishedLab(s, t.id))) return { text: 'A lab has finished a research project', intent: { kind: 'wait' } };
+      const running = labs.find((t) => !!s.research.initiatives[t.id]);
+      if (running) return { text: `Wait for the project in ${running.name} to finish`, intent: { kind: 'wait' } };
+      const lab = labs[0];
+      if (!lab) return { text: 'Build a laboratory', intent: { kind: 'wait' } };
+      return { text: `Commission research in ${lab.name}`, intent: { kind: 'research', labId: lab.id } };
     },
-    done: (s) => standingLabs(s).length > 0 && standingLabs(s).every((t) => finishedLab(s, t.id)),
+    done: (s) => standingLabs(s).some((t) => finishedLab(s, t.id)),
   },
   // Since Plan 85F the park opens only to a college specialized in
   // research, so the letter comes after the choice. Its ask is done once the

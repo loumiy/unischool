@@ -13,6 +13,7 @@ import { varsityAsked } from '../data/ladderData';
 import { openChairs, venueForCategory } from '../data/studentLifeData';
 import { schoolsFounded } from '../systems/guidance/establish';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
+import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
 // one season's lesson each, in the manner of Transport Fever's missions:
@@ -191,7 +192,7 @@ export const CHAPTERS: readonly Chapter[] = [
     objectives: [
       { id: 'open-students', progress: (s) => marked(s, tabMark('students')) },
       { id: 'open-history', progress: (s) => marked(s, tabMark('history')) },
-      { id: 'satisfaction-60', progress: (s) => ({ n: Math.min(Math.floor(s.students.satisfaction), 60), of: 60 }), optional: true },
+      { id: 'satisfaction-60', progress: (s) => ({ n: Math.min(Math.floor(s.students.satisfaction), DEMAND_SATISFACTION_THRESHOLD), of: DEMAND_SATISFACTION_THRESHOLD }), optional: true },
       { id: 'prestige-rising', progress: (s) => computePrestigeTarget(s) > s.self.reputation, optional: true },
     ],
   },

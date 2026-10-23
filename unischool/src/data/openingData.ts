@@ -87,8 +87,6 @@ export const SKIP_WORDS = {
   confirm: 'Skip',
   keep: 'Keep the walkthrough',
 };
-// The welcome's line on what the skip would cost.
-export const WALKTHROUGH_LENGTH = 'The walkthrough takes about five minutes.';
 
 export type CoachStage = Exclude<OpeningStage, 'play'>;
 export function isCoachStage(stage: OpeningStage): stage is CoachStage {
@@ -102,7 +100,7 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     // It introduces the college and the one building it begins with (Plan
     // 104L): S1 read the old list of three tasks, in an order the walk then
     // didn't play, twice. Each step introduces its own thing when it comes.
-    body: (s) => `Welcome to ${s.self.name}. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
+    body: (s) => `Welcome to ${s.self.name}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
     next: 'Next',
   },
   'site-hall': {
@@ -135,3 +133,7 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     door: 'hall',
   },
 };
+
+// The welcome's line on what the skip would cost: the steps after it,
+// counted (Plan 114A; "about five minutes" was never measured).
+export const WALKTHROUGH_LENGTH = `The walkthrough has ${countWord(Object.keys(OPENING_STEPS).filter((stage) => stage !== 'welcome').length)} steps.`;

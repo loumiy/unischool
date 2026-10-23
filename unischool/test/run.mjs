@@ -52,6 +52,9 @@ const started = Date.now();
 await build({
   input: Object.fromEntries(suites.map((s) => [s, join(ROOT, 'test', `${s}.test.ts`)])),
   platform: 'node',
+  // The compiler is read where it is installed, not bundled into each
+  // suite (test/briefing-numbers.test.ts parses the copy with it).
+  external: ['typescript'],
   logLevel: 'warn',
   output: { dir: OUT, format: 'esm', entryFileNames: '[name].mjs', cleanDir: true },
 });

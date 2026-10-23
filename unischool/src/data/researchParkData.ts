@@ -151,7 +151,4 @@ export const PARK_WORDS = {
   gatedElsewhere: (chosen: string) => `The Research Park belongs to the research specialization, and your college is specialized in ${chosen}. So you can't build it, and Landmark Programs stay closed.`,
   landmarkClosed: 'Landmark Programs put four scholars from different fields together for five years. They open once the Research Park stands, and only a college specialized in research can build it.',
 
-  // The next-step line, at a lab that has not finished a research project
-  // (nextStep.ts's idleLab).
-  unprovenLab: (lab: string) => `${lab} hasn't finished a research project yet: start one`,
 };

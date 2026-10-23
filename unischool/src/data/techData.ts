@@ -30,12 +30,14 @@ import { hashUnit } from './rivalData';
 // The 310 is each major's capstone (Plan 95M, the second review's B2-6): a
 // fourth tier of one course, a year's project after the advanced quartet.
 const NUMS = [101, 110, 120, 130, 140, 210, 220, 230, 240, 310];
+// How many courses a major has: the briefings say it (Plan 114A).
+export const MAJOR_COURSE_COUNT = NUMS.length;
 const TIERS = [1, 2, 2, 2, 2, 3, 3, 3, 3, 4] as const;
 
 // Weeks to develop a course, by tier: an entry course takes a few weeks, a
 // tier-3 course is a multi-month commitment, and the capstone longer still,
 // though short of a doctoral course.
-const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24, 4: 28 };
+export const TIER_DURATION_WEEKS: Record<number, number> = { 1: 4, 2: 12, 3: 24, 4: 28 };
 
 // Each course's weeks are its tier's (or its graduate kind's), varied up to
 // COURSE_LENGTH_SPREAD either way, fixed for that course by a hash of its id

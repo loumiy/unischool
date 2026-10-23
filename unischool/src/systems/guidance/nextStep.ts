@@ -17,7 +17,6 @@ import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { countWord, pct, satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
 import { ACADEMIC_LIBRARY_POINTS, libraryPoints } from '../satisfaction/satisfactionSystem';
-import { PARK_WORDS } from '../../data/researchParkData';
 import { slotFree } from '../administration/offices';
 import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
 import { initiativeOffers } from '../../data/researchData';
@@ -378,11 +377,11 @@ export function labCanStart(s: GameState, labId: string): boolean {
 function idleLab(s: GameState): NextStep | null {
   const idle = s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id] && labCanStart(s, t.id));
   if (idle.length === 0) return null;
-  const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
-  const unproven = idle.find((t) => !finished.has(t.id));
-  const lab = unproven ?? idle[0];
+  // The first idle lab. Which have finished a project no longer matters
+  // to anything (Plan 114A), so none is put first for it.
+  const lab = idle[0];
   return {
-    text: unproven ? PARK_WORDS.unprovenLab(lab.name) : `${lab.name} is idle: start a research project`,
+    text: `${lab.name} is idle: start a research project`,
     go: 'research',
     intent: { kind: 'research', labId: lab.id },
   };
