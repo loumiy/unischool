@@ -39,7 +39,7 @@ import { unlockLabel } from '../../state/unlocks';
 // ---------------------------------------------------------------------
 
 // What the statue's place in the inbox says (Plan 101E).
-export const STATUE_ASK = 'The donor\'s gift is in the building fund, and so is the price of his statue. He would like to see it going up, and asks, each time he writes, where.';
+export const STATUE_ASK = 'The donor\'s gift is in the building fund, and so is the price of his statue. Every time he writes, he asks where it\'s going up.';
 
 export type InboxTier = 'hold' | 'decide' | 'letter' | 'bulletin';
 
@@ -97,7 +97,7 @@ export function interruptItem(s: GameState): InboxItem | null {
   const [from, subject] = interruptWords(s, i.type, i.payload);
   return {
     id: INTERRUPT_ITEM_ID, kind: 'interrupt', tier: 'hold', ref: i.type, from, subject,
-    preview: 'The clock waits for an answer.', week: absoluteWeek(s), unread: true, urgent: true,
+    preview: 'Time is paused until you answer.', week: absoluteWeek(s), unread: true, urgent: true,
   };
 }
 

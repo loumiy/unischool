@@ -33,7 +33,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
     <section className="panel endowment-panel">
       <div className="panel-head">
         <h2>The endowment</h2>
-        <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into income every week. Draw less and it grows faster; draw more and income rises now at the cost of later. Above ${rate(DRAW_RATE_PRUDENT)} the draw takes most of the return: the fund grows little or shrinks, and so does next year's draw. Cash moved in stays in: it pays out only at the draw rate, or to pay half a capital project. A building the cash cannot cover can be borrowed for, against up to ${pct(BORROWING_SHARE)} of the endowment, repaid weekly over ${LOAN_YEARS} years at ${rate(LOAN_RATE)}.`} />
+        <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into your income every week. Draw less and it grows faster. Draw more and you get more income now, but less later. Above ${rate(DRAW_RATE_PRUDENT)}, the draw takes most of the return. Then the fund grows little or shrinks, and next year's draw shrinks with it. Cash you move in stays in. It pays out only at the draw rate, or to cover half a capital project. If you can't pay for a building in cash, you can borrow for it. You can borrow up to ${pct(BORROWING_SHARE)} of the endowment, repaid weekly over ${LOAN_YEARS} years at ${rate(LOAN_RATE)}.`} />
       </div>
       <div className="treasury-dial">
         <span>Draw rate</span>
@@ -77,13 +77,13 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
             type="button"
             className={`panel-action small${sweep === weeks ? ' active' : ''}`}
             aria-pressed={sweep === weeks}
-            title={weeks === null ? 'Leave cash where it is.' : `Each quarter, keep ${weeks} weeks of expenses as cash and move the rest into the endowment, until it reaches the top score's figure.`}
+            title={weeks === null ? 'Leave cash where it is.' : `Each quarter, keep ${weeks} weeks of expenses in cash and move the rest into the endowment. It stops once the endowment reaches full marks.`}
             onClick={() => act({ type: 'SET_SWEEP', weeks })}
           >
             {weeks === null ? 'Off' : `Keep ${weeksShort(weeks)}`}
           </button>
         ))}
-        <HelpHint align="end" text={`Cash earns nothing, and the guide reads a college's financial strength in its endowment per student, not its bank balance: the top score at ${money(FINANCIAL_FULL_PER_STUDENT)} a student, ${money(fullMarkEndowment(s))} today. A standing sweep moves what is above the reserve into the endowment at each quarter's close, until it reaches that figure.`} />
+        <HelpHint align="end" text={`Cash earns nothing, and the guide ignores it when it rates your finances. It looks at your endowment per student instead. Full marks take ${money(FINANCIAL_FULL_PER_STUDENT)} a student, which is ${money(fullMarkEndowment(s))} for you today. A standing sweep moves the cash above your reserve into the endowment at the end of each quarter. It stops once the endowment reaches that figure.`} />
       </div>
     </section>
   );

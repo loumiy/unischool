@@ -77,13 +77,13 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
           <button
             className="menu-btn"
             onClick={() => { act({ type: 'SAVE_GAME' }); close(); }}
-            title="Write the run to this browser now. The game also saves itself every summer, at admissions."
+            title="Save your run to this browser now. The game also saves itself every summer, at admissions."
           >
             Save
           </button>
           <button
             className="menu-btn"
-            title="Download the run as a file, to keep or to continue in another browser."
+            title="Download your run as a file, to keep or to continue in another browser."
             onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); saveExported('menu'); close(); }}
           >
             Download save
@@ -92,8 +92,8 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
           <ImportSave current={s} />
           {feedbackAvailable() && (
             <>
-              <button className="menu-btn" title="A short form, in a new tab. The run is saved first." onClick={() => feedback(false)}>Send feedback</button>
-              <button className="menu-btn" title="Downloads a record of this session, then opens the form to attach it to." onClick={() => feedback(true)}>Report a bug</button>
+              <button className="menu-btn" title="Opens a short form in a new tab. Your run is saved first." onClick={() => feedback(false)}>Send feedback</button>
+              <button className="menu-btn" title="Downloads a record of this session, then opens the form so you can attach it." onClick={() => feedback(true)}>Report a bug</button>
               {bugNote && <p className="menu-note" role="status">A bug report was downloaded. Attach it to the form's "Anything broken?" question.</p>}
             </>
           )}

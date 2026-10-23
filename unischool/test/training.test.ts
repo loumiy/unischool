@@ -174,7 +174,7 @@ function toNextYear(s: GameState): GameState {
     const load = facultyLoad(s, full.id);
     s = reduceInPlace(s, { type: 'TRAIN_FACULTY', facultyId: full.id });
     assert(facultyLoad(s, full.id) === load - 1, `a full load sheds one course (${load} to ${facultyLoad(s, full.id)})`);
-    assert(/moves to|without an instructor/.test(s.log[0].message), `and the log says where it went ("${s.log[0].message}")`);
+    assert(/moves to|without an instructor|has no professor/.test(s.log[0].message), `and the log says where it went ("${s.log[0].message}")`);
     const until = s.faculty.find((x) => x.id === full.id)!.training!.untilWeek;
     const now = (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
     assert(until - now === TRAINING_WEEKS, `for a term: ${TRAINING_WEEKS} weeks`);
@@ -196,11 +196,11 @@ function toNextYear(s: GameState): GameState {
   const year = idle.clock.year;
   idle = toNextYear(idle);
   assert(idle.clock.year === year + 1, 'the year turns');
-  assert(idle.log.some((e) => e.topic === 'training' && /lapsed/.test(e.message) && e.year === year), 'the log says the year\'s unused picks lapsed');
+  assert(idle.log.some((e) => e.topic === 'training' && /expired/.test(e.message) && e.year === year), 'the log says the year\'s unused picks expired');
   // The new year brings a full allowance, and nothing carried.
   s = toNextYear(s);
   assert(picksLeft(s) === trainingPicks(s), `a new year: ${trainingPicks(s)} picks, none carried`);
-  assert(!s.log.some((e) => e.topic === 'training' && /lapsed/.test(e.message)), 'and nothing lapsed when every pick was used');
+  assert(!s.log.some((e) => e.topic === 'training' && /expired/.test(e.message)), 'and nothing expired when every pick was used');
 }
 
 // ---- The academics term reads the program ----

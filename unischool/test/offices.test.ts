@@ -117,7 +117,7 @@ const founders = (s: GameState) => s.halls[FOUNDERS_HALL_ID];
   // A seventh slot cannot exist in Founders Hall, so free one by hand to
   // reach the allowance gate rather than the slot gate.
   founders(s).push({ programId: null });
-  assert(openOfficeRefusal(s, OFFICES[MAX_OFFICES].id, MAX_OFFICES)?.startsWith('The college holds every office') === true,
+  assert(openOfficeRefusal(s, OFFICES[MAX_OFFICES].id, MAX_OFFICES)?.startsWith('You already hold all') === true,
     'never more than the allowance');
 }
 
@@ -180,7 +180,7 @@ const founders = (s: GameState) => s.halls[FOUNDERS_HALL_ID];
   const s = createInitialState('Milestones');
   s.finance.cash = 500_000_000;
   assert(officeAllowance(s) === 0, 'a new college may hold no office');
-  assert(openOfficeRefusal(s, 'admissions', 0) === 'The college may not hold an office yet.', 'and is told so');
+  assert(openOfficeRefusal(s, 'admissions', 0) === 'You can\'t open an office yet.', 'and is told so');
   assert(nextOfficeMilestone(s)?.id === 'room-to-spare', 'the first office waits on Room to spare');
 
   const reached = (id: string) => milestoneById(id)!.reached(s);

@@ -81,12 +81,12 @@ function BudgetLine({ label, note, amount, largest }: { label: string; note: str
 function rungNote(s: GameState): string {
   const d = distressOf(s);
   switch (d.rung) {
-    case RUNG_SOUND: return 'The books are sound. Cash under a term\'s expenses would make them Tight.';
-    case RUNG_TIGHT: return 'Cash is under a term\'s expenses. Two deficit terms in a row put the college on Deficit.';
-    case RUNG_DEFICIT: return 'Two deficit terms in a row. If cash reaches zero, construction and borrowing freeze.';
-    case RUNG_FREEZE: return 'No construction or borrowing until two surplus terms. Three terms frozen bring austerity.';
-    case RUNG_AUSTERITY: return 'No construction, no maintenance, and tuition may rise but not fall. Three terms of austerity bring an interim CFO.';
-    default: return `The interim CFO sets the draw and the maintenance, ${d.receivershipTermsLeft === 1 ? 'one term' : `${d.receivershipTermsLeft} terms`} left.`;
+    case RUNG_SOUND: return 'Your finances are sound. If cash falls below one term\'s expenses, they become Tight.';
+    case RUNG_TIGHT: return 'Cash is below one term\'s expenses. Two deficit terms in a row will put you on Deficit.';
+    case RUNG_DEFICIT: return 'You\'ve had two deficit terms in a row. If cash reaches zero, construction and borrowing freeze.';
+    case RUNG_FREEZE: return 'You can\'t build or borrow until you have two surplus terms. Three frozen terms bring austerity.';
+    case RUNG_AUSTERITY: return 'No construction and no maintenance. Tuition can rise but not fall. Three terms of austerity bring in an interim CFO.';
+    default: return `The interim CFO controls the endowment draw and maintenance for ${d.receivershipTermsLeft === 1 ? 'one more term' : `${d.receivershipTermsLeft} more terms`}.`;
   }
 }
 
@@ -134,23 +134,23 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
 
   // What drives each line's figure. Which lines show is treasuryStatement.ts's.
   const notes: Record<StatementLineSpec['key'], string> = {
-    tuitionRevenue: `${count(totalEnrolled(s.students))} enrolled across four classes, each at the price it was admitted under`,
+    tuitionRevenue: `${count(totalEnrolled(s.students))} enrolled across four classes, each paying the price it was admitted at`,
     prestigeRevenue: `donors and grants, scaling with prestige ${prestigeFigure(s.self.reputation)}`,
-    annualFund: `what ${(s.alumni?.length ?? 0)} graduated class${(s.alumni?.length ?? 0) === 1 ? '' : 'es'} give, by their warmth and years out`,
+    annualFund: `what ${(s.alumni?.length ?? 0)} graduated class${(s.alumni?.length ?? 0) === 1 ? '' : 'es'} give, based on their warmth and years since graduating`,
     endowmentPayout: `a ${rate(drawRate(s))} draw on ${money(s.finance.endowment)}`,
     athleticsSurplus: `${money(flow.gateRevenue)}/wk at the gate`,
-    weeklySalaries: `${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}; salaries rise with tenure`,
+    weeklySalaries: `${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}, and salaries rise with tenure`,
     seatUpkeep: `${count(s.students.capacity)} beds`,
-    instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section a week; ${sectionsNote}`,
+    instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section a week — ${sectionsNote}`,
     servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} with the classrooms full` : ''}`,
-    scaleCost: `the administration ${count(totalEnrolled(s.students))} students need, ${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)}`,
+    scaleCost: `the extra administration ${count(totalEnrolled(s.students))} students need (${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)})`,
     academicUpkeep: `running ${coursesDone} courses and the teaching buildings they sit in`,
     facilityUpkeep: 'libraries, dining, rec and labs',
     beyondNeedUpkeep: beyondNeedNote(s),
     studentLifeUpkeep: `${s.orgs.clubs.length} clubs, ${s.orgs.chapters.length} chapters and ${s.orgs.teams.length} varsity programs with their coaches and Athletic Director, at the ${s.orgs.athleticsBudget} subsidy level`,
-    athleticsSubsidy: `what the programs took from the ${s.orgs.athleticsBudget} subsidy beyond their own gate`,
+    athleticsSubsidy: `what the ${s.orgs.athleticsBudget} subsidy paid the programs beyond what they took at the gate`,
     athleticScholarships: `the scholarship budgets of ${scholarshipTeams} flagship${scholarshipTeams === 1 ? '' : 's'}`,
-    scholarshipAid: `the scholarship funds' share of the payout, ${money(aidPerStudent(s))} a student off the price`,
+    scholarshipAid: `your scholarship funds' share of the payout, taking ${money(aidPerStudent(s))} off each student's price`,
     administration: `${s.seats?.length ?? 0} seat${(s.seats?.length ?? 0) === 1 ? '' : 's'} · ${pct(flow.administration / (flow.administration + flow.weeklySalaries))} of payroll`,
     offices: officesNote(s),
     debtService: `${s.finance.loans?.length ?? 0} building loan${(s.finance.loans?.length ?? 0) === 1 ? '' : 's'}, ${money(debtOutstanding(s))} still owed`,
@@ -180,7 +180,7 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
               rates (see researchSystem.ts). */}
           {s.research.grants > 0 && (
             <p className="budget-line-note">
-              Research grants arrive one at a time: {money(s.research.grantIncome)} from {count(s.research.grants)} so far.
+              Research grants arrive one at a time. They&apos;ve brought in {money(s.research.grantIncome)} from {count(s.research.grants)} so far.
             </p>
           )}
           <h3 className="eyebrow expense">Expenses · {moneyShort(year(flow.totalExpenses))}</h3>
@@ -210,8 +210,8 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
           <h3 className="eyebrow">Cash, Year {s.history[0]?.year ?? 1} to now</h3>
           <TreasuryCashChart s={s} />
           <p className="empty-note">
-            A building or a course is paid for in full when it starts, so cash sets how fast the college grows.
-            <HelpHint align="end" text="A building can also be paid from a campaign's building fund, by a loan for the shortfall, or, for a capital project, half from the endowment. A deficit never closes the college: it walks down the board's scale (tight, deficit, a construction freeze, austerity, an interim CFO) a term at a time, and back up as the books recover." />
+            You pay for a building or a course in full when you start it, so your cash sets how fast you can grow.
+            <HelpHint align="end" text="You can also pay for a building from a campaign's building fund, or with a loan for the shortfall. A capital project can take half its cost from the endowment. A deficit never closes your college. Instead, it moves you down the board's scale one term at a time: tight, deficit, a construction freeze, austerity, an interim CFO. You move back up as your finances recover." />
           </p>
         </div>
 
@@ -223,7 +223,7 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
               <strong>{money(s.finance.listedTuition)}</strong>
             </div>
             <p className="lever-note">
-              Set at the summer admissions decision. Each class pays the price it was admitted under:{' '}
+              You set this at admissions each summer. Each class pays the price it was admitted at:{' '}
               {CLASS_ORDER.map(([key, label], i) => (
                 <span key={key}>{i > 0 && ' · '}{label} {moneyShort(s.finance.tuitionByClass[key])}</span>
               ))}.
@@ -241,8 +241,8 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             <p className="lever-note">
               Pays {moneyShort(s.finance.endowment * draw)} a year into income.{' '}
               {draw > DRAW_RATE_PRUDENT
-                ? `Above ${rate(DRAW_RATE_PRUDENT)} it takes most of the ${rate(ENDOWMENT_ANNUAL_RETURN)} return, and next year's draw shrinks with the fund.`
-                : `The fund keeps ${rate(ENDOWMENT_ANNUAL_RETURN - draw)} of its return a year to grow.`}
+                ? `Above ${rate(DRAW_RATE_PRUDENT)}, the draw takes most of the ${rate(ENDOWMENT_ANNUAL_RETURN)} return. Next year's draw shrinks along with the fund.`
+                : `The fund keeps ${rate(ENDOWMENT_ANNUAL_RETURN - draw)} of its return each year, so it grows.`}
             </p>
           </div>
           <div className="lever">
@@ -256,11 +256,11 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             />
             <p className="lever-note">
               {funding >= 1
-                ? 'Every building\'s upkeep is paid, and any backlog is paid down.'
-                : 'The unpaid upkeep becomes backlog, which compounds and wears the buildings down.'}
+                ? 'You pay every building\'s upkeep and pay down any backlog.'
+                : 'Unpaid upkeep becomes backlog. Backlog grows over time and wears your buildings down.'}
             </p>
           </div>
-          {held && <p className="lever-note">The board holds the draw and the maintenance until the books recover.</p>}
+          {held && <p className="lever-note">The board controls the draw and maintenance until your finances recover.</p>}
           <div className="treasury-projection">
             <span className="stat">A year from now, at these rates</span>
             <strong className={annualNet < 0 ? 'bad' : 'good'}>
@@ -297,7 +297,7 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
                 { name: 'Costs', points: sizes.map((n) => ({ x: n, y: marginalStudentCost(s, 1_000, undefined, n) * WEEKS_PER_YEAR })), format: moneyShort },
                 { name: 'Pays', points: sizes.map((n) => ({ x: n, y: s.finance.listedTuition })), format: moneyShort },
               ]}
-              note={`At today's prestige, catalog and listed price. Every doubling past ${count(SCALE_FREE_BELOW)} students adds to what each one costs to administer; where the lines cross, the next student costs more than they pay. The college has ${count(now)}.`}
+              note={`At today's prestige, catalog and listed price. Every doubling past ${count(SCALE_FREE_BELOW)} students adds to what each one costs to administer. Where the lines cross, the next student costs more than they pay. You have ${count(now)} students.`}
             />
           </section>
         );
@@ -320,7 +320,7 @@ function EndowmentView({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <section className="panel">
           <div className="panel-head">
             <h2>Named funds</h2>
-            <HelpHint align="end" text="Gifts given for a purpose. Each is part of the endowment, and its share of the draw goes to its purpose: aid for a scholarship, its holder's salary for a chair." />
+            <HelpHint align="end" text="Gifts given for a purpose. Each one is part of the endowment. Its share of the draw goes to that purpose: aid for a scholarship, or the holder's salary for a chair." />
           </div>
           <dl>
             {funds.map((f) => (
@@ -328,8 +328,8 @@ function EndowmentView({ s, act }: { s: GameState; act: (a: Action) => void }) {
                 key={f.id}
                 label={`${f.name}, ${money(f.principal)}`}
                 hint={f.purpose === 'scholarship'
-                  ? 'A scholarship fund: its share of the draw comes off students\' prices as aid.'
-                  : 'A named chair: its share of the draw pays its holder\'s salary.'}
+                  ? 'A scholarship fund. Its share of the draw comes off students\' prices as aid.'
+                  : 'A named chair. Its share of the draw pays the holder\'s salary.'}
                 value={f.purpose === 'scholarship'
                   ? `${money(fundIncome(s, f))}/yr in aid`
                   : `${money(chairPays(s, f))}/yr of ${chairHolder(s, f)?.name ?? 'its holder'}'s salary`}

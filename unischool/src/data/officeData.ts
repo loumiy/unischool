@@ -52,15 +52,15 @@ export const MAX_OFFICES = 6;
 export const OFFICES: readonly OfficeDef[] = [
   {
     id: 'admissions', title: 'Admissions Office', domain: 'enrolment', seatId: 'provost', priceWeeks: 4,
-    blurb: 'Shows a range for the applicant pool before the summer\'s price is set.',
+    blurb: 'Shows the likely range of applicants before you set the summer\'s price.',
   },
   {
     id: 'career-services', title: 'Career Services', domain: 'enrolment', seatId: 'provost', priceWeeks: 3,
-    blurb: 'Pulls the pre-professional cohort.',
+    blurb: 'Draws more pre-professional applicants.',
   },
   {
     id: 'financial-aid', title: 'Financial Aid Office', domain: 'enrolment', seatId: 'provost', priceWeeks: 3,
-    blurb: 'Pulls the price-sensitive cohort without a lower sticker.',
+    blurb: 'Draws more price-sensitive applicants without lowering your price.',
   },
   {
     id: 'curriculum', title: 'Office of Curriculum Development', domain: 'academic', seatId: 'provost', priceWeeks: 5,
@@ -76,27 +76,27 @@ export const OFFICES: readonly OfficeDef[] = [
   },
   {
     id: 'student-activities', title: 'Student Activities Office', domain: 'students', seatId: 'dean-of-students', priceWeeks: 3,
-    blurb: 'Charter a club directly, once a term.',
+    blurb: 'Lets you charter a club directly, once a term.',
   },
   {
     id: 'athletics-development', title: 'Athletics Development Office', domain: 'students', seatId: 'dean-of-students', priceWeeks: 5,
-    blurb: 'Found a varsity team without a petition, given its venue.',
+    blurb: 'Lets you found a varsity team without a petition, once its venue is built.',
   },
   {
     id: 'counseling', title: 'Counseling & Wellness', domain: 'students', seatId: 'dean-of-students', priceWeeks: 3,
-    blurb: 'Student demands arrive less often, and give longer to meet.',
+    blurb: 'Student demands arrive less often, and you get longer to meet them.',
   },
   {
     id: 'facilities-management', title: 'Facilities Management', domain: 'money', seatId: 'facilities', priceWeeks: 3,
-    blurb: 'Full maintenance funding pays the backlog down twice as fast; storms do less.',
+    blurb: 'Full maintenance funding pays down the backlog twice as fast. Storms do less damage.',
   },
   {
     id: 'alumni-relations', title: 'Alumni Relations', domain: 'money', seatId: 'advancement', priceWeeks: 4,
-    blurb: 'More alumni giving; campaigns go further.',
+    blurb: 'Alumni give more, and campaigns go further.',
   },
   {
     id: 'institutional-research', title: 'Office of Institutional Research', domain: 'money', seatId: 'provost', priceWeeks: 2,
-    blurb: 'A forecast of where the summer’s grade will rank the college, from the spring.',
+    blurb: 'From the spring, forecasts where the summer’s grade will rank you.',
   },
 ];
 

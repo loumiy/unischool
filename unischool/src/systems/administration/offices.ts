@@ -99,11 +99,11 @@ export function openOfficeRefusal(s: GameState, officeId: string, slot: number):
   const slots = foundersSlots(s);
   if (slot < 0 || slot >= slots.length) return 'No such slot in Founders Hall.';
   if (!slotFree(slots[slot])) return 'That slot is taken.';
-  if (officeHeld(s, officeId)) return `The college has ${officeName(officeId)} already.`;
+  if (officeHeld(s, officeId)) return `You already have ${officeName(officeId)}.`;
   if (heldOffices(s).length >= officeAllowance(s)) {
     return officeAllowance(s) === 0
-      ? 'The college may not hold an office yet.'
-      : `The college holds every office it may: ${officeAllowance(s)}.`;
+      ? 'You can\'t open an office yet.'
+      : `You already hold all ${officeAllowance(s)} offices you're allowed.`;
   }
   if (s.finance.cash < officePrice(s, officeId)) return 'Not enough cash.';
   return null;
@@ -123,8 +123,8 @@ export function openOffice(s: GameState, officeId: string, slot: number): boolea
 
 export function closeOfficeRefusal(s: GameState, officeId: string): string | null {
   const held = heldOffices(s).find((o) => o.id === officeId);
-  if (!held) return 'The college has no such office.';
-  if (held.closingWeeks !== undefined) return 'It is closing already.';
+  if (!held) return 'You don\'t have that office.';
+  if (held.closingWeeks !== undefined) return 'It\'s already closing.';
   return null;
 }
 
@@ -134,7 +134,7 @@ export function closeOffice(s: GameState, officeId: string): boolean {
   slot.office!.closingWeeks = OFFICE_CLOSING_WEEKS;
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: 'info',
-    message: `${capitalized(officeName(officeId))} is closing: its slot in Founders Hall is dark for ${OFFICE_CLOSING_WEEKS} weeks.`,
+    message: `${capitalized(officeName(officeId))} is closing. Its slot in Founders Hall can't be used for ${OFFICE_CLOSING_WEEKS} weeks.`,
   });
   return true;
 }
@@ -153,7 +153,7 @@ export function tickOffices(s: GameState): void {
       slots[i] = { programId: null };
       s.log.unshift({
         year: s.clock.year, week: s.clock.week, kind: 'info',
-        message: `${name} has closed; its slot in Founders Hall is free.`,
+        message: `${name} has closed. Its slot in Founders Hall is free.`,
       });
     } else {
       slot.office!.closingWeeks = closing - 1;

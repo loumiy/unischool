@@ -113,7 +113,7 @@ function earned(specialization: GameState['specialization']): GameState {
   const s = launch();
   assert(park(s).status === 'done' && s.specialization === 'none', 'the launch fixture has the park, and no specialization');
   assert(depthOpen(s, 'landmark'), 'it keeps the Landmark Program');
-  assert(/would fill it with its Landmark work, once the college specializes in research/.test(term(s).detail), `unspecialized, the research row says what the park would do ("${term(s).detail}")`);
+  assert(/would fill it with its Landmark work, once you specialize in research/.test(term(s).detail), `unspecialized, the research row says what the park would do ("${term(s).detail}")`);
   const lab = s.tech.find((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id]);
   if (lab) assert(initiativeOffers(s, lab.id).some((o) => o.depth.key === 'landmark'), 'and the labs are offered one');
   for (const chosen of ['academics', 'studentLife', 'athletics'] as const) {

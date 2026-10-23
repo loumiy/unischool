@@ -87,7 +87,7 @@ function pillarDetail(pillar: StandingBreakdown, grade: number | undefined): str
   return [
     `It counts for ${pct(pillar.share ?? 0)} of prestige.`,
     pillar.specialized,
-    grade === undefined ? undefined : `Last summer graded it ${grade.toFixed(1)}.`,
+    grade === undefined ? undefined : `Last summer's grade was ${grade.toFixed(1)}.`,
   ].filter(Boolean).join(' ');
 }
 
@@ -149,9 +149,9 @@ function summerNote(breakdown: StandingBreakdown): string {
       ? "This year's grade is pulling it down."
       : "This year's grade is holding it steady.";
   const last = reportCard
-    ? ` Last summer graded ${reportCard.score.toFixed(0)} for Year ${reportCard.year}: ${prestigeFigure(reportCard.before)} → ${prestigeFigure(reportCard.after)}.`
+    ? ` Last summer's grade for Year ${reportCard.year} was ${reportCard.score.toFixed(0)}, moving it from ${prestigeFigure(reportCard.before)} to ${prestigeFigure(reportCard.after)}.`
     // Before the first summer (Plan 78C): when the grade first counts.
-    : ' Prestige is graded at the end of each year; the first grade comes at the first summer.';
+    : ' Prestige is graded at the end of each year. The first grade comes at the first summer.';
   return grading + last;
 }
 
@@ -181,7 +181,7 @@ export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: 
         {breakdown.summer
           ? summerNote(breakdown)
           : breakdown.live
-            ? `Read as it stands, week by week, and ${pct(breakdown.share ?? 0)} of prestige.`
+            ? `Measured week by week, as it stands. It's ${pct(breakdown.share ?? 0)} of prestige.`
             : `${trendWords(weeklyChange(breakdown), PRESTIGE_TREND.floor, 3)}.`}
         {breakdown.share !== undefined && !breakdown.live && ` It is ${pct(breakdown.share)} of prestige.`}
         {' '}Everything starts from a baseline of {breakdown.baseline}.
@@ -212,7 +212,7 @@ export function Standing({ breakdown, titled = true, rowSaid = false, belowA }: 
       {breakdown.readings.length > 0 && (
         <>
           <p className="standing-note standing-readings-note">
-            Shown for reference; not part of the grade.
+            Shown for reference. Not part of the grade.
           </p>
           <ul className="standing-rows">
             {breakdown.readings.map((item) => (
