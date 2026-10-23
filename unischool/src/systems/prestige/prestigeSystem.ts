@@ -60,7 +60,8 @@ export const PRESTIGE_MAX_RISE = 2.1;
 export const EARLY_RISE_RATE = 0.45;
 export const EARLY_MAX_RISE = 6;
 const EARLY_UNTIL_YEAR = 5;
-const EARLY_FADE_YEAR = 10;
+// Exported for the glance's rule (Plan 114B), which says it in words.
+export const EARLY_FADE_YEAR = 10;
 const EARLY_WEEKLY_SHARE = 1 / 3;
 // 0 in the early years, 1 once the help is gone.
 function earlyFade(year: number): number {

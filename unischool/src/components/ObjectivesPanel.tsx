@@ -7,6 +7,7 @@ import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import { count, gameDateOfWeek, prestigeFigure, satisfactionFigure } from '../format';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { DIRECTION_LABELS, PillarMeter, prestigeDirection } from '../tabs/PrestigeGlance';
 import { satisfactionDrag } from '../systems/satisfaction/satisfactionSystem';
 import { NEED_LABELS } from '../data/figureHints';
 
@@ -33,24 +34,26 @@ function objectiveCount(p: ObjectiveProgress): string | null {
 
 // How many milestones the drawer lists as unlocked at most.
 const UNLOCKED_SHOWN = 3;
-// The Standing chapter's live readout (Plan 106 §2, rule 7): prestige
-// against its target; each pillar's points against the most it can give,
-// which is what makes a good score; what is taken off (crowding, run-down
-// buildings); and the need pulling satisfaction down. Read from
-// prestigeBreakdown and satisfactionDrag; nothing new is said.
+// The Standing chapter's live readout (Plan 106 §2, rule 7): prestige and
+// which way it is heading; the glance's meter per pillar, what each adds
+// (Plan 114B: the glance's words are the only ones, so no target figure and
+// no "of" its most); what is taken off (run-down buildings); and the need
+// pulling satisfaction down. Read from prestigeBreakdown and
+// satisfactionDrag; nothing new is said.
 function StandingLive({ s }: { s: GameState }) {
   const b = prestigeBreakdown(s);
   const pillars = b.inputs.filter((i) => i.pillar !== undefined);
   const taken = b.inputs.filter((i) => i.penalty && i.contribution < -0.05);
   const drag = satisfactionDrag(s);
-  const arrow = b.target > b.current + 0.05 ? '▲' : b.target < b.current - 0.05 ? '▼' : '';
+  const longest = Math.max(...pillars.map((p) => p.weight));
   return (
     <div className="objectives-live">
       <h4>{W.live}</h4>
-      <p>
-        {W.prestigeNow(prestigeFigure(b.current), prestigeFigure(b.target))} <span aria-hidden="true">{arrow}</span>
-      </p>
-      <p>{W.pillars}: {pillars.map((p) => W.pillar(p.label, p.contribution.toFixed(1), p.weight.toFixed(1))).join(' · ')}</p>
+      <p>{W.prestigeNow(prestigeFigure(b.current), DIRECTION_LABELS[prestigeDirection(b)])}</p>
+      <p>{W.pillars}</p>
+      <ul className="glance-rows">
+        {pillars.map((p) => <PillarMeter key={p.key} s={s} input={p} longest={longest} />)}
+      </ul>
       {taken.length > 0 && <p>{W.takenOff}: {taken.map((p) => `${p.label} ${p.contribution.toFixed(1)}`).join(' · ')}</p>}
       <p>
         {W.satisfactionNow(satisfactionFigure(s.students.satisfaction))}

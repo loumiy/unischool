@@ -2809,6 +2809,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .glance-adjustment .glance-figure { color: var(--ink); }
 .glance-adjustment.cost .glance-figure { color: var(--bad-on-light); }
 .glance-line { font-size: var(--text-sm); }
+/* A pillar whose door is shut says what opens it (Plan 114B). */
+.glance-shut { grid-column: 2 / -1; margin-top: calc(-1 * var(--space-8)); font-size: var(--text-xs); color: var(--ink-muted); }
 .pillar-academics { --pillar-hue: var(--pillar-academics); }
 .pillar-research { --pillar-hue: var(--pillar-research); }
 .pillar-studentLife { --pillar-hue: var(--pillar-studentLife); }
@@ -3925,6 +3927,12 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }
 .objectives-milestones p { margin: 0 0 var(--space-6); }
 .objectives-live p { margin: 0 0 var(--space-4); font-variant-numeric: tabular-nums; }
+/* The glance's pillar rows, a size down in the drawer (Plan 114B). */
+.objectives-live .glance-rows { gap: var(--space-8); margin: 0 0 var(--space-8); }
+.objectives-live .glance-row { grid-template-columns: 18px 84px minmax(0, 1fr) 40px; gap: var(--space-8); }
+.objectives-live .glance-icon, .objectives-live .glance-icon svg { width: 18px; height: 18px; }
+.objectives-live .glance-label { font-size: var(--text-sm); }
+.objectives-live .glance-figure { font-size: var(--text-sm); }
 .objectives-back { margin: 0 0 var(--space-8); font-size: var(--text-xs); padding: 3px 10px; }
 .objectives-guide p { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 0; }
 .objectives-guide-link { font-size: var(--text-xs); padding: 3px 10px; }

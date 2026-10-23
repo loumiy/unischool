@@ -243,8 +243,8 @@ function standing(s: GameState): ReviewSection {
     if (grade === undefined) continue;
     if (input.penalty && Math.abs(grade) < 0.05) continue; // a penalty that took nothing is not a line
     lines.push({
-      // A pillar's weight is its share of the span (Plan 85B), a fraction.
-      text: `${input.label}: ${input.penalty ? '−' : '+'}${Math.abs(grade).toFixed(1)} of ${Number.isInteger(input.weight) ? input.weight : input.weight.toFixed(1)}`,
+      // What it added, as the glance says it: no "of" its most (Plan 114B).
+      text: `${input.label}: ${input.penalty ? '−' : '+'}${Math.abs(grade).toFixed(1)}`,
       tone: input.penalty ? 'bad' : undefined,
       detail: standingDetailLine(input),
     });

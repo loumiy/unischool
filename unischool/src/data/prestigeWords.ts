@@ -1,6 +1,6 @@
 import type { Pillar } from '../state/types';
 import { decimal, pct } from '../format';
-import { PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS } from '../systems/prestige/prestigeSystem';
+import { EARLY_FADE_YEAR, PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, PRESTIGE_FALL_RATE, riseRateIn, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS } from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
 // The pillar rule, said once (Plan 95E, the second review's B2-4): prestige
@@ -52,6 +52,18 @@ export function pillarShareRule(): string {
 // The whole rule, two sentences: the blend, then the shares.
 export function pillarRule(): string {
   return `Prestige is the blend of four pillars, ${pillarWeightsWords()}, the same for every college. ${pillarShareRule()}`;
+}
+
+// How prestige moves, in three sentences (Plan 114B, the third review's
+// C2-6): the glance's Details and History's help both read it, so the two
+// cannot drift apart. The first two stay split, as Plan 111 left them. The
+// third is the era's: while a summer still closes more of the gap than a fall
+// does, the early weekly climb; from then on, the fall.
+export function summerRule(year: number): string {
+  const era = riseRateIn(year) >= PRESTIGE_FALL_RATE
+    ? `Until year ${EARLY_FADE_YEAR} it also climbs a little every week.`
+    : 'It falls faster than it climbs.';
+  return `Prestige is graded each summer. It moves toward that grade. ${era}`;
 }
 
 // When the board offers the choice (Plan 95R, the second review's B4-2):

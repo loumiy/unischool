@@ -46,6 +46,7 @@ import { varsityAsked } from '../src/data/ladderData';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall } from '../src/data/techData';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
+import { PILLARS } from '../src/systems/prestige/prestigeSystem';
 
 // A button's onClick in a rendered element tree, found by its words: the
 // panel is a plain function of its props, so calling it gives the tree.
@@ -422,15 +423,20 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(currentChapter(s)?.id === 'hall-of-its-own', 'once one is, it opens');
 }
 {
-  // Standing's live readout: prestige and its target, the pulls, satisfaction.
+  // Standing's live readout: prestige and which way it is heading, the
+  // glance's pillar meters, satisfaction (Plan 114B: no target, no "of").
   const s = teaching();
   s.clock.year = 2;
   settleChapters(s);
   s.guidance = { opened: { standing: 53 }, done: Object.fromEntries(['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'].map((id) => [id, 1])), met: [], marked: [] };
   s.guidance.opened = { ...s.guidance.done, standing: 53 };
   const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
-  assert(html.includes('Standing') && /Prestige [\d.]+, heading for [\d.]+/.test(html), 'Standing reads prestige against its target');
-  assert(/Its pillars: Academics [\d.]+ of [\d.]+ · Research/.test(html) && html.includes('Satisfaction '), 'with each pillar against its most, and the satisfaction');
+  assert(html.includes('Standing') && /Prestige [\d.]+, (rising|falling|steady)</.test(html), 'Standing reads prestige and which way it is heading');
+  assert(PILLARS.every((p) => html.includes(`glance-pillar pillar-${p}`)) && html.includes('Satisfaction '), 'with the glance\'s meter per pillar, and the satisfaction');
+  const live = html.slice(html.indexOf('objectives-live')).replace(/<[^>]+>/g, ' ');
+  assert(!/target/i.test(live) && !/heading for/.test(live) && !/\d of \d/.test(live), `no drawer word says "target", or a pillar "of" its most (${live})`);
+  const words = [CHAPTER_COPY.standing.about ?? '', ...Object.values(CHAPTER_COPY.standing.objectives), ...Object.values(CHAPTER_COPY.standing.help ?? {}).map((h) => h.text)];
+  assert(words.every((w) => !/target/i.test(w)), 'and no Standing word does either');
 }
 
 // ---- PR F: years 4 and 5, a side chapter, and the Athletics tab ----

@@ -154,7 +154,8 @@ scale, and prestige steps toward that score by a share of the gap —
 a college that has outgrown its standing earns it a year at a time, so the
 climb to 150 takes about forty years whatever order the catalogue fills in.
 It never jumps to the score: a long-established school's prestige is sticky,
-and a school that falls short falls faster than it climbs. Between summers a
+and, once the early help below has tapered, a school that falls short falls
+faster than it climbs (the glance says which holds in which year, Plan 114B). Between summers a
 weekly tremor, a tenth of the old drift, keeps the toolbar number alive.
 Welfare is graded on the year's *average*, because a player could game it by
 timing a dorm's completion in week 50; everything else on state at the

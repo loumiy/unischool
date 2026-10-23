@@ -182,18 +182,18 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   standing: {
     title: 'Standing',
-    about: "Prestige is your college's reputation. Satisfaction is how happy your students are. Neither one jumps: each moves a little every week toward a target.",
+    about: "Prestige is your college's reputation, and satisfaction is how happy your students are. Neither one jumps. Each moves a little at a time.",
     objectives: {
       'open-students': 'Open the Students tab',
       'open-history': 'Open History to see what prestige is made of',
       'satisfaction-60': `Satisfaction at ${DEMAND_SATISFACTION_THRESHOLD} or more`,
-      'prestige-rising': 'Prestige heading up',
+      'prestige-rising': 'Prestige rising',
     },
     help: {
       'open-students': { text: 'The Students tab shows the five needs, and which one pulls satisfaction down most.', door: 'students' },
       'open-history': { text: 'History shows where prestige is heading, and what each of its four pillars adds: academics, research, student life and athletics.', door: 'history' },
       'satisfaction-60': { text: `You can't set satisfaction. Raise the need that pulls it down most, and the number follows. Below ${ATTRITION_SATISFACTION_LINE}, some students leave each summer, and from year ${DEMAND_FIRST_YEAR} below ${DEMAND_SATISFACTION_THRESHOLD} brings demands.`, door: 'students' },
-      'prestige-rising': { text: 'Your endowment and the four pillars raise where prestige is heading, and run-down buildings lower it. History shows the target, and what each pillar adds.', door: 'history' },
+      'prestige-rising': { text: 'Your endowment and the four pillars lift prestige, and run-down buildings pull it down. History › Prestige shows which way it is heading and what each pillar adds.', door: 'history' },
     },
   },
   'a-faculty': {
@@ -384,9 +384,10 @@ export const DRAWER_WORDS = {
   back: 'Back to the objectives',
   guideTab: (tab: string) => `The Guide on ${tab}`,
   live: 'Now',
-  prestigeNow: (now: string, target: string) => `Prestige ${now}, heading for ${target}`,
-  pillars: 'Its pillars',
-  pillar: (label: string, has: string, of: string) => `${label} ${has} of ${of}`,
+  // Which way it is heading, in the glance's arrow's word, and no target
+  // figure (Plan 114B).
+  prestigeNow: (now: string, heading: string) => `Prestige ${now}, ${heading}`,
+  pillars: 'What lifts it',
   takenOff: 'Taken off',
   satisfactionNow: (now: string) => `Satisfaction ${now}.`,
   drag: (need: string) => `${need} is pulling it down most.`,
