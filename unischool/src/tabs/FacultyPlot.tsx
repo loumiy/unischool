@@ -8,6 +8,7 @@ import { facultyPay } from '../systems/finance/financeSystem';
 import { DisclosureIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { GRADE_LINES, facultyMedian, inScope, retiringSoon, teachingRank } from './facultySort';
+import { GRADE_A } from '../data/courseQuality';
 import { FacultyActions, StatMeter, type Commitment } from './FacultyTile';
 import FacultyPerson from './FacultyPerson';
 import Figure from '../components/Figure';
@@ -121,9 +122,9 @@ export default function FacultyPlot({ s, act, people, isCandidate, scope, commit
           <div className="faculty-plot-y-label" aria-hidden="true">Research →</div>
           <div className="faculty-plot-area">
             {GRADE_LINES.map((g) => (
-              <Fragment key={g.grade}>
-                <span className="faculty-plot-grade across" style={{ left: across(g.value) }}><span>{g.grade} {g.value}</span></span>
-                <span className="faculty-plot-grade up" style={{ top: up(g.value) }}><span>{g.grade} {g.value}</span></span>
+              <Fragment key={g.value}>
+                <span className={`faculty-plot-grade across${g.value === GRADE_A ? ' top' : ''}`} style={{ left: across(g.value) }}><span>{g.label}</span></span>
+                <span className="faculty-plot-grade up" style={{ top: up(g.value) }}><span>{g.value}</span></span>
               </Fragment>
             ))}
             {medT !== null && <span className="faculty-plot-median across" style={{ left: across(medT) }} title={`Your faculty's median teaching, ${medT}`} />}

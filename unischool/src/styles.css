@@ -2410,6 +2410,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-plot-grade.up { left: 0; right: 0; height: 1px; }
 .faculty-plot-grade > span { position: absolute; font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
 .faculty-plot-grade.across > span { top: calc(100% + 4px); transform: translateX(-50%); }
+/* The top band's label runs right from its line, where the plot has room (Plan 114C). */
+.faculty-plot-grade.across.top > span { transform: translateX(-1ch); }
 .faculty-plot-grade.up > span { right: calc(100% + 6px); transform: translateY(-50%); }
 .faculty-plot-median { position: absolute; border: 0 dashed var(--school-primary); }
 .faculty-plot-median.across { top: 0; bottom: 0; border-left-width: 2px; }

@@ -231,11 +231,11 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     known: 'a college known first for its teaching',
     fills: TRAINING_WORDS.fills,
     what: 'The Faculty Training Institute, where the professors you pick are trained.',
-    adds: `Each year it trains one professor for every ${FACULTY_PER_TRAINING_PICK} on the faculty. Each one teaches a full grade better, for good.`,
+    adds: `Each year it trains one professor for every ${FACULTY_PER_TRAINING_PICK} on the faculty. Each one moves up one band in teaching, for good.`,
     fillsShort: `The share fills as professors are trained. It is full once ${pct(TRAINED_SHARE_FOR_FULL)} of the faculty is trained.`,
     mechanics: [
       { text: 'The Faculty Training Institute, a capital project that only this specialization can build.', ready: true },
-      { text: `Each year you pick professors for the institute to train: one for every ${FACULTY_PER_TRAINING_PICK} on the faculty, and at least ${MIN_TRAINING_PICKS}. Each one rises a full grade in teaching for good, and teaches one course fewer for a term while training.`, ready: true },
+      { text: `Each year you pick professors for the institute to train: one for every ${FACULTY_PER_TRAINING_PICK} on the faculty, and at least ${MIN_TRAINING_PICKS}. Each one moves up one band in teaching, for good. While training, they teach one course fewer for a term.`, ready: true },
     ],
   },
   research: {
