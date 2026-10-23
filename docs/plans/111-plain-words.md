@@ -6,7 +6,7 @@ paragraphs, and the sentence structure is often confusing and screams
 AI-generated." The diagnosis is in [the text
 review](../reviews/2026-10-text-review.md). This plan does the rewrite.*
 
-**Status: Built (23 October 2026), PRs A–G, awaiting merge.** Before-and-after tables for every PR are in [`docs/reviews/2026-10-text-review/`](../reviews/2026-10-text-review/).
+**Status: Landed (23 October 2026), PRs A–G, in one PR.** Before-and-after tables for every PR are in [`docs/reviews/2026-10-text-review/`](../reviews/2026-10-text-review/).
 
 ---
 
