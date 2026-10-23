@@ -8,8 +8,10 @@ weeks, a more guided athletics, course milestones in the chapters, the
 chair's letters folded into the walkthrough, three chapters trimmed, and
 five things on the map.*
 
-**Status: In progress.** PRs A–G are being written on
-`claude/adoring-curie-jd0o05`. §3 records where the PRs landed
+**Status: Landed on the branch (23 October 2026), A–F.** The owner
+picked option B of the hall mock-ups
+(https://claude.ai/artifact/JUfnNgua4XhLK21ZXicZnM), with the seats
+centred and the lectern unlabelled. §3 records where the PRs landed
 differently.
 
 ---
@@ -76,7 +78,7 @@ differently.
 |---|---|---|
 | A | 1, 2, 10, 12, 13, 14, 19, 20 | The drawer: about, objectives, (?) help with Show me; chapter copy as `about` + per-objective `help`; Treasury ringed; Elm Hall ringed on Academic; "Teach N courses" objectives; Promises and The long game removed; the charter objective gone; no chair's letters in a run with chapters, their content in the chapters. |
 | B | 15, 18, 22 | Athletics: the tab and the chapter open at the varsity petition; the chapter walks the petition, the Athletic Director, the team's staff and its venue, ringing each; a badge on the tab for a team short of staff. |
-| C | 3, 5, 6, 7 | The summer: the clock stops and the summer waits in the inbox and on the clock; the first summer coached control by control; a draggable handle on the GPA/SAT bar; yellow for "in line"; mock-ups of the hall section (not built). |
+| C | 3, 5, 6, 7 | The summer: the clock stops and the summer waits in the inbox and on the clock; the first summer coached control by control; a draggable handle on the GPA/SAT bar; yellow for "in line"; the hall as a room with the class as a table. |
 | D | 8, 9, 16, 17, 21 | The map: the quad's flowers drawn as the beds'; the awning clear of the clock; a storey drawn per storey; course dots ringed silver and gold; the unlock letter's buildings. |
 | E | 4 | The calendar page counts 1–52. |
 | F | 11 | Every program's tile lists its moves in the open, one button per hall with room. |
@@ -89,11 +91,43 @@ differently.
   held there.
 - **The letters** stay for a run with chapters Off: with no chapters they
   are the only guidance left.
-- **The hall section** is mocked up, not built: the owner picks.
+- **The hall section** was mocked up first, and the owner picked.
 
 ## 3. As implemented
 
-*(Filled in as the PRs land.)*
+- **A:** the drawer's (?) is `HelpHint` grown a Show me. The course
+  milestones are 8, 16 and 24 courses taught, in A faculty, Campus life
+  and Running the college, from guided and natural sim runs. The
+  promises' gate went with their chapter; old saves with either removed
+  chapter in their record load and settle. The chair's letters each name
+  a chapter now and none is sent while chapters are on (each is recorded
+  read when due, so the NEXT line still carries its ask); with chapters
+  Off they remain. Their words went into A hall of its own and Research,
+  and the Research Park's letter became a side chapter of its own. A few
+  older lines were reworded to stay under the plain-words check.
+- **B:** the ladder's `sport` milestone is now the varsity petition
+  (`varsityAsked`, accepted or declined), so the tab opens that week and
+  saves that had it keep it. The chapter's objectives run team, Athletic
+  Director, the three posts, the venue; the tab rings the next post, then
+  the venue's door, from the director's hire. The coach market's
+  guaranteed listing now covers a team still waiting on its venue, or
+  the staff-first order could find nobody to hire. A door clicked during
+  a stop now opens once the stop is answered (`afterHold`).
+- **C:** whether the summer is open lives in the browser session, not
+  the save, so the reducer, the sims and the tests are unchanged. The
+  summer has an inbox row on every beat now, so a save loaded on the
+  admissions page or the Final Report has a door. There is no dark theme
+  to give the yellow a variant; it is darkened to #857000 to read on
+  cream.
+- **D:** a building takes a story if it is a dorm with beds, a dining
+  hall or the first library; towers, villages and the three refectories
+  ignored added floors and now draw them, with a test across all nine
+  sets and four views. The Student Center's clock sits between the
+  entrance and the eaves, or in a small gable of its own where no clock
+  fits. The pips' rings read the Established and Distinguished
+  milestones; a pip with no tier has a dark edge. The quad's beds use
+  the flower bed's own drawing. The unlock letter shows an academic
+  hall, a residence, the Student Center and the library in the set.
 
 - **E:** the code had drifted from `docs/architecture/ui-shell.md`, which
   already said the page shows the week of the year.
