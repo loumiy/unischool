@@ -246,11 +246,14 @@ function fresh(): GameState {
 
   s.pendingInterrupt = { type: 'summer', payload: { beat: 2, tuition: 1, admitRate: 0.5 } };
   assert(inboxItems(s)[0].subject === `Year ${s.clock.year}: Students`, 'the summer, by its beat');
+  // The summer waits to be opened (Plan 112C), so it keeps its row on its
+  // pages' beats too: admissions and the Final Report are pages once open.
   s.pendingInterrupt = { type: 'summer', payload: { beat: 1, tuition: 1, admitRate: 0.5 } };
-  assert(inboxItems(s)[0]?.id !== INTERRUPT_ITEM_ID, 'but its admissions is a page of its own, not an item (Plan 108)');
+  assert(inboxItems(s)[0]?.id === INTERRUPT_ITEM_ID && inboxItems(s)[0].subject === `Year ${s.clock.year}: Admissions`, 'its admissions waits in the inbox too, until opened');
+  assert(!arrivalsIn(fresh(), s).some((t) => t.open === INTERRUPT_ITEM_ID), 'with its own call over the map, not a slip');
 
   s.pendingInterrupt = { type: 'summer', payload: { beat: 0, final: true, tuition: 1, admitRate: 0.5 } };
-  assert(finalReportUp(s) && !inboxItems(s).some((i) => i.tier === 'hold'), 'the Final Report keeps its page');
+  assert(finalReportUp(s) && inboxItems(s)[0].subject === `Year ${s.clock.year}: The Final Report`, 'the Final Report waits as the summer, then keeps its page');
 }
 
 if (failures === 0) {

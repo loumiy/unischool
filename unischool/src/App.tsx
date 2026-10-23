@@ -1,7 +1,7 @@
 import type { CampusTool } from './state/actions';
 import { MILESTONES } from './data/ladderData';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { SPEEDS, useGame } from './engine/useGame';
+import { SPEEDS, useGame, type Speed } from './engine/useGame';
 import { openingHoldsClock, openingQuietDoor } from './state/opening';
 import { SHORTCUTS, isKey, mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
 import type { GameState } from './state/types';
@@ -10,6 +10,7 @@ import StartupScreen from './components/StartupScreen';
 import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
 import Toasts from './components/Toasts';
+import SummerCall from './components/SummerCall';
 import TitleScreen from './components/TitleScreen';
 import { applySettings, getSettings, useSettings } from './settings';
 import HallOfFame from './components/HallOfFame';
@@ -29,7 +30,7 @@ import { CHAPTER_COPY, TAB_GUIDE } from './data/chapterData';
 import { currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
 import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import InboxTab from './components/InboxTab';
-import { interruptPageUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from './systems/inbox/inbox';
+import { interruptPageUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID, summerKey } from './systems/inbox/inbox';
 import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
@@ -143,11 +144,45 @@ export default function App() {
   const [historyView, setHistoryView] = useState<HistoryView>(HISTORY_VIEW_START);
   // What the last snapshot held, for telling what arrived (see below).
   const unseen = useRef<{ run: GameState; memory: UnseenMemory } | null>(null);
+  // The summer waits (Plan 112C): week 52 stops the clock but opens
+  // nothing over what the player is doing. It stands in the inbox and calls
+  // from over the map and the clock until the player opens it; play opens it
+  // rather than running time. Whether it is open is the shell's, kept
+  // against the summer's key (inbox.ts's summerKey), so a load finds it
+  // waiting again.
+  const [summerOpenFor, setSummerOpenFor] = useState<string | null>(null);
+  const summerNow = summerKey(s);
+  const summerWaiting = summerNow !== null && summerOpenFor !== summerNow;
+  // A stop to answer now: any interrupt but a summer still waiting.
+  const stopUp = s.pendingInterrupt !== null && !summerWaiting;
   // A stop (an interrupt) is answered in the inbox (Plan 77): while one is
   // up, the inbox is the only view, opened on it, with no way out but an
   // answer. The Final Report and the summer's admissions keep their own
   // pages (Plan 108).
-  const holding = s.pendingInterrupt !== null && !interruptPageUp(s);
+  const holding = stopUp && !interruptPageUp(s);
+  // The speed the clock ran at when the summer stopped it: opened from its
+  // call, the clock resumes at it once the summer is over, as it did when
+  // the summer opened by itself. Pressing a speed opens it at that speed.
+  const summerSpeed = useRef<Speed | null>(null);
+  useEffect(() => {
+    if (!summerWaiting || speed === 'paused') return;
+    summerSpeed.current = speed;
+    setSpeed('paused');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summerWaiting, speed]);
+  function openSummer(at?: Speed) {
+    if (summerNow === null) return;
+    setSummerOpenFor(summerNow);
+    const resume = at ?? summerSpeed.current;
+    summerSpeed.current = null;
+    if (resume !== null && resume !== 'paused') setSpeed(resume);
+  }
+  // The toolbar's gears and their keys: while the summer waits, a speed
+  // opens it instead of running a clock that cannot run.
+  const setSpeedOrSummer = (next: Speed) => {
+    if (summerWaiting && next !== 'paused') openSummer(next);
+    else setSpeed(next);
+  };
   // The specialization's page (Plan 110): opened from its letter in the
   // inbox, over everything, and closed back to the letter. Kept against the
   // year the offer stands in, so an offer put off is a letter again the next
@@ -178,7 +213,7 @@ export default function App() {
   const chaptersOn = shellLive && objectivesShown(s, objectivesMode);
   const chapterNow = chaptersOn ? currentChapter(s) : null;
   useHotkeys((e) => {
-    if (s.pendingInterrupt || !isKey(e, 'objectives')) return;
+    if (stopUp || !isKey(e, 'objectives')) return;
     setObjectivesOpen((o) => {
       if (!o) { setLogOpen(false); setLadderOpen(false); closeBuild(); setObjectivesView(null); }
       return !o;
@@ -187,13 +222,13 @@ export default function App() {
   useEffect(() => {
     if (!chapterNow || marked(s, readMark(chapterNow.id))) return;
     if (objectivesOpen) act({ type: 'MARK_GUIDANCE', mark: readMark(chapterNow.id) });
-    else if (objectivesMode === 'guided' && CHAPTER_COPY[chapterNow.id].briefing && !s.pendingInterrupt && !overlay && !buildOpen) {
+    else if (objectivesMode === 'guided' && CHAPTER_COPY[chapterNow.id].briefing && !stopUp && !overlay && !buildOpen) {
       setObjectivesOpen(true);
       setLogOpen(false);
       setLadderOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterNow?.id, objectivesOpen, objectivesMode, s.pendingInterrupt, overlay, buildOpen]);
+  }, [chapterNow?.id, objectivesOpen, objectivesMode, stopUp, overlay, buildOpen]);
   useEffect(() => {
     if (shellLive && speed === 'double' && s.guidance && !marked(s, DOUBLE_SPEED_MARK)) act({ type: 'MARK_GUIDANCE', mark: DOUBLE_SPEED_MARK });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,7 +267,7 @@ export default function App() {
   // C / F / L / I (see TAB_HOTKEYS). Held back while an interrupt is pending,
   // since that modal must be answered first.
   useHotkeys((e) => {
-    if (s.pendingInterrupt) return;
+    if (stopUp) return;
     const tab = TAB_HOTKEYS[e.key.toLowerCase()];
     if (!tab) return;
     // openTab refuses an unavailable tab, so a letter can't route to a gated
@@ -308,7 +343,7 @@ export default function App() {
     overlayOpen: overlay !== null,
     buildOpen: buildOpen || objectivesOpen,
     logOpen: logOpen || ladderOpen,
-    interrupted: s.pendingInterrupt !== null,
+    interrupted: stopUp,
     frontUp: front !== null,
   };
   const mapBackOutEnabled = mapBackOutLive(overlays);
@@ -405,9 +440,9 @@ export default function App() {
     else if (prev !== null && stage === 'play') setSpeed('real');
   }, [s.started, stage]);
 
-  // A stop opens the inbox on itself (Plan 77), and each new stop or summer
-  // beat re-points it there; once answered, the player is put back where
-  // they were. Not under a front screen: the stop waits for the game.
+  // A stop opens the inbox on itself (Plan 77), the summer once the player
+  // opens it (Plan 112C), and each new stop or summer beat re-points it
+  // there; once answered, the player is put back where they were. Not under a front screen: the stop waits for the game.
   const holdKey = holding
     ? `${s.pendingInterrupt!.type}:${(s.pendingInterrupt!.payload as { beat?: number } | undefined)?.beat ?? ''}`
     : null;
@@ -466,7 +501,7 @@ export default function App() {
   // in CampusMap, whose Escape is enabled exactly when this handler has
   // nothing to close. An interrupt outranks all of it.
   useHotkeys((e) => {
-    if (!isKey(e, 'back') || s.pendingInterrupt) return;
+    if (!isKey(e, 'back') || stopUp) return;
     if (ladderOpen) setLadderOpen(false);
     else if (objectivesOpen) setObjectivesOpen(false);
     else if (logOpen) setLogOpen(false);
@@ -531,7 +566,7 @@ export default function App() {
   // A modal (a page of its own, or the walkthrough's welcome) makes
   // everything behind it inert: no clicks, no focus, nothing read out. Every
   // other stop is answered in the inbox, which the shell holds open.
-  const modalUp = shellLive && (interruptPageUp(s) || stage === 'welcome');
+  const modalUp = shellLive && ((stopUp && interruptPageUp(s)) || stage === 'welcome');
 
   return (
     <>
@@ -560,6 +595,10 @@ export default function App() {
           gait={!s.started || speed === 'paused' || s.pendingInterrupt || openingHoldsClock(s) ? 0 : SPEEDS.real / SPEEDS[speed]}
         />
         <MainMenu s={s} act={act} onNewCollege={() => newCollege()} onHall={() => setFront('hall')} onSettings={() => setFront('settings')} onTitle={() => setFront('title')} />
+        {/* The summer waiting to be opened (Plan 112C, SummerCall.tsx):
+            before the toasts, which stack above it. Not over the inbox,
+            whose first row is the same door. */}
+        {shellLive && summerWaiting && overlay?.tab !== 'inbox' && <SummerCall s={s} onOpen={() => openSummer()} />}
         {/* The week's small news (Plan 70H), a school's banner, and what
             arrives in the inbox (Plan 77), each with a way to open it. */}
         <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />
@@ -600,7 +639,7 @@ export default function App() {
             buildOpen={buildOpen}
             onSetBuildOpen={setBuildOpen}
             speed={speed}
-            setSpeed={setSpeed}
+            setSpeed={setSpeedOrSummer}
             speedKeysLive={shellLive}
             weekProgress={weekProgress}
             placingId={placingId}
@@ -609,6 +648,7 @@ export default function App() {
             onSetPathTool={setPathTool}
             inbox={inboxBadge(inbox)}
             held={holding}
+            summerWaiting={summerWaiting}
           />
 
           {overlay && (
@@ -669,6 +709,8 @@ export default function App() {
                   }}
                   onShowOnMap={inspectHall}
                   onOpenSpecialization={() => setSpecializationFor(specializationKey)}
+                  summerWaiting={summerWaiting}
+                  onOpenSummer={() => openSummer()}
                 />
               )}
             </TabOverlay>
@@ -701,6 +743,7 @@ export default function App() {
         <InterruptModal
           s={s} act={act} onNewCollege={newCollege}
           specializationOpen={specializationOpen} onCloseSpecialization={() => setSpecializationFor(null)}
+          summerWaiting={summerWaiting}
         />
       )}
       {/* The walkthrough's card (OpeningCoach.tsx); renders nothing once

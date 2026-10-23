@@ -2,7 +2,9 @@
 // The summer's admissions as a page (Plan 108): the applicant cloud
 // (components/applicantCloud.ts) draws the pool by band and reads the line
 // as the admit rate, and the page takes the admissions beat out of the
-// inbox.
+// inbox. Since Plan 112C the summer waits to be opened, its row in the
+// inbox on every beat, the line's handle is a grip tab, and the first
+// summer of a guided run is walked through.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -12,7 +14,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { applicantCloud, admittedDots, cutForRate, gpaOf, MAX_DOTS, rateForCut, satOf } from '../src/components/applicantCloud';
 import InterruptModal from '../src/components/InterruptModal';
 import { admissionsPageUp } from '../src/components/AdmissionsPage';
-import { interruptItem, interruptPageUp } from '../src/systems/inbox/inbox';
+import { interruptItem, interruptPageUp, summerKey, summerOpenLabel } from '../src/systems/inbox/inbox';
 import { teachingCollege } from './fixtures/teaching';
 import type { SummerPayload } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
@@ -70,20 +72,45 @@ function assert(cond: boolean, msg: string): void {
   const payload: SummerPayload = { beat: 1, tuition: s.finance.listedTuition, admitRate: s.students.admitRate };
   s.pendingInterrupt = { type: 'summer', payload };
   assert(admissionsPageUp(s) && interruptPageUp(s), 'the admissions beat is a page');
-  assert(interruptItem(s) === null, 'and not an inbox item');
+  // Plan 112C: the summer keeps its row on every beat, since it waits there
+  // until it is opened; a load in the summer reopens on the beat it was on.
+  assert(interruptItem(s)?.subject === `Year ${s.clock.year}: Admissions`, 'and keeps its row in the inbox while it waits');
+  assert(summerOpenLabel(s) === 'Open admissions' && summerKey(s) !== null, 'whose door opens admissions');
   const html = renderToStaticMarkup(createElement(InterruptModal, { s, act: () => {} }));
   assert(html.includes('admissions-page') && html.includes('Lock the price'), 'the page opens on the price');
   assert(html.includes('GPA') && html.includes('SAT'), 'over the plot the pool will fill');
+  const waiting = renderToStaticMarkup(createElement(InterruptModal, { s, act: () => {}, summerWaiting: true }));
+  assert(waiting === '', 'the summer waiting draws nothing over the screen (Plan 112C)');
 
   const locked = { ...s, pendingInterrupt: { type: 'summer' as const, payload: { ...payload, lockedTuition: payload.tuition } } };
   const after = renderToStaticMarkup(createElement(InterruptModal, { s: locked, act: () => {} }));
   assert(after.includes('Send the offers') && after.includes('role="slider"'), 'a locked price resumes on the line');
+  assert(after.includes('adm-handle-tab') && after.includes('adm-handle-chevron'), 'its handle a grip tab with chevrons (Plan 112C)');
   assert(after.includes('What this class does') && after.includes('Weekly net'), 'with money and mood beside it');
+  assert(!html.includes('Your first admissions') && !after.includes('Your first admissions'), 'a run nobody guides is not walked through');
 
   for (const beat of [0, 2] as const) {
     const other = { ...s, pendingInterrupt: { type: 'summer' as const, payload: { ...payload, beat } } };
     assert(!interruptPageUp(other) && interruptItem(other) !== null, `beat ${beat} stays in the inbox`);
   }
+}
+
+// ---- the first summer of a guided run is walked through (Plan 112C) ----
+{
+  const s = teachingCollege('Coach');
+  s.started = true;
+  s.events.opening.stage = 'play';
+  s.clock = { year: 1, week: 52 };
+  s.guidance = { opened: {}, done: {}, met: [], marked: [], gated: true };
+  const payload: SummerPayload = { beat: 1, tuition: s.finance.listedTuition, admitRate: s.students.admitRate };
+  s.pendingInterrupt = { type: 'summer', payload };
+  const html = renderToStaticMarkup(createElement(InterruptModal, { s, act: () => {} }));
+  assert(html.includes('Your first admissions') && html.includes('Set the price'), 'the first summer opens on the price, walked through');
+  assert(/class="opening-target"[^>]*data-coach="tuition"/.test(html), 'with the tuition slider rung');
+  const later = { ...s, clock: { year: 2, week: 52 } };
+  assert(!renderToStaticMarkup(createElement(InterruptModal, { s: later, act: () => {} })).includes('Your first admissions'), 'and only the first');
+  const off = { ...s, guidance: { ...s.guidance, marked: ['objectives-off'] } };
+  assert(!renderToStaticMarkup(createElement(InterruptModal, { s: off, act: () => {} })).includes('Your first admissions'), 'not with the objectives off');
 }
 
 if (failures > 0) {

@@ -109,8 +109,20 @@ async function admissionsPage(page, ctx) {
   return true;
 }
 
+// The summer waits to be opened (Plan 112C): its call over the map, then
+// its pages.
+async function openSummer(page, ctx) {
+  const open = page.locator('.summer-call-open');
+  if (!(await open.count())) return false;
+  await capture(page, ctx, 'the summer waiting');
+  await open.click().catch(() => {});
+  await page.waitForTimeout(700);
+  return true;
+}
+
 async function stepModals(page, ctx) {
   for (let k = 0; k < 16; k++) {
+    if (await openSummer(page, ctx)) continue;
     if (await admissionsPage(page, ctx)) continue;
     const modal = page.locator('.modal').first();
     if (!(await modal.count())) return;

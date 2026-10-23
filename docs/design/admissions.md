@@ -14,6 +14,19 @@ moves on (`RESOLVE_SUMMER_BEAT`); only the last beat's `RESOLVE_ADMISSIONS`
 turns the calendar page. Review is read-and-continue (Enter continues it,
 unless a promise is on offer); the decision and the digest are not.
 
+The stop stops the clock but does not take the screen (Plan 112C): a
+playtester at IGB was pulled out of whatever he was reading by it. The
+summer waits, an item to decide that can't be ignored, in the inbox, as a
+note above the clock and on the Play button, until the player opens it;
+pressing play opens it, since the clock cannot run until it is answered.
+
+The first summer of a guided run walks the admissions page control by
+control (Plan 112C, `AdmissionsCoach.tsx`), as the opening walks Founders
+Hall: the price, its lock, the applicants, the line and its handle ("drag
+this up to be more selective"), the class it makes, and the offers. The
+same playtester never found that the line moves, and took the opening
+standard every summer.
+
 1. **Review** — the year the school just lived through, generated from the
    year's log and the state against last summer's row
    (`state/yearInReview.ts`): what was built, who came and went, what research
@@ -52,7 +65,9 @@ below are the same two. What changes is how they are drawn:
   GPA by SAT plot, coloured by cohort (`components/applicantCloud.ts`),
   each of the funnel's three quality bands in its own slice of the plot;
 - the **admit rate is a line across the cloud**, dragged or moved with the
-  arrow keys. The funnel admits the best of the pool first, so admitting
+  arrow keys. Its handle is a grip tab between an up and a down chevron
+  (Plan 112C; a yellow dot until then, which read as a marker, not a
+  control). The funnel admits the best of the pool first, so admitting
   everything above the line *is* the admit rate, and the commit sends the
   rate as before. The line stops where the class would fill the room, and
   last summer's rate shows as a dashed line;
