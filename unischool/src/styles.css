@@ -595,7 +595,7 @@ button, input, select, textarea { font-size: inherit; }
 button.toolbar-stat:hover { border-color: var(--school-secondary); }
 
 /* The clock (Plan 90): a desk calendar page beside the two rows, the year,
-   the week's days and the term's weeks over the gears. */
+   the week's days and the year's two terms over the gears. */
 .toolbar-right { display: grid; grid-template-columns: auto auto; grid-template-areas: "cal school" "cal speed";
   column-gap: var(--space-12); row-gap: 5px; align-items: center; }
 .toolbar-right > .toolbar-school { grid-area: school; justify-self: end; }
@@ -1026,7 +1026,6 @@ button.build-tile { font-family: inherit; }
 .relocate-details > summary:hover { color: var(--ink); }
 .program-tile-transit { color: var(--warn-on-light); font-weight: 700; }
 /* A program away from its school's hall with somewhere to go (Plan 55). */
-.program-tile-move { color: var(--school-hue, var(--ink)); font-weight: 800; }
 /* Founders Hall's offices (Plan 89F): an office wears the college's own
    colours, its primary as the edge and a wash of its secondary, where a
    program wears its school's hue. */
@@ -1054,7 +1053,6 @@ button.build-tile { font-family: inherit; }
 .office-confirm .building-info-line { margin-bottom: 6px; }
 .office-close { margin-top: 6px; }
 .office-action { margin: 0 0 8px; }
-.relocate-suggested { margin-top: 6px; }
 .course-cell.transit { opacity: 0.55; }
 .cell-stamp.transit { color: var(--warn-on-light); }
 .relocate { padding: 4px 0 0; text-align: left; }
