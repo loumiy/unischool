@@ -224,6 +224,7 @@ npm run sheet -- --vernacular gothic --scale 2       # one set, closer
 npm run sheet -- --only 'hangar|bowl|grounds'        # a regex on the cell labels
 npm run sheet -- --azimuth 225 --pitch 30            # the same set from behind
 npm run sheet -- --every --floors 0,1,2 --only '^DORM-1[2-5]$'   # each at 0, 1, 2 added stories
+npm run sheet -- --every --snow 1 --only 'LANDMARK|GAZEBO'      # the roofs under week 26's snow
 npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html /tmp/gothic --cells
 ```
 

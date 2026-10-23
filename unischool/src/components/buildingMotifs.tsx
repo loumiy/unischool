@@ -46,7 +46,7 @@ import {
 } from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
-import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
+import { ROOF_SNOW, SnowContext, snowOn, snowOnGlass } from './seasons';
 import { Crane, Scaffolding } from './siteWorks';
 import { flagCloth } from './wind';
 import { TiedPortico, crossGable, eitherRoof, porticoPedimentRise, flatRoofAt, gableRoofAt, hipRoofAt, mansardRoofAt, toneSlopes, vaultRoofAt, type RoofAt } from './porticoTie';
@@ -267,12 +267,19 @@ export function paletteFrom(m: Material, shadeFactor = 1): Palette {
 // the lit slopes most (Plan 74I). The walls are untouched.
 export function snowOnRoofs(p: Palette, snow: number): Palette {
   if (snow <= 0) return p;
-  const lay = (c: string, k: number) => mixColor(c, SNOW_COLOR, snow * k);
+  const lay = (c: string, k: number) => snowOn(c, snow, k);
+  const k = ROOF_SNOW;
   return {
     ...p,
-    roof: lay(p.roof, 0.8), roofDeck: lay(p.roofDeck, 0.82),
-    negCol: lay(p.negCol, 0.85), negRow: lay(p.negRow, 0.8), posRow: lay(p.posRow, 0.72), posCol: lay(p.posCol, 0.66),
+    roof: lay(p.roof, k.roof), roofDeck: lay(p.roofDeck, k.deck),
+    negCol: lay(p.negCol, k.negCol), negRow: lay(p.negRow, k.negRow), posRow: lay(p.posRow, k.posRow), posCol: lay(p.posCol, k.posCol),
   };
+}
+// A roof drawn in its own color (SLOPE's four slopes) under the snow, for
+// the roofs a building lays over its palette's (Plan 115E).
+function snowySlope(roof: string, snow: number) {
+  const { negCol, negRow, posRow, posCol } = snowOnRoofs(paletteFrom({ wall: roof, roof }), snow);
+  return { negCol, negRow, posRow, posCol };
 }
 
 // A retail podium's street level: one tall shopfront per bay, near the pavement.
@@ -3875,6 +3882,9 @@ interface ShedCtx {
   // service side on the building's own sides from it (shedSides), not from
   // `fronts`.
   facing?: Facing;
+  // How deep the snow lies, for the roofs a shed draws from its own colors
+  // rather than `pal` (Plan 115E).
+  snow: number;
 }
 // A shed's own sides, and the walls the camera sees: the grand way in (its
 // steps and canopy or portico) is on the front only; every wall keeps its
@@ -3902,6 +3912,10 @@ const SIGN_PANEL = '#1f5566';
 const SHED_SIGN_LETTER = '#f3eee1';
 const ZINC = '#aeb7ba';
 const POOL_ROOF = '#dfe3e1';
+// A metal vault under the snow: its facets at snowOnRoofs's weights, the
+// lit side (cm 0) as the lit slope, the far side as the shaded one (Plan
+// 115E).
+const vaultSnow = (cm: number) => ROOF_SNOW.negCol - (ROOF_SNOW.negCol - ROOF_SNOW.posCol) * cm;
 const frac = (x: number) => x - Math.floor(x);
 
 // A quad on a wall, in u and heights.
@@ -4784,9 +4798,9 @@ function FieldHouseShed({ c }: { c: ShedCtx }) {
   const vault = barrelVault({
     col, row, w, h, base: Hw, rise, n: N,
     profile: (cc) => Math.sqrt(Math.max(0, 1 - (2 * cc - 1) ** 2)),
-    fill: (cm) => shade(ZINC, 1.12 - 0.36 * cm),
+    fill: (cm) => snowOn(shade(ZINC, 1.12 - 0.36 * cm), c.snow, vaultSnow(cm)),
     ribs: Math.max(6, Math.round((alongW ? w : h) * 1.1)), ribTone: 'rgba(70, 78, 82, 0.55)',
-    lights: [[0.44, 0.56]], lightFill: 'rgba(196, 222, 232, 0.92)',
+    lights: [[0.44, 0.56]], lightFill: snowOnGlass('#c4dee8', 0.92, c.snow),
   });
   const endWall = pal.wall[vault.endDir];
   const lunette = vault.arch(24);
@@ -4840,8 +4854,8 @@ function NatatoriumShed({ c }: { c: ShedCtx }) {
   const vault = barrelVault({
     col, row, w, h, base: H, rise: up(4.2), n: 9,
     profile: (cc) => 1 - (2 * cc - 1) ** 2,
-    fill: (cm) => shade(POOL_ROOF, 1.04 - 0.22 * cm),
-    lights: [[0.24, 0.33], [0.67, 0.76]], lightFill: 'rgba(150, 196, 216, 0.85)',
+    fill: (cm) => snowOn(shade(POOL_ROOF, 1.04 - 0.22 * cm), c.snow, vaultSnow(cm)),
+    lights: [[0.24, 0.33], [0.67, 0.76]], lightFill: snowOnGlass('#96c4d8', 0.85, c.snow),
   });
   const long = (s: ShedFace) => isRowWall(s.dir) === alongW;
   const gh = top - sill;
@@ -7708,8 +7722,8 @@ function LawFrontispiece({ col, row, w, h, H, dir, stone }: {
 // a low hipped roof (the Supreme Court's), or in the Gothic set a reading
 // room under a steep slate gable, lancets down its side and a great
 // traceried window in its visible end.
-function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
-  col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean;
+function LawAttic({ col, row, w, h, H, pal, stone, gothic, snow }: {
+  col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean; snow: number;
 }) {
   // The classical attic as wide as the temple front before it, over the
   // building's middle (Plan 87M), its long side to the long front.
@@ -7738,7 +7752,7 @@ function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
             </g>
           );
         })}
-        <HippedRoof col={ac - across(0.3)} row={ar - across(0.3)} w={aw + across(0.6)} h={ah + across(0.6)} base={H + rise} rise={up(2.4)} pal={{ ...pal, ...SLOPE(LAW_ATTIC_ROOF) }} />
+        <HippedRoof col={ac - across(0.3)} row={ar - across(0.3)} w={aw + across(0.6)} h={ah + across(0.6)} base={H + rise} rise={up(2.4)} pal={{ ...pal, ...snowySlope(LAW_ATTIC_ROOF, snow) }} />
       </g>
     );
   }
@@ -7765,7 +7779,7 @@ function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
           </g>
         );
       })}
-      {gableSlopes(f, alongW, rs, re, { ...pal, ...SLOPE(READING_ROOM_SLATE) })}
+      {gableSlopes(f, alongW, rs, re, { ...pal, ...snowySlope(READING_ROOM_SLATE, snow) })}
       {endDir.map((dir) => {
         const wall = wallOf(f, dir);
         if (!wall.visible) return null;
@@ -10087,7 +10101,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     if (sports) {
       const ctx: ShedCtx = {
         col, row, w, h, H, pal, stone, door, fronts, crest, plantTint, hood, entrance,
-        cornice: surfaceCornice, expansions: t.expansions ?? 0, facing: p.facing,
+        cornice: surfaceCornice, expansions: t.expansions ?? 0, facing: p.facing, snow,
       };
       if (sports === 'rec') return <RecCenterShed c={ctx} />;
       if (sports === 'gym') return <GymShed c={ctx} />;
@@ -10676,7 +10690,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       )}
       {/* The Law School's attic hall and temple fronts, after its parapet
           (Plan 87G). */}
-      {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} />}
+      {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} snow={snow} />}
       {!site && lawTempleFront && <LawFronts col={col} row={row} w={w} h={h} H={H} facing={p.facing} stone={stone} />}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}
