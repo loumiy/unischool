@@ -117,7 +117,7 @@ export const SPEED_UP_WORDS = {
   },
   ceiling: 'It fills the share sooner.',
   buy: (price: string) => `Buy, ${price}`,
-  armed: (price: string) => `Confirm — ${price}`,
+  armed: (price: string) => `Buy for ${price}`,
   done: {
     class: 'Bought this year.',
     wing: 'Built.',

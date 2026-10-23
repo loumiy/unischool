@@ -51,7 +51,7 @@ export default function ImportSave({ current, className = 'menu-btn' }: { curren
           <ConfirmButton
             className="menu-btn"
             label={`Continue ${institutionName(picked.self)}`}
-            armedLabel={`Confirm — replace ${institutionName(current.self)}`}
+            armedLabel={`Replace ${institutionName(current.self)}`}
             warning={current.started ? `${institutionName(current.self)} is replaced in this browser. Download it first to keep it.` : undefined}
             needsConfirm={current.started}
             onConfirm={() => adopt(picked)}

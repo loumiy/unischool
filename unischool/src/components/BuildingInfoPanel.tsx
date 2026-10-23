@@ -276,7 +276,8 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
                 className="building-info-jump"
                 title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, program slot ${move.slot + 1}. It stops teaching for ${relocationWeeks(s, program.id)} weeks.`}
                 label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${weeksShort(relocationWeeks(s, program.id))}`}
-                armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
+                armedLabel={`Move ${program.name} (no classes for ${relocationWeeks(s, program.id)} weeks)`}
+                tone="commit"
                 onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}
               />
             </div>
@@ -315,7 +316,7 @@ function CloseControls({ program, s, act }: { program: ProgramInfo; s: GameState
           <ConfirmButton
             className="relocate-slot"
             label={`Close ${program.name}`}
-            armedLabel={`Confirm — close ${program.name} now`}
+            armedLabel={`Close ${program.name} now`}
             onConfirm={() => act({ type: 'CLOSE_PROGRAM', programId: program.id })}
           />
         </>
@@ -358,7 +359,8 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
               disabled={!act}
               title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, program slot ${slot + 1}`}
               label={slot + 1}
-              armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
+              armedLabel={`Move ${program.name} (no classes for ${relocationWeeks(s, program.id)} weeks)`}
+                tone="commit"
               onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
             />
           ))}
@@ -517,7 +519,8 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
           disabled={refusal !== null}
           title={refusal ?? `Set ${program.name} aside for another offer`}
           label="Not this year"
-          armedLabel="Confirm"
+          armedLabel={`Set ${program.name} aside this year`}
+          tone="commit"
           onConfirm={() => {
             act({ type: 'DECLINE_OFFER', programId: program.id });
             if (pickedProgram === program.id) { setPickedProgram(null); setPickedFaculty(null); }
@@ -754,7 +757,8 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
       <ConfirmButton
         className="building-info-jump"
         label="Declare historic"
-        armedLabel="Confirm — it can never come down"
+        armedLabel="Declare it historic (it can never come down)"
+        tone="commit"
         warning="Permanent. +25% upkeep."
         onConfirm={() => act({ type: 'DECLARE_HISTORIC', id: t.id })}
       />
@@ -787,7 +791,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
       <ConfirmButton
         className="building-info-jump btn-danger"
         label={<>Call off construction · {moneyShort(t.cost)} returned</>}
-        armedLabel="Confirm — the site is cleared"
+        armedLabel="Call off construction (the site is cleared)"
         warning={<>{money(t.cost)} comes back {back}; the site is cleared.</>}
         onConfirm={() => { act({ type: 'CANCEL_CONSTRUCTION', id: t.id }); onClose(); }}
       />
@@ -800,7 +804,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
     <ConfirmButton
       className="building-info-jump btn-danger"
       label="Demolish"
-      armedLabel={`Confirm — ${hallDisplayName(s, t)} comes down`}
+      armedLabel={`Demolish ${hallDisplayName(s, t)} for good`}
       warning="Cannot be undone."
       onConfirm={() => { act({ type: 'DEMOLISH_BUILDING', id: t.id }); onClose(); }}
     />

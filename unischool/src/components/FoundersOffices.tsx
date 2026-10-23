@@ -106,7 +106,7 @@ export function OfficeTile({ slot, s, act, open, onToggle }: {
             <ConfirmButton
               className="building-info-jump office-close"
               label={`Close office · slot dark ${weeksShort(OFFICE_CLOSING_WEEKS)}`}
-              armedLabel="Confirm"
+              armedLabel="Close the office"
               onConfirm={() => act({ type: 'CLOSE_OFFICE', officeId: office.id })}
             />
           )}

@@ -81,7 +81,7 @@ export default function SaveSlots({ current, canSave, className = 'menu-btn' }: 
                   <ConfirmButton
                     className={className}
                     label="Save here"
-                    armedLabel={slot ? `Confirm — replace ${slot.collegeName}` : 'Save here'}
+                    armedLabel={slot ? `Replace ${slot.collegeName}` : 'Save here'}
                     needsConfirm={slot !== null}
                     onConfirm={() => save(id)}
                   />
@@ -90,7 +90,7 @@ export default function SaveSlots({ current, canSave, className = 'menu-btn' }: 
                   <ConfirmButton
                     className={className}
                     label="Load"
-                    armedLabel={`Confirm — replace ${here}`}
+                    armedLabel={`Replace ${here}`}
                     warning={current.started ? `${here} is replaced in this browser. Save it to a slot first to keep it.` : undefined}
                     needsConfirm={current.started}
                     onConfirm={() => load(id)}
@@ -100,7 +100,7 @@ export default function SaveSlots({ current, canSave, className = 'menu-btn' }: 
                   <ConfirmButton
                     className={`${className} btn-quiet`}
                     label="Delete"
-                    armedLabel="Confirm — delete"
+                    armedLabel="Delete this save"
                     onConfirm={() => remove(id)}
                   />
                 )}

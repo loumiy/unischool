@@ -104,7 +104,7 @@ export default function MainMenu({ s, act, onNewCollege, onHall, onSettings, onT
             className="menu-btn btn-quiet"
             title="Erase the saved college and found a new one."
             label="New game"
-            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            armedLabel={`Erase ${institutionName(s.self)} and start again`}
             warning={`${institutionName(s.self)} is erased and a new college is founded.`}
             onConfirm={() => { close(); onNewCollege(); }}
           />

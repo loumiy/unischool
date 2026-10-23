@@ -6,7 +6,7 @@ paragraphs, and the sentence structure is often confusing and screams
 AI-generated." The diagnosis is in [the text
 review](../reviews/2026-10-text-review.md). This plan does the rewrite.*
 
-**Status: In progress.** PR A is under way.
+**Status: Built (23 October 2026), PRs A–G, awaiting merge.** Before-and-after tables for every PR are in [`docs/reviews/2026-10-text-review/`](../reviews/2026-10-text-review/).
 
 ---
 
@@ -135,3 +135,33 @@ playtest's players struggled with. B and C come next, while the voice is
 fresh. D and E are independent and can land in either order. F is the
 largest and least urgent. G comes last, so its thresholds reflect the
 rewritten text.
+
+## As implemented
+
+- **B–D and F were written in parallel**, one worktree each (B, C, D in two
+  parts, F in two parts), then merged. Each PR's table is
+  `docs/reviews/2026-10-text-review/pr-*.md`.
+- **B** fixed five lines that were wrong about the game. Among them: the
+  laboratories letter still asked for a project in every lab before the
+  Research Park (dropped 18 October), and *Campus life* gave every matter
+  four weeks (each has its own limit). The laboratories letter's ask and its
+  done check still track every lab finishing a project. That is the old
+  rule's leftover. It gates nothing, and it is the owner's call whether to
+  retire it.
+- **C** fixed "1 students" in the attrition line, and the admissions page's
+  "Set the price", which is really "Lock the price".
+- **D** fixed two reputations that measured research against "the
+  college's name" (the code compares research with teaching), and the
+  Enrolled chart's note, which said "entering class" (it plots everyone
+  enrolled).
+- **F**: each promise's text now ends with what keeping and missing it does
+  ("Keep it: satisfaction +4 … Miss it: satisfaction −3"), because the offer
+  never said. `test/promise-targets.test.ts` keeps the figures true. The
+  charter letter stays addressed to the President, as its test asks.
+- **E**: `ConfirmButton` gained `tone`. The register's R6 ("Confirm —
+  ‹what is lost›") gives way to labels that say what happens.
+- **G**'s test is `test/text-check.test.ts`. A first draft took the name of
+  Plan 78F's `plain-words.test.ts` and overwrote it; that test was restored
+  before merge. The baseline after the rewrite: mid-sentence colons 141 → 54,
+  semicolons 88 → 8, long sentences 73 → 12, possessive chains 28 → 16,
+  see-saws 6 → 0, passives with nobody doing them 68 → 47.

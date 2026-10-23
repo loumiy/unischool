@@ -82,7 +82,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
           <ConfirmButton
             className={underway ? 'menu-btn' : 'title-primary'}
             label="New game"
-            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            armedLabel={`Erase ${institutionName(s.self)} and start again`}
             warning={`${institutionName(s.self)} is erased and another is founded.`}
             needsConfirm={underway}
             onConfirm={onNewCollege}
@@ -93,7 +93,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
             className="menu-btn"
             title="Found a college with unlimited funds. Buildings and courses finish the moment you start them."
             label="Sandbox"
-            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            armedLabel={`Erase ${institutionName(s.self)} and start again`}
             warning={`${institutionName(s.self)} is erased and a sandbox college is founded.`}
             needsConfirm={underway}
             onConfirm={onSandbox}

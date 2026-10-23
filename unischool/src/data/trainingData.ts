@@ -97,7 +97,7 @@ export const TRAINING_WORDS = {
 
   // On a professor's tile.
   train: 'Train',
-  trainArmed: (course: string) => `Confirm — ${course} loses its teacher for a term`,
+  trainArmed: (course: string) => `Train (${course} has no teacher for a term)`,
   trainGain: (from: string, to: string) => `Teaching ${from} to ${to}`,
   trainTitle: (from: number, to: number, until: string) =>
     `Train at the Faculty Training Institute. Teaching goes from ${from} to ${to}, and potential rises by the same amount. They teach one course fewer until ${until}.`,

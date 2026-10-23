@@ -63,7 +63,8 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
               key={amount}
               className="panel-action small"
               label={moneyShort(amount)}
-              armedLabel={`Confirm — ${moneyShort(amount)} never comes back to cash`}
+              armedLabel={`Move ${moneyShort(amount)} to the endowment for good`}
+              tone="commit"
               warning="Permanent."
               onConfirm={() => act({ type: 'MOVE_TO_ENDOWMENT', amount })}
             />

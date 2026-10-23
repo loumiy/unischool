@@ -48,11 +48,12 @@ assert(clean('Teaching {held} of the {slots} course slots they supply'), 'a plac
 
 // --- the strings this plan rewrote ---------------------------------------
 assert(clean(DOWNTOWN_WORDS.hintLast) && clean(DOWNTOWN_WORDS.lastFestival(undefined)), `the downtown's festival line passes (${DOWNTOWN_WORDS.hintLast})`);
-// Armed labels follow "Confirm — ‹what is lost›" (the register's R6); the
+// Armed labels say what happens, with what it costs in brackets (Plan 111
+// PR E, replacing the register's R6 "Confirm — ‹what is lost›"); the
 // specialization's, whose card already says what is lost, is just "Confirm".
 assert(CHOICE_WORDS.confirm === 'Confirm', `the specialization's armed label is a plain Confirm (${CHOICE_WORDS.confirm})`);
 const armed = TRAINING_WORDS.trainArmed('ECON 101');
-assert(armed.startsWith('Confirm — ECON 101 '), `training's armed label names the course it costs (${armed})`);
+assert(armed.startsWith('Train (ECON 101 '), `training's armed label names the course it costs (${armed})`);
 
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
