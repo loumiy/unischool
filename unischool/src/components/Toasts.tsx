@@ -71,7 +71,8 @@ export function arrivalsIn(before: GameState, after: GameState): Said[] {
   const had = new Set(inboxItems(before).map((i) => i.id));
   const out: Said[] = [];
   for (const i of inboxItems(after)) {
-    // A stop opens the inbox on itself (App.tsx), so it needs no slip.
+    // A stop opens the inbox on itself (App.tsx), and the summer has its
+    // own call over the map (SummerCall.tsx, Plan 112C): neither needs a slip.
     if (had.has(i.id) || i.tier === 'bulletin' || i.tier === 'hold' || !i.unread) continue;
     const text = i.tier === 'decide' && i.weeksLeft !== undefined && i.kind === 'event'
       ? `${i.from} · ${weeksProse(i.weeksLeft)} to answer: ${i.subject}`

@@ -33,9 +33,10 @@ export interface GameSettings {
   // The feedback form's two prompts (Plan 97F, feedback.ts): after the fifth
   // summer and on the Final Report, each once. Off, neither shows.
   feedbackPrompts: boolean;
-  // The objectives in the NEXT bar (Plan 106): Guided opens a new chapter's
-  // briefing by itself, once; Brief keeps it shut until asked; Off hides
-  // the chapters and shows the ticker as it was before them.
+  // The objectives in the NEXT bar (Plan 106): Guided opens the drawer on a
+  // new chapter by itself, once; Brief keeps it shut until asked; Off hides
+  // the chapters and shows the ticker as it was before them, with the
+  // chair's letters as its guidance (Plan 112A).
   objectives: ObjectivesMode;
 }
 

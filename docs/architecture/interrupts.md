@@ -10,7 +10,9 @@ and holds the inbox open, with every other view shut, until the player
 resolves it by dispatching an action, which clears it and lets the clock
 resume; the player is then put back where they were. The Final Report (Plan
 60) and the summer's admissions (Plan 108) keep pages of their own over
-everything, and the specialization's letter opens one (Plan 110).
+everything, and the specialization's letter opens one (Plan 110). The
+summer alone does not open itself (Plan 112C): it stops the clock and
+waits, below.
 
 Everything that needs to stop time rides on this one mechanism:
 
@@ -23,6 +25,19 @@ Everything that needs to stop time rides on this one mechanism:
   beat's `RESOLVE_ADMISSIONS`, the only action that turns the page. A save
   written between beats resumes on the same beat. Review settles the promises
   due and makes the year's offer; the student-life digest is the last beat.
+  **The summer waits to be opened** (Plan 112C): week 52 raises it and the
+  clock stops, but the shell opens nothing over what the player has open.
+  It stands first in the inbox under "The clock waits" (its pane a door,
+  not its pages), as a note over the map above the clock
+  (`SummerCall.tsx`) that nothing puts away, and as a rung Play button;
+  Play, Space or any speed opens it instead of running time. The player can
+  browse every view, the map and its panels, and do whatever needs no time
+  to pass, then open it; from there it is held as any stop is, its
+  admissions a page. Whether it is open is the shell's (`App.tsx`, against
+  `inbox.ts`'s `summerKey`), not the save's, so a save in the summer, old
+  or new, loads with it waiting on the beat it was on, and the reducer, the
+  sim and the harnesses answer it exactly as before. Opened from its note,
+  the clock resumes afterwards at the speed it ran at when the summer came.
   On the **fiftieth summer** the first beat is the **Final Report** in place
   of the year in review (the payload carries a `final` flag, and the beat is a
   page), read exactly as the last beat's `RESOLVE_ADMISSIONS` then writes it
@@ -110,7 +125,13 @@ Everything that needs to stop time rides on this one mechanism:
   never hold the clock. A save on a retired step moves on to `'play'`. A
   walk that ends on its program founded counts the "Somewhere to sleep,
   somewhere to eat" letter read, since its chapter asks the same; one
-  skipped before then gets the letter at week 9. The "done" steps are
+  skipped before then gets the letter at week 9 only with the Objectives
+  setting Off. Since Plan 112A a run the chapters guide is sent none of
+  the chair's letters: each is recorded read unsent when it falls due
+  (`eventData.ts`'s `chapter` names the chapter that says it), and its ask
+  still carries the next-step line. The welcome card is the opening
+  letter. A run without chapters (Off, a save from before them, the sims)
+  still has every letter. The "done" steps are
   settled by `settleOpening` from the action that did them (`PLACE_BUILDABLE`, `HIRE_FACULTY`, `FOUND_PROGRAM`,
   `START_DEVELOPMENT`), and at the top of each `TICK` with no stop
   standing (a course is taught by the tick), never by the UI, and it moves

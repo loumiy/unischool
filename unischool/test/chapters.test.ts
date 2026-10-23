@@ -12,17 +12,20 @@
 // reducer settles after every action and MARK_GUIDANCE marks once; the
 // record survives a save; and every objective has its words. And PR B's
 // strip and drawer: the chapter chip in place of the milestone's, the
-// drawer's briefing, Show me and what else waits, and Off as it was.
+// drawer's about and each objective's help and Show me (Plan 112A), what
+// else waits, and Off as it was. And Plan 112's chapters: the curriculum's
+// milestones, the rings, Promises and The long game gone, the Research
+// Park's chapter.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, nextChapter, objectiveMet, objectiveRows, settleChapters, tabMark } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
-import { CHAPTER_COPY, TAB_GUIDE } from '../src/data/chapterData';
+import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
 import TabOverlay from '../src/components/TabOverlay';
 import { isDiningHall, isDorm } from '../src/data/openingData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -36,10 +39,11 @@ import LogTicker, { objectivesShown } from '../src/components/LogTicker';
 import ObjectivesPanel from '../src/components/ObjectivesPanel';
 import { setSettings } from '../src/settings';
 import { CHAPTER_IDS, eventFits, stateEvents } from '../src/analytics/events';
-import { chapterGateOpen, MATTERS_CHAPTER, OBJECTIVES_OFF_MARK, PROMISES_CHAPTER } from '../src/systems/guidance/gates';
+import { ATHLETICS_CHAPTER, chapterGateOpen, MATTERS_CHAPTER, OBJECTIVES_OFF_MARK } from '../src/systems/guidance/gates';
 import { bindScriptStream } from '../src/engine/random';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
-import { FOUNDERS_HALL_ID, isAcademicHall } from '../src/data/techData';
+import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall } from '../src/data/techData';
+import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
 
 // A button's onClick in a rendered element tree, found by its words: the
 // panel is a plain function of its props, so calling it gives the tree.
@@ -88,6 +92,12 @@ function site(s: GameState, test: (t: Buildable) => boolean): void {
 // A college teaching its pillars: Founders Hall standing, three programs
 // housed and two courses each taught.
 const teaching = () => teachPillars(createInitialState('Chapters'));
+// At least n courses taught: the first n in the catalog, done.
+function teachCourses(s: GameState, n: number): void {
+  const courses = s.tech.filter((t) => t.kind === 'course');
+  const more = n - courses.filter((t) => t.status === 'done').length;
+  courses.filter((t) => t.status !== 'done').slice(0, Math.max(0, more)).forEach((t) => { t.status = 'done'; });
+}
 // Looking around's four required moves, made: the chapters after it open.
 const looked = (s: GameState) => {
   s.guidance!.marked.push(LOOK_MARKS.pan, LOOK_MARKS.turn, LOOK_MARKS.tilt, LOOK_MARKS.zoom);
@@ -228,19 +238,21 @@ for (const c of CHAPTERS) {
   for (const o of c.objectives) assert((CHAPTER_COPY[c.id].objectives[o.id] ?? '').length > 0, `${c.id}'s ${o.id} has words`);
 }
 assert(new Set(CHAPTERS.flatMap((c) => c.objectives.map((o) => o.id))).size === CHAPTERS.flatMap((c) => c.objectives).length, 'objective ids are unique');
-// The briefings (Plan 106 §5): every chapter the drawer shows has one, kept
-// short by rule; no sentence ends on a passive and a pronoun.
-for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
-  const b = CHAPTER_COPY[c.id].briefing;
-  assert(b !== undefined, `${c.id} has a briefing`);
-  if (!b) continue;
-  const sentences = b.what.split(/(?<=\.)\s+/).length;
-  assert(sentences <= 3, `${c.id}: what it is in three sentences at most (${sentences})`);
-  assert(b.how.length >= 1 && b.how.length <= 4, `${c.id}: one to four levers (${b.how.length})`);
-  assert(b.why.length >= 2 && b.why.length <= 4, `${c.id}: two to four links (${b.why.length})`);
-  const all = [b.what, ...b.how.map((h) => h.text), ...b.why.map((y) => y.text)].join(' ');
+// The pages (Plan 106 §5, Plan 112A): every chapter the drawer shows has
+// its paragraph, kept short by rule, and every objective its help; no
+// sentence ends on a passive and a pronoun.
+for (const c of CHAPTERS) {
+  const copy = CHAPTER_COPY[c.id];
+  for (const o of c.objectives) assert((copy.help?.[o.id]?.text ?? '').length > 0, `${c.id}'s ${o.id} has help`);
+  assert(Object.keys(copy.help ?? {}).every((id) => c.objectives.some((o) => o.id === id)), `${c.id}: no help for an objective it does not set`);
+  if (c.id === 'founding') continue;
+  assert(hasPage(c.id) && copy.about !== undefined, `${c.id} has a page`);
+  const sentences = (copy.about ?? '').split(/(?<=\.)\s+/).length;
+  assert(sentences <= 3, `${c.id}: about in three sentences at most (${sentences})`);
+  const all = [copy.about, ...Object.values(copy.help ?? {}).map((h) => h.text)].join(' ');
   assert(!/\b(by|to|for|with|from|in|on|of) (it|them)[.;]/.test(all), `${c.id}: no sentence ends on a pronoun`);
 }
+assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches it');
 
 // ---- Looking around (F7): the camera's moves, before Somewhere to sleep ----
 {
@@ -303,11 +315,14 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   assert(!objectivesShown(walking, 'guided'), 'no chapters while the walkthrough is up');
   assert(!objectivesShown({ ...s, sandbox: true }, 'guided'), 'nor in a sandbox');
 
-  // The chapter's briefing: what, how with its Show me, why.
+  // The chapter's page (Plan 112A): its paragraph, and each objective with
+  // a (?) whose help holds the Show me; no headings, no why.
   let went: string | undefined;
   const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
-  assert(html.includes('What it is') && html.includes('Every student needs a place in class') && html.includes('Show me') && html.includes('→ Satisfaction:'), 'a briefing shows its what, how and why');
+  assert(html.includes('Every student needs a place in class') && !html.includes('What it is') && !html.includes('Why it matters'), 'a page shows its paragraph, with no headings and no why');
+  assert(html.includes('help-hint-btn') && html.includes('aria-label="How to: A place in class for every student"') && html.includes('aria-expanded="false"'), 'each objective has a (?), shut');
+  assert(!html.includes('Develop more courses in the Curriculum'), 'its help waits behind it');
   assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
   const showMe = findButton(panel, 'Show me');
   showMe?.();
@@ -348,14 +363,13 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   const held = play(structuredClone(base), 104);
   assert(!chapterGateOpen(held, MATTERS_CHAPTER) && Object.keys(held.events.decisionHistory).length === 0 && (held.catalogue?.pending.length ?? 0) === 0 && held.events.activeDemand === null,
     `a gated college with Campus life shut gets no matter and no demand (${Object.keys(held.events.decisionHistory).join(',')})`);
-  assert((held.promises?.offer ?? null) === null && (held.promises?.active.length ?? 0) === 0, 'and no promise');
 
   const off = structuredClone(base);
   off.guidance!.marked.push(OBJECTIVES_OFF_MARK);
-  assert(chapterGateOpen(off, MATTERS_CHAPTER) && chapterGateOpen(off, PROMISES_CHAPTER), 'Off opens every gate');
+  assert(chapterGateOpen(off, MATTERS_CHAPTER) && chapterGateOpen(off, ATHLETICS_CHAPTER), 'Off opens every gate');
   const open = structuredClone(base);
   open.guidance!.opened['campus-life'] = 105;
-  assert(chapterGateOpen(open, MATTERS_CHAPTER) && !chapterGateOpen(open, PROMISES_CHAPTER), 'Campus life open opens the matters, not the promises');
+  assert(chapterGateOpen(open, MATTERS_CHAPTER) && !chapterGateOpen(open, ATHLETICS_CHAPTER), 'Campus life open opens the matters, not the Athletics tab');
   const freed = play(open, 104);
   assert(Object.keys(freed.events.decisionHistory).length > 0 || (freed.catalogue?.lastInlineWeek ?? 0) > 0, 'and with it open, matters come');
 }
@@ -388,7 +402,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
 
 // ---- PR F: years 4 and 5, a side chapter, and the Athletics tab ----
 {
-  const chain = ['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing', 'a-faculty', 'hall-of-its-own', 'campus-life', 'promises'];
+  const chain = ['founding', 'next-course', 'looking-around', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing', 'a-faculty', 'hall-of-its-own', 'campus-life'];
   const s = teaching();
   s.clock.year = 4;
   s.clock.week = 30;
@@ -398,10 +412,14 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   assert(currentChapter(s)?.id === 'running-the-college', 'and the chain goes on without it: Running the college');
   assert(!tabAvailable(s, 'athletics'), 'a gated run has no Athletics tab before its chapter');
 
-  s.orgs.clubs.push({ ...(s.orgs.clubs[0] ?? {}), sport: 'soccer' } as GameState['orgs']['clubs'][number]);
+  // A sport club alone opens nothing (Plan 112B): the petition does.
+  s.orgs.clubs.push({ ...s.orgs.clubs[0], id: 'club-soccer', sport: 'soccer', varsityLastAskedYear: null } as GameState['orgs']['clubs'][number]);
+  settleChapters(s);
+  assert(!opened(s, 'the-teams') && !tabAvailable(s, 'athletics'), 'a sport club alone opens neither The teams nor the Athletics tab');
+  s.orgs.clubs.at(-1)!.varsityLastAskedYear = 4;
   s.ladder.reached.sport = 4;
   settleChapters(s);
-  assert(opened(s, 'the-teams'), 'a sport club opens The teams beside the chain');
+  assert(opened(s, 'the-teams'), 'a varsity petition opens The teams beside the chain');
   assert(tabAvailable(s, 'athletics'), 'and with it the Athletics tab');
   assert(currentChapter(s)?.id === 'the-teams', 'the drawer shows the open chapter first in order');
   assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
@@ -415,24 +433,24 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   s.clock.year = 5;
   s.clock.week = 1;
   settleChapters(s);
-  assert(done(s, 'running-the-college') && currentChapter(s)?.id !== 'running-the-college', 'a Provost ends Running the college');
-  assert(opened(s, 'the-long-game'), 'and year 5 opens The long game');
-  s.finance.sweepWeeks = 26;
+  assert(!done(s, 'running-the-college'), `a Provost alone does not end Running the college: it wants ${COURSE_MILESTONES['running-the-college']} courses taught`);
+  teachCourses(s, COURSE_MILESTONES['running-the-college']);
   settleChapters(s);
-  assert(done(s, 'the-long-game'), 'a standing sweep ends it');
+  assert(done(s, 'running-the-college') && currentChapter(s)?.id !== 'running-the-college', 'a Provost and the courses end it');
+  assert(nextChapter(s) === null, 'and it is the last of the chain: no Long game after it (Plan 112A)');
 }
 
 // ---- PR G: the Guide ----
 {
   for (const [tab, id] of Object.entries(TAB_GUIDE)) {
-    assert(CHAPTERS.some((c) => c.id === id) && CHAPTER_COPY[id!].briefing !== undefined, `the ${tab} tab's Guide names a chapter with a briefing (${id})`);
+    assert(CHAPTERS.some((c) => c.id === id) && hasPage(id!), `the ${tab} tab's Guide names a chapter with a page (${id})`);
   }
   const s = teaching();
   s.clock.year = 2;
   const met = ['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'];
   s.guidance = { opened: { ...Object.fromEntries(met.map((id) => [id, 1])), standing: 53 }, done: Object.fromEntries(met.map((id) => [id, 1])), met: [], marked: [] };
   const guide = guideChapters(s).map((c) => c.id);
-  assert(guide.join(',') === 'next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing', `the Guide lists every chapter met with a briefing, in order (${guide.join(',')})`);
+  assert(guide.join(',') === 'next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing', `the Guide lists every chapter met with a page, in order (${guide.join(',')})`);
   const page = (view: string | null) => renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, view, onView: () => {} }));
   const back = page('paying-for-it');
   assert(back.includes('Back to the objectives') && back.includes('Paying for it') && !back.includes('Also waiting'), 'a page of the Guide reads that chapter, with the way back');
@@ -472,6 +490,102 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   settleChapters(s);
   assert(done(s, 'specialization'), 'the board offering the choice ends the specialization chapter');
   assert(TAB_GUIDE.research === 'research', "and the Research tab's Guide names it");
+}
+
+// ---- Plan 112: the curriculum's milestones ----
+{
+  const milestones = Object.entries(COURSE_MILESTONES);
+  assert(milestones.map(([, n]) => n).every((n, i, all) => i === 0 || n > all[i - 1]), 'the counts rise chapter by chapter');
+  assert(COURSE_MILESTONES['a-faculty'] === FIRST_HALL_COURSE_GATE, 'the first is the count that opens the first academic hall');
+  for (const [id, n] of milestones) {
+    const c = CHAPTERS.find((x) => x.id === id)!;
+    const o = c.objectives.find((x) => x.id === teachObjective(n));
+    assert(o !== undefined && !o.optional, `${id} requires ${n} courses taught`);
+    assert(CHAPTER_COPY[c.id].objectives[teachObjective(n)] === `Teach ${n} courses`, `${id}: "Teach ${n} courses"`);
+    assert(CHAPTER_COPY[c.id].help![teachObjective(n)].door === 'curriculum', `${id}: its Show me opens the Curriculum`);
+  }
+  const s = teaching();
+  const faculty = CHAPTERS.find((c) => c.id === 'a-faculty')!;
+  const row = objectiveRows(s, faculty).find((r) => r.id === teachObjective(FIRST_HALL_COURSE_GATE))!;
+  assert(typeof row.progress === 'object' && row.progress.n === 6 && row.progress.of === FIRST_HALL_COURSE_GATE, `it reads n of N (${JSON.stringify(row.progress)})`);
+
+  // A faculty waits for the courses, whatever else is met.
+  const chain = ['founding', 'next-course', 'looking-around', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing'];
+  s.clock.year = 2;
+  s.clock.week = 20;
+  s.guidance = { opened: Object.fromEntries(chain.map((id) => [id, 1])), done: Object.fromEntries(chain.map((id) => [id, 1])), met: [], marked: [tabMark('faculty')] };
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'a-faculty' && !done(s, 'a-faculty'), 'six courses taught hold A faculty open');
+  teachCourses(s, FIRST_HALL_COURSE_GATE);
+  settleChapters(s);
+  assert(done(s, 'a-faculty'), 'the eighth ends it');
+}
+
+// ---- Plan 112: the rings and the help that reads the college ----
+{
+  // Paying for it rings the funds figure until the Treasury is opened.
+  let s = looked(teaching());
+  s.clock.week = 30;
+  site(s, isDorm);
+  site(s, isDiningHall);
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'paying-for-it' && treasuryRinged(s), 'Paying for it rings the Treasury button');
+  s = reducer(s, { type: 'MARK_GUIDANCE', mark: tabMark('treasury') });
+  assert(!treasuryRinged(s), 'until the Treasury is opened');
+}
+{
+  // A hall of its own rings the first academic hall, and opens the build
+  // menu on it, until it is placed.
+  const s = teaching();
+  s.clock.year = 2;
+  s.clock.week = 30;
+  const before = ['founding', 'next-course', 'looking-around', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing', 'a-faculty'];
+  s.guidance = { opened: Object.fromEntries(before.map((id) => [id, 1])), done: Object.fromEntries(before.map((id) => [id, 1])), met: [], marked: [] };
+  const elm = s.tech.find((t) => t.id === academicHallId(0))!;
+  elm.status = 'available';
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'hall-of-its-own' && ringedBuilding(s)?.id === elm.id, `the build menu rings the first academic hall (${ringedBuilding(s)?.id})`);
+  assert(objectiveHelp(s, 'hall-of-its-own', 'site-academic-hall')?.door === 'build', 'and its help opens the build menu');
+  elm.status = 'locked';
+  assert(objectiveHelp(s, 'hall-of-its-own', 'site-academic-hall') === HALL_LOCKED_HELP && HALL_LOCKED_HELP.door === 'curriculum', 'locked, its help says what opens it and shows the Curriculum');
+  elm.status = 'available';
+  site(s, (t) => t.id === elm.id);
+  settleChapters(s);
+  assert(ringedBuilding(s) === null, 'placed, the ring goes');
+}
+
+// ---- Plan 112: Promises and The long game gone; Research and the park ----
+{
+  assert(!CHAPTERS.some((c) => (c.id as string) === 'promises' || (c.id as string) === 'the-long-game'), 'Promises and The long game are no chapters');
+  assert(!CHAPTERS.find((c) => c.id === 'research')!.objectives.some((o) => o.id === 'answer-the-charter'), 'Research asks nothing of the charter, which comes by itself');
+
+  // An old save that opened both settles, and goes on to the chapter after.
+  const s = teaching();
+  s.clock.year = 5;
+  s.clock.week = 10;
+  const chain = ['founding', 'next-course', 'looking-around', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing', 'a-faculty', 'hall-of-its-own', 'campus-life', 'promises'];
+  s.guidance = { opened: { ...Object.fromEntries(chain.map((id) => [id, 1])), 'the-long-game': 200 }, done: Object.fromEntries(chain.map((id) => [id, 1])), met: ['third-summer', 'set-a-sweep'], marked: [], gated: true };
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'running-the-college', `an old save with Promises and The long game open settles on Running the college (${currentChapter(s)?.id})`);
+  assert(guideChapters(s).every((c) => hasPage(c.id)), 'and its Guide lists only chapters that exist');
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, view: 'promises', onView: () => {} }));
+  assert(html.includes('Running the college'), 'a Guide page asked for a gone chapter reads the current one');
+  assert(saveGame(s) && loadGame()?.guidance?.opened['the-long-game'] === 200, 'and it saves and loads as it was');
+
+  // The Research Park's chapter opens with the park.
+  const p = teaching();
+  p.clock.year = 16;
+  settleChapters(p);
+  const park = p.tech.find((t) => t.id === RESEARCH_PARK_ID)!;
+  park.status = 'locked';
+  settleChapters(p);
+  assert(!opened(p, 'research-park'), 'The Research Park waits for the park to open');
+  park.status = 'available';
+  settleChapters(p);
+  assert(opened(p, 'research-park') && !done(p, 'research-park') && CHAPTERS.find((c) => c.id === 'research-park')!.side === true, 'opens beside the chain once it does');
+  site(p, (t) => t.id === RESEARCH_PARK_ID);
+  settleChapters(p);
+  assert(done(p, 'research-park'), 'and the park placed ends it');
 }
 
 // ---- PR I: the chapters in the play statistics ----

@@ -9,6 +9,7 @@
 //   npm run sheet -- --azimuth 225 --pitch 30       # from another camera
 //   npm run sheet -- --every --azimuth 135          # every placeable, not one per form (Plan 73)
 //   npm run sheet -- --facing 2                     # every building turned to face -row
+//   npm run sheet -- --every --floors 0,1,2         # each at 0, 1 and 2 added stories (Plan 112D)
 //   npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html out/ --cells
 //
 // `--scale` is screen pixels per world unit (default 1.4). Each cell is a
@@ -49,6 +50,9 @@ const OUT = flag('out', 'node_modules/.tmp/sheets');
 // `--facing 2` turns every building that many quarters (its front on -row);
 // a sample's own facing (the turned ones) goes on from it.
 const FACING = (Number(flag('facing', '0')) % 4) as Facing;
+// `--floors 0,1,2` draws each sample once per count of added stories
+// (floorsAdded), side by side, so a story going on can be seen (Plan 112D).
+const FLOORS = flag('floors', '') ? flag('floors', '').split(',').map(Number) : null;
 setCamera({ azimuth: (Number(flag('azimuth', '45')) * Math.PI) / 180, pitch: (Number(flag('pitch', '30')) * Math.PI) / 180 });
 // CampusMap's own inset (see BUILDING_INSET there), so a cell shows the
 // building at the size the map draws it inside its footprint.
@@ -204,7 +208,10 @@ function everySample(): Sample[] {
   }
   return out;
 }
-const all = EVERY ? everySample() : samples();
+const base = EVERY ? everySample() : samples();
+const all = FLOORS
+  ? base.flatMap((s) => FLOORS.map((n) => ({ ...s, label: `${s.label} +${n} stories`, t: { ...s.t, floorsAdded: n }, suffix: `${s.suffix ?? ''}-s${n}` })))
+  : base;
 const cameraTag = EVERY ? `-a${flag('azimuth', '45')}-p${flag('pitch', '30')}` : '';
 for (const v of VERNS) {
   const cells = all.filter((s) => !ONLY || ONLY.test(s.label) || ONLY.test(s.t.id)).map((s) => cell(s, v));

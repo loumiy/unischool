@@ -1,7 +1,7 @@
 import { speedLock } from '../systems/delegation/seats';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { GameState } from '../state/types';
-import { totalEnrolled } from '../state/types';
+import { totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import {
   RankIcon, StudentsIcon, PrestigeIcon, SatisfactionIcon,
   PauseIcon, PlayIcon, DoubleSpeedIcon, QuadSpeedIcon, OctoSpeedIcon,
@@ -18,8 +18,11 @@ import { satisfactionDrag, satisfactionWeeklyChange } from '../systems/satisfact
 import { FigureBox } from './Figure';
 import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
+import { treasuryRinged } from '../state/chapters';
+import { useSettings } from '../settings';
+import { objectivesShown } from './LogTicker';
 import { playtestEnabled } from './playtest';
-import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason, weekOfTerm } from '../format';
+import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason } from '../format';
 import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
 import { tabAvailable } from './TabNav';
 import type { TabSection } from '../data/ladderData';
@@ -123,12 +126,16 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
   // The word over the figure on a wide screen; on a phone the glyph stands
   // in for it (styles.css).
   const word = (chip: StatChip) => <span className="stat-label">{STAT_CHIP_WORDS[chip]}</span>;
+  // Rung while "Paying for it" waits on the Treasury (Plan 112A): the
+  // owner could not find where it opens.
+  const objectives = useSettings().objectives;
+  const ringed = !treasuryOpen && treasuryRinged(s) && objectivesShown(s, objectives);
 
   return (
     <>
       <button
         type="button"
-        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}${quiet ? ' quiet' : ''}`}
+        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}${quiet ? ' quiet' : ''}${ringed ? ' opening-target' : ''}`}
         aria-expanded={treasuryOpen}
         aria-label="Treasury"
         aria-describedby={fundsHint}
@@ -186,12 +193,14 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
 }
 
 // Right: the clock, and the speed controls.
-export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
+export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress, summerWaiting = false }: {
   s: GameState; speed: Speed; setSpeed: (speed: Speed) => void;
   // False while a front screen covers the game (App.tsx).
   keysLive: boolean;
   // The live fraction of the week, for DayTicker.tsx.
   weekProgress: () => number;
+  // The summer waits to be opened (Plan 112C).
+  summerWaiting?: boolean;
 }) {
   // The sandbox speed's gate (playtest.ts); a sandbox run has it too.
   const showPlaytestControls = playtestEnabled() || isSandbox(s);
@@ -213,15 +222,15 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
   // Two rows, clock above gears, with the calendar page beside both
   // (styles.css's .toolbar-right). The page carries the whole date for a
   // screen reader; the year, days and year bar beside it are drawn only.
-  // The page counts the term's weeks, not the year's: "Spring, week 38"
-  // read as a calendar's September.
+  // The page counts the year's weeks, 1 to 52, as the chapters, letters
+  // and the summer do ("summer comes at week 52"): a term's 1 to 26, twice,
+  // left the player to translate (Plan 112E).
   const date = gameDate(s.clock.year, s.clock.week);
-  const termWeek = weekOfTerm(s.clock.week);
   return (
     <>
       <div className="toolbar-calendar" role="img" aria-label={date} title={date}>
         <span className="toolbar-calendar-term">{termSeason(s.clock.week)}</span>
-        <span className="toolbar-calendar-week">{termWeek}</span>
+        <span className="toolbar-calendar-week">{s.clock.week}</span>
         <span className="toolbar-calendar-word">Week</span>
       </div>
       <div className="toolbar-school" aria-hidden="true">
@@ -231,7 +240,7 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
           {/* The college year, Fall then Spring: each term's half fills
               as its weeks pass, so the bar runs from the year's first
               week of classes to its summer, not January to December. */}
-          <div className="year-bar" title={`${termSeason(s.clock.week)} term, week ${termWeek} of ${TERM_LENGTH}`}>
+          <div className="year-bar" title={`${termSeason(s.clock.week)} term, week ${s.clock.week} of ${WEEKS_PER_YEAR}`}>
             {(['Fall', 'Spring'] as const).map((term, i) => {
               const filled = Math.max(0, Math.min(TERM_LENGTH, s.clock.week - i * TERM_LENGTH));
               return (
@@ -248,6 +257,9 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
           {visibleSpeeds.map((sp) => {
             const Icon = SPEED_ICONS[sp];
             const lock = lockOf(sp);
+            // The summer waiting (Plan 112C): Play is rung, and any gear
+            // opens the summer (App.tsx), so each says so.
+            const summer = summerWaiting && sp !== 'paused' && lock === null;
             return (
               <button
                 key={sp}
@@ -255,12 +267,13 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
                   speed === sp ? 'active' : '',
                   SANDBOX_SPEEDS.includes(sp) ? 'sandbox' : '',
                   lock ? 'locked' : '',
+                  summer && sp === 'real' ? 'opening-target summer-play' : '',
                 ].join(' ').trim()}
                 disabled={lock !== null}
                 aria-pressed={speed === sp}
-                aria-label={SPEED_LABELS[sp]}
+                aria-label={summer ? `${SPEED_LABELS[sp]}, opens the summer` : SPEED_LABELS[sp]}
                 onClick={() => setSpeed(sp)}
-                title={lock ?? SPEED_HINTS[sp]}
+                title={lock ?? (summer ? 'The summer is here. Open it to start the clock again.' : SPEED_HINTS[sp])}
               >
                 {Icon ? <Icon /> : SPEED_LABELS[sp]}
               </button>

@@ -30,8 +30,8 @@ import { useSettings } from '../settings';
 // THE OBJECTIVES (Plan 106 PR B). Once the walkthrough is over, the
 // milestone chip gives way to the chapter's: "Chapter 2 · Places for every
 // student 280/350", the first objective not yet met. It opens the drawer
-// (ObjectivesPanel.tsx), where the chapter, its briefing, what else waits
-// and the milestones are. NEXT stays on the strip only when it is urgent or
+// (ObjectivesPanel.tsx), where the chapter, its objectives and their help,
+// what else waits and the milestones are. NEXT stays on the strip only when it is urgent or
 // no chapter is open; otherwise it waits in the drawer. The Objectives
 // setting's Off keeps the strip as it was before them.
 // A milestone's progress as a count: "12/13 courses", "96.4/100.0 prestige".

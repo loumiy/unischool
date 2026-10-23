@@ -601,13 +601,14 @@ export function coachCandidateArrivalsThisWeek(poolSize: number): number {
   return Math.max(0, Math.min(COACH_CANDIDATE_POOL_TARGET - poolSize, COACH_CANDIDATE_ARRIVALS_PER_WEEK_MAX));
 }
 
-// The floor: every open chair on an active team has at least one listing in
-// its field. Returns the uncovered fields, which the tick fills with a
-// journeyman each.
+// The floor: every open chair has at least one listing in its field, on a
+// team waiting on its venue too since The teams asks for the staff before
+// the venue (Plan 112B). Returns the uncovered fields, which the tick fills
+// with a journeyman each.
 export function uncoveredChairFields(s: GameState): string[] {
   const listed = new Set(s.orgs.coachCandidates.map((c) => c.field));
   const fields = new Set<string>();
-  for (const chair of vacantChairs(s)) {
+  for (const chair of openChairs(s)) {
     const field = fieldForChair(chair);
     if (!listed.has(field)) fields.add(field);
   }
@@ -986,14 +987,25 @@ export interface VacantChair {
 }
 
 export function vacantChairs(s: GameState): VacantChair[] {
+  return openChairs(s).filter((chair) => chair.team.status === 'active');
+}
+
+// Every empty chair on any team, a team waiting on its venue included: what
+// the Athletics tab's badge counts and The teams asks to be filled before
+// the venue (Plan 112B), so the market lists somebody for each.
+export function openChairs(s: GameState): VacantChair[] {
   const out: VacantChair[] = [];
   for (const team of s.orgs.teams) {
-    if (team.status !== 'active') continue;
     if (!team.headCoach) out.push({ team, role: 'head' });
     if (!team.assistantCoach) out.push({ team, role: 'assistant' });
     if (!team.trainer) out.push({ team, role: 'trainer' });
   }
   return out;
+}
+
+// Whether any varsity team has a staff post unfilled.
+export function teamsShortStaffed(s: GameState): boolean {
+  return openChairs(s).length > 0;
 }
 
 // The field a chair hires from. One place, so the shortage event and the
@@ -1020,6 +1032,11 @@ export function seatCoach(team: VarsityTeam, role: VacantChair['role'], coach: C
 // lottery (see eventData.ts's VARSITY_PETITION_WEEK). Kept short so the first
 // varsity team lands in a narrow window across runs.
 export const VARSITY_PETITION_MIN_TENURE_YEARS = 3;
+
+// The board's Athletic Director offer comes again this long after one is
+// turned down (eventSystem.ts's fireAthleticDirectorOffer), so a college
+// that cannot afford a director early does not lose athletics for the run.
+export const AD_OFFER_COOLDOWN_YEARS = 3;
 
 // Pity timer: if a student center has stood this long and no sport club has
 // ever formed, the next club formation is one.

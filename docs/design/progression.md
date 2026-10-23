@@ -741,9 +741,8 @@ test. A promise is judged at the start of the summer it falls due, so an
 admit-rate promise judges the rate set the summer before. Each summer's Review settles the promises that came
 due, kept or missed and paid, and, from Year 3 and with fewer than three
 open, may offer one; the player accepts or declines, and declining is free.
-A guided run also waits for the chapter "Promises" (Plan 106 PR E,
-`systems/guidance/gates.ts`), which opens late in Year 3 once the chapters
-before it are done; with the Objectives setting Off nothing waits.
+A guided run offers them the same way: the chapter "Promises" it once
+waited for went in Plan 112A.
 At the summers of Years 10, 20, 30 and 40 the offer is a list of three
 instead, of which the player takes up to two. Offers are drawn from a hash of the college
 and the year, never the run's random stream (`systems/promises/promises.ts`).

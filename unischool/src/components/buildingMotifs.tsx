@@ -39,7 +39,7 @@ import {
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
-import { FOUNDERS_GEORGIAN_COLOURS, glassContrast, georgianHall, readableGlass, towerFormOf } from './buildingSpec';
+import { FOUNDERS_GEORGIAN_COLOURS, addedFloors, glassContrast, georgianHall, readableGlass, towerFormOf } from './buildingSpec';
 import {
   CARILLON_BELFRY_RISE, CARILLON_CAP, CARILLON_CAP_OVERSAIL, CARILLON_CLOCK_RADIUS_METRES, CARILLON_CLOCK_RISE,
   CARILLON_PIER, CARILLON_PLAN, CARILLON_PROUD, CARILLON_SHAFT_RISE, CARILLON_TIE, CARILLON_TIE_EVERY,
@@ -49,7 +49,7 @@ import { shade } from './tint';
 import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
 import { Crane, Scaffolding } from './siteWorks';
 import { flagCloth } from './wind';
-import { TiedPortico, crossGable, eitherRoof, flatRoofAt, gableRoofAt, hipRoofAt, mansardRoofAt, toneSlopes, vaultRoofAt, type RoofAt } from './porticoTie';
+import { TiedPortico, crossGable, eitherRoof, porticoPedimentRise, flatRoofAt, gableRoofAt, hipRoofAt, mansardRoofAt, toneSlopes, vaultRoofAt, type RoofAt } from './porticoTie';
 import { TreeAt, treeShadow } from './trees';
 import * as ownFrame from './facing';
 
@@ -1727,7 +1727,7 @@ function Archway({ d, col, row, w, h, outward, wallHeight, pal, stone }: {
 // eaves with coved shoulders, a bell in a round-headed opening and a small
 // gable. No cross. Drawn in the wall's plane after the roof; `inward` is the
 // same face set back to give it a lit return.
-function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, pal, stone, scale = 1, rear }: {
+function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, pal, stone, scale = 1, rear, clock = false }: {
   origin: Pt; along: Pt; inward: { origin: Pt; along: Pt };
   wallHeight: number; span: number; centreU: number;
   // Which end shows its return: +u on the left wall, -u on the right.
@@ -1739,6 +1739,9 @@ function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, p
   // its back in this tone and the opening, painted before the mass so the
   // part above the roof shows.
   rear?: string;
+  // A clock in the bell's place (Plan 112D): the student center's, where
+  // its arcade leaves no wall for one.
+  clock?: boolean;
 }) {
   const at = (u: number, v: number) => facePoint(origin, along, wallHeight, u, v);
   const back = (u: number, v: number) => facePoint(inward.origin, inward.along, wallHeight, u, v);
@@ -1771,7 +1774,7 @@ function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, p
     return (
       <>
         <polygon points={polyPoints(profile.map(([u, v]) => at(u, v)))} fill={rear} />
-        <polygon className="iso-undercroft" points={polyPoints(opening.map(([u, v]) => at(u, v)))} />
+        {!clock && <polygon className="iso-undercroft" points={polyPoints(opening.map(([u, v]) => at(u, v)))} />}
         <line x1={finial.x} y1={finial.y} x2={finial.x} y2={lift(finial, finialRise).y} stroke={stone.gilt} strokeWidth={1.2} />
       </>
     );
@@ -1782,9 +1785,17 @@ function BellGable({ origin, along, inward, wallHeight, span, centreU, sideAt, p
       <polygon points={polyPoints([at(su, 1), at(su, shoulder), back(su, shoulder), back(su, 1)])} fill={ret} />
       <polygon points={polyPoints([at(nu, neck), at(nu, top), back(nu, top), back(nu, neck)])} fill={ret} />
       <polygon points={polyPoints(profile.map(([u, v]) => at(u, v)))} fill={face} />
-      <polygon className="iso-undercroft" points={polyPoints(opening.map(([u, v]) => at(u, v)))} />
-      {/* The bell: a small trapezoid of bronze hanging in the opening. */}
-      <polygon points={polyPoints([at(centreU - bellU * 0.5, V(2.0)), at(centreU + bellU * 0.5, V(2.0)), at(centreU + bellU * 0.22, V(3.7)), at(centreU - bellU * 0.22, V(3.7))])} fill={stone.gilt} />
+      {clock ? (
+        // The face in the neck, as wide as the neck allows.
+        <ClockFace o={origin} a={along} H={wallHeight} span={span} u={centreU}
+          zc={wallHeight + up(3.4 * scale)} R={Math.min(CLOCK_R_GABLE, (hw - q) * span * METRES_PER_TILE * 0.8, 1.9 * scale)} stone={stone} />
+      ) : (
+        <>
+          <polygon className="iso-undercroft" points={polyPoints(opening.map(([u, v]) => at(u, v)))} />
+          {/* The bell: a small trapezoid of bronze hanging in the opening. */}
+          <polygon points={polyPoints([at(centreU - bellU * 0.5, V(2.0)), at(centreU + bellU * 0.5, V(2.0)), at(centreU + bellU * 0.22, V(3.7)), at(centreU - bellU * 0.22, V(3.7))])} fill={stone.gilt} />
+        </>
+      )}
       {/* A bronze finial at the peak. */}
       <line x1={finial.x} y1={finial.y} x2={finial.x} y2={lift(finial, finialRise).y} stroke={stone.gilt} strokeWidth={1.2} />
       <circle cx={finial.x} cy={lift(finial, finialRise).y} r={1.6} fill={stone.gilt} />
@@ -2512,17 +2523,133 @@ function wallQuad(o: Pt, a: Pt, H: number, u0: number, u1: number, z0: number, z
   return [facePoint(o, a, H, u0, z0 / H), facePoint(o, a, H, u1, z0 / H), facePoint(o, a, H, u1, z1 / H), facePoint(o, a, H, u0, z1 / H)];
 }
 
+// The student center's clock (Plan 112D). The owner: "the awning on the
+// student center overlaps with the clock." It hung at one height under the
+// eaves whatever stood over the door, so on a two-story front it came down
+// over the canopy, and a portico or Mission's arcade hid it outright. It
+// now sits in the wall between the entrance's top and the eaves when a
+// readable face fits there, and otherwise rises over the eaves in a gable
+// of its own (ClockGable; Mission's espadaña carries it in the bell's
+// place).
+const CLOCK_R_MAX = 2.1;       // metres: the face it had, a shade smaller
+const CLOCK_R_MIN = 1.2;       // smaller than this and it goes up
+const CLOCK_R_GABLE = 1.6;     // in a gable over the eaves
+const CLOCK_CLEAR = 0.8;       // metres clear above the entrance and below the eaves
+export interface WallClock { zc: number; R: number }
+
+// How high the entrance stands against its wall, in height units; Infinity
+// when it reaches the eaves (a portico, an arcade, a colonnade).
+export function entranceTopOnWall(entrance: EntrancePart, d: DoorDimensions | null, H: number, hood: boolean): number {
+  const doorTop = d ? d.threshold + d.height : 0;
+  switch (entrance) {
+    case 'canopy': {
+      if (!d) return 0;
+      // Canopy's own slab height, and its hood's ridge where it meets the wall.
+      const top = Math.min(doorTop + up(0.6), H - EAVES_COURSE - CANOPY_SLAB);
+      return top + Math.max(CANOPY_SLAB * 0.55, hood ? up(1.2) : 0);
+    }
+    case 'archway':
+      // Archway's lean-to, its rise over its top.
+      return d ? Math.min(doorTop + up(1.5), H - EAVES_COURSE - up(1.4)) + up(1.1) : 0;
+    case 'porch':
+      return H * PORCH_HEIGHT_FRACTION + PORCH_GABLE_RISE;
+    case 'none':
+      return doorTop;
+    default:
+      return Infinity;
+  }
+}
+
+// Where the clock goes on a wall of height H over an entrance standing to
+// `entranceTop`: as high as it always hung if that is clear, lower if the
+// eaves allow, smaller if it must be; null when no readable face fits.
+export function fitWallClock(H: number, entranceTop: number): WallClock | null {
+  const lo = entranceTop + up(CLOCK_CLEAR);
+  const hi = H - EAVES_COURSE - up(CLOCK_CLEAR);
+  const R = Math.min(CLOCK_R_MAX, (hi - lo) / 2 / up(1));
+  if (!(R >= CLOCK_R_MIN)) return null;
+  const zc = Math.min(hi - up(R), Math.max(lo + up(R), H - up(R + 1.1)));
+  return { zc, R };
+}
+
+// A clock face of radius R metres centred at height zc on a wall face of
+// height H, at `u` along it.
+function ClockFace({ o, a, H, span, zc, R, u = 0.5, stone }: {
+  o: Pt; a: Pt; H: number; span: number; zc: number; R: number; u?: number; stone: StonePalette;
+}) {
+  const ru = R / (span * METRES_PER_TILE);
+  const disc = Array.from({ length: 24 }, (_, i) => {
+    const t = (i / 24) * Math.PI * 2;
+    return facePoint(o, a, H, u + Math.cos(t) * ru, (zc + Math.sin(t) * up(R)) / H);
+  });
+  const hub = facePoint(o, a, H, u, zc / H);
+  const twelve = facePoint(o, a, H, u, (zc + up(R * 0.75)) / H);
+  const four = facePoint(o, a, H, u + ru * 0.55, (zc - up(R * 0.3)) / H);
+  return (
+    <g className="sig-clock">
+      <polygon points={polyPoints(disc)} fill="#f4efe1" stroke={stone.gilt !== 'none' ? stone.gilt : '#3a3632'} strokeWidth={1.2} />
+      <path d={`M${hub.x.toFixed(1)},${hub.y.toFixed(1)}L${twelve.x.toFixed(1)},${twelve.y.toFixed(1)}M${hub.x.toFixed(1)},${hub.y.toFixed(1)}L${four.x.toFixed(1)},${four.y.toFixed(1)}`} stroke="#2e2a24" strokeWidth={1.1} strokeLinecap="round" />
+    </g>
+  );
+}
+
+// The clock's own gable (Plan 112D), where the wall has no room for it: the
+// front wall carried up over the eaves at its middle, square-shouldered,
+// under a low pediment (a flat coping on a flat roof), the clock in it.
+// Drawn in the wall's plane after the roof and the entrance, from `base`:
+// over a portico, from its pediment's ridge, so the pediment's roof runs
+// back into it below the clock and is hidden by it behind the wall. Seen
+// from behind, only its back, before the walls, as the espadaña is.
+function ClockGable({ origin, along, inward, wallHeight, base = wallHeight, span, sideAt, pal, stone, flat, rear }: {
+  origin: Pt; along: Pt; inward: { origin: Pt; along: Pt };
+  wallHeight: number; base?: number; span: number; sideAt: 'u0' | 'u1';
+  pal: Palette; stone: StonePalette; flat: boolean; rear?: string;
+}) {
+  const H = wallHeight;
+  const R = CLOCK_R_GABLE;
+  const at = (u: number, z: number) => facePoint(origin, along, H, u, z / H);
+  const back = (u: number, z: number) => facePoint(inward.origin, inward.along, H, u, z / H);
+  const hw = (R + 0.9) / (span * METRES_PER_TILE);
+  const u0 = 0.5 - hw; const u1 = 0.5 + hw;
+  // Well clear of the eaves, and of a portico's ridge.
+  const zc = Math.max(H + up(R + 1.3), base + up(R + 0.5));
+  const shoulder = zc + up(R + 0.6);
+  const peak = shoulder + (flat ? 0 : up((R + 0.9) * 0.3));
+  const coping = up(0.35);
+  const profile = flat
+    ? [at(u0, base), at(u0, shoulder), at(u1, shoulder), at(u1, base)]
+    : [at(u0, base), at(u0, shoulder), at(0.5, peak), at(u1, shoulder), at(u1, base)];
+  if (rear) return <polygon points={polyPoints(profile)} fill={rear} />;
+  const su = sideAt === 'u1' ? u1 : u0;
+  const face = sideAt === 'u1' ? pal.wallLeft : pal.wallRight;
+  const ret = sideAt === 'u1' ? pal.wallRight : pal.wallLeft;
+  const trim = stone.trim === NO_STONE ? stone.towerStone : stone.trim;
+  const cap = flat
+    ? [at(u0 - hw * 0.06, shoulder - coping), at(u1 + hw * 0.06, shoulder - coping), at(u1 + hw * 0.06, shoulder), at(u0 - hw * 0.06, shoulder)]
+    : [at(u0 - hw * 0.06, shoulder - coping), at(u0 - hw * 0.06, shoulder), at(0.5, peak + coping * 0.6), at(u1 + hw * 0.06, shoulder), at(u1 + hw * 0.06, shoulder - coping), at(0.5, peak - coping * 0.6)];
+  return (
+    <g className="iso-clock-gable">
+      <polygon points={polyPoints([at(su, base), at(su, shoulder), back(su, shoulder), back(su, base)])} fill={ret} />
+      <polygon points={polyPoints(profile)} fill={face} />
+      <polygon points={polyPoints(cap)} fill={trim} />
+      <ClockFace o={origin} a={along} H={H} span={span} zc={zc} R={R} stone={stone} />
+    </g>
+  );
+}
+
 // What a signifier puts on the walls: drawn over the windows and under any
 // entrance part. The awning and the clock are on the building's front; a
 // shop's signboards and the ticker turn the corner from the front onto its
 // right side, as on a corner shop. Each only while its wall shows.
-function WallSignifier({ kind, f, H, stone, facing }: {
+function WallSignifier({ kind, f, H, stone, facing, clock }: {
   kind: Signifier; f: BoxFaces; H: number; stone: StonePalette; facing?: Facing;
+  // Where the clock fits on the front (fitWallClock); null when it has
+  // gone up into its gable.
+  clock?: WallClock | null;
 }) {
   const sides = sidesOf(facing);
   const front = seenWall(f, sides.front);
   const faces = [front, seenWall(f, sides.right)].filter((x) => x !== null);
-  const halfU = (metres: number, span: number) => metres / 2 / (span * METRES_PER_TILE);
   switch (kind) {
     case 'kitchen': {
       // A striped terrace awning along the front's ground floor.
@@ -2541,25 +2668,11 @@ function WallSignifier({ kind, f, H, stone, facing }: {
       );
     }
     case 'clock': {
-      // A clock under the eaves at the middle of the front.
-      if (!front) return null;
-      const { o, a, span } = front;
-      const R = 2.3;
-      const ru = halfU(R * 2, span);
-      const zc = H - up(R + 1.1);
-      const disc = Array.from({ length: 24 }, (_, i) => {
-        const t = (i / 24) * Math.PI * 2;
-        return facePoint(o, a, H, 0.5 + Math.cos(t) * ru, (zc + Math.sin(t) * up(R)) / H);
-      });
-      const hub = facePoint(o, a, H, 0.5, zc / H);
-      const twelve = facePoint(o, a, H, 0.5, (zc + up(R * 0.75)) / H);
-      const four = facePoint(o, a, H, 0.5 + ru * 0.55, (zc - up(R * 0.3)) / H);
-      return (
-        <g className="sig-clock">
-          <polygon points={polyPoints(disc)} fill="#f4efe1" stroke={stone.gilt !== 'none' ? stone.gilt : '#3a3632'} strokeWidth={1.2} />
-          <path d={`M${hub.x.toFixed(1)},${hub.y.toFixed(1)}L${twelve.x.toFixed(1)},${twelve.y.toFixed(1)}M${hub.x.toFixed(1)},${hub.y.toFixed(1)}L${four.x.toFixed(1)},${four.y.toFixed(1)}`} stroke="#2e2a24" strokeWidth={1.1} strokeLinecap="round" />
-        </g>
-      );
+      // A clock at the middle of the front, clear of the entrance under it
+      // and the eaves over it (Plan 112D); with no room there, ClockGable.
+      const at = clock === undefined ? fitWallClock(H, 0) : clock;
+      if (!front || !at) return null;
+      return <ClockFace o={front.o} a={front.a} H={H} span={front.span} zc={at.zc} R={at.R} stone={stone} />;
     }
     case 'shopfront': {
       // A painted signboard over the shop glazing on both fronts.
@@ -8110,6 +8223,11 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   const spec = market && REFECTORIES[vernacular].roof === 'mansard' ? { ...REFECTORIES[vernacular], roof: 'gable' as const } : REFECTORIES[vernacular];
   const glassPal = paletteFrom({ wall: pal.wall.posRow, roof: MARKET_GLASS });
   const H = wallHeightOf(t);
+  // A story added to it is a floor over the hall (Plan 112D): the hall's
+  // great windows, its kitchen and its back range keep the height they were
+  // built at (H0), and each added floor is a rank of windows above them.
+  const added = addedFloors(t);
+  const H0 = H - added * STOREY;
   const ridge = ridgeOf(t, vernacular);
   const trim = hasTrim(vernacular);
   const trimStone = trim ? stone.trim : stone.towerStone;
@@ -8117,7 +8235,7 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   const door = doorOf(t);
   const hall = plan.hall; const kitchen = plan.kitchen!; const back = plan.back!;
   const { alongW } = plan;
-  const KH = H * REFECTORY_KITCHEN_EAVES; const BH = H * REFECTORY_BACK_EAVES;
+  const KH = H0 * REFECTORY_KITCHEN_EAVES; const BH = H0 * REFECTORY_BACK_EAVES;
   const pitched = spec.roof !== 'flat';
   const glazed = spec.window === 'glazed';
   const shape: WindowShape = spec.window === 'glazed' ? 'rect' : spec.window;
@@ -8133,7 +8251,9 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   // The front's bays: odd, so the door has the middle one.
   const bays = Math.max(5, Math.round((hallLen * METRES_PER_TILE) / 6.4) | 1);
   const winW = across(shape === 'slot' ? 1.3 : 2.4);
-  const sill = up(3.4); const head = H - up(1.9);
+  const sill = up(3.4); const head = H0 - up(1.9);
+  // The floor lines of the added floors, bottom up.
+  const upperFloors = Array.from({ length: added }, (_, k) => H0 + k * STOREY);
   // Art Deco's door stands in a stepped frontispiece carried above the parapet.
   const deco = spec.window === 'slot' && !market;
   const frontis = deco ? againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, hallLen / 2 - across(6), across(12), across(0.9)) : null;
@@ -8246,9 +8366,9 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
         {faces.map((face) => {
           if (face.dir === plan.service) return null;
           if (glazed) {
-            return <CurtainWall key={`cw${face.dir}`} origin={face.o} along={face.a} wallHeight={H} spanTiles={face.span} from={BASE_COURSE} to={H - up(0.4)} floors={[]} id={`rf${face.dir}`} u0={0.015} u1={0.985} />;
+            return <CurtainWall key={`cw${face.dir}`} origin={face.o} along={face.a} wallHeight={H} spanTiles={face.span} from={BASE_COURSE} to={H - up(0.4)} floors={upperFloors} id={`rf${face.dir}`} u0={0.015} u1={0.985} />;
           }
-          if (face.dir === plan.front && market) return <g key={`m${face.dir}`}>{marketFront(face, H, bays)}</g>;
+          if (face.dir === plan.front && market) return <g key={`m${face.dir}`}>{marketFront(face, H0, bays)}</g>;
           if (face.dir === plan.front) {
             const doorTop = door ? (door.threshold + door.height + up(1.2)) / H : sill / H;
             const centres = Array.from({ length: bays }, (_, b) => (b + 0.5) / bays);
@@ -8263,6 +8383,20 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
           // The free end: a great window over its door.
           const doorTop = door ? (door.threshold + door.height + up(1.4)) / H : sill / H;
           return <g key={`e${face.dir}`}>{tallWindows(face, H, [0.5], Math.min(0.2, across(4.4) / face.span / 2), doorTop, head / H, shape, `ew${face.dir}`)}</g>;
+        })}
+        {/* The added floors (Plan 112D): a string course where the hall
+            stood, and a rank of windows on the bays for each floor over it. */}
+        {added > 0 && !glazed && faces.map((face) => {
+          if (face.dir === plan.service) return null;
+          const n = face.dir === plan.front ? bays : 3;
+          const centres = Array.from({ length: n }, (_, b) => (b + 0.5) / n);
+          const half = (face.dir === plan.front ? winW : across(1.6)) / face.span / 2;
+          return (
+            <g key={`u${face.dir}`}>
+              <WallBand origin={face.o} along={face.a} wallHeight={H} from={H0 - EAVES_COURSE * 0.6} to={H0} className="iso-cornice" />
+              {upperFloors.map((z, k) => tallWindows(face, H, centres, half, (z + up(1.0)) / H, (z + up(1.0) + WINDOW_HEIGHT) / H, shape, `uw${face.dir}${k}`))}
+            </g>
+          );
         })}
         {!frontis && doorway(hall, plan.front, H)}
         {doorway(hall, freeEnd, H)}
@@ -9125,6 +9259,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   }
 
   if (motif === 'village') {
+    // A story added to the village is one more on every house (Plan 112D).
+    const villageRaise = addedFloors(t) * STOREY;
     // A plot: lawn, walks, and houses and trees in one depth-ordered list.
     const items = depthOrder([
       // Set out in the plot's own frame (Plan 88): the near rank on the
@@ -9179,7 +9315,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           <VillageHouse
             key={i}
             col={it.col} row={it.row} w={it.w} h={it.h}
-            height={Math.min(full, it.lot!.s * STOREY)}
+            height={Math.min(full - villageRaise, it.lot!.s * STOREY) + villageRaise}
             ridge={ridge * (it.lot!.s >= 3 ? 1 : 0.85)}
             pal={pal} stone={stone} glass={stone.glass} paneShape={paneShape}
             chimney={chimneys} door={it.lot!.d} doorAt={it.lot!.d === 'row' ? sides.front : sides.right}
@@ -10206,11 +10342,31 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   // The bell-gable, on the front (Plan 88): after the roof while it is seen.
   const gableWall = wallOf(f, sides.front);
   const pavilionGable = !site && bellGable && motif === 'pavilion' && gabled && !!door && !glyphs && !grand;
+  // The clock (Plan 112D): on the front between the entrance and the
+  // eaves if a face fits there, else up in its own gable, or in the bell's
+  // place in the espadaña.
+  const clockEntrance: EntrancePart = entrance === 'arcade' && !arcadeFits(H) ? shortArcadeFallback : entrance;
+  const wallClock = signifier === 'clock' ? fitWallClock(H, entranceTopOnWall(clockEntrance, door, H, hood)) : null;
+  const clockUp = !site && !bare && signifier === 'clock' && wallClock === null;
+  const clockGable = clockUp && !pavilionGable;
   const pavilionGableNode = (rear?: string) => (
     <BellGable pal={pal} stone={stone}
       origin={gableWall.origin} along={gableWall.along}
       inward={gableInward(col, row, w, h, sides.front)}
       wallHeight={H} span={wallSpan(w, h, sides.front)} centreU={0.5} sideAt={sides.front === seen.left ? 'u1' : 'u0'} scale={0.8} rear={rear}
+      clock={clockUp}
+    />
+  );
+  // The small portico's own width, as it is drawn below.
+  const frontSpan = wallSpan(w, h, sides.front);
+  const clockBase = entrance === 'portico' && door && !grand
+    ? H + porticoPedimentRise(Math.min(door.widthTiles * 3.2, frontSpan * 0.6), door.threshold, H, frontSpan)
+    : H;
+  const clockGableNode = (rear?: string) => (
+    <ClockGable pal={pal} stone={stone}
+      origin={gableWall.origin} along={gableWall.along}
+      inward={gableInward(col, row, w, h, sides.front)}
+      wallHeight={H} base={rear ? H : clockBase} span={frontSpan} sideAt={sides.front === seen.left ? 'u1' : 'u0'} flat={!gabled && !mansard} rear={rear}
     />
   );
 
@@ -10222,6 +10378,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         <DecoPortal col={col} row={row} w={w} h={h} outward={sides.front} wallHeight={H} stone={stone} />
       )}
       {pavilionGable && !gableWall.visible && pavilionGableNode(shade(pal.wall[opposite(sides.front)], 0.9))}
+      {clockGable && !gableWall.visible && clockGableNode(shade(pal.wall[opposite(sides.front)], 0.9))}
       {!site && !cornerInFront && residentialTurret}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
@@ -10274,7 +10431,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         <CurtainWall key={`sf${d}`} origin={o} along={a} wallHeight={H} spanTiles={span} from={BASE_COURSE} to={Math.min(STOREY * 0.85, H - EAVES_COURSE * 2)} floors={[]} id={`sf${d}`} u0={0.04} u1={0.96} />
       ))}
       {/* A signifier on the walls (Plan 74F), on the front (Plan 88). */}
-      {!site && signifier && !bare && <WallSignifier kind={signifier} f={f} H={H} stone={stone} facing={p.facing} />}
+      {!site && signifier && !bare && <WallSignifier kind={signifier} f={f} H={H} stone={stone} facing={p.facing} clock={wallClock} />}
       {/* The front door; the plain doors on the sides and back come after
           the entrance parts, with their steps. */}
       {!site && door && feature !== 'atrium' && mainFronts.map((dir) => {
@@ -10476,6 +10633,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
             slopes={gabled ? pal : toneSlopes(pal.roof)} stone={stone} oculus={grand === 'temple'} />
         );
       })}
+      {/* The clock's gable, after the roof and the portico (Plan 112D). */}
+      {clockGable && gableWall.visible && clockGableNode()}
       {/* The porch's gable roof, run back into the roof (Plan 87O). */}
       {!site && entrance === 'porch' && entranceFronts.map((dir) => (
         <Porch key={`pr${dir}`} pal={pal} stone={stone} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} roofAt={tieRoof} part="roof" />

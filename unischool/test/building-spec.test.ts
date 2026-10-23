@@ -42,6 +42,12 @@ import { initialDorms } from '../src/data/campusData';
 import { initialFacilities } from '../src/data/facilitiesData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import type { Buildable, Vernacular } from '../src/state/types';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createElement } from 'react';
+import BuildingMotif, { drawnHeightOf, entranceTopOnWall, fitWallClock } from '../src/components/buildingMotifs';
+import { DEFAULT_CAMERA, MIN_PITCH, VIEWS, setCamera } from '../src/components/isoProjection';
+import { orientedFootprint } from '../src/state/campusMap';
+import { extensionMax, isExtendable } from '../src/systems/estate/estate';
 
 let checks = 0;
 let failures = 0;
@@ -1141,6 +1147,93 @@ console.log('campus scale and building spec');
   }
   // Georgian's own halls keep their painted sash.
   assert(readableGlass(materialsFor('georgian').brickRed.wall, stoneFor('georgian').glass) === stoneFor('georgian').glass, 'Georgian keeps its sash glass');
+}
+
+// --- An added story is drawn (Plan 112D) ------------------------------------
+// The owner: "any building that can add a story needs to visually add a
+// story when you do that." The residence towers, the villages and the
+// refectories each drew their stories their own way and ignored
+// floorsAdded. Every building that takes a story (estate.ts's isExtendable)
+// is drawn at each count it can reach, in every set and from all four
+// views, and the drawing's top must rise each time. The camera is the
+// tilt ladder's lowest (MIN_PITCH), where a point's height on screen is
+// nearly all height and hardly any depth, so a far chimney or a tree
+// behind the houses does not stand in for the roof.
+{
+  const extendable = CATALOGUE.filter(isExtendable);
+  const motifs = new Set<string>(extendable.map(motifOf));
+  assert(['residential', 'tower', 'village', 'pavilion', 'portico'].every((m) => motifs.has(m)),
+    `the residences, towers, villages, dining halls and the library all take a story (${[...motifs].join(', ')})`);
+  const topOf = (t: Buildable, v: Vernacular): number => {
+    const fp = orientedFootprint(t, 0);
+    const p = { col: 0.06, row: 0.06, w: fp.w - 0.12, h: fp.h - 0.12, facing: 0 as const };
+    const markup = renderToStaticMarkup(createElement(BuildingMotif, { t, p, material: materialOf(t, v), vernacular: v, developing: false }));
+    let top = Infinity;
+    for (const [, pts] of markup.matchAll(/\b(?:points|d)="([^"]*)"/g)) {
+      for (const [, y] of pts!.matchAll(/-?\d+(?:\.\d+)?,(-?\d+(?:\.\d+)?)/g)) top = Math.min(top, Number(y));
+    }
+    for (const [, y] of markup.matchAll(/\b(?:cy|y1|y2)="(-?[\d.]+)"/g)) top = Math.min(top, Number(y));
+    return top;
+  };
+  let drawn = 0;
+  for (const t0 of extendable) {
+    const levels = Array.from({ length: extensionMax(t0) + 1 }, (_, k) => ({ ...t0, status: 'done' as const, floorsAdded: k }));
+    for (const v of Object.keys(VERNACULARS) as Vernacular[]) {
+      // The spec: a story's height on its walls, whatever draws them (the
+      // roof over them may change its pitch with the height).
+      for (let k = 1; k < levels.length; k++) {
+        const rise = wallHeightOf(levels[k]!) - wallHeightOf(levels[k - 1]!);
+        assert(near(rise, STOREY, 1e-6), `${t0.id} (${motifOf(t0)}): story ${k} raises its walls a story (${rise.toFixed(1)})`);
+        assert(drawnHeightOf(levels[k]!, false, v) > drawnHeightOf(levels[k - 1]!, false, v), `${t0.id} (${motifOf(t0)}) in '${v}': story ${k} stands taller`);
+      }
+      // The drawing, from all four sides.
+      for (const [i, azimuth] of VIEWS.entries()) {
+        setCamera({ azimuth, pitch: MIN_PITCH });
+        const tops = levels.map((t) => topOf(t, v));
+        for (let k = 1; k < tops.length; k++) {
+          assert(tops[k]! < tops[k - 1]! - 1,
+            `${t0.id} (${motifOf(t0)}) in '${v}', view ${i}: story ${k} is drawn (top ${tops[k - 1]!.toFixed(1)} -> ${tops[k]!.toFixed(1)})`);
+        }
+        drawn += 1;
+      }
+    }
+  }
+  setCamera(DEFAULT_CAMERA);
+  assert(drawn === extendable.length * Object.keys(VERNACULARS).length * 4, `every story-able building drawn in every set and view (${drawn})`);
+}
+
+// --- The student center's clock clears its entrance (Plan 112D) -------------
+// The owner: "the awning on the student center overlaps with the clock
+// (Georgian; not sure about others)." Both student centers, in every set:
+// the clock is drawn, and where it hangs on the wall it hangs clear of the
+// entrance under it and the eaves over it; where there is no room, it goes
+// up into its own gable (or Mission's espadaña) instead.
+{
+  const centres = CATALOGUE.filter((t) => t.facilityType === 'studentCenter');
+  assert(centres.length === 2, `two student centers (${centres.length})`);
+  for (const t of centres) {
+    for (const v of Object.keys(VERNACULARS) as Vernacular[]) {
+      const H = wallHeightOf(t);
+      const entrance = entrancePartOf(t, v);
+      const top = entranceTopOnWall(entrance === 'arcade' && H < STOREY * 1.6 ? 'canopy' : entrance, doorOf(t), H, partsFor(v).hood === true);
+      const clock = fitWallClock(H, top);
+      if (clock) {
+        assert(clock.zc - up(clock.R) >= top + up(0.5), `${t.id} in '${v}': the clock clears the ${entrance} under it`);
+        assert(clock.zc + up(clock.R) <= H - EAVES_COURSE, `${t.id} in '${v}': and the eaves over it`);
+      }
+      for (const [i, azimuth] of VIEWS.entries()) {
+        setCamera({ azimuth, pitch: DEFAULT_CAMERA.pitch });
+        const fp = orientedFootprint(t, 0);
+        const p = { col: 0.06, row: 0.06, w: fp.w - 0.12, h: fp.h - 0.12, facing: 0 as const };
+        const markup = renderToStaticMarkup(createElement(BuildingMotif, { t: { ...t, status: 'done' }, p, material: materialOf(t, v), vernacular: v, developing: false }));
+        const clocks = (markup.match(/class="sig-clock"/g) ?? []).length;
+        // The front faces +row at facing 0: seen from the first and last views.
+        const frontSeen = i === 0 || i === 3;
+        assert(clocks === (frontSeen ? 1 : 0), `${t.id} in '${v}', view ${i}: ${frontSeen ? 'one clock on the front' : 'no clock from behind'} (${clocks})`);
+      }
+    }
+  }
+  setCamera(DEFAULT_CAMERA);
 }
 
 if (failures === 0) {

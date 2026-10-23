@@ -27,7 +27,7 @@ import { teachPillars } from './fixtures/teaching';
 import { ProgramTile } from '../src/components/BuildingInfoPanel';
 import { RowAction } from '../src/tabs/CurriculumTab';
 import { programById, type ProgramInfo } from '../src/data/techData';
-import { programProgress } from '../src/systems/techtree/programProgress';
+import { programProgress, programStanding } from '../src/systems/techtree/programProgress';
 import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { courseSlotsFree } from '../src/systems/techtree/techSystem';
 
@@ -144,6 +144,17 @@ const MATH = programById('MATH')!;
   for (const id of ENGL.courseIds) s.tech.find((t) => t.id === id)!.status = 'done';
   const h = hall(s, ENGL);
   assert(develop(h.row) === undefined && h.html.includes('Every course is developed.'), 'a finished program says so');
+}
+
+// The ring on a program's pip over its hall (Plan 112D): none, then silver
+// when the program is Established, then gold when it is Distinguished.
+{
+  const s = college();
+  assert(programStanding(s, ENGL.id) === null, 'a new program wears no ring');
+  s.milestones[`program-established:${ENGL.id}`] = true;
+  assert(programStanding(s, ENGL.id) === 'established', 'an Established program is ringed silver');
+  s.milestones[`program-distinguished:${ENGL.id}`] = true;
+  assert(programStanding(s, ENGL.id) === 'distinguished', 'and a Distinguished one gold');
 }
 
 console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);

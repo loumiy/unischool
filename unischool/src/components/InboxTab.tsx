@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { GameState, LogEntry, PendingCatalogueEvent } from '../state/types';
+import type { Buildable, GameState, LogEntry, PendingCatalogueEvent, Vernacular } from '../state/types';
 import { COLLEGE_NAME_MAX, WEEKS_PER_YEAR, bareSchoolName } from '../state/types';
 import type { CatalogueEvent } from '../data/eventCatalogueTypes';
 import { CHARTER_INSTANCE } from '../systems/events/charter';
 import { NAME_LIMIT_NOTE } from '../data/foundingData';
 import type { Action } from '../state/actions';
 import { isCutLetter } from '../systems/athletics/cut';
-import { STATUE_ASK, answered, boardAsks, boardLetterFor, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
+import { STATUE_ASK, SUMMER_CALL, SUMMER_WAITS, answered, boardAsks, boardLetterFor, inboxItems, summerOpenLabel, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
 import { foundingNotes } from '../systems/inbox/foundingNote';
 import { dueLabel, toDecideCount } from '../systems/inbox/unseen';
 import { catalogueOf } from '../systems/events/catalogueEngine';
@@ -20,7 +20,11 @@ import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { InterruptContent, MilestoneCelebrationView, ResearchReportView } from './InterruptModal';
 import { modalWidth } from './modalLayout';
 import { UNLOCKS, unlockLabel } from '../state/unlocks';
-import { BONUS_VERNACULAR_CHOICES } from './buildingSpec';
+import { VERNACULARS } from './buildingSpec';
+import BuildThumb from './BuildThumb';
+import { FOUNDERS_HALL_ID, initialTech } from '../data/techData';
+import { initialDorms } from '../data/campusData';
+import { initialFacilities } from '../data/facilitiesData';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 import { count, gameDate, gameDateOfWeek, satisfactionFigure, weeksProse, weeksShort } from '../format';
 
@@ -35,7 +39,8 @@ import { count, gameDate, gameDateOfWeek, satisfactionFigure, weeksProse, weeksS
 // What stops the clock is answered here too: the pending interrupt is
 // pinned first under "The clock waits" and read in the pane in its modal
 // card. App.tsx opens the inbox on it and keeps it open until it is
-// resolved.
+// resolved. The summer waits instead (Plan 112C): until it is opened, its
+// row's pane says so and offers to open it.
 
 type Filter = 'all' | InboxTier | 'answered';
 
@@ -68,7 +73,7 @@ function splitAnswer(l: LogEntry): { subject: string; how: string; lapsed: boole
   return { subject: l.message.slice(0, cut), how, lapsed: how.startsWith('Nobody answered') };
 }
 
-export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onSeen, onOpenTab, onShowOnMap, onOpenSpecialization }: {
+export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onSeen, onOpenTab, onShowOnMap, onOpenSpecialization, summerWaiting = false, onOpenSummer }: {
   s: GameState;
   act: (a: Action) => void;
   // An item to open on arrival (an arrival toast's Open), consumed once.
@@ -84,6 +89,9 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   onShowOnMap: (buildableId: string) => void;
   // The specialization letter's "Convene the board" (Plan 110, App.tsx).
   onOpenSpecialization?: () => void;
+  // The summer stands unopened, and its door (Plan 112C, App.tsx).
+  summerWaiting?: boolean;
+  onOpenSummer?: () => void;
 }) {
   const items = inboxItems(s, { read });
   const [filter, setFilter] = useState<Filter>('all');
@@ -246,7 +254,10 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
         {filter === 'answered'
           ? (answer ? <AnswerView l={answer} /> : null)
           : selected ? (
-            <ReadingPane key={selected.id} s={s} act={act} item={selected} onOpenTab={onOpenTab} onOpenSpecialization={onOpenSpecialization} />
+            <ReadingPane
+              key={selected.id} s={s} act={act} item={selected} onOpenTab={onOpenTab} onOpenSpecialization={onOpenSpecialization}
+              summerWaiting={summerWaiting} onOpenSummer={onOpenSummer}
+            />
           ) : (
             <div className="inbox-quiet">
               <h3 className="heading-panel">Nothing to read</h3>
@@ -305,18 +316,37 @@ function CharterAnswer({ s, act, p, e }: {
   );
 }
 
-function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization }: {
+function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization, summerWaiting = false, onOpenSummer }: {
   s: GameState;
   act: (a: Action) => void;
   item: InboxItem;
   onOpenTab: (tab: TabId | 'build') => void;
   onOpenSpecialization?: () => void;
+  summerWaiting?: boolean;
+  onOpenSummer?: () => void;
 }) {
+  // The summer, unopened (Plan 112C): its door, not its pages.
+  if (item.kind === 'interrupt' && item.ref === 'summer' && summerWaiting) {
+    return (
+      <div className="inbox-hold">
+        <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> {SUMMER_WAITS}</p>
+        <div className="modal modal-inbox modal-narrow summer-door" data-interrupt="summer">
+          <p className="letter-eyebrow">{item.subject}</p>
+          <h2>{SUMMER_CALL.title}</h2>
+          <p>{SUMMER_CALL.body}</p>
+          <div className="modal-actions">
+            <button type="button" className="btn-primary" onClick={onOpenSummer}>{summerOpenLabel(s)}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (item.kind === 'interrupt') {
     return (
       <div className="inbox-hold">
         <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Time is paused until you answer this.</p>
-        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} onOpenSpecialization={onOpenSpecialization} />
+        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} onOpenAthletics={() => onOpenTab('athletics')} onOpenSpecialization={onOpenSpecialization} />
       </div>
     );
   }
@@ -511,15 +541,48 @@ function AnswerView({ l }: { l: LogEntry }) {
   );
 }
 
-// A bonus architecture earned for the next college (Plan 98C): what it is,
-// what earned it, and where to pick it.
+// What the letter shows the architecture with (Plan 112D: "When a player
+// unlocks an architecture, show what the buildings look like in the
+// letter."): Founders Hall and the library, unlabelled (the owner's note
+// after the first draw, which had four with captions), each drawn by the
+// build menu's own tiles (BuildThumb.tsx), so the letter shows exactly
+// what the map will build.
+const UNLOCK_SAMPLES: readonly string[] = [FOUNDERS_HALL_ID, 'LIB-T1'];
+let unlockSamples: Buildable[] | null = null;
+function unlockSampleBuildings(): Buildable[] {
+  if (!unlockSamples) {
+    const catalogue = [...initialTech(), ...initialDorms(), ...initialFacilities()];
+    unlockSamples = UNLOCK_SAMPLES.flatMap((id) => {
+      const t = catalogue.find((x) => x.id === id);
+      return t ? [{ ...t, status: 'done' as const }] : [];
+    });
+  }
+  return unlockSamples;
+}
+
+export function UnlockBuildings({ vernacular }: { vernacular: string }) {
+  if (!(vernacular in VERNACULARS)) return null;
+  const v = vernacular as Vernacular;
+  return (
+    <ul className="unlock-buildings" aria-label={`Founders Hall and the library in ${unlockLabel(vernacular)} architecture`}>
+      {unlockSampleBuildings().map((t) => (
+        <li key={t.id} className="unlock-building">
+          <BuildThumb t={t} vernacular={v} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// A bonus architecture earned for the next college (Plan 98C): what it
+// looks like (Plan 112D, in place of the set's description), what earned
+// it, and where to pick it.
 function UnlockLetterView({ vernacular }: { vernacular: string }) {
   const unlock = UNLOCKS.find((u) => u.id === vernacular);
-  const blurb = BONUS_VERNACULAR_CHOICES.find((c) => c.id === vernacular)?.blurb;
   return (
     <>
       <h2>{unlockLabel(vernacular)} architecture, unlocked</h2>
-      {blurb && <p>{blurb}</p>}
+      <UnlockBuildings vernacular={vernacular} />
       {unlock && <p><strong>What earned it:</strong> {unlock.condition}</p>}
       <p>It&apos;s yours for every college after this one. Pick it on the founding screen when you start your next college.</p>
     </>

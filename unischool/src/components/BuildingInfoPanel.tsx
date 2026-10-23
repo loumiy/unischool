@@ -16,7 +16,7 @@ import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
-import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall, suggestedMove } from '../systems/techtree/schools';
+import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField, RowAction } from '../tabs/CurriculumTab';
 import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
 import { schoolMark } from '../data/schoolPalette';
@@ -209,9 +209,11 @@ function OpenInCurriculum({ id, onOpenCurriculum }: { id: string; onOpenCurricul
 // color, courses done of ten, and aggregate grade. Clicking opens its
 // summary: the next course's Develop button (or why there is none), then the
 // door to its row, "Open in Curriculum". Relocation sits behind a
-// "Move…" disclosure since it happens a few times a run; a program away from
-// its school's hall also gets its suggested move (schools.ts), one click,
-// and an arrow on the tile saying there is one (Plan 55).
+// Every program gets the same move: one button per standing hall with a
+// free slot, in the open under the summary (Plan 112F). It used to sit
+// behind a "Move to another hall…" disclosure, with a one-click move and an
+// arrow only on the programs schools.ts's suggestedMove picked, so the game
+// seemed to want the Social Sciences moved and hid the move for the rest.
 // ---------------------------------------------------------------------
 export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum }: {
   program: ProgramInfo; s: GameState; act?: (a: Action) => void; open: boolean; onToggle: () => void;
@@ -224,8 +226,6 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
   const inTransit = transitWeeks(s, program.id);
   // An unstaffed course darkens the program (Plan 59).
   const dark = unstaffedPrograms(s).has(program.id);
-  const move = act && program.kind !== 'graduate' ? suggestedMove(s, program.id) : null;
-  const moveHall = move ? s.tech.find((x) => x.id === move.hallId) : undefined;
   return (
     <div className={`hall-slot housed${open ? ' open' : ''}`} style={{ borderColor: mark.hue, ['--school-hue' as string]: mark.hue }}>
       <button
@@ -243,7 +243,6 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
             : dark
               ? <span className="program-tile-transit" title="Dark: a course has no professor, so the whole program stops teaching">dark</span>
               : <span className="program-tile-progress">{fraction(progress.done, progress.total)}</span>}
-          {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
           {avg !== null && <GradeChip score={avg} title={`Averages ${count(avg)} out of 100`} />}
         </span>
       </button>
@@ -270,24 +269,7 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
             </div>
           )}
           <OpenInCurriculum id={`program:${program.id}`} onOpenCurriculum={onOpenCurriculum} />
-          {move && moveHall && (
-            <div className="relocate-suggested">
-              <ConfirmButton
-                className="building-info-jump"
-                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, program slot ${move.slot + 1}. It stops teaching for ${relocationWeeks(s, program.id)} weeks.`}
-                label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${weeksShort(relocationWeeks(s, program.id))}`}
-                armedLabel={`Move ${program.name} (no classes for ${relocationWeeks(s, program.id)} weeks)`}
-                tone="commit"
-                onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}
-              />
-            </div>
-          )}
-          {act && program.kind !== 'graduate' && (
-            <details className="relocate-details">
-              <summary>Move to another hall…</summary>
-              <RelocateControls program={program} s={s} act={act} />
-            </details>
-          )}
+          {act && program.kind !== 'graduate' && <RelocateControls program={program} s={s} act={act} />}
           {act && <CloseControls program={program} s={s} act={act} />}
         </div>
       )}
@@ -325,15 +307,16 @@ function CloseControls({ program, s, act }: { program: ProgramInfo; s: GameState
   );
 }
 
-function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameState; act?: (a: Action) => void }) {
+function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameState; act: (a: Action) => void }) {
   const inTransit = transitWeeks(s, program.id);
+  // Each hall's first free slot this program may take.
   const destinations = Object.entries(s.halls)
     .map(([hallId, slots]) => ({
       hallId,
       hall: s.tech.find((t) => t.id === hallId),
-      free: slots.map((slot, i) => (slotFree(slot) ? i : -1)).filter((i) => i >= 0),
+      slot: slots.findIndex((slot, i) => slotFree(slot) && canRelocateProgram(s, { programId: program.id, hallId, slot: i })),
     }))
-    .filter((d) => d.hall && d.free.length > 0 && canRelocateProgram(s, { programId: program.id, hallId: d.hallId, slot: d.free[0] }));
+    .filter((d) => d.hall && d.slot >= 0);
   if (inTransit > 0) {
     return (
       <p className="building-info-line building-info-construction relocate-note">
@@ -341,31 +324,24 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
       </p>
     );
   }
-  if (destinations.length === 0) {
-    return <p className="building-info-line relocate-note">There&apos;s no free program slot to move this program to.</p>;
-  }
+  if (destinations.length === 0) return null;
+  const weeks = relocationWeeks(s, program.id);
   return (
     <div className="relocate">
-      <p className="building-info-line relocate-note">
-        Free · no classes for {relocationWeeks(s, program.id)} weeks
+      <p className="building-info-line relocate-note">Move it, free · no classes for {weeks} weeks</p>
+      <p className="relocate-row">
+        {destinations.map((d) => (
+          <ConfirmButton
+            key={d.hallId}
+            className="relocate-slot"
+            title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, program slot ${d.slot + 1}. It stops teaching for ${weeks} weeks.`}
+            label={`To ${hallDisplayName(s, d.hall!)}`}
+            armedLabel={`Move ${program.name} (no classes for ${weeks} weeks)`}
+            tone="commit"
+            onConfirm={() => act({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot: d.slot })}
+          />
+        ))}
       </p>
-      {destinations.map((d) => (
-        <p key={d.hallId} className="relocate-row">
-          <span className="relocate-hall">{hallDisplayName(s, d.hall!)}</span>
-          {d.free.map((slot) => (
-            <ConfirmButton
-              key={slot}
-              className="relocate-slot"
-              disabled={!act}
-              title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, program slot ${slot + 1}`}
-              label={slot + 1}
-              armedLabel={`Move ${program.name} (no classes for ${relocationWeeks(s, program.id)} weeks)`}
-                tone="commit"
-              onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
-            />
-          ))}
-        </p>
-      ))}
     </div>
   );
 }

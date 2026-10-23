@@ -11,9 +11,11 @@ import { awaitsSite } from './campusMap';
 // Bennett, Dr. Priya Iyer and Dr. John Okafor, foundingData.ts), so the
 // walk founds its first program:
 //
-//   welcome    Next, or "Skip the walkthrough and the letters". Every later
-//              card can skip the rest, letters kept. Either skip asks first
-//              (Plan 104C, components/OpeningCoach.tsx).
+//   welcome    the chair's opening letter, and the start of the walk (Plan
+//              112H). Next, or "Skip the walkthrough" ("and the letters"
+//              in a run without chapters, which still has them). Every
+//              later card can skip the rest, letters kept. Either skip
+//              asks first (Plan 104C, components/OpeningCoach.tsx).
 //   site-hall  Founders Hall is not pre-placed in a guided founding; done
 //              when the hall stands on the map (siting is free).
 //   found      choose any of the three programs on offer and found it into
@@ -25,7 +27,8 @@ import { awaitsSite } from './campusMap';
 //              state/chapters.ts): the next course, somewhere to sleep, a
 //              place for every student. The "Somewhere to sleep" letter is
 //              counted read, since its chapter says the same; so is the
-//              first letter.
+//              first letter. In a guided run no letter after them is sent
+//              either (Plan 112A): each one's chapter says it.
 //
 // Plans 103B and 103C's steps after the founding (the wait for the first
 // course, the next course, the needs, a residence hall, a dining hall) are

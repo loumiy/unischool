@@ -11,18 +11,27 @@ import type { InboxBadge } from '../systems/inbox/inbox';
 import { committeeSetAside, committeeStatus } from '../systems/techtree/techSystem';
 import { FIGURE_HINTS } from '../data/figureHints';
 import CommitteeLamps from './CommitteeLamps';
+import { teamsShortStaffed } from '../data/studentLifeData';
 import {
   FacultyIcon, CurriculumIcon,
   StudentsIcon, HistoryIcon, AthleticsIcon, BuildIcon,
   ResearchIcon, HomeIcon, InboxIcon,
 } from './icons';
 
-// Tabs whose icon can carry the red alert badge, and how each decides it has
-// something unseen (see types.ts's SeenState). Only Curriculum has one;
-// Faculty deliberately has none, since hiring is prompted where the shortage
-// is felt (a course that will not start).
+// Tabs whose icon can carry the red alert badge, and how each decides it
+// wants a look: Curriculum for something unseen (see types.ts's SeenState),
+// Athletics while a varsity team has a staff post open (Plan 112B: the
+// owner, "if an athletics team is missing staff, there should be an alert
+// badge"), since nothing else says so off the tab. Faculty deliberately has
+// none, since hiring is prompted where the shortage is felt (a course that
+// will not start).
 const TAB_ALERT: Partial<Record<TabId, (s: GameState) => boolean>> = {
   curriculum: (s) => visibleCourseIds(s).some((id) => !s.seen.courseIds[id]),
+  athletics: teamsShortStaffed,
+};
+// What the badge means, for a screen reader (the badge itself is drawn only).
+const TAB_ALERT_WORDS: Partial<Record<TabId, string>> = {
+  athletics: 'a staff post is open',
 };
 
 // Treasury has no icon: the funds button (StatusHeader.tsx's FundsAndStats)
@@ -75,7 +84,10 @@ const Toolbar = forwardRef<HTMLDivElement, {
   inbox: InboxBadge;
   // A stop waits in the inbox (Plan 77): every other way off it is shut.
   held: boolean;
-}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held }, ref) => {
+  // The summer waits to be opened (Plan 112C): the gears open it, and Play
+  // is rung.
+  summerWaiting?: boolean;
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held, summerWaiting = false }, ref) => {
 
   // The opening walkthrough rings the Build button while its step is to site
   // the hall and the menu is closed, and so does a skipped walk while the
@@ -132,7 +144,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
             const hasAlert = !isActive && (TAB_ALERT[id]?.(s) ?? false);
             // The inbox counts what wants an answer, red while any is in its
             // last week, and dots unread letters (Plan 77).
-            const inboxLabel = id !== 'inbox' ? TAB_LABELS[id]
+            const inboxLabel = id !== 'inbox' ? (hasAlert && TAB_ALERT_WORDS[id] ? `${TAB_LABELS[id]}, ${TAB_ALERT_WORDS[id]}` : TAB_LABELS[id])
               : inbox.count > 0 ? `Inbox, ${inbox.count} to decide`
                 : inbox.unreadLetters > 0 ? `Inbox, ${inbox.unreadLetters} unread` : 'Inbox';
             // Curriculum's lamps are drawn only: their sentence describes the
@@ -180,7 +192,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </nav>
 
       <div className="toolbar-right">
-        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} keysLive={speedKeysLive} weekProgress={weekProgress} />
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} keysLive={speedKeysLive} weekProgress={weekProgress} summerWaiting={summerWaiting} />
       </div>
 
       {buildOpen && (

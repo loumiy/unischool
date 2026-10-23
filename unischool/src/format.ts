@@ -158,10 +158,6 @@ export function termSeason(week: number): 'Fall' | 'Spring' {
 export function termName(week: number): string {
   return `${termSeason(week)} term`;
 }
-// A week of the year counted within its term, 1..TERM_LENGTH.
-export function weekOfTerm(week: number): number {
-  return week <= TERM_LENGTH ? week : week - TERM_LENGTH;
-}
 
 // The game date, one form wherever a moment is dated: the dock, the title
 // screen, the letters. "Year 9 · Fall Term · Week 2".

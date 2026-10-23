@@ -30,12 +30,12 @@
 // history, inbox, treasury) through the toolbar's own button, so what
 // is photographed is the tab as the player reaches it. --click=<text>
 // presses a button by its text and can repeat, which is how a modal held
-// in the save is stepped through (the summer's Continue, Continue, and
-// there is the admissions beat); --element=<selector> crops the PNG to one
-// element, the way the README's admissions card was taken:
+// in the save is stepped through (the summer waits to be opened since Plan
+// 112C: Open the summer, then the review's Continue, and there is the
+// admissions page); --element=<selector> crops the PNG to one element:
 //
-//   npm run shot -- summer.json admissions.png --click="Continue →" \
-//     --click="Continue →" --element=.modal
+//   npm run shot -- summer.json admissions.png --click="Open the summer" \
+//     --click="Continue →" --element=.admissions-page
 //   npm run shot -- out.json faculty.png --tab=faculty --scale=2
 //   npm run shot -- out.json curriculum.png --tab=curriculum \
 //     --press=".collapse-toggle" --press=".collapse-toggle >> nth=1"   # a school and a program opened
@@ -160,8 +160,9 @@ if (tab) {
     process.exit(2);
   }
   if (tab === 'treasury') await page.locator('.toolbar-funds-btn').first().click();
-  // The inbox's label carries its count ("Inbox, 3 to decide", Plan 77).
-  else await page.getByRole('button', { name: label, exact: tab !== 'inbox' }).first().click();
+  // The inbox's label carries its count ("Inbox, 3 to decide", Plan 77),
+  // and Athletics an open post (Plan 112B).
+  else await page.getByRole('button', { name: label, exact: tab !== 'inbox' && tab !== 'athletics' }).first().click();
   await page.waitForSelector('.tab-overlay', { timeout: 10_000 });
   // The tab's own entry animations, and any chart that draws on mount.
   await page.waitForTimeout(1_200);

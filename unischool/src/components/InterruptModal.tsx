@@ -24,7 +24,7 @@ import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { computePrestigeTarget, pillarValue, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { restaffPlan } from '../systems/faculty/restaffing';
-import { MASCOT_MAX_LENGTH, rollMascotSuggestion, sportById } from '../data/studentLifeData';
+import { MASCOT_MAX_LENGTH, openChairs, rollMascotSuggestion, sportById } from '../data/studentLifeData';
 import FacultyPortrait from './FacultyPortrait';
 import type { DecisionEventContext, MilestonePayload } from '../data/eventData';
 import type { OrgPetition } from '../state/types';
@@ -628,7 +628,8 @@ function FirstSportClubView({ s, payload, onResolve }: {
       <h2>The first sport club</h2>
       <p>
         The {payload.clubName} is your college's first recognized sport club. It plays intramurals for now.
-        In a few years it may ask to go varsity, with a department, a venue and a season behind it. The
+        In a few years it may ask to go varsity, with a department, a venue and a season behind it. Your
+        athletics department, its Athletic Director and the Athletics tab all wait for that day. The
         students are already arguing about what to call the teams. The colors are {institutionName(s.self)}'s
         own, but a name is something people shout.
       </p>
@@ -652,6 +653,19 @@ function FirstSportClubView({ s, payload, onResolve }: {
   );
 }
 
+// What a team still needs once it has a director: its posts and its venue
+// (Plan 112B), in words for the offer, or null when it needs nothing.
+function athleticsToDo(s: GameState): string | null {
+  const short = openChairs(s).length > 0;
+  const unhoused = s.orgs.teams.some((t) => t.status !== 'active');
+  if (!short && !unhoused) return null;
+  const one = s.orgs.teams.length === 1;
+  const posts = one ? 'its head coach, assistant coach and trainer' : 'their coaches and trainers';
+  const venue = one ? 'its venue' : 'their venues';
+  const what = short && unhoused ? `${posts}, then ${venue}` : short ? posts : venue;
+  return `Once you appoint one, the Athletics tab shows you what ${one ? 'the team' : 'your teams'} still need${one ? 's' : ''}, which is ${what}.`;
+}
+
 function AthleticDirectorView({ s, payload, onResolve }: {
   s: GameState;
   payload: AthleticDirectorPayload;
@@ -669,6 +683,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
           : `Your college has ${s.orgs.teams.length} varsity programs now, and nobody is running them.`}
         {' '}Three candidates have applied.
       </p>
+      {athleticsToDo(s) && <p>{athleticsToDo(s)}</p>}
 
       <div className="ad-candidates">
         {payload.candidates.map((c) => (
@@ -910,7 +925,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 // Report's, the summer's admissions and, opened from its letter, the
 // specialization's. Every other stop is answered in the inbox
 // (InterruptContent, below).
-export default function InterruptModal({ s, act, onNewCollege, specializationOpen = false, onCloseSpecialization }: {
+export default function InterruptModal({ s, act, onNewCollege, specializationOpen = false, onCloseSpecialization, summerWaiting = false }: {
   s: GameState;
   act: (a: Action) => void;
   onNewCollege?: () => void;
@@ -918,8 +933,11 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
   // inbox (App.tsx keeps whether it is open).
   specializationOpen?: boolean;
   onCloseSpecialization?: () => void;
+  // The summer stands unopened (Plan 112C, App.tsx): none of its pages is
+  // drawn, and no key answers it.
+  summerWaiting?: boolean;
 }) {
-  const interrupt = s.pendingInterrupt;
+  const interrupt = summerWaiting && s.pendingInterrupt?.type === 'summer' ? null : s.pendingInterrupt;
 
   // Enter continues the read-and-continue interrupts, each through its own
   // dedicated action; for a decision event it resolves with no choice
@@ -1006,9 +1024,10 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
 // It keeps the modal's card (`.modal`, with `.modal-inbox` placing it in
 // the pane), so every view reads as it did over the map. `onOpenBuild` is a
 // letter's door to the build menu (Plan 78B); `onOpenSpecialization` the
-// specialization letter's to its page (Plan 110).
-export function InterruptContent({ s, act, onOpenBuild, onOpenSpecialization }: {
-  s: GameState; act: (a: Action) => void; onOpenBuild?: () => void; onOpenSpecialization?: () => void;
+// specialization letter's to its page (Plan 110); `onOpenAthletics` where
+// an Athletic Director's appointment goes on to (Plan 112B).
+export function InterruptContent({ s, act, onOpenBuild, onOpenSpecialization, onOpenAthletics }: {
+  s: GameState; act: (a: Action) => void; onOpenBuild?: () => void; onOpenSpecialization?: () => void; onOpenAthletics?: () => void;
 }) {
   const interrupt = s.pendingInterrupt;
   if (!interrupt) return null;
@@ -1047,7 +1066,12 @@ export function InterruptContent({ s, act, onOpenBuild, onOpenSpecialization }: 
         <AthleticDirectorView
           s={s}
           payload={interrupt.payload as AthleticDirectorPayload}
-          onResolve={(candidate, mascot) => act({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate, mascot })}
+          onResolve={(candidate, mascot) => {
+            act({ type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate, mascot });
+            // The walk goes on in the Athletics tab, which rings what the
+            // team still needs (Plan 112B, state/chapters.ts's teamsRing).
+            if (candidate && athleticsToDo(s)) onOpenAthletics?.();
+          }}
         />
       ) : interrupt.type === 'dean-recommendations' ? (
         <DeanRecommendationsView

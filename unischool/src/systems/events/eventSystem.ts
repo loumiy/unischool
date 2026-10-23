@@ -13,7 +13,7 @@ import {
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
 import { ELITE_CLOSE_ABOVE_PRESTIGE } from '../rivals/rivalsSystem';
-import { coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
+import { AD_OFFER_COOLDOWN_YEARS, coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
 import { random } from '../../engine/random';
 
 // Event cadence (content lives in data/eventData.ts; see
@@ -95,7 +95,7 @@ function fireCharter(s: GameState): boolean {
 // AD_OFFER_COOLDOWN_WEEKS, so a school that cannot afford a director early
 // does not lose athletics for the run. Candidates are rolled here and
 // carried in the payload so the modal hires exactly who it shows.
-const AD_OFFER_COOLDOWN_WEEKS = 3 * WEEKS_PER_YEAR;
+const AD_OFFER_COOLDOWN_WEEKS = AD_OFFER_COOLDOWN_YEARS * WEEKS_PER_YEAR;
 
 // Championships queue like milestones but drain one per modal.
 function fireChampionshipReport(s: GameState): boolean {
@@ -254,7 +254,10 @@ function weightedPick(
 // so it never re-fires. A calendar letter is due from its week of year one
 // and never after it; a letter with `arrives` is due while that holds, in
 // any year, and is recorded read unsent if its ask was done before it came,
-// or in a guided run if a chapter teaches the same.
+// or in a guided run, whose chapters say what the letters said (Plan 112A:
+// the owner found the two redundant). Recorded read, its ask still
+// carries the next-step line (nextStep.ts's letterAsk). A run without
+// chapters (the Objectives setting Off, the sims) still has the letters.
 // Yields to everything earned and to the one-shot questions.
 export function fireOpeningLetter(s: GameState): boolean {
   if (s.events.opening.skipped) return false;
@@ -265,7 +268,7 @@ export function fireOpeningLetter(s: GameState): boolean {
     if (!due) continue;
     read.push(letter.id);
     if (letter.arrives && letter.done(s)) continue;
-    if (letter.chapter && guidedRun(s)) continue;
+    if (guidedRun(s)) continue;
     s.pendingInterrupt = { type: 'letter', payload: { id: letter.id } };
     return true;
   }

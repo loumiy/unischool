@@ -123,6 +123,13 @@ for (const [w, h] of SIZES) {
   if (await cont.count()) await cont.first().tap();
   await page.waitForTimeout(1_500);
   await check('campus');
+  // A save held at the summer: it waits to be opened (Plan 112C), from its
+  // call over the map.
+  const summer = page.locator('.summer-call-open');
+  if (await summer.count()) {
+    await summer.first().tap();
+    await page.waitForTimeout(700);
+  }
   // A save held at a modal (npm run scenario -- --modal summer): each of its
   // steps in turn, moved on by its forward button, instead of the tabs,
   // which sit behind it.

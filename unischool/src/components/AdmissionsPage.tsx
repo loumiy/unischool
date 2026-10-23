@@ -17,6 +17,8 @@ import { FIGURE_HINTS } from '../data/figureHints';
 import { reducedMotion } from '../settings';
 import { count, money, pct, satisfactionShown, signedMoney, signedPct } from '../format';
 import { applicantCloud, cutForRate, gpaOf, rateForCut, satOf, type ApplicantCloud } from './applicantCloud';
+import { guidedRun } from '../systems/guidance/gates';
+import AdmissionsCoach, { type CoachStep } from './AdmissionsCoach';
 
 // ---------------------------------------------------------------------
 // The summer's admissions as a page of its own (Plan 108), in place of the
@@ -35,7 +37,12 @@ import { applicantCloud, cutForRate, gpaOf, rateForCut, satOf, type ApplicantClo
 // The plot and the hall, in the SVG's own units.
 const W = 880, H = 680;
 const PX = 70, PY = 70, PW = 500, PH = 520;
-const HALL = { x: 624, y: 92, w: 236, h: 300 };
+// The hall drawn as a room (Plan 112C, the owner's pick of the mock-ups):
+// its walls, a lectern at the front, and the seats inside; the class's
+// table runs under it.
+const ROOM = { x: 616, y: 66, w: 252, h: 330 };
+const HALL = { x: ROOM.x + 14, y: ROOM.y + 14, w: ROOM.w - 28, h: ROOM.h - 60 };
+const LEDGER_Y = ROOM.y + ROOM.h + 28;
 const RAIN_MS = 1_500;
 const FLOW_MS = 1_900;
 // The class shown seated a moment before the Students beat takes over.
@@ -79,18 +86,23 @@ function zoneAt(c: number): string {
 }
 
 // The hall's seats: a grid fitted to the room, its rows bowed like a
-// lecture hall's.
+// lecture hall's, centred in the room both ways, the short last row too
+// (Plan 112C).
 function seatGrid(n: number): { x: number; y: number }[] {
   if (n <= 0) return [];
   const cols = Math.max(1, Math.ceil(Math.sqrt((n * HALL.w) / HALL.h)));
   const rows = Math.ceil(n / cols);
   const cell = Math.min(HALL.w / cols, HALL.h / rows);
-  const left = HALL.x + (HALL.w - cols * cell) / 2;
   const mid = (cols - 1) / 2;
+  const bowDepth = mid > 0 ? cell * 0.6 : 0;
+  const top = HALL.y + (HALL.h - rows * cell - bowDepth) / 2;
   return Array.from({ length: n }, (_, i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    const bow = mid > 0 ? ((col - mid) / mid) ** 2 * cell * 0.6 : 0;
-    return { x: left + (col + 0.5) * cell, y: HALL.y + (row + 0.5) * cell + bow };
+    const row = Math.floor(i / cols);
+    const inRow = Math.min(cols, n - row * cols);
+    const col = i % cols + (cols - inRow) / 2;
+    const left = HALL.x + (HALL.w - cols * cell) / 2;
+    const bow = mid > 0 ? ((col - mid) / mid) ** 2 * bowDepth : 0;
+    return { x: left + (col + 0.5) * cell, y: top + (row + 0.5) * cell + bow };
   });
 }
 
@@ -126,6 +138,12 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
   const [t, setT] = useState(0);
   const dragging = useRef(false);
   const svgRef = useRef<SVGSVGElement>(null);
+  // The first summer of a guided run is walked through (Plan 112C,
+  // AdmissionsCoach.tsx): the step showing, or null once done or put away.
+  const [coach, setCoach] = useState<CoachStep | null>(() => (guidedRun(s) && s.clock.year === 1 ? (tuitionLocked ? 'applicants' : 'tuition') : null));
+  // A control used moves its step on (and any step before it).
+  const coachPast = (steps: readonly CoachStep[], to: CoachStep | null) => setCoach((c) => (c !== null && steps.includes(c) ? to : c));
+  const ring = (step: CoachStep) => (coach === step ? ' opening-target' : '');
 
   const ceiling = intakeCeiling(s);
   // The pool and the class, from the function the reducer commits with.
@@ -179,12 +197,14 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
   };
 
   const lock = () => {
+    coachPast(['tuition', 'lock'], 'applicants');
     act({ type: 'LOCK_TUITION', tuition });
     setT(0);
     run('rain', RAIN_MS, () => { setStage('cut'); setT(0); });
   };
   const send = () => {
     const decision: SummerDecision = { tuition, admitRate };
+    setCoach(null);
     setT(0);
     run('flow', FLOW_MS, () => {
       const commit = () => act({ type: 'RESOLVE_SUMMER_BEAT', decision });
@@ -204,6 +224,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
   };
   const onDown = (e: PointerEvent<SVGElement>) => {
     if (stage !== 'cut') return;
+    coachPast(['applicants', 'line'], 'rate');
     dragging.current = true;
     svgRef.current?.setPointerCapture?.(e.pointerId);
     cutAt(e);
@@ -214,6 +235,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
     const d = e.key === 'ArrowUp' || e.key === 'ArrowRight' ? -0.01 : e.key === 'ArrowDown' || e.key === 'ArrowLeft' ? 0.01 : 0;
     if (d === 0) return;
     e.preventDefault();
+    coachPast(['applicants', 'line'], 'rate');
     // Up raises the standard: a lower admit rate.
     const next = Math.max(0, Math.min(maxAdmitRate, admitRate + d));
     setAdmitRateChoice(next);
@@ -293,8 +315,12 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
                 ? `${count(outcome.applicants)} applicants${cloud.per > 1 ? ` · each dot is ${count(cloud.per)}` : ''}`
                 : 'Lock the price to see who applies'}
             </text>
-            <text x={HALL.x} y={30} className="adm-title">The hall</text>
-            <text x={HALL.x} y={50} className="adm-sub">Room for {count(ceiling.seatsLeft)} new students</text>
+            <text x={ROOM.x} y={30} className="adm-title">The hall</text>
+            <text x={ROOM.x} y={50} className="adm-sub">
+              Room for {count(ceiling.seatsLeft)} new students{cloud.per > 1 && cloud.seatDots > 0 ? ` · each seat is ${count(cloud.per)}` : ''}
+            </text>
+            <rect x={ROOM.x} y={ROOM.y} width={ROOM.w} height={ROOM.h} rx={10} className="adm-room" />
+            <rect x={ROOM.x + ROOM.w / 2 - 34} y={ROOM.y + ROOM.h - 22} width={68} height={10} rx={3} className="adm-lectern" />
 
             {[400, 800, 1200, 1600].map((v) => {
               const x = sx((v - 400) / 1200);
@@ -316,7 +342,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             })}
             <text x={PX + PW / 2} y={PY + PH + 40} className="adm-axis" textAnchor="middle">SAT</text>
             <text x={22} y={PY + PH / 2} className="adm-axis" textAnchor="middle" transform={`rotate(-90 22 ${PY + PH / 2})`}>GPA</text>
-            <rect x={PX} y={PY} width={PW} height={PH} className="adm-frame" />
+            <rect x={PX} y={PY} width={PW} height={PH} className="adm-frame" data-coach="applicants" />
 
             {stage === 'cut' && <polygon points={zoneAt(shownCut)} className="adm-zone" />}
             {ghost && stage !== 'flow' && (
@@ -348,8 +374,11 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             {stage === 'cut' && (
               <g>
                 <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} className="adm-cut" />
+                {/* The handle (Plan 112C): a grip tab with a chevron above
+                    and below, so it reads as a thing to drag up and down
+                    (the yellow dot it replaced was taken for a marker). */}
                 <g
-                  className="adm-handle"
+                  className={`adm-handle${coach === 'line' ? ' coach-ring' : ''}`}
                   role="slider"
                   tabIndex={0}
                   aria-label="The admission line"
@@ -358,28 +387,51 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
                   aria-valuenow={Math.round(admitRate * 100)}
                   aria-valuetext={`Admit ${pct(admitRate)}: SAT ${count(minSat)} and GPA ${minGpa.toFixed(1)} and up`}
                   onKeyDown={onKey}
+                  transform={`translate(${line.mx} ${line.my})`}
+                  data-coach="line"
                 >
-                  <circle cx={line.mx} cy={line.my} r={11} />
+                  {coach === 'line' && <circle className="adm-handle-ring" r={30} />}
+                  <rect className="adm-handle-hit" x={-22} y={-28} width={44} height={56} rx={10} />
+                  <path className="adm-handle-chevron up" d="M -7 -15 L 0 -24 L 7 -15 Z" />
+                  <rect className="adm-handle-tab" x={-17} y={-11} width={34} height={22} rx={6} />
+                  <path className="adm-handle-grip" d="M -8 -4 H 8 M -8 0 H 8 M -8 4 H 8" />
+                  <path className="adm-handle-chevron down" d="M -7 15 L 0 24 L 7 15 Z" />
                 </g>
-                <g className="adm-handle-label" transform={`translate(${line.mx + 16} ${line.my - 34})`}>
+                <g className="adm-handle-label" transform={`translate(${line.mx + 26} ${line.my - 36})`}>
                   <rect width={atFull ? 290 : 186} height={24} rx={6} />
                   <text x={10} y={16}>SAT {count(minSat)} · GPA {minGpa.toFixed(1)} and up{atFull ? ' · the hall is full' : ''}</text>
                 </g>
               </g>
             )}
 
-            {/* The class, under the hall, by cohort. */}
-            {showCloud && cohorts.filter((c) => c.applicants > 0).map((c, i) => (
-              <g key={c.id} transform={`translate(${HALL.x} ${HALL.y + HALL.h + 34 + i * 19})`} className="adm-legend">
-                <circle cx={5} cy={-4} r={5} style={{ fill: COHORT_COLOR[c.id] }} />
-                <title>{c.driverLabel}</title>
-                <text x={16} y={0}>{c.label}</text>
-                <text x={HALL.w} y={0} textAnchor="end" className="adm-legend-count">{count(enrolledByCohort[c.id] ?? 0)}</text>
-              </g>
-            ))}
-            {stage === 'flow' && t >= 1 && (
-              <text x={HALL.x + HALL.w / 2} y={HALL.y + HALL.h + 6} textAnchor="middle" className="adm-class">{count(shownOutcome.enrolled)} students</text>
-            )}
+            {/* The class, under the hall: a table of its cohorts with each
+                one's share, and the total in its own row (Plan 112C). */}
+            {showCloud && (() => {
+              const shown = cohorts.filter((c) => c.applicants > 0);
+              const total = shown.reduce((n, c) => n + (enrolledByCohort[c.id] ?? 0), 0);
+              const totalY = LEDGER_Y + 24 + shown.length * 19 + 6;
+              const empty = ceiling.seatsLeft - total;
+              return (
+                <g className="adm-ledger">
+                  <text x={ROOM.x} y={LEDGER_Y} className="adm-ledger-head">THE CLASS</text>
+                  <text x={ROOM.x + ROOM.w} y={LEDGER_Y} textAnchor="end" className="adm-ledger-head">STUDENTS · SHARE</text>
+                  <line x1={ROOM.x} x2={ROOM.x + ROOM.w} y1={LEDGER_Y + 6} y2={LEDGER_Y + 6} className="adm-ledger-rule" />
+                  {shown.map((c, i) => (
+                    <g key={c.id} transform={`translate(${ROOM.x} ${LEDGER_Y + 24 + i * 19})`} className="adm-legend">
+                      <circle cx={5} cy={-4} r={5} style={{ fill: COHORT_COLOR[c.id] }} />
+                      <title>{c.driverLabel}</title>
+                      <text x={16} y={0}>{c.label}</text>
+                      <text x={ROOM.w - 46} y={0} textAnchor="end" className="adm-legend-count">{count(enrolledByCohort[c.id] ?? 0)}</text>
+                      <text x={ROOM.w} y={0} textAnchor="end" className="adm-legend-share">{total > 0 ? `${Math.round(((enrolledByCohort[c.id] ?? 0) / total) * 100)}%` : '–'}</text>
+                    </g>
+                  ))}
+                  <line x1={ROOM.x} x2={ROOM.x + ROOM.w} y1={totalY - 12} y2={totalY - 12} className="adm-ledger-total-rule" />
+                  <text x={ROOM.x} y={totalY + 6} className="adm-ledger-total">Freshman class</text>
+                  <text x={ROOM.x + ROOM.w} y={totalY + 6} textAnchor="end" className="adm-class">{count(total)}</text>
+                  <text x={ROOM.x} y={totalY + 24} className="adm-sub">{empty <= 0 ? 'The hall is full.' : `${count(empty)} places empty.`}</text>
+                </g>
+              );
+            })()}
           </svg>
         </section>
 
@@ -395,19 +447,23 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
               <>
                 <label className="admissions-field">
                   <span>Tuition per year. This class pays it for all four years.</span>
-                  <input type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition} onChange={(e) => setTuition(Number(e.target.value))} />
+                  <input
+                    type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition}
+                    className={ring('tuition').trim() || undefined} data-coach="tuition"
+                    onChange={(e) => { setTuition(Number(e.target.value)); coachPast(['tuition'], 'lock'); }}
+                  />
                 </label>
                 <span className="price-tolerance" title={FIGURE_HINTS.priceTolerance}>Families expect about {money(Math.round(tolerance / 100) * 100)}</span>
                 {floor > 0 && <span className="stat">The board won't let you lower tuition this year. You can still raise it.</span>}
                 {poolRange && <span className="stat">The Admissions Office expects {count(poolRange.low)}–{count(poolRange.high)} applicants at this price.</span>}
-                <button type="button" className="admissions-lock" onClick={lock}>Lock the price</button>
+                <button type="button" className={`admissions-lock${ring('lock')}`} data-coach="lock" onClick={lock}>Lock the price</button>
               </>
             ) : (
               <span className="stat">Locked. This class pays it for all four years.</span>
             )}
           </div>
 
-          <div className={`admissions-card${showCloud ? '' : ' waiting'}`}>
+          <div className={`admissions-card${showCloud ? '' : ' waiting'}${ring('rate')}`} data-coach="rate">
             <p className="admissions-card-eyebrow">2 · The standard</p>
             <dl className="admissions-figures">
               <div><dt>Admit rate</dt><dd>{showCloud ? pct(admitRate) : '—'}</dd></div>
@@ -461,12 +517,22 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
 
           {stage === 'cut' && (
             <>
-              <button type="button" className="admissions-send" onClick={send}>Send the offers</button>
-              <span className="stat">Drag the line, or use the arrow keys on its handle.</span>
+              <button type="button" className={`admissions-send${ring('send')}`} data-coach="send" onClick={send}>Send the offers</button>
+              <span className="stat">Drag the handle up to raise the bar or down to lower it, or click anywhere on the plot. The arrow keys move it too.</span>
             </>
           )}
         </aside>
       </div>
+
+      {coach && (stage === 'price' || stage === 'cut') && (coach === 'tuition' || coach === 'lock' || stage === 'cut') && (
+        <AdmissionsCoach
+          step={coach}
+          expect={Math.round(tolerance / 100) * 100}
+          layoutKey={`${stage}:${shownCut.toFixed(3)}`}
+          onNext={() => setCoach((c) => (c === 'tuition' ? 'lock' : c === 'applicants' ? 'line' : c === 'line' ? 'rate' : c === 'rate' ? 'send' : c))}
+          onDismiss={() => setCoach(null)}
+        />
+      )}
     </div>
   );
 }

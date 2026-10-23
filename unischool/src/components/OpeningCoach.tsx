@@ -4,6 +4,7 @@ import { isCoachStage, OPENING_STEPS, SKIP_WORDS, WALKTHROUGH_LENGTH } from '../
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import ConfirmButton from './ConfirmButton';
 import { openingSkipped } from '../analytics/analytics';
+import { guidedRun } from '../systems/guidance/gates';
 
 // The opening walkthrough's card. state/opening.ts owns the stages and
 // data/openingData.ts the copy; this only draws the current step. The
@@ -53,7 +54,7 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, placing, onO
           <div className="letter-skip-row">
             <ConfirmButton
               className="letter-skip-link"
-              label={SKIP_WORDS.welcome}
+              label={guidedRun(s) ? SKIP_WORDS.welcomeGuided : SKIP_WORDS.welcome}
               armedLabel={SKIP_WORDS.confirm}
               warning={SKIP_WORDS.question}
               cancelLabel={SKIP_WORDS.keep}

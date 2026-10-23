@@ -48,7 +48,7 @@ const OUT = (() => { const i = argv.indexOf('--out'); return i >= 0 ? argv[i + 1
 // ---- Which screen a file's words are read on ----
 const SCREENS: Array<[RegExp, string]> = [
   // The third review: Plans 89–108's files, which fell into "Other".
-  [/data\/chapterData\.ts$|components\/ObjectivesPanel\.tsx$/, 'Objectives (chapters, briefings, the Guide)'],
+  [/data\/chapterData\.ts$|components\/ObjectivesPanel\.tsx$/, 'Objectives (chapters, their help, the Guide)'],
   [/components\/AdmissionsPage\.tsx$|components\/applicantCloud\.ts$/, 'Admissions page (summer)'],
   [/components\/FoundersOffices\.tsx$|data\/officeData\.ts$|systems\/administration\//, 'Founders Hall offices'],
   [/data\/speedUpData\.ts$|components\/SpeedUpOffers\.tsx$/, 'Speed-ups (letters)'],

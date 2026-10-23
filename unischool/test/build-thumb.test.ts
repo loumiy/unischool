@@ -11,6 +11,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { ThumbDrawing, thumbKey } from '../src/components/BuildThumb';
+import { UnlockBuildings } from '../src/components/InboxTab';
+import { BONUS_VERNACULAR_CHOICES } from '../src/components/buildingSpec';
 import { VERNACULARS } from '../src/components/buildingSpec';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
@@ -63,6 +65,15 @@ assert(drawn === VERNS.length * CATALOGUE.length * 2, `every placeable drew, fin
   assert(k !== thumbKey({ ...t, status: 'available', expansions: 1 }, 'georgian'), 'and a venue\'s expansions');
   assert(k === thumbKey({ ...t, status: 'done' }, 'georgian'), 'but built and on offer look alike');
 }
+
+// The unlock letter shows the architecture (Plan 112D): Founders Hall and
+// the library, drawn by the build menu, for every architecture a run can unlock.
+for (const { id } of BONUS_VERNACULAR_CHOICES) {
+  const html = renderToStaticMarkup(createElement(UnlockBuildings, { vernacular: id }));
+  assert((html.match(/class="build-thumb"/g) ?? []).length === 2, `the ${id} unlock letter draws two buildings`);
+  assert(!html.includes('unlock-building-caption'), `and labels neither`);
+}
+assert(renderToStaticMarkup(createElement(UnlockBuildings, { vernacular: 'no-such-set' })) === '', 'and nothing for a set it does not know');
 
 if (failures > 0) {
   console.error(`  ${failures} of ${checks} checks failed`);

@@ -18,7 +18,7 @@ import { facingToCamera, frontWidth, localToGrid } from './facing';
 import { defaultBenchFacing, turnFacing } from '../state/dressing';
 import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
-import { facultyGate } from '../systems/techtree/techSystem';
+import { programStanding, type ProgramStanding } from '../systems/techtree/programProgress';
 import { drawsGlobalOffers, schoolOffers } from '../systems/techtree/programOffers';
 import { SHORTCUTS, isKey, isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
@@ -542,18 +542,16 @@ const HALL_PIP_R = 6.5;
 const HALL_PIP_GAP = 17;
 const HALL_MARK_LIFT = 28;
 
-// Is a program in this hall stuck for want of a department? Its next
-// startable course's field has no free slot.
-function programBlocked(s: GameState, programId: string): boolean {
-  const program = programById(programId);
-  if (!program) return false;
-  const next = program.courseIds.map((id) => s.tech.find((x) => x.id === id)).find((c) => c?.status === 'available');
-  return !!next?.requiresFaculty && facultyGate(s, next.requiresFaculty) !== 'open';
-}
+// A program's pip is ringed silver once it is Established and gold once it
+// is Distinguished (Plan 112D). The owner, of the red ring it replaces (a
+// program whose next course had no free slot in its department): "that's
+// true often and isn't really an urgent situation." The Curriculum tab and
+// the hall panel still say which department a course waits on.
+const STANDING_WORD: Record<ProgramStanding, string> = { established: 'Established', distinguished: 'Distinguished' };
 
-function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }: {
+function HallMarks({ t, p, slots, offerWaiting, standing, vernacular, onInspect }: {
   t: Buildable; p: Placement; slots: ReadonlyArray<HallSlot>;
-  offerWaiting: boolean; blocked: ReadonlyArray<boolean>; vernacular: Vernacular; onInspect: () => void;
+  offerWaiting: boolean; standing: ReadonlyArray<ProgramStanding | null>; vernacular: Vernacular; onInspect: () => void;
 }) {
   const { size, centre } = labelLayout(t.name, t, p, vernacular);
   const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
@@ -567,9 +565,15 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
     const program = slot.programId ? programById(slot.programId) : undefined;
     return program ? schoolMark(program.school).hue : null;
   });
+  // "2 Established, 1 Distinguished", for the tooltip and the reader.
+  const tiers = (['established', 'distinguished'] as const)
+    .map((k) => ({ k, n: standing.filter((x) => x === k).length }))
+    .filter(({ n }) => n > 0)
+    .map(({ k, n }) => `${n} ${STANDING_WORD[k]}`)
+    .join(', ');
   return (
-    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${flag ? ', a program on offer' : ''}`}>
-      <title>{`${slots.length - free} of ${slots.length} program slots filled${flag ? ' · room for a program on offer' : ''}${blocked.some(Boolean) ? ' · a program is waiting on a department' : ''}`}</title>
+    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${tiers ? `, ${tiers}` : ''}${flag ? ', a program on offer' : ''}`}>
+      <title>{`${slots.length - free} of ${slots.length} program slots filled${tiers ? ` · ${tiers} (silver ring Established, gold Distinguished)` : ''}${flag ? ' · room for a program on offer' : ''}`}</title>
       <rect
         className="campus-hall-marks-plate"
         x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}
@@ -579,7 +583,7 @@ function HallMarks({ t, p, slots, offerWaiting, blocked, vernacular, onInspect }
       {hues.map((hue, i) => (
         <circle
           key={i}
-          className={`campus-hall-pip${hue ? ' filled' : ''}${blocked[i] ? ' blocked' : ''}`}
+          className={`campus-hall-pip${hue ? ' filled' : ''}${standing[i] ? ` ${standing[i]}` : ''}`}
           cx={x0 + i * HALL_PIP_GAP} cy={y} r={HALL_PIP_R}
           style={hue ? { fill: hue } : undefined}
         />
@@ -1168,18 +1172,18 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
     // A claimed hall founds its school's programs while it has any, else
     // (like an open hall) the global offers (Plan 100; drawsGlobalOffers).
     offerWaiting: drawsGlobalOffers(s, t.id) ? s.programOffers.length > 0 : schoolOffers(s, t.id).length > 0,
-    blocked: s.halls[t.id].map((slot) => !!slot.programId && programBlocked(s, slot.programId)),
+    standing: s.halls[t.id].map((slot) => (slot.programId ? programStanding(s, slot.programId) : null)),
   })), [s, layout]);
   return (
     <>
-      {halls.map(({ t, p, slots, offerWaiting, blocked }) => (
+      {halls.map(({ t, p, slots, offerWaiting, standing }) => (
         <HallMarks
           key={`marks-${t.id}`}
           t={t}
           p={p}
           slots={slots}
           offerWaiting={offerWaiting}
-          blocked={blocked}
+          standing={standing}
           vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
         />

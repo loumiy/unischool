@@ -204,8 +204,15 @@ free slot, it sends an offer to its school's hall before Founders Hall,
 and sends a claimed hall's room to its own school's programs rather than
 waiting on the draw. (From Plan 55 it named the move itself, "Move
 Sociology into Elm Hall".) The suggested move stays on the program tile,
-and the harness's players read it. The opening letters teach it
-(docs/architecture/interrupts.md).
+and the harness's players read it. The chapter "A hall of its own"
+teaches it, or with the chapters Off the opening letters
+(docs/architecture/interrupts.md, Plan 112A).
+
+**Courses taught are milestones** (Plan 112A): three chapters require a
+count of courses taught (`chapterData.ts`'s `COURSE_MILESTONES`): eight in
+"A faculty" (the count that opens the first academic hall), sixteen in
+"Campus life" and twenty-four in "Running the college", so a player busy
+elsewhere does not leave the committee idle for years.
 
 ### Offices in Founders Hall (Plan 89)
 
