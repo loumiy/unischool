@@ -1,5 +1,5 @@
 import { restaffPlan } from '../faculty/restaffing';
-import { chapterGateOpen, guidedRun, MATTERS_CHAPTER } from '../guidance/gates';
+import { ATHLETICS_CHAPTER, chapterGateOpen, guidedRun, MATTERS_CHAPTER } from '../guidance/gates';
 import { raiseCharter, raiseFestival, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState, NewsLetter } from '../../state/types';
@@ -113,10 +113,13 @@ function fireChampionshipReport(s: GameState): boolean {
 }
 
 // The first sport club's beat (naming the mascot), on the first quiet week
-// after the club is recognized; the flag just clears if a mascot exists.
+// after the club is recognized; the flag just clears if a mascot exists. In
+// a guided run it waits, still pending, for "The teams" (Plan 113C, the
+// third review's I7-2): the teams are named in the chapter that has them.
 function fireMascotBeat(s: GameState): boolean {
   if (!s.orgs.mascotBeatPending) return false;
   if (s.self.mascot) { s.orgs.mascotBeatPending = false; return false; }
+  if (!chapterGateOpen(s, ATHLETICS_CHAPTER)) return false;
   const club = s.orgs.clubs.find((c) => c.sport !== null);
   s.pendingInterrupt = {
     type: 'first-sport-club',
@@ -150,9 +153,12 @@ function fireAthleticDirectorOffer(s: GameState): boolean {
 // The varsity petition ('varsity-petition' in eventData.ts) on its own
 // deterministic cadence: a club past VARSITY_PETITION_MIN_TENURE_YEARS
 // (studentLifeData.ts) is guaranteed to be asked on a quiet week from
-// VARSITY_PETITION_WEEK, rather than entering the weighted lottery.
+// VARSITY_PETITION_WEEK, rather than entering the weighted lottery. A
+// decision event, so in a guided run it waits for "Campus life" as the
+// others do (Plan 113C); "The teams" opens on it.
 function fireVarsityPetition(s: GameState): boolean {
   if (s.clock.week < VARSITY_PETITION_WEEK) return false;
+  if (!chapterGateOpen(s, MATTERS_CHAPTER)) return false;
 
   const event = findDecisionEvent('varsity-petition');
   if (!event?.rollContext) return false;

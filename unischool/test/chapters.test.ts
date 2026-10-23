@@ -41,6 +41,8 @@ import { setSettings } from '../src/settings';
 import { CHAPTER_IDS, eventFits, stateEvents } from '../src/analytics/events';
 import { ATHLETICS_CHAPTER, chapterGateOpen, MATTERS_CHAPTER, OBJECTIVES_OFF_MARK } from '../src/systems/guidance/gates';
 import { bindScriptStream } from '../src/engine/random';
+import { SPORTS } from '../src/data/studentLifeData';
+import { varsityAsked } from '../src/data/ladderData';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall } from '../src/data/techData';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
@@ -372,6 +374,37 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(chapterGateOpen(open, MATTERS_CHAPTER) && !chapterGateOpen(open, ATHLETICS_CHAPTER), 'Campus life open opens the matters, not the Athletics tab');
   const freed = play(open, 104);
   assert(Object.keys(freed.events.decisionHistory).length > 0 || (freed.catalogue?.lastInlineWeek ?? 0) > 0, 'and with it open, matters come');
+
+  // Athletics in its chapter (Plan 113C, the third review's I7-2): a sport
+  // club past its tenure, the mascot still to name. With Campus life shut,
+  // two years bring no varsity petition and no mascot stop. The petition
+  // never stamps decisionHistory, so read the stops seen and varsityAsked.
+  const seen = (start: GameState, weeks: number) => {
+    let x = start;
+    const stops: string[] = [];
+    for (let i = 0; i < weeks; i += 1) {
+      if (x.pendingInterrupt) {
+        const p = x.pendingInterrupt;
+        stops.push(p.type === 'decision-event' ? (p.payload as { eventId: string }).eventId : p.type);
+        x = reducer(x, defaultAnswer(x)!);
+      } else x = reducer(x, { type: 'TICK' });
+    }
+    return { x, stops };
+  };
+  const sporty = structuredClone(base);
+  sporty.self.mascot = '';
+  sporty.orgs.mascotBeatPending = true;
+  sporty.orgs.clubs.push({ id: 'club-gates-sport', name: 'Gates Rowing Club', foundedYear: 0, foundingMembers: 20, foundingEnrolled: 300, upkeepPerWeek: 0, sport: SPORTS[0].id, varsityLastAskedYear: null });
+  const shut = seen(structuredClone(sporty), 104);
+  assert(!shut.stops.includes('varsity-petition') && !varsityAsked(shut.x), `with Campus life shut, no varsity petition (${shut.stops.join(',')})`);
+  assert(!shut.stops.includes('first-sport-club') && shut.x.orgs.mascotBeatPending, 'and no mascot stop, still pending');
+  const lifeOpen = structuredClone(sporty);
+  lifeOpen.guidance!.opened['campus-life'] = 105;
+  const asked = seen(lifeOpen, 104);
+  const petition = asked.stops.indexOf('varsity-petition');
+  const mascotStop = asked.stops.indexOf('first-sport-club');
+  assert(petition >= 0 && varsityAsked(asked.x), `with it open, the petition comes (${asked.stops.join(',')})`);
+  assert(mascotStop > petition, `then the mascot stop, once The teams opens (${petition}, ${mascotStop})`);
 }
 {
   // The hall chapter waits for the first academic hall to be buildable.

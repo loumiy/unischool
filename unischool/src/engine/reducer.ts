@@ -693,8 +693,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (action.candidate) {
         s.orgs.athleticDirector = action.candidate;
         // Trimmed and capped rather than trusted from the form; an empty
-        // mascot is a valid state (see types.ts's University.mascot).
-        const mascot = action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
+        // mascot is a valid state (see types.ts's University.mascot). Teams
+        // already named keep their name: the pick only names them when
+        // nobody has (Plan 113C, the third review's C3-10).
+        const mascot = s.self.mascot ? '' : action.mascot.trim().slice(0, MASCOT_MAX_LENGTH);
         if (mascot) s.self.mascot = mascot;
         s.log.unshift({
           year: s.clock.year,
