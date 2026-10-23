@@ -44,7 +44,7 @@ import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import type { Buildable, Vernacular } from '../src/state/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
-import BuildingMotif, { drawnHeightOf } from '../src/components/buildingMotifs';
+import BuildingMotif, { drawnHeightOf, entranceTopOnWall, fitWallClock } from '../src/components/buildingMotifs';
 import { DEFAULT_CAMERA, MIN_PITCH, VIEWS, setCamera } from '../src/components/isoProjection';
 import { orientedFootprint } from '../src/state/campusMap';
 import { extensionMax, isExtendable } from '../src/systems/estate/estate';
@@ -1200,6 +1200,40 @@ console.log('campus scale and building spec');
   }
   setCamera(DEFAULT_CAMERA);
   assert(drawn === extendable.length * Object.keys(VERNACULARS).length * 4, `every story-able building drawn in every set and view (${drawn})`);
+}
+
+// --- The student center's clock clears its entrance (Plan 112D) -------------
+// The owner: "the awning on the student center overlaps with the clock
+// (Georgian; not sure about others)." Both student centers, in every set:
+// the clock is drawn, and where it hangs on the wall it hangs clear of the
+// entrance under it and the eaves over it; where there is no room, it goes
+// up into its own gable (or Mission's espadaña) instead.
+{
+  const centres = CATALOGUE.filter((t) => t.facilityType === 'studentCenter');
+  assert(centres.length === 2, `two student centers (${centres.length})`);
+  for (const t of centres) {
+    for (const v of Object.keys(VERNACULARS) as Vernacular[]) {
+      const H = wallHeightOf(t);
+      const entrance = entrancePartOf(t, v);
+      const top = entranceTopOnWall(entrance === 'arcade' && H < STOREY * 1.6 ? 'canopy' : entrance, doorOf(t), H, partsFor(v).hood === true);
+      const clock = fitWallClock(H, top);
+      if (clock) {
+        assert(clock.zc - up(clock.R) >= top + up(0.5), `${t.id} in '${v}': the clock clears the ${entrance} under it`);
+        assert(clock.zc + up(clock.R) <= H - EAVES_COURSE, `${t.id} in '${v}': and the eaves over it`);
+      }
+      for (const [i, azimuth] of VIEWS.entries()) {
+        setCamera({ azimuth, pitch: DEFAULT_CAMERA.pitch });
+        const fp = orientedFootprint(t, 0);
+        const p = { col: 0.06, row: 0.06, w: fp.w - 0.12, h: fp.h - 0.12, facing: 0 as const };
+        const markup = renderToStaticMarkup(createElement(BuildingMotif, { t: { ...t, status: 'done' }, p, material: materialOf(t, v), vernacular: v, developing: false }));
+        const clocks = (markup.match(/class="sig-clock"/g) ?? []).length;
+        // The front faces +row at facing 0: seen from the first and last views.
+        const frontSeen = i === 0 || i === 3;
+        assert(clocks === (frontSeen ? 1 : 0), `${t.id} in '${v}', view ${i}: ${frontSeen ? 'one clock on the front' : 'no clock from behind'} (${clocks})`);
+      }
+    }
+  }
+  setCamera(DEFAULT_CAMERA);
 }
 
 if (failures === 0) {

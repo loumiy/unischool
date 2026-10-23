@@ -118,6 +118,23 @@ export function columnRadius(height: number): number {
   return across(Math.min(0.75, Math.max(0.32, m / 18)));
 }
 
+// The portico's width along its wall: what was asked, widened to a temple's
+// proportion under a giant order, and never narrower than two columns.
+function porticoWidth(width: number, base: number, top: number, entablature: number, span: number): number {
+  const r = columnRadius(top - entablature - base);
+  // Never a door's width under a giant order: a tall portico widens to a
+  // temple's proportion (about 0.9 of its height), within the wall.
+  const tall = Math.min(across(((top - base) / up(1)) * 0.9), span * 0.6);
+  return Math.max(width, tall, porticoMinWidth(r));
+}
+// The most its pediment rises over its entablature (crossGable may keep it
+// lower, under the main roof): what a clock gable behind it must clear
+// (Plan 112D).
+export function porticoPedimentRise(width: number, base: number, top: number, span: number, entablature = up(1.5)): number {
+  const pw = porticoWidth(width, base, top, entablature, span);
+  return up(((pw + ENT_PROUD * 2) * METRES_PER_TILE / 2) * PEDIMENT_PITCH);
+}
+
 // How far a portico of `depth` (to its columns' front) reaches from the wall
 // to its entablature's front.
 const ENT_PROUD = across(0.2);
@@ -229,10 +246,7 @@ export function TiedPortico({
 }) {
   const span = wallSpan(w, h, dir);
   const r = columnRadius(top - entablature - base);
-  // Never a door's width under a giant order: a tall portico widens to a
-  // temple's proportion (about 0.9 of its height), within the wall.
-  const tall = Math.min(across(((top - base) / up(1)) * 0.9), span * 0.6);
-  const pw = Math.max(width, tall, porticoMinWidth(r));
+  const pw = porticoWidth(width, base, top, entablature, span);
   const mid = along ?? span / 2;
   const along0 = mid - pw / 2;
   const n = porticoColumns(pw, r, columns);
