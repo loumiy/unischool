@@ -4570,7 +4570,15 @@ body:has(.building-info-panel) .pennant { display: none; }
 .admissions-svg .adm-legend text { font-size: 12px; fill: var(--ink); }
 .admissions-svg .adm-legend circle { stroke: var(--outline); stroke-width: 1; }
 .admissions-svg .adm-legend .adm-legend-count { font-weight: 700; }
-.admissions-svg .adm-class { font-family: var(--display); font-weight: 800; font-size: 26px; fill: var(--school-primary); }
+.admissions-svg .adm-class { font-family: var(--display); font-weight: 800; font-size: 18px; fill: var(--school-primary); }
+/* The hall as a room, and the class's table under it (Plan 112C). */
+.admissions-svg .adm-room { fill: var(--cream); stroke: var(--outline); stroke-width: 2; }
+.admissions-svg .adm-lectern { fill: var(--outline); }
+.admissions-svg .adm-ledger-head { font-family: var(--display); font-weight: 800; font-size: 10px; letter-spacing: 0.08em; fill: var(--ink-muted); }
+.admissions-svg .adm-ledger-rule { stroke: var(--parchment-line, var(--ink-faint)); stroke-width: 1; }
+.admissions-svg .adm-ledger-total-rule { stroke: var(--outline); stroke-width: 1.5; }
+.admissions-svg .adm-ledger-total { font-family: var(--display); font-weight: 800; font-size: 15px; fill: var(--ink); }
+.admissions-svg .adm-legend .adm-legend-share { fill: var(--ink-muted); }
 .admissions-panel { flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: var(--space-16); }
 .admissions-card { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-xl);
   padding: var(--space-16) var(--space-16); display: flex; flex-direction: column; gap: var(--space-8); }
