@@ -1605,8 +1605,11 @@ button.build-tile { font-family: inherit; }
 .campus-hall-marks { cursor: pointer; }
 .campus-hall-marks-plate { fill: rgba(20, 26, 16, 0.55); }
 .campus-hall-pip { fill: transparent; stroke: #f6f1e2; stroke-width: 1.2; }
-.campus-hall-pip.filled { stroke: rgba(246, 241, 226, 0.6); }
-.campus-hall-pip.blocked { stroke: #e0553f; stroke-width: 2.2; }
+/* A filled pip has no ring of its own, so a ring always means a tier. */
+.campus-hall-pip.filled { stroke: rgba(20, 26, 16, 0.5); }
+/* A program Established, then Distinguished (Plan 112D). */
+.campus-hall-pip.established { stroke: #e1e5e8; stroke-width: 2.6; }
+.campus-hall-pip.distinguished { stroke: #f0b929; stroke-width: 2.6; }
 .campus-hall-flag circle { fill: var(--gold); }
 .campus-hall-flag path { stroke: #1a2035; stroke-width: 1.6; stroke-linecap: round; fill: none; }
 /* A lab at work (Plan 41): a ring filling as the project runs, an atom
