@@ -252,6 +252,12 @@ two shots: eight days, all small.
    commission lands. The build then holds no generated picture, and the
    demo needs no art disclosure. If not, C is dropped and A's sentence
    stands.
+   **The owner's answer (23 October): no.** The code-drawn title doesn't
+   look right to the owner. The generated painting stays as a placeholder
+   until a commissioned replacement arrives, so C is dropped. A's
+   disclosure names the title painting as generated, in the README, the
+   itch.io page and the Steam form. The commission's brief (O-actions)
+   covers the title art as well as the capsules.
 3. **The live itch.io cover.** Recommended: replace it now with the
    repository's `itch/cover.jpg`, the game's own render under the code
    mark, so the itch.io disclosure names nothing generated either.
