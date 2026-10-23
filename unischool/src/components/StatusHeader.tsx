@@ -186,12 +186,14 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
 }
 
 // Right: the clock, and the speed controls.
-export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
+export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress, summerWaiting = false }: {
   s: GameState; speed: Speed; setSpeed: (speed: Speed) => void;
   // False while a front screen covers the game (App.tsx).
   keysLive: boolean;
   // The live fraction of the week, for DayTicker.tsx.
   weekProgress: () => number;
+  // The summer waits to be opened (Plan 112C).
+  summerWaiting?: boolean;
 }) {
   // The sandbox speed's gate (playtest.ts); a sandbox run has it too.
   const showPlaytestControls = playtestEnabled() || isSandbox(s);
@@ -248,6 +250,9 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
           {visibleSpeeds.map((sp) => {
             const Icon = SPEED_ICONS[sp];
             const lock = lockOf(sp);
+            // The summer waiting (Plan 112C): Play is rung, and any gear
+            // opens the summer (App.tsx), so each says so.
+            const summer = summerWaiting && sp !== 'paused' && lock === null;
             return (
               <button
                 key={sp}
@@ -255,12 +260,13 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
                   speed === sp ? 'active' : '',
                   SANDBOX_SPEEDS.includes(sp) ? 'sandbox' : '',
                   lock ? 'locked' : '',
+                  summer && sp === 'real' ? 'opening-target summer-play' : '',
                 ].join(' ').trim()}
                 disabled={lock !== null}
                 aria-pressed={speed === sp}
-                aria-label={SPEED_LABELS[sp]}
+                aria-label={summer ? `${SPEED_LABELS[sp]}, opens the summer` : SPEED_LABELS[sp]}
                 onClick={() => setSpeed(sp)}
-                title={lock ?? SPEED_HINTS[sp]}
+                title={lock ?? (summer ? 'The summer is here. Open it to start the clock again.' : SPEED_HINTS[sp])}
               >
                 {Icon ? <Icon /> : SPEED_LABELS[sp]}
               </button>

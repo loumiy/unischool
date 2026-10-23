@@ -910,7 +910,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 // Report's, the summer's admissions and, opened from its letter, the
 // specialization's. Every other stop is answered in the inbox
 // (InterruptContent, below).
-export default function InterruptModal({ s, act, onNewCollege, specializationOpen = false, onCloseSpecialization }: {
+export default function InterruptModal({ s, act, onNewCollege, specializationOpen = false, onCloseSpecialization, summerWaiting = false }: {
   s: GameState;
   act: (a: Action) => void;
   onNewCollege?: () => void;
@@ -918,8 +918,11 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
   // inbox (App.tsx keeps whether it is open).
   specializationOpen?: boolean;
   onCloseSpecialization?: () => void;
+  // The summer stands unopened (Plan 112C, App.tsx): none of its pages is
+  // drawn, and no key answers it.
+  summerWaiting?: boolean;
 }) {
-  const interrupt = s.pendingInterrupt;
+  const interrupt = summerWaiting && s.pendingInterrupt?.type === 'summer' ? null : s.pendingInterrupt;
 
   // Enter continues the read-and-continue interrupts, each through its own
   // dedicated action; for a decision event it resolves with no choice

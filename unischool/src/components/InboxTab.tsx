@@ -6,7 +6,7 @@ import { CHARTER_INSTANCE } from '../systems/events/charter';
 import { NAME_LIMIT_NOTE } from '../data/foundingData';
 import type { Action } from '../state/actions';
 import { isCutLetter } from '../systems/athletics/cut';
-import { STATUE_ASK, answered, boardAsks, boardLetterFor, inboxItems, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
+import { STATUE_ASK, SUMMER_CALL, SUMMER_WAITS, answered, boardAsks, boardLetterFor, inboxItems, summerOpenLabel, type InboxItem, type InboxTier } from '../systems/inbox/inbox';
 import { foundingNotes } from '../systems/inbox/foundingNote';
 import { dueLabel, toDecideCount } from '../systems/inbox/unseen';
 import { catalogueOf } from '../systems/events/catalogueEngine';
@@ -35,7 +35,8 @@ import { count, gameDate, gameDateOfWeek, satisfactionFigure, weeksProse, weeksS
 // What stops the clock is answered here too: the pending interrupt is
 // pinned first under "The clock waits" and read in the pane in its modal
 // card. App.tsx opens the inbox on it and keeps it open until it is
-// resolved.
+// resolved. The summer waits instead (Plan 112C): until it is opened, its
+// row's pane says so and offers to open it.
 
 type Filter = 'all' | InboxTier | 'answered';
 
@@ -68,7 +69,7 @@ function splitAnswer(l: LogEntry): { subject: string; how: string; lapsed: boole
   return { subject: l.message.slice(0, cut), how, lapsed: how.startsWith('Nobody answered') };
 }
 
-export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onSeen, onOpenTab, onShowOnMap, onOpenSpecialization }: {
+export default function InboxTab({ s, act, target, onTargetConsumed, read, onRead, onSeen, onOpenTab, onShowOnMap, onOpenSpecialization, summerWaiting = false, onOpenSummer }: {
   s: GameState;
   act: (a: Action) => void;
   // An item to open on arrival (an arrival toast's Open), consumed once.
@@ -84,6 +85,9 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
   onShowOnMap: (buildableId: string) => void;
   // The specialization letter's "Convene the board" (Plan 110, App.tsx).
   onOpenSpecialization?: () => void;
+  // The summer stands unopened, and its door (Plan 112C, App.tsx).
+  summerWaiting?: boolean;
+  onOpenSummer?: () => void;
 }) {
   const items = inboxItems(s, { read });
   const [filter, setFilter] = useState<Filter>('all');
@@ -246,7 +250,10 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
         {filter === 'answered'
           ? (answer ? <AnswerView l={answer} /> : null)
           : selected ? (
-            <ReadingPane key={selected.id} s={s} act={act} item={selected} onOpenTab={onOpenTab} onOpenSpecialization={onOpenSpecialization} />
+            <ReadingPane
+              key={selected.id} s={s} act={act} item={selected} onOpenTab={onOpenTab} onOpenSpecialization={onOpenSpecialization}
+              summerWaiting={summerWaiting} onOpenSummer={onOpenSummer}
+            />
           ) : (
             <div className="inbox-quiet">
               <h3 className="heading-panel">Nothing to read</h3>
@@ -305,13 +312,32 @@ function CharterAnswer({ s, act, p, e }: {
   );
 }
 
-function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization }: {
+function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization, summerWaiting = false, onOpenSummer }: {
   s: GameState;
   act: (a: Action) => void;
   item: InboxItem;
   onOpenTab: (tab: TabId | 'build') => void;
   onOpenSpecialization?: () => void;
+  summerWaiting?: boolean;
+  onOpenSummer?: () => void;
 }) {
+  // The summer, unopened (Plan 112C): its door, not its pages.
+  if (item.kind === 'interrupt' && item.ref === 'summer' && summerWaiting) {
+    return (
+      <div className="inbox-hold">
+        <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> {SUMMER_WAITS}</p>
+        <div className="modal modal-inbox modal-narrow summer-door" data-interrupt="summer">
+          <p className="letter-eyebrow">{item.subject}</p>
+          <h2>{SUMMER_CALL.title}</h2>
+          <p>{SUMMER_CALL.body}</p>
+          <div className="modal-actions">
+            <button type="button" className="btn-primary" onClick={onOpenSummer}>{summerOpenLabel(s)}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (item.kind === 'interrupt') {
     return (
       <div className="inbox-hold">

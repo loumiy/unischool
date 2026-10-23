@@ -21,8 +21,10 @@ import { unlockLabel } from '../../state/unlocks';
 //   hold      — what stops the clock (an interrupt: the summer, a letter
 //               from the board, a report, a decision). Pinned first; the
 //               inbox opens on it and stays open until it is answered
-//               (App.tsx). The Final Report is the one stop that keeps a
-//               page of its own (InterruptModal.tsx).
+//               (App.tsx). The summer is the exception (Plan 112C): it
+//               waits here, and on the clock, until the player opens it,
+//               and its admissions and the Final Report are pages of
+//               their own (InterruptModal.tsx).
 //   decide    — wants an answer or has a deadline: the catalog's inline
 //               events, a student demand, a board letter with an ask. Only
 //               this tier puts a number on the toolbar's button.
@@ -90,22 +92,55 @@ export function interruptPageUp(s: GameState): boolean {
   return finalReportUp(s) || (p?.beat === 1 && !p.final);
 }
 
-// The pending interrupt as a row: who it is from and what it is about.
+// The summer, while one is pending: the key the shell keeps against it,
+// to know whether the player has opened it (Plan 112C). Week 52 stops the
+// clock, but the summer no longer opens over whatever the player has
+// open: it waits, an item to decide that can't be ignored, until it is
+// opened from its call over the map, the clock or its row here, and play
+// opens it rather than running time. Not saved: a save in the summer, old
+// or new, loads with it waiting on the beat it was on.
+export function summerKey(s: GameState): string | null {
+  return s.pendingInterrupt?.type === 'summer' ? `${s.self.name}:${s.clock.year}` : null;
+}
+
+// The pending interrupt as a row: who it is from and what it is about. The
+// summer keeps its row on every beat, its pages' included (Plan 112C): it
+// waits here until it is opened, and once a page is up the page covers
+// the inbox anyway.
 export function interruptItem(s: GameState): InboxItem | null {
   const i = s.pendingInterrupt;
-  if (!i || interruptPageUp(s)) return null;
+  if (!i) return null;
   const [from, subject] = interruptWords(s, i.type, i.payload);
   return {
     id: INTERRUPT_ITEM_ID, kind: 'interrupt', tier: 'hold', ref: i.type, from, subject,
-    preview: 'Time is paused until you answer.', week: absoluteWeek(s), unread: true, urgent: true,
+    preview: i.type === 'summer' ? SUMMER_CALL.body : 'Time is paused until you answer.',
+    week: absoluteWeek(s), unread: true, urgent: true,
   };
+}
+
+// What the summer's row, its call and its card in the inbox say while it
+// waits (Plan 112C).
+export const SUMMER_WAITS = 'The clock has stopped for the summer. Finish what you\'re doing, then open it.';
+export const SUMMER_CALL = {
+  title: 'The summer is here',
+  body: 'The year in review, admissions and the students wait for you. The clock starts again once they are done.',
+};
+
+// The call's button, by the beat the summer is on: a save loaded in the
+// summer resumes where it was.
+export function summerOpenLabel(s: GameState): string {
+  const p = s.pendingInterrupt?.payload as SummerPayload | undefined;
+  if (p?.final && p.beat === 0) return 'Open the Final Report';
+  return p?.beat === 1 ? 'Open admissions' : p?.beat === 2 ? 'Open the students' : 'Open the summer';
 }
 
 function interruptWords(s: GameState, type: string, payload: unknown): [string, string] {
   const year = s.clock.year;
   switch (type) {
     case 'summer': {
-      const beat = (payload as SummerPayload | undefined)?.beat ?? 0;
+      const p = payload as SummerPayload | undefined;
+      const beat = p?.beat ?? 0;
+      if (p?.final && beat === 0) return ['The summer', `Year ${year}: The Final Report`];
       return ['The summer', `Year ${year}: ${SUMMER_BEATS[beat] ?? 'The summer'}`];
     }
     case 'rankings-entry': return ['The guide', 'The college enters the guide'];

@@ -143,8 +143,13 @@ shell opens the inbox on it, shuts every other way off it (the toolbar's other
 buttons are disabled and Close gives way to a flat note, "Answer to go on",
 not a button: Plan 95K), and once it is
 answered returns the player to the view they were on, or opens the build menu
-when a letter was answered with "Continue and open Build" (Plan 78B). Only the
-Final Report's page still stands in front of the screen.
+when a letter was answered with "Continue and open Build" (Plan 78B). The
+Final Report's page, the summer's admissions (Plan 108) and the
+specialization's page (Plan 110) stand in front of the screen. The summer is
+the one stop the shell does not open (Plan 112C): it stops the clock and
+waits, pinned here with a door in its pane, as a note above the clock
+(`SummerCall.tsx`) and as a rung Play button, until the player opens it;
+every speed opens it rather than running time.
 
 The **toolbar** itself is three zones in one band. The left zone stacks the
 funds figure with its weekly net over four stat chips (rank, enrolled,

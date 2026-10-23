@@ -75,7 +75,10 @@ const Toolbar = forwardRef<HTMLDivElement, {
   inbox: InboxBadge;
   // A stop waits in the inbox (Plan 77): every other way off it is shut.
   held: boolean;
-}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held }, ref) => {
+  // The summer waits to be opened (Plan 112C): the gears open it, and Play
+  // is rung.
+  summerWaiting?: boolean;
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held, summerWaiting = false }, ref) => {
 
   // The opening walkthrough rings the Build button while its step is to site
   // the hall and the menu is closed, and so does a skipped walk while the
@@ -180,7 +183,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
       </nav>
 
       <div className="toolbar-right">
-        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} keysLive={speedKeysLive} weekProgress={weekProgress} />
+        <SchoolAndClock s={s} speed={speed} setSpeed={setSpeed} keysLive={speedKeysLive} weekProgress={weekProgress} summerWaiting={summerWaiting} />
       </div>
 
       {buildOpen && (

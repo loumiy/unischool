@@ -1209,7 +1209,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     // The chapter "The first summer" says the same from week 46.
     chapter: 'first-summer',
     title: 'Summer is coming',
-    body: () => "At week 52 the year pauses for the summer. You'll see three pages: the year in review, admissions, and the students. In admissions you make two choices: the tuition, and how many applicants to admit. Set tuition carefully. You set it before you see the applicants, you can't change it later, and this class pays it for all four years. A college nobody has heard of can't charge what a famous one does.",
+    body: () => "At week 52 the clock stops for the summer. It waits for you, so finish what you're doing, then open it from the note above the clock. You'll see three pages: the year in review, admissions, and the students. In admissions you make two choices: the tuition, and how many applicants to admit. Set tuition carefully. You set it before you see the applicants, you can't change it later, and this class pays it for all four years. A college nobody has heard of can't charge what a famous one does.",
     ask: () => ({ text: 'Summer at week 52: tuition is fixed for four years', intent: { kind: 'wait' } }),
     // Done when the summer comes, not the moment the letter is read (Plan 35).
     done: (s) => s.clock.week >= WEEKS_PER_YEAR || s.pendingInterrupt?.type === 'summer',
