@@ -13,6 +13,9 @@ import type { AlumniClass } from '../src/state/types';
 import { CAMPAIGNS, campaignById } from '../src/data/campaignData';
 import { advancementOf, classResponse, openCampaigns, tickCampaigns, yearlyResponse } from '../src/systems/alumni/campaigns';
 import { bindScriptStream } from '../src/engine/random';
+import { buildYearInReview } from '../src/state/yearInReview';
+import { answerAll, foundGame, playUntil } from '../sim/harness/game';
+import { createGuidedPlayer } from '../sim/harness/guided';
 import type { GameState, YearSnapshot } from '../src/state/types';
 
 bindScriptStream(3030);
@@ -149,6 +152,32 @@ function withYears(rows: YearSnapshot[]): GameState {
   const closed = advancementOf(s).closed[0];
   assert(advancementOf(s).running === null && closed.campaignId === 'endowment-drive' && closed.met === false, 'a campaign closes at its term, short if it came up short');
   assert(!openCampaigns(s).some((c) => c.id === 'endowment-drive'), 'and is not run twice');
+}
+
+// ---- The Review's class is the class stamped (Plan 114D, C2-7) ----
+// The summer Review describes the graduating class before the closing
+// year's history row exists. It builds that row as resolveAdmissions will,
+// so on a guided game's summers its clauses are the ones the ledger
+// stamps, and its warmth is the stamped warmth to the figure it shows. It
+// used to read today's satisfaction in year 1 (83 shown, 65.7 stamped).
+{
+  const g = foundGame({ seed: 12345 });
+  const player = createGuidedPlayer();
+  for (const year of [1, 2, 6]) {
+    const reached = playUntil(g, player, year - g.s.clock.year + 1, (s) => s.clock.year === year && s.pendingInterrupt?.type === 'summer');
+    assert(reached, `the guided game reaches the year ${year} summer`);
+    if (!reached) break;
+    const card = buildYearInReview(g.s).sections.find((x) => x.key === 'class')!;
+    const before = (g.s.alumni ?? []).length;
+    answerAll(g, player);
+    const stamped = (g.s.alumni ?? []).find((a) => a.classYear === year);
+    assert(stamped !== undefined && (g.s.alumni ?? []).length === before + 1, `year ${year}: the summer stamps one class`);
+    if (!stamped) continue;
+    const said = memoryLine(stamped, firstClassYear(g.s.alumni, year));
+    assert(card.lines[0]?.text === said, `year ${year}: the Review's clauses are the stamped ones ("${card.lines[0]?.text}" against "${said}")`);
+    const shown = /\((\d+) of 100\)/.exec(card.lines[1]?.text ?? '')?.[1];
+    assert(shown === stamped.warmth.toFixed(0), `year ${year}: the Review's warmth (${shown}) is the stamped warmth (${stamped.warmth})`);
+  }
 }
 
 if (failures === 0) {

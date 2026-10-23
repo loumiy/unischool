@@ -6,7 +6,7 @@ import { attritionReasons, summerAttrition } from '../systems/admissions/consequ
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { gradeYear, prestigeBreakdown, standingDetailLine } from '../systems/prestige/prestigeSystem';
 import { buildReportPayload } from '../systems/rivals/rivalsSystem';
-import { previousYear } from './history';
+import { captureYearSnapshot, previousYear } from './history';
 import { count, money, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney } from '../format';
 import { eventById } from '../systems/events/catalogue';
 import { classYears, firstClassYear, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
@@ -290,11 +290,22 @@ function events(s: GameState, entries: LogEntry[]): ReviewSection {
 
 // The class about to graduate (Plan 33): how it will remember its years
 // and how warmly, read as commencement will stamp it (alumni/ledger.ts).
+// The stamp reads the closing year's history row, which the summer has not
+// written yet, so the Review builds it from the same inputs
+// resolveAdmissions will (Plan 114D). Without it the first summer read
+// today's satisfaction, and later ones left out their last year. One input
+// can't be known yet: the row's enrolled count is taken before the
+// summer's advance, and only the thinned share reads it.
 function graduatingClass(s: GameState): ReviewSection {
   const seniors = s.students.classes.senior;
   const lines: ReviewLine[] = [];
   if (seniors > 0) {
-    const c = classYears(s, s.clock.year);
+    const closing = captureYearSnapshot(s, {
+      attrition: projectedAttrition(s),
+      satisfactionAverage: trailingYearSatisfaction(s),
+      graduated: seniors,
+    });
+    const c = classYears(s, s.clock.year, [...s.history, closing]);
     const memory = memoryFor(s, c);
     const warmth = warmthFor(c, memory);
     lines.push({ text: memoryLine({ classYear: s.clock.year, memory }, firstClassYear(s.alumni, s.clock.year)) });
