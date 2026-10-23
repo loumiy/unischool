@@ -37,6 +37,7 @@ export default function SpeedUpOffers({ s, act }: { s: GameState; act?: (a: Acti
                 className="btn-speed-up"
                 label={W.buy(price)}
                 armedLabel={W.armed(price)}
+                tone="commit"
                 disabled={refusal !== null}
                 title={refusal ?? undefined}
                 onConfirm={() => act({ type: 'BUY_SPEED_UP', buy: kind })}

@@ -41,19 +41,19 @@ export function officeStatusLine(s: GameState, officeId: string): string | null 
     case 'admissions': {
       const pool = s.students.lastFunnel?.applicants;
       const range = pool ? admissionsRange(s, pool) : null;
-      return range ? `At last year's pool, a range of ${count(range.low)}–${count(range.high)}.` : 'The summer shows its range at the price the college sets.';
+      return range ? `At last year's pool, a range of ${count(range.low)}–${count(range.high)}.` : 'In the summer, it shows the range at the price you set.';
     }
-    case 'curriculum': return committeeSetAside(s) ? 'A sandbox has no committee: courses are written as fast as they are started.' : `The committee writes ${committeeSeats(s)} courses at once, one of them this office's.`;
-    case 'faculty-recruitment': return `The market holds up to ${candidatePoolTarget(s)}, each listed ${candidateListingWeeks(s)} weeks.`;
+    case 'curriculum': return committeeSetAside(s) ? 'A sandbox has no committee. Courses are written as fast as you start them.' : `The committee writes ${committeeSeats(s)} courses at once. This office adds one of them.`;
+    case 'faculty-recruitment': return `The market holds up to ${candidatePoolTarget(s)} candidates, each listed for ${candidateListingWeeks(s)} weeks.`;
     case 'student-activities': {
       const refusal = charterRefusal(s);
-      return refusal === null ? 'A club can be chartered now, from the Students tab.' : charterWait(s) > 0 ? refusal : `No charter now: ${refusal}`;
+      return refusal === null ? 'You can charter a club now, from the Students tab.' : charterWait(s) > 0 ? refusal : `No charter now: ${refusal}`;
     }
-    case 'athletics-development': return `A sport club whose venue stands can go varsity from the Students tab, for ${moneyShort(foundTeamCost(s))}.`;
-    case 'counseling': return `Demands come at most every ${weeksShort(demandCooldownWeeks(s))}.`;
+    case 'athletics-development': return `Once a sport club's venue is built, you can make it varsity from the Students tab for ${moneyShort(foundTeamCost(s))}.`;
+    case 'counseling': return `Student demands come at most once every ${weeksShort(demandCooldownWeeks(s))}.`;
     case 'institutional-research': {
       const f = rankForecast(s);
-      return f ? `Graded today: ${prestigeFigure(f.prestige)}, #${f.rank} in the guide (#${f.now} now).` : 'Its forecast opens with the spring term.';
+      return f ? `If graded today: ${prestigeFigure(f.prestige)}, #${f.rank} in the guide (#${f.now} now).` : 'Its forecast starts with the spring term.';
     }
     default: return null;
   }
@@ -70,7 +70,7 @@ export function OfficeTile({ slot, s, act, open, onToggle }: {
   const seated = officeSeatFilled(s, office.id);
   if (office.closingWeeks !== undefined) {
     return (
-      <div className="hall-slot housed office closing" title={`${def?.title ?? office.id} is closing: the slot is dark for ${office.closingWeeks} more weeks`}>
+      <div className="hall-slot housed office closing" title={`${def?.title ?? office.id} is closing. Its slot can't be used for ${office.closingWeeks} more weeks.`}>
         <div className="program-tile">
           <span className="hall-slot-motif office-motif" aria-hidden="true">{domain?.motif}</span>
           <span className="hall-slot-name">{def?.title ?? office.id}</span>
@@ -87,7 +87,7 @@ export function OfficeTile({ slot, s, act, open, onToggle }: {
         <span className="hall-slot-name">{def?.title ?? office.id}</span>
         <span className="program-tile-meta">
           <span className="office-chip">office</span>
-          {seated && <span className="office-seat on" title={`${seatTitle(office.id)} seated: half again as effective`}>+50%</span>}
+          {seated && <span className="office-seat on" title={`${seatTitle(office.id)} seated: 50% more effective`}>+50%</span>}
         </span>
       </button>
       {open && def && (
@@ -99,14 +99,14 @@ export function OfficeTile({ slot, s, act, open, onToggle }: {
             <div><dt>Since</dt><dd>Year {office.openedYear}</dd></div>
           </dl>
           <p className="building-info-line program-summary-next">
-            {def.blurb}{seated ? ` With the ${seatTitle(office.id)} seated, half again as much.` : ` Half again as much with a ${seatTitle(office.id)}.`}
+            {def.blurb}{seated ? ` With the ${seatTitle(office.id)} seated, it does 50% more.` : ` It does 50% more with a ${seatTitle(office.id)} seated.`}
           </p>
           {status && <p className="building-info-line program-summary-next">{status}</p>}
           {act && (
             <ConfirmButton
               className="building-info-jump office-close"
               label={`Close office · slot dark ${weeksShort(OFFICE_CLOSING_WEEKS)}`}
-              armedLabel="Confirm"
+              armedLabel="Close the office"
               onConfirm={() => act({ type: 'CLOSE_OFFICE', officeId: office.id })}
             />
           )}
@@ -126,7 +126,7 @@ export function AllowanceRow({ s }: { s: GameState }) {
     ? ` · next: ${next.name}${progress ? ` (${progress.unit === 'prestige' ? prestigeFigure(progress.value) : count(Math.floor(progress.value))} of ${count(progress.target)})` : ''}`
     : '';
   return (
-    <div className="office-allowance" title="Offices the college may hold">
+    <div className="office-allowance" title="Offices you can hold">
       <span>Offices</span>
       {Array.from({ length: MAX_OFFICES }, (_, i) => (
         <i key={i} className={i < held ? 'held' : i < allowance ? 'free' : 'locked'} aria-hidden="true" />
@@ -175,8 +175,8 @@ export function OfficeOffers({ s, act, slot, picked, onPick, onOpened }: {
                   {selected && (
                     <div className="office-confirm">
                       <p className="building-info-line">
-                        <b>Open {officeName(o.id)} in slot {slot + 1}?</b> {moneyShort(officePrice(s, o.id))} now and {moneyShort(yearlyCost(s))} a year, rising with the college's budget.
-                        Closing it later leaves the slot dark for {OFFICE_CLOSING_WEEKS} weeks.
+                        <b>Open {officeName(o.id)} in slot {slot + 1}?</b> {moneyShort(officePrice(s, o.id))} now and {moneyShort(yearlyCost(s))} a year, rising with your budget.
+                        If you close it later, its slot can&apos;t be used for {OFFICE_CLOSING_WEEKS} weeks.
                       </p>
                       {refusal && <p className="building-info-line building-info-construction">{refusal}</p>}
                       <button type="button" className="building-info-jump" disabled={refusal !== null || !act}

@@ -520,7 +520,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
       className="course-drawer-action search-post"
       disabled={!canPostSearch(s, field)}
       onClick={() => act({ type: 'POST_SEARCH', field })}
-      title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}: a much better chance every week that a ${field} candidate is listed.`}
+      title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}. Each week, a ${field} candidate is much more likely to be listed.`}
     >
       Post a search in {field} · {moneyShort(cost)}
     </button>
@@ -549,7 +549,7 @@ export function MarketInField({ s, act, field, projectedFor }: {
               type="button"
               className="course-drawer-appoint"
               onClick={() => act({ type: 'HIRE_FACULTY', facultyId: c.id })}
-              title={`Appoint ${c.name} to the ${field} department; asks ${money(c.salary)}, paid ${money(Math.round(facultyPay(s, c.salary)))} at the market rate`}
+              title={`Appoint ${c.name} to the ${field} department. Asks ${money(c.salary)}, paid ${money(Math.round(facultyPay(s, c.salary)))} at your market rate.`}
             >
               {/* No cash gate: an appointment costs nothing up front, here
                   as on every other Appoint; what it costs is the salary,
@@ -689,7 +689,7 @@ function CourseDrawer(
 
             {unstaffed && (
               <p className="course-drawer-warning">
-                This course has no instructor and is not being taught. Assign someone to restore it.
+                This course has no instructor, so nobody is teaching it. Choose an instructor to start it again.
               </p>
             )}
 
@@ -728,8 +728,8 @@ function CourseDrawer(
             {eligible.length === 0 && inField.length > 0 && (
               <>
                 <p className="course-drawer-note">
-                  Every {t.requiresFaculty} professor is teaching a full load. Make room by moving one of their
-                  courses, or appoint someone new.
+                  Every {t.requiresFaculty} professor is teaching a full load. Move one of their courses to make
+                  room, or appoint someone new.
                 </p>
                 <div className="instructor-options">
                   {inField.map((f) => <InstructorOption key={f.id} s={s} f={f} selected={false} disabled />)}
@@ -1105,7 +1105,7 @@ function FilterBar(
           type="button"
           className="curriculum-chip on"
           onClick={() => onChange({ ...filters, field: null })}
-          title="Courses waiting on this department — click to clear"
+          title="Courses waiting on this department. Click to clear."
         >
           Waiting on {filters.field} ×
         </button>
@@ -1151,7 +1151,7 @@ function CommitteeBox({ s, lookup, onOpenFaculty }: {
               type="button"
               className="course-drawer-door committee-faculty-door"
               onClick={() => onOpenFaculty(fields[0].field)}
-              title={`Open the Faculty tab on ${fields[0].field}: its people, the market, a search`}
+              title={`Open ${fields[0].field} in the Faculty tab to see its people, the market and searches`}
             >
               Faculty →
             </button>
@@ -1183,7 +1183,7 @@ function CommitteePanel({ s }: { s: GameState }) {
         <span className="committee-count">writing {writing.length} of {seats}</span>
         <HelpHint
           align="end"
-          text={`Writing a course takes the college's attention: the curriculum committee writes up to ${seats} courses at once, graduate courses among them, and takes up the next when one is done. Each course takes its own number of weeks, so they finish at different times. It can write one more at a time at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}${officeSeats > 0 ? ', one of them the Office of Curriculum Development\'s' : ''}.`}
+          text={`The curriculum committee writes up to ${seats} courses at once, graduate courses included. When one is done, its seat is free for the next. Each course takes its own number of weeks, so they finish at different times. The committee gains a seat at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}${officeSeats > 0 ? '. One of them comes from the Office of Curriculum Development' : ''}.`}
         />
       </header>
       <ol className="committee-seats">
@@ -1198,7 +1198,7 @@ function CommitteePanel({ s }: { s: GameState }) {
             );
           }
           const t = writing[i];
-          if (!t) return <li key={i} className="committee-seat open" title="Free: the committee has room for another course"><span className="committee-seat-name">Free</span></li>;
+          if (!t) return <li key={i} className="committee-seat open" title="Free. The committee has room for another course."><span className="committee-seat-name">Free</span></li>;
           const left = s.developing[t.id] ?? t.duration;
           const done = t.duration > 0 ? 1 - left / t.duration : 1;
           const code = t.name.split(' · ')[0];
@@ -1363,7 +1363,7 @@ export default function CurriculumTab(
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" />
             <HelpHint
               align="end"
-              text={`One line per program, grouped by school — a school is named once six of its programs share a hall; the graduate programs follow, in the Graduate School and the Business, Law and Medical Schools. Each line gives the program's number out of 100 (its courses' average), its courses done of ten and its next start: the course, the strongest free teacher and the number they would teach it at, which is their own teaching less what harder material asks (a little for upper-level courses, more for advanced ones, the capstone and graduate work). Develop takes it. Open a line (▸) for its courses and "choose…", which picks somebody else. Below top band (under ${GRADE_A}) and No instructor list the courses that hold the college back; One course from established, the last course a program needs for its milestone. Programs are founded from an academic hall on the map. Drag a professor onto another course in the same department to swap them, and both numbers preview while it is held.`}
+              text={`One line per program, grouped by school. A school gets its name once six of its programs share a hall. Graduate programs come last, under the Graduate School and the Business, Law and Medical Schools. Each line shows the program's score out of 100 (its courses' average), how many of its ten courses are done, and its next course. For that course it shows the best free professor and the score they'd teach it at. That score is their teaching, minus a little for upper-level courses and more for advanced ones, the capstone and graduate work. Click Develop to start it. Open a line (▸) to see its courses, and click Choose… to pick someone else. Below top band (under ${GRADE_A}) and No instructor list the courses holding your college back. One course from established shows the last course each program needs for its milestone. Found programs from an academic hall on the map. To swap two professors, drag one onto another course in the same department. Both scores preview while you drag.`}
             />
           </span>
         </div>

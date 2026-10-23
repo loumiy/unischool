@@ -35,7 +35,7 @@ export function charterWait(s: GameState): number {
 }
 
 export function charterRefusal(s: GameState): string | null {
-  if (officeStrength(s, 'student-activities') <= 0) return 'The college has no Student Activities Office.';
+  if (officeStrength(s, 'student-activities') <= 0) return 'You don\'t have a Student Activities Office.';
   const wait = charterWait(s);
   if (wait > 0) return `The office can charter another club in ${wait} week${wait === 1 ? '' : 's'}.`;
   if (!canFormClub(s)) return 'No room for another club.';
@@ -65,7 +65,7 @@ export function foundTeamCost(s: GameState): number {
 }
 
 export function foundTeamRefusal(s: GameState, clubId: string): string | null {
-  if (officeStrength(s, 'athletics-development') <= 0) return 'The college has no Athletics Development Office.';
+  if (officeStrength(s, 'athletics-development') <= 0) return 'You don\'t have an Athletics Development Office.';
   const club = s.orgs.clubs.find((c) => c.id === clubId);
   const sport = club ? sportById(club.sport) : undefined;
   if (!club || !sport) return 'Only a sport club can become a varsity team.';
@@ -89,7 +89,7 @@ export function foundTeam(s: GameState, clubId: string): boolean {
   });
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: 'good',
-    message: `${team.name} is now a varsity program, founded by the Athletics Development Office: head coach, assistant coach and trainer still to be hired from the Athletics tab.`,
+    message: `The Athletics Development Office has made ${team.name} a varsity program. Hire its head coach, assistant coach and trainer from the Athletics tab.`,
   });
   return true;
 }

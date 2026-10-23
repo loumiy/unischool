@@ -137,7 +137,7 @@ function closeSummer(s: GameState): GameState {
   const item = inboxItems(s).find((i) => i.ref === SPECIALIZATION_NOTICE_ID);
   assert(item !== undefined && item.from === 'From the board' && item.tier === 'letter', 'the inbox files it as the board\'s letter');
   const letter = BOARD_LETTERS[SPECIALIZATION_NOTICE_ID];
-  assert(letter.text.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && letter.text.includes(`from Year ${SPECIALIZATION_PILLAR_YEAR}, of the top ${SPECIALIZATION_PILLAR_RANK} in one of the four pillars`), `it names both routes ("${letter.text.slice(0, 160)}")`);
+  assert(letter.text.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && letter.text.includes(`From Year ${SPECIALIZATION_PILLAR_YEAR}, a place in the top ${SPECIALIZATION_PILLAR_RANK} of any one pillar`), `it names both routes ("${letter.text.slice(0, 160)}")`);
   for (const p of PILLARS) {
     const name = SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ');
     // What each opens, in points of prestige (Plan 95F), never the pillar's.
@@ -434,7 +434,7 @@ function closeSummer(s: GameState): GameState {
   // A choice names its pillar, and the second ask what is lost.
   for (const p of PILLARS) {
     const word = p === 'studentLife' ? 'student life' : p;
-    assert(CHOICE_WORDS.choose(p) === `Choose ${word}` && CHOICE_WORDS.armed(p).includes(word) && CHOICE_WORDS.warning(p).includes('cannot be changed or undone'), `${p}: "${CHOICE_WORDS.choose(p)}", then "${CHOICE_WORDS.armed(p)}"`);
+    assert(CHOICE_WORDS.choose(p) === `Choose ${word}` && CHOICE_WORDS.armed(p).includes(word) && CHOICE_WORDS.warning(p).includes("can't change or undo it"), `${p}: "${CHOICE_WORDS.choose(p)}", then "${CHOICE_WORDS.armed(p)}"`);
   }
 }
 

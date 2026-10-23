@@ -108,16 +108,16 @@ export const SPEED_UP_WORDS = {
   // picks, the park's Landmark Programs counted now).
   what: (kind: SpeedUpKind, n: number): string => {
     switch (kind) {
-      case 'class': return `This year the institute takes a second class: ${n} more training ${n === 1 ? 'pick' : 'picks'}, once a year.`;
-      case 'wing': return `Room for more Landmark Programs: ${n + WING_LANDMARKS} at once count toward the share, not ${n}.`;
-      case 'autumn': return `A second festival this year, with a headline act: it counts ${AUTUMN_POINTS} toward the share and warms the town by ${AUTUMN_GOODWILL}, once a year.`;
-      case 'step': return `The college matches the town's investors, and the district grows a step at once, ${pct(STEP_GROWTH)} of the way.`;
-      case 'phase': return `A deep run made with the second phase standing counts half again toward the share.`;
+      case 'class': return `The institute takes a second class this year, for ${n} more training ${n === 1 ? 'pick' : 'picks'}. You can buy it once a year.`;
+      case 'wing': return `Room for more Landmark Programs. ${n + WING_LANDMARKS} running at once count toward the share, instead of ${n}.`;
+      case 'autumn': return `A second festival this year, with a headline act. It counts ${AUTUMN_POINTS} toward the share and raises the town's goodwill by ${AUTUMN_GOODWILL}. You can buy it once a year.`;
+      case 'step': return `You match the town's investors, and the downtown grows by one step right away (${pct(STEP_GROWTH)} of the way).`;
+      case 'phase': return `Once the second phase stands, each deep run counts 50% more toward the share.`;
     }
   },
   ceiling: 'It fills the share sooner.',
   buy: (price: string) => `Buy, ${price}`,
-  armed: (price: string) => `Confirm — ${price}`,
+  armed: (price: string) => `Buy for ${price}`,
   done: {
     class: 'Bought this year.',
     wing: 'Built.',
@@ -125,15 +125,15 @@ export const SPEED_UP_WORDS = {
     step: 'The downtown has grown in full.',
     phase: 'Built.',
   } as Readonly<Record<SpeedUpKind, string>>,
-  head: 'What money can speed',
+  head: 'What money can speed up',
   // The log.
   bought: (kind: SpeedUpKind, price: string): string => {
     switch (kind) {
       case 'class': return `The Faculty Training Institute takes a second class this year, for ${price}.`;
-      case 'wing': return `The Research Park's second wing opens, for ${price}: more of its Landmark Programs count at once.`;
+      case 'wing': return `The Research Park's second wing opens, for ${price}. More of its Landmark Programs now count at once.`;
       case 'autumn': return `An autumn festival with a headline act filled the downtown, for ${price}.`;
-      case 'step': return `The downtown grows another block, the college matching the town's investors for ${price}.`;
-      case 'phase': return `The Athletic Performance Complex's second phase opens, for ${price}: its deep runs count half again.`;
+      case 'step': return `The downtown grows another block. You matched the town's investors for ${price}.`;
+      case 'phase': return `The Athletic Performance Complex's second phase opens, for ${price}. Its deep runs now count 50% more.`;
     }
   },
 };

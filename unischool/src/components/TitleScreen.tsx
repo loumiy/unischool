@@ -60,7 +60,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
         {setAside && (
           <p className="title-set-aside" role="status">
             {setAside.name ? `${setAside.name}, a college saved` : 'A college saved'}
-            {setAside.savedAt ? ` on ${calendarDate(setAside.savedAt)}` : ''}, was made by an earlier version of the game and cannot be continued in this one. It has been kept aside rather than erased.
+            {setAside.savedAt ? ` on ${calendarDate(setAside.savedAt)}` : ''}, was made by an earlier version of the game, so you can&apos;t continue it in this one. It&apos;s been kept aside, not erased.
             {' '}
             <button
               type="button"
@@ -82,7 +82,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
           <ConfirmButton
             className={underway ? 'menu-btn' : 'title-primary'}
             label="New game"
-            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            armedLabel={`Erase ${institutionName(s.self)} and start again`}
             warning={`${institutionName(s.self)} is erased and another is founded.`}
             needsConfirm={underway}
             onConfirm={onNewCollege}
@@ -91,9 +91,9 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
               (systems/sandbox). It replaces the run here as New game does. */}
           <ConfirmButton
             className="menu-btn"
-            title="Found a college with unlimited funds, where buildings and courses are finished the moment they are started."
+            title="Found a college with unlimited funds. Buildings and courses finish the moment you start them."
             label="Sandbox"
-            armedLabel={`Confirm — erase ${institutionName(s.self)}`}
+            armedLabel={`Erase ${institutionName(s.self)} and start again`}
             warning={`${institutionName(s.self)} is erased and a sandbox college is founded.`}
             needsConfirm={underway}
             onConfirm={onSandbox}

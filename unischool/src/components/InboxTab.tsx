@@ -174,7 +174,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
 
         <div className="inbox-rows">
           {filter === 'answered' ? (
-            answers.length === 0 ? <p className="inbox-empty">{q ? 'Nothing answered matches.' : 'Nothing answered yet. The matters settled lately are kept here.'}</p> : (
+            answers.length === 0 ? <p className="inbox-empty">{q ? 'Nothing answered matches.' : 'Nothing answered yet. Matters you\'ve settled recently are kept here.'}</p> : (
               <>
                 <div className="inbox-group"><span>Answered</span><span>newest first</span></div>
                 {answers.map((l, i) => {
@@ -198,8 +198,8 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
               <div className="inbox-group">
                 <span>{TIER_HEADING[g.tier]}</span>
                 <span>
-                  {g.tier === 'hold' ? 'answer to go on'
-                    : g.tier === 'decide' ? 'the clock runs on'
+                  {g.tier === 'hold' ? 'answer to continue'
+                    : g.tier === 'decide' ? 'time keeps running'
                     : g.tier === 'letter' ? `${g.rows.filter((r) => r.unread).length} unread`
                       : 'kept for a term'}
                 </span>
@@ -250,7 +250,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
           ) : (
             <div className="inbox-quiet">
               <h3 className="heading-panel">Nothing to read</h3>
-              <p>Events that want an answer, the board's letters, milestones and the week's news all arrive here.</p>
+              <p>Events that need an answer, the board's letters, milestones and the week's news all arrive here.</p>
             </div>
           )}
       </div>
@@ -292,7 +292,7 @@ function CharterAnswer({ s, act, p, e }: {
       <label className="charter-rename">
         <span className="eyebrow">The name over the door</span>
         <input type="text" value={name} maxLength={COLLEGE_NAME_MAX} onChange={(ev) => setName(ev.target.value)} aria-label="The college's name" />
-        <span className="charter-rename-note">{name.length >= COLLEGE_NAME_MAX ? NAME_LIMIT_NOTE : 'Change it here, once: the answer carves it.'}</span>
+        <span className="charter-rename-note">{name.length >= COLLEGE_NAME_MAX ? NAME_LIMIT_NOTE : 'You can change it here, once. Your answer carves it in stone.'}</span>
       </label>
       <CatalogueChoices
         s={s} p={shown} e={e}
@@ -315,7 +315,7 @@ function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization }: {
   if (item.kind === 'interrupt') {
     return (
       <div className="inbox-hold">
-        <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Nothing moves until this is answered.</p>
+        <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Time is paused until you answer this.</p>
         <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} onOpenSpecialization={onOpenSpecialization} />
       </div>
     );
@@ -368,7 +368,7 @@ function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization }: {
               <strong>{copy.ask(demand.askName)}</strong>
               <span className="inbox-meter wide"><i style={{ width: `${Math.round(progress.fraction * 100)}%` }} /></span>
               <span>{count(progress.current)} of {count(progress.target)} {copy.unit}.</span>
-              <span className="inbox-goal-stakes">Met, satisfaction heads for {satisfactionFigure(stakes.satisfactionIfMet)}; missed, next summer's applicant pool is {count(stakes.applicantsIfFailed)} rather than {count(stakes.applicantsIfMet)}.</span>
+              <span className="inbox-goal-stakes">If you meet it, satisfaction heads for {satisfactionFigure(stakes.satisfactionIfMet)}. If you miss it, next summer&apos;s applicant pool will be {count(stakes.applicantsIfFailed)} instead of {count(stakes.applicantsIfMet)}.</span>
             </div>
             <div className="modal-actions inbox-actions">
               <button type="button" onClick={() => onOpenTab('build')}>Open Build</button>
@@ -474,7 +474,7 @@ function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization }: {
         <ReadHead tier="decide" from={item.from} subject={item.subject} meta="From the Advancement Office to the President" />
         <div className="inbox-read-main">
           <div className="inbox-body"><p className="inbox-para">{STATUE_ASK}</p></div>
-          {statue && <p className="inbox-para inbox-note">{statue.name} is in the build menu, paid for from the building fund.</p>}
+          {statue && <p className="inbox-para inbox-note">{statue.name} is in the build menu, already paid for from the building fund.</p>}
           <div className="modal-actions inbox-actions">
             <button type="button" onClick={() => onOpenTab('build')}>Open Build</button>
           </div>
@@ -521,7 +521,7 @@ function UnlockLetterView({ vernacular }: { vernacular: string }) {
       <h2>{unlockLabel(vernacular)} architecture, unlocked</h2>
       {blurb && <p>{blurb}</p>}
       {unlock && <p><strong>What earned it:</strong> {unlock.condition}</p>}
-      <p>It is yours for every college after this one: pick it on the founding screen when you start the next.</p>
+      <p>It&apos;s yours for every college after this one. Pick it on the founding screen when you start your next college.</p>
     </>
   );
 }

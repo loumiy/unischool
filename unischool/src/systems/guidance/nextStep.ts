@@ -57,7 +57,7 @@ export interface NextStep {
 // lapses or presses this week: the board's unread letter, or an event in
 // its last week to answer. Both pulse.
 export function inboxPointer(s: GameState): NextStep | null {
-  if ((s.finance.distress?.letters.length ?? 0) > 0) return { text: 'The board has written', go: 'inbox', urgent: true };
+  if ((s.finance.distress?.letters.length ?? 0) > 0) return { text: 'The board has written to you', go: 'inbox', urgent: true };
   const week = absoluteWeek(s);
   const last = (s.catalogue?.pending ?? [])
     .map((p) => ({ p, e: eventById(p.eventId) }))
@@ -65,7 +65,7 @@ export function inboxPointer(s: GameState): NextStep | null {
   if (last.length === 0) return null;
   const { p, e } = last[0];
   const text = firstClause(fill(eventText(e!, p), p.vars));
-  return { text: last.length > 1 ? `${last.length} matters lapse this week: ${text}` : `Lapses this week: ${text}`, go: 'inbox', urgent: true };
+  return { text: last.length > 1 ? `${last.length} matters need an answer this week: ${text}` : `Answer this week: ${text}`, go: 'inbox', urgent: true };
 }
 
 // An event's question, cut to its first clause for the strip.
@@ -85,11 +85,11 @@ const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = NEED_LABEL
 // for one weeks before the build menu had it: until one opens, the line
 // names whatever else serves the need, or when the named ones open.
 const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, { text: string; names: (t: Buildable) => boolean }> = {
-  academic: { text: 'a library would raise it', names: (t) => t.facilityType === 'library' },
-  social: { text: 'a student center or a recreation building would raise it', names: (t) => t.facilityType === 'studentCenter' || t.facilityType === 'recCenter' },
-  basicNeeds: { text: 'a dining hall would raise it', names: (t) => t.facilityType === 'diningHall' },
-  health: { text: 'a health center or a gym would raise it', names: (t) => t.facilityType === 'healthCenter' || t.facilityType === 'gym' },
-  housing: { text: 'a residence hall would raise it', names: (t) => t.kind === 'dorm' },
+  academic: { text: 'build a library', names: (t) => t.facilityType === 'library' },
+  social: { text: 'build a student center or a recreation building', names: (t) => t.facilityType === 'studentCenter' || t.facilityType === 'recCenter' },
+  basicNeeds: { text: 'build a dining hall', names: (t) => t.facilityType === 'diningHall' },
+  health: { text: 'build a health center or a gym', names: (t) => t.facilityType === 'healthCenter' || t.facilityType === 'gym' },
+  housing: { text: 'build a residence hall', names: (t) => t.kind === 'dorm' },
 };
 
 // What raises an attribute, as the line says it: the buildings it names
@@ -101,9 +101,9 @@ export function attributeRemedy(s: GameState, key: keyof SatisfactionAttributes)
   const serves = (t: Buildable) => (t.kind === 'facility' && t.effects?.satisfactionAttribute === key) || (key === 'housing' && t.kind === 'dorm');
   if (s.tech.some((t) => build.names(t) && t.status !== 'locked')) return { text: build.text, go: 'build', intent: { kind: 'build-for', attribute: key } };
   const other = s.tech.find((t) => serves(t) && t.status === 'available');
-  if (other) return { text: `the ${other.name} would raise it`, go: 'build', intent: { kind: 'build-for', attribute: key } };
+  if (other) return { text: `build the ${other.name}`, go: 'build', intent: { kind: 'build-for', attribute: key } };
   const gate = s.tech.filter(build.names).map((t) => milestoneById(milestoneForBuildable(t.id) ?? '')).find((m) => m !== undefined && s.ladder.reached[m.id] === undefined);
-  return { text: gate ? `${build.text}, and the first opens with ${gate.condition}` : build.text, intent: { kind: 'wait' } };
+  return { text: gate ? `${build.text}, which opens with ${gate.condition}` : build.text, intent: { kind: 'wait' } };
 }
 
 // Shortfall line on the 0..100 attribute scale.
@@ -118,10 +118,10 @@ export function academicRemedy(s: GameState): { text: string; go: TabId | 'build
   if (libraryPoints(s) < ACADEMIC_LIBRARY_POINTS) {
     const stands = s.tech.some((t) => t.effects?.satisfactionAttribute === 'academic' && standsOnCampus(t));
     return stands
-      ? { text: 'more library seats would raise it (a story on the library, or another)', go: 'build', library: true }
+      ? { text: 'add library seats with another story or a second library', go: 'build', library: true }
       : { text: ATTRIBUTE_BUILD.academic.text, go: 'build', library: true };
   }
-  return { text: 'the library has room; better teaching would raise it', go: 'faculty', library: false };
+  return { text: 'better teaching would raise it (the library has room)', go: 'faculty', library: false };
 }
 
 function letterAsk(s: GameState): NextStep | null {
@@ -181,9 +181,9 @@ function freeSlot(s: GameState): NextStep | null {
       // hall (Plan 100): until then the hall founds from the offers.
       const short = claimedSchool(s, home) ? 0 : CLAIM_AT - (homeSchool(s, home)?.housed ?? 0);
       const tail = short > 0
-        ? ` — found ${countWord(short)} more ${program.school} ${short === 1 ? 'program' : 'programs'} here to make it ${program.school}'s hall`
-        : ` — it teaches ${program.school}`;
-      return { text: `${nameOf(home)} has room for ${program.name}, on offer${tail}`, go: 'hall', hallId: home, intent: { kind: 'found', hallId: home, programId: program.id } };
+        ? `. ${countWord(short)[0].toUpperCase()}${countWord(short).slice(1)} more ${program.school} ${short === 1 ? 'program' : 'programs'} there will make it ${program.school}'s hall`
+        : `, ${program.school}'s hall`;
+      return { text: `Found ${program.name} in ${nameOf(home)}${tail}`, go: 'hall', hallId: home, intent: { kind: 'found', hallId: home, programId: program.id } };
     }
   }
   const open = Object.keys(s.halls).find((hallId) => {
@@ -195,7 +195,7 @@ function freeSlot(s: GameState): NextStep | null {
   if (open && s.programOffers.length > 0) {
     const offers = s.programOffers.map((id) => programById(id)?.name ?? id);
     return {
-      text: `${nameOf(open)} has a free program slot — ${offers.join(', ')} ${offers.length === 1 ? 'is' : 'are'} on offer`,
+      text: `${nameOf(open)} has a free slot: found ${offers.length === 1 ? offers[0] : `${offers.slice(0, -1).join(', ')} or ${offers[offers.length - 1]}`}`,
       go: 'hall',
       hallId: open,
       intent: { kind: 'found', hallId: open },
@@ -208,7 +208,7 @@ function freeSlot(s: GameState): NextStep | null {
     const own = schoolOffers(s, claim.hallId);
     if (own.length === 0) continue;
     return {
-      text: `${nameOf(claim.hallId)} has room for ${claim.school} (${claim.housed} of ${claim.slots}): ${own.length === 1 ? own[0].name : `${own[0].name} or ${own.length - 1} more`} on offer there`,
+      text: `Found ${own.length === 1 ? own[0].name : `${own[0].name} or one of ${own.length - 1} more`} in ${nameOf(claim.hallId)} (${claim.school}: ${claim.housed} of ${claim.slots})`,
       go: 'hall',
       hallId: claim.hallId,
       intent: { kind: 'found', hallId: claim.hallId },
@@ -220,7 +220,7 @@ function freeSlot(s: GameState): NextStep | null {
   const nextHall = s.tech.find((t) => isAcademicHall(t) && t.status === 'available');
   if (nextHall) {
     return {
-      text: `Nothing on offer has a hall to go to — site ${nextHall.name}`,
+      text: `Place ${nextHall.name}: no hall has room for the programs on offer`,
       go: 'build',
       intent: { kind: 'site', buildableIds: [nextHall.id] },
     };
@@ -233,8 +233,8 @@ function freeSlot(s: GameState): NextStep | null {
   const claimed = claimedHalls(s).find((c) => hasRoom(c.hallId));
   if (!claimed) return null;
   return claimed.hallId === FOUNDERS_HALL_ID
-    ? { text: `${nameOf(FOUNDERS_HALL_ID)} has room for ${claimed.school} when one is on offer`, intent: { kind: 'wait' } }
-    : { text: `${nameOf(claimed.hallId)} has room only for ${claimed.school}, and nothing of ${claimed.school} is left to offer`, intent: { kind: 'wait' } };
+    ? { text: `${nameOf(FOUNDERS_HALL_ID)} has room for a ${claimed.school} program once one is on offer`, intent: { kind: 'wait' } }
+    : { text: `${nameOf(claimed.hallId)} only takes ${claimed.school} programs, and none are left to found`, intent: { kind: 'wait' } };
 }
 
 // A housed program one tier-2 course from established.
@@ -249,7 +249,7 @@ function nearlyEstablished(s: GameState): NextStep | null {
         const missing = major.tier2Ids.find((id) => !done.has(id));
         const course = missing ? s.tech.find((t) => t.id === missing) : undefined;
         return {
-          text: `The ${major.name} program is one course from being established${course ? ` — ${course.name}` : ''}`,
+          text: course ? `Develop ${course.name} to establish the ${major.name} program` : `The ${major.name} program is one course from being established`,
           go: 'curriculum',
           ...(missing ? { intent: { kind: 'develop' as const, courseId: missing } } : {}),
         };
@@ -302,7 +302,7 @@ function shortfall(s: GameState): NextStep | null {
   const coming = comingFor(s, worst.key);
   if (coming) {
     const name = coming.story ? `${coming.building.name}'s new story` : coming.building.name;
-    return { text: `${need} — ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, intent: { kind: 'wait' } };
+    return { text: `${need}. ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, intent: { kind: 'wait' } };
   }
   if (worst.key === 'academic') {
     const remedy = academicRemedy(s);
@@ -334,10 +334,10 @@ function crowding(s: GameState, rest: NextStep | null): NextStep | null {
   if (coming) {
     if (rest?.intent && rest.intent.kind !== 'wait') return rest;
     const name = coming.story ? `${coming.building.name}'s new story` : coming.building.name;
-    return { text: `${need}; ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, ...intent };
+    return { text: `${need}. ${name} opens in ${weeksProse(coming.weeks)}`, go: 'hall', hallId: coming.building.id, ...intent };
   }
   const remedy = attributeRemedy(s, worst.attribute);
-  return { text: `${need}; ${remedy.text}`, ...(remedy.go ? { go: remedy.go } : {}), ...intent };
+  return { text: `${need}: ${remedy.text}`, ...(remedy.go ? { go: remedy.go } : {}), ...intent };
 }
 
 // A program gone dark with an unstaffed course (Plan 59), when the payroll
@@ -351,8 +351,8 @@ function darkProgram(s: GameState): NextStep | null {
   if (plan.length === 0) return null;
   const names = [...dark].map((id) => programById(id)?.name ?? id);
   const text = names.length === 1
-    ? `${names[0]} is dark: staff it`
-    : `${names.length} programs are dark — ${names[0]} and more; staff them from the market`;
+    ? `${names[0]} has a course with no professor: staff it in the Curriculum`
+    : `${names.length} programs have courses with no professor, ${names[0]} first: staff them in the Curriculum`;
   return { text, go: 'curriculum', urgent: true, intent: { kind: 'restaff', school: null } };
 }
 
@@ -379,7 +379,7 @@ function idleLab(s: GameState): NextStep | null {
   const unproven = idle.find((t) => !finished.has(t.id));
   const lab = unproven ?? idle[0];
   return {
-    text: unproven ? PARK_WORDS.unprovenLab(lab.name) : `${lab.name} is idle — commission research`,
+    text: unproven ? PARK_WORDS.unprovenLab(lab.name) : `${lab.name} is idle: start a research project`,
     go: 'research',
     intent: { kind: 'research', labId: lab.id },
   };
@@ -390,7 +390,7 @@ function idleLab(s: GameState): NextStep | null {
 function idleCash(s: GameState): NextStep | null {
   if (!idleCashAsk(s)) return null;
   return {
-    text: 'Idle cash counts for nothing — set a standing sweep into the endowment',
+    text: 'Set up a sweep to move spare cash into the endowment',
     go: 'treasury',
     intent: { kind: 'sweep', weeks: SWEEP_DEFAULT_WEEKS },
   };
@@ -403,7 +403,7 @@ export function nextStep(s: GameState): NextStep | null {
   // line says so (Plan 80D).
   if (openingHoldsClock(s)) {
     if (s.events.opening.stage !== 'play') return null;
-    return { text: 'Site Founders Hall: the clock waits until it stands', go: 'build', urgent: true, intent: { kind: 'site', buildableIds: [FOUNDERS_HALL_ID] } };
+    return { text: 'Place Founders Hall. Time is paused until you do', go: 'build', urgent: true, intent: { kind: 'site', buildableIds: [FOUNDERS_HALL_ID] } };
   }
   if (s.clock.year === 1 && !s.events.opening.skipped) return letterAsk(s) ?? seating(s) ?? shortfall(s);
   // A letter whose ask cannot be acted on this week (it waits on an offer

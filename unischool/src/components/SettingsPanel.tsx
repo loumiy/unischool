@@ -56,7 +56,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             <button type="button" className={s.vision === 'standard' ? 'active' : undefined} aria-pressed={s.vision === 'standard'} onClick={() => setSettings({ vision: 'standard' })}>Standard</button>
             <button type="button" className={s.vision === 'safe' ? 'active' : undefined} aria-pressed={s.vision === 'safe'} onClick={() => setSettings({ vision: 'safe' })}>Color-vision safe</button>
           </span>
-          <p className="settings-note">Good and bad news in blue and orange rather than green and red.</p>
+          <p className="settings-note">Shows good and bad news in blue and orange, instead of green and red.</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Motion</legend>
@@ -64,7 +64,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             <button type="button" className={s.motion === 'system' ? 'active' : undefined} aria-pressed={s.motion === 'system'} onClick={() => setSettings({ motion: 'system' })}>Match the device setting</button>
             <button type="button" className={s.motion === 'reduce' ? 'active' : undefined} aria-pressed={s.motion === 'reduce'} onClick={() => setSettings({ motion: 'reduce' })}>Reduced</button>
           </span>
-          <p className="settings-note">Reduced stills the walkers, the counting numbers and the pulses.</p>
+          <p className="settings-note">Reduced stops the walkers, the counting numbers and the pulses.</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Pause when a matter arrives</legend>
@@ -72,7 +72,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             <button type="button" className={s.pauseOnArrival ? 'active' : undefined} aria-pressed={s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: true })}>On</button>
             <button type="button" className={s.pauseOnArrival ? undefined : 'active'} aria-pressed={!s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: false })}>Off</button>
           </span>
-          <p className="settings-note">The clock stops for each new matter to decide.</p>
+          <p className="settings-note">Time pauses for each new matter you need to decide.</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Pause for news</legend>
@@ -80,7 +80,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             <button type="button" className={s.pauseForNews ? 'active' : undefined} aria-pressed={s.pauseForNews} onClick={() => setSettings({ pauseForNews: true })}>On</button>
             <button type="button" className={s.pauseForNews ? undefined : 'active'} aria-pressed={!s.pauseForNews} onClick={() => setSettings({ pauseForNews: false })}>Off</button>
           </span>
-          <p className="settings-note">The clock stops for each celebration and research report. Off, they wait in the inbox as letters.</p>
+          <p className="settings-note">Time pauses for each celebration and research report. When this is off, they wait in the inbox as letters.</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Objectives</legend>
@@ -106,7 +106,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
               <button type="button" className={s.stats === 'on' ? 'active' : undefined} aria-pressed={s.stats === 'on'} onClick={() => answerStats(true)}>On</button>
               <button type="button" className={s.stats === 'on' ? undefined : 'active'} aria-pressed={s.stats !== 'on'} onClick={() => answerStats(false)}>Off</button>
             </span>
-            <p className="settings-note">How far runs get and how long they take, to help the playtest: no names and nothing you type.</p>
+            <p className="settings-note">How far runs get and how long they take, to help the playtest. No names, and nothing you type.</p>
           </fieldset>
         )}
         {feedbackAvailable() && (
@@ -116,7 +116,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
               <button type="button" className={s.feedbackPrompts ? 'active' : undefined} aria-pressed={s.feedbackPrompts} onClick={() => setSettings({ feedbackPrompts: true })}>On</button>
               <button type="button" className={s.feedbackPrompts ? undefined : 'active'} aria-pressed={!s.feedbackPrompts} onClick={() => setSettings({ feedbackPrompts: false })}>Off</button>
             </span>
-            <p className="settings-note">Twice at most, once after five years and once at the Final Report. The menu's Send feedback is always there.</p>
+            <p className="settings-note">Twice at most: once after five years, and once at the Final Report. You can always use Send feedback in the menu.</p>
           </fieldset>
         )}
         {children}
@@ -136,7 +136,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
             ))}
           </dl>
         </fieldset>
-        <p className="settings-note">Kept in this browser, apart from your run.</p>
+        <p className="settings-note">Saved in this browser, separately from your run.</p>
       </section>
     </div>
   );

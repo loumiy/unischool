@@ -295,7 +295,10 @@ button, input, select, textarea { font-size: inherit; }
 .confirm-button { display: inline-flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); max-width: 100%; }
 .confirm-button > button.confirm-armed, .confirm-button > button.confirm-armed:hover:not(:disabled) {
   border-color: var(--bad-on-light); background: var(--danger-bg); color: var(--danger-ink); transform: none; }
+.confirm-button > button.confirm-armed.confirm-commit, .confirm-button > button.confirm-armed.confirm-commit:hover:not(:disabled) {
+  border-color: var(--ink); background: var(--school-secondary); color: var(--school-on-secondary); }
 .confirm-warning { font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); }
+.confirm-button:has(> button.confirm-commit) > .confirm-warning { color: var(--ink); }
 /* Armed as a question (Plan 104C): the question on its own line above the
    armed button and the one that keeps things as they are. */
 .confirm-button.has-question { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
@@ -1276,11 +1279,6 @@ button.build-tile { font-family: inherit; }
 /* A building under the cursor, found on the canvas (the SVG's buildings
    carry the pointer themselves, .campus-building). */
 .campus-map-svg.over-building:not(.panning) { cursor: pointer; }
-.campus-map-ghost .campus-rotate-btn { pointer-events: auto; }
-.campus-rotate-btn { cursor: pointer; }
-.campus-rotate-btn circle { fill: var(--parchment); stroke: var(--gold-dim); stroke-width: 1.5; }
-.campus-rotate-btn:hover circle { fill: #efe1b8; }
-.campus-rotate-btn text { font-size: var(--text-base); fill: var(--ink); pointer-events: none; }
 
 /* Drawn pathways (pathways.tsx), autotiled: the curb runs only along edges
    with no neighbor, so a run reads as a walkway and a block as a plaza. */

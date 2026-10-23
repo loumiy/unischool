@@ -3,7 +3,7 @@
 // read as "place it" (Plan 95Q, the second review's B3-10).
 export const BUILD_WORDS = {
   holding: 'Placing: {building} · {cost} · {pay}',
-  holdingKeys: 'Click open ground to break ground · R turns it · Esc cancels',
+  holdingKeys: 'Click open ground to build · R turns it · Esc cancels',
   putDown: 'Cancel',
   pay: {
     cash: 'paid in cash',
@@ -18,9 +18,9 @@ export const BUILD_WORDS = {
   short: '{short} short',
   noLoan: {
     frozen: 'the board has frozen borrowing',
-    noCash: 'with no cash in hand, the college cannot borrow',
-    room: 'the college can borrow up to {room}',
-    noRoom: 'the college has no borrowing room left',
+    noCash: 'you can’t borrow with no cash in hand',
+    room: 'you can borrow up to {room}',
+    noRoom: 'you can’t borrow any more',
   },
   constructionFrozen: 'construction frozen',
   // Why the map's ghost is red when the ground is fine (Plan 104H): what
@@ -32,6 +32,6 @@ export const BUILD_WORDS = {
   notOpen: '{building} isn’t open to build yet',
   // A bench, lamp or bed refused (the reducer's PLACE_DRESSING): off the
   // college's land, or on a building.
-  dressingOffLand: 'Only on the college’s land',
+  dressingOffLand: 'Only on your college’s land',
   dressingOnBuilding: '{building} stands here',
 } as const;

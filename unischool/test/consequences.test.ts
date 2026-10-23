@@ -114,12 +114,12 @@ console.log('consequences tests');
   assert(staying - stayed === projected.notReturning, `the tick loses exactly the projected number (${staying - stayed} vs ${projected.notReturning})`);
   assert(Math.abs((staying - stayed) / staying - ATTRITION_MAX_RATE) < 0.01, `about ${ATTRITION_MAX_RATE * 100}% of the staying classes at satisfaction 30`);
   assert(totalEnrolled(s.students) === projected.totalEnrolled, 'and the body committed is the body projected');
-  assert(s.log.some((l) => l.message.includes('did not return')), 'the log names the loss');
+  assert(s.log.some((l) => l.message.includes("didn't come back")), 'the log names the loss');
 
   const good = toSummer(teachingCollege('Content'));
   withYearAverage(good, 70);
   const g = reducer(good, defaultAnswer(good)!);
-  assert(!g.log.some((l) => l.message.includes('did not return')), 'a good year loses nobody and says nothing');
+  assert(!g.log.some((l) => l.message.includes("didn't come back")), 'a good year loses nobody and says nothing');
 }
 
 // ---- attrition reasons name the worst-covered needs ----

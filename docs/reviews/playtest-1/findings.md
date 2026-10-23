@@ -256,8 +256,11 @@ marked **0.1.x** and fixed in a patch.*
   of the game. "I think this is broadly where I got stuck last time."
 - **Rotating a building took a while to find.** "It took me a while to
   figure out how to rotate … you see the little icon in the corner for
-  the rotating. I think I should be able to click that?" (It is: the ⟳
-  on the ghost, or R.) *1 player · service (S3).*
+  the rotating. I think I should be able to click that?" (It was: the ⟳
+  on the ghost, or R.) *1 player · service (S3).* **Removed** (the
+  owner, 22 October): the ⟳ was clickable in theory, not in practice, so
+  it goes; R turns a building, and on a touch screen the placing bar's
+  Rotate button does.
 
 - **Where to found the next program.** A few months in, S2 wanted a
   third subject and couldn't remember where the eight program slots

@@ -286,7 +286,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   };
   setSettings({ objectives: 'guided' });
   const strip = renderToStaticMarkup(createElement(LogTicker, props));
-  assert(strip.includes('Chapter 5') && strip.includes('Places for every student'), 'the strip names the chapter and its first objective not met');
+  assert(strip.includes('Chapter 5') && strip.includes('A place in class for every student'), 'the strip names the chapter and its first objective not met');
   assert(/\d+\/1,350/.test(strip), `with its count (${strip.match(/[\d,]+\/[\d,]+/)?.[0]})`);
   assert(!strip.includes('>Milestone<'), 'and no milestone chip');
   const drawer = renderToStaticMarkup(createElement(LogTicker, { ...props, objectivesOpen: true }));
@@ -307,7 +307,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   let went: string | undefined;
   const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
-  assert(html.includes('What it is') && html.includes('Every student needs a place in the catalog') && html.includes('Show me') && html.includes('→ Satisfaction:'), 'a briefing shows its what, how and why');
+  assert(html.includes('What it is') && html.includes('Every student needs a place in class') && html.includes('Show me') && html.includes('→ Satisfaction:'), 'a briefing shows its what, how and why');
   assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
   const showMe = findButton(panel, 'Show me');
   showMe?.();
@@ -382,7 +382,7 @@ for (const c of CHAPTERS.filter((x) => x.id !== 'founding')) {
   s.guidance = { opened: { standing: 53 }, done: Object.fromEntries(['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'].map((id) => [id, 1])), met: [], marked: [] };
   s.guidance.opened = { ...s.guidance.done, standing: 53 };
   const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
-  assert(html.includes('Standing') && /Prestige [\d.]+, its target [\d.]+/.test(html), 'Standing reads prestige against its target');
+  assert(html.includes('Standing') && /Prestige [\d.]+, heading for [\d.]+/.test(html), 'Standing reads prestige against its target');
   assert(/Its pillars: Academics [\d.]+ of [\d.]+ · Research/.test(html) && html.includes('Satisfaction '), 'with each pillar against its most, and the satisfaction');
 }
 

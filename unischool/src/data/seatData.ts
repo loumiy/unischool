@@ -13,7 +13,7 @@ export type EventDomain = SeatDomain | 'board';
 export type PolicyRule = 'thrifty' | 'thorough' | 'popular';
 export const POLICY_RULE_NOTES: Readonly<Record<PolicyRule, string>> = {
   thrifty: 'Takes the choice that spends least.',
-  thorough: 'Takes the choice that spends most, which is usually the one that fixes it.',
+  thorough: 'Takes the choice that spends most. That\'s usually the one that fixes it.',
   popular: 'Takes the choice the students feel best about.',
 };
 
@@ -55,11 +55,11 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'collegial', rule: 'popular', label: 'Keep the students on side' },
       {
         id: STAFFING_POLICY, rule: 'popular', label: 'Staff the weakest courses first', staffs: true,
-        note: `Each week, weakest first, puts the best free instructor in its field on each course below the top band, when they would lift it a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Answers the routine as Keep the students on side does.`,
+        note: `Each week, moves the best free instructor in the field onto each course below the top band, weakest course first. Only moves someone who'd lift the course a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Otherwise answers like Keep the students on side.`,
       },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments, the faculty\'s routine, and, on Staff the weakest courses first, who teaches the courses below the top band. Usually the first seat a college fills, and the one that opens game speed 4×.',
+    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments and the faculty\'s routine. On Staff the weakest courses first, also picks who teaches the courses below the top band. Usually the first seat a college fills. Opens game speed 4×.',
   },
   {
     id: 'dean', title: 'Dean', domain: 'academic', perSchool: true,
@@ -70,11 +70,11 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'collegial', rule: 'popular', label: 'Keep the students happy' },
       {
         id: STAFFING_POLICY, rule: 'popular', label: 'Staff the weakest courses first', staffs: true,
-        note: `With no Provost, each week, weakest first, puts the best free instructor in its field on each of the school's courses below the top band, when they would lift it a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Answers the routine as Keep the students happy does.`,
+        note: `With no Provost: each week, moves the best free instructor in the field onto each of the school's courses below the top band, weakest course first. Only moves someone who'd lift the course a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Otherwise answers like Keep the students happy.`,
       },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'One for each school the college has founded. Takes the academic routine when there is no Provost; with a Provost, three of them open game speed 8×.',
+    blurb: 'One for each school you\'ve founded. Takes the academic routine when there\'s no Provost. With a Provost, three Deans open game speed 8×.',
   },
   {
     id: 'facilities', title: 'Facilities Director', domain: 'estate', perSchool: false,
@@ -85,7 +85,7 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'visible', rule: 'popular', label: 'Whatever the students see' },
     ],
     defaultPolicy: 'worst-first',
-    blurb: 'Roofs, boilers, pipes and snow: the campus\'s routine emergencies, answered before they reach the President\'s desk. Storms, fires, floods and a hard freeze still reach it.',
+    blurb: 'Roofs, boilers, pipes and snow: the campus\'s routine emergencies, answered before they reach your desk. Storms, fires, floods and a hard freeze still come to you.',
   },
   {
     id: 'dean-of-students', title: 'Dean of Students', domain: 'students', perSchool: false,

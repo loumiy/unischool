@@ -32,7 +32,7 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
     <section className="panel advancement-panel">
       <div className="panel-head">
         <h2>Advancement</h2>
-        <HelpHint align="end" text="A campaign asks the alumni for one thing over several years. Each class answers by the warmth its four years earned, and gives most when the campaign's case is something that class remembers. What a campaign raises is restricted: endowment money goes into the endowment, building money pays for buildings and nothing else. It needs a VP of Advancement, runs one at a time, and each campaign cools alumni warmth a little. A title year lifts what everyone gives." />
+        <HelpHint align="end" text="A campaign asks your alumni to give toward one thing over several years. Each class gives according to the warmth its four years earned. A class gives most when the campaign's cause is something it remembers. Campaign money is restricted. Endowment money goes into the endowment, and building money pays only for buildings. You need a VP of Advancement to run a campaign, and you can run one at a time. Each campaign cools alumni warmth a little. A title year raises what everyone gives." />
       </div>
       {running && def ? (
         <>
@@ -40,7 +40,7 @@ export default function AdvancementPanel({ s, act }: { s: GameState; act: (a: Ac
           <p className="empty-note">{def.text}</p>
         </>
       ) : !hasAdvancementOffice(s) ? (
-        <p className="empty-note">A campaign needs a VP of Advancement to run it (the Faculty tab's Administration).</p>
+        <p className="empty-note">To run a campaign, fill the VP of Advancement seat. It&apos;s under Administration in the Faculty tab.</p>
       ) : open.length === 0 ? (
         <p className="empty-note">No campaign is ready.</p>
       ) : (

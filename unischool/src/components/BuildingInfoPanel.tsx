@@ -241,7 +241,7 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
           {inTransit > 0
             ? <span className="program-tile-transit" title={`In transit · ${inTransit} weeks`}>moving · {weeksShort(inTransit)}</span>
             : dark
-              ? <span className="program-tile-transit" title="A course has no instructor">dark</span>
+              ? <span className="program-tile-transit" title="Dark: a course has no professor, so the whole program stops teaching">dark</span>
               : <span className="program-tile-progress">{fraction(progress.done, progress.total)}</span>}
           {moveHall && <span className="program-tile-move" title={`Could move to ${hallDisplayName(s, moveHall)}`} aria-label={`Could move to ${hallDisplayName(s, moveHall)}`}>→</span>}
           {avg !== null && <GradeChip score={avg} title={`Averages ${count(avg)} out of 100`} />}
@@ -274,9 +274,10 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
             <div className="relocate-suggested">
               <ConfirmButton
                 className="building-info-jump"
-                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, program slot ${move.slot + 1}: closed for ${relocationWeeks(s, program.id)} weeks`}
+                title={`Move ${program.name} to ${hallDisplayName(s, moveHall)}, program slot ${move.slot + 1}. It stops teaching for ${relocationWeeks(s, program.id)} weeks.`}
                 label={`Move to ${hallDisplayName(s, moveHall)} (${program.school}) · ${weeksShort(relocationWeeks(s, program.id))}`}
-                armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
+                armedLabel={`Move ${program.name} (no classes for ${relocationWeeks(s, program.id)} weeks)`}
+                tone="commit"
                 onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, ...move })}
               />
             </div>
@@ -306,16 +307,16 @@ function CloseControls({ program, s, act }: { program: ProgramInfo; s: GameState
     <details className="relocate-details">
       <summary>Close this program…</summary>
       {refusal ? (
-        <p className="building-info-line relocate-note">It cannot close: {refusal}</p>
+        <p className="building-info-line relocate-note">You can&apos;t close it: {refusal}</p>
       ) : (
         <>
           <p className="building-info-line relocate-note">
-            Its courses end now and their teachers are free for others. The alumni give a little less for a few years, and it may be founded again from the offers.
+            Its courses end now, and their professors are free to teach others. Alumni give a little less for a few years. You can found it again later, when it&apos;s on offer.
           </p>
           <ConfirmButton
             className="relocate-slot"
             label={`Close ${program.name}`}
-            armedLabel={`Confirm — close ${program.name} now`}
+            armedLabel={`Close ${program.name} now`}
             onConfirm={() => act({ type: 'CLOSE_PROGRAM', programId: program.id })}
           />
         </>
@@ -341,12 +342,12 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
     );
   }
   if (destinations.length === 0) {
-    return <p className="building-info-line relocate-note">No free program slot anywhere to move this program to.</p>;
+    return <p className="building-info-line relocate-note">There&apos;s no free program slot to move this program to.</p>;
   }
   return (
     <div className="relocate">
       <p className="building-info-line relocate-note">
-        Free · closed {relocationWeeks(s, program.id)} weeks
+        Free · no classes for {relocationWeeks(s, program.id)} weeks
       </p>
       {destinations.map((d) => (
         <p key={d.hallId} className="relocate-row">
@@ -358,7 +359,8 @@ function RelocateControls({ program, s, act }: { program: ProgramInfo; s: GameSt
               disabled={!act}
               title={`Move ${program.name} to ${hallDisplayName(s, d.hall!)}, program slot ${slot + 1}`}
               label={slot + 1}
-              armedLabel={`Confirm — ${program.name} closes ${relocationWeeks(s, program.id)} weeks`}
+              armedLabel={`Move ${program.name} (no classes for ${relocationWeeks(s, program.id)} weeks)`}
+                tone="commit"
               onConfirm={() => act?.({ type: 'RELOCATE_PROGRAM', programId: program.id, hallId: d.hallId, slot })}
             />
           ))}
@@ -517,7 +519,8 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
           disabled={refusal !== null}
           title={refusal ?? `Set ${program.name} aside for another offer`}
           label="Not this year"
-          armedLabel="Confirm"
+          armedLabel={`Set ${program.name} aside this year`}
+          tone="commit"
           onConfirm={() => {
             act({ type: 'DECLINE_OFFER', programId: program.id });
             if (pickedProgram === program.id) { setPickedProgram(null); setPickedFaculty(null); }
@@ -541,18 +544,18 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       )}
       {claim && own.length === 0 && free > 0 && (
         <p className="building-info-line">
-          Every {claim.school} program is housed{drawn.length > 0 ? ', so its free slots take the programs on offer.' : '.'}
+          Every {claim.school} program is housed{drawn.length > 0 ? ', so its free program slots take any program on offer.' : '.'}
         </p>
       )}
       {!host && !founders && !claimed && !school && (
         <p className="building-info-line hall-claim-note">
-          Three programs of one school make this its hall{lead ? ` · ${lead.school} ${lead.housed} of ${CLAIM_AT}` : ''}.
+          Put three programs from one school here to make it that school&apos;s hall{lead ? ` · ${lead.school} ${lead.housed} of ${CLAIM_AT}` : ''}.
         </p>
       )}
       {founders && (
         <p className="building-info-line">
           {officeAllowance(s) > 0
-            ? 'Where programs begin, and where the administration sits.'
+            ? 'Where programs begin, and where your offices go.'
             : 'Where programs begin.'}
         </p>
       )}
@@ -609,7 +612,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
               disabled={offers.length === 0 && officesOffered === 0}
               title={offers.length === 0 && officesOffered === 0
                 ? (host ? 'No program for this hall is on offer yet.'
-                  : offerablePrograms(s).length === 0 ? 'Every program in the catalog is founded.' : 'Nothing is on offer to found here.')
+                  : offerablePrograms(s).length === 0 ? 'You\'ve founded every program in the catalog.' : 'Nothing is on offer to found here.')
                 : officesOffered > 0 ? 'Found a program or open an office here' : 'Found a program here'}
             >
               +
@@ -690,7 +693,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
               )}
               {s.finance.cash < entry.cost && (
                 <p className="building-info-line building-info-construction">
-                  {money(Math.ceil(entry.cost - s.finance.cash))} short of the entry course's cost.
+                  You&apos;re {money(Math.ceil(entry.cost - s.finance.cash))} short of the entry course&apos;s cost.
                 </p>
               )}
               <ConfirmButton
@@ -741,7 +744,7 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
     return <p className="building-info-line">A story going up: {t.extensionWeeks} weeks left.</p>;
   }
   const extend = canExtend(t) ? (
-    <button type="button" className="building-info-jump" disabled={!canPayForWorks(s, extensionCost(t)) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction; nothing new goes up until it lifts.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
+    <button type="button" className="building-info-jump" disabled={!canPayForWorks(s, extensionCost(t)) || constructionFrozen(s)} title={constructionFrozen(s) ? 'The board has frozen construction. You can\'t build anything new until it lifts the freeze.' : undefined} onClick={() => act({ type: 'EXTEND_BUILDING', id: t.id })}>
       Add a story · {moneyShort(extensionCost(t))} · {weeksShort(extensionWeeks(t))} · {count(extensionGain(t))} more {t.kind === 'dorm' ? 'beds' : 'served'}
     </button>
   ) : null;
@@ -749,12 +752,13 @@ function EstateLine({ t, s, act }: { t: Buildable; s: GameState; act: (a: Action
     return <p className="building-info-line">Under renovation: {t.renovationWeeks} weeks left.</p>;
   }
   const historic = t.historic
-    ? <p className="building-info-line">Historic: a landmark of the college's own past.</p>
+    ? <p className="building-info-line">Historic: a landmark of your college&apos;s past.</p>
     : canDeclareHistoric(s, t) ? (
       <ConfirmButton
         className="building-info-jump"
         label="Declare historic"
-        armedLabel="Confirm — it can never come down"
+        armedLabel="Declare it historic (it can never come down)"
+        tone="commit"
         warning="Permanent. +25% upkeep."
         onConfirm={() => act({ type: 'DECLARE_HISTORIC', id: t.id })}
       />
@@ -787,7 +791,7 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
       <ConfirmButton
         className="building-info-jump btn-danger"
         label={<>Call off construction · {moneyShort(t.cost)} returned</>}
-        armedLabel="Confirm — the site is cleared"
+        armedLabel="Call off construction (the site is cleared)"
         warning={<>{money(t.cost)} comes back {back}; the site is cleared.</>}
         onConfirm={() => { act({ type: 'CANCEL_CONSTRUCTION', id: t.id }); onClose(); }}
       />
@@ -795,12 +799,12 @@ function TakeDown({ t, s, act, onClose }: { t: Buildable; s: GameState; act: (a:
   }
   if (t.status !== 'done') return null;
   const blocked = demolitionBlock(s, t);
-  if (blocked) return <p className="building-info-line building-info-note">Not for demolition. {blocked}</p>;
+  if (blocked) return <p className="building-info-line building-info-note">You can&apos;t demolish this. {blocked}</p>;
   return (
     <ConfirmButton
       className="building-info-jump btn-danger"
       label="Demolish"
-      armedLabel={`Confirm — ${hallDisplayName(s, t)} comes down`}
+      armedLabel={`Demolish ${hallDisplayName(s, t)} for good`}
       warning="Cannot be undone."
       onConfirm={() => { act({ type: 'DEMOLISH_BUILDING', id: t.id }); onClose(); }}
     />
@@ -816,7 +820,7 @@ function SandboxLine({ t, s, act, onMove }: { t: Buildable; s: GameState; act?: 
   return (
     <div className="building-info-sandbox">
       {onMove && (
-        <button type="button" className="building-info-jump" onClick={onMove} title="Pick it up, then click where it goes; R turns it.">
+        <button type="button" className="building-info-jump" onClick={onMove} title="Pick it up, then click where it goes. R turns it.">
           <MoveIcon /> Move
         </button>
       )}

@@ -144,7 +144,7 @@ function research(entries: LogEntry[]): ReviewSection {
   const started = byTopic(entries, 'research-started').length;
   const concluded = byTopic(entries, 'research-concluded').length + byTopic(entries, 'research-reported').length;
   if (started > 0 || concluded > 0) {
-    lines.push({ text: `${plural(started, 'research project')} begun, ${concluded} concluded` });
+    lines.push({ text: `${plural(started, 'research project')} started, ${concluded} finished` });
   }
   const papers = byTopic(entries, 'publication').length;
   const breakthroughs = byTopic(entries, 'breakthrough').length;
@@ -177,10 +177,10 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
   const delta = satisfactionShown(average) - satisfactionShown(lastAverage);
   lines.push({
     text: s.history.length > 0
-      ? `Satisfaction averaged ${satisfactionFigure(average)} this year, against ${satisfactionFigure(lastAverage)} last year (${signed(delta)})`
+      ? `Satisfaction averaged ${satisfactionFigure(average)} this year, compared with ${satisfactionFigure(lastAverage)} last year (${signed(delta)})`
       // The first summer introduces it (Plan 104M): until now neither the
       // header nor the Students tab showed it.
-      : `Satisfaction, how content the students are out of 100, averaged ${satisfactionFigure(average)} this year: from now on it shows at the foot of the screen, and the Students tab opens on the needs it is made of`,
+      : `Satisfaction averaged ${satisfactionFigure(average)} this year. Satisfaction is how happy your students are, out of 100. From now on it shows at the bottom of the screen, and the Students tab shows the needs behind it`,
     tone: delta >= 2 ? 'good' : delta <= -2 ? 'bad' : undefined,
   });
   const raised = byTopic(entries, 'demand-raised').length;
@@ -193,12 +193,12 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
     });
   }
   const petitions = s.orgs.pendingPetitions.length;
-  if (petitions > 0) lines.push({ text: `${plural(petitions, 'organization')} petitioning for recognition` });
+  if (petitions > 0) lines.push({ text: `${plural(petitions, 'student organization')} asking to be recognized` });
   const leaving = projectedAttrition(s);
   if (leaving > 0) {
     const reasons = attritionReasons(s);
     lines.push({
-      text: `${plural(leaving, 'student')} will not return this summer — ${reasons.length > 0 ? reasons.join(', ') : `a year averaging ${satisfactionFigure(average)}`}`,
+      text: `${plural(leaving, 'student')} won't come back next year. ${reasons.length > 0 ? `They wanted more ${reasons.join(' and ')}.` : `Satisfaction averaged ${satisfactionFigure(average)} this year.`}`,
       tone: 'bad',
     });
   }
@@ -210,12 +210,12 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
   const net = s.finance.cash - before.cash;
   const lines: ReviewLine[] = [
     { text: `Net over the year: ${signedMoney(net)}`, tone: net >= 0 ? 'good' : 'bad' },
-    { text: `Operating funds ${money(s.finance.cash)}, against ${money(before.cash)} a year ago` },
+    { text: `Operating funds: ${money(s.finance.cash)}, compared with ${money(before.cash)} a year ago` },
   ];
   // Only a campaign's closing line counts: its launch and the building
   // fund's lines are money lines too (alumni/campaigns.ts).
   const campaigns = byTopic(entries, 'money').filter((e) => CAMPAIGN_CLOSINGS.has(e.message)).length;
-  if (campaigns > 0) lines.push({ text: `${plural(campaigns, 'campaign')} closed; the endowment stands at ${money(s.finance.endowment)}` });
+  if (campaigns > 0) lines.push({ text: `${plural(campaigns, 'campaign')} closed. The endowment is now ${money(s.finance.endowment)}` });
   return { key: 'money', title: 'Money', lines, empty: '' };
 }
 
@@ -227,16 +227,16 @@ function standing(s: GameState): ReviewSection {
   const step = prestigeShown(card.after) - prestigeShown(card.before);
   const lines: ReviewLine[] = [
     {
-      text: `The year graded ${card.score.toFixed(0)}: prestige ${prestigeFigure(card.before)} → ${prestigeFigure(card.after)} (${signed(step, 1)})`,
+      text: `This year's grade: ${card.score.toFixed(0)}. Prestige ${prestigeFigure(card.before)} → ${prestigeFigure(card.after)} (${signed(step, 1)})`,
       tone: step >= 0 ? 'good' : 'bad',
     },
   ];
   const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
-  if (last) lines.push({ text: `A year ago prestige stood at ${prestigeFigure(last.prestige)}` });
+  if (last) lines.push({ text: `Prestige a year ago: ${prestigeFigure(last.prestige)}` });
   // Same crossing the Standing beat reports, so the two agree.
   const passedBy = last ? buildReportPayload(s).passedBy : [];
   if (passedBy.length > 0) {
-    lines.push({ text: `Passed this year by ${passedBy.join(', ')}`, tone: 'bad' });
+    lines.push({ text: `Passed you this year: ${passedBy.join(', ')}`, tone: 'bad' });
   }
   for (const input of breakdown.inputs) {
     const grade = card.grades[input.key];
@@ -271,21 +271,21 @@ function events(s: GameState, entries: LogEntry[]): ReviewSection {
     if (l.year !== s.clock.year) continue;
     const e = eventById(l.eventId);
     const choice = e?.choices.find((c) => c.id === l.choiceId);
-    lines.push({ text: `${e?.title ?? 'A letter'}, a letter to the President: ${choice?.label ?? 'answered'}` });
+    lines.push({ text: `${e?.title ?? 'A letter'}, a letter to the President: ${choice ? `you chose “${choice.label}”` : 'answered'}` });
   }
   const row = s.catalogue?.answered?.find((a) => a.year === s.clock.year);
   if (row) {
     const parts = [
-      row.player > 0 ? `${count(row.player)} answered by the President` : '',
-      row.seat > 0 ? `${count(row.seat)} by the administration` : '',
-      row.timeout > 0 ? `${count(row.timeout)} left unanswered, taking the usual course` : '',
+      row.player > 0 ? `you answered ${count(row.player)}` : '',
+      row.seat > 0 ? `your administration answered ${count(row.seat)}` : '',
+      row.timeout > 0 ? `${count(row.timeout)} went unanswered and settled on ${row.timeout === 1 ? 'its' : 'their'} own` : '',
     ].filter((x) => x !== '');
     lines.push({ text: `${plural(row.player + row.seat + row.timeout, 'matter')} came up: ${parts.join(', ')}` });
   }
   const lapsed = byTopic(entries, 'event').filter((e) => e.message.includes(UNANSWERED)).map(unanswered);
-  lines.push(...reviewGroup(lapsed, (n) => `${count(n)} matters left unanswered`,
-    (m) => `${m.title} (${m.answer})`, (m) => `Left unanswered: ${m.title} (${m.answer})`));
-  return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year: nothing reached the President\'s desk.' };
+  lines.push(...reviewGroup(lapsed, (n) => `${count(n)} matters went unanswered`,
+    (m) => `${m.title} (${m.answer})`, (m) => `Unanswered: ${m.title} (${m.answer})`));
+  return { key: 'events', title: 'The year\'s events', lines, empty: 'A quiet year. Nothing reached your desk.' };
 }
 
 // The class about to graduate (Plan 33): how it will remember its years
@@ -299,7 +299,7 @@ function graduatingClass(s: GameState): ReviewSection {
     const warmth = warmthFor(c, memory);
     lines.push({ text: memoryLine({ classYear: s.clock.year, memory }, firstClassYear(s.alumni, s.clock.year)) });
     lines.push({
-      text: `${plural(seniors, 'senior')} leave${seniors === 1 ? 's' : ''} ${warmth >= 60 ? 'warm toward the college' : warmth >= 40 ? 'on fair terms with it' : 'cool toward it'} (${warmth.toFixed(0)} of 100)`,
+      text: `${plural(seniors, 'senior')} leave${seniors === 1 ? 's' : ''} ${warmth >= 60 ? 'warm toward your college' : warmth >= 40 ? 'on fair terms with it' : 'cool toward it'} (${warmth.toFixed(0)} of 100)`,
       tone: warmth >= 60 ? 'good' : warmth < 40 ? 'bad' : undefined,
     });
   }

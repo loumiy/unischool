@@ -91,7 +91,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       case 'campaign': { const def = eventCampaign(s); if (def) out.push(`launches ${def.title}`); break; }
       case 'statue': {
         const statue = s.tech.find((t) => t.id === STATUE_ID);
-        if (statue && statuePledgeable(s)) out.push(`${money(statue.cost)} to the building fund for the statue, to place`);
+        if (statue && statuePledgeable(s)) out.push(`${money(statue.cost)} to the building fund for the statue, which you then place`);
         break;
       }
       case 'boosterGift': out.push(`${money(v)} to the athletics department this year`); break;
@@ -152,7 +152,7 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
             </span>
             <span className="event-choice-detail">
               {phrases.length > 0 ? phrases.join(' · ') : 'nothing to speak of'}
-              {!affordable && ' — the college cannot cover this.'}
+              {!affordable && " — you can't afford this."}
             </span>
           </button>
         );

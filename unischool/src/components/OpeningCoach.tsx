@@ -91,7 +91,7 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, placing, onO
           <button type="button" onClick={onDoor}>{doorLabel}</button>
         )}
         {step.door && doorOpen && (
-          <span className="opening-coach-wait">The clock is held until this is done</span>
+          <span className="opening-coach-wait">Time is paused until you do this</span>
         )}
       </div>
       <ConfirmButton

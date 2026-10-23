@@ -456,8 +456,8 @@ function projectInput(s: GameState, axis: 'academics' | 'research' | 'experience
   const lift = projectLift(s, axis);
   const names = standingProjects(s).filter((t) => (t.project!.boosts[axis] ?? 0) > 0).map((t) => t.name);
   return [weigh('projects', 'Capital projects', max, clamp01(lift / max), names.length === 0
-    ? 'No capital project that lifts this pillar stands yet.'
-    : `${names.join(', ')}: ${pct(clamp01(lift / max))} of what every such project in full repair would add.`)];
+    ? 'You have no capital project that raises this pillar yet.'
+    : `${names.join(', ')}: ${pct(clamp01(lift / max))} of what all such projects would add in full repair.`)];
 }
 
 // Computes its own target, so no caller can disagree with the sum.
@@ -494,7 +494,7 @@ function scaleMultiplier(s: GameState): StandingMultiplier {
   return {
     label: 'scale',
     value: admissionsScaleScore(s),
-    detail: `${count(enrolled)} enrolled; the guide gives full credit from ${count(ADMISSIONS_SCALE_FOR_FULL_CREDIT)}`,
+    detail: `${count(enrolled)} enrolled, and the guide gives full credit from ${count(ADMISSIONS_SCALE_FOR_FULL_CREDIT)}`,
   };
 }
 
@@ -578,8 +578,8 @@ function academicsBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'teaching', 'Teaching quality', TEACHING_QUALITY_WEIGHT, teachingScore(s),
       avgQuality === null
-        ? 'No course is being taught, so there is no teaching to be good at.'
-        : `The campus average course grade, ${avgQuality.toFixed(0)} of 100.`,
+        ? 'No course is being taught yet, so there is no teaching to grade.'
+        : `Your average course grade is ${avgQuality.toFixed(0)} of 100.`,
     ),
     weigh(
       'students', 'Student quality', STUDENT_QUALITY_WEIGHT, studentQualityScore(s),
@@ -596,15 +596,15 @@ function studentLifeBreakdown(s: GameState): StandingBreakdown {
   return pillarOf(s, 'studentLife', null, [
     weigh(
       'welfare', 'Student well-being', WELFARE_WEIGHT, welfareScore(s),
-      `Students have averaged ${satisfactionFigure(average)} of 100 this year.`,
+      `Your students' satisfaction has averaged ${satisfactionFigure(average)} of 100 this year.`,
     ),
     weigh(
       'campus', 'Campus life', CAMPUS_LIFE_WEIGHT, socialLifeScore(s),
-      `The recreation buildings and venues, ${s.orgs.clubs.length} club${s.orgs.clubs.length === 1 ? '' : 's'} and ${s.orgs.chapters.length} chapter${s.orgs.chapters.length === 1 ? '' : 's'}, and a social life students rate ${satisfactionFigure(s.students.satisfactionBreakdown.social)} of 100.`,
+      `This counts your recreation buildings and venues, ${s.orgs.clubs.length} club${s.orgs.clubs.length === 1 ? '' : 's'} and ${s.orgs.chapters.length} chapter${s.orgs.chapters.length === 1 ? '' : 's'}. Students rate their social life ${satisfactionFigure(s.students.satisfactionBreakdown.social)} of 100.`,
     ),
     weigh(
       'beauty', 'Campus beauty', BEAUTY_WEIGHT, beautyScore(s),
-      `The campus scores ${campusBeauty(s).toFixed(0)} of 100 for its trees, landmarks, upkeep and quads.`,
+      `Your campus scores ${campusBeauty(s).toFixed(0)} of 100 for its trees, landmarks, upkeep and quads.`,
     ),
   ], projectInput(s, 'experience'));
 }
@@ -616,17 +616,17 @@ function athleticsBreakdown(s: GameState): StandingBreakdown {
   return pillarOf(s, 'athletics', null, [
     weigh(
       'program', 'Program strength', ATHLETICS_PROGRAM_WEIGHT, clamp01(athleticProgramStrength(s) / 100),
-      `${teams} team${teams === 1 ? '' : 's'} fielding, at program strength ${athleticProgramStrength(s).toFixed(0)} of 100.`,
+      `You field ${teams} team${teams === 1 ? '' : 's'}, at program strength ${athleticProgramStrength(s).toFixed(0)} of 100.`,
     ),
     weigh(
       'titles', 'Championships', ATHLETICS_TITLES_WEIGHT, titlesScore(s),
-      `${titles} national title${titles === 1 ? '' : 's'} of the ${TITLES_FOR_FULL_SCORE} a dynasty is.`,
+      `${titles} national title${titles === 1 ? '' : 's'} of the ${TITLES_FOR_FULL_SCORE} that make a dynasty.`,
     ),
     weigh(
       'flagships', 'Flagship programs', ATHLETICS_FLAGSHIP_WEIGHT, flagships.score,
       flagships.count === 0
-        ? 'No flagship program yet: the first programs in the department\'s order are its flagships, as many as the subsidy allows.'
-        : `${flagships.count} flagship${flagships.count === 1 ? '' : 's'}, at a mean quality of ${(flagships.score * 100).toFixed(0)} of 100.`,
+        ? 'No flagship program yet. Flagships are the first programs in the department\'s order, as many as the subsidy allows.'
+        : `${flagships.count} flagship${flagships.count === 1 ? '' : 's'}, averaging ${(flagships.score * 100).toFixed(0)} of 100 in quality.`,
     ),
   ], []);
 }
@@ -668,11 +668,11 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
     ...pillars,
     weigh(
       'endowment', 'Endowment', ENDOWMENT_WEIGHT, endowmentScore(s),
-      `${money(s.finance.endowment)} against a student body of ${count(totalEnrolled(s.students))}.`,
+      `${money(s.finance.endowment)} for ${count(totalEnrolled(s.students))} students.`,
     ),
     penalise(
       'condition', 'Condition of the buildings', CONDITION_PENALTY, conditionScore(s),
-      'The buildings\' mean condition: a fully maintained campus costs nothing, a run-down one up to four points.',
+      'The average condition of your buildings. A fully maintained campus loses nothing, and a run-down one loses up to four points.',
     ),
   ], prestigeReadings(s), {
     riseRate: riseRateIn(s.clock.year),
@@ -780,7 +780,7 @@ function concentrationDetail(s: GameState): string {
     return 'No school founded yet.';
   }
   if (best.founded && best.distinguished) return `The School of ${best.school}: founded and distinguished.`;
-  if (best.founded) return `The School of ${best.school}: founded, not yet distinguished — every one of its programs complete would finish it.`;
+  if (best.founded) return `The School of ${best.school}: founded, not yet distinguished. Complete every one of its programs to finish it.`;
   return `${best.school}: distinguished but never founded.`;
 }
 
@@ -866,13 +866,13 @@ export function researchStandingBreakdown(s: GameState): StandingBreakdown {
     weigh(
       'output', 'What the labs have produced', RESEARCH_OUTPUT_WEIGHT,
       clamp01(researchCredits(s) / RESEARCH_STANDING_CREDITS_FOR_FULL),
-      `${researchCredits(s).toFixed(1)} research credits of the ${RESEARCH_STANDING_CREDITS_FOR_FULL} for the top score: each publication, finished project, breakthrough, prize and doctorate earns some.`,
+      `${researchCredits(s).toFixed(1)} of the ${RESEARCH_STANDING_CREDITS_FOR_FULL} research credits for the top score. Each publication, finished project, breakthrough, prize and doctorate earns some.`,
     ),
     weigh(
       'breadth', 'Fields it can research in', RESEARCH_BREADTH_WEIGHT, researchBreadthScore(s),
       // With none, the row names where a lab comes from (Plan 95Q, the
       // second review's B3-7).
-      `${equipped} of the ${fields} fields the college could research in ${equipped === 1 ? 'has' : 'have'} a lab.${equipped === 0 ? ' A school\'s founding opens its lab.' : ''}`,
+      `${equipped} of the ${fields} fields you could research in ${equipped === 1 ? 'has' : 'have'} a lab.${equipped === 0 ? ' Founding a school lets you build its lab.' : ''}`,
     ),
   ], projectInput(s, 'research'));
 }

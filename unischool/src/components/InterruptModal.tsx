@@ -47,7 +47,7 @@ import { promisesOf } from '../systems/promises/promises';
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
 function interruptBody(): { title: string; body: string } {
-  return { title: 'A matter set aside', body: 'The matter this concerned has lapsed. Nothing has changed.' };
+  return { title: 'A matter set aside', body: 'This matter no longer applies. Nothing has changed.' };
 }
 
 // ---------------------------------------------------------------------
@@ -153,7 +153,7 @@ function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (prom
   return (
     <>
       <h2>Year {review.year} in review</h2>
-      {review.truncated && <p>The log no longer reaches back to its first weeks.</p>}
+      {review.truncated && <p>It was a busy year, and the log has lost its first few weeks.</p>}
       {era && <p className="review-era">{CHRONICLE_WORDS.now.replace('{era}', era.name)}</p>}
       <div className="review-grid">
         {review.sections.map((section) => (
@@ -173,7 +173,7 @@ function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (prom
       {review.year === 5 && <FeedbackPrompt s={s} prompt="five-years" text="Five years in. Two minutes of feedback?" onSave={onSave} />}
       {backUpDue(review.year) && (
         <p className="review-backup">
-          A browser can clear what a page keeps, after weeks unvisited or when a private window closes.{' '}
+          Your browser may delete this run if you don't visit for a while, or when a private window closes.{' '}
           <button type="button" className="menu-btn" onClick={() => { const f = exportSave(s); downloadFile(f.filename, f.text); saveExported('backup'); }}>Back up this run</button>
         </p>
       )}
@@ -212,7 +212,7 @@ function FinalReportBeat({ s, onContinue, onNewCollege, onSave }: { s: GameState
         {onNewCollege && (
           <NewCollegeButton
             note={REPORT_WORDS.newCollege}
-            lost="its books close for good"
+            lost="close its books for good"
             onConfirm={() => { hangInHall(s, report); runFinished(s, report, false); onNewCollege(); }}
           />
         )}
@@ -234,7 +234,7 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
     <>
       <h2>Students</h2>
       {petitions.length === 0 ? (
-        <p>No new student organization petitioned this year.</p>
+        <p>No new student organizations asked to be recognized this year.</p>
       ) : null}
       <StudentLifeDigest
         petitions={petitions}
@@ -315,8 +315,8 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
         {isFirstReveal
           ? `${standings.find((r) => r.isPlayer)?.name ?? 'The college'} has entered the guide's top fifty, at #${rank}.`
           : published
-            ? `This year's standings: the college is #${rank}.`
-            : `The college ranks #${rank} of ${payload.field}.`}
+            ? `This year's standings: you're #${rank}.`
+            : `Your college ranks #${rank} of ${payload.field}.`}
       </p>
 
       {delta !== null && (
@@ -337,7 +337,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
       )}
       {passedBy.length > 0 && (
         <p className="report-crossing passed-by">
-          Overtaken by: {passedBy.join(', ')}.
+          Passed you: {passedBy.join(', ')}.
         </p>
       )}
 
@@ -368,7 +368,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
               <span className="report-other-rank">#{o.rank}</span>
               <span className="report-other-note">
                 {o.isLeader
-                  ? 'no college in the country is ahead'
+                  ? 'no college is ahead of you'
                   : `${o.leader} ${o.leaderMascot} lead`}
               </span>
             </li>
@@ -627,10 +627,10 @@ function FirstSportClubView({ s, payload, onResolve }: {
     <>
       <h2>The first sport club</h2>
       <p>
-        The {payload.clubName} is the first of the college's sport clubs to be recognized. It plays intramurals
-        for now; in a few years it may petition to go varsity, and there will be a department, a venue and a
-        season behind it. The students have already started arguing about what the teams should be called —
-        the colors are {institutionName(s.self)}'s own, but a name is something people shout.
+        The {payload.clubName} is your college's first recognized sport club. It plays intramurals for now.
+        In a few years it may ask to go varsity, with a department, a venue and a season behind it. The
+        students are already arguing about what to call the teams. The colors are {institutionName(s.self)}'s
+        own, but a name is something people shout.
       </p>
       <label className="ad-mascot">
         <span className="ad-mascot-label">The teams will play as the</span>
@@ -665,8 +665,8 @@ function AthleticDirectorView({ s, payload, onResolve }: {
       <h2>An Athletic Director</h2>
       <p>
         {s.orgs.teams.length === 1
-          ? 'The college fields a varsity program now, and nobody is running it.'
-          : `The college fields ${s.orgs.teams.length} varsity programs now, and nobody is running them.`}
+          ? 'Your college has a varsity program now, and nobody is running it.'
+          : `Your college has ${s.orgs.teams.length} varsity programs now, and nobody is running them.`}
         {' '}Three candidates have applied.
       </p>
 
@@ -760,7 +760,7 @@ function LetterView({ s, id, onResolve, onOpenBuild }: {
         {/* On every letter, not only the first: a guided founding marks the
             first read at the start, so the opt-out has to travel with the rest. */}
         <button type="button" className="letter-skip" onClick={() => onResolve(true)}>
-          Skip the chair's letters from here on
+          Skip the rest of the chair's letters
         </button>
       </div>
     </>
@@ -783,8 +783,8 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
     <>
       <h2>The Deans' recommendations</h2>
       <p>
-        Some courses have no instructor.
-        The Deans have found who can take them.
+        Some courses have no professor.
+        Your Deans have found people to teach them.
       </p>
       {plans.map((p) => (
         <section key={p.school} className="dean-plan">
@@ -793,7 +793,7 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
             {p.steps.map((step) => (
               <li key={step.courseId}>
                 <strong>{courseName(step.courseId)}</strong> — {facultyName(step.facultyId)}
-                {step.hire ? ` (appointed from the market, ${money(step.hire.salary)}/yr)` : ' (already on the faculty)'}
+                {step.hire ? ` (hired from the market, ${money(step.hire.salary)}/yr)` : ' (already on the faculty)'}
               </li>
             ))}
           </ul>
@@ -807,7 +807,7 @@ function DeanRecommendationsView({ s, schools, onResolve }: { s: GameState; scho
           </span>
         </button>
         <button className="event-choice" onClick={() => onResolve(false)}>
-          <span className="event-choice-label">Not now<span className="event-choice-cost">the programs stay dark</span></span>
+          <span className="event-choice-label">Not now<span className="event-choice-cost">those courses stay without a professor</span></span>
         </button>
       </div>
     </>
@@ -863,7 +863,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
     return (
       <>
         <h2>A matter set aside</h2>
-        <p>The matter this concerned has lapsed. Nothing has changed.</p>
+        <p>This matter no longer applies. Nothing has changed.</p>
         <div className="modal-actions">
           <button onClick={onDismiss}>Continue</button>
         </div>
@@ -895,7 +895,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
               </span>
               <span className="event-choice-detail">
                 {choice.describe(s, ctx)}
-                {!affordable && ' — the college cannot cover this.'}
+                {!affordable && " — you can't afford this."}
               </span>
             </button>
           );

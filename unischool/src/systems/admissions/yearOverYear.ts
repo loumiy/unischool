@@ -30,7 +30,7 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['priceFactor', 'price'],
   ['wordOfMouth', 'word of mouth'],
   ['capacityFactor', 'beds'],
-  ['cohortDemand', 'new pulls'],
+  ['cohortDemand', 'what you offer'],
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
   ['lift', 'a one-year lift'],
@@ -87,10 +87,10 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
 // (Plan 107G).
 export function admitRateOpening(firstSummer: boolean, openingRate: number, beds: number, studentsNextYear: number, roomRate = 1): string {
   const where = openingRate > roomRate
-    ? `The admit rate opens at ${pct(roomRate)}, the most the seats left will hold (${firstSummer ? 'the founding rate' : 'last summer\'s'} is ${pct(openingRate)})`
+    ? `The admit rate starts at ${pct(roomRate)}, the most the places left will hold. ${firstSummer ? 'The founding rate' : 'Last summer\'s rate'} was ${pct(openingRate)}.`
     : firstSummer
-      ? `The admit rate opens at the founding rate, ${pct(openingRate)}`
-      : `The admit rate opens where last summer set it, ${pct(openingRate)}`;
-  const crowds = beds > 0 && studentsNextYear >= beds ? `; admitting more crowds ${count(beds)} beds` : '';
-  return `${where}${crowds}.`;
+      ? `The admit rate starts at the founding rate, ${pct(openingRate)}.`
+      : `The admit rate starts where you set it last summer, ${pct(openingRate)}.`;
+  const crowds = beds > 0 && studentsNextYear >= beds ? ` Next year's students already fill your ${count(beds)} beds, so admitting more will crowd them.` : '';
+  return `${where}${crowds}`;
 }

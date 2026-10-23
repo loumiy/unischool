@@ -33,6 +33,7 @@
     "share-image": "node tools/shareImage.mjs",
     "review:goals": "rolldown tools/review/goalPlayers.ts -o node_modules/.tmp/goalPlayers.mjs -f esm -p node && node node_modules/.tmp/goalPlayers.mjs",
     "review:strings": "rolldown tools/review/strings.ts -o node_modules/.tmp/strings.mjs -f esm -p node --external typescript && node node_modules/.tmp/strings.mjs",
+    "review:plain": "rolldown tools/review/strings.ts -o node_modules/.tmp/strings-plain.mjs -f esm -p node --external typescript && node node_modules/.tmp/strings-plain.mjs --plain-check",
     "review:arrangements": "rolldown tools/review/arrangements.ts -o node_modules/.tmp/arrangements.mjs -f esm -p node && node node_modules/.tmp/arrangements.mjs",
     "review:views": "node tools/review/shootViews.mjs",
     "review:doors": "rolldown tools/review/doorsAndDepth.ts -o node_modules/.tmp/doorsAndDepth.mjs -f esm -p node && node node_modules/.tmp/doorsAndDepth.mjs",

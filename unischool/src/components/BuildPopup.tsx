@@ -436,7 +436,7 @@ function BuildTile({
           type="button"
           className="build-tile available"
           disabled={shortfall > 0 || frozen}
-          title={frozen ? 'The board has frozen construction; nothing new goes up until it lifts.' : shortfall > 0
+          title={frozen ? 'The board has frozen construction. You can\'t build anything new until it lifts the freeze.' : shortfall > 0
             ? `${money(Math.ceil(shortfall))} short.`
             : `Adds ${count(rung.seatsGain)} seats and ${count(rung.servesGain)} social capacity.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
@@ -477,8 +477,8 @@ function BuildTile({
         className={`build-tile available ${armed ? 'placing' : ''} ${ringed ? 'opening-target' : ''}`}
         disabled={!sitable}
         title={armed
-          ? 'Click an empty tile on the map to site here, or click this again to cancel.'
-          : 'The founding hall. No charge.'}
+          ? 'Click an empty tile on the map to place it. Click this again to cancel.'
+          : 'Your founding hall. It costs nothing.'}
         draggable={sitable}
         onDragStart={(e) => {
           onArmPlacement(t.id);
@@ -490,7 +490,7 @@ function BuildTile({
         <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker} />
         <span className="build-tile-name">{t.name}</span>
         <TileLines lines={lines} />
-        <span className="build-tile-foot">{armed ? 'placing…' : 'site · no charge'}</span>
+        <span className="build-tile-foot">{armed ? 'placing…' : 'place · no charge'}</span>
       </button>
     );
   }
@@ -524,9 +524,9 @@ function BuildTile({
   const disabledReason = financing === 'gift'
     ? `Paid from ${money(giftFunds(s))} raised for buildings.`
     : financing === 'endowment'
-    ? `Half, ${money(endowmentHalf(t))}, from the endowment; the rest in cash.`
+    ? `Half (${money(endowmentHalf(t))}) comes from the endowment. The rest is paid in cash.`
     : loan > 0
-    ? `Borrows ${money(loan)}, repaid over ${LOAN_YEARS} years at ${pct(LOAN_RATE, 1)}.`
+    ? `You borrow ${money(loan)} and repay it over ${LOAN_YEARS} years at ${pct(LOAN_RATE, 1)}.`
     : constructionFrozen(s)
       ? 'The board has frozen construction.'
       : shortfall > 0
@@ -546,7 +546,7 @@ function BuildTile({
       type="button"
       className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedBuilding(s)?.id && startable && !armed ? 'opening-target' : ''}`}
       disabled={!startable}
-      title={armed ? 'Click an empty tile on the map to build here, or click this again to cancel.' : disabledReason}
+      title={armed ? 'Click an empty tile on the map to build it. Click this again to cancel.' : disabledReason}
       draggable={startable}
       onDragStart={(e) => {
         onArmPlacement(t.id);
@@ -729,25 +729,25 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
   const tool = (key: CampusTool, label: string, title: string, art: React.ReactNode): MiniTool => ({
     key, label, title, art, armed: pathTool === key, onClick: () => onSetPathTool(key),
   });
-  const paths = tool('draw', 'Paths', 'Draw paths, free (P): drag to pave, Shift for a straight line, right click to delete',
+  const paths = tool('draw', 'Paths', 'Draw paths for free (P). Drag to pave, hold Shift for a straight line, right click to delete.',
     <DecorThumb d={{ kind: 'path', surface }} />);
   const surfaces: MiniTool[] = PATH_SURFACES.map((id) => ({
     key: `path-${id}`, label: SURFACE_LABELS[id], title: `Pave with ${SURFACE_LABELS[id].toLowerCase()}`,
     art: <DecorThumb d={{ kind: 'path', surface: id }} />, armed: surface === id, onClick: () => setPathSurface(id),
   }));
-  const trees = tool('plant', 'Trees', 'Plant trees, free: drag to plant, right click to delete',
+  const trees = tool('plant', 'Trees', 'Plant trees for free. Drag to plant, right click to delete.',
     <DecorThumb d={{ kind: 'tree', species }} />);
   const kinds: MiniTool[] = SPECIES_CHOICES.map((c) => ({
     key: `tree-${c.id ?? 'any'}`, label: c.label, title: c.id ? `Plant ${c.label.toLowerCase()} trees` : 'Plant whatever grows',
     art: <DecorThumb d={{ kind: 'tree', species: c.id }} />, armed: species === c.id, onClick: () => setPlantingSpecies(c.id),
   }));
   const decor: MiniTool[] = [
-    tool('lamp', 'Lamp', 'Place a lamp, one a click; right click to delete', <DecorThumb d={{ kind: 'lamp' }} />),
-    tool('bannerLamp', 'Banner lamp', 'Place a lamp post hung with banners in the college colors; right click to delete',
+    tool('lamp', 'Lamp', 'Place lamps, one per click. Right click to delete.', <DecorThumb d={{ kind: 'lamp' }} />),
+    tool('bannerLamp', 'Banner lamp', 'Place lamp posts hung with banners in your college colors. Right click to delete.',
       <DecorThumb d={{ kind: 'bannerLamp', colors: s.self.colors }} />),
-    tool('bench', 'Bench', 'Place a bench, one a click: R turns it; right click to delete', <DecorThumb d={{ kind: 'bench' }} />),
-    tool('flowerbed', 'Flower bed', 'Plant flower beds: drag to plant a border; right click to delete', <DecorThumb d={{ kind: 'flowerbed' }} />),
-    tool('erase', 'Eraser', 'Delete paths, trees, lamps, benches and flower beds: drag across them', <EraseIcon />),
+    tool('bench', 'Bench', 'Place benches, one per click. R turns a bench. Right click to delete.', <DecorThumb d={{ kind: 'bench' }} />),
+    tool('flowerbed', 'Flower bed', 'Plant flower beds. Drag to plant a border, right click to delete.', <DecorThumb d={{ kind: 'flowerbed' }} />),
+    tool('erase', 'Eraser', 'Drag across paths, trees, lamps, benches and flower beds to delete them.', <EraseIcon />),
   ];
   return (
     <div className="build-tile-row">
@@ -777,7 +777,7 @@ function StylePicker({ s }: { s: GameState }) {
   if (!isSandbox(s)) return null;
   const choices = [...VERNACULAR_CHOICES, ...BONUS_VERNACULAR_CHOICES];
   return (
-    <label className="build-style-picker" title="Sandbox: the architecture the next building goes up in. A standing building's style is changed from its panel.">
+    <label className="build-style-picker" title="Sandbox: the style your next building is built in. To change a finished building's style, open its panel.">
       <span>Style</span>
       <select value={style ?? ''} onChange={(e) => setBuildStyle(e.target.value === '' ? null : e.target.value as Vernacular)}>
         <option value="">College's own ({choices.find((c) => c.id === s.self.vernacular)?.label ?? s.self.vernacular})</option>
@@ -856,7 +856,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building the college can have, grouped into categories along the top — pick a category to see its buildings as a row of tiles. A red exclamation mark on a category means something new to build there, a building the college has not yet looked at; it clears once the category is opened. Each tile shows what is built, what is under construction and what is next available. Repeatable types (housing, dining, fitness) collapse what is already finished into one tile stamped '×N built' — click it for the individual halls. A facility serves a fixed number of students, and each need grows with enrollment, so a bigger class raises the bar for campus life, beds or no beds — most students commute, and housing is its own need (see the Students tab's Housing need), not an admissions requirement, though every bed widens the applicant pool, up to 2,500 beds. Buildings the college cannot build yet are not listed. Click a tile (or drag it onto the map) to pick a building up, then click an empty tile on the map to build it there; that is the moment the cost is charged and the countdown begins. The map stays visible behind this bar, so where a building will land shows before it is committed." />}
+      headExtra={<HelpHint text="Every building you can build, sorted into categories along the top. Click a category to see its buildings. A red ! on a category means it has a building you haven't looked at yet. It clears when you open the category. Each tile shows what's built, what's under construction and what you can build next. Housing, dining and fitness fold their finished buildings into one tile marked '×N built'. Click it to see each one. Each building serves a set number of students, and every need grows with enrollment. So a bigger class needs more campus life, with or without more beds. Most students commute. Housing is a need of its own (see Housing in the Students tab), not a condition of admission. Still, every bed draws more applicants, up to 2,500 beds. Buildings you can't build yet aren't listed. To build, click a tile or drag it onto the map. Then click an empty tile on the map. You pay at that moment, and construction starts. The map stays visible behind this bar, so you can see where a building will go before you place it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">

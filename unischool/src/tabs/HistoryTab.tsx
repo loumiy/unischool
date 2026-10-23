@@ -69,7 +69,7 @@ function PrestigePanel({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
             <h2>{SECTION_HEADINGS['history.prestige']}</h2>
             <HelpHint
               align="start"
-              text="Prestige is the college's overall standing, the number the guide ranks. Each pillar's meter is as long as the most it can add and filled as far as the college has earned it; the figure beside it is what it adds now. It is graded each summer and steps toward the grade, slowly up and quickly down. Details shows what each pillar is made of."
+              text="Prestige is your college's overall standing. It's the number the guide ranks you by. Each pillar's meter is as long as the most that pillar can add, and it fills as you earn it. The figure beside it is what it adds now. Prestige is graded each summer and moves toward that grade. It rises slowly and falls quickly. Click Details to see what each pillar is made of."
             />
           </div>
         )}
@@ -101,7 +101,7 @@ function PrestigeCharts({ s }: { s: GameState }) {
           yMin={1}
           yMax={s.rivals.length + 1}
           series={[{ name: 'Rank', points: history.map((h) => ({ x: h.year, y: h.rank })), format: (v) => `#${Math.round(v)}` }]}
-          note={`Of ${s.rivals.length + 1} colleges, by prestige; #1 is the top.`}
+          note={`Of ${s.rivals.length + 1} colleges, by prestige. #1 is the top.`}
         />
       </div>
     </section>
@@ -213,7 +213,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <section className="panel" {...sectionAnchor('history.record')}>
         <h2>The record</h2>
         <p className="empty-note">
-          The record of the years starts at the first commencement: the chronicle, the promises and the year-by-year charts are kept here from then on.
+          The record starts at your first commencement. From then on, it keeps the chronicle, the promises and the year-by-year charts here.
         </p>
       </section>
     );
@@ -231,12 +231,12 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
               <h2>Institutional history</h2>
               <span className="panel-count">{yearOfFifty(s)}</span>
             </div>
-            <HelpHint align="end" text="One entry is filed each year, when the summer admissions decision resolves. Two years are needed before a trend can be drawn." />
+            <HelpHint align="end" text="History adds one entry each year, when you finish summer admissions. It needs two years to draw a trend." />
           </div>
           <p className="empty-note">
             {history.length === 0
-              ? 'No history yet. The first entry is filed at the end of this academic year, when admissions resolves.'
-              : `One year on the books (Year ${history[0].year}). The charts open up once a second year is filed.`}
+              ? 'No history yet. The first entry comes at the end of this year, when you finish admissions.'
+              : `One year on the books (Year ${history[0].year}). The charts appear once a second year is recorded.`}
           </p>
         </section>
       </>
@@ -258,7 +258,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             <h2>Institutional history</h2>
             <span className="panel-count">{yearOfFifty(s)}</span>
           </div>
-          <HelpHint align="end" text="One entry is filed each year, at the summer admissions decision. Everything here is the record of what the college actually was at each of those moments. The charts run to the fiftieth year, when the Final Report is written; prestige's and the guide's are in the Prestige view." />
+          <HelpHint align="end" text="History adds one entry each year, at summer admissions. It records what your college actually was at each of those moments. The charts run to the fiftieth year, when the Final Report is written. The prestige and guide charts are in the Prestige view." />
         </div>
         <p className="history-summary">
           {history.length} years on the books, Year {first.year} to Year {latest.year}: prestige{' '}
@@ -274,7 +274,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             years={years}
             values={history.map((h) => h.enrolled)}
             format={(v) => count(v)}
-            note="Each summer's entering class."
+            note="Students enrolled each summer."
           />
           <HistoryChart
             label="Operating funds"

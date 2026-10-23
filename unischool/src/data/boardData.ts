@@ -18,44 +18,44 @@ export interface BoardLetter {
 export const BOARD_LETTERS: Readonly<Record<string, BoardLetter>> = {
   'enter-2': {
     title: 'Two terms in deficit',
-    text: 'The college has spent more than it took in for two terms running. The board would like to see a surplus before it sees another building. Tuition, the payroll and the size of the catalog are the usual places to look.',
+    text: "You've spent more than you've taken in for two terms in a row. The board is worried. If the money runs out, it will stop all new building. To turn it around, look at tuition, salaries and how many courses you offer.",
   },
   'enter-3': {
     title: 'The board freezes construction',
-    text: 'The college is out of cash. Until it has run two surplus terms with money in the bank, the board will approve no new construction and no borrowing. Teaching goes on as before, and so does the payroll.',
+    text: "You've run out of cash. The board will approve no new building and no borrowing until you've had two surplus terms in a row with money in the bank. Teaching and salaries carry on as before.",
   },
   'enter-4': {
     title: 'Austerity',
-    text: 'Three terms frozen, and no recovery in sight. The board is cutting maintenance to nothing, and will not let the listed tuition fall, until it has run two surplus terms with money in the bank. The buildings will show it. The board regrets that, and has decided it is the cheaper regret.',
+    text: "Three terms frozen, and no recovery in sight. The board is cutting maintenance to nothing, and won't let you lower tuition. This lasts until you've had two surplus terms in a row with money in the bank. The buildings will show it. The board is sorry about that, but it can't pay to keep them up.",
   },
   'enter-5': {
     title: 'An interim CFO',
-    text: 'The board has appointed an interim chief financial officer for three years, who will set the endowment draw and the maintenance budget. The curriculum, the faculty and the campus remain the administration\'s to run. The college will remember this.',
+    text: 'The board has appointed an interim chief financial officer for three years. She will set the endowment draw and the maintenance budget. You still run the curriculum, the faculty and the campus. The college will remember this.',
   },
   'exit-4': {
     title: 'Austerity lifted',
-    text: 'Two surplus terms with money in the bank. The board lifts its cuts: maintenance goes back to what the administration had set, and the tuition is the administration\'s again. The backlog the cuts left is still there to be paid.',
+    text: 'Two surplus terms with money in the bank. The board lifts its cuts. Maintenance goes back to what you had set, and tuition is yours to set again. The repair backlog the cuts left behind still has to be paid.',
   },
   'exit-5': {
     title: 'The interim CFO departs',
-    text: 'The interim CFO\'s three years are up. The draw and the maintenance budget are the administration\'s again, set where the administration had them before the board\'s cuts. The board thanks her, and hopes not to need her again.',
+    text: "The interim CFO's three years are up. The draw and the maintenance budget are yours again, back where you had them before the board's cuts. The board thanks her, and hopes not to need her again.",
   },
   // Idle cash (systems/finance/sweep.ts, Plan 70D): not the distress
   // ladder's, but the board's all the same. The letter's button sets the
   // standing sweep.
   'idle-cash': {
     title: 'Money doing nothing',
-    text: 'The college has held more than a year of its expenses in cash for a year now. Cash earns nothing, and the guidebooks do not count it: they read a college\'s strength in its endowment. The board suggests a standing sweep: keep half a year of expenses on hand and move the rest into the endowment each quarter, until the endowment is as strong as the guidebooks measure. The Treasury can set it, or change it later.',
+    text: "You've had more than a year's expenses sitting in cash for a year now. Cash earns nothing, and the guidebooks ignore it when they rate your finances. They look at the endowment. The board suggests a standing sweep. Every quarter, keep six months of expenses in cash and move the rest into the endowment. It stops once the endowment gets full marks. You can change it any time in the Treasury.",
   },
   'idle-cash-again': {
     title: 'Still doing nothing',
-    text: 'The cash has piled up again, and still earns nothing. The board repeats its suggestion of a standing sweep into the endowment, and will not raise it again for a decade.',
+    text: "Your cash has piled up again, and it still earns nothing. The board suggests a standing sweep into the endowment once more. It won't bring it up again for ten years.",
   },
   // The milestone's notice (Plan 85D, systems/prestige/milestone.ts): the
   // college has come within reach of the specialization's milestone.
   [SPECIALIZATION_NOTICE_ID]: specializationNotice(SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, pillarShareRule()),
   recovered: {
     title: 'On a sound footing',
-    text: 'The college is paying its way again, with reserves to cover a term. The board notes it with relief, and would like it kept that way.',
+    text: 'Your college is paying its way again, with enough cash to cover a term. The board is relieved, and would like it to stay that way.',
   },
 };

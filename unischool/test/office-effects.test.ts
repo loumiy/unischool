@@ -126,7 +126,7 @@ function three<T>(officeId: string, read: (s: GameState) => T, name = officeId):
   assert(s.orgs.pendingPetitions.length === 0, 'without a petition');
   assert(charterRefusal(s)?.startsWith('The office can charter another club in') === true, 'and not again until the interval is up');
   assert(reducer(s, { type: 'CHARTER_CLUB' }) === s, 'a second charter is refused');
-  assert(charterRefusal(college('NoOffice')) === 'The college has no Student Activities Office.', 'no office, no charter');
+  assert(charterRefusal(college('NoOffice')) === 'You don\'t have a Student Activities Office.', 'no office, no charter');
 }
 
 // The team.
