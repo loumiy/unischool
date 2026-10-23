@@ -2,8 +2,8 @@
 // Old saves on a walkthrough step the game no longer has (Plan 113 PR A,
 // the third review's I7-1): a 0.1.1 or 0.1.2 run saved on one of Plan
 // 103's steps crashed 0.1.3 on Continue, because the card looked up a step
-// it no longer had. The fixture is a save made by 0.1.2's own code
-// (4f5b83e), on `needs`.
+// it no longer had. The fixtures are saves made by 0.1.2's own code
+// (4f5b83e), on `needs` and on the old appointing step (PR B, I7-4).
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -15,6 +15,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { readSave } from '../src/state/persistence';
 import { reducer } from '../src/engine/reducer';
 import OpeningCoach from '../src/components/OpeningCoach';
+import { createPreStartState } from '../src/state/actions';
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
+import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
+import { centredPlacement, footprintOf } from '../src/state/campusMap';
 import type { GameState } from '../src/state/types';
 
 console.log('old walkthrough saves tests');
@@ -90,6 +95,33 @@ for (const stage of ['welcome', 'site-hall', 'found']) {
 {
   const s = load('appoint');
   if (s) assert(s.events.opening.stage === 'found', `a save on 'appoint' resumes on found (${s.events.opening.stage})`);
+}
+
+// --- a save made on that step: nobody on the payroll (Plan 113 PR B, I7-4) ---
+{
+  const read = readSave(readFileSync(join(process.cwd(), 'test/fixtures/save-v103-appoint.json'), 'utf8'));
+  if ('refused' in read) assert(false, `the 0.1.2 appointing save loads (${read.refused})`);
+  else {
+    const s = read.state;
+    assert(s.faculty.length === 0 && s.programOffers.length === 3, `the fixture has nobody on the payroll and three offers (${s.faculty.length}, ${s.programOffers.length})`);
+    assert(s.events.opening.stage === 'found', `it resumes on found (${s.events.opening.stage})`);
+    const html = card(s);
+    assert(html.includes('Three are on offer in Founders Hall.'), 'the card counts the three offers');
+    assert(html.includes('Then appoint its professor and click Found.'), 'and asks for the professor');
+    assert(!html.includes('already has a professor'), 'and promises nobody already appointed');
+  }
+}
+
+// --- a founding made today still says each has its professor -----------------
+{
+  let s = reducer(createPreStartState(), { type: 'START_GAME', name: 'Today', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided: true });
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
+  const spot = centredPlacement(footprintOf(hall));
+  s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
+  const html = card(s);
+  assert(s.events.opening.stage === 'found', `a new founding reaches the program's step (${s.events.opening.stage})`);
+  assert(html.includes('each already has a professor') && !html.includes('Then appoint its professor'), "and keeps today's words");
 }
 
 if (failures > 0) {
