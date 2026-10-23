@@ -130,7 +130,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
         type="button"
         className="dept-action appoint"
         onClick={(e) => { e.stopPropagation(); act({ type: 'HIRE_FACULTY', facultyId: l.candidate.id }); }}
-        title={`Appoint ${l.candidate.name} (teaching ${l.candidate.teaching}) at ${money(l.pay)}/yr${l.unblocks.length > 0 ? ` — opens ${l.unblocks.join(', ')}` : ''}; the listing withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}`}
+        title={`Appoint ${l.candidate.name} (teaching ${l.candidate.teaching}) at ${money(l.pay)}/yr.${l.unblocks.length > 0 ? ` Opens ${l.unblocks.join(', ')}.` : ''} Leaves the market in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
       >
         Appoint {surnameOf(l.candidate.name)}
         {l.score !== null && <GradeChip score={l.score} />}
@@ -148,7 +148,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
         className="dept-action search"
         disabled={!action.canPost}
         onClick={(e) => { e.stopPropagation(); act({ type: 'POST_SEARCH', field: c.field }); }}
-        title={`Run a search: ${money(action.cost)}`}
+        title={`Post a search for ${money(action.cost)}`}
       >
         Post a search <span className="dept-action-meta">{moneyShort(action.cost)}</span>
       </button>
@@ -159,7 +159,7 @@ function DeptActionCell({ s, act, c, onOpenCurriculum }: {
       type="button"
       className="dept-action reassign"
       onClick={(e) => { e.stopPropagation(); onOpenCurriculum?.('unstaffed'); }}
-      title={`${action.unstaffed} ${c.field} ${action.unstaffed === 1 ? 'course has' : 'courses have'} no instructor — open them in the Curriculum`}
+      title={`${action.unstaffed} ${c.field} ${action.unstaffed === 1 ? 'course has' : 'courses have'} no instructor. Click to see them in the Curriculum.`}
     >
       {action.unstaffed} unstaffed →
     </button>
@@ -185,10 +185,10 @@ function CapacityMeter({ c, scale }: { c: FieldCapacity; scale: number }) {
   const beyond = c.supply > c.catalogue;
 
   const title = [
-    `${c.field}: ${c.supply} course ${c.supply === 1 ? 'slot' : 'slots'} supplied by ${c.hired} ${c.hired === 1 ? 'professor' : 'professors'}.`,
-    `${c.offered} taken by courses on offer now, ${c.available} more open and not yet developed, ${c.catalogue} in the catalog all told.`,
-    taken > 0 ? `${taken} ${taken === 1 ? 'course slot is' : 'course slots are'} with a research project.` : '',
-    beyond ? 'The department can already teach its whole catalog.' : '',
+    `${c.field}: ${c.supply} course ${c.supply === 1 ? 'slot' : 'slots'} from ${c.hired} ${c.hired === 1 ? 'professor' : 'professors'}.`,
+    `${c.offered} used by courses on offer. ${c.available} more open to develop. ${c.catalogue} in the catalog in all.`,
+    taken > 0 ? `${taken} ${taken === 1 ? 'course slot is' : 'course slots are'} on a research project.` : '',
+    beyond ? 'This department can already teach its whole catalog.' : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -241,10 +241,10 @@ function DepartmentRow(
           {c.field}
         </span>
         <CapacityMeter c={c} scale={scale} />
-        <span className="dept-slots" title="Course slots taken by what is offered now, against what the roster supplies">
+        <span className="dept-slots" title="Course slots used by courses on offer, out of the slots your professors supply">
           {c.offered}/{c.supply}
         </span>
-        <span className="dept-catalogue" title={`${c.catalogue} courses in the catalog ask for ${c.field}`}>
+        <span className="dept-catalogue" title={`${c.catalogue} courses in the catalog need a ${c.field} professor`}>
           {c.catalogue}
         </span>
         <span className="dept-people">
@@ -265,7 +265,7 @@ function DepartmentRow(
             {demandCount > 0 && onOpenCurriculum && (
               <>
                 {' '}
-                <button type="button" className="dept-demand-door" onClick={() => onOpenCurriculum(`field:${c.field}`)} title={`Open the Curriculum on the ${c.field} courses not yet developed`}>
+                <button type="button" className="dept-demand-door" onClick={() => onOpenCurriculum(`field:${c.field}`)} title={`See the ${c.field} courses not yet developed in the Curriculum`}>
                   {openCourses.length === 0
                     ? 'Open in Curriculum →'
                     : c.state === 'short' || c.state === 'over'
@@ -285,7 +285,7 @@ function DepartmentRow(
           ) : (
             <p className="empty-note">
               Nobody in {c.field}.{c.offered > 0
-                ? ` ${c.offered} ${c.offered === 1 ? 'course is' : 'courses are'} offered with no one to teach them.`
+                ? ` ${c.offered} ${c.offered === 1 ? 'course is' : 'courses are'} on offer with nobody to teach them.`
                 : ''}
             </p>
           )}
@@ -296,7 +296,7 @@ function DepartmentRow(
                 <span>On the market</span>
                 <span className="outcome-note">
                   {listed.length > 0
-                    ? `${listed.length} listed · a listing withdraws after ${candidateListingWeeks(s)} weeks`
+                    ? `${listed.length} listed · each stays on the market ${candidateListingWeeks(s)} weeks`
                     : 'nobody listed this week'}
                 </span>
               </div>
@@ -352,7 +352,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
                 type="button"
                 className={`next-up-door${l.weeksLeft <= 2 ? ' soon' : ''}`}
                 onClick={() => appoint(l)}
-                title={`${l.candidate.name}, ${facultyQualityTier(l.candidate)} in ${l.field}: teaching ${l.candidate.teaching}, ${money(l.pay)}/yr at the college's rate${l.course && l.score !== null ? `; would teach ${l.course.name} at ${Math.round(l.score)}` : ''}${l.unblocks.length > 0 ? `; opens ${l.unblocks.join(', ')}` : ''}. Withdraws in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
+                title={`${l.candidate.name}, ${facultyQualityTier(l.candidate)} in ${l.field}. Teaching ${l.candidate.teaching}, ${money(l.pay)}/yr at your rate.${l.course && l.score !== null ? ` Would teach ${l.course.name} at ${Math.round(l.score)}.` : ''}${l.unblocks.length > 0 ? ` Opens ${l.unblocks.join(', ')}.` : ''} Leaves the market in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
               >
                 Appoint {surnameOf(l.candidate.name)} · {l.field}
                 {l.score !== null && <GradeChip score={l.score} />}
@@ -377,7 +377,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
                     className="next-up-door"
                     disabled={s.finance.cash < searchCost(s)}
                     onClick={() => act({ type: 'POST_SEARCH', field: x.field })}
-                    title={`${x.waiting} ${x.waiting === 1 ? 'course is' : 'courses are'} waiting on ${x.field} and nobody is on the market. A search runs half a year: ${money(searchCost(s))}.`}
+                    title={`${x.waiting} ${x.waiting === 1 ? 'course is' : 'courses are'} waiting on ${x.field}, and nobody is on the market. A search runs half a year and costs ${money(searchCost(s))}.`}
                   >
                     Post a search · {x.field} <span className="next-up-meta">{moneyShort(searchCost(s))} · {x.waiting} waiting</span>
                   </button>
@@ -396,7 +396,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
                 type="button"
                 className="next-up-door"
                 onClick={() => onOpenMarket(f.field)}
-                title={`${f.name} retires within the year. The market in ${f.field}, to find a successor.`}
+                title={`${f.name} retires within the year. Click to find a successor on the ${f.field} market.`}
               >
                 {surnameOf(f.name)} · {f.field} <span className="next-up-meta">the market →</span>
               </button>
@@ -461,14 +461,14 @@ export function FacultyFigures({ cap }: { cap: FacultyCapacity }) {
       {t.available > 0 && (
         <>
           {' · '}
-          <span title="Courses open and not yet developed, each waiting for a course slot">
+          <span title="Courses open to develop, each waiting for a course slot">
             <strong>{count(t.available)}</strong> open
           </span>
         </>
       )}
       {' · '}
       {t.shortfall > 0 ? (
-        <span title={`About ${hiresFor(t.shortfall)} more appointments to teach the whole catalog`}>
+        <span title={`You'd need about ${hiresFor(t.shortfall)} more professors to teach the whole catalog`}>
           <strong>{count(t.shortfall)}</strong> short of the catalog
         </span>
       ) : (
@@ -495,10 +495,12 @@ export const FACULTY_VIEW_START: FacultyViewMemory = {
 
 // The tab's help (Plan 95G): what the summary paragraphs said, behind the
 // '?', with the figures in a row under it.
-const FACULTY_HELP = 'Every professor and every candidate as a tile: teaching and research as numbers out of 100, the scale courses are graded on, with where each is heading. A candidate\'s teaching is set beside your faculty\'s median, warm when it would raise it. More opens a person: their career, and Train and Dismiss. Sort and filter the grid; read the same people as a table, a row a person, or as a plot of teaching against research with your faculty\'s medians across it and the market beside them; or open the Departments view for each department\'s course slots against what its courses take. '
-  + 'The figures under the heading: the course slots the faculty supplies; those taken by the courses on offer, since a course holds its slot for as long as it is offered, whether or not somebody is teaching it; the courses open and not yet developed; and how many more course slots teaching the whole catalog would take. A scholar on a research project supplies two fewer, as a professor at the Faculty Training Institute supplies one fewer for a term. '
-  + 'The candidates the college attracts improve with its standing: their teaching potential rises with its prestige, and their research potential with its research standing, and a little with prestige. Around the typical candidate there is a wide spread, and now and then a standout well above it. Everyone arrives below their potential and grows toward it over the years they stay. '
-  + 'Appointing is immediate and costs nothing up front; what costs is the salary.';
+const FACULTY_HELP = "Each card is a professor or a candidate. Teaching and research are scores out of 100, the same scale courses are graded on. The arrow shows where a score is heading. A candidate's teaching is shown against your faculty's median, and lights up when they'd raise it. Click More to open a person: their career, and Train and Dismiss. "
+  + "Use Sort and filter to narrow the cards. Table shows one row per person. Plot shows teaching against research, with your faculty's medians and the market beside them. Departments shows each department's course slots against what its courses need. "
+  + "The figures under the heading count course slots. Course slots: what your faculty supplies. On offer: the slots your courses use. A course keeps its slot as long as it's offered, even with nobody teaching it. Open: courses ready to develop. Short of the catalog: how many more slots you'd need to teach every course. "
+  + 'A professor on a research project supplies two slots fewer. A professor at the Faculty Training Institute supplies one fewer for a term. '
+  + 'Better standing brings better candidates. Their teaching potential rises with your prestige. Their research potential rises with your research standing, and a little with prestige. Candidates vary a lot, and now and then a standout appears. Everyone starts below their potential and grows toward it while they stay. '
+  + "Appointing someone is instant and costs nothing up front. You pay their salary.";
 
 // A target the tab can open on: a department on the board (the Curriculum's
 // doors), or the market in a field (a retirement's notice).
@@ -627,8 +629,8 @@ function GridTools({ sort, setSort, filter, setFilter, fields, market, training,
               aria-pressed={filter.scope === c.field}
               onClick={() => setFilter({ ...filter, scope: filter.scope === c.field ? null : c.field })}
               title={c.state === 'over'
-                ? `${c.field} offers ${c.offered - c.supply} more ${c.offered - c.supply === 1 ? 'course' : 'courses'} than its people can teach`
-                : `${c.field} has courses open and no course slot free to develop them`}
+                ? `${c.field} offers ${c.offered - c.supply} more ${c.offered - c.supply === 1 ? 'course' : 'courses'} than its professors can teach`
+                : `${c.field} has courses open to develop, but no free course slot for them`}
             >
               {c.field} · {c.state === 'over' ? `over by ${c.offered - c.supply}` : 'short'}
             </button>
@@ -792,7 +794,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
             {!market && <TrainingBar s={s} act={act} />}
             {market && (
               <p className="faculty-market-note">
-                {s.candidates.length} listed · a listing withdraws after {candidateListingWeeks(s)} weeks, and the market turns over every week.
+                {s.candidates.length} listed · each stays on the market {candidateListingWeeks(s)} weeks. The market changes every week.
               </p>
             )}
             {shownPeople.length > 0 && layout === 'table' ? (

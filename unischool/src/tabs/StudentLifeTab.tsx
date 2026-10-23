@@ -82,7 +82,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
         <h2>Effect on satisfaction</h2>
         <HelpHint
           align="end"
-          text="Satisfaction moves a little each week toward what the campus offers. Student organizations are part of that, so these are the real points they add to where it is heading right now — the same figures that set satisfaction each week. The headline number follows over the coming weeks."
+          text="Satisfaction moves a little each week toward what the campus offers. Student organizations are part of that. These are the points they add to where satisfaction is heading right now. The game uses the same figures each week. The headline number catches up over the coming weeks."
         />
       </div>
       <dl>
@@ -271,7 +271,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>{SECTION_HEADINGS['students.breakdown']}</h2>
         <HelpHint
-          text="The needs satisfaction is made of, read live off the campus: a building finished this week shows here while the headline catches up over the coming weeks. Health joins them once the college is large enough to need care on campus. The multiplier is a need's share of the headline (×0.20 is a fifth). Show sources lists what is behind a score."
+          text="These are the needs that make up satisfaction, read live off the campus. A building finished this week shows here at once. The headline catches up over the coming weeks. Health joins them once your college is big enough to need care on campus. The multiplier is a need's share of the headline (×0.20 is a fifth). Click Show sources to see what's behind a score."
         />
       </div>
       {/* Today's figure heads the needs it is made of, not the clubs'
@@ -342,7 +342,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <dl>
         <dt>
           The ask
-          <HelpHint text="The bar above is what this need is served by today, against the total the students asked for. Finish the building and the demand clears itself; there is nothing to confirm." />
+          <HelpHint text="The bar shows how much of this need is met today, out of what the students asked for. Finish the building and the demand clears by itself. You don't need to confirm anything." />
         </dt>
         <dd>{copy.ask(demand.askName)}{node ? ASK_STATUS[node.status] : ''}</dd>
         <dt>Deadline</dt>
@@ -354,7 +354,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
         </dd>
         <dt>
           If the deadline passes
-          <HelpHint text="These figures are all it costs, at next summer's funnel. Satisfaction cannot fall below a floor, so a demand left unmet stalls the college rather than sinking it." />
+          <HelpHint text="These figures are the whole cost, measured on next summer's applicants. Satisfaction can't fall below a floor, so a missed demand holds your college back but won't sink it." />
         </dt>
         <dd>
           satisfaction {satisfactionFigure(stakes.satisfactionNow)} → {satisfactionFigure(stakes.satisfactionIfFailed)} ·
@@ -417,7 +417,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
           <section className="panel">
             <h2>Student organizations</h2>
             <p className="empty-note">
-              Clubs and chapters are listed here from the first commencement, once the students have a year behind them.
+              Clubs and chapters appear here after the first commencement, once your students have a year behind them.
             </p>
           </section>
         ) : emptyOrgs ? (
@@ -425,8 +425,8 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
             <h2>Student organizations</h2>
             <p className="empty-note">
               {hasStudentCenter(s)
-                ? 'No student organizations yet — students will start forming clubs of their own before long.'
-                : 'No student organizations yet — build a Student Center to let students start forming clubs.'}
+                ? 'No student organizations yet. Students will start forming clubs of their own before long.'
+                : 'No student organizations yet. Build a Student Center so students can start forming clubs.'}
             </p>
           </section>
         ) : (
@@ -448,7 +448,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
             {officeOpen(s, 'student-activities') && (
               <p className="office-action">
                 <button type="button" className="btn-quiet" disabled={charterRefusal(s) !== null}
-                  title={charterRefusal(s) ?? 'The Student Activities Office charters a club now, without waiting for one to petition'}
+                  title={charterRefusal(s) ?? 'Charter a club now through the Student Activities Office, without waiting for a petition'}
                   onClick={() => act?.({ type: 'CHARTER_CLUB' })}>
                   Charter a club
                 </button>
@@ -490,7 +490,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
               </p>
             ) : chapters.length === 0 ? (
               <p className="empty-note">
-                The Hellenic Council is chartered; no chapter has formed yet.
+                The Hellenic Council is chartered, but no chapter has formed yet.
               </p>
             ) : (
               <ul className="org-list">

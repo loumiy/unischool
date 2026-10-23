@@ -25,11 +25,11 @@ export default function IdentityPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>What the guidebooks say</h2>
-          <HelpHint text={`A college is known for at most three things. A reputation is earned by being something ${TAG_YEARS} years running, and shed the same way, so it lags what the college is doing now. Each changes who applies, how good a class it draws and one effect of its own, listed with each.`} />
+          <HelpHint text={`A college is known for at most three things. You earn a reputation by being something ${TAG_YEARS} years in a row, and you lose it the same way. So it lags behind what your college does now. Each reputation changes who applies and how strong your new class is. Each also has one effect of its own, listed with it.`} />
         </span>
       </div>
       {p.tags.length === 0 ? (
-        <p className="empty-note">The guidebooks have nothing to say about the college yet.</p>
+        <p className="empty-note">The guidebooks have nothing to say about your college yet.</p>
       ) : (
         <ul className="identity-list">
           {p.tags.map((id) => {

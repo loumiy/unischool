@@ -79,7 +79,7 @@ export function appointSeat(s: GameState, seatId: string, school: string | null,
     const orphaned = leaveFaculty(s, f);
     s.log.unshift({
       year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'departure', subject: f.id,
-      message: `${f.name} leaves the classroom to become ${title}.${orphaned.length > 0 ? ` ${orphaned.length} ${orphaned.length === 1 ? 'course waits' : 'courses wait'} for a new instructor in ${f.field}.` : ''}`,
+      message: `${f.name} leaves the classroom to become ${title}.${orphaned.length > 0 ? ` ${orphaned.length} ${f.field} ${orphaned.length === 1 ? 'course needs' : 'courses need'} a new instructor.` : ''}`,
     });
   } else {
     const inUse = new Set([...s.faculty.map((f) => f.name), ...seatsOf(s).map((x) => x.holder)]);

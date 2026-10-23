@@ -22,14 +22,14 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
   const speeds = fastestAllowed(s)
     ? 'Game speed goes up to 8×.'
     : fasterAllowed(s)
-      ? `Game speed goes up to 4×; ${DEANS_FOR_FASTEST - deansAppointed(s)} more Dean${DEANS_FOR_FASTEST - deansAppointed(s) === 1 ? '' : 's'} would open 8×.`
-      : `A Provost opens game speed 4×; with the Deans of ${DEANS_FOR_FASTEST} founded schools as well, 8×.`;
+      ? `Game speed goes up to 4×. Appoint ${DEANS_FOR_FASTEST - deansAppointed(s)} more Dean${DEANS_FOR_FASTEST - deansAppointed(s) === 1 ? '' : 's'} to open 8×.`
+      : `Appoint a Provost to open game speed 4×. A Provost and the Deans of ${DEANS_FOR_FASTEST} founded schools open 8×.`;
   return (
     <section className="panel administration">
       <div className="panel-head">
         <span className="panel-head-title">
           <h3>Administration</h3>
-          <HelpHint text={`Each seat takes its domain's routine off the President's desk: when a matter in its domain comes up, the seat answers by its policy and records the answer. Anything that would cost more than four weeks of operating cost, or that the seat's choice cannot pay for, still comes to the President, and so does anything that is the President's alone. A seat is for good: its salary, paid at the market rate prestige sets, is permanent. A professor of ${SEAT_SENIOR_YEARS} years can be promoted into a seat for less than an outside hire, and leaves the classroom to take it.`} />
+          <HelpHint text={`Each seat handles the routine matters in its area for you. When one comes up, the seat answers by its policy and logs the answer. Some matters still come to you: anything costing more than four weeks of operating costs, anything the seat's choice can't pay for, and the board's own matters. A seat is for good, and so is its salary. Prestige sets the market rate it's paid at. Promoting a professor of ${SEAT_SENIOR_YEARS} years costs less than hiring from outside. They leave the classroom to take the seat.`} />
         </span>
         <span className="stat">{moneyShort(seatPayroll(s))}/wk</span>
       </div>
