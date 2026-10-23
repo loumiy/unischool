@@ -58,7 +58,7 @@ const walls = (s: GameState) => s.tech.filter((t) => (t.kind === 'dorm' || t.kin
   assert(siteRefusal(s, dorm, ROAD_FIRST_ROW - fp.h + 1, 10, fp) !== null, 'a building may not overhang the road');
   assert(siteRefusal(s, dorm, ROAD_FIRST_ROW - fp.h, 10, fp) === null, 'but may stand right beside it');
   const paved = reducer(s, { type: 'ADD_PATH_TILE', tile: { row: ROAD_FIRST_ROW, col: 5 } });
-  assert(Object.keys(paved.pathways).length === 0, 'the road cannot be paved over');
+  assert(!(`${ROAD_FIRST_ROW},5` in paved.pathways) && Object.keys(paved.pathways).length === Object.keys(s.pathways).length, 'the road cannot be paved over');
   const planted = reducer(s, { type: 'PLANT_TREE', tile: { row: ROAD_FIRST_ROW + 1, col: 5 } });
   assert(!(`${ROAD_FIRST_ROW + 1},5` in planted.trees), 'nor planted');
   const reach = reachFromRoad(s);

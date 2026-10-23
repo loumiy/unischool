@@ -9,15 +9,17 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { createInitialState } from '../src/state/actions';
+import { createInitialState, createPreStartState } from '../src/state/actions';
 import { teachPillars } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
 import { FOUNDERS_HALL_ID, programById, programOfCourse } from '../src/data/techData';
-import { FOUNDING_PROGRAMS } from '../src/data/foundingData';
+import { FOUNDING_PROGRAMS, FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { canFoundProgram, canStartDevelopment, committeeSeats, courseSlotsFree, facultyGate } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
 import { bindScriptStream } from '../src/engine/random';
+import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
+import { ROAD_FIRST_ROW, centredPlacement, footprintOf, occupantAt, parsePathTileKey, placementCovers } from '../src/state/campusMap';
 
 bindScriptStream(4242);
 const store = new Map<string, string>();
@@ -247,6 +249,61 @@ console.log('founding tests');
   const t3 = full.tech.find((t) => t.id === program.courseIds[2])!;
   assert(t3.status === 'available' && !canStartDevelopment(full, t3), 'a course whose department is full cannot start');
   assert(facultyGate(full, field) !== 'open', `and facultyGate says why (${facultyGate(full, field)})`);
+}
+
+// ---- the founding drive (Plan 115B) ----
+// A path from a tile next to Founders Hall to the road, laid when the hall
+// is first sited, and only then.
+{
+  const start = (guided: boolean, sandbox = false) => reducer(createPreStartState(), {
+    type: 'START_GAME', name: 'Drive', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided, sandbox, seed: 115,
+  });
+  // Whether the paths join a tile next to the hall to the last land row,
+  // four ways, never through the hall.
+  const joined = (s: GameState) => {
+    const hall = s.placements[FOUNDERS_HALL_ID]!;
+    const paved = new Set(Object.keys(s.pathways));
+    const next = (r: number, c: number) => [[r + 1, c], [r - 1, c], [r, c + 1], [r, c - 1]];
+    const seeds = [...paved].filter((k) => {
+      const t = parsePathTileKey(k)!;
+      return next(t.row, t.col).some(([r, c]) => placementCovers(hall, r, c));
+    });
+    const seen = new Set(seeds);
+    for (const k of seen) {
+      const t = parsePathTileKey(k)!;
+      if (t.row === ROAD_FIRST_ROW - 1) return true;
+      for (const [r, c] of next(t.row, t.col)) if (paved.has(`${r},${c}`)) seen.add(`${r},${c}`);
+    }
+    return false;
+  };
+  const underHall = (s: GameState) => Object.keys(s.pathways).filter((k) => {
+    const t = parsePathTileKey(k)!;
+    return occupantAt(s.placements, t.row, t.col) !== undefined;
+  });
+
+  const headless = createInitialState('Drive');
+  assert(Object.keys(headless.pathways).length > 0 && joined(headless), 'a headless founding opens with a path from the hall to the road');
+  assert(underHall(headless).length === 0, 'and the drive never crosses the hall');
+  const hall = headless.placements[FOUNDERS_HALL_ID]!;
+  assert(Object.keys(headless.pathways).length === ROAD_FIRST_ROW - (hall.row + hall.h), `with the hall facing the road it runs straight down (${Object.keys(headless.pathways).length} tiles)`);
+
+  const unsited = reducer(start(true), { type: 'ADVANCE_OPENING' });
+  assert(Object.keys(unsited.pathways).length === 0, 'a guided founding has no drive before the hall is sited');
+  const node = unsited.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
+  for (const facing of [0, 1, 2, 3] as const) {
+    const spot = centredPlacement(footprintOf(node));
+    const s = reducer(unsited, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing });
+    assert(FOUNDERS_HALL_ID in s.placements && joined(s), `a guided siting facing ${facing} lays a path from the hall to the road`);
+    assert(underHall(s).length === 0, `and that drive never crosses the hall (facing ${facing})`);
+  }
+
+  // Siting it again (a sandbox's move) lays no second drive.
+  let sand = start(false, true);
+  const before = JSON.stringify(sand.pathways);
+  const at = sand.placements[FOUNDERS_HALL_ID]!;
+  sand = reducer(sand, { type: 'MOVE_BUILDABLE', id: FOUNDERS_HALL_ID, row: at.row - 12, col: at.col - 30, facing: 0 });
+  assert(sand.placements[FOUNDERS_HALL_ID]!.col === at.col - 30, 'a sandbox moves the hall');
+  assert(JSON.stringify(sand.pathways) === before, 'and moving it lays no second drive');
 }
 
 if (failures === 0) {

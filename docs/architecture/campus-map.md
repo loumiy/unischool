@@ -402,6 +402,18 @@ are coursed too, each notch as the open tile beside it would be, cut along the
 run's edge (`halfCoursingOf`), so a diagonal brick or cobble walk is coursed
 end to end.
 
+**The founding drive** (Plan 115B, `state/drive.ts`): when Founders Hall
+first gets a placement, a path is laid from the tile before the middle of its
+front wall to the last row of land above the road, by a four-way search that
+tries the step toward the road first. With nothing else standing it is a
+straight drive, about sixty tiles from a hall at the parcel's centre; a hall
+that faces away from the road gets one that goes round it. It is laid inside
+the action that sites the hall (`PLACE_BUILDABLE` in a guided founding,
+`createInitialState` in a headless one), so a replay lays it too, and nothing
+lays it again: a sandbox's move leaves it where it was, and a save from before
+it loads as it was drawn. It is an ordinary path the player may lift or
+repave.
+
 **Benches** (Plan 80I) are the one prop with a direction. A bench is set
 against one edge of its tile and faces out across it, its back to the lawn,
 so the save stores each bench's facing with it (`'bench-n'`…`'bench-w'`,

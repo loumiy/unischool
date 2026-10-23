@@ -402,7 +402,9 @@ year one at the fastest speed open (2x, since 4x waits for a Provost);
 logs the chapter line each time it changes, which shows where a do-nothing
 run leaves the chapters. It answers every stop with its last button; a matter
 that pauses the clock on arrival it opens from its notice, answers in the
-inbox with its last answer, and resumes. It reports each step, each kind of
+inbox with its last answer, and resumes. The summer that waits at week 52
+(Plan 112C) it opens from its call and plays through. It finds Chromium at
+`CHROMIUM` or `CHROME_PATH`, else `/opt/pw-browsers/chromium`. It reports each step, each kind of
 letter, and any stall: a clock that stopped for 20 seconds with nothing on
 screen asking for anything. It writes a screenshot of each stall to
 `node_modules/.tmp/` and exits non-zero if it stalled or never reached year 2.

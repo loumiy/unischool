@@ -4,7 +4,8 @@
 // Founders Hall, then pick the ringed slot's first offer and found it; the
 // founding faculty are already appointed), then plays the first year
 // at the fastest speed open to it (2× until a Provost opens 4×), answering
-// every stop and every matter with its last button. Since Plan 106 the
+// every stop and every matter with its last button, and opening the summer
+// from its call when it waits at week 52 (Plan 112C). Since Plan 106 the
 // walkthrough ends at the founding and the chapters take over; this player
 // does none of their objectives (it is the player who skims), and logs the
 // chapter line on the ticker each time it changes, so a run shows where a
@@ -21,6 +22,7 @@
 //
 // Nothing in src/ imports it.
 
+import { existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
 const flag = (name, fallback) => process.argv.find((f) => f.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
@@ -30,9 +32,22 @@ const UNTIL_YEAR = Number(flag('years', '1')) + 1;
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
 const SHOTS = 'node_modules/.tmp';
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-});
+// The first Chromium found: CHROMIUM or CHROME_PATH, else where Playwright
+// puts one.
+const CANDIDATES = [
+  process.env.CHROMIUM,
+  process.env.CHROME_PATH,
+  '/opt/pw-browsers/chromium',
+  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/google-chrome',
+].filter(Boolean);
+const executablePath = CANDIDATES.find((p) => existsSync(p));
+if (!executablePath) {
+  console.error(`no Chromium found. Tried:\n  ${CANDIDATES.join('\n  ')}\nSet CHROMIUM.`);
+  process.exit(2);
+}
+const browser = await chromium.launch({ executablePath });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
@@ -123,6 +138,18 @@ while (Date.now() - started < TIMEOUT_S * 1000) {
     if (!seen.has(`modal:${kind}`)) { seen.add(`modal:${kind}`); note(`letter: ${kind}`); }
     await modal.first().locator('button:not([disabled])').last().click().catch(() => {});
     await page.waitForTimeout(150);
+    lastMove = Date.now();
+    continue;
+  }
+
+  // The summer waits for you at week 52 (Plan 112C): its call opens it,
+  // and its pages are answered as any letter is.
+  const summer = page.locator('.summer-call-open');
+  if (await summer.count()) {
+    const label = (await summer.first().innerText({ timeout: 500 }).catch(() => 'Open the summer')).trim();
+    if (!seen.has(`summer:${c?.[1]}:${label}`)) { seen.add(`summer:${c?.[1]}:${label}`); note(`summer: ${label}${c ? ` (${c[0]})` : ''}`); }
+    await summer.first().click({ timeout: 1500 }).catch(() => {});
+    await page.waitForTimeout(250);
     lastMove = Date.now();
     continue;
   }
