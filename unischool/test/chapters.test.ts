@@ -25,7 +25,7 @@ import { reducer } from '../src/engine/reducer';
 import { placesComing } from '../src/systems/guidance/seating';
 import { isUndergraduateCourse } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
-import { CHAPTERS, currentChapter, openSideChapters, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, openSideChapters, PATH_OBJECTIVE, pathJoinsResidence, ringedTool, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
@@ -51,6 +51,9 @@ import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHal
 import { count } from '../src/format';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
 import { PILLARS } from '../src/systems/prestige/prestigeSystem';
+import { pathToFoundersRoute } from '../sim/harness/moves';
+import { pathTileKey } from '../src/state/campusMap';
+import { driveRoute } from '../src/state/drive';
 
 // A button's onClick in a rendered element tree, found by its words: the
 // panel is a plain function of its props, so calling it gives the tree.
@@ -94,6 +97,13 @@ const done = (s: GameState, id: string) => s.guidance?.done[id] !== undefined;
 function site(s: GameState, test: (t: Buildable) => boolean): void {
   const t = s.tech.find((x) => test(x) && !(x.id in s.placements))!;
   s.placements[t.id] = { row: 0, col: 0, w: 1, h: 1 } as unknown as GameState['placements'][string];
+}
+
+// Somewhere to sleep's path (Plan 115D): the shortest run from beside the
+// residence hall to the paths that join Founders Hall, as the harness's
+// player lays it (sim/harness/moves.ts).
+function pathed(s: GameState): void {
+  for (const tile of pathToFoundersRoute(s)) s.pathways[pathTileKey(tile)] = true;
 }
 
 // A college teaching its pillars: Founders Hall standing, three programs
@@ -167,8 +177,9 @@ const looked = (s: GameState) => {
   s.clock.week = 5;
   site(s, isDorm);
   site(s, isDiningHall);
+  pathed(s);
   settleChapters(s);
-  assert(!opened(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall in week 5 do not open Somewhere to sleep');
+  assert(!opened(s, 'somewhere-to-sleep'), 'a residence hall, a dining hall and a path in week 5 do not open Somewhere to sleep');
   s.clock.week = 10;
   settleChapters(s);
   assert(opened(s, 'somewhere-to-sleep') && done(s, 'somewhere-to-sleep'), 'in week 10 it opens, and is done on the spot');
@@ -184,8 +195,51 @@ const looked = (s: GameState) => {
   assert(objectiveMet(s, 'site-residence-hall') && !done(s, 'somewhere-to-sleep'), 'a residence hall alone meets one objective');
   site(s, isDiningHall);
   settleChapters(s);
-  assert(done(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall sited finish it');
+  assert(!done(s, 'somewhere-to-sleep') && !objectiveMet(s, PATH_OBJECTIVE), 'a residence hall and a dining hall sited, with no path, do not finish it');
+  assert(ringedBuilding(s) === null && ringedTool(s) === 'paths', 'and the build menu rings Paths, no building');
+  pathed(s);
+  settleChapters(s);
+  assert(done(s, 'somewhere-to-sleep'), 'a path from the residence hall to Founders Hall finishes it');
   assert(s.guidance!.done['somewhere-to-sleep'] === 12, 'done the week it was finished');
+  assert(ringedTool(s) === null, 'and Paths is rung no more');
+}
+
+// ---- Somewhere to sleep's path (Plan 115D, the third review's C1-1) ----
+{
+  const s = looked(teaching());
+  s.clock.week = 12;
+  site(s, isDorm);
+  site(s, isDiningHall);
+  const drive = driveRoute(s);
+  assert(drive.length > 0 && drive.every((tile) => pathTileKey(tile) in s.pathways), `the founding laid the drive (${drive.length} tiles)`);
+  assert(!pathJoinsResidence(s), 'the drive alone does not meet it: it joins the hall to the road, not the residence hall');
+  // A path from beside the residence hall to the drive's middle.
+  const dorm = s.tech.find((t) => isDorm(t) && t.id in s.placements)!;
+  s.placements[dorm.id] = { ...s.placements[dorm.id], row: drive[20].row, col: drive[20].col + 6 };
+  for (let col = drive[20].col + 1; col <= drive[20].col + 5; col++) s.pathways[pathTileKey({ row: drive[20].row, col })] = true;
+  assert(pathJoinsResidence(s), 'a path from the residence hall that joins the drive meets it');
+  delete s.pathways[pathTileKey({ row: drive[20].row, col: drive[20].col + 3 })];
+  assert(!pathJoinsResidence(s), 'a gap in it does not');
+  s.pathways[pathTileKey({ row: drive[20].row + 1, col: drive[20].col + 3 })] = true;
+  assert(pathJoinsResidence(s), 'a step to the side, corner to corner, still joins it');
+  // A path under a building joins nothing.
+  const other = { row: drive[20].row - 1, col: drive[20].col + 2, w: 3, h: 3 };
+  s.placements['TEST-SHED'] = other as unknown as GameState['placements'][string];
+  assert(!pathJoinsResidence(s), 'a path under a building joins nothing');
+  delete s.placements['TEST-SHED'];
+  settleChapters(s);
+  assert(objectiveMet(s, PATH_OBJECTIVE) && done(s, 'somewhere-to-sleep'), 'met, the chapter is done');
+  assert(CHAPTER_COPY['somewhere-to-sleep'].help?.[PATH_OBJECTIVE]?.door === 'build', 'its Show me opens the build menu');
+}
+{
+  // A save already past the chapter, from before the path, keeps it done.
+  const s = looked(teaching());
+  s.clock.week = 40;
+  site(s, isDorm);
+  s.guidance!.opened = { founding: 1, 'next-course': 1, 'looking-around': 1, 'somewhere-to-sleep': 10, seats: 12, 'paying-for-it': 30 };
+  s.guidance!.done = { founding: 1, 'next-course': 5, 'looking-around': 8, 'somewhere-to-sleep': 12, seats: 12 };
+  settleChapters(s);
+  assert(done(s, 'somewhere-to-sleep') && !objectiveMet(s, PATH_OBJECTIVE) && ringedTool(s) === null, 'a save past Somewhere to sleep without the path keeps it done, nothing rung');
 }
 
 // ---- The money and the first summer (PR D) ----
@@ -194,6 +248,7 @@ const looked = (s: GameState) => {
   s.clock.week = 12;
   site(s, isDorm);
   site(s, isDiningHall);
+  pathed(s);
   settleChapters(s);
   assert(done(s, 'seats') && !opened(s, 'paying-for-it'), 'Paying for it waits for week 30');
   s.clock.week = 30;
@@ -594,6 +649,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   s.clock.week = 30;
   site(s, isDorm);
   site(s, isDiningHall);
+  pathed(s);
   settleChapters(s);
   assert(currentChapter(s)?.id === 'paying-for-it' && treasuryRinged(s), 'Paying for it rings the Treasury button');
   s = reducer(s, { type: 'MARK_GUIDANCE', mark: tabMark('treasury') });

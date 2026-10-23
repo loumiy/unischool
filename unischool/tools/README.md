@@ -389,6 +389,7 @@ Both drive the real app in a headless Chromium against a running dev server
 ```sh
 npm run dev                                   # in one shell
 npm run newplayer                             # found a college, follow the walkthrough, play year one
+npm run newplayer -- --follow                 # and follow the first chapters, the path included
 npm run scenario -- --player Completionist --year 40 --clear-modal /tmp/y40.json
 npm run profile -- /tmp/y40.json --seconds=10 # fps, 95th-percentile frame and long tasks per speed
 ```
@@ -400,7 +401,11 @@ year one at the fastest speed open (2x, since 4x waits for a Provost);
 `--years=N` plays N years. It does none of the chapters' objectives (Plan
 106): it is the player who skims, so it closes the drawer Guided opens and
 logs the chapter line each time it changes, which shows where a do-nothing
-run leaves the chapters. It answers every stop with its last button; a matter
+run leaves the chapters. With `--follow` it reads the first chapters instead
+(Plan 115D): The next course and Somewhere to sleep by each objective's Show
+me, Looking around by the keys and the wheel, and the path by the ringed
+Paths tile and a drag from the residence hall to Founders Hall. It saves the
+drawer, the ringed tile and the laid path as `newplayer-sleep-*.png`. It answers every stop with its last button; a matter
 that pauses the clock on arrival it opens from its notice, answers in the
 inbox with its last answer, and resumes. The summer that waits at week 52
 (Plan 112C) it opens from its call and plays through. It finds Chromium at

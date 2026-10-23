@@ -144,14 +144,18 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'somewhere-to-sleep': {
     title: 'Somewhere to sleep',
-    about: 'Your students need somewhere to sleep and somewhere to eat, and the campus has neither yet. A residence hall gives beds, and a dining hall serves meals, each for a set number of students. Most students commute, but they still judge the college by its beds and meals.',
+    about: 'A residence hall gives beds, and a dining hall serves meals, each for a set number of students. Most students commute, but they still judge the college by its beds and meals. Students keep to a path where there is one.',
     objectives: {
       'site-residence-hall': 'Place a residence hall',
       'site-dining-hall': 'Place a dining hall',
+      'path-to-founders': 'Lay a path from the residence hall to Founders Hall',
     },
     help: {
       'site-residence-hall': { text: 'Open the build menu and click the ringed residence hall. Then click the map to place it. You pay when you place a building, and it opens when construction is finished.', door: 'build' },
       'site-dining-hall': { text: 'Open the build menu, click a dining hall, then click the map to place it.', door: 'build' },
+      // The two buildings, not the founding drive, which nothing a player
+      // reads names (Plan 115D); a path that joins the drive still counts.
+      'path-to-founders': { text: 'Open the build menu and click Paths. Drag a path from the residence hall to Founders Hall. Paths are free.', door: 'build' },
     },
   },
   seats: {

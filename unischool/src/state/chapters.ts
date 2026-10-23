@@ -1,4 +1,4 @@
-import type { Buildable, GameState, GuidanceState, VarsityTeam } from './types';
+import type { Buildable, GameState, GuidanceState, Placement, TileCoord, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
@@ -14,6 +14,7 @@ import { schoolsFounded } from '../systems/guidance/establish';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
 import { placesComing } from '../systems/guidance/seating';
+import { pathTileKey, placementTiles } from './campusMap';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
 // one season's lesson each, in the manner of Transport Fever's missions:
@@ -92,6 +93,9 @@ export const DOUBLE_SPEED_MARK = 'speed-2x';
 export const LOOK_MARKS = { pan: 'look:pan', turn: 'look:turn', tilt: 'look:tilt', zoom: 'look:zoom', home: 'look:home' } as const;
 export type LookMove = keyof typeof LOOK_MARKS;
 
+// Somewhere to sleep's path (Plan 115D).
+export const PATH_OBJECTIVE = 'path-to-founders';
+
 // The posts a varsity team has: head coach, assistant coach, trainer.
 const TEAM_POSTS = 3;
 
@@ -137,12 +141,15 @@ export const CHAPTERS: readonly Chapter[] = [
     // summer applicants and prestige (the owner's choice, 20 October, from
     // a measured 616 applicants with them in week 5 and 545 in week 27).
     // Needs stay hidden until commencement (Plan 104M, §7.1): the chapter
-    // asks for the buildings, not a figure.
+    // asks for the buildings, not a figure. And a path from the residence
+    // hall to Founders Hall (Plan 115D, the third review's C1-1): the young
+    // campus's ground plan, laid by the player, and the path tool taught.
     id: 'somewhere-to-sleep',
     earliest: week(1, 10),
     objectives: [
       { id: 'site-residence-hall', progress: (s) => sitedAny(s, isDorm) },
       { id: 'site-dining-hall', progress: (s) => sitedAny(s, isDiningHall) },
+      { id: PATH_OBJECTIVE, progress: (s) => pathJoinsResidence(s) },
     ],
   },
   {
@@ -347,6 +354,53 @@ export const CHAPTERS: readonly Chapter[] = [
 export const tabMark = (tab: string) => `tab:${tab}`;
 export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history', 'faculty']);
 
+// The paths joined to Founders Hall (Plan 115D), as tile keys: every path
+// tile reached from one beside the hall, a step at a time along the paths,
+// diagonals included (the draw tool lays a diagonal run as one band,
+// pathways.tsx). The founding drive is among them (state/drive.ts), and a
+// path that joins it counts. A path under a building joins nothing.
+export function pathsFromFounders(s: GameState): Set<string> {
+  const hall = s.placements[FOUNDERS_HALL_ID];
+  const joined = new Set<string>();
+  if (!hall) return joined;
+  const covered = new Set(Object.values(s.placements).flatMap((p) => placementTiles(p).map(pathTileKey)));
+  const paved = (key: string) => key in s.pathways && !covered.has(key) && !joined.has(key);
+  const queue = besideTiles(hall).filter((t) => paved(pathTileKey(t)));
+  for (const t of queue) joined.add(pathTileKey(t));
+  for (let q = 0; q < queue.length; q++) {
+    const { row, col } = queue[q];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const next = { row: row + dr, col: col + dc };
+        const key = pathTileKey(next);
+        if (!paved(key)) continue;
+        joined.add(key);
+        queue.push(next);
+      }
+    }
+  }
+  return joined;
+}
+
+// The tiles round a placement's footprint, corners included.
+export function besideTiles(p: Placement): TileCoord[] {
+  const tiles: TileCoord[] = [];
+  for (let row = p.row - 1; row <= p.row + p.h; row++) {
+    for (let col = p.col - 1; col <= p.col + p.w; col++) {
+      if (row < p.row || row >= p.row + p.h || col < p.col || col >= p.col + p.w) tiles.push({ row, col });
+    }
+  }
+  return tiles;
+}
+
+// A sited residence hall has a path beside it that joins Founders Hall.
+export function pathJoinsResidence(s: GameState): boolean {
+  const dorms = s.tech.filter((t) => isDorm(t) && t.id in s.placements);
+  if (dorms.length === 0) return false;
+  const joined = pathsFromFounders(s);
+  return dorms.some((t) => besideTiles(s.placements[t.id]).some((tile) => joined.has(pathTileKey(tile))));
+}
+
 // What a chapter rings while its objective waits, as the walkthrough's
 // steps did (Plan 103): the program whose next course the Curriculum
 // rings; the building the build menu rings and opens on (a residence hall
@@ -389,6 +443,15 @@ export function ringedBuilding(s: GameState): Buildable | null {
   const team = s.orgs.teams.find((x) => !venueUnderway(s, x));
   const venue = team ? venueForCategory(s, team.venueCategory) : undefined;
   return venue?.status === 'available' ? venue : null;
+}
+
+// The grounds tool the build menu rings (Plan 115D): Paths, while
+// Somewhere to sleep asks for its path and rings no building before it.
+// With nothing ringed the menu opens on Grounds (BuildPopup.tsx's
+// initialBuildTab), where the tile is.
+export function ringedTool(s: GameState): 'paths' | null {
+  if (currentChapter(s)?.id !== 'somewhere-to-sleep' || objectiveMet(s, PATH_OBJECTIVE)) return null;
+  return sitedAny(s, isDorm) && ringedBuilding(s) === null ? 'paths' : null;
 }
 
 // The first building a test picks that can be built and is not yet sited.

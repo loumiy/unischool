@@ -12,7 +12,7 @@ import { awaitsSite, isPlaceableKind } from '../state/campusMap';
 import BuildThumb from './BuildThumb';
 import DecorThumb from './decorThumbs';
 import { foundersHallUnsited } from '../state/opening';
-import { projectsAsked, ringedBuilding } from '../state/chapters';
+import { projectsAsked, ringedBuilding, ringedTool } from '../state/chapters';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
@@ -675,17 +675,19 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
 // plant tool plants: the session's choices, pathChoice.ts and
 // plantingChoice.ts), and the tile shows the one chosen. One eraser deletes
 // whatever decoration is on a tile.
+// `ringed`: the tool a chapter rings (state/chapters.ts's ringedTool,
+// Plan 115D), until it is armed.
 interface MiniTool {
   key: string; label: string; title: string; art: React.ReactNode;
-  armed: boolean; onClick: () => void;
+  armed: boolean; onClick: () => void; ringed?: boolean;
 }
 
 function MiniTile({ tool }: { tool: MiniTool }) {
-  const { label, title, art, armed, onClick } = tool;
+  const { label, title, art, armed, onClick, ringed = false } = tool;
   return (
     <button
       type="button"
-      className={`build-mini-tile ${armed ? 'placing' : ''}`}
+      className={`build-mini-tile ${armed ? 'placing' : ''}${ringed && !armed ? ' opening-target' : ''}`}
       aria-pressed={armed}
       title={title}
       onClick={onClick}
@@ -745,8 +747,11 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
   const tool = (key: CampusTool, label: string, title: string, art: React.ReactNode): MiniTool => ({
     key, label, title, art, armed: pathTool === key, onClick: () => onSetPathTool(key),
   });
-  const paths = tool('draw', 'Paths', `Draw paths for free (P). Drag to pave, hold Shift for a straight line, right click to delete. ${PATHS_DESIRE_NOTE}`,
-    <DecorThumb d={{ kind: 'path', surface }} />);
+  const paths = {
+    ...tool('draw', 'Paths', `Draw paths for free (P). Drag to pave, hold Shift for a straight line, right click to delete. ${PATHS_DESIRE_NOTE}`,
+      <DecorThumb d={{ kind: 'path', surface }} />),
+    ringed: ringedTool(s) === 'paths',
+  };
   const surfaces: MiniTool[] = PATH_SURFACES.map((id) => ({
     key: `path-${id}`, label: SURFACE_LABELS[id], title: `Pave with ${SURFACE_LABELS[id].toLowerCase()}`,
     art: <DecorThumb d={{ kind: 'path', surface: id }} />, armed: surface === id, onClick: () => setPathSurface(id),

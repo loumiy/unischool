@@ -489,7 +489,9 @@ among the offers, the Found button). The chapters after the walk ring
 the same way (Plan 106 PR C, `state/chapters.ts`'s `ringedProgram` and
 `ringedBuilding`): the program row's develop button in the Curriculum
 while the next course waits, and the next residence hall's and dining
-hall's build tiles while "Somewhere to sleep" is the chapter. Since Plan
+hall's build tiles while "Somewhere to sleep" is the chapter, then, both
+sited, the Paths tile on Grounds until a path joins the residence hall to
+Founders Hall (Plan 115D, `ringedTool`). Since Plan
 112 also the funds figure, the Treasury's button, while "Paying for it"
 waits on the Treasury (`treasuryRinged`), and the first academic hall's
 tile, the build menu opening on the Academic category, while "A hall of

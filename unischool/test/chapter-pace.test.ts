@@ -15,6 +15,10 @@
 // markAsPlayed), the week the chapter opens: a player reading "Open the
 // Treasury" opens it. Those objectives then wait no time, so the check says
 // nothing about them; it judges the ones the college's state must reach.
+// Somewhere to sleep's path (Plan 115D) the guided player lays itself, as
+// its Show me would (sim/harness/moves.ts's layPathToFounders), the week a
+// residence hall stands sited with the chapter open: the wait it shows is
+// the residence hall's.
 // A headless founding starts with Founders Hall sited and no walkthrough,
 // so Founding, The next course and Looking around are caught up as done in
 // week 1 (chapters.ts's caughtUp) and judged by nothing here.

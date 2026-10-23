@@ -36,6 +36,7 @@ import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 import { CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
 import { clearBoardLetters } from '../src/systems/finance/distress';
 import { DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, readMark, tabMark } from '../src/state/chapters';
+import { layPathToFounders } from '../sim/harness/moves';
 
 // `--k v` and `--k=v` both work; other arguments are positional.
 const VALUE_FLAGS = ['player', 'strategy', 'year', 'week', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
@@ -130,9 +131,10 @@ if (breakAt && !stoppedBeforeBreak) breakAt.apply(game.s);
 if (!stoppedBeforeBreak) playUntil(game, player, recipe.year + 1 - game.s.clock.year, stopAt);
 // The marks a player makes outside the college's state (Plan 113E, the
 // third review's I7-5a): every tab a chapter asks to be opened, the camera's
-// moves and double speed, then every opened chapter's page read. The
-// harness's players open no tab, so a save would otherwise sit on Paying
-// for it at any year, its briefing opening over the map on Continue.
+// moves and double speed, Somewhere to sleep's path (Plan 115D, as its
+// Show me lays it: sim/harness/moves.ts), then every opened chapter's page
+// read. The harness's players open no tab, so a save would otherwise sit on
+// Paying for it at any year, its briefing opening over the map on Continue.
 markAsPlayed(game);
 const state: GameState = game.s;
 // A recipe that breaks the school after the run (see Scenario.mutate).
@@ -145,6 +147,7 @@ function markAsPlayed(g: typeof game): void {
   for (const mark of [...[...MARKED_TABS].map(tabMark), ...Object.values(LOOK_MARKS), DOUBLE_SPEED_MARK]) {
     g.act({ type: 'MARK_GUIDANCE', mark });
   }
+  layPathToFounders(g);
   for (let unread = unreadChapters(g.s); unread.length > 0; unread = unreadChapters(g.s)) {
     for (const id of unread) g.act({ type: 'MARK_GUIDANCE', mark: readMark(id) });
   }
