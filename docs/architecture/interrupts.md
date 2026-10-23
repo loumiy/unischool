@@ -110,7 +110,13 @@ Everything that needs to stop time rides on this one mechanism:
   never hold the clock. A save on a retired step moves on to `'play'`. A
   walk that ends on its program founded counts the "Somewhere to sleep,
   somewhere to eat" letter read, since its chapter asks the same; one
-  skipped before then gets the letter at week 9. The "done" steps are
+  skipped before then gets the letter at week 9 only with the Objectives
+  setting Off. Since Plan 112H a run the chapters guide is sent none of
+  the chair's letters: each is recorded read unsent when it falls due
+  (`eventData.ts`'s `chapter` names the chapter that says it), and its ask
+  still carries the next-step line. The welcome card is the opening
+  letter. A run without chapters (Off, a save from before them, the sims)
+  still has every letter. The "done" steps are
   settled by `settleOpening` from the action that did them (`PLACE_BUILDABLE`, `HIRE_FACULTY`, `FOUND_PROGRAM`,
   `START_DEVELOPMENT`), and at the top of each `TICK` with no stop
   standing (a course is taught by the tick), never by the UI, and it moves

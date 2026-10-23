@@ -98,7 +98,7 @@ for (const savePath of saves) {
   page.on('pageerror', (e) => errors.push(`${name}: ${String(e)}`));
   await page.goto(URL, { waitUntil: 'domcontentloaded' });
   // Objectives on Brief (Plan 106): on Guided a save past the walkthrough
-  // opens its chapter's briefing drawer over the map by itself, which
+  // opens the drawer on its chapter over the map by itself, which
   // covered a third of every view (review III, area 1). Stats answered,
   // so the title screen's question is not in the way either.
   await page.evaluate((s) => {

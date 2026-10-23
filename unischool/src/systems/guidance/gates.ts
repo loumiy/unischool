@@ -2,9 +2,10 @@ import type { GameState } from '../../state/types';
 
 // THE CHAPTERS' GATES (Plan 106 §4, PR E). A guided run holds a system back
 // until the chapter that explains it has opened: the inbox's matters and
-// the students' demands until "Campus life", the board's promises until
-// "Promises", the Athletics tab until "The teams" (PR F, TabNav.tsx's
-// tabAvailable). A pure reading of the record state/chapters.ts keeps, so the
+// the students' demands until "Campus life", the Athletics tab until "The
+// teams" (PR F, TabNav.tsx's tabAvailable). The board's promises waited for
+// "Promises" until that chapter went (Plan 112F); they come from the third
+// summer, guided or not. A pure reading of the record state/chapters.ts keeps, so the
 // systems can ask without importing the chapters themselves.
 //
 // No gate holds a run that isn't guided: a headless founding (the sims),
@@ -14,7 +15,6 @@ import type { GameState } from '../../state/types';
 export const OBJECTIVES_OFF_MARK = 'objectives-off';
 // The chapter each system waits for (state/chapters.ts's ids).
 export const MATTERS_CHAPTER = 'campus-life';
-export const PROMISES_CHAPTER = 'promises';
 export const ATHLETICS_CHAPTER = 'the-teams';
 
 // A run the chapters guide.

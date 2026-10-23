@@ -18,6 +18,7 @@ import { claimedSchool, closestSchool, dedicatedHalls, dedicatedSchool, schoolFo
 import { placesComing, seatingAsk, studentsUnseated } from '../systems/guidance/seating';
 import { establishAsk, establishText } from '../systems/guidance/establish';
 import type { StepIntent } from '../systems/guidance/intent';
+import type { ChapterId } from './chapterData';
 import { schoolOffers } from '../systems/techtree/programOffers';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
@@ -1028,7 +1029,8 @@ export function offeredChoices(s: GameState, event: DecisionEvent, ctx: Decision
 
 // =====================================================================
 // The opening letters from the board's chair, each with one thing to do and
-// a `done` that reads state. The toolbar carries the ask until it is done
+// a `done` that reads state. A run the chapters guide is sent none (Plan
+// 112H): each letter's chapter says what it said. The toolbar carries the ask until it is done
 // (systems/guidance/nextStep.ts). Each fires through the interrupt system
 // (eventSystem.ts's fireOpeningLetter) on the first quiet week it is due,
 // and the set is skippable. Letters grant and gate nothing.
@@ -1064,11 +1066,14 @@ export interface OpeningLetter {
   // quiet week this holds, in any year. One whose ask is already done by
   // then is recorded read and never sent.
   arrives?: (s: GameState) => boolean;
-  // A chapter of the objectives (state/chapters.ts) that teaches the same:
-  // in a guided run the letter is recorded read unsent, as the needs
-  // letter is once the walkthrough ends (Plan 106 PR C), and its ask still
-  // carries the next-step line.
-  chapter?: string;
+  // The chapter of the objectives (state/chapters.ts) that teaches the
+  // same: in a guided run every letter is recorded read unsent, as the
+  // needs letter is once the walkthrough ends (Plan 106 PR C), and its ask
+  // still carries the next-step line. Since Plan 112H every letter has one:
+  // the chapters took the letters' words, and the letters are the guidance
+  // only of a run without chapters (the Objectives setting Off, a save from
+  // before them, the sims).
+  chapter: ChapterId;
   title: string;
   body: (s: GameState) => string;
   ask: (s: GameState) => LetterAsk;
@@ -1142,6 +1147,9 @@ function foundedSchools(s: GameState): string[] {
 export const OPENING_LETTERS: readonly OpeningLetter[] = [
   {
     id: 'doors-open',
+    // The walkthrough's welcome card is this letter, and "Seats for
+    // everyone" its ask.
+    chapter: 'seats',
     week: 1,
     title: 'The doors open',
     body: (s) => {
@@ -1182,6 +1190,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   },
   {
     id: NEEDS_LETTER_ID,
+    chapter: 'somewhere-to-sleep',
     week: 9,
     title: 'Somewhere to sleep, somewhere to eat',
     body: (s) => {
@@ -1216,6 +1225,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   },
   {
     id: 'moving-in',
+    chapter: 'hall-of-its-own',
     week: 1,
     // The second academic hall standing, Founders Hall the first.
     arrives: (s) => standing(s, FIRST_HALL_ID),
@@ -1229,6 +1239,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   },
   {
     id: 'a-school-grows',
+    chapter: 'hall-of-its-own',
     week: 1,
     // Halfway: three programs of one school in one hall, which is the
     // moment that school claims it (Plan 100): read off the claim, so the
@@ -1253,6 +1264,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   },
   {
     id: 'a-second-school',
+    chapter: 'hall-of-its-own',
     week: 1,
     arrives: (s) => foundedSchools(s).length > 0,
     title: 'A second school',
@@ -1277,6 +1289,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   // Park — an initiative seen through in every lab — and then the park.
   {
     id: 'the-laboratories',
+    chapter: 'research',
     week: 1,
     arrives: (s) => standingLabs(s).length > 0,
     title: 'The laboratories',
@@ -1305,6 +1318,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
   // to any college not specialized in research).
   {
     id: 'the-research-park',
+    chapter: 'research-park',
     week: 1,
     arrives: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'locked'),
     title: 'The Research Park',

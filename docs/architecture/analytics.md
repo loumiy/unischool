@@ -48,8 +48,8 @@ and never ask.
 | `opening_skipped` | The walkthrough's skip is confirmed | the step it was skipped on (`welcome` or one of the steps above), whether the board's letters were kept |
 | `chapter_opened` | An objectives chapter opens (Plan 106) | the chapter's id, the year |
 | `chapter_done` | A chapter's required objectives are all met | the chapter's id, the year, the weeks it was open |
-| `briefing_read` | A chapter's briefing is first shown | the chapter's id |
-| `guide_opened` | A briefing is read again from the Guide | the chapter's id, from where: a tab's Guide button or the drawer's list |
+| `briefing_read` | A chapter's page is first shown (named for the briefing it was until Plan 112A) | the chapter's id |
+| `guide_opened` | A chapter's page is read again from the Guide | the chapter's id, from where: a tab's Guide button or the drawer's list |
 | `year_reached` | Each summer in years 1–10, then every fifth | year, rank, prestige band (tens), enrollment band, cash band, schools founded, times the clock was stopped this year, weeks played at each speed this year, times each tab was opened this year, the Objectives setting (Guided, Brief or Off) |
 | `ambition_reached` | An ambition is met | the ambition's id |
 | `specialization_offered` | The board offers a specialization | year |

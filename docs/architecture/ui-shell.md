@@ -90,28 +90,34 @@ milestone chip had: "Chapter 2 · Places for every student 480/650", the
 chapter's first objective not met. The next step stays on the strip only
 when it is urgent or no chapter is open. Clicking the chip, or pressing J,
 opens the **objectives drawer** above the ticker. It holds:
-- the chapter and its objectives, each with its count;
-- its briefing (what it is, how to work it with a Show me for each lever,
-  why it matters), when it has one;
+- the chapter's number and title, a short paragraph about it, and its
+  objectives, each with its count and a circled (?) (Plan 112A). The (?)
+  opens a small popover anchored to it (`HelpHint.tsx`; Escape or a click
+  elsewhere shuts it, one open at a time) with the objective's help, how
+  to meet it, and a Show me that opens the view it needs and rings what
+  to click;
 - the next step, under "Also waiting";
 - the milestones: those reached this chapter as "Unlocked", the next with
   its count, and the whole ladder a button away.
 
 Settings' **Objectives** has three modes:
-- **Guided** (the default) opens a chapter's briefing by itself, once.
+- **Guided** (the default) opens the drawer on a new chapter by itself,
+  once.
 - **Brief** never opens it unasked.
 - **Off** shows the ticker as it was before the chapters, milestone chip
-  and all.
+  and all, and the chair's letters are its guidance (Plan 112H; a run
+  with chapters is sent none).
 
 The drawer takes its place on the shell's Escape ladder after the
 milestones and before the log.
 
-**The Guide** (Plan 106 PR G) lets the player read any briefing again:
+**The Guide** (Plan 106 PR G) lets the player read any chapter again:
 - **In the drawer**, "Read again" lists every chapter the run has opened
-  that has a briefing. Each opens that chapter's page in the drawer, with
-  a way back to the current objectives.
+  that has a page (all but the founding). Each opens that chapter's page
+  in the drawer, its objectives' help and all, with a way back to the
+  current objectives.
 - **On a tab**, a "? Guide" button sits in the header beside Close, and
-  opens the briefing of the chapter that introduced it
+  opens the page of the chapter that introduced it
   (`chapterData.ts`'s `TAB_GUIDE`). A tab gets the button once that
   chapter has opened; Research's chapter (Plan 106 PR H) opens with the
   first founded school.
@@ -470,7 +476,11 @@ among the offers, the Found button). The chapters after the walk ring
 the same way (Plan 106 PR C, `state/chapters.ts`'s `ringedProgram` and
 `ringedBuilding`): the program row's develop button in the Curriculum
 while the next course waits, and the next residence hall's and dining
-hall's build tiles while "Somewhere to sleep" is the chapter. A skipped walk that left the hall
+hall's build tiles while "Somewhere to sleep" is the chapter. Since Plan
+112 also the funds figure, the Treasury's button, while "Paying for it"
+waits on the Treasury (`treasuryRinged`), and the first academic hall's
+tile, the build menu opening on the Academic category, while "A hall of
+its own" waits on it. A skipped walk that left the hall
 unsited keeps the Build button and the hall's tile rung while the clock
 waits for it.
 

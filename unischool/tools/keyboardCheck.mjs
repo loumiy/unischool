@@ -41,7 +41,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(URL);
 await page.evaluate((s) => localStorage.setItem('unischool.save', s), readFileSync(savePath, 'utf8'));
-// Objectives on Brief: under Guided a chapter's briefing opens over the map
+// Objectives on Brief: under Guided a chapter's page opens over the map
 // by itself (Plan 106), and its drawer takes the first Escape and holds
 // the light (review III, area 7).
 await page.evaluate(() => localStorage.setItem('unischool.settings.v1', JSON.stringify({ objectives: 'brief' })));
