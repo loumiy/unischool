@@ -89,6 +89,14 @@ const OFFICE_LINE = 'An office: one more slot in Founders Hall can hold one';
 const housedPrograms = (s: GameState) => Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
 const hasMilestone = (s: GameState, prefix: string) => Object.keys(s.milestones).some((k) => k.startsWith(prefix));
 
+// A sport club has asked to go varsity (eventData.ts's 'varsity-petition'),
+// whatever the answer: a team was fielded, or a club was turned down and
+// carries the year it asked. The ladder's 'sport' rung and the chapter The
+// teams both open on it (Plan 112B).
+export function varsityAsked(s: GameState): boolean {
+  return s.orgs.teams.length > 0 || s.orgs.clubs.some((c) => typeof c.varsityLastAskedYear === 'number');
+}
+
 function students(target: number) {
   return {
     reached: (s: GameState) => enrolled(s) >= target,
@@ -225,16 +233,19 @@ export const MILESTONES: readonly Milestone[] = [
     opens: ['Research: commission projects in your labs'],
   },
   {
+    // The first varsity petition, answered either way (Plan 112B): until
+    // then the Athletics tab had nothing to do. The id is the old 'A sport
+    // club' rung's, so a save that reached it then keeps the tab.
     id: 'sport',
     tier: 'Growing',
-    name: 'A sport club',
-    condition: 'a sport club forms',
-    reached: (s) => s.orgs.teams.length > 0 || s.orgs.clubs.some((c) => c.sport !== null),
+    name: 'A varsity petition',
+    condition: 'a sport club asks to go varsity',
+    reached: varsityAsked,
     side: true,
     buildables: [],
     tabs: ['athletics'],
-    letter: 'Students have formed a sport club. For now it is theirs to run. If it asks to go varsity, your athletics department starts here.',
-    opens: ['Athletics: your clubs, teams and venues'],
+    letter: 'A sport club has asked to go varsity, and your athletics department starts here. A varsity team needs an Athletic Director over it, a head coach, an assistant coach and a trainer, and a venue to play in.',
+    opens: ['Athletics: your teams, their coaches and their venues'],
   },
   {
     id: 'four-schools',

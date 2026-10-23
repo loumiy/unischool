@@ -1,4 +1,4 @@
-import type { Buildable, GameState, GuidanceState } from './types';
+import type { Buildable, GameState, GuidanceState, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
@@ -9,7 +9,8 @@ import { darkPrograms } from '../systems/techtree/darkness';
 import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import { RESEARCH_PARK_ID } from '../data/researchParkData';
 import { GRADE_B } from '../data/courseQuality';
-import { milestoneReached } from '../systems/ladder/ladderSystem';
+import { varsityAsked } from '../data/ladderData';
+import { openChairs, venueForCategory } from '../data/studentLifeData';
 import { schoolsFounded } from '../systems/guidance/establish';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 
@@ -28,9 +29,9 @@ import { foundersHallUnsited, laterCourseStarted } from './opening';
 // (Plan 106 PR B; since Plan 112A each objective with its own help). The
 // walkthrough teaches the founding and ends there; the chapters after it
 // took over its later steps (PR C), and in a guided run the chair's letters
-// too (Plan 112H, eventSystem.ts's fireOpeningLetter).
+// too (Plan 112A, eventSystem.ts's fireOpeningLetter).
 //
-// "Promises" and "The long game" went in Plan 112F. A save that opened
+// "Promises" and "The long game" went in Plan 112A. A save that opened
 // either keeps their ids in its record, which nothing reads: the chapters
 // are read off CHAPTERS, never off the record's keys.
 //
@@ -70,7 +71,7 @@ const week = (year: number, w: number) => (year - 1) * WEEKS_PER_YEAR + w;
 // The first academic hall (Elm Hall), which chapter 10 rings.
 const FIRST_HALL_ID = academicHallId(0);
 
-// A count of courses taught (Plan 112E), one of the curriculum's
+// A count of courses taught (Plan 112A), one of the curriculum's
 // milestones in chapterData.ts: what the first academic hall waits on,
 // counted the same way (ladderData.ts's 'curriculum' milestone).
 function teachCourses(chapter: keyof typeof COURSE_MILESTONES): Objective {
@@ -86,6 +87,9 @@ export const DOUBLE_SPEED_MARK = 'speed-2x';
 // (CampusMap.tsx), by key, mouse or touch alike.
 export const LOOK_MARKS = { pan: 'look:pan', turn: 'look:turn', tilt: 'look:tilt', zoom: 'look:zoom', home: 'look:home' } as const;
 export type LookMove = keyof typeof LOOK_MARKS;
+
+// The posts a varsity team has: head coach, assistant coach, trainer.
+const TEAM_POSTS = 3;
 
 export const CHAPTERS: readonly Chapter[] = [
   {
@@ -197,7 +201,7 @@ export const CHAPTERS: readonly Chapter[] = [
     earliest: week(2, 14),
     // The tab first, and a search only as one way to find somebody
     // (Plan 107B). The first of the curriculum's milestones, eight courses,
-    // is the count that opens the chapter after it (Plan 112E).
+    // is the count that opens the chapter after it (Plan 112A).
     objectives: [
       { id: 'open-faculty', progress: (s) => marked(s, tabMark('faculty')) },
       { id: 'every-program-staffed', progress: (s) => darkPrograms(s).size === 0 },
@@ -231,17 +235,29 @@ export const CHAPTERS: readonly Chapter[] = [
     ],
   },
   {
-    // Athletics, once a sport club has formed (ladderData.ts's 'sport'
-    // milestone), and not before year 4. A side chapter: a college that
-    // never fields a team still reaches the chapters after it. The
-    // Athletics tab waits for it in a guided run (gates.ts).
+    // Athletics, from the first varsity petition (Plan 112B; ladderData.ts's
+    // varsityAsked), walked in the order it happens: the team fielded, the
+    // Athletic Director the board then offers, the team's three posts, and
+    // its venue. Whenever the petition comes, since the Athletics tab waits
+    // for this chapter in a guided run (gates.ts) and must not wait longer
+    // than the petition. A side chapter: a college that never fields a team
+    // still reaches the chapters after it.
     id: 'the-teams',
-    earliest: week(4, 1),
+    earliest: week(1, 1),
     side: true,
-    opensWhen: (s) => milestoneReached(s, 'sport'),
+    opensWhen: varsityAsked,
     objectives: [
+      { id: 'field-a-varsity-team', progress: (s) => s.orgs.teams.length > 0 },
       { id: 'appoint-athletic-director', progress: (s) => s.orgs.athleticDirector !== null },
-      { id: 'field-a-varsity-team', progress: (s) => s.orgs.teams.length > 0, optional: true },
+      {
+        id: 'staff-the-team',
+        progress: (s) => {
+          const teams = s.orgs.teams.length;
+          const of = TEAM_POSTS * Math.max(1, teams);
+          return { n: teams === 0 ? 0 : of - openChairs(s).length, of };
+        },
+      },
+      { id: 'build-the-venue', progress: (s) => s.orgs.teams.length > 0 && s.orgs.teams.every((team) => venueUnderway(s, team)) },
     ],
   },
   {
@@ -262,7 +278,7 @@ export const CHAPTERS: readonly Chapter[] = [
     // Research, once a school is founded and its first laboratory can be
     // built (in a natural run, years 9 to 10). The university charter that
     // follows the first lab at work is the board's to offer, not an
-    // objective (Plan 112G).
+    // objective (Plan 112A).
     id: 'research',
     earliest: week(5, 1),
     side: true,
@@ -307,7 +323,7 @@ export const CHAPTERS: readonly Chapter[] = [
   },
   {
     // The Research Park, once a college specialized in research may build
-    // it: the chair's last letter, as a chapter (Plan 112H). Met once the
+    // it: the chair's last letter, as a chapter (Plan 112A). Met once the
     // park is going up.
     id: 'research-park',
     // No sooner than the park itself (projectData.ts's fromYear).
@@ -328,8 +344,8 @@ export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students',
 // What a chapter rings while its objective waits, as the walkthrough's
 // steps did (Plan 103): the program whose next course the Curriculum
 // rings; the building the build menu rings and opens on (a residence hall
-// and a dining hall, then the first academic hall, Plan 112D); and the
-// funds figure, the Treasury's button (Plan 112B).
+// and a dining hall, then the first academic hall, Plan 112A); and the
+// funds figure, the Treasury's button (Plan 112A).
 export function ringedProgram(s: GameState): string | null {
   return currentChapter(s)?.id === 'next-course' && !objectiveMet(s, 'develop-second-course') ? walkProgram(s) : null;
 }
@@ -340,9 +356,42 @@ export function ringedBuilding(s: GameState): Buildable | null {
     const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
     return hall && hall.status === 'available' && !(hall.id in s.placements) ? hall : null;
   }
-  if (chapter !== 'somewhere-to-sleep') return null;
-  const test = !sitedAny(s, isDorm) ? isDorm : !sitedAny(s, isDiningHall) ? isDiningHall : null;
-  return test ? s.tech.find((t) => test(t) && t.status === 'available') ?? null : null;
+  if (chapter === 'somewhere-to-sleep') {
+    const test = !sitedAny(s, isDorm) ? isDorm : !sitedAny(s, isDiningHall) ? isDiningHall : null;
+    return test ? s.tech.find((t) => test(t) && t.status === 'available') ?? null : null;
+  }
+  // The teams' venue (Plan 112B), from the chapter's opening rather than
+  // its turn in the Athletics tab's walk, so its Show me finds it ringed.
+  if (!chapterOpen(s, 'the-teams')) return null;
+  const team = s.orgs.teams.find((x) => !venueUnderway(s, x));
+  const venue = team ? venueForCategory(s, team.venueCategory) : undefined;
+  return venue?.status === 'available' ? venue : null;
+}
+
+// A chapter opened and not yet done, side chapters included (currentChapter
+// names only the first).
+function chapterOpen(s: GameState, id: ChapterId): boolean {
+  return s.guidance?.opened[id] !== undefined && s.guidance.done[id] === undefined;
+}
+
+// A team's venue stands, is going up, or is sited.
+function venueUnderway(s: GameState, team: VarsityTeam): boolean {
+  if (team.status === 'active') return true;
+  const venue = venueForCategory(s, team.venueCategory);
+  return !!venue && (venue.status === 'done' || venue.status === 'developing' || venue.id in s.placements);
+}
+
+// What the Athletics tab rings while The teams is open (Plan 112B, the
+// owner: "this should all be walked through when the athletic director is
+// hired"): from the Athletic Director's hire, a team's open posts, then its
+// venue, one at a time in that order, until the chapter is done.
+export type TeamsRing = { step: 'staff' | 'venue'; teamId: string };
+export function teamsRing(s: GameState): TeamsRing | null {
+  if (!chapterOpen(s, 'the-teams') || !s.orgs.athleticDirector) return null;
+  const short = openChairs(s)[0];
+  if (short) return { step: 'staff', teamId: short.team.id };
+  const unhoused = s.orgs.teams.find((team) => !venueUnderway(s, team));
+  return unhoused ? { step: 'venue', teamId: unhoused.id } : null;
 }
 export function treasuryRinged(s: GameState): boolean {
   return currentChapter(s)?.id === 'paying-for-it' && !objectiveMet(s, 'open-treasury');
@@ -351,7 +400,7 @@ export function treasuryRinged(s: GameState): boolean {
 // An objective's help, behind its (?) in the drawer: the chapter's words,
 // except where they would point at something not there yet. The first
 // academic hall still locked, its help says what opens it and its Show me
-// goes to the Curriculum (Plan 112D).
+// goes to the Curriculum (Plan 112A).
 export function objectiveHelp(s: GameState, chapter: ChapterId, objective: string): Lever | undefined {
   if (objective === 'site-academic-hall' && s.tech.find((t) => t.id === FIRST_HALL_ID)?.status === 'locked') return HALL_LOCKED_HELP;
   return CHAPTER_COPY[chapter].help?.[objective];

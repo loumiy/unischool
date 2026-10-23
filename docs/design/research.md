@@ -118,7 +118,7 @@ goes.
 **Research is staged** (Plan 53). The first three depths are open from the
 first lab. Two letters lead the way (Plan 59): *The laboratories*, when
 the first lab stands, asks for an initiative seen through in every lab; *The
-Research Park*, when the park opens, asks to site it. Since Plan 112H a run
+Research Park*, when the park opens, asks to site it. Since Plan 112A a run
 the chapters guide gets their words from the chapters "Research" and "The
 Research Park" (a side chapter that opens with the park) instead. The next-step line
 names a lab that has not yet seen one through before any other idle lab.

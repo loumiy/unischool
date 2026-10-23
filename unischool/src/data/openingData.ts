@@ -73,7 +73,7 @@ export function campusFigures(s: GameState): string {
 // The walkthrough's skip (Plan 104C): one click arms it and it asks, since
 // a walk skipped by a stray click doesn't come back. From the welcome it
 // declines the letters too; from a later card it keeps them. A run the
-// chapters guide is sent no letters (Plan 112H), so its welcome offers to
+// chapters guide is sent no letters (Plan 112A), so its welcome offers to
 // skip the walkthrough alone.
 export const SKIP_WORDS = {
   welcome: 'Skip the walkthrough and the letters',

@@ -126,7 +126,7 @@ Everything that needs to stop time rides on this one mechanism:
   walk that ends on its program founded counts the "Somewhere to sleep,
   somewhere to eat" letter read, since its chapter asks the same; one
   skipped before then gets the letter at week 9 only with the Objectives
-  setting Off. Since Plan 112H a run the chapters guide is sent none of
+  setting Off. Since Plan 112A a run the chapters guide is sent none of
   the chair's letters: each is recorded read unsent when it falls due
   (`eventData.ts`'s `chapter` names the chapter that says it), and its ask
   still carries the next-step line. The welcome card is the opening

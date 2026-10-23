@@ -28,7 +28,7 @@ import { awaitsSite } from './campusMap';
 //              place for every student. The "Somewhere to sleep" letter is
 //              counted read, since its chapter says the same; so is the
 //              first letter. In a guided run no letter after them is sent
-//              either (Plan 112H): each one's chapter says it.
+//              either (Plan 112A): each one's chapter says it.
 //
 // Plans 103B and 103C's steps after the founding (the wait for the first
 // course, the next course, the needs, a residence hall, a dining hall) are

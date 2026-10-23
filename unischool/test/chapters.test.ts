@@ -412,10 +412,14 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(currentChapter(s)?.id === 'running-the-college', 'and the chain goes on without it: Running the college');
   assert(!tabAvailable(s, 'athletics'), 'a gated run has no Athletics tab before its chapter');
 
-  s.orgs.clubs.push({ ...(s.orgs.clubs[0] ?? {}), sport: 'soccer' } as GameState['orgs']['clubs'][number]);
+  // A sport club alone opens nothing (Plan 112B): the petition does.
+  s.orgs.clubs.push({ ...s.orgs.clubs[0], id: 'club-soccer', sport: 'soccer', varsityLastAskedYear: null } as GameState['orgs']['clubs'][number]);
+  settleChapters(s);
+  assert(!opened(s, 'the-teams') && !tabAvailable(s, 'athletics'), 'a sport club alone opens neither The teams nor the Athletics tab');
+  s.orgs.clubs.at(-1)!.varsityLastAskedYear = 4;
   s.ladder.reached.sport = 4;
   settleChapters(s);
-  assert(opened(s, 'the-teams'), 'a sport club opens The teams beside the chain');
+  assert(opened(s, 'the-teams'), 'a varsity petition opens The teams beside the chain');
   assert(tabAvailable(s, 'athletics'), 'and with it the Athletics tab');
   assert(currentChapter(s)?.id === 'the-teams', 'the drawer shows the open chapter first in order');
   assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
@@ -433,7 +437,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   teachCourses(s, COURSE_MILESTONES['running-the-college']);
   settleChapters(s);
   assert(done(s, 'running-the-college') && currentChapter(s)?.id !== 'running-the-college', 'a Provost and the courses end it');
-  assert(nextChapter(s) === null, 'and it is the last of the chain: no Long game after it (Plan 112F)');
+  assert(nextChapter(s) === null, 'and it is the last of the chain: no Long game after it (Plan 112A)');
 }
 
 // ---- PR G: the Guide ----

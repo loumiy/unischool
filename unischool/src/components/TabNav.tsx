@@ -25,7 +25,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
 // The ladder gates tabs one way (data/ladderData.ts): a milestone opens a
 // whole tab (its `tabs`) or a section of a tab that is already open (its
 // `sections`). Research opens with the first lab, Athletics with the first
-// sport club. The rest are open from the charter. Students holds its
+// varsity petition (Plan 112B: before it the tab had nothing to do). The rest are open from the charter. Students holds its
 // guidebook, its clubs and its admissions funnel back to the first
 // commencement (Plan 78B); History shows its Standing from the first week
 // and holds the record of the years back to it (Plan 78C).

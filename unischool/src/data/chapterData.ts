@@ -21,6 +21,7 @@ import { count, countWord } from '../format';
 import { SEAT_SENIOR_YEARS } from './seatData';
 import { GRADE_B } from './courseQuality';
 import { PARK_RESEARCH_BOOST } from './researchParkData';
+import { AD_OFFER_COOLDOWN_YEARS, VARSITY_PETITION_MIN_TENURE_YEARS } from './studentLifeData';
 
 export type ChapterId = 'founding' | 'next-course' | 'looking-around' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
   | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life'
@@ -52,7 +53,7 @@ export interface ChapterCopy {
 const SEATS = count(SEATS_PER_COURSE);
 const COMMITTEE = countWord(COURSE_DEVELOPMENT_SLOTS);
 
-// The curriculum's milestones (Plan 112E): a player busy elsewhere can let
+// The curriculum's milestones (Plan 112A): a player busy elsewhere can let
 // the committee sit idle for years, and every course left unwritten is
 // seats, prestige and tuition not had. Three chapters across years 2 to 4
 // each ask for a count of courses taught (state/chapters.ts). The first is
@@ -157,7 +158,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'first-summer': {
     title: 'The first summer',
-    about: "Week 52 is the summer. The clock stops and waits until you open it from the note above the clock, so you can finish what you're doing first. It has three pages: the year in review, admissions, and the students' petitions. In admissions you set tuition first, and the new class pays that price for all four years.",
+    about: "At week 52 the clock stops for the summer, and waits until you open it from the note above the clock. It has three pages: the year in review, admissions, and the students' petitions. In admissions you set tuition first, and the new class pays that price for all four years.",
     objectives: {
       'set-first-class': "Set the first class's tuition and admit rate",
     },
@@ -202,7 +203,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   'hall-of-its-own': {
     title: 'A hall of its own',
     // The letters "Moving in", "A school takes shape" and "A second school"
-    // said this (Plan 112H).
+    // said this (Plan 112A).
     about: 'Founders Hall has six program slots, and each academic hall adds six more. When three programs from one school share a hall, the school claims it, and its free slots then offer only programs of that school. Six programs there found the school, and the hall takes its name.',
     objectives: {
       'site-academic-hall': 'Place an academic hall',
@@ -231,16 +232,36 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'answer-a-matter': { text: 'The Inbox lists each matter, its choices and the weeks left to answer. A demand names a building the students want, and a deadline. Meet it and satisfaction rises.', door: 'inbox' },
     },
   },
+  // Opens at the first varsity petition and walks the department in the
+  // order it comes (Plan 112B): nothing asks for the Athletic Director
+  // before a team exists to direct.
   'the-teams': {
     title: 'The teams',
-    about: 'A sport club can ask to become a varsity team, with a budget and a venue. Varsity teams play through the year, and the best reach the playoffs in week 47. The Athletic Director runs the department, including the coaches and which programs the fund pays first.',
+    about: `A sport club has asked to go varsity. A varsity team plays a season against the other colleges, and the best reach the playoffs in week 47. It needs an Athletic Director over the department, a head coach, an assistant coach, a trainer, and a venue for its sport.`,
     objectives: {
-      'appoint-athletic-director': 'Hire an Athletic Director',
       'field-a-varsity-team': 'Field a varsity team',
+      'appoint-athletic-director': 'Hire an Athletic Director',
+      'staff-the-team': "Fill the team's three staff posts",
+      'build-the-venue': "Build the team's venue",
     },
     help: {
-      'appoint-athletic-director': { text: 'The Athletics tab lists your clubs, teams and venues, and the Athletic Director who runs them.', door: 'athletics' },
-      'field-a-varsity-team': { text: 'A sport club can ask to become a varsity team. The Athletics tab shows each club and its team.', door: 'athletics' },
+      'field-a-varsity-team': {
+        text: `When a sport club petitions to go varsity, choose Go varsity. If you turned it down, the club asks again in ${countWord(VARSITY_PETITION_MIN_TENURE_YEARS)} years, and nothing else in athletics can start until a team exists.`,
+        door: 'athletics',
+      },
+      'appoint-athletic-director': {
+        text: `You can't search for an Athletic Director yourself. The board sends you three candidates soon after your first team goes varsity, and not before, so this one may mean waiting. If you appoint nobody, the board tries again in ${countWord(AD_OFFER_COOLDOWN_YEARS)} years.`,
+        door: 'athletics',
+      },
+      'staff-the-team': {
+        text: "Every team needs a head coach, an assistant coach and a trainer. In the Athletics tab, open the team's card and click Hire on an empty post, then hire from the market below. An empty post weakens the team, and the tab's button shows ! until every post is filled.",
+        door: 'athletics',
+      },
+      'build-the-venue': {
+        text: "Going varsity adds the team's venue to the build menu. Open the build menu, click the ringed venue, and place it on the map. The team plays once it is built, and later teams of the same kind share it.",
+        door: 'build',
+        ringed: true,
+      },
     },
   },
   'running-the-college': {
@@ -259,7 +280,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   research: {
     title: 'Research',
-    // With the letter "The laboratories" (Plan 112H).
+    // With the letter "The laboratories" (Plan 112A).
     about: 'A founded school can build a laboratory. Each lab works on one research project at a time, with a topic, a team of professors and its funding. Once a lab is at work, the board offers to make your college a university.',
     objectives: {
       'site-a-lab': 'Place a laboratory',
@@ -304,7 +325,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'choose-specialization': { text: 'The offer has its own page, showing what each pillar would open. Click "Not this year" to put the choice off for a year.' },
     },
   },
-  // The letter "The Research Park", as a side chapter (Plan 112H).
+  // The letter "The Research Park", as a side chapter (Plan 112A).
   'research-park': {
     title: 'The Research Park',
     about: 'You specialized in research, and the board has found the land for the Research Park, where faculty and industry work side by side. Once it stands, any lab can take on Landmark research, the deepest and most expensive work a university does, and the kind that wins prizes. Landmark work fills research\'s specialization share.',

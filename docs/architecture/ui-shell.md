@@ -105,7 +105,7 @@ Settings' **Objectives** has three modes:
   once.
 - **Brief** never opens it unasked.
 - **Off** shows the ticker as it was before the chapters, milestone chip
-  and all, and the chair's letters are its guidance (Plan 112H; a run
+  and all, and the chair's letters are its guidance (Plan 112A; a run
   with chapters is sent none).
 
 The drawer takes its place on the shell's Escape ladder after the

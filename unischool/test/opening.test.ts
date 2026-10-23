@@ -320,7 +320,7 @@ const walkToCourse = (name: string) => reducer(
   s = siteAnywhere(s, dining.id);
   assert(done(s, 'somewhere-to-sleep') && ringedBuilding(s) === null, 'both sited, the chapter is done');
 
-  // No letter after it (Plan 112H): the chapters say what the letters said.
+  // No letter after it (Plan 112A): the chapters say what the letters said.
   const { letters, s: after } = playYear(s);
   assert(letters.length === 0, `a guided run is sent no letter: the welcome was the first, and a chapter is each of the rest (${letters.map((l) => l.id).join(',')})`);
   assert(OPENING_LETTERS.every((l) => CHAPTERS.some((c) => c.id === l.chapter)), 'every letter names the chapter that says it');
@@ -384,7 +384,7 @@ const walkToCourse = (name: string) => reducer(
 
   // Skipped from the program's step, the letters kept: nothing marked the
   // needs letter read, so with the chapters Off it comes at week 9 as it
-  // always did. With them on, its chapter says it (Plan 112H), and it is
+  // always did. With them on, its chapter says it (Plan 112A), and it is
   // recorded read unsent.
   let k = siteHall(reducer(foundWalk('Skip letters'), { type: 'ADVANCE_OPENING' }));
   k = reducer(k, { type: 'SKIP_OPENING', keepLetters: true });
@@ -487,7 +487,7 @@ const walkToCourse = (name: string) => reducer(
     const keep = stage !== 'welcome';
     assert(c.acted.length === 1 && c.acted[0].type === 'SKIP_OPENING' && (c.acted[0].keepLetters === true) === keep,
       `${stage}: its confirmation skips, ${keep ? 'keeping' : 'declining'} the letters (${JSON.stringify(c.acted)})`);
-    // A guided run is sent no letters (Plan 112H), so the welcome's skip
+    // A guided run is sent no letters (Plan 112A), so the welcome's skip
     // names only the walk.
     assert(skip.label === (keep ? SKIP_WORDS.rest : SKIP_WORDS.welcomeGuided), `${stage}: labelled "${String(skip.label)}"`);
   }

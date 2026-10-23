@@ -103,7 +103,7 @@ export function openSummerPromises(s: GameState): void {
   const room = PROMISE_CAP - p.active.length;
   // None before the founding years are out, and none once the run has
   // formally ended at the fiftieth summer; those made still come due. A
-  // guided run no longer waits for a chapter (Plan 112F).
+  // guided run no longer waits for a chapter (Plan 112A).
   if (room > 0 && s.clock.year >= PROMISE_FIRST_YEAR && s.clock.year < SEMICENTENNIAL_YEAR) {
     s.promises = p;
     const pool = dealable(s);

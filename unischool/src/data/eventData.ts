@@ -969,7 +969,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             ready
               ? `${venue!.name} is already built, so the team plays varsity at once.`
               : `${venue ? venue.name : 'A shared venue'} appears in the build menu. The team plays varsity once it's built, and shares it with any other team that uses the same kind of venue.`
-          );
+          ) + (s.orgs.athleticDirector ? '' : ' The board then sends you candidates for Athletic Director, a post that waits for your first varsity team.');
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
@@ -1069,7 +1069,7 @@ export interface OpeningLetter {
   // The chapter of the objectives (state/chapters.ts) that teaches the
   // same: in a guided run every letter is recorded read unsent, as the
   // needs letter is once the walkthrough ends (Plan 106 PR C), and its ask
-  // still carries the next-step line. Since Plan 112H every letter has one:
+  // still carries the next-step line. Since Plan 112A every letter has one:
   // the chapters took the letters' words, and the letters are the guidance
   // only of a run without chapters (the Objectives setting Off, a save from
   // before them, the sims).

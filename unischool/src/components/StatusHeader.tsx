@@ -126,7 +126,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
   // The word over the figure on a wide screen; on a phone the glyph stands
   // in for it (styles.css).
   const word = (chip: StatChip) => <span className="stat-label">{STAT_CHIP_WORDS[chip]}</span>;
-  // Rung while "Paying for it" waits on the Treasury (Plan 112B): the
+  // Rung while "Paying for it" waits on the Treasury (Plan 112A): the
   // owner could not find where it opens.
   const objectives = useSettings().objectives;
   const ringed = !treasuryOpen && treasuryRinged(s) && objectivesShown(s, objectives);

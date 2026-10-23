@@ -342,7 +342,7 @@ function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization, summerWait
     return (
       <div className="inbox-hold">
         <p className="inbox-hold-note"><span className="inbox-tag hold">The clock waits</span> Time is paused until you answer this.</p>
-        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} onOpenSpecialization={onOpenSpecialization} />
+        <InterruptContent s={s} act={act} onOpenBuild={() => onOpenTab('build')} onOpenAthletics={() => onOpenTab('athletics')} onOpenSpecialization={onOpenSpecialization} />
       </div>
     );
   }

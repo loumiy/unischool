@@ -316,7 +316,7 @@ export default function App() {
     unseen.current = null;
     reportedGates.current = null;
     actedStage.current = null;
-    buildAfterHold.current = false;
+    afterHold.current = null;
   }, [s.started]);
 
   // A tab whose gate closes again (the last varsity team disbands) closes
@@ -448,8 +448,10 @@ export default function App() {
     : null;
   const beforeHold = useRef<{ tab: TabId; target?: string } | null | undefined>(undefined);
   // A letter's "Continue and open Build" (Plan 78B): the build menu opens
-  // once the stop is answered, in place of the view before it.
-  const buildAfterHold = useRef(false);
+  // once the stop is answered, in place of the view before it. So does any
+  // door clicked during a stop, such as the Athletics tab the Athletic
+  // Director's appointment opens on (Plan 112B).
+  const afterHold = useRef<TabId | 'build' | null>(null);
   useEffect(() => {
     if (!shellLive) return;
     if (holdKey !== null) {
@@ -463,10 +465,11 @@ export default function App() {
     } else if (beforeHold.current !== undefined) {
       const back = beforeHold.current;
       beforeHold.current = undefined;
-      if (buildAfterHold.current) {
-        buildAfterHold.current = false;
-        setBuildOpen(true);
-      } else setOverlay(back && tabAvailable(s, back.tab) ? { tab: back.tab } : null);
+      const after = afterHold.current;
+      afterHold.current = null;
+      if (after === 'build') setBuildOpen(true);
+      else if (after && tabAvailable(s, after)) openTab(after);
+      else setOverlay(back && tabAvailable(s, back.tab) ? { tab: back.tab } : null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holdKey, shellLive]);
@@ -685,7 +688,7 @@ export default function App() {
               {overlay.tab === 'students' && (
                 <StudentsTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
               )}
-              {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} />}
+              {overlay.tab === 'athletics' && <AthleticsTab s={s} act={act} onOpenBuild={() => setBuildOpen(true)} />}
               {overlay.tab === 'history' && (
                 <HistoryTab
                   s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} view={historyView} onView={setHistoryView}
@@ -702,9 +705,9 @@ export default function App() {
                   onRead={(id) => setFoundingRead((cur) => new Set([...cur, id]))}
                   onSeen={markOpened}
                   onOpenTab={(tab) => {
-                    if (tab !== 'build') openTab(tab);
-                    // During a stop the menu waits for the answer (above).
-                    else if (holding) buildAfterHold.current = true;
+                    // During a stop a door waits for the answer (above).
+                    if (holding && tab !== 'inbox') afterHold.current = tab;
+                    else if (tab !== 'build') openTab(tab);
                     else setBuildOpen(true);
                   }}
                   onShowOnMap={inspectHall}

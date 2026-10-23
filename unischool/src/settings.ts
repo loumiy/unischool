@@ -36,7 +36,7 @@ export interface GameSettings {
   // The objectives in the NEXT bar (Plan 106): Guided opens the drawer on a
   // new chapter by itself, once; Brief keeps it shut until asked; Off hides
   // the chapters and shows the ticker as it was before them, with the
-  // chair's letters as its guidance (Plan 112H).
+  // chair's letters as its guidance (Plan 112A).
   objectives: ObjectivesMode;
 }
 

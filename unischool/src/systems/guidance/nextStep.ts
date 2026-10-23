@@ -125,7 +125,7 @@ export function academicRemedy(s: GameState): { text: string; go: TabId | 'build
 }
 
 // A letter recorded read unsent counts: a run the chapters guide is sent no
-// letter (Plan 112H), and the line still carries each one's ask once it
+// letter (Plan 112A), and the line still carries each one's ask once it
 // falls due.
 function letterAsk(s: GameState): NextStep | null {
   if (s.events.opening.skipped) return null;
