@@ -45,7 +45,7 @@ import { servedPopulationFor } from '../../src/systems/satisfaction/satisfaction
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import { canPostSearch, searchCost } from '../../src/systems/faculty/facultySearch';
-import { buildDorm, buildable, declineUnteachable, offersFor, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder, openOffices, useOffices } from './moves';
+import { appointProvost, buildDorm, buildable, declineUnteachable, offersFor, developCourse, foundOffer, hireForBlocked, site, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, hiringOrder, openOffices, useOffices } from './moves';
 import { slotFree } from '../../src/systems/administration/offices';
 
 // The cash the player's own spending leaves behind, in weeks of expenses.
@@ -353,6 +353,8 @@ export function createGuidedPlayer(): Player & { record: GuidedRecord } {
         // The offices (Plan 89G): the guided player's own order.
         openOffices(g, GUIDED_OFFICES, { reserve });
         useOffices(g, { reserve });
+        // The seat Running the college asks for (Plan 113E).
+        appointProvost(g, { reserve });
         background(g, reserveOf(g.s));
       }
       observe(g.s);

@@ -37,6 +37,10 @@ export interface Scenario {
   // Break the state after the run, before it is written: no player
   // digs a hole deep enough on its own.
   mutate?: (s: GameState) => void;
+  // Break the state partway: played to the start of `year`, broken, then
+  // played on to the stopping point, so the game answers the hole as it
+  // would a player's (Plan 113E: `demand`, which no player earned).
+  breakAt?: { year: number; apply: (s: GameState) => void };
   // While the player spends the faculty training program's picks (Plan
   // 85E, sim/harness/game.ts's Player.trains): absent, always.
   trains?: (s: GameState) => boolean;
@@ -71,6 +75,14 @@ export function intoCrisis(s: GameState): void {
   }
   s.finance.cash = Math.min(s.finance.cash, 0) - 2_000_000;
   s.self.reputation = Math.max(5, s.self.reputation - 15);
+}
+
+// Students unhappy enough to demand something (Plan 113E): satisfaction at
+// 55, the year's accumulator agreeing, so the demand system reads a college
+// that has been below its threshold.
+export function intoUnrest(s: GameState): void {
+  s.students.satisfaction = 55;
+  s.students.satisfactionYearSum = 55 * s.students.satisfactionYearWeeks;
 }
 
 // The split-school trap (the October review's trace 7, Plan 78D): the first
@@ -347,21 +359,22 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     // Not a modal since Plan 29: a demand is raised into the inbox's "To
-    // decide" and the clock runs on. Stops the week one is announced. The
-    // Lean college, which builds for a need only once it is dire, is the
-    // player whose satisfaction falls far enough (year 27); the Idle one
-    // raises one in year 3, before there is anything to look at.
+    // decide" and the clock runs on. Stops the week one is announced. No
+    // player lets satisfaction fall far enough on its own (the third
+    // review's I7-5b), so the Lean college's falls to 55 at the start of
+    // year 8, and the game raises one as it would for a player.
     name: 'demand',
-    what: 'a student demand on the clock, in the inbox — the player that earns them',
+    what: 'a student demand on the clock, in the inbox',
     player: 'Lean',
     year: 30,
+    breakAt: { year: 8, apply: intoUnrest },
     stopWhen: (s) => s.events.activeDemand !== null,
   },
   {
     // Not a modal (Plan 78G): the charter waits in the inbox. Open it with
     // `npm run shot -- out.json charter.png --tab=inbox`.
     name: 'charter',
-    what: 'the university charter waiting in the inbox, the week the first lab is at work',
+    what: 'the university charter waiting in the inbox, the week the first lab stands',
     player: 'Guided',
     year: 20,
     stopWhen: (s) => (s.catalogue?.pending ?? []).some((p) => p.eventId === 'university-charter'),

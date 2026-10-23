@@ -100,7 +100,9 @@ for (const savePath of saves) {
   // Objectives on Brief (Plan 106): on Guided a save past the walkthrough
   // opens the drawer on its chapter over the map by itself, which
   // covered a third of every view (review III, area 1). Stats answered,
-  // so the title screen's question is not in the way either.
+  // so the title screen's question is not in the way either. Scenario
+  // saves now carry every chapter's page read (Plan 113E); Brief stays as
+  // a guard for other saves.
   await page.evaluate((s) => {
     localStorage.clear();
     localStorage.setItem('unischool.save', s);

@@ -31,7 +31,9 @@ import { bedsWithDowntown } from '../../src/systems/satisfaction/satisfactionSys
 import type { Game } from './game';
 import { heldOffices, officeAllowance, officeHeld, officePrice, openOfficeRefusal, slotFree } from '../../src/systems/administration/offices';
 import { charterRefusal, foundTeamCost, foundTeamRefusal } from '../../src/systems/administration/officeActions';
-import { staffingCovers } from '../../src/systems/delegation/seats';
+import { canAppoint, staffingCovers } from '../../src/systems/delegation/seats';
+import { seatDef } from '../../src/data/seatData';
+import { weeklyNet } from '../../src/systems/finance/financeSystem';
 
 export type Pick = <T>(items: readonly T[]) => T | undefined;
 export const first: Pick = (items) => items[0];
@@ -374,4 +376,23 @@ export function useOffices(g: Game, { reserve = 0 }: MoveOptions = {}): void {
   if (!officeHeld(g.s, 'athletics-development')) return;
   const club = g.s.orgs.clubs.find((c) => c.sport !== null && foundTeamRefusal(g.s, c.id) === null);
   if (club && affords(g.s, foundTeamCost(g.s), reserve)) g.act({ type: 'FOUND_TEAM', clubId: club.id });
+}
+
+// ---------------------------------------------------------------------
+// A Provost (Plan 113E, the third review's I7-5c): no harness player
+// filled a seat, so no scenario save had one, 4× stayed locked and
+// Running the college was never done. From PROVOST_FROM_YEAR, the year
+// after the chapter that asks for one opens (Y4W27), a Provost from
+// outside once the week's net pays the salary and the cash stands above
+// the player's reserve. The seat keeps its default policy.
+// ---------------------------------------------------------------------
+export const PROVOST_FROM_YEAR = 5;
+
+export function appointProvost(g: Game, { reserve = 0 }: MoveOptions = {}): boolean {
+  const s = g.s;
+  if (s.clock.year < PROVOST_FROM_YEAR || !canAppoint(s, 'provost', null)) return false;
+  const salary = seatDef('provost')?.outsideSalary ?? 0;
+  if (weeklyNet(s) * WEEKS_PER_YEAR < salary || s.finance.cash < reserve) return false;
+  g.act({ type: 'APPOINT_SEAT', seatId: 'provost', school: null });
+  return true;
 }
