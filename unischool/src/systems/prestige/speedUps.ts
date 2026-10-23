@@ -44,10 +44,10 @@ export function speedUpDone(s: GameState, kind: SpeedUpKind): boolean {
 
 // Why it cannot be bought now, or null if it can. Said to the player as is.
 export function speedUpRefusal(s: GameState, kind: SpeedUpKind): string | null {
-  if (specializationOf(s) !== SPEED_UP_PILLAR[kind]) return 'Only for the specialization it belongs to.';
-  if (kind === 'class' && !instituteStands(s)) return 'The Faculty Training Institute must stand first.';
-  if (kind === 'wing' && !parkStands(s)) return 'The Research Park must stand first.';
-  if (kind === 'phase' && !complexStands(s)) return 'The Athletic Performance Complex must stand first.';
+  if (specializationOf(s) !== SPEED_UP_PILLAR[kind]) return 'Only available if you chose its specialization.';
+  if (kind === 'class' && !instituteStands(s)) return 'Build the Faculty Training Institute first.';
+  if (kind === 'wing' && !parkStands(s)) return 'Build the Research Park first.';
+  if (kind === 'phase' && !complexStands(s)) return 'Build the Athletic Performance Complex first.';
   if (speedUpDone(s, kind)) return SPEED_UP_WORDS.done[kind];
   if (s.finance.cash < speedUpPrice(s, kind)) return 'Not enough cash.';
   return null;

@@ -99,7 +99,7 @@ export function resolveSpecialization(s: GameState, pillar: Pillar | null): void
   if (pillar === null) {
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
-      message: 'The college has not chosen a specialization this year. The board will ask again at the close of the next summer.',
+      message: 'You haven\'t chosen a specialization this year. The board will ask again at the end of next summer.',
       kind: 'info',
     });
     return;
@@ -108,7 +108,7 @@ export function resolveSpecialization(s: GameState, pillar: Pillar | null): void
   s.specializationYear = payload?.year ?? s.clock.year - 1;
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
-    message: `The college specializes in ${PILLAR_WORDS[pillar]}: ${SPECIALIZATION_CARDS[pillar].name.replace(/^The /, 'the ')}.`,
+    message: `Your college now specializes in ${PILLAR_WORDS[pillar]}: ${SPECIALIZATION_CARDS[pillar].name.replace(/^The /, 'the ')}.`,
     kind: 'good',
   });
 }

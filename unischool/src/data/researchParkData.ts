@@ -123,33 +123,33 @@ const runningNow = (n: number) => (n === 0 ? 'none running now' : `${n} running 
 export const PARK_WORDS = {
   // The research pillar's specialization term, as its row reads.
   termNoPark: (year: string, goingUp: boolean) => (goingUp
-    ? `The college is specialized in research${year}, but the Research Park is still going up, so this stays empty. Once it stands, each Landmark Program its labs run fills the share: ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`
-    : `The college is specialized in research${year}, but no Research Park stands, so this stays empty. Build one from the capital projects, then commission Landmark Programs in the labs: ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`),
+    ? `Your college is specialized in research${year}, but the Research Park is still going up, so this stays empty. Once it stands, each Landmark Program its labs run fills the share. ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`
+    : `Your college is specialized in research${year}, but no Research Park stands, so this stays empty. Build one from the capital projects, then start Landmark Programs in the labs. ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} fill it.`),
   termReading: (year: string, done: number, running: number, full: boolean, counted = LANDMARKS_COUNTED) =>
-    `The college is specialized in research${year}: its Landmark Programs at the Research Park add up to ${years(done)} years of work in the last ${LANDMARK_WINDOW_YEARS} (a year for each program, each year it runs; ${runningNow(running)}). ${full ? `The share is full from ${LANDMARK_YEARS_FOR_FULL}.` : `It fills as that rises, full at ${LANDMARK_YEARS_FOR_FULL}; no more than ${counted} running at once count.`}`,
+    `Your college is specialized in research${year}. Your Landmark Programs at the Research Park add up to ${years(done)} years of work in the last ${LANDMARK_WINDOW_YEARS} (${runningNow(running)}). Each program counts a year for each year it runs. ${full ? `The share is full from ${LANDMARK_YEARS_FOR_FULL}.` : `It fills as that rises, and is full at ${LANDMARK_YEARS_FOR_FULL}. No more than ${counted} running at once count.`}`,
 
   // The term's row while it is empty for want of the specialization, at a
   // college whose park already stands.
   asideElsewhere: 'Its Research Park stays, with its Landmark Programs, but fills none of this.',
-  asideUnchosen: 'The Research Park on campus would fill it with its Landmark work, once the college specializes in research.',
+  asideUnchosen: 'The Research Park on campus would fill it with its Landmark work, once you specialize in research.',
 
   // The choice's card (specializationData.ts's SPECIALIZATION_CARDS).
   fills: `filling as Landmark Programs run at the park, full at ${LANDMARK_YEARS_FOR_FULL} years of Landmark work in the last ${LANDMARK_WINDOW_YEARS} (a year for each program, each year it runs)`,
-  cardPark: `The Research Park, a capital project only this specialization may build, and with it the Landmark Program: four scholars across disciplines for five years.`,
+  cardPark: `The Research Park, a capital project only this specialization can build. It opens the Landmark Program, which puts four scholars from different fields together for five years.`,
   cardBoost: `While the park stands, every lab's output is ${pct(PARK_RESEARCH_BOOST)} higher: more papers, and the grants that ride on them.`,
   // On the cards, for a college whose park already stands (or is going up).
-  cardParkStands: (goingUp: boolean) => `The college's Research Park ${goingUp ? 'is already going up' : 'already stands'}: chosen, its Landmark work fills this share${goingUp ? ' once it opens' : ' at once'}, and the boost applies.`,
-  cardParkElsewhere: (goingUp: boolean) => `The Research Park ${goingUp ? 'going up ' : ''}on campus stays, and its Landmark Programs stay open, but with this choice it fills no share of research and adds nothing to the labs' output.`,
+  cardParkStands: (goingUp: boolean) => `Your Research Park ${goingUp ? 'is already going up' : 'already stands'}. If you choose this, its Landmark work fills this share${goingUp ? ' once it opens' : ' at once'}, and the boost applies.`,
+  cardParkElsewhere: (goingUp: boolean) => `The Research Park ${goingUp ? 'going up ' : ''}on campus stays, and its Landmark Programs stay open. But with this choice it fills no share of research and adds nothing to the labs' output.`,
 
   // The Research tab, under the labs.
   head: 'The Research Park',
   works: (done: number, running: number, full: boolean, counted = LANDMARKS_COUNTED) =>
-    `Landmark work in the last ${LANDMARK_WINDOW_YEARS} years: ${years(done)} years of the ${LANDMARK_YEARS_FOR_FULL} that fill research's specialization share${full ? ', which is full' : ''} (a year for each program, each year it runs; ${runningNow(running)}, and no more than ${counted} at once count). Every lab's output is ${pct(PARK_RESEARCH_BOOST)} higher while the park stands.`,
-  idle: (chosen: string) => `The Research Park stands and its labs may take on Landmark Programs, but the college is specialized in ${chosen}: the park fills no share of research and adds nothing to the labs' output.`,
-  idleUnchosen: `The Research Park stands and its labs may take on Landmark Programs. Only once the college specializes in research does its Landmark work fill research's specialization share, and the labs' output rise ${pct(PARK_RESEARCH_BOOST)}.`,
-  gatedUnchosen: (offer: string) => `The Research Park is the research specialization's own building, and building it opens the Landmark Program. ${offer}`,
-  gatedElsewhere: (chosen: string) => `The Research Park is the research specialization's own building, and the college is specialized in ${chosen}, so it cannot be built here, and Landmark Programs stay closed.`,
-  landmarkClosed: 'Landmark Programs, four scholars across disciplines over five years, are commissioned once the Research Park stands, which only a college specialized in research may build.',
+    `Landmark work in the last ${LANDMARK_WINDOW_YEARS} years: ${years(done)} of the ${LANDMARK_YEARS_FOR_FULL} years that fill research's specialization share${full ? ', which is full' : ''}. Each program counts a year for each year it runs (${runningNow(running)}, and no more than ${counted} at once count). Every lab's output is ${pct(PARK_RESEARCH_BOOST)} higher while the park stands.`,
+  idle: (chosen: string) => `The Research Park stands and its labs can take on Landmark Programs. But your college is specialized in ${chosen}, so the park fills no share of research and adds nothing to the labs' output.`,
+  idleUnchosen: `The Research Park stands and its labs can take on Landmark Programs. Once your college specializes in research, its Landmark work will fill research's specialization share, and the labs' output will rise ${pct(PARK_RESEARCH_BOOST)}.`,
+  gatedUnchosen: (offer: string) => `The Research Park is the research specialization's own building. Building it opens the Landmark Program. ${offer}`,
+  gatedElsewhere: (chosen: string) => `The Research Park belongs to the research specialization, and your college is specialized in ${chosen}. So you can't build it, and Landmark Programs stay closed.`,
+  landmarkClosed: 'Landmark Programs put four scholars from different fields together for five years. They open once the Research Park stands, and only a college specialized in research can build it.',
 
   // The next-step line, at a lab that has not finished a research project
   // (nextStep.ts's idleLab).

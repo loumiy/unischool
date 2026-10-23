@@ -16,7 +16,7 @@ import { calendarDate } from '../format';
 // and the page reloads onto it.
 // ---------------------------------------------------------------------
 
-const STORAGE_FULL = 'Not saved: this browser\'s storage is full. Delete a slot, or use Download save to keep the run as a file.';
+const STORAGE_FULL = 'Not saved. This browser\'s storage is full. Delete a slot, or click Download save to keep the run as a file.';
 
 
 export default function SaveSlots({ current, canSave, className = 'menu-btn' }: {

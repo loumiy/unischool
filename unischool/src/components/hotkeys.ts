@@ -13,7 +13,7 @@ export type ShortcutPlace = 'Anywhere' | 'The clock' | 'The tabs' | 'The map';
 
 export const SHORTCUTS = {
   back: { keys: ['escape'], does: 'Close or back out, one layer at a time', where: 'Anywhere' },
-  answer: { keys: ['enter'], does: 'Continue past a notice or the coach', where: 'Anywhere' },
+  answer: { keys: ['enter'], does: 'Continue past a notice or a walkthrough step', where: 'Anywhere' },
   objectives: { keys: ['j'], does: 'Open or close the objectives', where: 'Anywhere' },
   mute: { keys: ['m'], does: 'Mute or unmute the sound', where: 'Anywhere' },
   pause: { keys: [' '], does: 'Pause or resume', where: 'The clock' },
@@ -21,7 +21,7 @@ export const SHORTCUTS = {
   speed2: { keys: ['2'], does: 'Double speed', where: 'The clock' },
   speed3: { keys: ['3'], does: 'Four times speed, once unlocked', where: 'The clock' },
   speed4: { keys: ['4'], does: 'Eight times speed, once unlocked', where: 'The clock' },
-  speed5: { keys: ['5'], does: 'Fastest, in a sandbox', where: 'The clock' },
+  speed5: { keys: ['5'], does: 'Fastest speed, in a sandbox only', where: 'The clock' },
   curriculum: { keys: ['c'], does: 'Open or close Curriculum', where: 'The tabs' },
   faculty: { keys: ['f'], does: 'Open or close Faculty', where: 'The tabs' },
   students: { keys: ['l'], does: 'Open or close Students', where: 'The tabs' },
@@ -34,7 +34,7 @@ export const SHORTCUTS = {
   turnRight: { keys: ['e'], does: 'Turn the view', where: 'The map' },
   tiltDown: { keys: ['z'], does: 'Tilt the view', where: 'The map' },
   tiltUp: { keys: ['x'], does: 'Tilt the view', where: 'The map' },
-  camera: { keys: ['home'], does: 'Reset the camera', where: 'The map' },
+  camera: { keys: ['home'], does: 'Go back to the starting view', where: 'The map' },
   rotate: { keys: ['r'], does: 'Rotate the building or bench in hand', where: 'The map' },
   path: { keys: ['p'], does: 'Draw paths, or put the tool away', where: 'The map' },
 } as const satisfies Record<string, Shortcut>;

@@ -223,39 +223,39 @@ export function festivalsSummary(s: GameState): string {
 export const DOWNTOWN_WORDS = {
   // The student-life pillar's specialization term, as its row reads.
   termEmpty: (year: string) =>
-    `The college is specialized in student life${year}, but no spring festival has been held in the last ${FESTIVAL_WINDOW_YEARS} years, so this stays empty. Hold the festival each spring: each counts by its scale (${SCORING}), ${FESTIVAL_POINTS_FOR_FULL} points in the last ${FESTIVAL_WINDOW_YEARS} years fill it, and the downtown's growth and the town's goodwill carry it the rest of the way.`,
+    `Your college is specialized in student life${year}, but no spring festival has been held in the last ${FESTIVAL_WINDOW_YEARS} years, so this stays empty. Hold the festival each spring. Each one counts by its scale (${SCORING}). ${FESTIVAL_POINTS_FOR_FULL} points in the last ${FESTIVAL_WINDOW_YEARS} years fill it, and the downtown's growth and the town's goodwill carry it the rest of the way.`,
   termReading: (year: string, s: GameState, full: boolean) =>
-    `The college is specialized in student life${year}: ${festivalsSummary(s)} in the last ${FESTIVAL_WINDOW_YEARS} years, ${num(festivalPoints(s))} of the ${FESTIVAL_POINTS_FOR_FULL} points that fill the share (${SCORING}). The downtown has grown ${pct(districtGrowth(s))} of the way, which carries half the share at first and all of it once grown, and the town's goodwill stands at ${Math.round(goodwillOf(s))}, in full from ${GOODWILL_FOR_FULL}. ${full ? 'The share is full.' : 'It fills as all three rise.'}`,
+    `Your college is specialized in student life${year}. You've held ${festivalsSummary(s)} in the last ${FESTIVAL_WINDOW_YEARS} years, worth ${num(festivalPoints(s))} of the ${FESTIVAL_POINTS_FOR_FULL} points that fill the share (${SCORING}). The downtown has grown ${pct(districtGrowth(s))} of the way. It carries half the share at first, and all of it once fully grown. The town's goodwill stands at ${Math.round(goodwillOf(s))}, and counts in full from ${GOODWILL_FOR_FULL}. ${full ? 'The share is full.' : 'It fills as all three rise.'}`,
 
   // The choice's card (specializationData.ts's SPECIALIZATION_CARDS).
   fills: `filling as the college holds its spring festival, full at ${FESTIVAL_POINTS_FOR_FULL} points of festivals in the last ${FESTIVAL_WINDOW_YEARS} years (${FESTIVAL_NAMES.concert} counts 1), carried by the downtown's growth and the town's goodwill`,
-  cardDistrict: `The town beside the campus grows into a downtown district over about ${DISTRICT_YEARS_TO_FULL} years, drawn on the map, and meets up to ${pct(OFF_CAMPUS_SHARE)} of the students' social, dining and housing needs as it grows.`,
-  cardFestival: 'A festival each spring, from a modest weekend to a headline gala: satisfaction, the next summer\'s applicants and, at the gala, the alumni\'s gifts. A spring without one costs the town\'s goodwill.',
-  cardTown: 'Town-and-gown events from a lively downtown, trading money, the students\' mood and the town\'s goodwill.',
+  cardDistrict: `The town beside the campus grows into a downtown district over about ${DISTRICT_YEARS_TO_FULL} years, drawn on the map. As it grows, it meets up to ${pct(OFF_CAMPUS_SHARE)} of your students' social, dining and housing needs.`,
+  cardFestival: 'A festival each spring, from a modest weekend to a headline gala. It raises satisfaction and next summer\'s applicants, and a gala also brings alumni gifts. A spring without one costs the town\'s goodwill.',
+  cardTown: 'A lively downtown brings town-and-gown events, which trade money, the students\' mood and the town\'s goodwill against each other.',
 
   // Where the needs are shown.
   offCampus: 'Downtown, off campus',
   offCampusBeds: (beds: string) => `${beds} downtown`,
-  offCampusHint: `The downtown district's places: it meets up to ${pct(OFF_CAMPUS_SHARE)} of the need once grown in full, and as much of that as it has grown before then.`,
+  offCampusHint: `The downtown district's places. Once fully grown, it meets up to ${pct(OFF_CAMPUS_SHARE)} of the need. Before then, it meets part of that, in step with how far it has grown.`,
 
   // The Students tab's panel.
   head: 'The downtown',
-  panelHelp: `The town beside the campus, growing into a downtown district while the college is specialized in student life. It meets part of the students' social, dining and housing needs, up to ${pct(OFF_CAMPUS_SHARE)} of each once grown in full. It grows faster the warmer the town's goodwill. Each spring the college decides how large a festival to hold; the festivals of the last ${FESTIVAL_WINDOW_YEARS} years fill student life's specialization share, carried by the district's growth and the town's goodwill.`,
+  panelHelp: `The town beside the campus, growing into a downtown district while your college is specialized in student life. It meets part of your students' social, dining and housing needs, up to ${pct(OFF_CAMPUS_SHARE)} of each once fully grown. The warmer the town's goodwill, the faster it grows. Each spring, you decide how large a festival to hold. The festivals of the last ${FESTIVAL_WINDOW_YEARS} years fill student life's specialization share, carried by the district's growth and the town's goodwill.`,
   growth: 'Grown',
   goodwill: 'The town\'s goodwill',
   festivals: (s: GameState) => `${festivalsSummary(s)} in the last ${FESTIVAL_WINDOW_YEARS} years, ${num(festivalPoints(s))} of the ${FESTIVAL_POINTS_FOR_FULL} points`,
   lastFestival: (f: FestivalYear | undefined) => (f
     ? f.scale === 'none' ? `Year ${f.year}: no festival, and the town noticed` : `Year ${f.year}: ${FESTIVAL_NAMES[f.scale]}`
-    : 'None yet: the first is decided in the Spring term'),
+    : 'None yet. You decide the first one in the Spring term'),
   places: (social: string, dining: string, beds: string) => `${social} social places, ${dining} meals and ${beds} beds`,
   offCampusLabel: 'Off campus',
   lastLabel: 'Last festival',
   festivalsLabel: 'Festivals',
-  hintGrowth: `How far the town beside the campus has grown into a downtown district: full after about ${DISTRICT_YEARS_TO_FULL} years at a goodwill of ${GOODWILL_START}, faster the warmer the town.` as `${string}.`,
-  hintGoodwill: `The town's goodwill toward the college, 0 to 100: each festival raises it, a spring without one costs ${-SKIPPED_GOODWILL}, and the town-and-gown events trade it; student life's specialization share reads it in full from ${GOODWILL_FOR_FULL}.` as `${string}.`,
-  hintFestivals: `The spring festivals of the last ${FESTIVAL_WINDOW_YEARS} years, each counted by its scale (${SCORING}): ${FESTIVAL_POINTS_FOR_FULL} points fill student life's specialization share.` as `${string}.`,
-  hintOffCampus: `What the downtown meets of the students' needs, up to ${pct(OFF_CAMPUS_SHARE)} of each once grown in full.` as `${string}.`,
-  hintLast: 'The latest spring festival and its scale; the next is decided in the inbox at the fourth week of the Spring term.' as `${string}.`,
+  hintGrowth: `How far the town beside the campus has grown into a downtown district. It's full after about ${DISTRICT_YEARS_TO_FULL} years at a goodwill of ${GOODWILL_START}, and grows faster the warmer the town.` as `${string}.`,
+  hintGoodwill: `The town's goodwill toward your college, from 0 to 100. Each festival raises it, a spring without one costs ${-SKIPPED_GOODWILL}, and town-and-gown events trade it. Student life's specialization share counts it in full from ${GOODWILL_FOR_FULL}.` as `${string}.`,
+  hintFestivals: `The spring festivals of the last ${FESTIVAL_WINDOW_YEARS} years, each counted by its scale (${SCORING}). ${FESTIVAL_POINTS_FOR_FULL} points fill student life's specialization share.` as `${string}.`,
+  hintOffCampus: `How much of your students' needs the downtown meets, up to ${pct(OFF_CAMPUS_SHARE)} of each once fully grown.` as `${string}.`,
+  hintLast: 'The latest spring festival and its scale. You decide the next one in the inbox, in the fourth week of the Spring term.' as `${string}.`,
 };
 
 // What an answer to the festival does, beyond its cost and mood: a phrase
@@ -287,7 +287,7 @@ export const FESTIVAL_EVENT: CatalogueEvent = {
   cooldownYears: 0,
   when: {},
   title: 'The spring festival',
-  text: 'The student government and the Downtown Merchants\' Association have begun planning this year\'s spring festival, and would like to know how large the college means it to be. A modest weekend on the quad costs little. A street fair runs the length of Main Street. A headline act fills the town\'s hotels for three nights. A headline gala does all of that and seats the alumni at dinner, where they are reliably generous.\n\nThe merchants have pointed out, more than once and in writing, that a spring without a festival is a spring the town remembers.',
+  text: 'The student government and the Downtown Merchants\' Association have begun planning this year\'s spring festival, and would like to know how big you want it to be. A modest weekend on the quad costs little. A street fair runs the length of Main Street. A headline act fills the town\'s hotels for three nights. A headline gala does all of that and seats the alumni at dinner, where they are reliably generous.\n\nThe merchants have pointed out, more than once and in writing, that a spring without a festival is a spring the town remembers.',
   timeoutWeeks: FESTIVAL_ANSWER_WEEKS,
   choices: [
     { id: 'weekend', label: 'A modest weekend on the quad', effects: { cash: -FESTIVAL.weekend.cost, mood: FESTIVAL.weekend.mood, festival: 1 } },

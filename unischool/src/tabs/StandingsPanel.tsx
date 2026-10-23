@@ -30,7 +30,7 @@ export default function StandingsPanel({ s, belowA }: { s: GameState; belowA?: B
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text={`Seven rankings, one field. Prestige is the ranking the guide leads with, and the one Rank shows: the blend of four pillars, the same for the college and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others; how a specialization lifts the college's own is in ${PILLAR_RULE_HOME}. Access reads the admit rate and how far the price sits under what the college's prestige could charge; financial strength the endowment per student. Neither counts toward prestige. The Final Report grades the six beside prestige, and reads prestige once, as the guide's last word.`} />
+          <HelpHint text={`Seven rankings of the same colleges. Prestige is the one the guide leads with, and the one Rank shows. It blends four pillars, the same way for you and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others. To see how a specialization raises your own pillar, open ${PILLAR_RULE_HOME}. Access measures your admit rate, and how far your price sits below what your prestige could charge. Financial strength measures your endowment per student. Neither counts toward prestige. The Final Report grades the six rankings beside prestige, and reads prestige once, as the guide's final word.`} />
         </span>
         <span className="stat">of {field}</span>
       </div>
@@ -55,7 +55,7 @@ export default function StandingsPanel({ s, belowA }: { s: GameState; belowA?: B
               </header>
               <p className="standings-card-leader">
                 {leader.isPlayer
-                  ? 'The college leads.'
+                  ? 'You lead.'
                   : (axis === 'reputation' || PILLAR_AXES.includes(axis)) && specs.has(leader.key) ? ledBy(leader.name, specs.get(leader.key)!) : `Led by ${leader.name}`}
               </p>
               {rows.length > 1 && (
@@ -80,7 +80,7 @@ export default function StandingsPanel({ s, belowA }: { s: GameState; belowA?: B
       </div>
       {rival && (
         <p className="stat">
-          The rival: {rival.rival.name} {rival.rival.mascot}, in {(sportById(rival.sport)?.teamName ?? rival.sport).replace(/ Team$/, '')} and in the guide, #{rival.theirs} to the college's #{rival.mine}.
+          The rival: {rival.rival.name} {rival.rival.mascot}, in {(sportById(rival.sport)?.teamName ?? rival.sport).replace(/ Team$/, '')} and in the guide, #{rival.theirs} to your #{rival.mine}.
           {series && ` The series stands ${series.wins}–${series.losses}.`}
         </p>
       )}

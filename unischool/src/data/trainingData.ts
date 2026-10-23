@@ -77,9 +77,9 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 export const TRAINING_WORDS = {
   // The academics pillar's specialization term, as its row reads.
   termNoInstitute: (year: string) =>
-    `The college is specialized in academics${year}, but no Faculty Training Institute stands, so this stays empty. Build one from the capital projects, then train professors there each year: the share fills as more of the faculty is trained, full at ${pct(TRAINED_SHARE_FOR_FULL)}.`,
+    `Your college is specialized in academics${year}, but no Faculty Training Institute stands, so this stays empty. Build one from the capital projects, then train professors there each year. The share fills as more of your faculty is trained, and is full at ${pct(TRAINED_SHARE_FOR_FULL)}.`,
   termReading: (year: string, trained: number, faculty: number, full: boolean) =>
-    `The college is specialized in academics${year}: ${trained} of ${faculty} professors (${faculty > 0 ? pct(trained / faculty) : '0%'}) have been trained at the Faculty Training Institute. ${full ? `The share is full from ${pct(TRAINED_SHARE_FOR_FULL)}.` : `It fills as that rises, full at ${pct(TRAINED_SHARE_FOR_FULL)}.`}`,
+    `Your college is specialized in academics${year}. ${trained} of ${faculty} professors (${faculty > 0 ? pct(trained / faculty) : '0%'}) have been trained at the Faculty Training Institute. ${full ? `The share is full from ${pct(TRAINED_SHARE_FOR_FULL)}.` : `It fills as that rises, and is full at ${pct(TRAINED_SHARE_FOR_FULL)}.`}`,
 
   // The choice's card (specializationData.ts's SPECIALIZATION_CARDS).
   fills: `filling as professors are trained at the institute, full once ${pct(TRAINED_SHARE_FOR_FULL)} of the faculty has been trained`,
@@ -88,11 +88,11 @@ export const TRAINING_WORDS = {
   barTitle: 'The Faculty Training Institute',
   picksLeft: (left: number, of: number) => `${left} of ${of} training ${of === 1 ? 'pick' : 'picks'} left this year`,
   picksNote: (year: number) =>
-    `Picks lapse at the end of Year ${year}.`,
+    `Unused picks expire at the end of Year ${year}.`,
   trainedShare: (trained: number, faculty: number) =>
     `${trained} of ${faculty} professors trained.`,
   building: 'The Faculty Training Institute is under construction. Training begins once it opens.',
-  noInstitute: 'The college is specialized in academics. Build the Faculty Training Institute from the capital projects in the build menu.',
+  noInstitute: 'Your college is specialized in academics. Build the Faculty Training Institute from the capital projects in the build menu.',
   filterTrainable: 'Can be trained',
 
   // On a professor's tile.
@@ -100,7 +100,7 @@ export const TRAINING_WORDS = {
   trainArmed: (course: string) => `Confirm — ${course} loses its teacher for a term`,
   trainGain: (from: string, to: string) => `Teaching ${from} to ${to}`,
   trainTitle: (from: number, to: number, until: string) =>
-    `Train at the Faculty Training Institute: teaching ${from} → ${to}, and the potential by as much. One course fewer until ${until}.`,
+    `Train at the Faculty Training Institute. Teaching goes from ${from} to ${to}, and potential rises by the same amount. They teach one course fewer until ${until}.`,
   trainWarning: (name: string, course: string, to: string | null, until: string) => (to
     ? `${name} teaches one course fewer until ${until}: ${course} moves to ${to}.`
     : `${name} teaches one course fewer until ${until}: ${course} will be left without an instructor.`),
@@ -116,6 +116,6 @@ export const TRAINING_WORDS = {
   // The log.
   trained: (name: string, from: number, to: number, moved: string) => `${name} has been trained at the Faculty Training Institute: teaching ${from} → ${to}.${moved}`,
   movedTo: (course: string, to: string) => ` ${course} moves to ${to} for the term.`,
-  orphaned: (course: string) => ` ${course} is without an instructor while they train.`,
-  lapsed: (n: number, year: number) => `${n} training ${n === 1 ? 'pick' : 'picks'} at the Faculty Training Institute went unused in Year ${year}, and ${n === 1 ? 'has' : 'have'} lapsed.`,
+  orphaned: (course: string) => ` ${course} has no professor while they train.`,
+  lapsed: (n: number, year: number) => `${n} training ${n === 1 ? 'pick' : 'picks'} at the Faculty Training Institute went unused in Year ${year}, and ${n === 1 ? 'has' : 'have'} expired.`,
 };

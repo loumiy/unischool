@@ -49,7 +49,7 @@ function termsLine(pillar: StandingBreakdown): string {
 // The summer, in a sentence: how it steps, and what last summer did.
 function lastSummer(breakdown: StandingBreakdown): string {
   const card = breakdown.summer?.reportCard;
-  const rule = 'Graded each summer, it climbs toward its grade and falls faster than it climbs.';
+  const rule = 'Prestige is graded each summer. It moves toward its grade, and falls faster than it climbs.';
   return card
     ? `${rule} Last summer: ${prestigeFigure(card.before)} → ${prestigeFigure(card.after)}.`
     : `${rule} The first grade comes at the first summer.`;
@@ -141,8 +141,8 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
         <p className="stat specialization-status">{collegeSpecialization(s)}</p>
         {forecast && (
           <p className="stat rank-forecast">
-            The Office of Institutional Research: graded today, the summer would leave the college at {prestigeFigure(forecast.prestige)},
-            {' '}#{forecast.rank} in the guide{forecast.rank === forecast.now ? ', where it stands now' : ` (#${forecast.now} now)`}.
+            The Office of Institutional Research says that if the summer came today, you would end at {prestigeFigure(forecast.prestige)},
+            {' '}#{forecast.rank} in the guide{forecast.rank === forecast.now ? ', where you stand now' : ` (#${forecast.now} now)`}.
           </p>
         )}
         <p className="stat">{lastSummer(breakdown)}</p>
