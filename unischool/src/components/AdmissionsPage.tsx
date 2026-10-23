@@ -448,7 +448,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
                 <label className="admissions-field">
                   <span>Tuition per year. This class pays it for all four years.</span>
                   <input
-                    type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition}
+                    type="range" min={Math.min(floor, TUITION_SLIDER_MAX)} max={TUITION_SLIDER_MAX} step={500} value={tuition}
                     className={ring('tuition').trim() || undefined} data-coach="tuition"
                     onChange={(e) => { setTuition(Number(e.target.value)); coachPast(['tuition'], 'lock'); }}
                   />
