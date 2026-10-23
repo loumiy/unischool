@@ -3925,6 +3925,10 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .help-hint-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-8); }
 .help-hint-card p { margin: 0; }
 .objectives-door { flex: none; font-size: var(--text-xs); padding: 3px 10px; }
+/* A Show me whose tab is shut says when it opens instead (Plan 114F). */
+.objectives-shut { color: var(--ink-muted); font-size: var(--text-xs); }
+/* The Curriculum's free slot, NEXT's line with its Go (Plan 114F). */
+.curriculum-free-slot { display: flex; align-items: center; gap: var(--space-8); margin: 0 0 var(--space-8); font-size: var(--text-sm); }
 .objectives-waiting p.urgent span { font-weight: 700; }
 .objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }
 .objectives-milestones p { margin: 0 0 var(--space-6); }

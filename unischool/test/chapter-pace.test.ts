@@ -19,6 +19,12 @@
 // so Founding, The next course and Looking around are caught up as done in
 // week 1 (chapters.ts's caughtUp) and judged by nothing here.
 //
+// Every fourth week it also reads each open chapter's page as the drawer
+// draws it (ObjectivesPanel) and clicks every Show me: none may open a tab
+// that is shut (Plan 114F, the third review's C3-9: Research's did nothing
+// before the first lab). A shut tab's line stands in its place, and the
+// runs must show one, or the check proves nothing.
+//
 // Not part of the game: nothing imports it. Ten years on three seeds.
 // ---------------------------------------------------------------------
 
@@ -33,6 +39,10 @@ import { absoluteWeek, CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, 
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { COURSE_MILESTONES, teachObjective } from '../src/data/chapterData';
 import type { GameState } from '../src/state/types';
+import { createElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import ObjectivesPanel from '../src/components/ObjectivesPanel';
+import { hasPage } from '../src/state/chapters';
+import { tabAvailable, TAB_LABELS, type TabId } from '../src/components/TabNav';
 
 let checks = 0;
 let failures = 0;
@@ -100,6 +110,46 @@ const KNOWN: Record<string, string> = {
   'build-the-venue': 'a football team waits years for its stadium',
 };
 
+// Every button in a rendered element tree with these words, and every
+// element with this class: the panel is a plain function of its props, so
+// calling it gives the tree (as test/chapters.test.ts's findButton).
+function walkPanel(el: ReactElement, words: string, className: string): { clicks: (() => void)[]; lines: number } {
+  const tree = (el.type as (p: unknown) => ReactNode)(el.props);
+  const clicks: (() => void)[] = [];
+  let lines = 0;
+  const walk = (n: ReactNode): void => {
+    if (!n) return;
+    if (Array.isArray(n)) { n.forEach(walk); return; }
+    if (!isValidElement(n)) return;
+    const p = n.props as { children?: ReactNode; onClick?: () => void; className?: string };
+    if (n.type === 'button' && p.children === words && p.onClick) clicks.push(p.onClick);
+    if (p.className === className) lines += 1;
+    walk(p.children);
+  };
+  walk(tree);
+  return { clicks, lines };
+}
+// The Show me's of every open chapter's page: the shut tabs they opened, and
+// how many shut lines stood in for one.
+function showMes(s: GameState): { shut: string[]; lines: number } {
+  const shut: string[] = [];
+  let lines = 0;
+  for (const c of CHAPTERS) {
+    if (!isOpen(s, c.id) || !hasPage(c.id)) continue;
+    let went: string | undefined;
+    const panel = createElement(ObjectivesPanel, { s, waiting: null, onGo: (go: string) => { went = go; }, onOpenLadder: () => {}, view: c.id, onView: () => {} });
+    const found = walkPanel(panel, 'Show me', 'objectives-shut');
+    lines += found.lines;
+    for (const click of found.clicks) {
+      went = undefined;
+      click();
+      if (went && went in TAB_LABELS && !tabAvailable(s, went as TabId)) shut.push(`${c.id} → ${went}`);
+    }
+  }
+  return { shut, lines };
+}
+let shutLines = 0;
+
 const isOpen = (s: GameState, id: string) => s.guidance!.opened[id] !== undefined && s.guidance!.done[id] === undefined;
 
 for (const seed of SEEDS) {
@@ -113,6 +163,7 @@ for (const seed of SEEDS) {
   g.s.guidance.gated = true;
   const player = createGuidedPlayer();
   const sideOverMain: string[] = [];
+  const shutDoors = new Set<string>();
   // Each required objective's wait, in weeks from its chapter's opening,
   // and the week each objective was latched met (the record keeps only
   // that it is).
@@ -129,6 +180,11 @@ for (const seed of SEEDS) {
     const current = currentChapter(now);
     if (current?.side && CHAPTERS.some((c) => !c.side && isOpen(now, c.id)) && sideOverMain.length < 3) {
       sideOverMain.push(`${current.id} in year ${now.clock.year}, week ${now.clock.week}`);
+    }
+    if (now.clock.week % 4 === 0) {
+      const doors = showMes(now);
+      shutLines += doors.lines;
+      for (const d of doors.shut) shutDoors.add(`${d} (year ${now.clock.year})`);
     }
   };
   try {
@@ -158,9 +214,12 @@ for (const seed of SEEDS) {
     }
   }
   assert(sideOverMain.length === 0, `seed ${seed}: the ticker never shows a side chapter over a main one (${sideOverMain.join('; ')})`);
+  assert(shutDoors.size === 0, `seed ${seed}: no Show me opens a shut tab (${[...shutDoors].slice(0, 3).join('; ')})`);
   const longest = [...waits.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, w]) => `${k} ${w}w`).join(', ');
   console.log(`  seed ${seed}: ${Object.keys(gd.opened).length} chapters opened; longest waits ${longest}`);
 }
+
+assert(shutLines > 0, `a shut tab's line stood in for its Show me somewhere in the runs (${shutLines} times)`);
 
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);

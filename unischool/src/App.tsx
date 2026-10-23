@@ -29,6 +29,7 @@ import LogTicker, { objectivesShown } from './components/LogTicker';
 import { TAB_GUIDE } from './data/chapterData';
 import { currentChapter, DOUBLE_SPEED_MARK, hasPage, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
 import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
+import { stepTarget, type NextStep } from './systems/guidance/nextStep';
 import InboxTab from './components/InboxTab';
 import { interruptPageUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID, summerKey } from './systems/inbox/inbox';
 import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
@@ -118,6 +119,8 @@ export default function App() {
   // The build popup and `overlay` are two states of one slot, so both live
   // here.
   const [buildOpen, setBuildOpenState] = useState(false);
+  // The building a door opened the menu on (Plan 114F): its tab, ringed.
+  const [buildTarget, setBuildTarget] = useState<string | null>(null);
   // The activity-log popup: the innermost thing the shell can open, so
   // Escape has to see it.
   const [logOpen, setLogOpen] = useState(false);
@@ -365,6 +368,7 @@ export default function App() {
   function closeBuild() {
     setBuildOpenState(false);
     setPathToolState(null);
+    setBuildTarget(null);
   }
 
   // The one slot: opening a tab closes the build popup, and vice versa.
@@ -391,7 +395,8 @@ export default function App() {
     setInspectProgram(programId ?? null);
     setInspectTarget(hallId);
   }
-  function setBuildOpen(open: boolean) {
+  // `target`: a building to open the menu on, ringed (Plan 114F).
+  function setBuildOpen(open: boolean, target?: string) {
     if (!open) {
       closeBuild();
       return;
@@ -401,11 +406,23 @@ export default function App() {
     const quiet = openingQuietDoor(s);
     if (quiet !== null && quiet !== 'build') return;
     setBuildOpenState(true);
+    setBuildTarget(target ?? null);
     setOverlay(null);
     // The build menu and the log popups share the bottom-left corner.
     setLogOpen(false);
     setLadderOpen(false);
     setObjectivesOpen(false);
+  }
+
+  // A door: NEXT's line, a chapter's Show me, the Curriculum's free slot.
+  // `target` is the building a build door rings, or the view a tab opens
+  // on (Plan 114F).
+  function goTo(go: NonNullable<NextStep['go']>, hallId?: string, programId?: string, target?: string) {
+    if (go === 'build') setBuildOpen(true, target);
+    else if (go === 'campus') openTab(null);
+    else if (go === 'hall') { if (hallId) inspectHall(hallId, programId); }
+    else if (go === 'curriculum' && programId) openProgram(programId);
+    else openTab(go, target);
   }
 
   // The Curriculum on one program, its row open so its courses show: a
@@ -623,13 +640,7 @@ export default function App() {
             onSetObjectivesOpen={(o) => { setObjectivesOpen(o); setObjectivesView(null); if (o) { setLogOpen(false); setLadderOpen(false); closeBuild(); } }}
             objectivesView={objectivesView}
             onSetObjectivesView={(id) => { if (id) guideOpened(id, 'list'); setObjectivesView(id); }}
-            onGo={(go, hallId, programId) => {
-            if (go === 'build') setBuildOpen(true);
-            else if (go === 'campus') openTab(null);
-            else if (go === 'hall') { if (hallId) inspectHall(hallId, programId); }
-            else if (go === 'curriculum' && programId) openProgram(programId);
-            else openTab(go);
-          }}
+            onGo={goTo}
             inboxOpen={overlay?.tab === 'inbox'}
             onOpenMarket={(field) => openTab('faculty', `${MARKET_TARGET}${field}`)}
           />
@@ -641,6 +652,7 @@ export default function App() {
             onChangeTab={openTab}
             buildOpen={buildOpen}
             onSetBuildOpen={setBuildOpen}
+            buildTarget={buildTarget}
             speed={speed}
             setSpeed={setSpeedOrSummer}
             speedKeysLive={shellLive}
@@ -679,12 +691,13 @@ export default function App() {
                   target={overlay.target}
                   onTargetConsumed={clearTarget}
                   onOpenFaculty={(field) => openTab('faculty', field)}
+                  onGo={(step) => { if (step.go) goTo(step.go, step.hallId, step.programId, stepTarget(s, step)); }}
                 />
               )}
               {overlay.tab === 'research' && (
                 <ResearchTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
               )}
-              {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} />}
+              {overlay.tab === 'treasury' && <TreasuryTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />}
               {overlay.tab === 'students' && (
                 <StudentsTab s={s} act={act} target={overlay.target} onTargetConsumed={clearTarget} />
               )}

@@ -30,6 +30,7 @@ import { SEAT_SENIOR_YEARS } from './seatData';
 import { GRADE_B } from './courseQuality';
 import { PARK_RESEARCH_BOOST } from './researchParkData';
 import { AD_OFFER_COOLDOWN_YEARS } from './studentLifeData';
+import { milestoneForTab } from './ladderData';
 
 export type ChapterId = 'founding' | 'next-course' | 'looking-around' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
   | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life'
@@ -48,11 +49,16 @@ export type Door = NonNullable<NextStep['go']>;
 export interface Lever {
   text: string;
   // The view its Show me opens; `ringed` opens it on what the chapter
-  // rings (state/chapters.ts's ringedProgram), `hallId` on that hall.
+  // rings (state/chapters.ts's ringedProgram), `hallId` on that hall, and
+  // `view` on that view of the Treasury (Plan 114F).
   door?: Door;
   ringed?: true;
   hallId?: string;
+  view?: TreasuryView;
 }
+
+// The Treasury's views (TreasuryTab.tsx), which a door can open it on.
+export type TreasuryView = 'budget' | 'endowment' | 'estate';
 
 export interface ChapterCopy {
   title: string;
@@ -310,7 +316,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     },
     help: {
       'appoint-advancement': { text: 'Appoint a VP of Advancement from the seats at the bottom of the Faculty tab.', door: 'faculty' },
-      'run-a-campaign': { text: 'Launch a campaign from the Advancement panel in the Treasury. You can run one at a time, and each one cools the alumni a little. The money it raises can only go to its purpose.', door: 'treasury' },
+      'run-a-campaign': { text: 'Launch a campaign from the Advancement panel in the Treasury. You can run one at a time, and each one cools the alumni a little. The money it raises can only go to its purpose.', door: 'treasury', view: 'endowment' },
     },
   },
   'capital-projects': {
@@ -393,6 +399,19 @@ export const DRAWER_WORDS = {
   satisfactionNow: (now: string) => `Satisfaction ${now}.`,
   drag: (need: string) => `${need} is pulling it down most.`,
 };
+
+// In place of a Show me whose tab is shut (Plan 114F, the third review's
+// C3-9: Research's did nothing before the first lab): when the tab opens,
+// by the ladder's rung that opens it (ladderData.ts's milestoneForTab).
+const SHUT_TAB_WORDS: Record<string, string> = {
+  laboratory: 'The Research tab opens when your first lab is finished.',
+  commencement: 'The Students tab opens when your first summer closes.',
+  sport: 'The Athletics tab opens when a sport club goes varsity.',
+};
+export function shutTabWords(tab: TabId, label: string): string {
+  const rung = milestoneForTab(tab);
+  return (rung && SHUT_TAB_WORDS[rung]) || `The ${label} tab isn't open yet.`;
+}
 
 // THE GUIDE (Plan 106 PR G): each tab's "Guide" button opens the page of
 // the chapter that introduced its system, once that chapter has opened.

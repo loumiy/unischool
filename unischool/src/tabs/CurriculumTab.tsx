@@ -3,6 +3,7 @@ import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { useCallback, useEffect, useState } from 'react';
 import { useCollapse } from '../components/useCollapse';
 import { ringedProgram } from '../state/chapters';
+import { freeSlot, type NextStep } from '../systems/guidance/nextStep';
 import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
@@ -1225,8 +1226,23 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
   return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
 }
 
+// A hall with room and a program to found in it: NEXT's line, at the head
+// of the tab where programs are listed (Plan 114F, the third review's C3-9:
+// nothing here pointed to a free slot). Programs are founded from the
+// hall's panel, which its Go opens.
+function FreeSlotLine({ s, onGo }: { s: GameState; onGo?: (step: NextStep) => void }) {
+  const step = freeSlot(s);
+  if (!step) return null;
+  return (
+    <p className="curriculum-free-slot">
+      <span>{step.text}.</span>
+      {step.go && onGo && <button type="button" className="objectives-door" onClick={() => onGo(step)}>Go</button>}
+    </p>
+  );
+}
+
 export default function CurriculumTab(
-  { s, act, target, onTargetConsumed, onOpenFaculty }:
+  { s, act, target, onTargetConsumed, onOpenFaculty, onGo }:
   {
     s: GameState; act: (a: Action) => void;
     // Where to go on arrival: a school's name, "program:<id>", "field:<name>",
@@ -1236,6 +1252,8 @@ export default function CurriculumTab(
     onTargetConsumed?: () => void;
     // To the Faculty board, opened on a department.
     onOpenFaculty?: (field: string) => void;
+    // A NEXT line's door: the free slot's hall (Plan 114F).
+    onGo?: (step: NextStep) => void;
   },
 ) {
   const revealedGrad = revealedGraduatePrograms(s);
@@ -1374,6 +1392,7 @@ export default function CurriculumTab(
             head of the tab while the programs scroll (Plan 76B). */}
         <div className="curriculum-pinned">
         {!filtering && <CommitteeBox s={s} lookup={lookup} onOpenFaculty={onOpenFaculty} />}
+        {!filtering && <FreeSlotLine s={s} onGo={onGo} />}
 
         <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
 

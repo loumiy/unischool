@@ -350,8 +350,9 @@ export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students',
 // What a chapter rings while its objective waits, as the walkthrough's
 // steps did (Plan 103): the program whose next course the Curriculum
 // rings; the building the build menu rings and opens on (a residence hall
-// and a dining hall, then the first academic hall, Plan 112A); and the
-// funds figure, the Treasury's button (Plan 112A).
+// and a dining hall, then the first academic hall, Plan 112A; the Student
+// Center, a first lab and the Research Park, Plan 114F); and the funds
+// figure, the Treasury's button (Plan 112A).
 export function ringedProgram(s: GameState): string | null {
   return currentChapter(s)?.id === 'next-course' && !objectiveMet(s, 'develop-second-course') ? walkProgram(s) : null;
 }
@@ -359,12 +360,28 @@ export function ringedBuilding(s: GameState): Buildable | null {
   const chapter = currentChapter(s)?.id;
   if (chapter === 'hall-of-its-own') {
     if (objectiveMet(s, 'site-academic-hall')) return null;
-    const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
-    return hall && hall.status === 'available' && !(hall.id in s.placements) ? hall : null;
+    return unsited(s, (t) => t.id === FIRST_HALL_ID);
   }
   if (chapter === 'somewhere-to-sleep') {
     const test = !sitedAny(s, isDorm) ? isDorm : !sitedAny(s, isDiningHall) ? isDiningHall : null;
     return test ? s.tech.find((t) => test(t) && t.status === 'available') ?? null : null;
+  }
+  // Campus life's Student Center (Plan 114F, the third review's C3-9: its
+  // Show me opened the menu on Grounds).
+  if (chapter === 'campus-life' && !objectiveMet(s, 'site-student-center')) {
+    const center = unsited(s, (t) => t.facilityType === 'studentCenter');
+    if (center) return center;
+  }
+  // The side chapters, from their opening as the teams' venue (Plan 112B),
+  // so a Show me from the Guide's list finds its building ringed under a
+  // main chapter too: the first lab and the Research Park (Plan 114F).
+  if (chapterOpen(s, 'research') && !objectiveMet(s, 'site-a-lab')) {
+    const lab = unsited(s, (t) => t.facilityType === 'lab');
+    if (lab) return lab;
+  }
+  if (chapterOpen(s, 'research-park') && !objectiveMet(s, 'site-research-park')) {
+    const park = unsited(s, (t) => t.id === RESEARCH_PARK_ID);
+    if (park) return park;
   }
   // The teams' venue (Plan 112B), from the chapter's opening rather than
   // its turn in the Athletics tab's walk, so its Show me finds it ringed.
@@ -372,6 +389,17 @@ export function ringedBuilding(s: GameState): Buildable | null {
   const team = s.orgs.teams.find((x) => !venueUnderway(s, x));
   const venue = team ? venueForCategory(s, team.venueCategory) : undefined;
   return venue?.status === 'available' ? venue : null;
+}
+
+// The first building a test picks that can be built and is not yet sited.
+function unsited(s: GameState, test: (t: Buildable) => boolean): Buildable | null {
+  return s.tech.find((t) => test(t) && t.status === 'available' && !(t.id in s.placements)) ?? null;
+}
+
+// Capital projects opens the build menu on its own tab while no project is
+// begun (Plan 114F): it names no one building to ring.
+export function projectsAsked(s: GameState): boolean {
+  return chapterOpen(s, 'capital-projects') && !objectiveMet(s, 'begin-a-project');
 }
 
 // A chapter opened and not yet done, side chapters included (currentChapter

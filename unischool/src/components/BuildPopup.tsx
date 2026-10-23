@@ -2,7 +2,7 @@ import { closedBySpecialization, endowmentHalf } from '../systems/estate/project
 import { CLOSED_BUILD_WORDS } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/prestigeSystem';
 import { specializationOfferRule } from '../data/prestigeWords';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
 import { NEED_WORD } from '../data/needWords';
@@ -12,7 +12,7 @@ import { awaitsSite, isPlaceableKind } from '../state/campusMap';
 import BuildThumb from './BuildThumb';
 import DecorThumb from './decorThumbs';
 import { foundersHallUnsited } from '../state/opening';
-import { ringedBuilding } from '../state/chapters';
+import { projectsAsked, ringedBuilding } from '../state/chapters';
 import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
@@ -255,15 +255,25 @@ function buildSections(s: GameState): BuildSection[] {
 // The tab the menu opens on (Plan 92): Grounds, the first, except while
 // Founders Hall waits for its ground; then the tab that holds it, where the
 // walkthrough points (test/build-tab.test.ts).
-// The chapter "Somewhere to sleep" (Plan 106 PR C, once the walkthrough's
-// site steps) opens it on the tab holding the building it rings.
-export function initialBuildTab(s: GameState): string {
-  return walkBuildTab(s) ?? (foundersHallUnsited(s) ? buildTabOf(s, FOUNDERS_HALL_ID) : undefined) ?? TOOLS_SECTION_ID;
+// A chapter (Plan 106 PR C, once the walkthrough's site steps) opens it on
+// the tab holding the building it rings, and Capital projects on its own
+// tab (Plan 114F). A door that names a building (NEXT's build line, Plan
+// 114F) opens it on that building's tab.
+export function initialBuildTab(s: GameState, target?: string | null): string {
+  return (target ? buildTabOf(s, target) : undefined) ?? walkBuildTab(s) ?? (foundersHallUnsited(s) ? buildTabOf(s, FOUNDERS_HALL_ID) : undefined) ?? TOOLS_SECTION_ID;
 }
 function walkBuildTab(s: GameState): string | undefined {
   const t = ringedBuilding(s);
-  return t ? buildTabOf(s, t.id) : undefined;
+  if (t) return buildTabOf(s, t.id);
+  return projectsAsked(s) ? buildSections(s).find((section) => section.id === PROJECTS_SECTION_ID)?.id : undefined;
 }
+const PROJECTS_SECTION_ID = 'project';
+
+// The tile the menu rings: the one a door named, else the chapter's.
+export function ringedTile(s: GameState, target?: string | null): string | null {
+  return target ?? ringedBuilding(s)?.id ?? null;
+}
+const RingedTile = createContext<string | null>(null);
 
 // The tab a Buildable is listed under, by section id (test/balance.test.ts).
 export function buildTabOf(s: GameState, id: string): string | undefined {
@@ -420,6 +430,7 @@ function BuildTile({
   act: (a: Action) => void;
 }) {
   const Icon = iconForBuildable(t);
+  const ringedId = useContext(RingedTile);
   const missingFaculty = !!(t.requiresFaculty && !hasFreeFacultySlot(s, t.requiresFaculty));
 
   // Done and placed: a static tile, unless the tier-1 library has a floor
@@ -544,7 +555,7 @@ function BuildTile({
   return (
     <button
       type="button"
-      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedBuilding(s)?.id && startable && !armed ? 'opening-target' : ''}`}
+      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedId && startable && !armed ? 'opening-target' : ''}`}
       disabled={!startable}
       title={armed ? 'Click an empty tile on the map to build it. Click this again to cancel.' : disabledReason}
       draggable={startable}
@@ -793,7 +804,7 @@ function StylePicker({ s }: { s: GameState }) {
 }
 
 export default function BuildPopup({
-  s, act, placingId, onArmPlacement, pathTool, onSetPathTool, onClose,
+  s, act, placingId, onArmPlacement, pathTool, onSetPathTool, onClose, target = null,
 }: {
   s: GameState;
   // Reports which buildable ids the player has seen (SeenState), and
@@ -806,6 +817,9 @@ export default function BuildPopup({
   pathTool: CampusTool | null;
   onSetPathTool: (mode: CampusTool) => void;
   onClose: () => void;
+  // The building a door opened the menu on (NEXT's build line, Plan 114F),
+  // whose tab it opens on and whose tile it rings.
+  target?: string | null;
 }) {
   const sections = buildSections(s);
   // The tiles draw in a sandbox's chosen style (tileStyle), so they redraw
@@ -813,12 +827,17 @@ export default function BuildPopup({
   useBuildStyle();
   // Sections are recomputed every render; if the active tab has vanished
   // (built out), fall back to the first.
-  const [activeId, setActiveId] = useState<string>(() => initialBuildTab(s));
-  // A site step begun with the menu already open turns it to its tab.
+  const [activeId, setActiveId] = useState<string>(() => initialBuildTab(s, target));
+  // A site step begun with the menu already open turns it to its tab, and
+  // so does a door clicked with it open.
   const walkTab = walkBuildTab(s);
   useEffect(() => {
     if (walkTab) setActiveId(walkTab);
   }, [walkTab]);
+  const targetTab = target ? buildTabOf(s, target) : undefined;
+  useEffect(() => {
+    if (targetTab) setActiveId(targetTab);
+  }, [target, targetTab]);
   const active = sections.find((sec) => sec.id === activeId) ?? sections[0];
   // The downtown's beds (Plan 85H), beside the campus's.
   const offCampusBeds = offCampusPlaces(s, 'housing');
@@ -908,6 +927,7 @@ export default function BuildPopup({
         </nav>
 
         <div className="build-mode-tray">
+          <RingedTile.Provider value={ringedTile(s, target)}>
           {active.kind === 'tools'
             ? <CampusToolsTiles s={s} pathTool={pathTool} onSetPathTool={onSetPathTool} groups={active.groups} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
             : (
@@ -917,6 +937,7 @@ export default function BuildPopup({
                 ))}
               </div>
             )}
+          </RingedTile.Provider>
         </div>
       </div>
     </ToolbarPopup>

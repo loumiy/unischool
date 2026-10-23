@@ -22,6 +22,10 @@ import { intoCrisis } from '../tools/scenarios';
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { readFileSync } from 'node:fs';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import TreasuryTab from '../src/tabs/TreasuryTab';
+import { CHAPTER_COPY } from '../src/data/chapterData';
 import { join } from 'node:path';
 
 const canStartBorrowing = (s: GameState, id: string) => canStartDevelopment(s, s.tech.find((t) => t.id === id)!, undefined, 'loan');
@@ -224,6 +228,20 @@ const fresh = () => {
   // Every line was on show somewhere, Student life among them, so the sums
   // above are not held only by lines that were left off.
   for (const l of [...INCOME_LINES, ...EXPENSE_LINES]) assert(seen.has(l.key), `${l.label} shows in at least one of the states`);
+}
+
+// ---- The campaign's door opens on the Endowment (Plan 114F, C3-9) ----
+// The alumni's "Run a campaign" Show me opened the Treasury on its budget,
+// and the campaign is under Endowment: the help carries the view, and the
+// tab opens on it through its target.
+{
+  const help = CHAPTER_COPY.alumni.help!['run-a-campaign'];
+  assert(help.door === 'treasury' && help.view === 'endowment', `the campaign's Show me opens the Treasury on Endowment (${help.door}, ${help.view})`);
+  const s = createInitialState('Door');
+  const on = renderToStaticMarkup(createElement(TreasuryTab, { s, act: () => {}, target: help.view }));
+  assert(on.includes('<h2>Advancement</h2>') && /aria-pressed="true"[^>]*>Endowment</.test(on), 'opened on its target, the tab shows the Endowment, with the campaign');
+  const plain = renderToStaticMarkup(createElement(TreasuryTab, { s, act: () => {} }));
+  assert(!plain.includes('<h2>Advancement</h2>') && /aria-pressed="true"[^>]*>Operating budget</.test(plain), 'opened plainly, it shows the budget');
 }
 
 if (failures === 0) {

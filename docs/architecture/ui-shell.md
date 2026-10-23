@@ -101,7 +101,9 @@ opens the **objectives drawer** above the ticker. It holds:
   opens a small popover anchored to it (`HelpHint.tsx`; Escape or a click
   elsewhere shuts it, one open at a time) with the objective's help, how
   to meet it, and a Show me that opens the view it needs and rings what
-  to click;
+  to click. While that view is a tab still shut, a muted line says when it
+  opens in place of the button ("The Research tab opens when your first
+  lab is finished.", Plan 114F);
 - the next step, under "Also waiting";
 - the milestones: those reached this chapter as "Unlocked", the next with
   its count, and the whole ladder a button away.
@@ -491,7 +493,15 @@ hall's build tiles while "Somewhere to sleep" is the chapter. Since Plan
 112 also the funds figure, the Treasury's button, while "Paying for it"
 waits on the Treasury (`treasuryRinged`), and the first academic hall's
 tile, the build menu opening on the Academic category, while "A hall of
-its own" waits on it. A skipped walk that left the hall
+its own" waits on it. Since Plan 114F also the Student Center while
+"Campus life" waits on it, a first lab while "Research" is open and
+unmet, and the Research Park while its chapter is open, each with the
+menu opening on its tab; "Capital projects" opens the menu on its
+Capital projects tab. A NEXT build line opens the menu on the building
+its intent names and rings it (`nextStep.ts`'s `stepBuilding`), a
+door's Treasury view rides on the tab's target (the campaign opens on
+Endowment), and the Curriculum's head shows the next step's free slot,
+with its Go. A skipped walk that left the hall
 unsited keeps the Build button and the hall's tile rung while the clock
 waits for it.
 
@@ -508,7 +518,8 @@ and tennis courts sit under **Health** with the health chain, where their
 capacity goes (Plan 80B). The menu opens on Grounds (`BuildPopup.tsx`'s `initialBuildTab`,
 Plan 92), except while Founders Hall waits for its ground in a guided
 founding: then it opens on the tab holding the hall, where the walkthrough
-points. The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
+points. A door that names a building, or a chapter that rings one, opens
+it on that building's tab instead (Plan 114F). The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
 `CampusToolsTiles`): four to the space of one building's tile, under one
 "Grounds · free" label, so the row of small, repeatable things stays short.
 **Paths** and **Trees** are one tile each, a row each; armed, its styles

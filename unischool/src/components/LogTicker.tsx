@@ -2,7 +2,7 @@ import type { GameState } from '../state/types';
 import ToolbarPopup from './ToolbarPopup';
 import LogStrip, { SuccessorDoor, retirementNotice } from './LogStrip';
 import { LogIcon } from './icons';
-import { inboxPointer, nextStep, type NextStep } from '../systems/guidance/nextStep';
+import { inboxPointer, nextStep, stepTarget, type NextStep } from '../systems/guidance/nextStep';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import type { Progress } from '../data/ladderData';
 import LadderPanel from './LadderPanel';
@@ -51,7 +51,9 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
   objectivesOpen: boolean; onSetObjectivesOpen: (open: boolean) => void;
   // The Guide's page, when the drawer reads a chapter met before (PR G).
   objectivesView?: string | null; onSetObjectivesView?: (id: string | null) => void;
-  onGo: (go: NonNullable<NextStep['go']>, hallId?: string, programId?: string) => void;
+  // `target`: the building a build door rings (Plan 114F), or the view a
+  // tab opens on.
+  onGo: (go: NonNullable<NextStep['go']>, hallId?: string, programId?: string, target?: string) => void;
   inboxOpen: boolean;
   // A retirement's notice opens the market in its field (Plan 84D).
   onOpenMarket?: (field: string) => void;
@@ -125,7 +127,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           <span className={`log-ticker-next${step!.urgent ? ' urgent' : ''}`}>
             <span className="log-ticker-next-label">Next</span>
             {step!.go ? (
-              <button type="button" className="log-ticker-next-text" onClick={() => { if (step?.go) onGo(step.go, step.hallId, step.programId); }}>
+              <button type="button" className="log-ticker-next-text" onClick={() => { if (step?.go) onGo(step.go, step.hallId, step.programId, stepTarget(s, step)); }}>
                 {step!.text}
               </button>
             ) : (
@@ -146,7 +148,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           <ObjectivesPanel
             s={s}
             waiting={step}
-            onGo={(go, hallId, programId) => { onSetObjectivesOpen(false); onGo(go, hallId, programId); }}
+            onGo={(go, hallId, programId, target) => { onSetObjectivesOpen(false); onGo(go, hallId, programId, target); }}
             onOpenLadder={() => onSetLadderOpen(true)}
             view={objectivesView}
             onView={onSetObjectivesView}

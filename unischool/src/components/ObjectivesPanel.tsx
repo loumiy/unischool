@@ -1,6 +1,8 @@
 import type { GameState } from '../state/types';
 import type { NextStep } from '../systems/guidance/nextStep';
-import { CHAPTER_COPY, DRAWER_WORDS as W, type Door } from '../data/chapterData';
+import { CHAPTER_COPY, DRAWER_WORDS as W, shutTabWords, type Door, type Lever } from '../data/chapterData';
+import { stepTarget } from '../systems/guidance/nextStep';
+import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 import { absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import HelpHint from './HelpHint';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
@@ -67,11 +69,26 @@ function StandingLive({ s }: { s: GameState }) {
   );
 }
 
+// An objective's Show me: its door, or, while the door's tab is shut, a
+// muted line saying when it opens (Plan 114F, the third review's C3-9).
+// A plain function, not a component, so the button stands in the panel's
+// own tree (test/chapters.test.ts walks it).
+const isTab = (door: Door): door is TabId => door in TAB_LABELS;
+function showMe(s: GameState, help: Lever, onGo: (go: Door, hallId?: string, programId?: string, target?: string) => void) {
+  const door = help.door;
+  if (!door) return null;
+  if (isTab(door) && !tabAvailable(s, door)) return <span className="objectives-shut">{shutTabWords(door, TAB_LABELS[door])}</span>;
+  return (
+    <button type="button" className="objectives-door" onClick={() => onGo(door, help.hallId, help.ringed ? ringedProgram(s) ?? undefined : undefined, help.view)}>{W.showMe}</button>
+  );
+}
+
 export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, onView }: {
   s: GameState;
   // The NEXT line (nextStep.ts): what waits besides the chapter.
   waiting: NextStep | null;
-  onGo: (go: Door, hallId?: string, programId?: string) => void;
+  // `target`: the building a build door rings, or the view a tab opens on.
+  onGo: (go: Door, hallId?: string, programId?: string, target?: string) => void;
   onOpenLadder: () => void;
   // The Guide (PR G): a chapter met before, read again in place of the
   // current one; null for the current. `onView` turns the page.
@@ -128,9 +145,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
                   {n && !r.met && <span className="objectives-count">{n}</span>}
                   {help && (
                     <HelpHint text={help.text} align="end" label={W.help(r.text)}>
-                      {help.door && (
-                        <button type="button" className="objectives-door" onClick={() => onGo(help.door!, help.hallId, help.ringed ? ringedProgram(s) ?? undefined : undefined)}>{W.showMe}</button>
-                      )}
+                      {showMe(s, help, onGo)}
                     </HelpHint>
                   )}
                 </li>
@@ -154,7 +169,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
           <h4>{W.waiting}</h4>
           <p className={waiting.urgent ? 'urgent' : undefined}>
             <span>{waiting.text}</span>
-            {waiting.go && <button type="button" className="objectives-door" onClick={() => onGo(waiting.go!, waiting.hallId, waiting.programId)}>{W.go}</button>}
+            {waiting.go && <button type="button" className="objectives-door" onClick={() => onGo(waiting.go!, waiting.hallId, waiting.programId, stepTarget(s, waiting))}>{W.go}</button>}
           </p>
         </section>
       )}

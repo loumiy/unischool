@@ -105,6 +105,30 @@ export function attributeRemedy(s: GameState, key: keyof SatisfactionAttributes)
   return { text: gate ? `${build.text}, which opens with ${gate.condition}` : build.text, intent: { kind: 'wait' } };
 }
 
+// The building a build door's line names, from its intent (Plan 114F, the
+// third review's C3-9: the menu opened on Grounds whatever the line said):
+// the first of a site's buildings on the menu, or the first building a
+// need's line names, else one that serves the need. The menu opens on its
+// tab and rings it while it can be built.
+export function stepBuilding(s: GameState, intent: StepIntent | undefined): Buildable | null {
+  if (intent?.kind === 'site') {
+    return intent.buildableIds.map((id) => s.tech.find((t) => t.id === id)).find((t) => !!t && t.status !== 'locked') ?? null;
+  }
+  if (intent?.kind !== 'build-for') return null;
+  const key = intent.attribute;
+  const serves = (t: Buildable) => (t.kind === 'facility' && t.effects?.satisfactionAttribute === key) || (key === 'housing' && t.kind === 'dorm');
+  return s.tech.find((t) => ATTRIBUTE_BUILD[key].names(t) && t.status === 'available')
+    ?? s.tech.find((t) => ATTRIBUTE_BUILD[key].names(t) && t.status !== 'locked')
+    ?? s.tech.find((t) => serves(t) && t.status === 'available')
+    ?? null;
+}
+
+// What a line's door opens on, beyond its tab or hall: the building a build
+// line names (Plan 114F).
+export function stepTarget(s: GameState, step: NextStep): string | undefined {
+  return step.go === 'build' ? stepBuilding(s, step.intent)?.id : undefined;
+}
+
 // Shortfall line on the 0..100 attribute scale.
 export const ATTRIBUTE_SHORTFALL = 50;
 
@@ -167,8 +191,8 @@ function seating(s: GameState): NextStep | null {
 // goes to a hall no school claims — Founders Hall, an empty hall, or a
 // mixed one; and a purchased hall one school claims offers that school's
 // programs whatever the draw (Plan 78D), so its room is never a wait on
-// the offer.
-function freeSlot(s: GameState): NextStep | null {
+// the offer. The Curriculum's head shows it too (Plan 114F).
+export function freeSlot(s: GameState): NextStep | null {
   const hasRoom = (hallId: string) => s.halls[hallId]?.some(slotFree) ?? false;
   const nameOf = (hallId: string) => {
     const hall = s.tech.find((t) => t.id === hallId);
