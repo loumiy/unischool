@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { isKey, useHotkeys } from './hotkeys';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, FOUNDERS_GEORGIAN_COLOURS, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
@@ -304,6 +304,16 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
 
   useHotkeys((e) => { if (isKey(e, 'back')) onBack(); });
 
+  const ready = bareSchoolName(name).length > 0 && !locked;
+  // Once: a held Enter repeats before the screen goes.
+  const founded = useRef(false);
+  const found = () => {
+    if (!ready || founded.current) return;
+    founded.current = true;
+    markSeen(vernacular);
+    onStart(bareSchoolName(name), vernacular, colors);
+  };
+
   return (
     // Over the title art, as the title screen is: the mark in the sky, the
     // founding on a frosted card.
@@ -312,7 +322,10 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
         <LogoMark className="startup-brand-mark" />
         <span>UniSchool</span>
       </div>
-      <div className="startup-card">
+      {/* A form, so Enter in the name founds (Plan 114G). Every other
+          button on the card is type="button", and a disabled submit
+          blocks Enter, so it founds only when the button would. */}
+      <form className="startup-card" onSubmit={(e) => { e.preventDefault(); found(); }}>
         <button type="button" className="startup-back" onClick={onBack}>← Title screen</button>
         {/* What the game is, in one line. */}
         <div className="dateline">{sandbox ? 'Sandbox: unlimited funds, and nothing to wait for.' : 'Fifty years to build a university.'}</div>
@@ -385,14 +398,10 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
         </div>
         <div className="startup-color-name">{choice.name}</div>
         {replacing && <p className="startup-replacing" role="note">Opening the doors erases {replacing}. Go back to the title screen to keep it.</p>}
-        <button
-          className="startup-begin-btn"
-          disabled={bareSchoolName(name).length === 0 || locked}
-          onClick={() => { markSeen(vernacular); onStart(bareSchoolName(name), vernacular, colors); }}
-        >
+        <button type="submit" className="startup-begin-btn" disabled={!ready}>
           Open the doors
         </button>
-      </div>
+      </form>
     </div>
   );
 }

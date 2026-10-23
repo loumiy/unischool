@@ -3840,7 +3840,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .opening-coach.admissions-coach .opening-coach-actions button { padding: var(--space-6) var(--space-12); font-size: var(--text-sm); }
 .admissions-coach::after { content: ''; position: absolute; width: 12px; height: 12px; background: var(--cream);
   border: 3px solid var(--outline); border-width: 3px 3px 0 0; }
-.admissions-coach.side-left::after { right: -9px; top: calc(50% - 6px); transform: rotate(45deg); }
+.admissions-coach.side-left::after { right: -9px; top: calc(var(--notch, 50%) - 6px); transform: rotate(45deg); }
 .admissions-coach.side-below::after, .admissions-coach.side-below-right::after { left: 20px; top: -9px; transform: rotate(-45deg); }
 .admissions-coach.side-above-right::after { left: 20px; bottom: -9px; transform: rotate(135deg); }
 .admissions-coach.side-inside::after { display: none; }
@@ -4619,3 +4619,8 @@ body:has(.building-info-panel) .pennant { display: none; }
 .admissions-effect-bar span.good { background: var(--ok-on-light); }
 .admissions-effect-bar span.bad { background: var(--bad-on-light); }
 .admissions-send { font-size: var(--text-lg); padding: var(--space-12) var(--space-24); }
+/* "Send the offers" sticks to the foot of the panel (Plan 114G): on a
+   short screen the cards above run past the fold, and the page scrolls.
+   It sticks over the page's own bottom padding, so nothing shows below it. */
+.admissions-send-foot { position: sticky; bottom: calc(-1 * var(--space-24)); z-index: 1; display: flex; flex-direction: column;
+  padding-block: var(--space-8) var(--space-12); background: var(--cream); }

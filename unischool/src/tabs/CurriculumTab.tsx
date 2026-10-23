@@ -13,7 +13,7 @@ import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
-import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
+import { canPostSearch, searchCost, searchWeeksLeft, SEARCH_COST_WEEKS, SEARCH_WEEKS } from '../systems/faculty/facultySearch';
 import {
   canStartDevelopment, committeeOfficeSeats, committeeSetAside, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
@@ -35,7 +35,7 @@ import { CloseIcon, StatusIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
-import { count, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
+import { count, countWord, durationWords, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
 import {
   NO_FILTERS, cellState, filtersActive, matchesFilters, targetFilters, type Filters, type StatusFilter,
 } from './curriculumFilter';
@@ -520,13 +520,15 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
       className="course-drawer-action search-post"
       disabled={!canPostSearch(s, field)}
       onClick={() => act({ type: 'POST_SEARCH', field })}
-      title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}. Each week, a ${field} candidate is much more likely to be listed.`}
+      title={`Advertise, headhunt and visit conferences for ${durationWords(SEARCH_WEEKS)}. Each week, a ${field} candidate is much more likely to be listed. ${SEARCH_PRICE_REASON}`}
     >
       Post a search in {field} · {moneyShort(cost)}
     </button>
   );
 }
-const SEARCH_WEEKS_LABEL = 'half a year';
+// Why the search costs what it does (Plan 114G): its price is weeks of
+// running costs (searchCost), so it grows as the college does.
+const SEARCH_PRICE_REASON = `It costs ${countWord(SEARCH_COST_WEEKS)} weeks of running costs, so the price grows with the college.`;
 
 // Every candidate listed in a field, with Appoint buttons and the search
 // offer. Shared by the drawer and the hall panel's course strip and picker.

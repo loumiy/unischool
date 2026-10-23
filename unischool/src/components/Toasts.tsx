@@ -4,6 +4,7 @@ import { linesSince } from './audio/director';
 import { onMapScreen } from './mapProbe';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { schoolFoundedKey } from '../systems/techtree/schools';
+import { isSearchFind } from '../systems/faculty/facultySearch';
 import { schoolMark } from '../data/schoolPalette';
 import { inboxItems } from '../systems/inbox/inbox';
 import { weeksProse } from '../format';
@@ -14,7 +15,8 @@ import { getSettings } from '../settings';
 // Toasts (Plan 70H): short, stacked, one line each, dismissable, gone on
 // their own after a few seconds. Only for moments nothing else on screen
 // says: a program or a school founded, the rank moving, a building finished
-// out of sight, and cash going into the red. Never for an interrupt's news.
+// out of sight, a search's find (Plan 114G), and cash going into the red.
+// Never for an interrupt's news.
 // Read off successive snapshots, like the sound: a load or a new run is not
 // news.
 //
@@ -57,6 +59,8 @@ export function toastsFor(before: GameState, after: GameState, fresh: readonly L
     if (l.topic === 'program') out.push({ text: l.message, tone: 'good' });
     else if (l.topic === 'milestone' && l.subject?.startsWith(schoolFoundedKey(''))) out.push({ text: l.message, tone: 'good' });
     else if (l.topic === 'building' && l.subject && !onScreen(l.subject)) out.push({ text: l.message, tone: 'info' });
+    // What a search was paid for (Plan 114G); an ordinary listing stays a line.
+    else if (isSearchFind(l)) out.push({ text: l.message, tone: 'good' });
   }
   const [was, now] = [playerRank(before), playerRank(after)];
   if (now !== was) out.push({ text: now < was ? `Up to #${now} in the guide.` : `Down to #${now} in the guide.`, tone: now < was ? 'good' : 'bad' });

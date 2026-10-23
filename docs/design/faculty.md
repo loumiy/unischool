@@ -43,7 +43,8 @@ the market lists a candidate in that field, for a fixed window
 (`facultySearch.ts`: twenty-six weeks, a one-in-four roll a week, on top of the
 ordinary churn, priced at two weeks of operating expense). It rides
 `tickCandidatePool` rather than being a second market — the listing is an
-ordinary candidate who withdraws on the ordinary clock — and it is offered
+ordinary candidate who withdraws on the ordinary clock, though its find is
+a toast where an ordinary listing is only a log line (Plan 114G) — and it is offered
 where the shortage is felt: the instructor picker when nobody is eligible, the
 hall panel's course strip, and the Faculty board per short department. It is
 also the recurring money sink the mid-game needs: a cost that scales with the

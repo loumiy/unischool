@@ -517,8 +517,12 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
 
           {stage === 'cut' && (
             <>
-              <button type="button" className={`admissions-send${ring('send')}`} data-coach="send" onClick={send}>Send the offers</button>
               <span className="stat">Drag the handle up to raise the bar or down to lower it, or click anywhere on the plot. The arrow keys move it too.</span>
+              {/* Stuck to the foot of the panel, so it is in view at
+                  1280×720 however long the cards run (Plan 114G). */}
+              <div className="admissions-send-foot">
+                <button type="button" className={`admissions-send${ring('send')}`} data-coach="send" onClick={send}>Send the offers</button>
+              </div>
             </>
           )}
         </aside>

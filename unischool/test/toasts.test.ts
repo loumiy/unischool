@@ -1,8 +1,9 @@
 // ---------------------------------------------------------------------
 // Toasts (Plan 70H, components/Toasts.tsx): what a week's news and state
 // say as toasts, read without a screen. A program or school founded, the
-// rank moving, a building finished out of sight (not one in sight), and
-// cash going into the red; a school distinguished is its banner.
+// rank moving, a building finished out of sight (not one in sight), a
+// search's find (Plan 114G, not an ordinary listing), and cash going into
+// the red; a school distinguished is its banner.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -10,6 +11,7 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
 import { distinguishedIn, toastsFor } from '../src/components/Toasts';
+import { tickSearches } from '../src/systems/faculty/facultySearch';
 import type { LogEntry } from '../src/state/types';
 
 bindScriptStream(7070);
@@ -36,6 +38,18 @@ assert(toastsFor(before, same, [line('Established.', { topic: 'milestone', subje
 const hall = line('Developed: a hall.', { topic: 'building', subject: 'HALL-1' });
 assert(toastsFor(before, same, [hall], nowhere).length === 1, 'a building finished out of sight is a toast');
 assert(toastsFor(before, same, [hall], () => true).length === 0, 'one finished in sight is not');
+// A search's find, as tickSearches writes it, and an ordinary listing, as
+// tickCandidatePool does (Plan 114G).
+{
+  const s = structuredClone(before);
+  s.searches.Economics = 200;
+  s.log = [];
+  for (let k = 0; k < 200 && !s.log.some((l) => l.topic === 'candidate'); k++) tickSearches(s);
+  const find = s.log.find((l) => l.topic === 'candidate');
+  assert(find !== undefined && toastsFor(before, same, [find], nowhere).length === 1, "a search's find is a toast");
+  const listed = line('Ada Lovelace (Economics) is on the market.', { topic: 'candidate', subject: 'cand-1' });
+  assert(toastsFor(before, same, [listed], nowhere).length === 0, 'an ordinary listing is not');
+}
 const up = structuredClone(before);
 up.self.reputation += 40;
 const moved = toastsFor(before, up, [], nowhere);

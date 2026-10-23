@@ -359,7 +359,7 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
 // The toasts' news (Toasts.tsx's toastsFor), filed from the log for a term:
 // a program or a school founded, a school distinguished, a building
 // finished. Rank moves and the red are the toasts' alone: the log does not
-// keep them.
+// keep them. So is a search's find (Plan 114G): the market lists it.
 export function bulletins(s: GameState): InboxItem[] {
   const now = absoluteWeek(s);
   const out: InboxItem[] = [];

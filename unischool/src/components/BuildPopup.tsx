@@ -702,6 +702,11 @@ function MiniToolRow({ tool, styles, label }: { tool: MiniTool; styles: MiniTool
 
 const SURFACE_LABELS: Record<PathSurface, string> = { paving: 'Paving', cobble: 'Cobbles', brick: 'Brick' };
 
+// The worn tracks the map draws (CampusMap.tsx's DesireLines), and why a
+// path over one matters: walkers prefer paving to lawn (walkRoutes.ts).
+// Plan 114G.
+const PATHS_DESIRE_NOTE = "Students wear tracks in the lawn along their busiest routes. Lay a path there and they'll use it.";
+
 // Which tree the plant tool plants (Plan 37, from v2's): whatever grows,
 // or one kind.
 const SPECIES_CHOICES: readonly { id: Species | null; label: string }[] = [
@@ -729,7 +734,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
   const tool = (key: CampusTool, label: string, title: string, art: React.ReactNode): MiniTool => ({
     key, label, title, art, armed: pathTool === key, onClick: () => onSetPathTool(key),
   });
-  const paths = tool('draw', 'Paths', 'Draw paths for free (P). Drag to pave, hold Shift for a straight line, right click to delete.',
+  const paths = tool('draw', 'Paths', `Draw paths for free (P). Drag to pave, hold Shift for a straight line, right click to delete. ${PATHS_DESIRE_NOTE}`,
     <DecorThumb d={{ kind: 'path', surface }} />);
   const surfaces: MiniTool[] = PATH_SURFACES.map((id) => ({
     key: `path-${id}`, label: SURFACE_LABELS[id], title: `Pave with ${SURFACE_LABELS[id].toLowerCase()}`,

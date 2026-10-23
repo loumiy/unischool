@@ -1,4 +1,4 @@
-import type { GameState } from '../../state/types';
+import type { GameState, LogEntry } from '../../state/types';
 import { FACULTY_FIELDS, generateCandidate, marketStandingOf } from '../../data/facultyData';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { random } from '../../engine/random';
@@ -41,6 +41,14 @@ export function postSearch(s: GameState, field: string): void {
     message: `A search is posted in ${field}: ${SEARCH_WEEKS} weeks of advertising, headhunting and conference visits.`,
     kind: 'info',
   });
+}
+
+// A search's find, read off the log (Plan 114G: it is a toast, Toasts.tsx).
+// It is the one market line written as good news: an ordinary listing
+// (facultySystem.ts) and a researcher drawn by a lab (researchSystem.ts)
+// are 'info'.
+export function isSearchFind(l: LogEntry): boolean {
+  return l.topic === 'candidate' && l.kind === 'good';
 }
 
 // One week of every running search: a roll for a listing, then the window
