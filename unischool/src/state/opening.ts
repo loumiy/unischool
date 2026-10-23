@@ -96,7 +96,10 @@ function stepDone(s: GameState, stage: OpeningStage): boolean {
 }
 
 const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = { 'site-hall': 'found', found: 'play' };
-const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome', 'site-hall', 'found', 'play']);
+// The stages a walk can stand on today. Any other is a retired step
+// (Plans 103 and 107A), and a run on one goes on as `play`: here on a
+// tick, and in persistence.ts's sanitizeOpening on load.
+export const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome', 'site-hall', 'found', 'play']);
 
 // The steps that end when the thing was done, called after every action
 // that could do one. Moves on through every step already done. A walk

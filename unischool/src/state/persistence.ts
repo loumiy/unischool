@@ -12,6 +12,7 @@ import { recordUnlocks } from './unlocks';
 import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
 import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
 import { isPavingValue } from './paving';
+import { LIVE_STAGES } from './opening';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
@@ -1653,10 +1654,14 @@ export function readSave(raw: string): { state: GameState; savedAt: number | nul
 
 // The walkthrough's appointing step went with Plan 107A (the founding faculty
 // is on the payroll): a save held on it resumes on the founding step, where
-// a professor it appointed teaches what it founds.
+// a professor it appointed teaches what it founds. Every other retired step
+// (Plan 103's, gone with 107A) resumes on play, as settleOpening does on a
+// tick: the card has nothing to draw for them, and must never be asked to
+// (the third review's I7-1, a 0.1.2 save that crashed 0.1.3 on Continue).
 function sanitizeOpening(state: GameState): void {
   const opening = state.events?.opening as { stage: string } | undefined;
   if (opening?.stage === 'appoint') opening.stage = 'found';
+  if (opening && !LIVE_STAGES.has(opening.stage)) opening.stage = 'play';
   // And the crowding accumulators, which went with Plan 107E.
   const students = state.students as unknown as Record<string, unknown> | undefined;
   if (students) { delete students.crowdingYearSum; delete students.crowdingYearWeeks; }
