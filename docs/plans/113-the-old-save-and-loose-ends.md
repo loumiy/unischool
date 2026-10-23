@@ -8,7 +8,9 @@ renames the teams (C3-10), the admissions note that still talks of
 crowding (C3-8, I7-6), three harness gaps (I7-5a, I7-5b, I7-5c) and two
 stale records (I7-7). The owner took the recommended fix on each.*
 
-**Status: Proposed.**
+**Status: Landed on the branch (23 October 2026), A–F, to ship with
+0.1.4.** The owner chose (b) on §2.1: no 0.1.3.1. On §2.2, Guided and the
+Completionist appoint the Provost, as recommended.
 
 ---
 
@@ -226,6 +228,29 @@ back out on this branch.
   `npm run test:slow` (`guided`, `archetypes`) must pass. The numbers are
   reported, not gated (Plan 56). Then `npm run profile` on a year-40 save
   samples 4×.
+
+**As implemented (E):**
+- The marks are made by `markAsPlayed` in `tools/scenario.ts`, after the
+  run and before `mutate`. A year-8 save then sits on *The teams*, with
+  every page read. On the Guided setting it opens with no drawer over the
+  map. `keyboardCheck`, `touchCheck` and `review:views` passed on it.
+- `demand` stops at Year 8, week 3. `intoUnrest` sits in `scenarios.ts`
+  beside `intoCrisis`.
+- The Provost comes from year 5 (`PROVOST_FROM_YEAR`), once the week's net
+  pays the salary.
+- **Before and after**, from `f7b2091` to A–E, three seeds each:
+  - Selective, Lean and Idle didn't move at all. That also shows C changes
+    nothing in a headless run.
+  - The guided runs finish #1 at Year 50 on two seeds of three, against
+    one before.
+  - Guided in `npm run sim`: Year 50 rank 2 → 1, prestige 113.2 → 114.8,
+    cash $2.26B → $1.24B.
+  - Completionist: Year 50 rank 4 → 1. Its Year 50 cash goes from $127M to
+    $3.2B. This is late money (C4-5), which the owner chose to leave.
+  - The pacing scorecard's guided line: both prestige rows move into their
+    bands (Y23 → Y24, Y39 → Y40). "Programs: 90% founded" moves out of its
+    band (Y32 → Y33).
+  - `npm run test:slow` passes.
 
 ### F. The records (I7-7)
 
