@@ -403,7 +403,7 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Research</h2>
-            <HelpHint text="Each research facility hosts one project at a time, so the number of things the college can pursue at once is the number of places it has built to pursue them in. Choose an area, a team and a depth; each member gives up two course slots for the duration. Deeper work costs more, runs longer and pays more — and a Landmark Program needs scholars from different disciplines, so the most prestigious work is out of reach for a single department however strong." />
+            <HelpHint text="Each research facility runs one project at a time, so you can run as many projects as you have facilities. Click Start research, then choose an area, a team and a depth. Each team member gives up two course slots while the project runs. Deeper work costs more, takes longer and pays more. A Landmark Program needs scholars from different disciplines, so no single department can do one alone, however strong." />
           </span>
           <span className="stat">
             {/* The research-axis rank (prestigeSystem.ts's

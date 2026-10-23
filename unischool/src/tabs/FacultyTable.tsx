@@ -137,7 +137,7 @@ export default function FacultyTable({ s, act, people, isCandidate, sort, setSor
                       </span>
                     )}
                   </td>
-                  <td className="faculty-cell-mono" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}; the college pays ${money(pay)} at its market rate`}>
+                  <td className="faculty-cell-mono" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}. You pay ${money(pay)} at your market rate.`}>
                     {moneyShort(pay)}
                   </td>
                   <td className="faculty-cell-mono">

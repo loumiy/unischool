@@ -293,13 +293,13 @@ export default function FacultyTile(
 
       <div className="faculty-tile-foot">
         <div className="faculty-card-foot faculty-tile-facts">
-          <span className="faculty-card-salary" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}; the college pays ${money(pay)} at its market rate`}>{moneyShort(pay)}/yr</span>
+          <span className="faculty-card-salary" title={`${isCandidate ? 'Asks' : 'Salary'} ${money(f.salary)}. You pay ${money(pay)} at your market rate.`}>{moneyShort(pay)}/yr</span>
           {isCandidate ? (
             <span className={listingLeft <= 2 ? 'candidate-expiry soon' : 'candidate-expiry'} title={`Withdraws from the market in ${weeksShort(listingLeft)}`}>{weeksShort(listingLeft)} left</span>
           ) : (
             <span
               className={held >= slots ? 'faculty-card-load full' : 'faculty-card-load'}
-              title={`Teaching ${held} of the ${slots} course slots they supply${commitment ? ' while committed to a project' : ''}`}
+              title={`Teaching ${held} of the ${slots} course slots they supply${commitment ? ', while on a research project' : ''}`}
             >
               {held}/{slots} course slots
             </span>

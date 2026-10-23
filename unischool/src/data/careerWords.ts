@@ -36,7 +36,7 @@ export const CAREER_WORDS = {
   payLabel: 'Pay',
   slotsLabel: 'Course slots',
   outputLabel: 'Scholarly output',
-  output: (perWeek: string, paper: number) => `${perWeek} a week, of the ${paper} a paper takes`,
+  output: (perWeek: string, paper: number) => `${perWeek} a week (a paper takes ${paper})`,
   noOutput: (field: string) => `none — no research facility in ${field}'s school`,
 
   // The courses.
@@ -66,14 +66,14 @@ export const CAREER_WORDS = {
 
   // Training at the Faculty Training Institute (Plan 85E).
   trained: (year: number, from: number, to: number) =>
-    `Trained at the Faculty Training Institute in Year ${year}: teaching ${from} → ${to}, and their potential raised to match.`,
-  trainingNow: (until: string) => `At the institute this term: one course fewer until ${until}.`,
+    `Trained at the Faculty Training Institute in Year ${year}. Teaching went ${from} → ${to}, and their potential rose to match.`,
+  trainingNow: (until: string) => `At the institute this term. Teaching one course fewer until ${until}.`,
   notTrained: 'Not trained at the institute yet.',
-  trainingPoints: (points: number) => `Training has added ${points} to their teaching in all.`,
+  trainingPoints: (points: number) => `Training has added ${points} to their teaching so far.`,
 
   // The chart.
   chartLegend: { teaching: 'Teaching', research: 'Research' },
-  chartTooShort: 'The chart begins once they have finished a year here.',
+  chartTooShort: 'The chart starts once they\'ve been here a full year.',
 
   // A candidate has no history here, and says so.
   candidate: (name: string, college: string) => `${name} has not worked at ${college}.`,
