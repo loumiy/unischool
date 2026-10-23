@@ -469,6 +469,8 @@ npm run sheet -- --every                   # every placeable, each school's hall
   revenue, the highest prestige, the happiest students, every asset,
   championships, good-then-big, big-then-good) through the harness's own
   moves, and keeps a journal of what each goal wanted and could not do. It
+  counts the clock's pauses as the play statistics count a stop
+  (`sim/harness/pauses.ts`, Plan 116A), beside the stops it answered. It
   runs one child process per core; `--resume` skips finished runs.
 - **`strings.ts`** walks `src/` with the TypeScript compiler, keeps the text
   a player can read (literals, templates and JSX text, not ids, class names

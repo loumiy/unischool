@@ -93,6 +93,7 @@ import {
 } from '../../sim/harness/moves';
 import { background, buildFor, foundIn, reserveOf } from '../../sim/harness/guided';
 import { brokenRules } from '../../sim/harness/invariants';
+import { OPENERS, newTally, pauseStep, pauseView, tallyStep, type PauseReason, type PauseTally, type PauseTrack } from '../../sim/harness/pauses';
 import type { SpecializationRule } from '../../sim/harness/specialization';
 import { ATHLETICS_COMPLEX_ID, complexFlagships } from '../../src/data/athleticsComplexData';
 import { cutRefusal } from '../../src/systems/athletics/cut';
@@ -191,6 +192,11 @@ export interface RunRecord {
   reasons: Record<string, string>;
   // year -> interrupt type -> answers given (a modal the player sees).
   interrupts: Record<string, Record<string, number>>;
+  // The clock paused, as the play statistics count a stop (Plan 116A,
+  // sim/harness/pauses.ts): by year and reason, for the player who opens
+  // a matter only when the clock pauses for it and the one who opens
+  // every slip, and the eases to 1x the setting's Off would make.
+  pauses?: PauseTally;
   // year -> weeks with nothing done and nothing asked.
   idleWeeks: Record<string, number>;
   // year -> weeks the player only answered what was put to it.
@@ -230,12 +236,21 @@ class Journal {
   private wantsByLever = new Map<string, WantRecord>();
   private wantedThisWeek = new Set<string>();
   private lastModal = '';
+  private pauseTrack: PauseTrack | null = null;
 
   constructor(goal: Goal, seed: number, name: string) {
     this.rec = {
       goal, seed, name, years: [], decisions: {}, reasons: {}, interrupts: {}, idleWeeks: {}, answerOnlyWeeks: {},
-      wants: [], marks: {}, promisesTaken: [], broken: [], seconds: 0,
+      wants: [], marks: {}, promisesTaken: [], broken: [], seconds: 0, pauses: newTally(),
     };
+  }
+
+  // The shell's look at a snapshot (App.tsx's unseenPause, Plan 116A): after
+  // each tick, and after each answer, the last of which lifts the hold.
+  private seePauses(s: GameState): void {
+    const step = pauseStep(this.pauseTrack, pauseView(s));
+    this.pauseTrack = step.track;
+    tallyStep(this.rec.pauses!, s.clock.year, step);
   }
 
   // Wraps the game's dispatch so every action is counted: an answer when an
@@ -248,14 +263,16 @@ class Journal {
         // A course whose instructor changed during the week, from one
         // professor to another, under a staffing seat, was moved by the seat
         // (Plan 95S; a departure's colleague cover is counted with it).
-        if (staffingSeats(g.s).length === 0) { inner.call(g, a); return; }
+        if (staffingSeats(g.s).length === 0) { inner.call(g, a); this.seePauses(g.s); return; }
         const before = { ...g.s.courseFaculty };
         inner.call(g, a);
+        this.seePauses(g.s);
         const after = g.s.courseFaculty;
         const moved = Object.keys(before).filter((id) => after[id] !== undefined && after[id] !== before[id]).length;
         if (moved > 0) (this.rec.seatSwaps ??= {})[year] = (this.rec.seatSwaps?.[year] ?? 0) + moved;
         return;
       }
+      const answering = g.s.pendingInterrupt !== null;
       if (g.s.pendingInterrupt) {
         // A modal seen, once: the summer's four beats are one summer.
         const type = g.s.pendingInterrupt.type;
@@ -275,6 +292,7 @@ class Journal {
         this.weekActions += 1;
       }
       inner.call(g, a);
+      if (answering) this.seePauses(g.s);
     };
   }
 
@@ -1365,6 +1383,20 @@ const fmtMoney = (n: number) => {
 };
 const fmt = (n: number, d = 0) => (Number.isFinite(n) ? n.toFixed(d) : '—');
 
+// The play statistics' bands (play-statistics.md's *A year of play*).
+const PAUSE_BANDS: Array<[number, number]> = [[1, 2], [3, 5], [6, 10], [15, 25], [30, 50]];
+// A year's mean of a by-year count over years a..b.
+function aYear(byYear: Record<string, number>, a: number, b: number): number {
+  let t = 0;
+  for (let y = a; y <= b; y += 1) t += byYear[String(y)] ?? 0;
+  return t / (b - a + 1);
+}
+// The pauses a year over years a..b, of one reason or of all.
+function pausesAYear(r: RunRecord, opener: (typeof OPENERS)[number], a: number, b: number, reason?: PauseReason): number {
+  const by = Object.fromEntries(Object.entries(r.pauses!.pauses[opener]).map(([y, d]) => [y, reason ? d[reason] ?? 0 : Object.values(d).reduce((t, n) => t + (n ?? 0), 0)]));
+  return aYear(by, a, b);
+}
+
 function rowAt(r: RunRecord, year: number): Row | undefined {
   return r.years.find((y) => y.year === year) ?? (year >= 50 ? r.years[r.years.length - 1] : undefined);
 }
@@ -1416,6 +1448,26 @@ export function writeReport(runs: RunRecord[], out: string): void {
     const at = rs.map((r) => rowAt(r, 51) ?? r.years[r.years.length - 1]).filter((x): x is Row => !!x && !!x.pillars);
     const pill = [0, 1, 2, 3].map((i) => fmt(median(at.map((x) => x.pillars[i])))).join(' / ');
     lines.push(`| ${goal} | ${offers.length ? `${median(offers)} (${Math.min(...offers)}–${Math.max(...offers)})` : '—'} | ${[...picks.entries()].map(([p, n]) => `${p} ×${n}`).join(', ') || '—'} | ${yrs.length ? `${median(yrs)} (${Math.min(...yrs)}–${Math.max(...yrs)})` : '—'} | ${rs.length - offers.length}/${rs.length} | ${pill} | ${fmt(median(at.map((x) => x.researchRank)))} / ${fmt(median(at.map((x) => x.lifeRank)))} / ${fmt(median(at.map((x) => x.athleticRank)))} | ${fmt(median(at.map((x) => x.trained)))} |`);
+  }
+  lines.push('');
+
+  // The pauses (Plan 116A): the clock stopped as the play statistics count
+  // a stop, beside the stops (interrupts) answered, in the statistics' bands.
+  lines.push('## Pauses a year', '', 'The clock paused as the play statistics count a stop, the speed going to paused (`sim/harness/pauses.ts`), on the default settings: a matter arriving, a matter unopened in its final week, the summer waiting. Two players bound it: one opens a matter only when the clock pauses for it, one opens every slip as it arrives. Beside them, the stops answered (interrupts, which hold the clock but never pause it) and the eases to 1× that *Pause when a matter arrives* off would make instead. A year\'s mean over the band, median across runs. The statistics\' stops also count the player\'s own presses and the front screens, which no harness player makes, and before 0.1.4 the summer was a stop, not a pause (`play-statistics.md`: 2.9, 3.7, 4.3, 6.0 and 8.3 a year in these bands).', '');
+  lines.push('| Goal | Years | Pauses, opens when paused (arrival / final week / summer) | Pauses, opens every slip (arrival / final week / summer) | Eases with the setting off | Stops answered |');
+  lines.push('|---|---|---|---|---|---|');
+  for (const goal of goals) {
+    const rs = runs.filter((r) => r.goal === goal && !r.error && r.pauses);
+    if (rs.length === 0) continue;
+    for (const [a, b] of PAUSE_BANDS) {
+      const cell = (opener: (typeof OPENERS)[number]) => {
+        const by = (reason?: PauseReason) => fmt(median(rs.map((r) => pausesAYear(r, opener, a, b, reason))), 1);
+        return `${by()} (${by('arrival')} / ${by('final-week')} / ${by('summer')})`;
+      };
+      const eases = fmt(median(rs.map((r) => aYear(r.pauses!.eases, a, b))), 1);
+      const stops = fmt(median(rs.map((r) => aYear(Object.fromEntries(Object.entries(r.interrupts).map(([y, d]) => [y, Object.values(d).reduce((t, n) => t + n, 0)])), a, b))), 1);
+      lines.push(`| ${goal} | ${a}–${b} | ${cell('on-pause')} | ${cell('every-slip')} | ${eases} | ${stops} |`);
+    }
   }
   lines.push('');
 
@@ -1526,6 +1578,10 @@ export function writeReport(runs: RunRecord[], out: string): void {
     const repeated = byCount.filter(({ k }) => median(rs.map((r) => Object.values(r.decisions).filter((d) => (d[k] ?? 0) > 10).length)) > 0);
     if (repeated.length > 0) {
       lines.push(`**Repeated more than ten times in a year:** ${repeated.map(({ k }) => `${k} (${fmt(median(rs.map((r) => Object.values(r.decisions).filter((d) => (d[k] ?? 0) > 10).length)))} years)`).join(', ')}.`, '');
+    }
+    if (rs.every((r) => r.pauses)) {
+      const late = (opener: (typeof OPENERS)[number], reason?: PauseReason) => fmt(median(rs.map((r) => pausesAYear(r, opener, 30, 50, reason))), 1);
+      lines.push(`**Pauses a year, years 30–50** (median): ${late('on-pause')} for the player who opens a matter only when the clock pauses for it (arrival ${late('on-pause', 'arrival')}, final week ${late('on-pause', 'final-week')}, summer ${late('on-pause', 'summer')}), ${late('every-slip')} for the one who opens every slip (arrival ${late('every-slip', 'arrival')}, final week ${late('every-slip', 'final-week')}); ${fmt(median(rs.map((r) => aYear(r.pauses!.eases, 30, 50))), 1)} eases to 1× with the setting off (Plan 116A).`, '');
     }
     lines.push(`Modals answered over the run (median): ${fmt(median(rs.map(modals)))}. By type (median over runs): ${(() => {
       const types = [...new Set(rs.flatMap((r) => Object.values(r.interrupts).flatMap((d) => Object.keys(d))))];
