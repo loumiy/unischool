@@ -53,7 +53,7 @@ console.log('promise targets tests');
 }
 
 // ---- 2. A title's number is its goal's ----
-// "Four schools", "Thirty scholars", "Eight hundred students, and content",
+// "Four schools", "Thirty scholars", "Eight hundred students, and happy",
 // "Into the guide's top twenty": the words a title counts in, read back.
 {
   const UNITS: Record<string, number> = {
@@ -111,6 +111,24 @@ console.log('promise targets tests');
   }
   const text = JSON.stringify([EVENT_CATALOGUE.map((e) => [e.when, e.choices.map((c) => c.effects)]), PROMISES.map((p) => [p.deal, p.goal, p.reward, p.penalty])]);
   assert(!text.includes('confidence'), 'no event or promise reads or moves it');
+}
+
+// ---- 5. The offer says what keeping and missing it does ----
+// Plan 111F: each promise's text ends "Keep it: … Miss it: …", and every
+// point it names is its reward's or penalty's.
+{
+  const NAMES: Record<string, string> = { mood: 'satisfaction', warmth: 'alumni warmth', quality: 'incoming quality' };
+  const said = (n: number) => (n > 0 ? `+${n}` : `−${-n}`);
+  for (const def of PROMISES) {
+    const m = /Keep it: (.+)\. Miss it: (.+)\.$/.exec(def.text);
+    assert(m !== null, `${def.id}: the text ends with what keeping and missing it does`);
+    if (!m) continue;
+    for (const [part, effects] of [[m[1], def.reward], [m[2], def.penalty]] as const) {
+      for (const [k, v] of Object.entries(effects)) {
+        if (NAMES[k]) assert(part.includes(`${NAMES[k]} ${said(v as number)}`), `${def.id}: "${part}" says ${NAMES[k]} ${said(v as number)}`);
+      }
+    }
+  }
 }
 
 console.log(`promise targets: ${checks} checks, ${failures} failures`);
