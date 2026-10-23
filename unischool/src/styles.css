@@ -2408,7 +2408,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-plot-grade { position: absolute; background: var(--cream-lo); pointer-events: none; }
 .faculty-plot-grade.across { top: 0; bottom: 0; width: 1px; }
 .faculty-plot-grade.up { left: 0; right: 0; height: 1px; }
-.faculty-plot-grade > span { position: absolute; font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
+/* The grade lines' labels in the UI's own face, so the top band's words
+   read as text, not code (Plan 114C). */
+.faculty-plot-grade > span { position: absolute; font-family: var(--sans); font-weight: 600; font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
 .faculty-plot-grade.across > span { top: calc(100% + 4px); transform: translateX(-50%); }
 /* The top band's label runs right from its line, where the plot has room (Plan 114C). */
 .faculty-plot-grade.across.top > span { transform: translateX(-1ch); }
