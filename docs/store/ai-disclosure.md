@@ -66,8 +66,11 @@ Checked on `main` on 6 October 2026.
   letter, the Final Report); it is the owner's, in the backlog. Until it
   is done, the disclosure does not say the text was "edited by the
   developer".
-- **Nothing is commissioned yet.** The capsule art and the logo are to be
-  commissioned from an artist before the Steam page goes up (review §5).
+- **Nothing is commissioned yet.** The title art, the capsule art and the
+  logo are to be commissioned from an artist before the Steam page goes up
+  (review §5, [`art-brief.md`](art-brief.md)). Until the title art lands,
+  the title screen's painting is AI-generated, kept by the owner as a
+  placeholder (Plan 117 §2).
   When they are, they are named here and in the Credits.
 
 ## For Steam's content survey

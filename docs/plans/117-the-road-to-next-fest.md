@@ -198,7 +198,7 @@ January–February 2027.
 | O2 | C6-3 | Decide the free full build's end date (§2 Decision 1) and say it on the live page. |
 | O3 | C6-11 | On the live page: untick *Touchscreen*, drop *Sports*, swap *Casual* for *Simulation* or *Strategy*. |
 | O4 | C6-12 | Search USPTO (classes 9 and 41) and the EU register for "UniSchool", and record the result in A or the next PR. Before the capsule brief is final. |
-| O5 | C6-2 | Send the artist the sizes (F's five, plus the title background) with a 1 December delivery date. |
+| O5 | C6-2 | Send the artist [`docs/store/art-brief.md`](../store/art-brief.md) (the title art, the Steam capsules and the logo) with a 1 December delivery date. |
 | O6 | C6-1 | Replace the live AI cover with `itch/cover.jpg` (§2 Decision 3); correct the itch.io AI form's Graphics note to A's words. |
 | O7 | C6-7 | Upload B's shots 2 and 4 to itch.io. |
 | O8 | C6-2 | Finish Steamworks onboarding (tax, bank, the app fee for the game and the demo app). |
