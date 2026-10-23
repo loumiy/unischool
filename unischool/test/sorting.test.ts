@@ -376,8 +376,8 @@ function letter(id: string) {
   assert(fired(t) === 'a-second-school', '"A second school" follows the first');
   t.pendingInterrupt = null;
   const second = letter('a-second-school');
-  assert(second.body(t).startsWith('The School of Science is founded'), `it names the first (${second.body(t)})`);
-  assert(/^Establish another school, (Social Sciences & Humanities|Business) \(1 of 6\): /.test(second.ask(t).text) || second.ask(t).text === 'Site Oak Hall', `and asks for another (${second.ask(t).text})`);
+  assert(second.body(t).startsWith("You've founded the School of Science."), `it names the first (${second.body(t)})`);
+  assert(/^Establish another school, (Social Sciences & Humanities|Business) \(1 of 6\): /.test(second.ask(t).text) || second.ask(t).text === 'Place Oak Hall', `and asks for another (${second.ask(t).text})`);
   t.milestones[schoolFoundedKey('Business')] = true;
   assert(second.done(t), 'two schools founded is done');
   assert(!fireOpeningLetter(t), 'and that is the last letter');

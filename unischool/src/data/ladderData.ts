@@ -85,7 +85,7 @@ const SCHOOL_COUNT = milestoneSchools().length;
 // to about the thirty-fourth, each opening one more office.
 const OFFICE_SCHOOLS = 4;
 export const OFFICE_RANK = 25;
-const OFFICE_LINE = 'An office of the administration: one more slot of Founders Hall may hold one';
+const OFFICE_LINE = 'An office: one more slot in Founders Hall can hold one';
 const housedPrograms = (s: GameState) => Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
 const hasMilestone = (s: GameState, prefix: string) => Object.keys(s.milestones).some((k) => k.startsWith(prefix));
 
@@ -126,9 +126,9 @@ export const MILESTONES: readonly Milestone[] = [
     tabs: [],
     letter: 'You teach four programs now. The board thinks your students have earned somewhere to spend time between classes.',
     opens: [
-      'Student Center: somewhere to be between classes, and a lift to social life',
-      'Recreation Center: somewhere to play, and a lift to social life',
-      "The Founder's Statue: a first landmark, and a little campus beauty",
+      'Student Center: somewhere to spend time between classes, and a boost to social life',
+      'Recreation Center: somewhere to play, and a boost to social life',
+      "The Founder's Statue: your first landmark, and a little campus beauty",
     ],
   },
   {
@@ -150,7 +150,7 @@ export const MILESTONES: readonly Milestone[] = [
     // Students' guidebook, clubs and funnel open with the tab itself.
     sections: ['history.record'],
     letter: 'Your first year is over. The Students tab is open now. It shows how happy your students are, what they need, what the guidebooks say about you, and the clubs students have started. History keeps a record of each year.',
-    opens: ['History: the record of each year', 'Students: satisfaction and the five needs it is made of, what the guidebooks say, the clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
+    opens: ['History: the record of each year', 'Students: satisfaction and the five needs behind it, what the guidebooks say, clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
   },
   {
     id: 'curriculum',
@@ -162,7 +162,7 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: ['HALL-01'],
     tabs: [],
     letter: `You now teach ${FIRST_HALL_COURSE_GATE} courses, and the college needs more room. You can build your first academic hall.`,
-    opens: ['Academic halls: six program slots each, and the way a school is founded'],
+    opens: ['Academic halls: six program slots each, and the place where schools are founded'],
   },
   {
     id: 'room-to-spare',
@@ -173,7 +173,7 @@ export const MILESTONES: readonly Milestone[] = [
       && Object.entries(s.halls).some(([hallId, slots]) => hallId !== FOUNDERS_HALL_ID && slots.some((slot) => slot.programId !== null)),
     buildables: [],
     tabs: [],
-    letter: 'A program has a hall of its own, and Founders Hall has room it no longer needs for teaching. A slot a program leaves there can hold an office of the administration instead: admissions, research grants, career services and the like.',
+    letter: "A program has moved to a hall of its own, so Founders Hall has room to spare. A free slot there can now hold an office instead of a program. Offices include Admissions, Sponsored Research and Career Services.",
     opens: [`${OFFICE_LINE} (the first of six)`],
     office: true,
   },
@@ -185,8 +185,8 @@ export const MILESTONES: readonly Milestone[] = [
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
     buildables: ['HLTH-T1', 'AMENITY-GAZEBO'],
     tabs: [],
-    letter: 'At this size the college is a small town, and a town gets sick. From here on students expect care on campus, and their satisfaction will count it. A town needs running, too: from here, every time the college doubles, each of its students costs a little more to administer.',
-    opens: ['Health & Counseling Center: care for students', 'The Gazebo: an open pavilion for summer evenings, and campus beauty'],
+    letter: 'Your college is the size of a small town now, and people in towns get sick. From here on, students expect health care on campus, and it counts toward their satisfaction. A town also needs running. From here on, every time the college doubles in size, each student costs a little more to administer.',
+    opens: ['Health & Counseling Center: health care for students', 'The Gazebo: an open pavilion for summer evenings, and campus beauty'],
   },
   {
     id: 'regional',
@@ -196,20 +196,20 @@ export const MILESTONES: readonly Milestone[] = [
     ...prestige(REC_CENTER_TIER2_PRESTIGE_GATE),
     buildables: ['REC-T2', 'AMENITY-CHAPEL'],
     tabs: [],
-    letter: 'People outside the county know the name now. The fitness buildings can be finished with a Sports & Recreation Complex once the tennis courts stand, and the college has earned a chapel.',
-    opens: ['Sports & Recreation Complex: the top of the fitness buildings, after the gym, the pool and the tennis courts', 'The Chapel: a small stone landmark'],
+    letter: 'People outside the county know your name now. Once the tennis courts are built, you can top off the fitness buildings with a Sports & Recreation Complex. The college has earned a chapel, too.',
+    opens: ['Sports & Recreation Complex: the last of the fitness buildings, after the gym, the pool and the tennis courts', 'The Chapel: a small stone landmark'],
   },
   {
     id: 'school',
     tier: 'Growing',
     name: 'A school founded',
-    condition: 'six programs of one school in one hall',
+    condition: 'six programs from one school in one hall',
     reached: (s) => hasMilestone(s, 'school-founded:'),
     side: true,
     quiet: true,
     buildables: [],
     tabs: [],
-    letter: "A school of its own, with a dean's worth of programs under one roof. Its laboratories can be built now: research starts there.",
+    letter: "You've founded a school, with a dean's worth of programs under one roof. You can now build its laboratories, where research begins.",
     opens: ["The school's laboratories"],
   },
   {
@@ -221,8 +221,8 @@ export const MILESTONES: readonly Milestone[] = [
     side: true,
     buildables: [],
     tabs: ['research'],
-    letter: 'The first laboratory is open. Research is commissioned there: a team, a topic and a budget, and what comes back is publications, grants and, now and then, a breakthrough.',
-    opens: ['Research: commission work in the labs'],
+    letter: 'Your first laboratory is open. Commission research there from the Research tab. You choose a topic, a team and a budget. In return you get publications and grants, and now and then a breakthrough.',
+    opens: ['Research: commission projects in your labs'],
   },
   {
     id: 'sport',
@@ -233,8 +233,8 @@ export const MILESTONES: readonly Milestone[] = [
     side: true,
     buildables: [],
     tabs: ['athletics'],
-    letter: 'Students have formed a sport club. It is theirs for now; if it petitions for varsity status the department starts here.',
-    opens: ['Athletics: the clubs, the teams and their venues'],
+    letter: 'Students have formed a sport club. For now it is theirs to run. If it asks to go varsity, your athletics department starts here.',
+    opens: ['Athletics: your clubs, teams and venues'],
   },
   {
     id: 'four-schools',
@@ -245,7 +245,7 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: keysWith(s, 'school-founded:'), target: OFFICE_SCHOOLS, unit: 'schools' }),
     buildables: [],
     tabs: [],
-    letter: 'Four schools under one name: the college is more than its founders can run from one desk.',
+    letter: 'You have four schools now, which is more than anyone can run from one desk.',
     opens: [OFFICE_LINE],
     office: true,
   },
@@ -260,7 +260,7 @@ export const MILESTONES: readonly Milestone[] = [
     // ladder gates a buildable only while it is locked.
     buildables: ['HLTH-T2', 'AMENITY-GARDEN'],
     tabs: [],
-    letter: 'A campus this size needs a clinic, not a nurse, and has the acres for a garden.',
+    letter: 'A campus this size needs a proper clinic, and it has the room for a garden.',
     opens: ['University Clinic: outpatient care for thousands more', 'The Japanese Garden: a koi pond, a torii and cherry trees, and campus beauty'],
   },
   {
@@ -271,8 +271,8 @@ export const MILESTONES: readonly Milestone[] = [
     ...prestige(RESEARCH_REPUTATION_PRESTIGE),
     buildables: ['AMENITY-BELLTOWER'],
     tabs: [],
-    letter: 'Scholars elsewhere know the college\'s name now. A bell tower would say the college means to be here a long time.',
-    opens: ['The Bell Tower: the hours across the campus', OFFICE_LINE],
+    letter: 'Scholars at other colleges know your name now. A bell tower would show that you mean to be here a long time.',
+    opens: ['The Bell Tower: it rings the hours across campus', OFFICE_LINE],
     office: true,
   },
   {
@@ -283,20 +283,20 @@ export const MILESTONES: readonly Milestone[] = [
     ...students(GROCERY_POPULATION_GATE),
     buildables: ['GROCERY-01'],
     tabs: [],
-    letter: 'Enough students live here now that a grocery store would be worth its keep, and spare the dining halls.',
+    letter: 'Enough students live here now that a grocery store would pay its way, and take some pressure off the dining halls.',
     opens: ['Campus Grocery Store: a second way to feed students'],
   },
   {
     id: 'distinguished',
     tier: 'Established',
     name: 'A school distinguished',
-    condition: 'every course of a school complete',
+    condition: 'every course in one school taught',
     reached: (s) => hasMilestone(s, 'school-distinguished:'),
     side: true,
     quiet: true,
     buildables: [],
     tabs: [],
-    letter: 'A school with every course taught is a school that can train its successors. Graduate programs open once their host building stands.',
+    letter: 'One of your schools now teaches every course it has, so it can train the next generation of scholars. Each graduate program opens once the building that houses it is finished.',
     opens: ['Graduate programs, school by school', OFFICE_LINE],
     office: true,
   },
@@ -308,8 +308,8 @@ export const MILESTONES: readonly Milestone[] = [
     ...prestige(GRAND_LANDMARK_PRESTIGE_GATE),
     buildables: GRAND_LANDMARK_IDS,
     tabs: [],
-    letter: 'The college is known across the country now, and the board would like the country to be able to picture it. One grand landmark: a campanile, a great dome or a triumphal gate. Three years to build, and only one of them.',
-    opens: ['A grand landmark, one of three: a long build, and a lasting lift to prestige and applications'],
+    letter: "Your college is known across the country now, and the board would like the country to be able to picture it. You can build one grand landmark: a campanile, a great dome or a triumphal gate. It takes three years, and you can only build one.",
+    opens: ['A grand landmark (pick one of three): a long build, and a lasting boost to prestige and applications'],
   },
   {
     id: 'university-town',
@@ -319,7 +319,7 @@ export const MILESTONES: readonly Milestone[] = [
     ...students(HEALTH_CENTER_TIER3_POPULATION_GATE),
     buildables: ['HLTH-T3'],
     tabs: [],
-    letter: 'The town is the university now, and big enough to keep a teaching hospital busy: a medical center with the college\'s name over the door.',
+    letter: "Your college is the town now, and it's big enough to keep a teaching hospital busy. That means a medical center with your name over the door.",
     opens: [`The Medical Center: a teaching hospital, from Year ${MEDICAL_CENTER_PROJECT.fromYear}, that lifts academics and research`],
   },
   {
@@ -330,7 +330,7 @@ export const MILESTONES: readonly Milestone[] = [
     reached: (s) => s.history.some((h) => h.rank <= OFFICE_RANK),
     buildables: [],
     tabs: [],
-    letter: `The guide has the college at #${OFFICE_RANK} or better: one of the country's top ${OFFICE_RANK}, and run like one.`,
+    letter: `The guide ranks you #${OFFICE_RANK} or better. You're one of the country's top ${OFFICE_RANK}, and you can run your college like one.`,
     opens: [OFFICE_LINE],
     office: true,
   },
@@ -343,7 +343,7 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: keysWith(s, 'school-distinguished:'), target: SCHOOL_COUNT, unit: 'schools distinguished' }),
     buildables: [],
     tabs: [],
-    letter: 'Every school teaches every course it has. The college is complete, and its administration may be too.',
+    letter: 'Every school now teaches every course it has. Your college is complete, and you can open your last office.',
     opens: [`${OFFICE_LINE} (the sixth and last)`],
     office: true,
   },

@@ -116,8 +116,8 @@ export function specializationTerm(s: GameState, pillar: Pillar): { score: numbe
     return {
       score: 0,
       detail: (chosen
-        ? `The college is specialized in ${PILLAR_WORDS[chosen]}, so this stays empty.`
-        : `Comes only with a specialization in ${PILLAR_WORDS[pillar]}.`) + (aside ? ` ${aside}` : ''),
+        ? `You specialized in ${PILLAR_WORDS[chosen]}, so this stays empty.`
+        : `Only a specialization in ${PILLAR_WORDS[pillar]} fills this.`) + (aside ? ` ${aside}` : ''),
     };
   }
   const score = SPECIALIZATION_READINGS[pillar](s);
@@ -128,21 +128,21 @@ export function specializationTerm(s: GameState, pillar: Pillar): { score: numbe
 // specialization (studentLifeData.ts's teamQuality), on its card in the
 // Athletics tab.
 export function teamSlowed(earned: number, quality: number): string {
-  return `Would be ${earned}; plays at ${quality}.`;
+  return `Would be ${earned}. Plays at ${quality}.`;
 }
 
 // The team quality in the Athletics tab's help (Plan 85C), as the college's
 // specialization leaves it (Plan 85D).
 export function teamLimitHelp(knee: number, chosen: Pillar | null): string {
-  if (chosen === 'athletics') return 'The college is specialized in athletics: a program\'s quality comes as easily above ' + knee + ' as below it, and the established powers keep only a quarter of their edge over the college in the postseason.';
+  if (chosen === 'athletics') return 'You specialized in athletics, so a program\'s quality rises as easily above ' + knee + ' as below it. In the postseason, the established powers keep only a quarter of their edge over you.';
   return chosen
-    ? `The college is specialized in ${PILLAR_WORDS[chosen]}, so above ${knee} each point of a program's quality comes harder and 100 is out of reach, and the established powers are stronger still in a semifinal and a final: a title is rare.`
-    : `Without a specialization in athletics, each point of a program's quality comes harder above ${knee} and 100 is out of reach, and the established powers are stronger still in a semifinal and a final, so a title is rare.`;
+    ? `You specialized in ${PILLAR_WORDS[chosen]}, so a program's quality rises more slowly above ${knee}, and it can't reach 100. The established powers are even stronger in semifinals and finals, so titles are rare.`
+    : `Without a specialization in athletics, a program's quality rises more slowly above ${knee}, and it can't reach 100. The established powers are even stronger in semifinals and finals, so titles are rare.`;
 }
 
 // The specialized pillar's own line (Plan 85D): nothing is empty.
 export function specializedLine(pillar: Pillar, max: number, year: number | undefined): string {
-  return `The college is specialized in ${PILLAR_WORDS[pillar]}${year !== undefined ? ` (Year ${year})` : ''}: the pillar may rise to the full ${max}.`;
+  return `You specialized in ${PILLAR_WORDS[pillar]}${year !== undefined ? ` (Year ${year})` : ''}, so this pillar can rise to the full ${max}.`;
 }
 
 // The mark on the specialized pillar's row.
@@ -154,17 +154,17 @@ export function specializationStatus(
   chosen: Pillar | null, year: number | undefined, offered: boolean, offer: string, max: number,
 ): string {
   if (chosen) {
-    return `The college is specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? `, chosen in Year ${year}` : ''}: ${PILLAR_WORDS[chosen]} may rise to the full ${max}.`;
+    return `You specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? ` in Year ${year}` : ''}, so ${PILLAR_WORDS[chosen]} can rise to the full ${max}.`;
   }
-  if (offered) return 'The college has not chosen a specialization, so each pillar\'s specialization share is empty. The board\'s offer stands, and comes back at the close of every summer until one is chosen.';
-  return `The college has no specialization, so each pillar's specialization share is empty. ${offer}`;
+  if (offered) return "You haven't chosen a specialization yet, so every pillar's specialization share is empty. The board's offer stands. It comes back at the end of every summer until you choose.";
+  return `You have no specialization, so every pillar's specialization share is empty. ${offer}`;
 }
 
 // The log's line on the summer the offer is made (Plan 95R): by the
 // overall ranking, or, when only a pillar brought it, by that pillar.
 export function specializationOfferLine(pillar: { pillar: Pillar; rank: number } | null, rank: number): string {
   const where = pillar ? `#${pillar.rank} in ${PILLAR_WORDS[pillar.pillar]} in the standings` : `#${rank} in the guide`;
-  return `The college stands ${where}. At the summer's close the board will ask it to choose a specialization.`;
+  return `Your college stands ${where}. When the summer ends, the board will ask you to choose a specialization.`;
 }
 
 // A specialization's own building in the build menu, closed to a college
@@ -173,8 +173,8 @@ export const CLOSED_BUILD_WORDS = {
   sub: (pillar: Pillar) => `specialized in ${PILLAR_WORDS[pillar]} only`,
   foot: 'closed',
   why: (name: string, pillar: Pillar, chosen: Pillar | null, offer: string) =>
-    `Only a college specialized in ${PILLAR_WORDS[pillar]} may build ${name.replace(/^The /, 'the ')}. ${chosen
-      ? `The college is specialized in ${PILLAR_WORDS[chosen]}, for good.`
+    `Only a college specialized in ${PILLAR_WORDS[pillar]} can build ${name.replace(/^The /, 'the ')}. ${chosen
+      ? `You specialized in ${PILLAR_WORDS[chosen]}, for good.`
       : offer}`,
 };
 
@@ -230,12 +230,12 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     summary: 'A college known first for its teaching.',
     known: 'a college known first for its teaching',
     fills: TRAINING_WORDS.fills,
-    what: 'The Faculty Training Institute, where picked professors train.',
-    adds: `Each year it trains one professor for every ${FACULTY_PER_TRAINING_PICK} on the faculty, each a full grade better at teaching, for good.`,
-    fillsShort: `The share fills as professors are trained, full once ${pct(TRAINED_SHARE_FOR_FULL)} of the faculty is.`,
+    what: 'The Faculty Training Institute, where the professors you pick are trained.',
+    adds: `Each year it trains one professor for every ${FACULTY_PER_TRAINING_PICK} on the faculty. Each one teaches a full grade better, for good.`,
+    fillsShort: `The share fills as professors are trained. It is full once ${pct(TRAINED_SHARE_FOR_FULL)} of the faculty is trained.`,
     mechanics: [
-      { text: 'The Faculty Training Institute on the map, a capital project only this specialization may build.', ready: true },
-      { text: `Each year the institute takes professors picked for training, one for every ${FACULTY_PER_TRAINING_PICK} on the faculty and at least ${MIN_TRAINING_PICKS}. Each rises a full grade in teaching and keeps it, and teaches one course fewer for a term.`, ready: true },
+      { text: 'The Faculty Training Institute, a capital project that only this specialization can build.', ready: true },
+      { text: `Each year you pick professors for the institute to train: one for every ${FACULTY_PER_TRAINING_PICK} on the faculty, and at least ${MIN_TRAINING_PICKS}. Each one rises a full grade in teaching for good, and teaches one course fewer for a term while training.`, ready: true },
     ],
   },
   research: {
@@ -272,10 +272,10 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     name: 'The athletic performance complex',
     summary: 'A college known first for its teams.',
     known: 'a college known first for its teams',
-    alsoNow: 'A program\'s quality no longer slows above 80, so a team may play to 100, and the established powers keep only a quarter of their edge in the postseason.',
+    alsoNow: 'A program\'s quality no longer slows above 80, so a team can play up to 100. In the postseason, the established powers keep only a quarter of their edge.',
     fills: COMPLEX_WORDS.fills,
     what: 'The Athletic Performance Complex, where the varsity programs train.',
-    adds: 'A team may play to 100, and the established powers keep a quarter of their postseason edge.',
+    adds: 'A team can play up to 100, and the established powers keep only a quarter of their postseason edge.',
     fillsShort: `The share fills with deep postseason runs, full at ${COMPLEX_POINTS_FOR_FULL} points of them in ${COMPLEX_WINDOW_YEARS} years.`,
     mechanics: [
       { text: COMPLEX_WORDS.cardComplex, ready: true },
@@ -303,7 +303,7 @@ const PILLAR_MAX = 150;
 // (Plan 95F: the card's face gives it in points of prestige).
 export function opensLine(pillar: Pillar, weight: number): string {
   const card = SPECIALIZATION_CARDS[pillar];
-  return `Opens ${card.name.replace(/^The /, 'the ')}'s share of ${PILLAR_WORDS[pillar]}, ${weight} of the pillar's ${PILLAR_MAX} points, ${card.fills}.`;
+  return `Opens the share of ${PILLAR_WORDS[pillar]} that ${card.name.replace(/^The /, 'the ')} fills: ${weight} of the pillar's ${PILLAR_MAX} points, ${card.fills}.`;
 }
 
 // The specialization's own building, drawn on its panel (Plan 110): the
@@ -331,13 +331,13 @@ export const CHOICE_WORDS = {
     const where = rank <= milestone ? `stands #${rank} in the guide, in the top ${milestone},`
       : best.rank <= pillarRank ? `stands #${best.rank} in ${PILLAR_WORDS[best.pillar]}, in the top ${pillarRank} of a pillar's standing,`
         : `has stood in the guide's top ${milestone} or a pillar's top ${pillarRank},`;
-    return `The college ${where} and the board asks it to choose, once and for good, the one pillar it means to be the very best at.`;
+    return `Your college ${where} and the board asks you to choose the one pillar you mean to be the very best at, for good.`;
   },
-  ranksLabel: 'Where the college stands in each pillar',
+  ranksLabel: 'Where you stand in each pillar',
   convene: 'Convene the board',
   // The page: the question, the rule under it, and what stays empty.
   question: (name: string) => `What will ${name} be known for?`,
-  forGood: 'Whichever the college chooses, the other three pillars\' shares stay empty, for good.',
+  forGood: 'Whichever you choose, the other three pillars\' shares stay empty for good.',
   prestige: 'Prestige',
   rank: 'Rank',
   of: (n: number) => `of ${n}`,
@@ -351,7 +351,7 @@ export const CHOICE_WORDS = {
   standing: 'Where it stands',
   outOf: (max: number) => `/ ${max}`,
   meter: (pillar: Pillar, value: number, max: number, top: number | null) =>
-    `The college at ${value.toFixed(0)} of ${max} in ${PILLAR_WORDS[pillar]}${top === null ? '' : `; the top specialist at ${top.toFixed(0)}`}.`,
+    `You have ${value.toFixed(0)} of ${max} in ${PILLAR_WORDS[pillar]}.${top === null ? '' : ` The top specialist has ${top.toFixed(0)}.`}`,
   topSpecialist: 'Top specialist',
   noSpecialist: 'No rival has specialized in this pillar.',
   rivalsHere: (count: number) => `${count} rival${count === 1 ? ' specializes' : 's specialize'} here`,
@@ -370,7 +370,7 @@ export const CHOICE_WORDS = {
   armed: (pillar: Pillar) => `Specialize in ${PILLAR_WORDS[pillar]}, for good?`,
   confirm: 'Confirm',
   back: 'Back',
-  warning: (pillar: Pillar) => `The college will be specialized in ${PILLAR_WORDS[pillar]} for good. It cannot be changed or undone.`,
+  warning: (pillar: Pillar) => `Your college will be specialized in ${PILLAR_WORDS[pillar]} for good. You can't change or undo it.`,
   later: 'Not this year',
   laterNote: 'The offer will come back next summer.',
 };
@@ -385,10 +385,10 @@ export const SPECIALIZATION_NOTICE_ID = 'specialization-notice';
 // pillar's points (Plan 95F). The notice names both routes (Plan 95R).
 export function specializationNotice(milestone: number, pillarRank: number, pillarYear: number, rule: string): { title: string; text: string } {
   const each = (['academics', 'research', 'studentLife', 'athletics'] as const)
-    .map((p) => `${PILLAR_WORDS[p]}, ${SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ')}`)
-    .join('; ');
+    .map((p) => `${PILLAR_WORDS[p]} (${SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ')})`)
+    .join(', ');
   return {
     title: 'Within reach of a specialization',
-    text: `The college has come within reach of the guide's top ${milestone}, or, from Year ${pillarYear}, of the top ${pillarRank} in one of the four pillars' standings. At the close of the first summer it stands in either, the board will ask the administration to choose a specialization: the one pillar the college means to be the very best at, chosen once and kept. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and shrinks the established powers' edge in the postseason to a quarter. Each brings a program of its own, which the choice describes. Whichever the college chooses, the other three pillars' shares stay empty.`,
+    text: `Your college is close to the guide's top ${milestone}. From Year ${pillarYear}, a place in the top ${pillarRank} of any one pillar's standings also counts. At the end of the first summer you reach either, the board will ask you to choose a specialization. That is the one pillar you mean to be the very best at, and you choose it once, for good. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and cuts the established powers' postseason edge to a quarter. Each one brings a program of its own, which the choice page describes. Whichever you choose, the other three pillars' shares stay empty.`,
   };
 }

@@ -63,7 +63,7 @@ bindScriptStream(12345);
     const b = pillarBreakdown(s, p);
     const term = b.inputs.find((i) => i.key === 'specialization');
     assert(term !== undefined && term.weight === SPECIALIZATION_TERM_WEIGHTS[p] && term.score === 0, `${p} holds a specialization term of ${SPECIALIZATION_TERM_WEIGHTS[p]}, empty`);
-    assert(/Comes only with a specialization in/.test(term?.detail ?? ''), `which says only a specialization fills it ("${term?.detail}")`);
+    assert(/Only a specialization in [a-z ]+ fills this/.test(term?.detail ?? ''), `which says only a specialization fills it ("${term?.detail}")`);
     const rest = b.inputs.filter((i) => i.key !== 'specialization').reduce((sum, i) => sum + i.weight, 0);
     assert(Math.abs(rest - (PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[p])) < 1e-9, `${p}'s other terms share the rest of the span (${rest.toFixed(1)})`);
     assert(b.ceiling === undefined && !b.held, `${p} has no cap`);

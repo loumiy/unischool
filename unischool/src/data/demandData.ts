@@ -82,9 +82,9 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
   social: {
     headline: 'Students demand somewhere to be',
     grievance: (ask) =>
-      `A campus with nothing on it after five o'clock is the complaint, and it is a fair one. The student body has asked, formally, for ${theName(ask)}.`,
+      `The complaint is that there's nothing to do on campus after five o'clock, and it's a fair one. The student body has formally asked for ${theName(ask)}.`,
     ask: (ask) => `Build ${theName(ask)}`,
-    unit: 'students served by student life space',
+    unit: 'students served by social space',
   },
   health: {
     headline: 'Students demand health care',
@@ -96,7 +96,7 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
   housing: {
     headline: 'Students demand somewhere to live',
     grievance: (ask) =>
-      `Every bed on campus is spoken for and the waiting list is longer than the incoming class. The demand is for beds — specifically, for ${ask} to be built.`,
+      `Every bed on campus is spoken for and the waiting list is longer than the incoming class. They want beds. Specifically, they want ${ask} built.`,
     ask: (ask) => `Build ${ask}`,
     unit: 'beds of campus housing',
   },
@@ -107,7 +107,7 @@ export const DEMAND_COPY: Record<DemandSubject, DemandCopy> = {
     grievance: (ask) =>
       `Every section is over capacity and students are following lectures from the hallway. The Registrar has forwarded a petition with one demand on it: open ${ask}, and stop admitting people there is no place for.`,
     ask: (ask) => `Develop ${ask}`,
-    unit: 'places across the catalog',
+    unit: 'class places',
   },
 };
 
