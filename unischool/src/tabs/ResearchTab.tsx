@@ -96,7 +96,7 @@ function RunningPanel(
         <ConfirmButton
           className="facility-cancel btn-danger"
           label="Wind up"
-          armedLabel="Confirm — funding is forfeit"
+          armedLabel="Wind up (you lose its funding)"
           onConfirm={() => act({ type: 'CANCEL_INITIATIVE', labId: lab.id })}
         />
       </header>

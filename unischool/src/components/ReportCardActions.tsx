@@ -111,7 +111,7 @@ export function NewCollegeButton({ onConfirm, note, lost }: { onConfirm: () => v
     <ConfirmButton
       className="new-college-btn"
       label="New game"
-      armedLabel={`Confirm — ${lost ?? 'a new game'}`}
+      armedLabel={lost ? `Start a new game and ${lost}` : 'Start a new game'}
       warning={note}
       needsConfirm={lost !== undefined}
       onConfirm={onConfirm}

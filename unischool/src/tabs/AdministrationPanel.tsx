@@ -83,7 +83,8 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                       key={f.id}
                       className="panel-action small"
                       label={`Promote ${f.name} (${f.field}) · ${moneyShort(def.internalSalary * market)}/yr`}
-                      armedLabel={`Confirm — ${f.name} leaves the classroom for good`}
+                      armedLabel={`Promote ${f.name} (they stop teaching for good)`}
+                      tone="commit"
                       warning={<>A seat is for good, and {f.name} leaves the classroom{taught.length > 0 ? <>: {taught.map((c) => c.name.split(' · ')[0]).join(', ')} will be left without an instructor</> : ''}.</>}
                       onConfirm={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school, facultyId: f.id })}
                     />
@@ -92,7 +93,8 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                 <ConfirmButton
                   className="panel-action small"
                   label={`Hire from outside · ${moneyShort(def.outsideSalary * market)}/yr`}
-                  armedLabel="Confirm — a salary for good"
+                  armedLabel="Hire (a salary for good)"
+                  tone="commit"
                   warning="Permanent."
                   onConfirm={() => act({ type: 'APPOINT_SEAT', seatId: def.id, school })}
                 />

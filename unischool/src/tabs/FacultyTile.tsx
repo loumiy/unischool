@@ -173,6 +173,7 @@ export function FacultyActions(
             label={TRAINING_WORDS.train}
             title={TRAINING_WORDS.trainTitle(outcome.from, outcome.to, trainingUntil(outcome.untilWeek))}
             armedLabel={TRAINING_WORDS.trainArmed(trainCoverage?.shed[0]?.name.split(' · ')[0] ?? '')}
+            tone="commit"
             warning={trainCoverage?.shed[0] && TRAINING_WORDS.trainWarning(
               f.name, trainCoverage.shed[0].name.split(' · ')[0],
               trainCoverage.covered[0]?.instructor.name ?? null, trainingUntil(outcome.untilWeek),
@@ -199,8 +200,8 @@ export function FacultyActions(
         className="btn-danger"
         label="Dismiss"
         armedLabel={taught.length > 0
-          ? `Confirm — ${taught.length} ${taught.length === 1 ? 'course' : 'courses'} left unstaffed`
-          : `Confirm — the ${commitment?.topic ?? 'research'} team one short`}
+          ? `Dismiss (${taught.length} ${taught.length === 1 ? 'course' : 'courses'} left with no professor)`
+          : `Dismiss (the ${commitment?.topic ?? 'research'} team one short)`}
         warning={<>
           {taught.length > 0 && <>
             {f.name} teaches {taught.map((c) => c.name.split(' · ')[0]).join(', ')}, which will be left without an instructor.

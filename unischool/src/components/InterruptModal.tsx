@@ -212,7 +212,7 @@ function FinalReportBeat({ s, onContinue, onNewCollege, onSave }: { s: GameState
         {onNewCollege && (
           <NewCollegeButton
             note={REPORT_WORDS.newCollege}
-            lost="its books close for good"
+            lost="close its books for good"
             onConfirm={() => { hangInHall(s, report); runFinished(s, report, false); onNewCollege(); }}
           />
         )}

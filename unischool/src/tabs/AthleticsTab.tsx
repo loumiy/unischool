@@ -107,7 +107,7 @@ function StaffSeat({ act, team, role }: { act: (a: Action) => void; team: Varsit
         className="coach-release"
         label={<ReleaseIcon />}
         ariaLabel={`Release ${coach.name}`}
-        armedLabel="Confirm — release; the post stays open"
+        armedLabel="Release the coach (the post stays empty)"
         title={`Release ${coach.name}`}
         onConfirm={() => act({ type: 'FIRE_COACH', teamId: team.id, role })}
       />
@@ -547,7 +547,7 @@ function CutProgram({ s, act, team }: { s: GameState; act: (a: Action) => void; 
         disabled={refusal !== null}
         title={refusal ?? `End ${name} for good.`}
         label="Cut the program"
-        armedLabel={`Confirm — ${name} ends; its alumni will give less`}
+        armedLabel={`End ${name} (alumni will give less)`}
         warning={settlement > 0 ? `Its staff are paid to the season's end: ${money(settlement)}.` : undefined}
         onConfirm={() => act({ type: 'CUT_TEAM', teamId: team.id })}
       />

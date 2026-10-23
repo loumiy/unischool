@@ -11,8 +11,13 @@ import { useId, useState, type FocusEvent, type ReactNode } from 'react';
 // armed button and a second one that puts it back, so declining is a button
 // too and not only a click elsewhere. The button keeps its place in the DOM
 // either way (styles.css moves the question up), so arming never loses focus.
+//
+// `tone` (Plan 111 PR E): armed, a loss that can't be undone (closing,
+// demolishing, dismissing, erasing) turns red; a commitment (a move, a
+// purchase, an appointment) arms in the primary fill, since a red button
+// read as Cancel (Playtest 1, S3). The armed label says what happens.
 export default function ConfirmButton({
-  label, armedLabel, warning, onConfirm, className = '', disabled, title, ariaLabel, needsConfirm = true, cancelLabel,
+  label, armedLabel, warning, onConfirm, className = '', disabled, title, ariaLabel, needsConfirm = true, cancelLabel, tone = 'loss',
 }: {
   label: ReactNode;
   armedLabel: ReactNode;
@@ -25,6 +30,7 @@ export default function ConfirmButton({
   ariaLabel?: string;
   needsConfirm?: boolean;
   cancelLabel?: ReactNode;
+  tone?: 'loss' | 'commit';
 }) {
   const [armed, setArmed] = useState(false);
   const warningId = useId();
@@ -41,7 +47,7 @@ export default function ConfirmButton({
     <span className={`confirm-button${armed ? ' is-armed' : ''}${question ? ' has-question' : ''}`}>
       <button
         type="button"
-        className={`${className}${armed ? ' confirm-armed' : ''}`}
+        className={`${className}${armed ? ` confirm-armed${tone === 'commit' ? ' confirm-commit' : ''}` : ''}`}
         disabled={disabled}
         title={title}
         aria-label={armed ? undefined : ariaLabel}
