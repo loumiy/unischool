@@ -213,6 +213,41 @@ function driftHue(gc: number, gr: number): number {
   const h = (Math.imul(Math.floor(gc / 2), 73856093) ^ Math.imul(Math.floor(gr / 2), 19349663)) >>> 0;
   return Math.floor(roll(h, 1) * 4);
 }
+
+// One mound of leaf in flower: a flower bed's unit, and the Grand Quad's
+// beds' too (Plan 112D: the quad drew discs of its own, "inconsistent with
+// the flower beds"). Its size and its blooms' places are rolled off `seed`
+// and `i`, so it never changes; it stands on ground `z` high at (c, r).
+export interface BedMound { key: string | number; at: Pt; rx: number; ry: number; hue: number; blooms: { x: number; y: number; r: number }[] }
+export function bedMound(c: number, r: number, z: number, seed: number, i: number, hue: number, key: string | number = i): BedMound {
+  const rx = 7 + roll(seed, 70 + i) * 2;
+  const ry = rx * (0.55 + 0.25 * groundSquash());
+  // The mound sits on the soil: its middle half its height above it.
+  const at = lift(lift(project(c, r), z), ry * 0.6);
+  const blooms = [];
+  for (let b = 0; b < BLOOMS_PER_MOUND; b++) {
+    blooms.push({
+      x: at.x + (roll(seed, 200 + i * 8 + b) - 0.5) * rx * 1.4,
+      y: at.y - ry * (0.7 - roll(seed, 300 + i * 8 + b) * 0.85),
+      r: 1.5 + roll(seed, 400 + i * 8 + b) * 0.6,
+    });
+  }
+  return { key, at, rx, ry, hue, blooms };
+}
+// Mounds painted back to front, so a near one covers a far one.
+export function FlowerMounds({ mounds }: { mounds: readonly BedMound[] }) {
+  return (
+    <>
+      {[...mounds].sort((a, b) => a.at.y - b.at.y).map((m) => (
+        <g key={m.key}>
+          <ellipse className="campus-bed-leaf" cx={m.at.x} cy={m.at.y} rx={m.rx} ry={m.ry} />
+          <ellipse className="campus-bed-leaf-top" cx={m.at.x - m.rx * 0.18} cy={m.at.y - m.ry * 0.28} rx={m.rx * 0.62} ry={m.ry * 0.55} />
+          {m.blooms.map((b, i) => <circle key={i} className={`ground-bloom-${m.hue}`} cx={b.x} cy={b.y} r={b.r} />)}
+        </g>
+      ))}
+    </>
+  );
+}
 export function Flowerbed({ col, row, open }: {
   col: number; row: number;
   // Whether each side, [N, E, S, W], has no bed beyond it.
@@ -229,44 +264,23 @@ export function Flowerbed({ col, row, open }: {
   const j0 = r0 + (n ? BED_KERB : -SEAM); const j1 = r1 + (s ? -BED_KERB : SEAM);
   const soil = boxFaces(k0, j0, k1 - k0, j1 - j0, 0, BED_RISE).top;
   const seed = (row * 131 + col) * 2654435761 >>> 0;
-  const squash = groundSquash();
-  const mounds = [];
+  const mounds: BedMound[] = [];
   for (let i = 0; i < MOUND_LATTICE * MOUND_LATTICE; i++) {
     if (roll(seed, 90 + i) > MOUND_KEEP) continue;
     const gu = (i % MOUND_LATTICE + 0.5) / MOUND_LATTICE + (roll(seed, 10 + i) - 0.5) * 0.12;
     const gv = (Math.floor(i / MOUND_LATTICE) + 0.5) / MOUND_LATTICE + (roll(seed, 30 + i) - 0.5) * 0.12;
     const mc = Math.min(c1 - BED_KERB - 0.1, Math.max(c0 + BED_KERB + 0.1, col + gu));
     const mr = Math.min(r1 - BED_KERB - 0.1, Math.max(r0 + BED_KERB + 0.1, row + gv));
-    const rx = 7 + roll(seed, 70 + i) * 2;
-    const ry = rx * (0.55 + 0.25 * squash);
-    // The mound sits on the soil: its middle half its height above it.
-    const at = lift(lift(project(mc, mr), BED_RISE), ry * 0.6);
     const hue = driftHue(col * MOUND_LATTICE + (i % MOUND_LATTICE), row * MOUND_LATTICE + Math.floor(i / MOUND_LATTICE));
-    const blooms = [];
-    for (let b = 0; b < BLOOMS_PER_MOUND; b++) {
-      blooms.push({
-        x: at.x + (roll(seed, 200 + i * 8 + b) - 0.5) * rx * 1.4,
-        y: at.y - ry * (0.7 - roll(seed, 300 + i * 8 + b) * 0.85),
-        r: 1.5 + roll(seed, 400 + i * 8 + b) * 0.6,
-      });
-    }
-    mounds.push({ at, rx, ry, hue, blooms, key: i });
+    mounds.push(bedMound(mc, mr, BED_RISE, seed, i, hue));
   }
-  // Painted back to front, so a near mound covers a far one.
-  mounds.sort((a, b) => a.at.y - b.at.y);
   return (
     <g className="campus-flowerbed">
       <polygon className="campus-bed-edge" points={polyPoints(f.left)} />
       <polygon className="campus-bed-edge side" points={polyPoints(f.right)} />
       <polygon className="campus-bed-kerb" points={polyPoints(f.top)} />
       <polygon className="ground-bed" points={polyPoints(soil)} />
-      {mounds.map((m) => (
-        <g key={m.key}>
-          <ellipse className="campus-bed-leaf" cx={m.at.x} cy={m.at.y} rx={m.rx} ry={m.ry} />
-          <ellipse className="campus-bed-leaf-top" cx={m.at.x - m.rx * 0.18} cy={m.at.y - m.ry * 0.28} rx={m.rx * 0.62} ry={m.ry * 0.55} />
-          {m.blooms.map((b, i) => <circle key={i} className={`ground-bloom-${m.hue}`} cx={b.x} cy={b.y} r={b.r} />)}
-        </g>
-      ))}
+      <FlowerMounds mounds={mounds} />
     </g>
   );
 }

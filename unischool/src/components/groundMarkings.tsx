@@ -8,7 +8,8 @@ import { shade } from './tint';
 import { materialsFor, roofFor, stoneFor } from './buildingSpec';
 import { TreeAt, treeShadow, type Species } from './trees';
 import { QUAD_WALK, quadCentre } from './quadGeometry';
-import { lampArt } from './dressing';
+import { FlowerMounds, bedMound, lampArt } from './dressing';
+import { roll } from '../data/treeData';
 
 // Open ground: the Buildables you walk across rather than into (quad, pool
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
@@ -1076,14 +1077,19 @@ const QUAD_TREES: QuadPlanting[] = [
 const GARDEN_SETBACK = 0.3;   // lawn left between a walk's edge and a hedge
 const GARDEN_HEDGE = 0.2;     // a hedge's thickness, in tiles
 const GARDEN_BED = 0.45;      // the curved bed's width
+// The beds are planted as the flower beds a player lays are (Plan 112D):
+// mounds of leaf in flower, one row down each bed at about the spacing a
+// flower bed's lattice sets them (dressing.tsx), in drifts of one color.
+const GARDEN_MOUND_STEP = 0.34;
+const GARDEN_DRIFT = 3;       // mounds to a drift
 type TileBox = { col: number; row: number; w: number; h: number };
 interface GardensPlan {
   cc: number; cr: number; R: number; P: number;
   half: number;                 // the cross walks' half-width
   perimeter: number;            // the perimeter walk's width, from the edge in
   hedges: TileBox[];
-  beds: TilePt[][];             // the curved beds, as tile polygons
-  blooms: TilePt[][];           // the blooms in each bed
+  beds: TilePt[][];             // the beds, as tile polygons
+  mounds: TilePt[][];           // the flowering mounds down each bed
   trees: Array<[col: number, row: number, species: Species, scale: number]>;
   lamps: TilePt[];
   benches: number[];            // the benches' bearings round the plaza
@@ -1100,7 +1106,7 @@ function gardensPlan(col: number, row: number, w: number, h: number): GardensPla
   const m = GARDEN_SETBACK; const t = GARDEN_HEDGE;
   const off = half + m;
   const ri = P + m; const ro = ri + GARDEN_BED;
-  const hedges: TileBox[] = []; const beds: TilePt[][] = []; const blooms: TilePt[][] = [];
+  const hedges: TileBox[] = []; const beds: TilePt[][] = []; const mounds: TilePt[][] = [];
   const trees: GardensPlan['trees'] = []; const lamps: TilePt[] = [];
   // Where a stub along a cross walk meets the bed's outer arc.
   const stubEnd = Math.sqrt(Math.max(0, ro * ro - (off + t) * (off + t)));
@@ -1124,30 +1130,26 @@ function gardensPlan(col: number, row: number, w: number, h: number): GardensPla
       };
       const at = (x: number, y: number): TilePt => [cc + sx * x, cr + sy * y];
       beds.push([...arc(ro, 16), ...arc(ri, 16).reverse()].map(([x, y]) => at(x, y)));
-      // Two rows of blooms along the bed, nudged by index so nothing moves.
-      const bloom: TilePt[] = [];
-      for (const [k, r] of [ri + GARDEN_BED * 0.3, ri + GARDEN_BED * 0.72].entries()) {
-        const pts = arc(r, 11 + k);
-        pts.slice(1, -1).forEach(([x, y]) => bloom.push(at(x, y)));
-      }
-      blooms.push(bloom);
+      // A row of mounds down the middle of the bed, short of its ends.
+      const rm = ri + GARDEN_BED / 2;
+      const span = Math.acos(Math.min(1, off / rm)) - Math.asin(Math.min(1, off / rm));
+      const n = Math.max(2, Math.round((span * rm) / GARDEN_MOUND_STEP));
+      mounds.push(arc(rm, n + 1).slice(1, -1).map(([x, y]) => at(x, y)));
       // A border inside each leg of the frame, so the hedge holds a band of
       // flowers along the panel's two outer sides.
       const b0 = ey - m - t - 0.08; const b1 = b0 - 0.32;
       const c0 = ex - m - t - 0.08; const c1 = c0 - 0.32;
       const border = (x0: number, x1: number, y0: number, y1: number) => {
         beds.push([at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1)]);
-        // Two staggered rows of blooms along its length.
+        // A row of mounds down its middle.
         const along = Math.abs(x1 - x0) > Math.abs(y1 - y0);
-        const n = Math.max(2, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / 0.26));
+        const n = Math.max(2, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / GARDEN_MOUND_STEP));
         const row: TilePt[] = [];
-        for (const [j, q] of [0.3, 0.7].entries()) {
-          for (let i = 0; i < n - j; i++) {
-            const k = (i + 0.5 + j * 0.5) / n;
-            row.push(along ? at(x0 + (x1 - x0) * k, y0 + (y1 - y0) * q) : at(x0 + (x1 - x0) * q, y0 + (y1 - y0) * k));
-          }
+        for (let i = 0; i < n; i++) {
+          const k = (i + 0.5) / n;
+          row.push(along ? at(x0 + (x1 - x0) * k, (y0 + y1) / 2) : at((x0 + x1) / 2, y0 + (y1 - y0) * k));
         }
-        blooms.push(row);
+        mounds.push(row);
       };
       border(off + t + 0.08, c0, b0, b1);
       border(c0, c1, off + t + 0.08, b1);
@@ -1163,7 +1165,7 @@ function gardensPlan(col: number, row: number, w: number, h: number): GardensPla
   }
   // Four benches round the plaza, on the diagonals, facing the fountain.
   const benches = [0.25, 0.75, 1.25, 1.75].map((k) => k * Math.PI);
-  return { cc, cr, R, P, half, perimeter, hedges, beds, blooms, trees, lamps, benches };
+  return { cc, cr, R, P, half, perimeter, hedges, beds, mounds, trees, lamps, benches };
 }
 
 // A bench on the plaza's edge, turned to face the fountain (Plan 87K): the
@@ -1228,14 +1230,8 @@ function GardensGround({ col, row, w, h }: GroundProps) {
       <polygon className="ground-walk-fill" points={rect(cc - half, row, cc + half, s)} />
       <polygon className="ground-walk-fill" points={rect(col, cr - half, e, cr + half)} />
       <polygon className="ground-walk-fill" points={polyPoints(projectedCircle(cc, cr, P, 48))} />
-      {plan.beds.map((bed, i) => (
-        <g key={i}>
-          <polygon className="ground-bed" points={pts(bed)} />
-          {plan.blooms[i]!.map(([c, r], j) => (
-            <polygon key={j} className={`ground-bloom-${(i + j) % 4}`} points={polyPoints(projectedCircle(c, r, 0.13, 8))} />
-          ))}
-        </g>
-      ))}
+      {/* The beds' soil; their mounds stand in the sort (gardensProps). */}
+      {plan.beds.map((bed, i) => <polygon key={i} className="ground-bed" points={pts(bed)} />)}
     </>
   );
 }
@@ -1244,8 +1240,27 @@ function GardensGround({ col, row, w, h }: GroundProps) {
 function gardensProps(col: number, row: number, w: number, h: number): GroundProp[] {
   const plan = gardensPlan(col, row, w, h);
   const { cc, cr, R, P } = plan;
+  // The beds' mounds, a drift of them to a prop on the drift's own box (a
+  // bed's box would sort a whole border against the trees standing at its
+  // corners), each drift in one of the flower beds' four colors.
+  const beds = plan.mounds.flatMap((pts, i) => {
+    const seed = Math.imul(i + 1, 2654435761) >>> 0;
+    const drifts: GroundProp[] = [];
+    for (let d = 0; d * GARDEN_DRIFT < pts.length; d++) {
+      const hue = Math.floor(roll(seed, d) * 4);
+      const run = pts.slice(d * GARDEN_DRIFT, (d + 1) * GARDEN_DRIFT);
+      const cs = run.map(([c]) => c); const rs = run.map(([, r]) => r);
+      const c0 = Math.min(...cs) - 0.17; const r0 = Math.min(...rs) - 0.17;
+      drifts.push({
+        key: `bed-${i}-${d}`, col: c0, row: r0, w: Math.max(...cs) + 0.17 - c0, h: Math.max(...rs) + 0.17 - r0,
+        node: <FlowerMounds mounds={run.map(([c, r], k) => bedMound(c, r, 0, seed, d * GARDEN_DRIFT + k, hue))} />,
+      });
+    }
+    return drifts;
+  });
   return [
     ...plan.hedges.map((b, i) => ({ key: `hedge-${i}`, ...b, node: <GardenHedge b={b} /> })),
+    ...beds,
     ...plan.trees.map(([c, r, species, size], i) => ({
       key: `tree-${i}`,
       col: c - 0.5, row: r - 0.5, w: 1, h: 1,
