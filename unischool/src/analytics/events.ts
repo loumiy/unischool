@@ -92,8 +92,9 @@ export const EVENTS = {
   opening_step: { stage: OPENING_REACHED },
   opening_skipped: { stage: OPENING_CARDS, letters: 'boolean' },
   // The objectives (Plan 106 PR I): a chapter opened, done (and how many
-  // weeks it took), its briefing first shown, and a Guide page read again
-  // from a tab's button or the drawer's list.
+  // weeks it took), its page first shown (still named for the briefing it
+  // was until Plan 112A, so the statistics read on), and a Guide page read
+  // again from a tab's button or the drawer's list.
   chapter_opened: { chapter: CHAPTER_IDS, year: 'number' },
   chapter_done: { chapter: CHAPTER_IDS, year: 'number', weeks_open: 'number' },
   briefing_read: { chapter: CHAPTER_IDS },
@@ -174,7 +175,7 @@ export function stateEvents(prev: GameState, next: GameState, walkSkipped = fals
   const from = prev.events.opening.stage;
   const to = next.events.opening.stage;
   if (from !== to && to !== 'welcome' && !(walkSkipped && to === 'play')) out.push({ name: 'opening_step', fields: { stage: to } });
-  // The chapters (Plan 106 PR I): opened, done, briefing read. Not on the
+  // The chapters (Plan 106 PR I): opened, done, page read. Not on the
   // settle that first writes a run's record, which catches an older save
   // up all at once (state/chapters.ts's caughtUp).
   const was = prev.guidance;

@@ -1,7 +1,8 @@
 import type { GameState } from '../state/types';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { CHAPTER_COPY, DRAWER_WORDS as W, type Door } from '../data/chapterData';
-import { absoluteWeek, chapterById, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import { absoluteWeek, chapterById, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import HelpHint from './HelpHint';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import { count, gameDateOfWeek, prestigeFigure, satisfactionFigure } from '../format';
@@ -10,9 +11,11 @@ import { satisfactionDrag } from '../systems/satisfaction/satisfactionSystem';
 import { NEED_LABELS } from '../data/figureHints';
 
 // The objectives drawer (Plan 106 §2a): the NEXT bar expanded. The chapter
-// open now and its objectives, each with its reading; the chapter's
-// briefing, when it has one (what it is, how to work it with a Show me for
-// each lever, why it matters); what else waits (the NEXT line); and the
+// open now, a short paragraph about it, and its objectives, each with its
+// reading and a (?) whose help says how to meet it, with a Show me that
+// takes the player there (Plan 112A: a simple list, help when confused,
+// and the place itself when still confused); what else waits (the NEXT
+// line); and the
 // milestones, folded in from the ticker's old chip (§7.4): those reached
 // this chapter as "Unlocked", the next with its count, and the whole ladder
 // a click away. state/chapters.ts owns the chapters, data/chapterData.ts
@@ -100,9 +103,11 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
             <span className="objectives-tally">{W.of(required.filter((r) => r.met).length, required.length)}</span>
           </p>
           <h3>{copy.title}</h3>
+          {copy.about && <p className="objectives-about">{copy.about}</p>}
           <ul className="objectives-list">
             {rows.map((r) => {
               const n = objectiveCount(r.progress);
+              const help = objectiveHelp(s, chapter.id, r.id);
               return (
                 <li key={r.id} className={r.met ? 'met' : undefined}>
                   <span className="objectives-mark" role="img" aria-label={r.met ? W.done : W.todo}>{r.met ? '✓' : '○'}</span>
@@ -111,38 +116,18 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
                     {r.optional && <span className="objectives-optional"> ({W.optional})</span>}
                   </span>
                   {n && !r.met && <span className="objectives-count">{n}</span>}
+                  {help && (
+                    <HelpHint text={help.text} align="end" label={W.help(r.text)}>
+                      {help.door && (
+                        <button type="button" className="objectives-door" onClick={() => onGo(help.door!, help.hallId, help.ringed ? ringedProgram(s) ?? undefined : undefined)}>{W.showMe}</button>
+                      )}
+                    </HelpHint>
+                  )}
                 </li>
               );
             })}
           </ul>
           {chapter.live === 'standing' && <StandingLive s={s} />}
-          {copy.briefing && (
-            <div className="objectives-briefing">
-              <h4>{W.what}</h4>
-              <p>{copy.briefing.what}</p>
-              {copy.briefing.how.length > 0 && (
-                <>
-                  <h4>{W.how}</h4>
-                  <ul className="objectives-how">
-                    {copy.briefing.how.map((h) => (
-                      <li key={h.text}>
-                        <span>{h.text}</span>
-                        {h.door && <button type="button" className="objectives-door" onClick={() => onGo(h.door!, h.hallId, h.ringed ? ringedProgram(s) ?? undefined : undefined)}>{W.showMe}</button>}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {copy.briefing.why.length > 0 && (
-                <>
-                  <h4>{W.why}</h4>
-                  <ul className="objectives-why">
-                    {copy.briefing.why.map((y) => <li key={y.system}><strong>→ {y.system}:</strong> {y.text}</li>)}
-                  </ul>
-                </>
-              )}
-            </div>
-          )}
         </section>
       ) : (
         <p className="objectives-between">

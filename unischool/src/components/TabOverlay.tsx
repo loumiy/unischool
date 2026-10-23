@@ -15,8 +15,8 @@ import { DRAWER_WORDS } from '../data/chapterData';
 // No `onClose`: the view cannot be left (the inbox while a stop waits on
 // an answer, Plan 77).
 // `onGuide`: the tab's Guide button (Plan 106 PR G), which opens the
-// briefing of the chapter that introduced it; absent until that chapter
-// has opened.
+// drawer on the page of the chapter that introduced it (its about and its
+// objectives' help, Plan 112A); absent until that chapter has opened.
 export default function TabOverlay({ title, onClose, split = false, onGuide, children }: {
   title: string;
   onClose?: () => void;

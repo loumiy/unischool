@@ -26,8 +26,8 @@ import CampusMap from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
-import { CHAPTER_COPY, TAB_GUIDE } from './data/chapterData';
-import { currentChapter, DOUBLE_SPEED_MARK, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
+import { TAB_GUIDE } from './data/chapterData';
+import { currentChapter, DOUBLE_SPEED_MARK, hasPage, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
 import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import InboxTab from './components/InboxTab';
 import { interruptPageUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID, summerKey } from './systems/inbox/inbox';
@@ -205,8 +205,8 @@ export default function App() {
   const shellLive = s.started && front === null;
 
   // The objectives (Plan 106 PR B). J opens and closes the drawer. Guided
-  // opens a chapter's briefing by itself the first time the chapter is
-  // current, over a quiet map; showing a chapter marks its briefing read.
+  // opens it on a chapter by itself the first time the chapter is current,
+  // over a quiet map; showing a chapter marks its page read.
   // Double speed counts toward chapter 2's optional objective: the speed
   // is the shell's, not the college's, so the shell marks it.
   const objectivesMode = useSettings().objectives;
@@ -222,7 +222,7 @@ export default function App() {
   useEffect(() => {
     if (!chapterNow || marked(s, readMark(chapterNow.id))) return;
     if (objectivesOpen) act({ type: 'MARK_GUIDANCE', mark: readMark(chapterNow.id) });
-    else if (objectivesMode === 'guided' && CHAPTER_COPY[chapterNow.id].briefing && !stopUp && !overlay && !buildOpen) {
+    else if (objectivesMode === 'guided' && hasPage(chapterNow.id) && !stopUp && !overlay && !buildOpen) {
       setObjectivesOpen(true);
       setLogOpen(false);
       setLadderOpen(false);
@@ -250,7 +250,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openTabId, shellLive]);
 
-  // A tab's Guide button: the briefing of the chapter that introduced it,
+  // A tab's Guide button: the page of the chapter that introduced it,
   // once that chapter has opened, read in the drawer over the tab.
   function guideFor(tab: TabId): (() => void) | undefined {
     const id = TAB_GUIDE[tab];

@@ -203,7 +203,7 @@ async function historyViews(page, ctx) {
 async function objectivesDrawer(page, ctx) {
   const chip = page.locator('button.log-ticker-objective').first();
   if (!(await chip.count()) || !(await chip.isVisible().catch(() => false))) return;
-  // Guided opens a chapter's briefing by itself on load; the chip would shut it.
+  // Guided opens a chapter's page by itself on load; the chip would shut it.
   if (!(await page.locator('.objectives-popup').count())) await chip.click().catch(() => {});
   await page.waitForTimeout(300);
   if (!(await page.locator('.objectives-popup').count())) return;

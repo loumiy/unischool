@@ -1,15 +1,15 @@
 import type { Buildable, GameState, GuidanceState } from './types';
-import { totalEnrolled, WEEKS_PER_YEAR } from './types';
-import { CHAPTER_COPY, type ChapterId } from '../data/chapterData';
+import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
+import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { computePrestigeTarget } from '../systems/prestige/prestigeSystem';
 import { darkPrograms } from '../systems/techtree/darkness';
-import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
+import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
+import { RESEARCH_PARK_ID } from '../data/researchParkData';
 import { GRADE_B } from '../data/courseQuality';
 import { milestoneReached } from '../systems/ladder/ladderSystem';
-import { maintenanceFunding } from '../systems/estate/estate';
 import { schoolsFounded } from '../systems/guidance/establish';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 
@@ -25,8 +25,14 @@ import { foundersHallUnsited, laterCourseStarted } from './opening';
 // the next chapter opens (§7.2).
 //
 // The words are data/chapterData.ts's; the NEXT bar's drawer shows them
-// (Plan 106 PR B). The walkthrough teaches the founding and ends there;
-// the chapters after it took over its later steps (PR C).
+// (Plan 106 PR B; since Plan 112A each objective with its own help). The
+// walkthrough teaches the founding and ends there; the chapters after it
+// took over its later steps (PR C), and in a guided run the chair's letters
+// too (Plan 112H, eventSystem.ts's fireOpeningLetter).
+//
+// "Promises" and "The long game" went in Plan 112F. A save that opened
+// either keeps their ids in its record, which nothing reads: the chapters
+// are read off CHAPTERS, never off the record's keys.
 //
 // Settled after every action that changed the state and every tick (the
 // reducer's settled()). This lives in state/ because it reads the map
@@ -61,6 +67,16 @@ export interface Chapter {
 }
 
 const week = (year: number, w: number) => (year - 1) * WEEKS_PER_YEAR + w;
+// The first academic hall (Elm Hall), which chapter 10 rings.
+const FIRST_HALL_ID = academicHallId(0);
+
+// A count of courses taught (Plan 112E), one of the curriculum's
+// milestones in chapterData.ts: what the first academic hall waits on,
+// counted the same way (ladderData.ts's 'curriculum' milestone).
+function teachCourses(chapter: keyof typeof COURSE_MILESTONES): Objective {
+  const of = COURSE_MILESTONES[chapter];
+  return { id: teachObjective(of), progress: (s) => ({ n: Math.min(coursesDone(s), of), of }) };
+}
 export const absoluteWeek = (s: GameState) => week(s.clock.year, s.clock.week);
 
 // A mark the player made outside the college's state (MARK_GUIDANCE).
@@ -150,7 +166,7 @@ export const CHAPTERS: readonly Chapter[] = [
     ],
   },
   {
-    // The first summer (week 52): the briefing says what the price and the
+    // The first summer (week 52): the chapter says what the price and the
     // admit rate do before the beat asks, and no warning comes at the
     // choice (§7.5: a careless admit rate is still punished). Done when the
     // summer has closed.
@@ -180,10 +196,12 @@ export const CHAPTERS: readonly Chapter[] = [
     id: 'a-faculty',
     earliest: week(2, 14),
     // The tab first, and a search only as one way to find somebody
-    // (Plan 107B).
+    // (Plan 107B). The first of the curriculum's milestones, eight courses,
+    // is the count that opens the chapter after it (Plan 112E).
     objectives: [
       { id: 'open-faculty', progress: (s) => marked(s, tabMark('faculty')) },
       { id: 'every-program-staffed', progress: (s) => darkPrograms(s).size === 0 },
+      teachCourses('a-faculty'),
       { id: 'post-a-search', progress: (s) => Object.keys(s.searches).length > 0, optional: true },
       { id: 'appoint-a-b', progress: (s) => s.faculty.some((f) => f.teaching >= GRADE_B), optional: true },
     ],
@@ -207,18 +225,9 @@ export const CHAPTERS: readonly Chapter[] = [
     earliest: week(3, 1),
     objectives: [
       { id: 'site-student-center', progress: (s) => sitedAny(s, (t) => t.facilityType === 'studentCenter') },
+      teachCourses('campus-life'),
       { id: 'approve-a-club', progress: (s) => s.orgs.clubs.length > 0, optional: true },
       { id: 'answer-a-matter', progress: (s) => Object.keys(s.events.decisionHistory).length > 0, optional: true },
-    ],
-  },
-  {
-    // The board's promises, offered from the third summer, which waits for
-    // this chapter in a guided run (gates.ts).
-    id: 'promises',
-    earliest: week(3, 46),
-    objectives: [
-      { id: 'third-summer', progress: (s) => s.history.length >= 3 },
-      { id: 'make-a-promise', progress: (s) => (s.promises?.active.length ?? 0) + (s.promises?.settled.length ?? 0) > 0, optional: true },
     ],
   },
   {
@@ -242,18 +251,8 @@ export const CHAPTERS: readonly Chapter[] = [
     earliest: week(4, 27),
     objectives: [
       { id: 'appoint-a-provost', progress: (s) => (s.seats ?? []).some((seat) => seat.seatId === 'provost') },
+      teachCourses('running-the-college'),
       { id: 'open-an-office', progress: (s) => (s.halls[FOUNDERS_HALL_ID] ?? []).some((slot) => slot.office !== undefined), optional: true },
-    ],
-  },
-  {
-    // The endowment, the estate and the road to the first school: the last
-    // chapter of the first five years.
-    id: 'the-long-game',
-    earliest: week(5, 1),
-    objectives: [
-      { id: 'set-a-sweep', progress: (s) => s.finance.sweepWeeks !== undefined },
-      { id: 'full-upkeep', progress: (s) => maintenanceFunding(s) >= 1, optional: true },
-      { id: 'found-a-school', progress: (s) => schoolsFounded(s) > 0, optional: true },
     ],
   },
   // Past the first five years (Plan 106 PR H): side chapters, each opening
@@ -261,7 +260,9 @@ export const CHAPTERS: readonly Chapter[] = [
   // waiting for another.
   {
     // Research, once a school is founded and its first laboratory can be
-    // built (in a natural run, years 9 to 10).
+    // built (in a natural run, years 9 to 10). The university charter that
+    // follows the first lab at work is the board's to offer, not an
+    // objective (Plan 112G).
     id: 'research',
     earliest: week(5, 1),
     side: true,
@@ -269,7 +270,6 @@ export const CHAPTERS: readonly Chapter[] = [
     objectives: [
       { id: 'site-a-lab', progress: (s) => sitedAny(s, (t) => t.facilityType === 'lab') },
       { id: 'commission-research', progress: (s) => Object.keys(s.research.initiatives).length > 0 || s.research.completedInitiatives.length > 0 },
-      { id: 'answer-the-charter', progress: (s) => s.self.universityCharterOffered, optional: true },
     ],
   },
   {
@@ -305,6 +305,19 @@ export const CHAPTERS: readonly Chapter[] = [
       { id: 'choose-specialization', progress: (s) => s.specialization !== 'none', optional: true },
     ],
   },
+  {
+    // The Research Park, once a college specialized in research may build
+    // it: the chair's last letter, as a chapter (Plan 112H). Met once the
+    // park is going up.
+    id: 'research-park',
+    // No sooner than the park itself (projectData.ts's fromYear).
+    earliest: week(12, 1),
+    side: true,
+    opensWhen: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && t.status !== 'locked'),
+    objectives: [
+      { id: 'site-research-park', progress: (s) => s.tech.some((t) => t.id === RESEARCH_PARK_ID && (t.id in s.placements || t.status === 'developing' || t.status === 'done')) },
+    ],
+  },
 ];
 
 // The tabs an objective asks to be opened, marked by the shell when they
@@ -314,14 +327,34 @@ export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students',
 
 // What a chapter rings while its objective waits, as the walkthrough's
 // steps did (Plan 103): the program whose next course the Curriculum
-// rings, and the building the build menu rings and opens on.
+// rings; the building the build menu rings and opens on (a residence hall
+// and a dining hall, then the first academic hall, Plan 112D); and the
+// funds figure, the Treasury's button (Plan 112B).
 export function ringedProgram(s: GameState): string | null {
   return currentChapter(s)?.id === 'next-course' && !objectiveMet(s, 'develop-second-course') ? walkProgram(s) : null;
 }
 export function ringedBuilding(s: GameState): Buildable | null {
-  if (currentChapter(s)?.id !== 'somewhere-to-sleep') return null;
+  const chapter = currentChapter(s)?.id;
+  if (chapter === 'hall-of-its-own') {
+    if (objectiveMet(s, 'site-academic-hall')) return null;
+    const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
+    return hall && hall.status === 'available' && !(hall.id in s.placements) ? hall : null;
+  }
+  if (chapter !== 'somewhere-to-sleep') return null;
   const test = !sitedAny(s, isDorm) ? isDorm : !sitedAny(s, isDiningHall) ? isDiningHall : null;
   return test ? s.tech.find((t) => test(t) && t.status === 'available') ?? null : null;
+}
+export function treasuryRinged(s: GameState): boolean {
+  return currentChapter(s)?.id === 'paying-for-it' && !objectiveMet(s, 'open-treasury');
+}
+
+// An objective's help, behind its (?) in the drawer: the chapter's words,
+// except where they would point at something not there yet. The first
+// academic hall still locked, its help says what opens it and its Show me
+// goes to the Curriculum (Plan 112D).
+export function objectiveHelp(s: GameState, chapter: ChapterId, objective: string): Lever | undefined {
+  if (objective === 'site-academic-hall' && s.tech.find((t) => t.id === FIRST_HALL_ID)?.status === 'locked') return HALL_LOCKED_HELP;
+  return CHAPTER_COPY[chapter].help?.[objective];
 }
 
 export function chapterById(id: string): Chapter | undefined {
@@ -440,12 +473,18 @@ export function leadObjective(s: GameState, c: Chapter): ReturnType<typeof objec
   return rows.find((r) => !r.optional) ?? rows[0] ?? null;
 }
 
-// A chapter's briefing read: marked when the drawer first shows it, so
-// Guided opens it by itself only once.
+// A chapter's page read: marked when the drawer first shows it, so Guided
+// opens it by itself only once.
 export const readMark = (id: string) => `read:${id}`;
 
-// The Guide (Plan 106 PR G): every chapter with a briefing that the run
-// has opened, in the order they came; read again from the drawer.
+// Whether the drawer has a page for the chapter: every one but the
+// founding, which the walkthrough's card teaches.
+export function hasPage(id: ChapterId): boolean {
+  return CHAPTER_COPY[id].about !== undefined;
+}
+
+// The Guide (Plan 106 PR G): every chapter with a page that the run has
+// opened, in the order they came; read again from the drawer.
 export function guideChapters(s: GameState): Chapter[] {
-  return CHAPTERS.filter((c) => s.guidance?.opened[c.id] !== undefined && CHAPTER_COPY[c.id].briefing !== undefined);
+  return CHAPTERS.filter((c) => s.guidance?.opened[c.id] !== undefined && hasPage(c.id));
 }

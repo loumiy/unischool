@@ -44,7 +44,8 @@ import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
 import { tabAvailable } from '../src/components/TabNav';
 import { NEEDS_LETTER_ID } from '../src/data/openingData';
-import { currentChapter, LOOK_MARKS, ringedBuilding, ringedProgram } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, LOOK_MARKS, ringedBuilding, ringedProgram } from '../src/state/chapters';
+import { OBJECTIVES_OFF_MARK } from '../src/systems/guidance/gates';
 import { awaitsSite, centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
@@ -319,14 +320,19 @@ const walkToCourse = (name: string) => reducer(
   s = siteAnywhere(s, dining.id);
   assert(done(s, 'somewhere-to-sleep') && ringedBuilding(s) === null, 'both sited, the chapter is done');
 
-  // The letters carry on from the second, on their weeks.
+  // No letter after it (Plan 112H): the chapters say what the letters said.
   const { letters, s: after } = playYear(s);
-  assert(!letters.some((l) => l.id === OPENING_LETTERS[0].id), 'the first letter is never sent — the welcome was it');
-  const calendar = letters.filter((l) => CALENDAR.some((c) => c.id === l.id));
-  assert(!letters.some((l) => l.id === NEEDS_LETTER_ID), 'nor the needs letter — its chapter was it');
-  assert(!letters.some((l) => OPENING_LETTERS.find((x) => x.id === l.id)?.chapter !== undefined) && after.events.opening.read.includes('summer-is-coming'), 'nor one a chapter teaches: "The first summer" was "Summer is coming"');
-  assert(calendar.map((l) => l.id).join(',') === CALENDAR.slice(1).filter((l) => l.id !== NEEDS_LETTER_ID && l.chapter === undefined).map((l) => l.id).join(','), `the rest of the calendar arrives in order (${letters.map((l) => l.id).join(',')})`);
+  assert(letters.length === 0, `a guided run is sent no letter: the welcome was the first, and a chapter is each of the rest (${letters.map((l) => l.id).join(',')})`);
+  assert(OPENING_LETTERS.every((l) => CHAPTERS.some((c) => c.id === l.chapter)), 'every letter names the chapter that says it');
+  assert(CALENDAR.every((l) => after.events.opening.read.includes(l.id)), 'each is recorded read when it falls due, so its ask can carry the line');
   assert(after.clock.year === 2, 'and the year turns over');
+
+  // With the chapters Off, the letters are the guidance, as they were.
+  const off = structuredClone(s);
+  off.guidance!.marked.push(OBJECTIVES_OFF_MARK);
+  const sentOff = playYear(off).letters.map((l) => l.id);
+  assert(sentOff.includes('summer-is-coming') && !sentOff.includes(OPENING_LETTERS[0].id) && !sentOff.includes(NEEDS_LETTER_ID),
+    `Off, the rest of the calendar comes, the welcome and the needs letter read already (${sentOff.join(',')})`);
 }
 
 // --- the walkthrough: skipping, at each step --------------------------------
@@ -377,11 +383,16 @@ const walkToCourse = (name: string) => reducer(
   }
 
   // Skipped from the program's step, the letters kept: nothing marked the
-  // needs letter read, so it comes at week 9 as it always did.
+  // needs letter read, so with the chapters Off it comes at week 9 as it
+  // always did. With them on, its chapter says it (Plan 112H), and it is
+  // recorded read unsent.
   let k = siteHall(reducer(foundWalk('Skip letters'), { type: 'ADVANCE_OPENING' }));
   k = reducer(k, { type: 'SKIP_OPENING', keepLetters: true });
+  const guidedYear = playYear(structuredClone(k));
+  assert(guidedYear.letters.length === 0 && guidedYear.s.events.opening.read.includes(NEEDS_LETTER_ID), `skipped before the program, a guided run is sent no needs letter (${guidedYear.letters.map((l) => l.id).join(',')})`);
+  k.guidance!.marked.push(OBJECTIVES_OFF_MARK);
   const sent = playYear(k).letters.map((l) => l.id);
-  assert(sent.includes(NEEDS_LETTER_ID), `skipped before the program, the needs letter comes (${sent.join(',')})`);
+  assert(sent.includes(NEEDS_LETTER_ID), `Off, the needs letter comes (${sent.join(',')})`);
 
   // A save at 'play' (an old save, or a headless run) stays there.
   let headless = foundWalk('No step', false);
@@ -476,7 +487,9 @@ const walkToCourse = (name: string) => reducer(
     const keep = stage !== 'welcome';
     assert(c.acted.length === 1 && c.acted[0].type === 'SKIP_OPENING' && (c.acted[0].keepLetters === true) === keep,
       `${stage}: its confirmation skips, ${keep ? 'keeping' : 'declining'} the letters (${JSON.stringify(c.acted)})`);
-    assert(skip.label === (keep ? SKIP_WORDS.rest : SKIP_WORDS.welcome), `${stage}: labelled "${String(skip.label)}"`);
+    // A guided run is sent no letters (Plan 112H), so the welcome's skip
+    // names only the walk.
+    assert(skip.label === (keep ? SKIP_WORDS.rest : SKIP_WORDS.welcomeGuided), `${stage}: labelled "${String(skip.label)}"`);
   }
 
   // The welcome: the skip is a link under the actions, and the card says

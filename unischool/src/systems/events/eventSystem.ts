@@ -254,7 +254,10 @@ function weightedPick(
 // so it never re-fires. A calendar letter is due from its week of year one
 // and never after it; a letter with `arrives` is due while that holds, in
 // any year, and is recorded read unsent if its ask was done before it came,
-// or in a guided run if a chapter teaches the same.
+// or in a guided run, whose chapters say what the letters said (Plan 112H:
+// the owner found the two redundant). Recorded read, its ask still
+// carries the next-step line (nextStep.ts's letterAsk). A run without
+// chapters (the Objectives setting Off, the sims) still has the letters.
 // Yields to everything earned and to the one-shot questions.
 export function fireOpeningLetter(s: GameState): boolean {
   if (s.events.opening.skipped) return false;
@@ -265,7 +268,7 @@ export function fireOpeningLetter(s: GameState): boolean {
     if (!due) continue;
     read.push(letter.id);
     if (letter.arrives && letter.done(s)) continue;
-    if (letter.chapter && guidedRun(s)) continue;
+    if (guidedRun(s)) continue;
     s.pendingInterrupt = { type: 'letter', payload: { id: letter.id } };
     return true;
   }

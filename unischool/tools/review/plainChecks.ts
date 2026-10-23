@@ -90,7 +90,7 @@ export const PLAIN_RULES: readonly PlainRule[] = [
 // Flavour (events, promises, names, course descriptions) is measured
 // apart: its rules are looser.
 export const INSTRUCTION_SCREENS: ReadonlySet<string> = new Set([
-  'Opening walkthrough', 'Objectives (chapters, briefings, the Guide)', 'Next-step line', 'Board letters',
+  'Opening walkthrough', 'Objectives (chapters, their help, the Guide)', 'Next-step line', 'Board letters',
   'Ladder and milestone letters', 'Events (decision) and letters', 'Summer review', 'Admissions page (summer)',
   'Admissions', 'Help hints', 'Campus map', 'Build menu', 'Building panel', 'Faculty tab', 'Administration',
   'Students tab', 'Treasury tab', 'History tab', 'Standing (History tab)', 'Athletics tab', 'Curriculum tab',

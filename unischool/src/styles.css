@@ -3894,7 +3894,8 @@ button.inbox-row:hover { background: var(--cream-hi); }
   letter-spacing: 0.08em; color: var(--ink-muted); }
 .objectives .letter-eyebrow { display: flex; justify-content: space-between; gap: var(--space-8); margin: 0 0 var(--space-4); }
 .objectives-tally { font-variant-numeric: tabular-nums; }
-.objectives-list, .objectives-how, .objectives-why { list-style: none; margin: 0; padding: 0; }
+.objectives-about { margin: 0 0 var(--space-8); }
+.objectives-list { list-style: none; margin: 0; padding: 0; }
 .objectives-list li { display: flex; align-items: baseline; gap: var(--space-8); padding: 4px 0; }
 .objectives-list li.met { color: var(--ink-muted); }
 .objectives-list li.met .objectives-text { text-decoration: line-through; text-decoration-color: var(--ink-muted); }
@@ -3902,8 +3903,14 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives-text { flex: 1 1 auto; min-width: 0; }
 .objectives-optional { color: var(--ink-muted); }
 .objectives-count { flex: none; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.objectives-how li, .objectives-waiting p { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8); margin: 0; padding: 3px 0; }
-.objectives-why li { padding: 3px 0; }
+.objectives-waiting p { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8); margin: 0; padding: 3px 0; }
+/* An objective's (?) and its help (Plan 112A): the panels' help hint, a
+   little larger beside a line of text, and a card that holds a Show me. */
+.objectives-list .help-hint { flex: none; align-self: center; }
+.objectives-list .help-hint-btn { width: 20px; height: 20px; font-size: var(--text-xs); }
+.objectives-list .help-hint-text { top: 26px; width: min(280px, calc(100vw - 32px)); }
+.help-hint-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-8); }
+.help-hint-card p { margin: 0; }
 .objectives-door { flex: none; font-size: var(--text-xs); padding: 3px 10px; }
 .objectives-waiting p.urgent span { font-weight: 700; }
 .objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }

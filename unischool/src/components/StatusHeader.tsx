@@ -18,6 +18,9 @@ import { satisfactionDrag, satisfactionWeeklyChange } from '../systems/satisfact
 import { FigureBox } from './Figure';
 import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
+import { treasuryRinged } from '../state/chapters';
+import { useSettings } from '../settings';
+import { objectivesShown } from './LogTicker';
 import { playtestEnabled } from './playtest';
 import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason } from '../format';
 import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
@@ -123,12 +126,16 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
   // The word over the figure on a wide screen; on a phone the glyph stands
   // in for it (styles.css).
   const word = (chip: StatChip) => <span className="stat-label">{STAT_CHIP_WORDS[chip]}</span>;
+  // Rung while "Paying for it" waits on the Treasury (Plan 112B): the
+  // owner could not find where it opens.
+  const objectives = useSettings().objectives;
+  const ringed = !treasuryOpen && treasuryRinged(s) && objectivesShown(s, objectives);
 
   return (
     <>
       <button
         type="button"
-        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}${quiet ? ' quiet' : ''}`}
+        className={`toolbar-funds-btn figure-box ${treasuryOpen ? 'active' : ''}${quiet ? ' quiet' : ''}${ringed ? ' opening-target' : ''}`}
         aria-expanded={treasuryOpen}
         aria-label="Treasury"
         aria-describedby={fundsHint}
