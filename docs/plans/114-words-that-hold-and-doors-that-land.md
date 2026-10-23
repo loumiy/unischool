@@ -11,7 +11,9 @@ the glance saying what opens a zero pillar; the small doubts; The teams
 opening on a team, with the ticker on the main chapter; and a Curriculum
 that opens only the rows you can act on.*
 
-**Status: Proposed.**
+**Status: Landed on the branch (23 October 2026), A–H, to ship with
+0.1.4.** The owner took §2's recommendations. Notes on where the PRs
+landed differently are in §4.
 
 ---
 
@@ -271,3 +273,78 @@ II's level, under 1,200 words at year 16.
   counts 1 to 52).
 - **Plan 113's:** the mascot stop (I7-2) and the AD renaming the teams
   (C3-10). E only moves when *The teams* opens.
+
+## 4. As implemented
+
+- **A.**
+  - The test is `test/briefing-numbers.test.ts`. The test runner now reads
+    `typescript` from `node_modules` rather than bundling it.
+  - The allow-list also holds a degree's "four years" and the speeds'
+    "8×".
+  - The chair's welcome letter (`eventData.ts`) typed "350" and "80" too.
+    Both now read from the game.
+  - The laboratories letter's ask needed a case with no lab standing.
+  - *The next course*'s *about* keeps three sentences: "Each program has
+    ten courses, and the curriculum committee writes them N at a time."
+- **B.**
+  - The weekly-climb sentence shows while `riseRateIn` is at or above
+    `PRESTIGE_FALL_RATE`, which is through year 8, not until
+    `EARLY_FADE_YEAR`. Both sentences are true in the years they show.
+  - *Standing*'s *about* keeps three sentences.
+  - The zero line reads the state (no lab, no team), so a pillar a capital
+    project lifts before a lab still says what opens the rest.
+  - History's help is built by `prestigeHelp(s)`, which uses the glance's
+    `summerRule`.
+  - The drawer's heading is the glance's own, "What lifts it".
+- **C.**
+  - Only the teaching axis names the top band, because the research axis
+    has no room for the words.
+  - The plot's grade labels are set in the UI's sans, not the monospace
+    face.
+  - The Training Institute's description says "one band better" too.
+- **D.** The Review's row is captured before the summer moves the classes
+  up. Only the "thinned" clause reads the enrolled count, and it didn't
+  differ in the three summers tested.
+- **E.**
+  - The seats objective keeps the target: "240/350 taught · 320 with
+    courses under way".
+  - The team objectives count every team: "Fill every team's staff posts"
+    and "Build every team's venue". With two teams, the old wording read
+    "three staff posts 0/6".
+  - The other open side chapters are listed first in the Guide, marked
+    "open now".
+  - **`test/chapter-pace.test.ts`** runs gated guided players on three
+    seeds for ten years. The ticker never showed a side chapter over a main
+    one. Five required objectives wait over a year. They are listed in its
+    `KNOWN` with reasons and printed on every run, for the owner to decide:
+    - *Teach 16 courses* and *Teach 24 courses*: 64–90 weeks.
+    - *Site a lab*: 57–94 weeks.
+    - *Commission research*: 72–122 weeks.
+    - *Build the venue*: 235 weeks on a football seed.
+  - The test hires team staff from the market and appoints the VP of
+    Advancement, which the harness never did.
+- **F.**
+  - The Research and Research Park rings read whether their chapter is
+    open, as the teams' venue does. They are side chapters.
+  - A ring lights only a building the college can pay or borrow for. If it
+    can't, the menu opens on the right tab with nothing ringed.
+  - The no-shut-tab check is in `chapter-pace.test.ts`.
+  - Checked in the built game: five of seven doors land and ring. The lab
+    and the park opened on their tab unringed, because each was short of
+    cash.
+  - The shut-tab line can sit below the help card's visible edge. The card
+    clipped before this PR.
+- **H.**
+  - `useCollapse` takes a `finished` flag in place of a `resetKey`.
+  - Measured with `npm run review:gallery`, words and controls, before →
+    after:
+
+    | Save | Before | After |
+    |---|---|---|
+    | Year 9 | 1,517 / 205 | 1,321 / 170 |
+    | Year 16, a crisis save with no cash | 3,726 / 504 | 1,017 / 58 |
+    | Year 23, specialization | 3,863 / 537 | 3,735 / 517 |
+
+  - With §2's committee rule, a solvent college with a full committee keeps
+    every ready row open. Counting the committee would bring year 9 to 533
+    words and year 23 to 993, at the cost of rows folding and reopening.
