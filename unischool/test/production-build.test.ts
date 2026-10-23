@@ -86,8 +86,7 @@ function testVersion(): void {
   assert(buildLine({ version: '0.1.0', build: 'a1b2c3d', edition: 'full', platform: 'itch' }) === 'Version 0.1.0 (a1b2c3d), playtest', 'the long line names the commit');
 
   const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as { version: string };
-  // A fourth number is a patch to a live build (0.1.3.1, Plan 113A).
-  assert(/^0\.\d+\.\d+(\.\d+)?$/.test(pkg.version), `package.json's version is a 0.x playtest version until launch (${pkg.version})`);
+  assert(/^0\.\d+\.\d+$/.test(pkg.version), `package.json's version is a 0.x playtest version until launch (${pkg.version})`);
   const config = source(join(process.cwd(), 'vite.config.ts'));
   assert(config.includes('__APP_VERSION__') && config.includes('__BUILD_ID__'), 'vite.config.ts defines the version and the build');
 

@@ -5,12 +5,6 @@ point to the development records in `docs/plans/`.*
 
 ---
 
-## 0.1.3.1
-
-- **A run saved on one of 0.1.2's walkthrough steps loads again.**
-  Continue, a save slot or a save file no longer stops the game. The run
-  goes on from where it was, with the walkthrough finished (Plan 113).
-
 ## 0.1.3
 
 *The first five years rebuilt as chapters (Plan 106), the owner's notes

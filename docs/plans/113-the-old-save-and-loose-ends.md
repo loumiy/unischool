@@ -124,6 +124,14 @@ steps no longer stops the game on Continue."). `npm run check`,
 conflicts are the version line and the changelog's head, and main keeps
 0.1.3.1 until 0.1.4 sets its own.
 
+**As implemented:** the fix was cherry-picked onto `b1f2114` cleanly, and
+a 0.1.3.1 build was made and checked there. It passed `npm run check`, and
+the itch build loaded the 0.1.2 save. The version check
+(`test/production-build.test.ts`) needed a fourth number allowed. Then the
+owner chose (b), that no patch ships: the fix goes out with 0.1.4. The
+version, the changelog entry and the version check's change were taken
+back out on this branch.
+
 ### B. The old appointing step (I7-4)
 
 - In the `found` body (`openingData.ts:117-121`): when `teachableOffers`
