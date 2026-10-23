@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------
 // VENUE STAGES (Plan 54). A venue's expansions show on the map: the fields
 // and the diamond grow from the field alone to a small stand to full
-// seating, the arena rises a storey with each of its two expansions, and
-// the natatorium with its one.
+// seating, the arena rises a storey with each of its two expansions and
+// gains a part (Plan 115F), and the natatorium rises with its one.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -11,7 +11,12 @@ import { groundProps } from '../src/components/groundMarkings';
 import { wallHeightOf } from '../src/components/buildingSpec';
 import { footprintOf } from '../src/state/campusMap';
 import { initialFacilities, nextVenueExpansion, venueExpansionsMax, venueSeatsOf } from '../src/data/facilitiesData';
-import type { Buildable } from '../src/state/types';
+import type { Buildable, Facing } from '../src/state/types';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { buildingMassArt, materialOf } from '../src/components/buildingMotifs';
+import { ColorsContext } from '../src/components/mapOccasions';
+import { DEFAULT_PITCH, VIEWS, setCamera } from '../src/components/isoProjection';
 
 let checks = 0;
 let failures = 0;
@@ -74,6 +79,43 @@ assert(nextVenueExpansion(withExpansions(byType('footballStadium'), 1)) !== null
   const plate = groundProps(t.facilityType, 0, 0, fp.w, fp.h, t.tier, false, t.id, 1).find((p) => p.key === 'stand-1')!;
   const hc = fp.w * 0.66; const hr = fp.h * 0.66;
   assert(!(hc >= plate.col && hc <= plate.col + plate.w && hr >= plate.row && hr <= plate.row + plate.h), 'the plate stand does not cover home plate');
+}
+
+// ---- The Arena's parts (Plan 115F) ----
+// Each expansion adds a part the one before lacks, as well as its storey:
+// the entrance hall from the start, a second concourse tier, then a
+// practice annex. Its sign and fascia wear the college's colours.
+{
+  const t = byType('athleticsArena');
+  const fp = footprintOf(t);
+  const colors = { primary: '#1a2b3c', secondary: '#c4d5e6' };
+  const art = (n: number, facing: Facing = 0, azimuth = VIEWS[0]!) => {
+    setCamera({ azimuth, pitch: DEFAULT_PITCH });
+    const p = { col: 0.06, row: 0.06, w: fp.w - 0.12, h: fp.h - 0.12, facing };
+    const mass = buildingMassArt({ t: withExpansions(t, n), p, material: materialOf(t, 'georgian'), vernacular: 'georgian', developing: false }, 0);
+    return renderToStaticMarkup(createElement(ColorsContext.Provider, { value: colors }, createElement('svg', null, mass)));
+  };
+  const has = (svg: string, cls: string) => svg.includes(`class="${cls}"`);
+  const parts = ['arena-entrance', 'arena-tier', 'arena-annex'];
+  const drawn = [0, 1, 2].map((n) => art(n));
+  drawn.forEach((svg, n) => {
+    parts.forEach((cls, k) => {
+      assert(has(svg, cls) === k <= n, `the arena at ${n} expansions ${k <= n ? 'draws' : 'does not draw'} its ${cls}`);
+    });
+  });
+  // The part's group, for its fills.
+  const group = (svg: string, cls: string) => {
+    const at = svg.indexOf(`class="${cls}"`);
+    return at < 0 ? '' : svg.slice(at, svg.indexOf('</g>', at));
+  };
+  for (const cls of ['arena-sign', 'arena-fascia']) {
+    const g = group(drawn[0]!, cls);
+    assert(g.includes(colors.primary) && g.includes(colors.secondary), `its ${cls} reads the college's colours`);
+  }
+  // The front is the hall's; from behind, no sign.
+  assert(!has(art(0, 0, VIEWS[2]!), 'arena-sign'), 'from behind, the scoreboard is not drawn');
+  assert(has(art(0, 2, VIEWS[2]!), 'arena-sign'), 'and turned to face the camera, it is');
+  setCamera({ azimuth: VIEWS[0]!, pitch: DEFAULT_PITCH });
 }
 
 if (failures === 0) {
