@@ -469,7 +469,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
               <div><dt>Admit rate</dt><dd>{showCloud ? pct(admitRate) : '—'}</dd></div>
               <div><dt>Freshman class</dt><dd>{showCloud ? count(shownOutcome.enrolled) : '—'}</dd><dd className="sub">of {count(ceiling.seatsLeft)} places</dd></div>
               <div><dt>Median SAT · GPA</dt><dd>{showCloud && classDots.length > 0 ? `${count(medianSat)} · ${medianGpa.toFixed(1)}` : '—'}</dd></div>
-              <div><dt title={FIGURE_HINTS.incomingQuality}>Incoming quality</dt><dd>{showCloud ? `${count(shownOutcome.avgIncomingQuality)}/100` : '—'}</dd></div>
+              <div><dt title={FIGURE_HINTS.incomingQuality}>Incoming quality</dt><dd>{showCloud ? `${count(shownOutcome.avgIncomingQuality)}/100` : '—'}</dd><dd className="sub">Part of your academics score</dd></div>
             </dl>
             {showCloud && change && (
               <p className="stat admissions-change">
@@ -477,7 +477,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
                 {change.parts.length > 0 && <>: {change.parts.map((p, i) => <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{i > 0 ? ', ' : ''}{p.label}{takesColon(p.key) ? ':' : ''} {signedPct(p.change)}</span>)}</>}
               </p>
             )}
-            {showCloud && <p className="stat">{admitRateOpening(!s.students.lastFunnel, payload.admitRate, s.students.capacity, consequence.totalEnrolled, maxAdmitRate)}</p>}
+            {showCloud && <p className="stat">{admitRateOpening(!s.students.lastFunnel, payload.admitRate, maxAdmitRate)}</p>}
           </div>
 
           <div className={`admissions-card${showCloud ? '' : ' waiting'}`}>

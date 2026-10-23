@@ -87,6 +87,8 @@ function assert(cond: boolean, msg: string): void {
   assert(after.includes('Send the offers') && after.includes('role="slider"'), 'a locked price resumes on the line');
   assert(after.includes('adm-handle-tab') && after.includes('adm-handle-chevron'), 'its handle a grip tab with chevrons (Plan 112C)');
   assert(after.includes('What this class does') && after.includes('Weekly net'), 'with money and mood beside it');
+  assert(after.includes('Part of your academics score'), 'incoming quality says what it feeds (Plan 113D)');
+  assert(!after.includes('crowd'), 'and nothing on the page talks of crowding');
   assert(!html.includes('Your first admissions') && !after.includes('Your first admissions'), 'a run nobody guides is not walked through');
 
   for (const beat of [0, 2] as const) {

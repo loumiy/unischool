@@ -7,7 +7,7 @@
 //   - crowdingLabel and poolChange (yearOverYear.ts): the reveal's crowding
 //     part says its direction, "crowding eased" or "crowding grew";
 //   - admitRateOpening (yearOverYear.ts): why the admit rate opens where it
-//     does, and the beds only when admitting more would crowd them.
+//     does, without the beds: crowding went with Plan 107E (Plan 113D).
 // The class names are pinned in alumni.test.ts.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
@@ -79,12 +79,12 @@ console.log('plain words tests');
 
 // --- why the admit rate opens where it does ------------------------------
 {
-  assert(admitRateOpening(true, 0.21, 0, 688) === 'The admit rate starts at the founding rate, 21%.', 'the first summer opens at the founding rate');
-  assert(admitRateOpening(false, 0.38, 0, 688) === 'The admit rate starts where you set it last summer, 38%.', 'later summers open at last summer\'s');
-  assert(admitRateOpening(false, 0.38, 350, 688) === "The admit rate starts where you set it last summer, 38%. Next year's students already fill your 350 beds, so admitting more will crowd them.", 'beds already full are named as what admitting more does');
-  assert(admitRateOpening(false, 0.38, 1_200, 688) === 'The admit rate starts where you set it last summer, 38%.', 'beds to spare are not named');
-  assert(admitRateOpening(true, 0.86, 0, 688, 0.62) === 'The admit rate starts at 62%, the most the places left will hold. The founding rate was 86%.', 'a founding rate above the room opens at the room');
-  assert(admitRateOpening(false, 0.5, 0, 688, 0.62) === 'The admit rate starts where you set it last summer, 50%.', 'a rate inside the room opens where it was');
+  assert(admitRateOpening(true, 0.21) === 'The admit rate starts at the founding rate, 21%.', 'the first summer opens at the founding rate');
+  assert(admitRateOpening(false, 0.38) === 'The admit rate starts where you set it last summer, 38%.', 'later summers open at last summer\'s');
+  assert(!admitRateOpening(false, 0.38).includes('beds') && !admitRateOpening(true, 0.86, 0.62).includes('crowd'), 'no beds and no crowding: crowding went with Plan 107E (Plan 113D)');
+  assert(admitRateOpening(true, 0.86, 0.62) === 'The admit rate starts at 62%, the most the places left will hold. The founding rate was 86%.', 'a founding rate above the room opens at the room');
+  assert(admitRateOpening(false, 0.5, 0.62) === 'The admit rate starts where you set it last summer, 50%.', 'a rate inside the room opens where it was');
+  assert(admitRateOpening(true, 0.862, 0.858) === 'The admit rate starts at 86%, the most the places left will hold.', 'a cap that reads the same as the founding rate names it once');
 }
 
 if (failures === 0) {
