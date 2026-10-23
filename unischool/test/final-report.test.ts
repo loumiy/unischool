@@ -164,7 +164,7 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
   const r = finalReport(s);
   assert(r.axes.length === 6 && ['A', 'B', 'C', 'D', 'F'].includes(r.mark), 'six grades and a mark');
   assert(r.kept.length === 1 && r.missed.length === 1 && r.declined === 1, 'the promises, kept, missed and declined');
-  assert(r.finances[0].startsWith('It left its successors far richer'), `the money's verdict (${r.finances[0]})`);
+  assert(r.finances[0].startsWith('Your college left its successors far richer'), `the money's verdict (${r.finances[0]})`);
   assert(r.finances[r.finances.length - 1] === 'It ends owing nothing.', 'and the debt');
   assert(r.rank >= 1 && r.total === s.rivals.length + 1, 'the guide\'s last word');
   assert(JSON.stringify(JSON.parse(JSON.stringify(r))) === JSON.stringify(r), 'plain JSON, so it saves');

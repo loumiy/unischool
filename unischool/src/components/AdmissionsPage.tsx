@@ -45,17 +45,17 @@ type Stage = 'price' | 'rain' | 'cut' | 'flow';
 
 // Label and tone for each PriceTier (admissionsSystem.ts).
 const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> = {
-  bargain: { label: 'a bargain for the college\'s prestige', className: 'price-tier-bargain' },
-  fair: { label: 'in line with the college\'s prestige', className: 'price-tier-fair' },
-  expensive: { label: 'more than the college\'s prestige supports', className: 'price-tier-expensive' },
-  reckless: { label: 'far above what the college\'s prestige supports', className: 'price-tier-reckless' },
+  bargain: { label: 'a bargain for your prestige', className: 'price-tier-bargain' },
+  fair: { label: 'in line with your prestige', className: 'price-tier-fair' },
+  expensive: { label: 'more than your prestige supports', className: 'price-tier-expensive' },
+  reckless: { label: 'far above what your prestige supports', className: 'price-tier-reckless' },
 };
 // "Fair" spans 0.7 to 1.15 of what prestige supports, about $6,000 at most
 // standings, so the tag says where in it the price sits (the merge review,
 // Plan 70E), still without naming the number.
 function fairPosition(ratio: number): string {
-  if (ratio < 0.9) return ' — on the gentle side';
-  if (ratio > 1.05) return ' — at the top of it';
+  if (ratio < 0.9) return ' — on the low side';
+  if (ratio > 1.05) return ' — near the top';
   return '';
 }
 
@@ -291,7 +291,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             <text x={PX} y={50} className="adm-sub">
               {showCloud
                 ? `${count(outcome.applicants)} applicants${cloud.per > 1 ? ` · each dot is ${count(cloud.per)}` : ''}`
-                : 'Set the price to see who applies'}
+                : 'Lock the price to see who applies'}
             </text>
             <text x={HALL.x} y={30} className="adm-title">The hall</text>
             <text x={HALL.x} y={50} className="adm-sub">Room for {count(ceiling.seatsLeft)} new students</text>
@@ -394,16 +394,16 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             {!tuitionLocked ? (
               <>
                 <label className="admissions-field">
-                  <span>Tuition a year, held for the class's four years</span>
+                  <span>Tuition per year. This class pays it for all four years.</span>
                   <input type="range" min={floor} max={TUITION_SLIDER_MAX} step={500} value={tuition} onChange={(e) => setTuition(Number(e.target.value))} />
                 </label>
                 <span className="price-tolerance" title={FIGURE_HINTS.priceTolerance}>Families expect about {money(Math.round(tolerance / 100) * 100)}</span>
-                {floor > 0 && <span className="stat">The board holds tuition where it is: it may rise, not fall.</span>}
+                {floor > 0 && <span className="stat">The board won't let you lower tuition this year. You can still raise it.</span>}
                 {poolRange && <span className="stat">The Admissions Office expects {count(poolRange.low)}–{count(poolRange.high)} applicants at this price.</span>}
                 <button type="button" className="admissions-lock" onClick={lock}>Lock the price</button>
               </>
             ) : (
-              <span className="stat">Locked for the class's four years.</span>
+              <span className="stat">Locked. This class pays it for all four years.</span>
             )}
           </div>
 
@@ -417,7 +417,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             </dl>
             {showCloud && change && (
               <p className="stat admissions-change">
-                {count(outcome.applicants)} applicants, <span className={change.change >= 0 ? 'good' : 'bad'}>{signedPct(change.change)}</span> on last summer
+                {count(outcome.applicants)} applicants, <span className={change.change >= 0 ? 'good' : 'bad'}>{signedPct(change.change)}</span> from last summer
                 {change.parts.length > 0 && <>: {change.parts.map((p, i) => <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{i > 0 ? ', ' : ''}{p.label}{takesColon(p.key) ? ':' : ''} {signedPct(p.change)}</span>)}</>}
               </p>
             )}
@@ -452,10 +452,10 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             />
             {showCloud && consequence.totalEnrolled > SCALE_FREE_BELOW && (() => {
               const cost = marginalStudentCost(s, 1_000, undefined, consequence.totalEnrolled) * WEEKS_PER_YEAR;
-              return <p className={`stat next-thousand ${tuition >= cost ? '' : 'bad'}`} title={FIGURE_HINTS.nextThousand}>The next thousand pay {money(tuition)} each and cost {money(cost)}.</p>;
+              return <p className={`stat next-thousand ${tuition >= cost ? '' : 'bad'}`} title={FIGURE_HINTS.nextThousand}>Each of the next thousand students pays {money(tuition)} and costs {money(cost)}.</p>;
             })()}
             {showCloud && consequence.notReturning > 0 && (
-              <p className="stat" title={FIGURE_HINTS.notReturning}>{count(consequence.notReturning)} won't return{consequence.attritionReasons.length > 0 ? ` (${consequence.attritionReasons.join(', ')})` : ''}.</p>
+              <p className="stat" title={FIGURE_HINTS.notReturning}>{count(consequence.notReturning)} {consequence.notReturning === 1 ? 'student' : 'students'} won't come back.{consequence.attritionReasons.length > 0 ? ` They want more ${consequence.attritionReasons.join(' and ')}.` : ''}</p>
             )}
           </div>
 

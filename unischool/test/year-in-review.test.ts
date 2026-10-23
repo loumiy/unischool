@@ -101,14 +101,14 @@ console.log('year in review tests');
   assert(section(s, 'research').empty.length > 0, 'which still says something');
 
   const students = text(s, 'students');
-  assert(/Satisfaction, how content the students are out of 100, averaged \d+ this year: from now on it shows at the foot of the screen/.test(students), `the students section leads with the year's average (${students})`);
+  assert(/Satisfaction averaged \d+ this year\. Satisfaction is how happy your students are, out of 100\. From now on it shows at the bottom of the screen/.test(students), `the students section leads with the year's average (${students})`);
 
   const moneyLines = text(s, 'money');
   const net = s.finance.cash - FOUNDING_PRESET.startingCash;
   assert(moneyLines.includes(`${net >= 0 ? '+' : '−'}$${Math.abs(Math.round(net)).toLocaleString()}`), `the first year's net is measured from the founding cash (${moneyLines})`);
 
   const standing = text(s, 'standing');
-  assert(/graded \d+: prestige [\d.]+ → [\d.]+/.test(standing), `the standing section reads the report card before it is applied (${standing})`);
+  assert(/This year's grade: \d+\. Prestige [\d.]+ → [\d.]+/.test(standing), `the standing section reads the report card before it is applied (${standing})`);
   assert(['Academics', 'Research', 'Student life', 'Athletics'].every((p) => standing.includes(p)), 'and lists the four pillars by name');
   assert(!buildYearInReview(s).truncated, 'a quiet founding year fits inside the log');
 
@@ -146,7 +146,7 @@ console.log('year in review tests');
   s.students.satisfactionYearSum = 35 * s.students.satisfactionYearWeeks;
   const leaving = projectedAttrition(s);
   assert(leaving > 0, `a year averaging 35 costs students (${leaving})`);
-  assert(text(s, 'students').includes(`${leaving.toLocaleString()} students will not return`), 'the review names the number');
+  assert(text(s, 'students').includes(`${leaving.toLocaleString()} students won't come back next year`), 'the review names the number');
   const after = reducer(s, { type: 'RESOLVE_ADMISSIONS', tuition: s.finance.listedTuition, admitRate: s.students.admitRate, approvedPetitionIds: [] });
   assert(after.history[0].attrition === leaving, `and the boundary records exactly that figure (${after.history[0].attrition})`);
   assert(Math.abs(after.history[0].satisfactionAverage - 35) < 1e-9, 'with the average the year was graded on');
@@ -197,7 +197,7 @@ console.log('year in review tests');
   assert(lines.length === 2 && lines[0].startsWith(letter.title!), `the year's letter, and only this year's (${lines.join(' | ')})`);
   // Plan 47: the catalog's letters are letters to the President; "from the board" is the distress ladder's.
   assert(lines[0].includes('a letter to the President') && !lines[0].includes('from the board'), `the letter is a letter to the President (${lines[0]})`);
-  assert(lines[1].startsWith('6 matters came up') && lines[1].includes('2 answered by the President') && lines[1].includes('1 by the administration') && lines[1].includes('3 left unanswered'), `and who answered the rest (${lines[1]})`);
+  assert(lines[1].startsWith('6 matters came up') && lines[1].includes('you answered 2') && lines[1].includes('your administration answered 1') && lines[1].includes('3 went unanswered'), `and who answered the rest (${lines[1]})`);
   const cls = section('class');
   assert(s.students.classes.senior === 0 ? cls.lines.length === 0 : cls.lines.length === 2, 'the graduating class, when there is one');
   s.students.classes.senior = 120;
@@ -215,11 +215,11 @@ console.log('year in review tests');
     s.log.unshift({ year: y, week: 20, kind: 'info', topic: 'event', message: `${title} — Nobody answered in time: ${answer}.` });
   lapse('The chess club asks for a room', 'Say no');
   s.log.unshift({ year, week: 21, kind: 'info', topic: 'event', message: 'A donor calls — Answered: Take the call.' });
-  const one = events().find((l) => l.text.startsWith('Left unanswered'));
-  assert(one?.text === 'Left unanswered: The chess club asks for a room (Say no)', `one matter left unanswered reads in full (${one?.text})`);
+  const one = events().find((l) => l.text.startsWith('Unanswered'));
+  assert(one?.text === 'Unanswered: The chess club asks for a room (Say no)', `one matter left unanswered reads in full (${one?.text})`);
   lapse('The roof leaks', 'Patch it');
   lapse('An old matter', 'Wait', year - 1);
-  const group = events().find((l) => l.text === '2 matters left unanswered');
+  const group = events().find((l) => l.text === '2 matters went unanswered');
   assert(!!group, `two are a group, and last year's is not among them (${events().map((l) => l.text).join(' | ')})`);
   assert(group?.items?.join(' | ') === 'The chess club asks for a room (Say no) | The roof leaks (Patch it)', `each with the answer it took, oldest first (${group?.items?.join(' | ')})`);
 }

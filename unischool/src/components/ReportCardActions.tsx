@@ -84,7 +84,7 @@ export default function ReportCardActions({ entry }: { entry: HallEntry }) {
   };
   return (
     <div className="report-card-actions">
-      <button type="button" onClick={() => { reportShared('download'); void downloadCard(entry).catch(() => setSaid('The card could not be drawn.')); }}>Download card</button>
+      <button type="button" onClick={() => { reportShared('download'); void downloadCard(entry).catch(() => setSaid("Couldn't draw the card.")); }}>Download card</button>
       <button type="button" onClick={() => { void copy(); }}>Copy summary</button>
       {said && <span className="report-card-said" role="status">{said}</span>}
       {manual && (

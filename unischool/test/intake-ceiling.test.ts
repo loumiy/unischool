@@ -143,7 +143,7 @@ console.log('intake ceiling tests');
   const s = reducer(atSummer, { type: 'RESOLVE_ADMISSIONS', tuition: atSummer.finance.listedTuition, admitRate: 1, approvedPetitionIds: [] });
   assert(s.students.classes.freshman <= ceiling.seatsLeft, `the freshman class is held to the room (${s.students.classes.freshman})`);
   assert(s.students.classes.freshman === ceiling.seatsLeft, 'exactly, when the pool would have filled it');
-  assert(s.log.some((l) => l.message.includes('so the class was held to')), 'and the log says so');
+  assert(s.log.some((l) => l.message.includes('so the freshman class was capped at')), 'and the log says so');
   assert(totalEnrolled(s.students) <= intakeCeiling(atSummer).capacity, 'so the body fits the catalog');
 }
 
