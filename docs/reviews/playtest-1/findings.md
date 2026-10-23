@@ -665,8 +665,13 @@ reddit.com 71 (+15, and 11 from the Android app; the owner's second
 r/playmygame post went up on 22 October), foundplay.io 48 (+1, so its
 boost has run its course), itch.io's front page 36, then the browse
 pages (tycoon for web 26, management for web 18, **college 17**, up from
-10, tycoon 14, *new and popular* for web 14, free tycoon for web 14, city
-builder 11 and 10), the studio page 14 and itch.io collections 11.
+10, free tycoon for web 15, tycoon 14, *new and popular* for web 14, city
+builder 11 and 10, *new and popular* tycoon 9, *new and popular* free web
+8, and **school 8**, a new tag page), the studio page 14 and itch.io
+collections 11. Two outside sources are new or growing: **DuckDuckGo 9**,
+the first search engine after Google to send more than a couple of
+visits, and aigamehub.app 8 (+1 since 20 October). The one file
+download is still the 0.1.2 web build, twice.
 
 ### PostHog, 11 October
 
