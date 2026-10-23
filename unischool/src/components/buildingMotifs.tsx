@@ -39,7 +39,7 @@ import {
   windowWidthOf,
   type DoorDimensions, type EntrancePart, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
-import { FOUNDERS_GEORGIAN_COLOURS, glassContrast, georgianHall, readableGlass, towerFormOf } from './buildingSpec';
+import { FOUNDERS_GEORGIAN_COLOURS, addedFloors, glassContrast, georgianHall, readableGlass, towerFormOf } from './buildingSpec';
 import {
   CARILLON_BELFRY_RISE, CARILLON_CAP, CARILLON_CAP_OVERSAIL, CARILLON_CLOCK_RADIUS_METRES, CARILLON_CLOCK_RISE,
   CARILLON_PIER, CARILLON_PLAN, CARILLON_PROUD, CARILLON_SHAFT_RISE, CARILLON_TIE, CARILLON_TIE_EVERY,
@@ -8110,6 +8110,11 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   const spec = market && REFECTORIES[vernacular].roof === 'mansard' ? { ...REFECTORIES[vernacular], roof: 'gable' as const } : REFECTORIES[vernacular];
   const glassPal = paletteFrom({ wall: pal.wall.posRow, roof: MARKET_GLASS });
   const H = wallHeightOf(t);
+  // A story added to it is a floor over the hall (Plan 112D): the hall's
+  // great windows, its kitchen and its back range keep the height they were
+  // built at (H0), and each added floor is a rank of windows above them.
+  const added = addedFloors(t);
+  const H0 = H - added * STOREY;
   const ridge = ridgeOf(t, vernacular);
   const trim = hasTrim(vernacular);
   const trimStone = trim ? stone.trim : stone.towerStone;
@@ -8117,7 +8122,7 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   const door = doorOf(t);
   const hall = plan.hall; const kitchen = plan.kitchen!; const back = plan.back!;
   const { alongW } = plan;
-  const KH = H * REFECTORY_KITCHEN_EAVES; const BH = H * REFECTORY_BACK_EAVES;
+  const KH = H0 * REFECTORY_KITCHEN_EAVES; const BH = H0 * REFECTORY_BACK_EAVES;
   const pitched = spec.roof !== 'flat';
   const glazed = spec.window === 'glazed';
   const shape: WindowShape = spec.window === 'glazed' ? 'rect' : spec.window;
@@ -8133,7 +8138,9 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   // The front's bays: odd, so the door has the middle one.
   const bays = Math.max(5, Math.round((hallLen * METRES_PER_TILE) / 6.4) | 1);
   const winW = across(shape === 'slot' ? 1.3 : 2.4);
-  const sill = up(3.4); const head = H - up(1.9);
+  const sill = up(3.4); const head = H0 - up(1.9);
+  // The floor lines of the added floors, bottom up.
+  const upperFloors = Array.from({ length: added }, (_, k) => H0 + k * STOREY);
   // Art Deco's door stands in a stepped frontispiece carried above the parapet.
   const deco = spec.window === 'slot' && !market;
   const frontis = deco ? againstWall(hall.col, hall.row, hall.w, hall.h, plan.front, hallLen / 2 - across(6), across(12), across(0.9)) : null;
@@ -8246,9 +8253,9 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
         {faces.map((face) => {
           if (face.dir === plan.service) return null;
           if (glazed) {
-            return <CurtainWall key={`cw${face.dir}`} origin={face.o} along={face.a} wallHeight={H} spanTiles={face.span} from={BASE_COURSE} to={H - up(0.4)} floors={[]} id={`rf${face.dir}`} u0={0.015} u1={0.985} />;
+            return <CurtainWall key={`cw${face.dir}`} origin={face.o} along={face.a} wallHeight={H} spanTiles={face.span} from={BASE_COURSE} to={H - up(0.4)} floors={upperFloors} id={`rf${face.dir}`} u0={0.015} u1={0.985} />;
           }
-          if (face.dir === plan.front && market) return <g key={`m${face.dir}`}>{marketFront(face, H, bays)}</g>;
+          if (face.dir === plan.front && market) return <g key={`m${face.dir}`}>{marketFront(face, H0, bays)}</g>;
           if (face.dir === plan.front) {
             const doorTop = door ? (door.threshold + door.height + up(1.2)) / H : sill / H;
             const centres = Array.from({ length: bays }, (_, b) => (b + 0.5) / bays);
@@ -8263,6 +8270,20 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
           // The free end: a great window over its door.
           const doorTop = door ? (door.threshold + door.height + up(1.4)) / H : sill / H;
           return <g key={`e${face.dir}`}>{tallWindows(face, H, [0.5], Math.min(0.2, across(4.4) / face.span / 2), doorTop, head / H, shape, `ew${face.dir}`)}</g>;
+        })}
+        {/* The added floors (Plan 112D): a string course where the hall
+            stood, and a rank of windows on the bays for each floor over it. */}
+        {added > 0 && !glazed && faces.map((face) => {
+          if (face.dir === plan.service) return null;
+          const n = face.dir === plan.front ? bays : 3;
+          const centres = Array.from({ length: n }, (_, b) => (b + 0.5) / n);
+          const half = (face.dir === plan.front ? winW : across(1.6)) / face.span / 2;
+          return (
+            <g key={`u${face.dir}`}>
+              <WallBand origin={face.o} along={face.a} wallHeight={H} from={H0 - EAVES_COURSE * 0.6} to={H0} className="iso-cornice" />
+              {upperFloors.map((z, k) => tallWindows(face, H, centres, half, (z + up(1.0)) / H, (z + up(1.0) + WINDOW_HEIGHT) / H, shape, `uw${face.dir}${k}`))}
+            </g>
+          );
         })}
         {!frontis && doorway(hall, plan.front, H)}
         {doorway(hall, freeEnd, H)}
@@ -9125,6 +9146,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   }
 
   if (motif === 'village') {
+    // A story added to the village is one more on every house (Plan 112D).
+    const villageRaise = addedFloors(t) * STOREY;
     // A plot: lawn, walks, and houses and trees in one depth-ordered list.
     const items = depthOrder([
       // Set out in the plot's own frame (Plan 88): the near rank on the
@@ -9179,7 +9202,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           <VillageHouse
             key={i}
             col={it.col} row={it.row} w={it.w} h={it.h}
-            height={Math.min(full, it.lot!.s * STOREY)}
+            height={Math.min(full - villageRaise, it.lot!.s * STOREY) + villageRaise}
             ridge={ridge * (it.lot!.s >= 3 ? 1 : 0.85)}
             pal={pal} stone={stone} glass={stone.glass} paneShape={paneShape}
             chimney={chimneys} door={it.lot!.d} doorAt={it.lot!.d === 'row' ? sides.front : sides.right}
