@@ -1606,8 +1606,11 @@ button.build-tile { font-family: inherit; }
 .campus-hall-marks { cursor: pointer; }
 .campus-hall-marks-plate { fill: rgba(20, 26, 16, 0.55); }
 .campus-hall-pip { fill: transparent; stroke: #f6f1e2; stroke-width: 1.2; }
-.campus-hall-pip.filled { stroke: rgba(246, 241, 226, 0.6); }
-.campus-hall-pip.blocked { stroke: #e0553f; stroke-width: 2.2; }
+/* A filled pip has no ring of its own, so a ring always means a tier. */
+.campus-hall-pip.filled { stroke: rgba(20, 26, 16, 0.5); }
+/* A program Established, then Distinguished (Plan 112D). */
+.campus-hall-pip.established { stroke: #e1e5e8; stroke-width: 2.6; }
+.campus-hall-pip.distinguished { stroke: #f0b929; stroke-width: 2.6; }
 .campus-hall-flag circle { fill: var(--gold); }
 .campus-hall-flag path { stroke: #1a2035; stroke-width: 1.6; stroke-linecap: round; fill: none; }
 /* A lab at work (Plan 41): a ring filling as the project runs, an atom
@@ -3716,6 +3719,14 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .inbox-read { min-height: 0; overflow-y: auto; padding: 18px 28px 28px; scrollbar-width: thin; scrollbar-color: var(--parchment-line) transparent; }
 .inbox-back { display: none; }
 .inbox-letter { display: grid; gap: 14px; max-width: 920px; }
+/* The unlock letter's row of buildings in the new architecture (Plan 112D),
+   each the build menu's own drawing. */
+.unlock-buildings { list-style: none; margin: 4px 0 8px; padding: 10px 8px 6px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; background: color-mix(in srgb, var(--grass, #7da35a) 30%, transparent); border-radius: 8px; }
+.unlock-building { display: grid; grid-template-rows: 96px auto; gap: 4px; justify-items: center; min-width: 0; }
+.unlock-building-caption { font-size: 0.8rem; text-align: center; opacity: 0.85; }
+@media (max-width: 520px) {
+  .unlock-buildings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .inbox-read-head { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 2px solid var(--outline); }
 .inbox-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .inbox-tags .letter-eyebrow { margin: 0 !important; }

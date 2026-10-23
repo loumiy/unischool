@@ -229,11 +229,13 @@ that department is holding up (target `field:<name>`; `unstaffed` for the
 over case). The Curriculum tab's own strip sends the player here: its wall
 item and a drawer's dead end carry "Appoint →" or "Department →", which opens
 this board with that department expanded and scrolled into view (the tab's
-`target`). On the campus map, a program whose next course has no free slot in
-its department wears a red ring on its hall's pip, and the hall panel's
-program summary names the department and whether a candidate is listed. No
-hiring happens from the map: it is the glance, and this board and the drawer
-are the work.
+`target`). The hall panel's program summary names the department a
+program's next course waits on and whether a candidate is listed. (The map's
+red ring on such a program's hall pip went in Plan 112D: a course waiting on
+a department is common and not urgent. The pip is ringed silver for an
+Established program and gold for a Distinguished one instead.) No hiring
+happens from the map: it is the glance, and this board and the drawer are
+the work.
 
 It is a place to LOOK AT your faculty and to decide whether a department is
 worth growing — not a place to hire from. Hiring belongs where the shortage is

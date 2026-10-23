@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { GameState, LogEntry, PendingCatalogueEvent } from '../state/types';
+import type { Buildable, GameState, LogEntry, PendingCatalogueEvent, Vernacular } from '../state/types';
 import { COLLEGE_NAME_MAX, WEEKS_PER_YEAR, bareSchoolName } from '../state/types';
 import type { CatalogueEvent } from '../data/eventCatalogueTypes';
 import { CHARTER_INSTANCE } from '../systems/events/charter';
@@ -20,7 +20,11 @@ import { CatalogueChoices, CatalogueText } from './EventChoices';
 import { InterruptContent, MilestoneCelebrationView, ResearchReportView } from './InterruptModal';
 import { modalWidth } from './modalLayout';
 import { UNLOCKS, unlockLabel } from '../state/unlocks';
-import { BONUS_VERNACULAR_CHOICES } from './buildingSpec';
+import { BONUS_VERNACULAR_CHOICES, VERNACULARS } from './buildingSpec';
+import BuildThumb from './BuildThumb';
+import { initialTech } from '../data/techData';
+import { initialDorms } from '../data/campusData';
+import { initialFacilities } from '../data/facilitiesData';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 import { count, gameDate, gameDateOfWeek, satisfactionFigure, weeksProse, weeksShort } from '../format';
 
@@ -537,14 +541,53 @@ function AnswerView({ l }: { l: LogEntry }) {
   );
 }
 
+// What the letter shows the architecture with (Plan 112D: "When a player
+// unlocks an architecture, show what the buildings look like in the
+// letter."): an academic hall, a residence hall, the student center and the
+// library, each drawn by the build menu's own tiles (BuildThumb.tsx), so the
+// letter shows exactly what the map will build.
+const UNLOCK_SAMPLES: ReadonlyArray<[id: string, caption: string]> = [
+  ['HALL-01', 'An academic hall'],
+  ['DORM-03', 'A residence hall'],
+  ['SCTR-T1', 'The student center'],
+  ['LIB-T1', 'The library'],
+];
+let unlockSamples: Array<{ t: Buildable; caption: string }> | null = null;
+function unlockSampleBuildings(): Array<{ t: Buildable; caption: string }> {
+  if (!unlockSamples) {
+    const catalogue = [...initialTech(), ...initialDorms(), ...initialFacilities()];
+    unlockSamples = UNLOCK_SAMPLES.flatMap(([id, caption]) => {
+      const t = catalogue.find((x) => x.id === id);
+      return t ? [{ t: { ...t, status: 'done' as const }, caption }] : [];
+    });
+  }
+  return unlockSamples;
+}
+
+export function UnlockBuildings({ vernacular }: { vernacular: string }) {
+  if (!(vernacular in VERNACULARS)) return null;
+  const v = vernacular as Vernacular;
+  return (
+    <ul className="unlock-buildings" aria-label={`Buildings in ${unlockLabel(vernacular)} architecture`}>
+      {unlockSampleBuildings().map(({ t, caption }) => (
+        <li key={t.id} className="unlock-building">
+          <BuildThumb t={t} vernacular={v} />
+          <span className="unlock-building-caption">{caption}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // A bonus architecture earned for the next college (Plan 98C): what it is,
-// what earned it, and where to pick it.
+// what it looks like (Plan 112D), what earned it, and where to pick it.
 function UnlockLetterView({ vernacular }: { vernacular: string }) {
   const unlock = UNLOCKS.find((u) => u.id === vernacular);
   const blurb = BONUS_VERNACULAR_CHOICES.find((c) => c.id === vernacular)?.blurb;
   return (
     <>
       <h2>{unlockLabel(vernacular)} architecture, unlocked</h2>
+      <UnlockBuildings vernacular={vernacular} />
       {blurb && <p>{blurb}</p>}
       {unlock && <p><strong>What earned it:</strong> {unlock.condition}</p>}
       <p>It&apos;s yours for every college after this one. Pick it on the founding screen when you start your next college.</p>

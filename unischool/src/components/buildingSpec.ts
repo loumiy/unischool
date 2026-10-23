@@ -270,8 +270,10 @@ export function motifOf(t: Buildable): Motif {
 
 // Stories added after the fact (the library renovation, see facilitiesData's
 // nextLibraryFloor and the reducer's RENOVATE_LIBRARY). Read generically off
-// floorsAdded so anything that gains floors gets the same treatment.
-function addedFloors(t: Buildable): number {
+// floorsAdded so anything that gains floors gets the same treatment. The
+// motifs that draw their own stories (a village's houses, a tower's shaft,
+// a refectory's floor over the hall) read it too (Plan 112D).
+export function addedFloors(t: Buildable): number {
   return Math.max(0, t.floorsAdded ?? 0);
 }
 
@@ -305,7 +307,10 @@ const TOWER_FORMS: Readonly<Record<string, TowerForm>> = {
   'DORM-15': { shaftStoreys: 17, crown: 'lantern' },   // Aurora: "the tallest ... under a glass crown"
 };
 export function towerFormOf(t: Buildable): TowerForm {
-  return TOWER_FORMS[t.id] ?? { shaftStoreys: TOWER_SHAFT_STOREYS, crown: 'pitched' };
+  const form = TOWER_FORMS[t.id] ?? { shaftStoreys: TOWER_SHAFT_STOREYS, crown: 'pitched' };
+  // A story added to a residence goes on the shaft, under the crown (Plan 112D).
+  const added = addedFloors(t);
+  return added > 0 ? { ...form, shaftStoreys: form.shaftStoreys + added } : form;
 }
 
 function dormStoreys(beds: number): number {
@@ -426,7 +431,8 @@ export function wallHeightOf(t: Buildable): number {
   if (motif === 'grounds') return 0;
   if (motif === 'landmark') return up(LANDMARK_HEIGHT_METRES[t.id] ?? 20);
   // A refectory is one tall room, a clear span like the chapel's (Plan 87D).
-  if (diningBandOf(t) === 'refectory') return up(refectoryEavesMetres(t));
+  // A story added to it is a floor over the hall (Plan 112D).
+  if (diningBandOf(t) === 'refectory') return up(refectoryEavesMetres(t)) + addedFloors(t) * STOREY;
   const storeys = storeysOf(t);
   if (storeys > 0) return storeys * STOREY;
   // An arena or a natatorium rises a storey with each expansion (Plan 54).

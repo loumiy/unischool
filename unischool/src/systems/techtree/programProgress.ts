@@ -84,6 +84,18 @@ export function programProgress(s: GameState, program: ProgramInfo, lookup?: Map
   };
 }
 
+// The tier a major has reached, for the ring on its pip over its hall
+// (Plan 112D): the milestones techSystem awards and the news announces,
+// 'established' once its tier-2 quartet is done and 'distinguished' once
+// every course is; null before, and for the core and graduate programs,
+// which have no tiers.
+export type ProgramStanding = 'established' | 'distinguished';
+export function programStanding(s: GameState, programId: string): ProgramStanding | null {
+  if (s.milestones?.[`program-distinguished:${programId}`]) return 'distinguished';
+  if (s.milestones?.[`program-established:${programId}`]) return 'established';
+  return null;
+}
+
 // A locked course's unmet prerequisites by name: a course's short code or a
 // building's name, so the player knows what to act on.
 export function unmetPrereqNames(s: GameState, t: Buildable, lookup?: Map<string, Buildable>): string[] {
