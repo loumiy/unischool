@@ -324,6 +324,13 @@ than omitted, so every row is the same width and position carries tier. Rows
 compress to fit rather than scrolling; horizontal scroll is a narrow-viewport
 fallback only.
 
+**A row is open only while you can act on it** (Plan 114H): its next course
+can start now, the committee's room aside, or the program is dark. Every
+other row folds to its one line, the next course and its action, and a
+finished row always does. A click is kept until the row next finishes. With
+the chapters on, every unfinished row stays open until *A hall of its own*,
+so a new college sees each course it could develop next.
+
 A cell still ahead of the player carries its cost and the strongest free
 teacher with their grade ("$900k · Iyer B"), or "no free slot"; a developed
 cell is drawn quietly, so what the eye lands on across a row is what can
