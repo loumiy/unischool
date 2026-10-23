@@ -120,11 +120,16 @@ pause rule. C and D move balance, so each one reruns the guardrails (*The guardr
   `SPECIALIZATION_NOTICE_YEARS` ahead. All four choices stay open.
 - *The words.* The routes are said once, in `prestigeWords.ts:58–68`
   (`specializationOfferWhen`/`Rule`; `test/pillar-rule.test.ts` holds
-  every other file to that). They become two sentences: "The board offers
-  you a specialization the first summer your college stands in the
-  guide's top 30. From Year 20 it also comes when you stand in the top 10
-  of any one pillar, or when your students' satisfaction has averaged 85
-  or more in most years." Then the three places that name a route:
+  every other file to that). They become three short sentences, one route
+  each, so no sentence carries the rule and its exceptions together
+  (Plan 111's rules 2 and 6): "The board offers you a specialization the
+  first summer your college is in the guide's top 30. From Year 20, two
+  more things bring the offer. One is a top-10 place in any one pillar.
+  The other is student satisfaction of 85 or more in over half your
+  years." (Both later routes start at Year 20, so they share one
+  sentence that says so.)
+  ("Over half" is the rule as `satisfactionLeads` counts it; "most
+  years" would be vague.) Then the three places that name a route:
   `specializationOfferLine` (`specializationData.ts:165–168`, the log),
   `CHOICE_WORDS.offer` (`:330–335`, the page) and `specializationNotice`
   (`:386–394`, the board's letter). Docs: `README.md:94–96`, and

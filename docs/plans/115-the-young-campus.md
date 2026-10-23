@@ -178,8 +178,11 @@ what A, B and D made.
   It is met when the paths join a tile next to any sited residence hall to
   a tile next to Founders Hall. A path that joins the drive counts. The
   progress check lives in `state/chapters.ts`, which may read the map.
-- Its help: "Open the build menu and click Paths. Drag from the residence
-  hall's door to the drive. Paths are free." Show me opens the build menu.
+- Its help: "Open the build menu and click Paths. Drag a path from the
+  residence hall to Founders Hall. Paths are free." It names the two
+  buildings in the objective, not "the drive": the game has no name for
+  the drive anywhere a player can read it, and Plan 111's rule 5 is one
+  name for each thing, matching the UI. Joining the drive still counts. Show me opens the build menu.
   Once both buildings are sited, `ringedBuilding` (`chapters.ts:352`)
   returns null, so `initialBuildTab` (`BuildPopup.tsx:259`) already opens on
   Grounds. A `ringedTool(s)` beside `ringedBuilding` rings the Paths tile

@@ -63,7 +63,7 @@ a semicolon, they are split here.
 | `openingData.ts:101` | "${count(totalEnrolled(s.students))} students have enrolled…" |
 | `chapterData.ts:97` | "…writes four at a time. An entry course takes about ${T1} weeks, and a capstone about ${T4}." (`TIER_DURATION_WEEKS`, exported. The last two sentences join, so *about* keeps three.) |
 | `:104` | "…click the double-arrow button…" |
-| `:155` | "…It also shows the board's reading of your finances, from Sound down." |
+| `:155` | "…It also shows how the board rates your finances." The false part was "worried", not the plain shape of Plan 111's sentence, so only that word changes. The board's levels are named in the scale's own tooltip (`figureHints.ts:37`), not here. |
 | `:308` | "From year ${first}, the build menu offers capital projects, the arts center first. More open by year ${later}.", read from `PROJECTS`' `fromYear`. |
 | `eventData.ts:1302-1312` | "Start a project from the Research tab." The ask names the first idle lab, and it is done once any lab has run a project. |
 | `nextStep.ts:381-385` | The first idle lab, "…is idle: start a research project". `PARK_WORDS.unprovenLab` goes. `finishedLabs` stays in the save, but no guidance reads it. |
@@ -79,9 +79,12 @@ and the Student Center's program count from its ladder rung.
 `test/pillar-rule.test.ts`. It parses `chapterData.ts` and
 `openingData.ts` with the TypeScript compiler, as
 `tools/review/strings.ts` does. It takes the literal text of every string
-and template outside its `${}`, and finds digits and number words (one to
-twelve, half, a dozen). A hit passes only if it is on a short allow-list
-with its reason: a key name ("Press 2"), a speed's own label, a score's
+and template outside its `${}`, and finds digits, and number words (two
+to twelve, half, a dozen) next to a unit: weeks, years, courses,
+students, beds, places, percent. "One" is left alone. "One idea", "one
+band" and "one at a time" are plain English, and a test that flagged
+them would push the writing toward awkward phrasing to dodge it. A hit
+passes only if it is on a short allow-list with its reason: a key name ("Press 2"), a speed's own label, a score's
 "out of 100", the four pillars, the five needs. Anything else fails with
 its line. Tests that pin the old words take the new ones:
 `test/opening.test.ts`, `test/chapters.test.ts`, `test/researchPark.test.ts`
@@ -94,11 +97,15 @@ The glance's words become the only ones: which way prestige is heading,
 and what each pillar adds. No target figure, and no "of 41.3".
 
 - **The glance's rule** (`PrestigeGlance.tsx:52`). Before `EARLY_FADE_YEAR`
-  (exported): "Prestige is graded each summer, and moves toward its grade.
-  Until year ${EARLY_FADE_YEAR} it also climbs a little every week." From
-  then on, the second sentence becomes "It falls faster than it climbs."
-  Which sentence shows is decided by comparing `riseRateIn(year)` with
-  `PRESTIGE_FALL_RATE`.
+  (exported): "Prestige is graded each summer. It moves toward that
+  grade. Until year ${EARLY_FADE_YEAR} it also climbs a little every
+  week." From then on, the last sentence becomes "It falls faster than it
+  climbs." Which sentence shows is decided by comparing
+  `riseRateIn(year)` with `PRESTIGE_FALL_RATE`. The first two sentences
+  stay split, as Plan 111 left them.
+- **History's help** (`HistoryTab.tsx:72`) says the same rule a second
+  time ("It rises slowly and falls quickly"). It takes the glance's
+  sentences, from the same function, so the two can't drift apart.
 - **The drawer.** `StandingLive` drops `prestigeNow`'s target and the
   pillars' "of {weight}". It shows "Prestige 42.8, rising", in the arrow's
   own word, and the glance's `PillarMeter` rows, exported from
@@ -166,9 +173,11 @@ matches to the figure shown.
   now waits for a team, as I7-2 asked.
 - `currentChapter` returns the first open main chapter, or else the first
   open side chapter. A new `openSideChapters(s)` lists the rest. The
-  ticker shows the current chapter only. The drawer lists the other open
-  chapters under "Also open", each on one line with its first unmet
-  objective, and opens one on a click. The ring functions keep reading
+  ticker shows the current chapter only. The other open chapters go in
+  the Guide's list, which the drawer already links, not in the drawer
+  itself. Plan 112A cut the drawer to a title, an *about* and the
+  objectives, and the owner left the drawer to it (C2-1), so this plan
+  adds no section there. The ring functions keep reading
   `currentChapter`, and the venue's ring already reads `chapterOpen`.
 - **C3-5.** While the two counts differ, *Seats for everyone* shows both:
   "240 taught · 320 with courses under way". `ObjectiveProgress` gains an
@@ -212,10 +221,10 @@ points at a shut tab.
 
 1. The search button's title adds: "It costs ${SEARCH_COST_WEEKS} weeks of running costs, so the price grows with the college."
 2. The founding panel adds: "The price is the program's first course. Its later courses cost more."
-3. The Paths tile adds: "Students wear their own paths across the grass. Paving one keeps the grass."
+3. The Paths tile adds: "Students wear tracks in the lawn along their busiest routes. Lay a path there and they'll use it." (The review's "paving one keeps the grass" is an aphorism, and it is unclear which grass is kept. The tracks are `desireLines`, `CampusMap.tsx:1118`.)
 4. "Send the offers" sticks to the foot of the admissions aside, so it stays in view at 1280×720 every summer. The coach's ring scrolls it into view. Checked with `npm run review:gallery` at 1280×720.
 5. The founding form becomes a `<form>`, and "Open the doors" is its submit. Enter founds once the button is enabled.
-6. The placing strip reads "Click the map to build · R turns it · Esc cancels".
+6. The placing strip stays "Click open ground to build · R turns it · Esc cancels" (`buildWords.ts:6`). Plan 111 already fixed the review's "break ground". "Open ground" is the one word in the strip that says why a click can fail, so it stays. The walkthrough's "anywhere on the map" is the first placement, where every tile is open.
 7. A search's find becomes a toast in `toastsFor`.
 
 Tests: `test/toasts.test.ts` checks that a search's find is a toast and an

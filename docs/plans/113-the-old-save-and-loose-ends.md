@@ -178,7 +178,9 @@ conflicts are the version line and the changelog's head, and main keeps
 - When the rate is capped by the room and both rates show the same
   percentage, the second sentence ("The founding rate was 86%.") goes.
 - Under *Incoming quality* (`AdmissionsPage.tsx:472`), a `sub` line as
-  *Freshman class* has: "Counts toward academics, as student quality."
+  *Freshman class* has: "Part of your academics score." It is short like
+  that slot's other line ("of 350 places"), and it uses the pillar's name
+  from the History tab.
 - **Tests.** `test/plain-words.test.ts:82-87`: the two bed cases go; new
   cases for the equal rates and for a capped rate that differs.
   `test/admissions-page.test.ts` checks the quality line renders.
