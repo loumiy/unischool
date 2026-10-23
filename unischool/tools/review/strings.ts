@@ -563,7 +563,7 @@ export function summarize(rows: StringRow[]): string {
   lines.push(glossary.length === 0 ? 'None found.' : `${glossary.length} found:`, '', ...glossary, '');
 
   // Plain words.
-  lines.push('## Plain words', '', 'The text review\'s habits on the screens that instruct (Plan 111; `tools/review/plainChecks.ts`). Counted, not forbidden: `test/plain-words.test.ts` fails only when a count rises past `tools/review/plain-baseline.json`.', '');
+  lines.push('## Plain words', '', 'The text review\'s habits on the screens that instruct (Plan 111; `tools/review/plainChecks.ts`). Counted, not forbidden: `test/text-check.test.ts` fails only when a count rises past `tools/review/plain-baseline.json`.', '');
   lines.push('| Rule | Strings |', '|---|---|');
   for (const [id, n] of Object.entries(plainTotals(rows))) lines.push(`| ${id} | ${n} |`);
   lines.push('', 'The worst twenty:', '', ...plainWorst(rows, 20), '');

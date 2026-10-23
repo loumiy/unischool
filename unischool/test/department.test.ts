@@ -221,7 +221,7 @@ function testTitleReachesThePool(): void {
   assert(after.athleticResultsLabel.includes("Men's Basketball"), `and the label names it (${after.athleticResultsLabel})`);
   const cards = cohortBreakdown(after, 30_000, 20_000, 10_000);
   const athletes = cards.find((c) => c.id === 'athletes')!;
-  assert(!!athletes.note && athletes.note.includes('worth'), `the modal says what the title is worth (${athletes.note})`);
+  assert(!!athletes.note && athletes.note.includes('more athlete applicants'), `the modal says what the title is worth (${athletes.note})`);
   s.clock.year += 6;
   assert(athleticResultsFor(s).results === 0, 'and it fades within the window');
 }

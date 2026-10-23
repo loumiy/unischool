@@ -14,7 +14,7 @@
 // Unlike the glossary's checks these are judgments, not defects: a colon
 // can be right. So they are counted, not forbidden, and the test fails
 // only when a count rises past the committed baseline
-// (plain-baseline.json, test/plain-words.test.ts).
+// (plain-baseline.json, test/text-check.test.ts).
 //
 // Kept apart from strings.ts so a test can read the rules without the
 // TypeScript parser. Not part of the game: nothing in src/ imports this.

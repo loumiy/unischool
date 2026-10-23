@@ -22,7 +22,7 @@ export const GAME_LINES = {
     lost: [
       '{team} lost {trophy} to {them}{streak}. The series stands {series}.',
       '{them} beat {team} for {trophy}{streak}. The series stands {series}.',
-      '{trophy} went to {them}{streak}; {team} could not hold them. The series stands {series}.',
+      '{trophy} went to {them}{streak}. {team} couldn\'t hold on to it. The series stands {series}.',
     ],
   },
   opener: {
