@@ -54,7 +54,7 @@ export const CAMPAIGNS: readonly CampaignDef[] = [
     when: (s) => alumniCount(s) >= 400 && s.faculty.length >= 3,
     whenText: 'four hundred alumni and three professors',
     resonates: ['well-taught', 'under-taught'],
-    text: 'A campaign for the endowment, pitched as endowed chairs: money that pays out forever rather than a salary this year. The letters go to the classes who remember being taught, and to the ones who remember not being.',
+    text: 'A campaign for the endowment, pitched as endowed chairs. That is money that pays a professor every year, forever, and not just this one. The letters go to the classes who remember being taught, and to the ones who remember not being.',
     kept: 'The Campaign for the Faculty closed at its number, and the fund is larger by the whole of it.',
     missed: 'The Campaign for the Faculty closed short of the chairs it was named for.',
   },
@@ -73,7 +73,7 @@ export const CAMPAIGNS: readonly CampaignDef[] = [
     whenText: 'five hundred alumni and an endowment under $90M',
     resonates: ['deficits', 'freeze', 'austerity', 'receivership'],
     text: 'The unglamorous campaign: no building, no plaque, nothing to photograph. The case is that the college has had four bad years in living memory and would like to stop having them.',
-    kept: 'The Endowment Campaign closed at its number. Nothing is named for it and the college is steadier for it.',
+    kept: 'The Endowment Campaign closed at its number. Nothing is named for it, and your college is steadier for it.',
     missed: 'The Endowment Campaign closed short of the number that would have steadied the fund.',
   },
   {

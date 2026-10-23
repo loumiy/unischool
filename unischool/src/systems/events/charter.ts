@@ -28,7 +28,7 @@ export function grantCharter(s: GameState, take: boolean): void {
   s.log.unshift({
     year: s.clock.year, week: s.clock.week, kind: 'good', topic: 'milestone', subject: 'charter',
     message: now === was
-      ? `With its first laboratory open, the board has granted a university charter, and ${now} keeps its name.`
-      : `With its first laboratory open, the board has granted a university charter: ${was} is now ${now}.`,
+      ? `Your first laboratory is open, and the board has granted a university charter. ${now} keeps its name.`
+      : `Your first laboratory is open, and the board has granted a university charter. ${was} is now ${now}.`,
   });
 }
