@@ -1,8 +1,9 @@
 import type { Buildable, Pathways, Placement, Placements } from '../state/types';
 import type { FaceDir } from './isoProjection';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
-import { ROAD_FIRST_ROW, parsePathTileKey } from '../state/campusMap';
-import { isAcademicHall } from '../data/techData';
+import { ROAD_FIRST_ROW, parsePathTileKey, pathTileKey } from '../state/campusMap';
+import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
+import { sidesOf } from './facing';
 import { quadTile } from './quadGeometry';
 import { GATE_ID, gatePassageTiles } from './buildingSpec';
 
@@ -153,6 +154,58 @@ export function roadsides(): Stop[] {
 // when the campus changed under it.
 export function pointStop(col: number, row: number): Stop {
   return { key: `at:${col},${row}`, id: null, weight: 1, entrances: [{ col, row, face: { col: col + 0.5, row: row + 0.5 }, side: null }] };
+}
+
+// Before there are two buildings, somewhere to stand outside the one there
+// is (Plan 115C, the third review's C1-2): a stop or two on the lawn three
+// and five tiles out from Founders Hall's front door, on the drive when it
+// runs there. Without them the only other stop was the road, so the first
+// students spent the founding weeks walking away from the hall.
+const FORECOURT_STEPS = [3, 5];
+
+export function forecourt(input: WalkInput, grid: Float32Array): Stop[] {
+  const p = input.placements[FOUNDERS_HALL_ID];
+  if (!p) return [];
+  const open = (c: number, r: number) => c >= 0 && r >= 0 && c < W && r < H && r < ROAD_FIRST_ROW && grid[idx(c, r)] > 0;
+  const front = sidesOf(p.facing).front;
+  const door = entrancesOf(p, grid).find((e) => e.side === front);
+  if (!door) return [];
+  // Out from the wall, and along it.
+  const out = front === 'posRow' ? [0, 1] : front === 'negRow' ? [0, -1] : front === 'posCol' ? [1, 0] : [-1, 0];
+  const along = [out[1], out[0]];
+  const stops: Stop[] = [];
+  for (const [k, step] of FORECOURT_STEPS.entries()) {
+    const c0 = door.col + out[0] * (step - 1);
+    const r0 = door.row + out[1] * (step - 1);
+    // On the drive where it passes. Off it, the open tile nearest the line
+    // out, the far stop two tiles to one side so the two are not a queue.
+    const tries = (k === 0 ? [0, 1, -1] : [2, -2, 1, -1, 0]).map((d) => ({ col: c0 + along[0] * d, row: r0 + along[1] * d }));
+    const onDrive = [0, 1, -1].map((d) => ({ col: c0 + along[0] * d, row: r0 + along[1] * d }))
+      .find((t) => input.pathways[pathTileKey(t)] && open(t.col, t.row));
+    const at = onDrive ?? tries.find((t) => open(t.col, t.row));
+    if (at && !stops.some((st) => st.key === `at:${at.col},${at.row}`)) stops.push(pointStop(at.col, at.row));
+  }
+  return stops;
+}
+
+// Somewhere to go next (Plan 115C, out of Walkers.tsx so it can be tested):
+// a building by weight, or the road one time in five. While fewer than two
+// buildings are done, the forecourt stands in for the road, and no one
+// walks off down the drive.
+export const ROAD_SHARE = 0.2;
+
+export function pickStop(stops: readonly Stop[], notAt: Stop | null, random: () => number, edges: readonly Stop[], court: readonly Stop[]): Stop | null {
+  const roadside = () => edges[Math.floor(random() * edges.length)] ?? null;
+  const young = stops.filter((d) => d.id !== null).length < 2;
+  const pool = (young ? [...stops, ...court] : stops).filter((d) => !notAt || d.key !== notAt.key);
+  if (pool.length === 0) return roadside();
+  if (!young && random() < ROAD_SHARE) return roadside();
+  let pick = random() * pool.reduce((t, d) => t + d.weight, 0);
+  for (const d of pool) {
+    pick -= d.weight;
+    if (pick <= 0) return d;
+  }
+  return pool[pool.length - 1];
 }
 
 // A shortest-path tree from one tile or several: Dijkstra, eight-way, a

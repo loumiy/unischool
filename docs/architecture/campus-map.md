@@ -339,7 +339,10 @@ placements.
 
 Walkers (`Walkers.tsx`) walk routes between doors (`walkRoutes.ts`),
 preferring paths, stepped on the frame clock and more numerous as the
-college grows. On the canvas map `Walkers` keeps no DOM: it hands the map
+college grows. A walker heads for a building by weight, or for the road
+one time in five (`pickStop`). Until a second building is done it keeps
+to Founders Hall and a stop or two on its forecourt, and never walks to the
+road (Plan 115C). On the canvas map `Walkers` keeps no DOM: it hands the map
 its crowd (where each walker stands, a painter for it, and the doors held
 open), and the map draws each walker inside the depth order (below). A
 walker going through a door holds it open, and the building is drawn with
