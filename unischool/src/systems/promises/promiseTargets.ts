@@ -39,7 +39,7 @@ export const GOAL_WORDS: Partial<Record<ConditionKey, GoalWords>> = {
   schoolsOver: counted('school', 'schools'),
   enrolledOver: counted('student', 'students'),
   alumniOver: counted('graduate on the rolls', 'graduates on the rolls'),
-  facultyOver: counted('professor', 'faculty'),
+  facultyOver: counted('professor', 'professors'),
   programsOver: counted('program', 'programs'),
   buildingsOver: counted('structure', 'structures'),
   projectsOver: {
@@ -58,12 +58,12 @@ export const GOAL_WORDS: Partial<Record<ConditionKey, GoalWords>> = {
     named: (v) => `cash of ${moneyShort(v)}`,
   },
   debtUnder: {
-    target: (n) => (n < NONE_BELOW ? 'Nothing borrowed' : `Borrowing of ${moneyShort(n)} or less`),
+    target: (n) => (n < NONE_BELOW ? 'Nothing owed' : `Debt of ${moneyShort(n)} or less`),
     now: (v) => (v < 1 ? 'nothing owed' : `${moneyShort(v)} owed`),
   },
   backlogUnder: {
-    target: (n) => (n < NONE_BELOW ? 'No building with work outstanding' : `Work outstanding of ${moneyShort(n)} or less`),
-    now: (v) => (v < 1 ? 'none outstanding' : `${moneyShort(v)} of work outstanding`),
+    target: (n) => (n < NONE_BELOW ? 'No backlog on any building' : `Backlog of ${moneyShort(n)} or less`),
+    now: (v) => (v < 1 ? 'no backlog' : `${moneyShort(v)} of backlog`),
   },
   teachingOver: scored('Average course grade'),
   beautyOver: scored('Campus beauty'),
