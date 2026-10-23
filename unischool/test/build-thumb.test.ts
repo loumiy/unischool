@@ -66,11 +66,12 @@ assert(drawn === VERNS.length * CATALOGUE.length * 2, `every placeable drew, fin
   assert(k === thumbKey({ ...t, status: 'done' }, 'georgian'), 'but built and on offer look alike');
 }
 
-// The unlock letter shows the architecture (Plan 112D): four of the build
-// menu's drawings in it, for every architecture a run can unlock.
+// The unlock letter shows the architecture (Plan 112D): Founders Hall and
+// the library, drawn by the build menu, for every architecture a run can unlock.
 for (const { id } of BONUS_VERNACULAR_CHOICES) {
   const html = renderToStaticMarkup(createElement(UnlockBuildings, { vernacular: id }));
-  assert((html.match(/class="build-thumb"/g) ?? []).length === 4, `the ${id} unlock letter draws four buildings`);
+  assert((html.match(/class="build-thumb"/g) ?? []).length === 2, `the ${id} unlock letter draws two buildings`);
+  assert(!html.includes('unlock-building-caption'), `and labels neither`);
 }
 assert(renderToStaticMarkup(createElement(UnlockBuildings, { vernacular: 'no-such-set' })) === '', 'and nothing for a set it does not know');
 
