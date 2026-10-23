@@ -28,6 +28,7 @@ import ts from 'typescript';
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { glossaryHits } from './glossaryChecks';
+import { INSTRUCTION_SCREENS, PLAIN_RULES, plainHits } from './plainChecks';
 
 export interface StringRow {
   file: string;
@@ -413,6 +414,27 @@ function glossaryReport(rows: StringRow[]): string[] {
   return out;
 }
 
+// Plain words (Plan 111 PR G): each rule's count on the screens that
+// instruct, and the strings that break the most. Labels of under four
+// words are left out: they are not sentences.
+export function plainTotals(rows: StringRow[]): Record<string, number> {
+  const totals: Record<string, number> = Object.fromEntries(PLAIN_RULES.map((r) => [r.id, 0]));
+  for (const r of rows) {
+    if (!INSTRUCTION_SCREENS.has(r.screen) || r.words < 4) continue;
+    for (const { rule } of plainHits(r.text)) totals[rule.id] += 1;
+  }
+  return totals;
+}
+function plainWorst(rows: StringRow[], n: number): string[] {
+  return rows
+    .filter((r) => INSTRUCTION_SCREENS.has(r.screen) && r.words >= 4)
+    .map((r) => ({ r, hits: plainHits(r.text) }))
+    .filter((x) => x.hits.length > 0)
+    .sort((a, b) => b.hits.length - a.hits.length || b.r.words - a.r.words)
+    .slice(0, n)
+    .map(({ r, hits }) => `- ${r.screen}, \`${r.file}:${r.line}\` (${hits.map((h) => h.rule.id).join(', ')}): ${bare(r.text).slice(0, 160)}`);
+}
+
 function csvCell(v: string | number): string {
   const s = String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -540,6 +562,12 @@ export function summarize(rows: StringRow[]): string {
   const glossary = glossaryReport(rows);
   lines.push(glossary.length === 0 ? 'None found.' : `${glossary.length} found:`, '', ...glossary, '');
 
+  // Plain words.
+  lines.push('## Plain words', '', 'The text review\'s habits on the screens that instruct (Plan 111; `tools/review/plainChecks.ts`). Counted, not forbidden: `test/plain-words.test.ts` fails only when a count rises past `tools/review/plain-baseline.json`.', '');
+  lines.push('| Rule | Strings |', '|---|---|');
+  for (const [id, n] of Object.entries(plainTotals(rows))) lines.push(`| ${id} | ${n} |`);
+  lines.push('', 'The worst twenty:', '', ...plainWorst(rows, 20), '');
+
   // Jargon.
   lines.push('## Jargon', '', 'How often each term a new player may not know appears, and on how many screens. A term used on many screens before it is explained anywhere is the thing to check.', '');
   lines.push('| Term | Strings | Screens |', '|---|---|---|');
@@ -553,7 +581,26 @@ export function summarize(rows: StringRow[]): string {
   return lines.join('\n');
 }
 
-if (process.argv[1]?.includes('strings')) {
+// `--plain-check`: the plain-words counts against the committed baseline,
+// exit 1 if any rose; `--plain-save` writes the baseline (Plan 111 PR G).
+const PLAIN_BASELINE = join(ROOT, 'tools/review/plain-baseline.json');
+if (argv.includes('--plain-check') || argv.includes('--plain-save')) {
+  const rows = collect();
+  const totals = plainTotals(rows);
+  if (argv.includes('--plain-save')) {
+    writeFileSync(PLAIN_BASELINE, `${JSON.stringify(totals, null, 2)}\n`);
+    console.log(`plain words baseline saved: ${JSON.stringify(totals)}`);
+  } else {
+    const base = JSON.parse(readFileSync(PLAIN_BASELINE, 'utf8')) as Record<string, number>;
+    const rose = Object.entries(totals).filter(([id, n]) => n > (base[id] ?? 0));
+    for (const [id, n] of Object.entries(totals)) console.log(`${id}: ${n} (baseline ${base[id] ?? 0})`);
+    if (rose.length > 0) {
+      console.log('\nThe worst twenty:\n' + plainWorst(rows, 20).join('\n'));
+      console.error(`\nPlain words: ${rose.map(([id]) => id).join(', ')} rose past the baseline. Rewrite the new text (docs/reviews/2026-10-text-review.md), or run \`npm run review:plain -- --plain-save\` if the rise is deliberate.`);
+      process.exit(1);
+    }
+  }
+} else if (process.argv[1]?.includes('strings')) {
   const rows = collect();
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'strings.json'), JSON.stringify(rows, null, 1));
