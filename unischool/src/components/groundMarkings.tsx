@@ -1072,7 +1072,7 @@ const QUAD_TREES: QuadPlanting[] = [
 // the walks, four lawn panels, each framed by a low clipped hedge set back
 // from the walks and closed toward the plaza by a curved flower bed; trees
 // stand in the panels, a row along each side broken by the walk's mouth.
-// Nothing stands or lies on a walk, and the walkers' grid (quadGeometry.ts)
+// Nothing stands or lies on a walk, and the walkers' grid (state/quadGeometry.ts)
 // paves exactly these tiles. Everything is authored as offsets from the
 // centre, mirrored into the four panels, so it turns with the camera.
 const GARDEN_SETBACK = 0.3;   // lawn left between a walk's edge and a hedge

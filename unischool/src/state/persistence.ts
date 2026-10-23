@@ -10,7 +10,7 @@ import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
-import { benchItem, isDressingItem, legacyBenchFacing } from './dressing';
+import { benchItem, dressingBlocker, isDressingItem, legacyBenchFacing } from './dressing';
 import { isPavingValue } from './paving';
 import { LIVE_STAGES } from './opening';
 import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
@@ -1033,8 +1033,8 @@ function sanitizeTrees(state: GameState): void {
 }
 
 // Dressing hygiene, run on every load: lamps, banner lamps, flower beds and
-// benches (each with a facing) on the land, off the buildings; anything
-// else is dropped.
+// benches (each with a facing) on the land, off the buildings (a quad's
+// lawn is not off limits, Plan 115H); anything else is dropped.
 function sanitizeDressing(state: GameState): void {
   const raw = state.dressing as unknown;
   if (raw === undefined) return;
@@ -1043,7 +1043,7 @@ function sanitizeDressing(state: GameState): void {
   for (const [key, kind] of Object.entries(raw)) {
     const t = parsePathTileKey(key);
     if (!t || !isLand(t.row, t.col) || !isDressingItem(kind)) continue;
-    if (Object.values(state.placements).some((p) => t.row >= p.row && t.row < p.row + p.h && t.col >= p.col && t.col < p.col + p.w)) continue;
+    if (dressingBlocker(state, t.row, t.col) !== undefined) continue;
     clean[pathTileKey(t)] = kind;
   }
   state.dressing = clean;

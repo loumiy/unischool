@@ -55,7 +55,7 @@ import { LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion } from '../data/
 import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import { markGuidance, settleChapters } from '../state/chapters';
-import { benchItem, defaultBenchFacing } from '../state/dressing';
+import { benchItem, defaultBenchFacing, dressingBlocker } from '../state/dressing';
 import { TRAINER_FIELD, MASCOT_MAX_LENGTH, SCHOLARSHIP_ORDER, applyTeamOrder } from '../data/studentLifeData';
 import { isLand, isPlaceableKind, pathTileKey, occupantAt } from '../state/campusMap';
 import { money } from '../format';
@@ -493,9 +493,10 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'PLACE_DRESSING': {
-      // Anywhere on the land, off the buildings.
+      // Anywhere on the land, off the buildings. A quad's lawn is land
+      // (Plan 115H), its walks and centrepiece are not.
       const { row, col } = action.tile;
-      if (!isLand(row, col) || occupantAt(s.placements, row, col) !== undefined) return s;
+      if (!isLand(row, col) || dressingBlocker(s, row, col) !== undefined) return s;
       // A bench faces the way the player turned it, or the path beside it.
       const item = action.kind === 'bench' ? benchItem(action.facing ?? defaultBenchFacing(s.pathways, row, col)) : action.kind;
       s.dressing = { ...s.dressing, [pathTileKey(action.tile)]: item };

@@ -31,7 +31,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BenchFacing, Buildable, Dressing, DressingKind, Facing, GameState, Placements, TileCoord, Vernacular } from '../../src/state/types';
-import { benchItem, defaultBenchFacing } from '../../src/state/dressing';
+import { benchItem, defaultBenchFacing, dressingBlocker } from '../../src/state/dressing';
 import { footprintIsClear, isLand, orientedFootprint, pathTileKey, placementFor, placementTiles } from '../../src/state/campusMap';
 import { clearBoardLetters } from '../../src/systems/finance/distress';
 
@@ -188,6 +188,12 @@ export const ARRANGEMENTS: Arrangement[] = [
       { id: 'LIB-T1', at: T(70, 58) },
     ],
     paths: [...ring(57, 57, 69, 69), ...run(68, 45, 68, 56), ...run(69, 70, 78, 70)],
+    // Benches and a lamp on the quad's lawn, off its walks (Plan 115H).
+    dressing: [
+      { tile: T(60, 61), kind: 'bench', facing: 's' }, { tile: T(66, 65), kind: 'bench', facing: 'n' },
+      { tile: T(61, 66), kind: 'bench', facing: 'w' }, { tile: T(65, 60), kind: 'bench', facing: 'e' },
+      { tile: T(65, 61), kind: 'lamp' },
+    ],
   },
   {
     name: 'crowded',
@@ -382,7 +388,8 @@ export function applyArrangement(base: GameState, a: Arrangement, vernacular: Ve
   const dressing: Dressing = {};
   for (const d of a.dressing ?? []) {
     const key = pathTileKey(d.tile);
-    if (built.has(key)) { problems.push(`${d.kind} ${key} is under a building`); continue; }
+    // The reducer's gate: a Campus Quad's lawn takes them (Plan 115H).
+    if (dressingBlocker({ placements, tech: s.tech }, d.tile.row, d.tile.col) !== undefined) { problems.push(`${d.kind} ${key} is under a building`); continue; }
     dressing[key] = d.kind === 'lamp' ? 'lamp' : benchItem(d.facing ?? defaultBenchFacing(pathways, d.tile.row, d.tile.col));
   }
   s.placements = placements;

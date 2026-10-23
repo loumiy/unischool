@@ -320,7 +320,7 @@ export function Sinkhole({ p }: { p: { col: number; row: number; w: number; h: n
     <g className="campus-sinkhole" aria-hidden="true">
       <polygon points={polyPoints(rim)} fill="#7a6248" />
       <polygon points={polyPoints(pit)} fill="#4a3826" />
-      <polygon points={polyPoints(floor)} fill="#20170f" clipPath="none" />
+      <polygon points={polyPoints(floor)} fill="#20170f" />
       {ring.map((q, i) => <line key={i} x1={q.x.toFixed(1)} y1={q.y.toFixed(1)} x2={tops[i]!.x.toFixed(1)} y2={tops[i]!.y.toFixed(1)} stroke="#d9c79a" strokeWidth={0.9} />)}
       <polyline points={polyPoints(rail)} fill="none" stroke="#e2cf8f" strokeWidth={0.7} />
     </g>

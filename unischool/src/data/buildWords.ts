@@ -31,7 +31,9 @@ export const BUILD_WORDS = {
   needsFaculty: 'Needs a {field} professor with a free course slot',
   notOpen: '{building} isn’t open to build yet',
   // A bench, lamp or bed refused (the reducer's PLACE_DRESSING): off the
-  // college's land, or on a building.
+  // college's land, on a building, or on a quad's walks or centrepiece
+  // (Plan 115H: its lawn takes them).
   dressingOffLand: 'Only on your college’s land',
   dressingOnBuilding: '{building} stands here',
+  dressingOnQuad: 'Only on the lawn of {building}',
 } as const;

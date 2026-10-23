@@ -2,13 +2,16 @@
 // (src/components/dressing.tsx, the reducer's PLACE_DRESSING and
 // REMOVE_DRESSING): placed by the player anywhere on open land, never on a
 // building or the road, kept by a save; racks appear on their own once the
-// college is big enough.
+// college is big enough. A first-tier quad's lawn is open land, its walks
+// and centrepiece are not, and the Grand Quad takes none (Plan 115H).
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { campusLayout } from '../src/components/campusLayout';
 import { BIKE_RACK_ENROLMENT, dressingProps } from '../src/components/dressing';
 import { BENCH_FACINGS, benchFacingOf, dressingKindOf, turnFacing } from '../src/state/dressing';
+import { quadTile } from '../src/state/quadGeometry';
+import { dressingRefusal } from '../src/components/buildReasons';
 import { ROAD_FIRST_ROW } from '../src/state/campusMap';
 import { SAVE_KEY, SAVE_VERSION, loadGame, readSave } from '../src/state/persistence';
 import { readFileSync } from 'node:fs';
@@ -69,6 +72,46 @@ function fresh(): GameState {
   s = reducer(s, { type: 'REMOVE_DRESSING', tile: { row: 10, col: 11 } });
   assert(!('10,11' in (s.dressing ?? {})), 'and a lamp can be lifted');
   assert(dressingProps(campusLayout(s)).some((p) => p.key === 'd-10,10'), 'what stands is drawn');
+}
+
+// ---- On a quad's lawn, off its walks and centrepiece (Plan 115H) ----
+{
+  let s = fresh();
+  const quad = s.tech.find((t) => t.facilityType === 'quad' && t.tier === 1)!;
+  const grand = s.tech.find((t) => t.facilityType === 'quad' && t.tier === 2)!;
+  const q = { row: 14, col: 30, w: 9, h: 9 };
+  const g = { row: 30, col: 30, w: 13, h: 13 };
+  s.placements[quad.id] = q;
+  s.placements[grand.id] = g;
+  const kinds = { lawn: [] as { row: number; col: number }[], walk: [] as { row: number; col: number }[], blocked: [] as { row: number; col: number }[] };
+  for (let r = q.row; r < q.row + q.h; r++) for (let c = q.col; c < q.col + q.w; c++) kinds[quadTile(q.col, q.row, q.w, q.h, 1, c, r)].push({ row: r, col: c });
+  assert(kinds.lawn.length > 0 && kinds.walk.length > 0 && kinds.blocked.length > 0, 'the quad has lawn, walks and a centrepiece');
+  const lawn = kinds.lawn[0]!;
+  s = reducer(s, { type: 'PLACE_DRESSING', tile: lawn, kind: 'bench' });
+  assert(dressingKindOf(s.dressing?.[`${lawn.row},${lawn.col}`] ?? 'lamp') === 'bench', "a bench goes on a quad's lawn");
+  assert(dressingRefusal(s, lawn.row, lawn.col) === null, 'and the map does not refuse it');
+  assert(dressingProps(campusLayout(s)).some((p) => p.key === `d-${lawn.row},${lawn.col}`), 'and it is drawn');
+  for (const tile of [...kinds.walk, ...kinds.blocked]) s = reducer(s, { type: 'PLACE_DRESSING', tile, kind: 'bench' });
+  assert([...kinds.walk, ...kinds.blocked].every((tile) => !(`${tile.row},${tile.col}` in (s.dressing ?? {}))), "but not on the quad's walks or its centrepiece");
+  const walk = kinds.walk[0]!;
+  assert(dressingRefusal(s, walk.row, walk.col) === `Only on the lawn of ${quad.name}`, "and the map says it goes on the lawn");
+  let grandTiles = 0;
+  for (let r = g.row; r < g.row + g.h; r++) for (let c = g.col; c < g.col + g.w; c++) {
+    s = reducer(s, { type: 'PLACE_DRESSING', tile: { row: r, col: c }, kind: 'lamp' });
+    if (`${r},${c}` in (s.dressing ?? {})) grandTiles += 1;
+  }
+  assert(grandTiles === 0, `nor anywhere on the Grand Quad (${grandTiles} tiles took one)`);
+  assert(dressingRefusal(s, g.row + 2, g.col + 2) === `${grand.name} stands here`, 'which the map refuses as a building');
+  // A load keeps the bench on the lawn, and drops one on a walk.
+  const walkKey = `${walk.row},${walk.col}`;
+  s.dressing = { ...s.dressing, [walkKey]: 'bench-s' };
+  s.started = true;
+  // Built, so the load keeps its site.
+  for (const t of s.tech) if (t.facilityType === 'quad') t.status = 'done';
+  store.clear();
+  store.set(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION, savedAt: 0, state: s }));
+  const loaded = loadGame()!.dressing ?? {};
+  assert(`${lawn.row},${lawn.col}` in loaded && !(walkKey in loaded), "a save keeps the bench on the lawn, not one on a walk");
 }
 
 // ---- Banner lamps and flower beds ----

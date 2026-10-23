@@ -336,7 +336,7 @@ walker going through a door holds it open, and the building is drawn with
 that door open. A Campus
 Quad's walks are paths to them, its lawn is lawn at a lawn's cost (Plan
 80H: at half of it they cut across the grass), and its centerpiece is not
-walkable (`quadGeometry.ts`): on the Grand Quad they keep to its
+walkable (`state/quadGeometry.ts`): on the Grand Quad they keep to its
 perimeter walk, cross walks and the round plaza they meet at, going round
 the fountain; its hedged lawn panels are kept off (Plan 87K). A path drawn tile by tile replans their routes once it has
 stood still for a moment, not at every tile.
@@ -345,7 +345,9 @@ lamps, banner lamps, benches and flower beds (`GameState.dressing`), bike
 racks by the doors of a big college, and the flag at Founders Hall are props
 in the depth-sorted scene. The player's may stand anywhere on open land, off
 the buildings and the road (`PLACE_DRESSING`; until the decoration that
-followed Plan 99 they had to touch a path). A **banner lamp** is a lamp post
+followed Plan 99 they had to touch a path). A Campus Quad's lawn counts as
+open land, its walks and centrepiece do not, and the Grand Quad takes none
+(Plan 115H: `state/dressing.ts`'s `dressingBlocker`, by `quadTile`). A **banner lamp** is a lamp post
 hung for good with a pair of banners in the college's colors, one each side
 of the post (`dressing.tsx`'s `BannerLamp`; the lamps' commencement banner is
 the same drawing, one-sided and for a week). A **flower bed** is painted in
