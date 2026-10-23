@@ -5,20 +5,29 @@ import type { InboxItem } from './inbox';
 // the inbox. Three rules, each a UI clock action (the same as the player
 // pressing pause), none a change to the simulation:
 //
-//   arrival     — with Settings' "Pause when a matter arrives" on (the
-//                 default), a new matter to decide pauses the clock.
+//   arrival     — with Settings' "Pause for an urgent matter" on (the
+//                 default), a new matter short of time (two weeks or less
+//                 to answer: Plan 116B, the third review's C4-4) pauses the
+//                 clock. With it off, the same arrival eases 2×, 4× and 8×
+//                 to 1× instead (easesOnArrival, Plan 35's ease). A matter
+//                 with more weeks, or no deadline, only says it arrived.
+//                 A matter short of time is first seen in its final week
+//                 (weeksToAnswer), so the rule below usually pauses the
+//                 clock for it too, whatever the setting.
 //   final week  — whatever the setting, a matter that reaches its final
-//                 week without having been opened pauses it, once.
+//                 week without having been opened pauses it, once. It
+//                 catches the matters the arrival let pass, left unread.
 //   news        — with Settings' "Pause for news" on (off by default), a
 //                 new celebration or research report pauses it (Plan 95T:
 //                 the news that once stopped the clock is a letter).
 //
-// Neither acts while a stop or the walkthrough holds the clock: the stop's
+// None acts while a stop or the walkthrough holds the clock: the stop's
 // inbox already lists the matter, and a final week reached under a hold is
 // paused for once the hold lifts. "Opened" is the view's to say (the
 // reading pane showed it, or its arrival's Open was pressed), except that a
-// demand noted in the save counts too. Pure, for the test; App.tsx keeps
-// the memory between snapshots.
+// demand noted in the save counts too. Pure, for the test and for the
+// harness's pause count (sim/harness/pauses.ts); App.tsx keeps the memory
+// between snapshots.
 // ---------------------------------------------------------------------
 
 export interface UnseenMemory {
@@ -51,6 +60,28 @@ export function inFinalWeek(i: InboxItem): boolean {
   return i.weeksLeft !== undefined && i.weeksLeft <= 1;
 }
 
+// A matter short of time: the weeks to answer at or under which its arrival
+// pauses the clock (Plan 116B). Most of the catalogue gives three to six,
+// and those wait for their final week.
+export const SHORT_OF_TIME_WEEKS = 2;
+
+// The weeks a matter gives to answer, counting the week it is in.
+// `weeksLeft` counts the weeks after it: a matter raised in a week's tick
+// is first seen once the clock has turned, so a two-week event arrives
+// with one left, and its answer is taken in the tick of the week after.
+export function weeksToAnswer(i: InboxItem): number | undefined {
+  return i.weeksLeft === undefined ? undefined : i.weeksLeft + 1;
+}
+export function shortOfTime(i: InboxItem): boolean {
+  const weeks = weeksToAnswer(i);
+  return weeks !== undefined && weeks <= SHORT_OF_TIME_WEEKS;
+}
+
+// A matter short of time that was not in the last snapshot.
+function urgentArrival(before: UnseenMemory | null, matters: readonly InboxItem[]): boolean {
+  return before !== null && matters.some((i) => i.unread && !before.known.has(i.id) && shortOfTime(i));
+}
+
 // Whether the player has had the matter in front of them.
 export function matterOpened(i: InboxItem, opened: ReadonlySet<string>): boolean {
   return opened.has(i.id) || !i.unread;
@@ -68,7 +99,7 @@ export function unseenPause(before: UnseenMemory | null, input: UnseenInput): Un
   if (input.held) return { pause: false, reason: null, memory };
 
   let reason: UnseenReason | null = null;
-  if (before && input.pauseOnArrival && matters.some((i) => i.unread && !before.known.has(i.id))) reason = 'arrival';
+  if (input.pauseOnArrival && urgentArrival(before, matters)) reason = 'arrival';
   else if (before && input.pauseForNews && news.some((i) => i.unread && !before.known.has(i.id))) reason = 'news';
   for (const i of matters) {
     if (!inFinalWeek(i) || warned.has(i.id) || matterOpened(i, input.opened)) continue;
@@ -77,6 +108,16 @@ export function unseenPause(before: UnseenMemory | null, input: UnseenInput): Un
     reason ??= 'final-week';
   }
   return { pause: reason !== null, reason, memory };
+}
+
+// With the setting off, the arrival that would have paused the clock eases
+// it to 1× instead (Plan 35's ease, which once followed every new event:
+// Plan 116B). Never under a hold, as the pause: the stop's inbox lists the
+// matter, and its final week still pauses the clock. `before` is the
+// memory unseenPause was given for the same snapshot.
+export function easesOnArrival(before: UnseenMemory | null, input: Pick<UnseenInput, 'items' | 'pauseOnArrival' | 'held'>): boolean {
+  if (input.pauseOnArrival || input.held) return false;
+  return urgentArrival(before, input.items.filter((i) => i.tier === 'decide'));
 }
 
 // The matters opened, kept for the page's session (Plan 95AA, the second

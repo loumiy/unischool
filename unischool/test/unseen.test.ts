@@ -1,6 +1,7 @@
 // No decision passes unseen (Plan 78E, systems/inbox/unseen.ts): when the
-// shell pauses the clock for the inbox. A new matter pauses it while the
-// setting is on; a matter's final week, unopened, pauses it once whatever
+// shell pauses the clock for the inbox. A new matter with two weeks or less
+// to answer pauses it while the setting is on, and eases it to 1× while it
+// is off (Plan 116B); a matter's final week, unopened, pauses it once whatever
 // the setting; neither acts while a stop or the walkthrough holds the
 // clock. Also the one countdown label, the "To decide" filter's count, the
 // setting's default and the arrival slips that stay.
@@ -9,7 +10,7 @@ import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
 import { inboxBadge, inboxItems } from '../src/systems/inbox/inbox';
-import { dueLabel, forgetOpened, keepOpened, readOpened, toDecideCount, unseenPause, type UnseenMemory } from '../src/systems/inbox/unseen';
+import { SHORT_OF_TIME_WEEKS, dueLabel, easesOnArrival, forgetOpened, keepOpened, readOpened, toDecideCount, unseenPause, type UnseenMemory } from '../src/systems/inbox/unseen';
 import { normaliseSettings, DEFAULT_SETTINGS } from '../src/settings';
 import { trimToasts } from '../src/components/Toasts';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
@@ -31,10 +32,15 @@ function assert(cond: boolean, msg: string): void {
 console.log('unseen tests');
 
 const inline = EVENT_CATALOGUE.find((x) => x.kind === 'inline' && x.timeoutWeeks >= 3 && !/\{\w+\}/.test(x.text))!;
+// A matter short of time (Plan 116B): two weeks to answer.
+const urgent = EVENT_CATALOGUE.find((x) => x.kind === 'inline' && x.timeoutWeeks === SHORT_OF_TIME_WEEKS && !/\{\w+\}/.test(x.text))!;
 const weekOf = (s: GameState) => (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
-function withEvent(s: GameState, firedWeek: number, instanceId = 'a'): void {
+// An arrival as the shell first sees it: raised in last week's tick, the
+// clock since turned (Plan 116B counts its weeks from there).
+const raised = (s: GameState) => weekOf(s) - 1;
+function withEvent(s: GameState, firedWeek: number, instanceId = 'a', event = inline): void {
   const c = s.catalogue ??= { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
-  c.pending.push({ instanceId, eventId: inline.id, firedWeek, vars: {}, scale: 1 });
+  c.pending.push({ instanceId, eventId: event.id, firedWeek, vars: {}, scale: 1 });
 }
 function fresh(): GameState {
   const s = createInitialState('Unseen');
@@ -101,18 +107,69 @@ function tick(s: GameState): void {
   assert(!step(before.memory, ladder, { news: true, on: false }).pause, 'a ladder milestone\'s letter does not pause it');
 }
 
-// A matter arriving pauses the clock with the setting on, not with it off.
+// A matter short of time (two weeks or less) arriving pauses the clock with
+// the setting on, not with it off (Plan 116B).
 {
+  assert(SHORT_OF_TIME_WEEKS === 2, 'a matter is short of time with two weeks or less');
   const s = fresh();
   const quiet = step(null, s);
   assert(!quiet.pause, 'nothing waiting: the clock runs');
-  withEvent(s, weekOf(s));
+  withEvent(s, raised(s), 'a', urgent);
   const on = step(quiet.memory, s);
-  assert(on.pause && on.reason === 'arrival', 'a matter arriving pauses the clock with the setting on');
+  assert(on.pause && on.reason === 'arrival', 'a two-week matter arriving pauses the clock with the setting on');
   const off = step(quiet.memory, s, { on: false });
-  assert(!off.pause, 'with it off, the clock runs on (the ease to 1x is useGame.ts\'s)');
+  // A two-week event is first seen with one week left after this one, so
+  // it arrives in its final week, which pauses the clock whatever the setting.
+  assert(off.reason === 'final-week', `with it off, no arrival pause, but its final week's (${off.reason})`);
   const again = step(on.memory, s);
   assert(!again.pause, 'the same matter a week later is not an arrival');
+}
+
+// A matter with three weeks or more does not pause on arrival. Unopened, it
+// pauses in its last week; opened, never (Plan 116B).
+{
+  const s = fresh();
+  const quiet = step(null, s);
+  withEvent(s, raised(s));
+  assert(inline.timeoutWeeks > SHORT_OF_TIME_WEEKS, `the test's matter has ${inline.timeoutWeeks} weeks`);
+  const came = step(quiet.memory, s);
+  assert(!came.pause, 'a three-week matter arriving does not pause the clock');
+  const reasons = (opened: ReadonlySet<string>) => {
+    const t = fresh();
+    withEvent(t, raised(t));
+    let m = step(quiet.memory, t, { opened }).memory;
+    const out: string[] = [];
+    for (let w = 1; w < inline.timeoutWeeks; w++) {
+      tick(t);
+      const r = step(m, t, { opened });
+      m = r.memory;
+      if (r.reason) out.push(r.reason);
+    }
+    return out;
+  };
+  const unopened = reasons(none);
+  assert(unopened.length === 1 && unopened[0] === 'final-week', `unopened, it pauses once, in its last week (${unopened.join(', ')})`);
+  assert(reasons(new Set(['event:a'])).length === 0, 'opened, it never pauses the clock');
+}
+
+// The ease to 1× (Plan 35's, Plan 116B's rule): with the setting off, a
+// matter short of time eases the clock as it arrives. Never with the
+// setting on (it pauses instead), never for a matter with more weeks, never
+// under a hold, never twice.
+{
+  const ease = (before: UnseenMemory | null, s: GameState, opts: { on?: boolean; held?: boolean } = {}) =>
+    easesOnArrival(before, { items: inboxItems(s), pauseOnArrival: opts.on ?? false, held: opts.held ?? false });
+  const s = fresh();
+  const quiet = step(null, s);
+  withEvent(s, raised(s), 'a', urgent);
+  assert(ease(quiet.memory, s), 'a two-week matter eases the clock with the setting off');
+  assert(!ease(quiet.memory, s, { on: true }), 'with the setting on, it pauses instead');
+  assert(!ease(quiet.memory, s, { held: true }), 'never under a hold');
+  assert(!ease(null, s), 'nor on a load');
+  assert(!ease(step(quiet.memory, s).memory, s), 'nor the week after');
+  const t = fresh();
+  withEvent(t, raised(t));
+  assert(!ease(quiet.memory, t), 'a three-week matter does not ease the clock');
 }
 
 // A load or a new game is not an arrival.
@@ -122,14 +179,19 @@ function tick(s: GameState): void {
   assert(!step(null, s).pause, 'what the college already holds at a load does not pause it');
 }
 
-// A student demand arrives as a matter too.
+// A student demand arrives as a matter too. It has weeks to answer, so it
+// does not pause the clock as it arrives (Plan 116B).
 {
   let s = fresh();
   s.students.classes = { freshman: 3000, sophomore: 2000, junior: 2000, senior: 2000 };
   const before = step(null, s);
   s = reducer(s, { type: 'DEBUG_FORCE_DEMAND', subject: 'basicNeeds' });
+  const item = inboxItems(s).find((i) => i.kind === 'demand');
+  assert(item !== undefined && item.unread && (item.weeksLeft ?? 0) > SHORT_OF_TIME_WEEKS, 'a student demand arrives unread, with weeks to answer');
   const out = step(before.memory, s);
-  assert(out.pause && out.reason === 'arrival', 'a student demand arriving pauses the clock');
+  assert(!out.pause, 'a student demand arriving does not pause the clock');
+  s.events.activeDemand!.deadlineWeek = weekOf(s) + SHORT_OF_TIME_WEEKS - 1;
+  assert(step(before.memory, s).reason === 'arrival', 'one with two weeks left would');
 }
 
 // The final week: whatever the setting, once, and only unopened.

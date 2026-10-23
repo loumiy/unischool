@@ -32,7 +32,7 @@ import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import { stepTarget, type NextStep } from './systems/guidance/nextStep';
 import InboxTab from './components/InboxTab';
 import { interruptPageUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID, summerKey } from './systems/inbox/inbox';
-import { forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
+import { easesOnArrival, forgetOpened, keepOpened, readOpened, unseenPause, type UnseenMemory } from './systems/inbox/unseen';
 import TabOverlay from './components/TabOverlay';
 import { useCssHeightVar } from './components/useCssHeightVar';
 import { applySchoolColors } from './components/theme';
@@ -492,27 +492,31 @@ export default function App() {
   }, [holdKey, shellLive]);
 
   // No decision passes unseen (Plan 78E, systems/inbox/unseen.ts): a new
-  // matter pauses the clock while the setting is on, and a matter's final
-  // week, unopened, pauses it once whatever the setting. The news pauses it
-  // only while "Pause for news" is on (Plan 95T). The same as the
-  // player pressing pause; a stop or the walkthrough already holds the
-  // clock, and neither rule acts under them. The memory starts over with a
-  // run (a load or a new game is not an arrival).
+  // matter with two weeks or less to answer pauses the clock while the
+  // setting is on, and eases 2×, 4× and 8× to 1× while it is off (Plans 35
+  // and 116B). A matter's final week, unopened, pauses it once whatever the
+  // setting. The news pauses it only while "Pause for news" is on (Plan
+  // 95T). The same as the player pressing pause; a stop or the walkthrough
+  // already holds the clock, and no rule acts under them. The memory starts
+  // over with a run (a load or a new game is not an arrival).
   const openedRef = useRef(opened);
   openedRef.current = opened;
   useEffect(() => {
     if (!s.started) return;
     const last = unseen.current;
     const sameRun = last !== null && last.run.self.name === s.self.name && last.run.clock.year <= s.clock.year;
-    const out = unseenPause(sameRun ? last.memory : null, {
+    const before = sameRun ? last.memory : null;
+    const input = {
       items: inbox,
       pauseOnArrival: getSettings().pauseOnArrival,
       pauseForNews: getSettings().pauseForNews,
       held: s.pendingInterrupt !== null || openingHoldsClock(s),
       opened: openedRef.current,
-    });
+    };
+    const out = unseenPause(before, input);
     unseen.current = { run: s, memory: out.memory };
     if (out.pause) setSpeed('paused');
+    else if (easesOnArrival(before, input) && speed !== 'paused' && speed !== 'real') setSpeed('real');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s]);
 

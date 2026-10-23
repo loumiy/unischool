@@ -26,9 +26,10 @@ import { getSettings } from '../settings';
 // the list itself. In year one a founding note or a milestone is held until
 // it is opened or dismissed (Plan 78B): the first year's guidance is in
 // those letters, and eight seconds is easy to miss. With Settings' "Pause
-// when a matter arrives" on (Plan 78E), a matter's slip is held too, as the
-// clock waits with it; it goes by itself once the matter is opened in the
-// inbox or leaves it. Opening the inbox puts every arrival away.
+// for an urgent matter" on (Plan 78E), a matter's slip is held too: an
+// urgent one's clock waits with it, and since Plan 116B one with more weeks
+// stays while the clock runs. It goes by itself once the matter is opened
+// in the inbox or leaves it. Opening the inbox puts every arrival away.
 // ---------------------------------------------------------------------
 
 const SHOW_MS = 6_000;
@@ -161,7 +162,8 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
     const said = [...toastsFor(before, s, fresh, onMapScreen), ...(inboxOpenRef.current ? [] : arrivalsIn(before, s))];
     if (said.length === 0) return;
     const { pauseOnArrival, pauseForNews } = getSettings();
-    // A slip whose arrival paused the clock waits with it (Plans 78E, 95T).
+    // A matter's slip waits to be opened, and a slip whose arrival paused the
+    // clock waits with it (Plans 78E, 95T and 116B).
     const waits = (t: Said) => (pauseOnArrival && t.tone === 'matter') || (pauseForNews && t.open?.startsWith('news:') === true);
     const made = said.map((t) => ({ ...t, id: next.current++, held: t.held || waits(t) }));
     setToasts((cur) => stacked(cur, made));

@@ -60,9 +60,10 @@ seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
 it is about; an **arrival** (a matter or a letter reaching the inbox) carries
 an Open button and stays eight seconds (in year one a founding note or a
 milestone stays until opened or dismissed, Plan 78B), and none arrives while
-the inbox is open. With Settings' "Pause when a matter arrives" on (the
-default), a matter's arrival also pauses the clock and stays until it is
-opened or dismissed; whatever the setting, a matter's final week, unopened,
+the inbox is open. With Settings' "Pause for an urgent matter" on (the
+default), a matter's arrival stays until it is opened or dismissed, and
+one with two weeks or less to answer also pauses the clock (Plan 116B; off,
+it eases the clock to 1× instead); whatever the setting, a matter's final week, unopened,
 pauses the clock once and the Inbox button pulses red (Plan 78E,
 `systems/inbox/unseen.ts`; see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the

@@ -279,14 +279,21 @@ puts away the arrivals already showing.
 
 A matter to decide does not stop the clock the way an interrupt does, but
 the shell can pause it (Plan 78E, `src/systems/inbox/unseen.ts`). With
-Settings' **Pause when a matter arrives** on (the default), a new matter
-pauses the clock and its arrival toast stays until it is opened or
-dismissed. Whatever the setting, a matter that reaches its final week
-unopened pauses the clock once. Both are the pause button pressed for the
-player, in `App.tsx`: the reducer, the save and every replay are
-unchanged, and neither acts while an interrupt or the walkthrough holds the
-clock. With the setting off, Plan 35's ease to 1× on arrival
-(`useGame.ts`) stays. **Pause for news** (Plan 95T, off by default) does
+Settings' **Pause for an urgent matter** on (the default), a new matter
+with two weeks or less to answer (`SHORT_OF_TIME_WEEKS`, Plan 116B)
+pauses the clock. A matter with more weeks, or a gift or board ask with no
+deadline, only arrives. Either way its arrival toast stays until it is
+opened or dismissed. Whatever the setting, a matter that reaches its final
+week unopened pauses the clock once, which catches the matters the arrival
+let pass. Both are the pause button pressed for the player, in `App.tsx`:
+the reducer, the save and every replay are unchanged, and neither acts
+while an interrupt or the walkthrough holds the clock. With the setting
+off, the same urgent arrival eases 2×, 4× and 8× to 1× instead (Plan 35's
+ease, `easesOnArrival`), also never under a hold. A matter's weeks count
+the week it is first seen in, after the tick that raised it, so a
+two-week matter arrives in its final week, and that pause usually comes
+first whatever the setting. The settings key is
+still `pauseOnArrival`, so a saved choice stands. **Pause for news** (Plan 95T, off by default) does
 the same for a new celebration or research report, whose slip then waits
 with the clock.
 
