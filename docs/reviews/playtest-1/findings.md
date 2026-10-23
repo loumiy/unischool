@@ -25,8 +25,8 @@ marked **0.1.x** and fixed in a patch.*
   details." Also "looks pretty good", "looked like a fun concept",
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
-  building game I played in a long long time". *16 players · reddit (R1,
-  R3, R4, R8, R9, R12), comment (I1, I2, I3), live (T1), form (F1, F2, F3, F4, F6,
+  building game I played in a long long time". *18 players · reddit (R1,
+  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3), live (T1), form (F1, F2, F3, F4, F6,
   F7, F8), discord (D1), service (S1, S2).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
@@ -285,6 +285,9 @@ marked **0.1.x** and fixed in a patch.*
   accidentally)": not a problem for them, but they expect it would be
   for a new player. With R2 and T1, the third player to find the start
   hard to read. *1 player (with a partner) · reddit (R9).*
+  R18, from the post's video alone: "The game looks a little bit
+  complicated but keep at it." The look of it says complex before anyone
+  plays. *1 more · reddit (R18).*
 - **Too much on screen during the walkthrough.** "The next action is
   clear in the walkthrough, but all the stats and menus are competing
   with it." The suggestion: keep the opening to hall → professor → first
@@ -465,6 +468,10 @@ marked **0.1.x** and fixed in a patch.*
   enjoyed placing benches more than almost anything else. *1 player ·
   live (T1).*
 
+- **Moving a building.** "Can we pick up and move structures?" Only in a
+  sandbox today; in a normal run a building comes down and goes up again
+  elsewhere (Founders Hall can't). *1 player · reddit (R15).*
+
 ## 7 · Bugs
 
 - **NEXT asks for a library that stands.** In year 2, with a library
@@ -569,6 +576,9 @@ Not findings about the game; counted here so the demand shows.
 - **A Steam demo / Steam release.** "Would love a steam demo in the
   future", "Steam hope?", and "waiting for years with a theme like this
   on steam". *1 player, three times · reddit (R1, R5), comment (I1).*
+- **A phone version.** "Plan for Android?" Phones are not supported for
+  now (the owner, 9 October; see *On a phone, Founders Hall can't be
+  built*). *1 player · reddit (R17).*
 
 ## The numbers
 
@@ -786,6 +796,27 @@ tab (60 views, 2 upvotes when read). The thread's link wasn't kept.*
 
 - **R12** · CrunchyTuna_games — "This looks super cool. What a great
   concept. It feels like a classic tycoon game right out the gate."
+
+### Reddit, r/playmygame — the owner's second post (22 October)
+
+*"I'm building a university management tycoon and looking for
+feedback!", with a video of a grown campus, the itch.io link and "going
+on Steam in the next few weeks" (5 upvotes, 8 comments when read, 23
+October). From the owner's screenshots; the thread's link wasn't kept.*
+
+- **R13** · Best-Cheetah-4422 — "hey! sent you a DM about playing!!"
+  Likely a creator or service offer; not feedback.
+- **R14** · Anxious-Drink3453 — "Very good! When work and university give
+  me some time, I'm going to explore it completely!" They also linked a
+  web game of their own (YonaZakkart, one of the two new itch.io
+  followers on 23 October).
+- **R15** · HiveReddit3 — "can we pick up and move structures?"
+  *Owner:* "Only in sandbox mode. Otherwise, you can move most structures
+  (except Founders Hall) by demolishing and rebuilding."
+- **R16** · Aware_Roll5610 — "Nice work for a solo developer!"
+- **R17** · Lifesimloverr — "Nice, plan for Android?"
+- **R18** · jaunty_mellifluous — "The game looks a little bit complicated
+  but keep at it." From the video, without playing.
 
 ### Reddit, a chat message
 
