@@ -26,7 +26,7 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time". *18 players · reddit (R1,
-  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3), live (T1), form (F1, F2, F3, F4, F6,
+  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4), live (T1), form (F1, F2, F3, F4, F6,
   F7, F8), discord (D1), service (S1, S2).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
@@ -452,7 +452,9 @@ marked **0.1.x** and fixed in a patch.*
   outside the scope of the game." *1 player · form (F6).*
 
 - **Other languages.** "The absence of other languages" was named as a
-  frustration. The game is English only. *1 player · form (F4).*
+  frustration. The game is English only. I4, in Spanish: "ojalá en
+  español algún día" ("I hope it's in Spanish someday"). *2 players ·
+  form (F4), comment (I4).*
 
 - **Automated athletics hiring.** "A way to automate athletics hiring.
   Ex: Auto hire people with xx grade and/or xx potential with a minimum
@@ -593,6 +595,7 @@ how often the form is opened, `feedback_opened`).*
 | 14 October | 548 | 304 | 1 (★★★★★) | 2 | 7 | 5,069 | 3.59% |
 | 15 October | 615 | 341 | 1 (★★★★★) | 2 | 7 | 4,721 | 3.73% |
 | 20 October | 865 | 501 | 2 (both ★★★★★) | 2 | 11 | 1,852 | 3.94% |
+| 23 October | 1,042 | 609 | 2 (both ★★★★★) | 3 | 16 | 2,028 | 3.80% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
@@ -651,6 +654,19 @@ from 12)**, itch.io's front page 29, then the browse pages (tycoon 17,
 source, **aigamehub.app** (7; not reachable from this repo's tools, so
 what it lists and how isn't known), out.reddit.com 2, Bing 2 and ChatGPT
 1.
+
+On 23 October (30 days): views passed a thousand (1,042), with 609
+browser plays, 16 collections (+5 since 20 October), a third comment (I4)
+and still 2 downloads. The 7-day impressions rose again, from 1,852 to
+2,028, at a 3.80% click-through rate. Daily views held at about 40 to 70
+since 15 October, and browser plays at about 20 to 55, with a peak near
+55 on 19 October after 0.1.2. Referrers: Google 75 (+15 since 20 October),
+reddit.com 71 (+15, and 11 from the Android app; the owner's second
+r/playmygame post went up on 22 October), foundplay.io 48 (+1, so its
+boost has run its course), itch.io's front page 36, then the browse
+pages (tycoon for web 26, management for web 18, **college 17**, up from
+10, tycoon 14, *new and popular* for web 14, free tycoon for web 14, city
+builder 11 and 10), the studio page 14 and itch.io collections 11.
 
 ### PostHog, 11 October
 
@@ -1255,3 +1271,7 @@ one.*
   impressed by this game, tried it and it's wow!"
 - **I3** · Joje :D · rating, about 20 October — ★★★★★, no review. A new
   player, the page's second rating; both are five stars.
+- **I4** · YonaZakkart (the same player as R14) · comment, 22 October —
+  "Está muy bueno, demasiado, ojalá en español algún día (^w^)": "It's
+  really good, very much so. I hope it's in Spanish someday." Not yet
+  answered.
