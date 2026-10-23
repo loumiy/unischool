@@ -1,7 +1,7 @@
 import { speedLock } from '../systems/delegation/seats';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { GameState } from '../state/types';
-import { totalEnrolled } from '../state/types';
+import { totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import {
   RankIcon, StudentsIcon, PrestigeIcon, SatisfactionIcon,
   PauseIcon, PlayIcon, DoubleSpeedIcon, QuadSpeedIcon, OctoSpeedIcon,
@@ -19,7 +19,7 @@ import { FigureBox } from './Figure';
 import { FIGURE_HINTS, satisfactionHint } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { playtestEnabled } from './playtest';
-import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason, weekOfTerm } from '../format';
+import { TERM_LENGTH, count, gameDate, money, prestigeFigure, satisfactionFigure, signedMoney, termSeason } from '../format';
 import { STAT_CHIP_WORDS, chipDoor, type StatChip } from '../data/statChips';
 import { tabAvailable } from './TabNav';
 import type { TabSection } from '../data/ladderData';
@@ -213,15 +213,15 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
   // Two rows, clock above gears, with the calendar page beside both
   // (styles.css's .toolbar-right). The page carries the whole date for a
   // screen reader; the year, days and year bar beside it are drawn only.
-  // The page counts the term's weeks, not the year's: "Spring, week 38"
-  // read as a calendar's September.
+  // The page counts the year's weeks, 1 to 52, as the chapters, letters
+  // and the summer do ("summer comes at week 52"): a term's 1 to 26, twice,
+  // left the player to translate (Plan 112E).
   const date = gameDate(s.clock.year, s.clock.week);
-  const termWeek = weekOfTerm(s.clock.week);
   return (
     <>
       <div className="toolbar-calendar" role="img" aria-label={date} title={date}>
         <span className="toolbar-calendar-term">{termSeason(s.clock.week)}</span>
-        <span className="toolbar-calendar-week">{termWeek}</span>
+        <span className="toolbar-calendar-week">{s.clock.week}</span>
         <span className="toolbar-calendar-word">Week</span>
       </div>
       <div className="toolbar-school" aria-hidden="true">
@@ -231,7 +231,7 @@ export function SchoolAndClock({ s, speed, setSpeed, keysLive, weekProgress }: {
           {/* The college year, Fall then Spring: each term's half fills
               as its weeks pass, so the bar runs from the year's first
               week of classes to its summer, not January to December. */}
-          <div className="year-bar" title={`${termSeason(s.clock.week)} term, week ${termWeek} of ${TERM_LENGTH}`}>
+          <div className="year-bar" title={`${termSeason(s.clock.week)} term, week ${s.clock.week} of ${WEEKS_PER_YEAR}`}>
             {(['Fall', 'Spring'] as const).map((term, i) => {
               const filled = Math.max(0, Math.min(TERM_LENGTH, s.clock.week - i * TERM_LENGTH));
               return (
