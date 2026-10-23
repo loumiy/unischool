@@ -41,6 +41,14 @@ in, negative out), `--pan=DX,DY` (a drag, in screen pixels), `--clip=x,y,w,h`,
 `--size=W,H` (the viewport, default 1600 by 1000) and `--scale=N` (device pixels
 per CSS pixel — 2 for a print-sharp image at the same framing).
 
+The game opens framed on what stands (Plan 115A): close on a lone Founders
+Hall, wider as the college grows. The shooting tools (`shot`, `review:views`,
+`timelapse:shoot`, `clip`, and so `share-image`) load the game with
+`?view=parcel` instead, the whole parcel at the widest opening zoom, which is
+where every map opened before. So every `--zoom` and `--pan` in this file frames
+the same campus the same way. `shot --framed` drops the query and starts from
+the view a player gets.
+
 ### A campus laid out like a campus
 
 The harness's players site every building at `firstFreeSpot`, a top-left scan,

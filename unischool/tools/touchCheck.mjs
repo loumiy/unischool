@@ -89,8 +89,11 @@ await page.waitForTimeout(150);
 const v1 = await view();
 check(v0 && v1 && Math.abs(v1.x - v0.x + 100) < 2 && Math.abs(v1.y - v0.y + 70) < 2 && v1.zoom === v0.zoom, `one finger pans by its travel (${JSON.stringify(v0)} → ${JSON.stringify(v1)})`);
 
-// Two pinch.
-await pinch([512, 380], 100, 200);
+// Two pinch, about a building, so one is still on screen for the tap below:
+// the map opens framed on what stands (Plan 115A), and the launch fixture's
+// harness-built strip leaves open grass under the canvas's middle.
+const about = (await mapBuildings(page)).find((b) => b.x > 220 && b.x < 800 && b.y > 200 && b.y < 560);
+await pinch(about ? [about.x, about.y] : [512, 380], 100, 200);
 await page.waitForTimeout(150);
 const v2 = await view();
 check(v1 && v2 && v2.zoom > v1.zoom * 1.6, `two fingers spread to twice the gap zoom in (${v1?.zoom.toFixed(2)} → ${v2?.zoom.toFixed(2)})`);

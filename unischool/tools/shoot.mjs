@@ -17,6 +17,10 @@
 //        --size=W,H (viewport, default 1600,1000), --scale=N (device pixels per
 //        CSS pixel: 2 for a print-sharp PNG at the same framing)
 //
+// The zoom and the pan count from the whole parcel at the widest opening
+// zoom (`?view=parcel`), where every map opened before Plan 115A. --framed
+// starts from the view a player gets instead, framed on what stands.
+//
 // --settings=<json> sets the player's settings first ('{"textScale":1.3}'
 // is the largest text).
 //
@@ -42,11 +46,11 @@
 // ---------------------------------------------------------------------
 import { readFileSync, existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
-import { waitForMap } from './mapReview.mjs';
+import { parcelView, waitForMap } from './mapReview.mjs';
 
 const [savePath, outPath, ...flags] = process.argv.slice(2);
 if (!savePath || !outPath) {
-  console.error('usage: shoot <save.json> <out.png> [--zoom=N] [--pan=DX,DY] [--clip=x,y,w,h] [--size=W,H | --phone | --tablet] [--scale=N]');
+  console.error('usage: shoot <save.json> <out.png> [--zoom=N] [--pan=DX,DY] [--clip=x,y,w,h] [--size=W,H | --phone | --tablet] [--scale=N] [--framed]');
   process.exit(2);
 }
 const flag = (name, fallback) => {
@@ -56,7 +60,11 @@ const flag = (name, fallback) => {
 const flagAll = (name) => flags.filter((f) => f.startsWith(`--${name}=`)).map((f) => f.slice(name.length + 3));
 const nums = (s) => (s ? s.split(',').map(Number) : null);
 
-const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
+// The parcel view (Plan 115A), so --zoom and --pan count from where they
+// always have; --framed opens on the view a player gets, framed on what stands.
+const URL = flags.includes('--framed')
+  ? process.env.CAMPUS_URL ?? 'http://localhost:5173/'
+  : parcelView(process.env.CAMPUS_URL ?? 'http://localhost:5173/');
 
 // The toolbar's aria-labels, by tab id (TabNav.tsx's TAB_LABELS, repeated
 // here rather than imported: this file is plain Node and TabNav is

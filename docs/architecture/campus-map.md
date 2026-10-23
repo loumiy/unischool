@@ -37,7 +37,7 @@ the opening camera), and each kind carries an architectural form
 The view stands at one of **four corners of the campus** (a quarter turn
 apart) and one of **ten pitches**, from nearly level to straight down (Plan
 24), and steps between them instantly: Q/E
-turn, Z/X tilt, Home returns to the opening view — keys only; the corner pill
+turn, Z/X tilt, Home returns to the opening view (its angle, pan and zoom) — keys only; the corner pill
 beside the zoom buttons carries no camera controls. `isoProjection.ts`
 owns one `Camera` (azimuth and pitch) and derives every projection
 coefficient from it, so the two hundred call sites that draw a wall or a
@@ -50,6 +50,16 @@ into shapes nobody drew. The camera is `CampusMap.tsx` state — unlike pan
 and zoom, which are a transform on a `<g>`, a turn changes every polygon —
 and it is never saved: it is where the player is looking from, not a fact
 about the school.
+
+**The opening view** is framed on what stands (Plan 115A, `ringLand.ts`'s
+`framedView`): centred on the box round every placement plus a margin of
+six tiles, at the zoom that fits it, held between 0.4 and 1. A lone
+Founders Hall opens at 1, the view widens as the college grows, and a
+built-out campus opens at 0.4 as every map did before. With nothing placed
+it centres on the parcel's middle. It is set on mount only, so it never
+moves under the player, and Home sets it again. `?view=parcel` keeps the
+old opening view (the whole parcel at 0.4) for the shooting tools, so their
+`--zoom` and `--pan` recipes frame as they always have.
 
 A quarter turn is eased over `TURN_MS` (Plan 37; reduced motion snaps), and
 each of its frames redraws the whole scene at a new angle: the buildings,

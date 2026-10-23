@@ -22,7 +22,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { mapMissed, waitForMap } from '../mapReview.mjs';
+import { mapMissed, parcelView, waitForMap } from '../mapReview.mjs';
 
 // `--k=v` and `--k v` both work; everything else is a save.
 const VALUE_FLAGS = ['out', 'zoom', 'pitch', 'size', 'scale', 'clip'];
@@ -46,7 +46,8 @@ const pitch = Number(flag('pitch', 0));
 const [W, H] = flag('size', '1400,900').split(',').map(Number);
 const scale = Number(flag('scale', 1));
 const clip = flag('clip', null)?.split(',').map(Number) ?? null;
-const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
+// The parcel view, so --zoom counts from where it always has (Plan 115A).
+const URL = parcelView(process.env.CAMPUS_URL ?? 'http://localhost:5173/');
 
 const CANDIDATES = [
   process.env.CHROME_PATH,

@@ -34,7 +34,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { chromium } from 'playwright-core';
-import { mapBuildings, waitForMap } from './mapReview.mjs';
+import { mapBuildings, parcelView, waitForMap } from './mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const [savePath, outPath] = argv.filter((a) => !a.startsWith('--'));
@@ -60,7 +60,9 @@ const untilBuilt = argv.includes('--until-built');
 const strokes = flagAll('stroke').map((s) => s.split(':').map((p) => p.split(',').map(Number)));
 const keepPng = argv.includes('--png');
 const seasons = !argv.includes('--no-seasons');
-const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
+// The parcel view, so --zoom and --pan count from where they always have
+// (Plan 115A).
+const URL = parcelView(process.env.CAMPUS_URL ?? 'http://localhost:5173/');
 // useGame.ts's SPEEDS: page milliseconds a week.
 const WEEK_MS = { real: 5000, double: 2500, quad: 1250, octo: 625 };
 // The game's speed buttons, by their accessible names (StatusHeader.tsx's

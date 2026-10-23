@@ -35,7 +35,7 @@ import PathwayLayer from './pathways';
 import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle } from './seasons';
 import { RingBack, RingFront } from './Surroundings';
 import { FESTIVAL_SCALES, districtFestive, districtStep, districtWinterLit } from '../data/downtownData';
-import { clampView, districtCentre, ringZoomFloor } from './ringLand';
+import { DEFAULT_ZOOM, clampView, districtCentre, framedView, ringZoomFloor } from './ringLand';
 import { districtLookDue, districtSeen, type DistrictSeen } from './districtLook';
 import Tree, { woodlandShadow } from './trees';
 import { plantingSpecies } from './plantingChoice';
@@ -146,9 +146,15 @@ const COMPLETION_PULSE_MS = 1500;
 // re-renders. MIN_ZOOM is low enough to take in a fully built-out campus.
 const MIN_ZOOM = 0.22;
 const MAX_ZOOM = 2.5;
-// The zoom the map first loads at (see defaultView): wider than native size
-// so a built-out campus reads as a campus.
-const DEFAULT_ZOOM = 0.4;
+// The map opens framed on what stands (Plan 115A, ringLand.ts's
+// framedView): at DEFAULT_ZOOM for a built-out campus, wider than native
+// size so it reads as a campus, and closer while the college is small.
+// `?view=parcel` keeps the view every map opened on before: the whole
+// parcel at DEFAULT_ZOOM. The review tools set it, so their --zoom and
+// --pan recipes frame as they always have.
+export function parcelViewWanted(search: string): boolean {
+  return new URLSearchParams(search).get('view') === 'parcel';
+}
 const ZOOM_SPEED = 0.0016;       // wheel deltaY -> zoom factor
 const PAN_CLICK_THRESHOLD = 4;   // px of movement before a mousedown counts as a drag, not a click
 const TOUCH_SLOP = 8;            // px a finger may wander and still be a tap
@@ -1707,14 +1713,24 @@ export default function CampusMap({
     cancelTurn();
     stanceRef.current = { view: 0, pitch: DEFAULT_PITCH_INDEX };
     applyCamera(DEFAULT_CAMERA);
+    // The pan and the zoom too (Plan 115A): the starting view, as its help
+    // says, framed on what stands now.
+    const size = canvasSizeRef.current;
+    if (size) applyView(defaultView(size));
   }
 
-  // The starting view: centered at DEFAULT_ZOOM, but never so far out that
-  // the grid stops overflowing the canvas vertically (MIN_COVERAGE). Only
-  // bites on an unusually tall, narrow canvas.
+  // The starting view, framed on what stands (Plan 115A), but never so far
+  // out that the grid stops overflowing the canvas vertically
+  // (MIN_COVERAGE), which only bites on an unusually tall, narrow canvas,
+  // nor past the ring (zoomFloor). `?view=parcel` keeps the old one, centred
+  // on the whole parcel at DEFAULT_ZOOM.
   function defaultView(rect: { width: number; height: number }) {
     const MIN_COVERAGE = 1.15;
-    const zoom = Math.max(DEFAULT_ZOOM, (rect.height * MIN_COVERAGE) / MAP_HEIGHT);
+    const coverage = (rect.height * MIN_COVERAGE) / MAP_HEIGHT;
+    if (!parcelViewWanted(window.location.search)) {
+      return framedView(rect, placementsRef.current, Math.max(zoomFloor(), coverage));
+    }
+    const zoom = Math.max(DEFAULT_ZOOM, coverage);
     // Center on the world's real midpoint (the diamond starts at negative x).
     const midX = (WORLD.minX + WORLD.maxX) / 2;
     const midY = (WORLD.minY + WORLD.maxY) / 2;

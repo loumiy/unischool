@@ -1,4 +1,4 @@
-import { CAMPUS_GRID_HEIGHT as GH, CAMPUS_GRID_WIDTH as GW } from '../state/types';
+import { CAMPUS_GRID_HEIGHT as GH, CAMPUS_GRID_WIDTH as GW, type Placements } from '../state/types';
 import { ROAD_FIRST_ROW } from '../state/campusMap';
 import { hashUnit } from '../data/rivalData';
 import type { Species } from '../data/treeData';
@@ -1226,4 +1226,45 @@ export function clampView(view: MapView, width: number, height: number): MapView
   if (col === centre.col && row === centre.row) return view;
   const w = project(col, row);
   return { x: width / 2 - w.x * view.zoom, y: height / 2 - w.y * view.zoom, zoom: view.zoom };
+}
+
+// --- the opening view (Plan 115A, the third review's C1-1) ----------------
+
+// The widest the opening view goes, which is how a built-out campus opens,
+// and the closest, which is how a lone Founders Hall opens. Neither limits
+// the player's own zoom.
+export const DEFAULT_ZOOM = 0.4;
+export const FRAMED_ZOOM = 1;
+// Grass round what stands, in tiles, so the frame is not tight on the walls.
+export const FRAME_MARGIN = 6;
+
+// The view the map opens on, and Home goes back to: centred on what stands,
+// with every placement and FRAME_MARGIN round them on screen where the zoom
+// allows. The zoom is the fit, held between DEFAULT_ZOOM and FRAMED_ZOOM, so
+// the view widens as the college grows. It never goes below `floor` (the
+// map's own: the ring and the grid's coverage). With nothing placed it
+// centres on the parcel's middle, where a headless founding sites the hall
+// (campusMap.ts's centredPlacement). At the camera the projection is at,
+// and through clampView, so the pan's limits are the same as ever.
+export function framedView(
+  rect: { width: number; height: number }, placements: Placements, floor: number,
+): MapView {
+  const all = Object.values(placements);
+  let c0 = GW / 2; let c1 = GW / 2; let r0 = GH / 2; let r1 = GH / 2;
+  if (all.length > 0) {
+    c0 = Math.min(...all.map((p) => p.col)) - FRAME_MARGIN;
+    r0 = Math.min(...all.map((p) => p.row)) - FRAME_MARGIN;
+    c1 = Math.max(...all.map((p) => p.col + p.w)) + FRAME_MARGIN;
+    r1 = Math.max(...all.map((p) => p.row + p.h)) + FRAME_MARGIN;
+  }
+  // The box's four corners on the screen: at any view its extent is theirs.
+  const corners = [project(c0, r0), project(c1, r0), project(c1, r1), project(c0, r1)];
+  const xs = corners.map((p) => p.x);
+  const ys = corners.map((p) => p.y);
+  const fit = all.length > 0
+    ? Math.min(rect.width / (Math.max(...xs) - Math.min(...xs)), rect.height / (Math.max(...ys) - Math.min(...ys)))
+    : FRAMED_ZOOM;
+  const zoom = Math.max(floor, Math.min(FRAMED_ZOOM, Math.max(DEFAULT_ZOOM, fit)));
+  const mid = project((c0 + c1) / 2, (r0 + r1) / 2);
+  return clampView({ x: rect.width / 2 - mid.x * zoom, y: rect.height / 2 - mid.y * zoom, zoom }, rect.width, rect.height);
 }
