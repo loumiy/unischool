@@ -9,7 +9,9 @@ before there are paths, winter on the newer roofs, an Arena that is not a
 shed, and a founding screen that fits a 1280×720 laptop. The review is
 [`docs/reviews/2026-10-game-review-iii/1-aesthetics.md`](../reviews/2026-10-game-review-iii/1-aesthetics.md).*
 
-**Status: Proposed.**
+**Status: Landed on the branch (23 October 2026), A–I, to ship with
+0.1.4.** The owner took §2's recommendations. Notes on where the PRs
+landed differently are in §4.
 
 ---
 
@@ -312,3 +314,56 @@ what A, B and D made.
   already fixed.
 - The title painting (C6-1) and the store retakes (C6-7) are Plan 117's.
   I only adds one shot to that set.
+
+## 4. As implemented
+
+- **A.**
+  - `framedView` frames every placement with a six-tile margin. The zoom is
+    held between 0.4 and 1.0, and never under `max(zoomFloor(), the old
+    MIN_COVERAGE zoom)`.
+  - A founding opens at 1.0 on Founders Hall. By year 1 a Guided campus
+    already reaches toward the parcel's edges, so years 1–5 still open at
+    0.4, centred on the buildings rather than the parcel.
+  - The tools load `?view=parcel`. `touchCheck` now pinches about a
+    building on screen.
+- **B.**
+  - The drive runs from the front door to the last row of land: 59 tiles
+    for a centred hall. A hall facing away from the road gets a drive along
+    its side.
+  - No guardrail moved. `test:slow` is identical. In `npm run sim`, only
+    five of thirty runs differ, by at most 0.003 prestige after year 42.
+    Beauty and applicants at years 5 and 10 are unchanged on every seed.
+  - `newPlayer.mjs` opens the waiting summer, which it hadn't since Plan
+    112C.
+- **C.** A young campus's walkers also spawn at the hall and the
+  forecourt, not the road, so the crowd is there from the first frame.
+- **D.**
+  - The chapter's *about* dropped its first sentence, to stay within three.
+  - The harness lays the path as a player following Show me would
+    (`layPathToFounders`), and so does `markAsPlayed`.
+  - The Paths tile's ring is drawn inset, because the build strip clipped
+    it.
+  - `newplayer --follow` plays the first chapters, the path included.
+- **E.**
+  - The Law School's Georgian copper attic takes snow too.
+  - Flat tops open to the sky (the Bell Tower's stage, the Gate's caps)
+    and the Gothic dome's pinnacles take it as well.
+  - The gazebo reads `SnowContext` itself, as `RakedStand` does.
+- **F.**
+  - The Arena is drawn as a sports shed (`ArenaShed`), so its front turns
+    with it.
+  - The college's colours reach the canvas through `InCollegeColors`.
+  - Only the Arena's gallery images were committed. `grounds-2` and
+    `pavilion-3` had already drifted on the branch.
+- **G.**
+  - At 1280×720, *Open the doors* ends at 630 px (it was 746), and the
+    title fits in 720 with the hall of fame showing.
+  - `review:gallery` flags a primary button below the fold.
+- **H.** Loading a save had dropped any dressing on a quad's lawn
+  (`sanitizeDressing`). It now uses the same `dressingBlocker` as the
+  reducer and the map.
+- **I.**
+  - `docs/store/itch/6-young-campus.jpg` is a Guided year-5 campus, laid
+    out and framed close (`--framed --zoom=3`).
+  - The shot keeps the game's chrome like the other five, not `--bare`.
+  - Its recipe is in `itch-page.md`.
