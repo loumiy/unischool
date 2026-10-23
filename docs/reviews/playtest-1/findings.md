@@ -560,7 +560,7 @@ marked **0.1.x** and fixed in a patch.*
   **Left as it is** (the owner, 22 October).
 
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
-  Not yet traced in the code. *Owner.*
+  Traced and fixed by Plan 99E (13 October), shipped in 0.1.1. *Owner.*
 
 - **On a phone, Founders Hall can't be built.** The player guessed the
   game wasn't meant for mobile and stopped. *1 player · reddit (R4).*

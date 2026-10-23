@@ -5,7 +5,7 @@ is to turn the owner's idea of administrative offices in Founders Hall into
 PRs: a seventh purchased hall so Founders Hall can be emptied, twelve
 offices to put in it, and six milestones that open them one at a time.*
 
-**Status: In progress: A–G open.**
+**Status: Landed.**
 
 ---
 
