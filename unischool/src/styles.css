@@ -414,6 +414,17 @@ button, input, select, textarea { font-size: inherit; }
 /* The menu: the game's own front-screen card and buttons over the art,
    narrower so the quad shows round it. */
 .title-screen .title-card { width: min(460px, 100%); margin-top: auto; }
+/* A short screen (Plan 115G, the founding card's rule below): the mark,
+   the name and the card's padding close up, so the menu and the hall of
+   fame fit in a 1280×720 laptop without the screen scrolling. */
+@media (max-height: 800px) {
+  .title-screen { gap: var(--space-12); padding-top: var(--space-16); padding-bottom: var(--space-16); }
+  .title-screen .logo { gap: var(--space-6); }
+  .title-screen .logo-mark { width: clamp(56px, 9vh, 88px); }
+  .title-screen .logo-name { font-size: clamp(40px, 9vh, 72px); }
+  .title-screen .title-tagline { margin-top: var(--space-6); font-size: var(--text-lg); }
+  .title-screen .title-card { padding: var(--space-16) var(--space-24); }
+}
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
@@ -3457,6 +3468,20 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The run the doors would erase (founding over one in progress). */
 .startup-replacing { margin: 0 0 var(--space-12); font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); text-align: center; }
 .startup-begin-btn { width: 100%; padding: var(--space-12); font-size: var(--text-lg); }
+/* A short screen, a 1280×720 laptop (Plan 115G, the review's C1-6): the
+   facade is capped at 120 px tall, centred, its width following its
+   440×214 viewBox, and the card's padding and margins close up, so Open the
+   doors sits inside 720 px. Height only: a phone is taller than 800 px. */
+@media (max-height: 800px) {
+  .startup { gap: var(--space-8); padding-top: var(--space-12); padding-bottom: var(--space-12); }
+  .startup-brand { font-size: var(--text-2xl); }
+  .startup-brand-mark { width: 32px; }
+  .startup-card { padding: var(--space-16) var(--space-24) var(--space-24); }
+  .startup-card h1 { margin-bottom: var(--space-12); }
+  .startup-facade { margin: var(--space-8) 0 var(--space-12); }
+  .startup-facade-svg { width: min(100%, calc(120px * 440 / 214)); margin: 0 auto; }
+  .startup-color-name { margin: var(--space-6) 0 var(--space-12); }
+}
 
 /* thin scrollbars inside parchment panels */
 .log::-webkit-scrollbar { width: 8px; }
