@@ -40,10 +40,11 @@ export interface FoundingPreset {
 export const STARTING_TUITION = 20_000;
 
 // Where the tuition slider ends: a control needs a top, not a policy cap.
-// Deliberately out of reach: no player the harness has closes a fifty-year
-// run anywhere near it (`npm run sim`), so a player at this number has left
-// the part of the curve the game is balanced over.
-export const TUITION_SLIDER_MAX = 100_000;
+// $60,000 (the owner, after Plan 112; it was $100,000, most of a slider
+// nobody could use): above what prestige supports even at its ceiling of
+// 150 (admissionsSystem.ts's priceTolerance, $40,500, fair to about
+// $46,600), so every tier but the most reckless stays within reach.
+export const TUITION_SLIDER_MAX = 60_000;
 export const STARTING_ENDOWMENT = 3_000_000; // pays out ~$120k/yr from day one (at treasury.ts's DRAW_RATE_DEFAULT)
 
 // --- Founding class mix (see actions.ts's createInitialState) ----------
