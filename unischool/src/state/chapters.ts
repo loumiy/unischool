@@ -325,7 +325,8 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     // The specialization: a long goal from year 15, met when the board
     // first offers the choice (the guide's top 30, or from year 20 the top
-    // 10 of a pillar: prestigeSystem.ts).
+    // 10 of a pillar or satisfaction that led the field, Plan 116C:
+    // prestigeSystem.ts).
     id: 'specialization',
     earliest: week(15, 1),
     side: true,

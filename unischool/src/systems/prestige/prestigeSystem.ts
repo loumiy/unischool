@@ -173,6 +173,25 @@ export const SPECIALIZATION_PILLAR_YEAR = 20;
 // SPECIALIZATION_PILLAR_YEAR.
 export const SPECIALIZATION_NOTICE_PLACES = 4;
 export const SPECIALIZATION_NOTICE_YEARS = 2;
+// The third route (Plan 116C, the third review's C4-6): from Year
+// SPECIALIZATION_PILLAR_YEAR, satisfaction that led the field, as
+// satisfactionLeads below reads it. The happiest college stood #15-29 in
+// student life, since welfare is full at 80 for every big college too, so
+// neither rank ever asked it. Its notice comes SPECIALIZATION_NOTICE_YEARS
+// ahead, like the pillar's.
+//
+// Satisfaction that leads the field (Plan 95U, the second review's B4-7;
+// moved here from the Final Report by Plan 116C, so the offer and the
+// report read one rule): the year's average satisfaction at
+// SATISFACTION_LEADS_AT or over it in more than half the history's rows.
+// The guide ranks no rival on satisfaction, so the field is a bar, not a
+// rank.
+export const SATISFACTION_LEADS_AT = 85;
+
+export function satisfactionLeads(s: GameState): boolean {
+  const rows = s.history.filter((h) => typeof h.satisfactionAverage === 'number');
+  return rows.length > 0 && rows.filter((h) => h.satisfactionAverage >= SATISFACTION_LEADS_AT).length > rows.length / 2;
+}
 
 // Each pillar's terms, weighted among themselves. The weights are the terms'
 // old weights where they had one: academics and student life keep their

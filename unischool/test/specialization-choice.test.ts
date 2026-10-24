@@ -8,7 +8,10 @@
 //     clock;
 //   - the choice is offered at the first summer at the milestone, raised at
 //     that summer's close on the new year's first week (holding no week),
-//     and a college below the milestone is never offered it;
+//     and a college below the milestone is never offered it; from Year
+//     SPECIALIZATION_PILLAR_YEAR a pillar's top places bring it too (Plan
+//     95R), and so does satisfaction that led the field (Plan 116C), its
+//     notice SPECIALIZATION_NOTICE_YEARS ahead, never one point short;
 //   - choosing lifts only that pillar's limit (and, for athletics, the team
 //     ceiling and the big stage); the others' words say they stay;
 //   - "not this year" leaves it open, and it comes back at the next
@@ -37,15 +40,15 @@ import { exportSave, readSave, SAVE_VERSION } from '../src/state/persistence';
 import { reduceInPlace } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import {
-  PILLARS, PILLAR_WEIGHTS, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS,
-  computePrestigeTarget, pillarBreakdown, pillarValue, prestigeBreakdown, specializationOf,
+  PILLARS, PILLAR_WEIGHTS, SATISFACTION_LEADS_AT, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS,
+  computePrestigeTarget, pillarBreakdown, pillarValue, prestigeBreakdown, satisfactionLeads, specializationOf,
 } from '../src/systems/prestige/prestigeSystem';
 import {
   bestPillarStanding, collegeSpecialization, shareFullProjection, specializationOptions, strongestStanding, tickSpecialization, type SpecializationPayload,
 } from '../src/systems/prestige/milestone';
 import { decimal } from '../src/format';
-import { pillarShareRule, specializationOfferRule, specializationShareWorth } from '../src/data/prestigeWords';
-import { playerRank, rankBy, rankedList } from '../src/systems/rivals/rivalsSystem';
+import { pillarShareRule, satisfactionRouteWords, specializationOfferRule, specializationShareWorth } from '../src/data/prestigeWords';
+import { PILLAR_AXES, playerRank, rankBy, rankedList, standingValue } from '../src/systems/rivals/rivalsSystem';
 import { teamQualityCurve } from '../src/data/studentLifeData';
 import { finalReport } from '../src/state/finalReport';
 import { TAG_PHRASES } from '../src/data/reportData';
@@ -137,7 +140,7 @@ function closeSummer(s: GameState): GameState {
   const item = inboxItems(s).find((i) => i.ref === SPECIALIZATION_NOTICE_ID);
   assert(item !== undefined && item.from === 'From the board' && item.tier === 'letter', 'the inbox files it as the board\'s letter');
   const letter = BOARD_LETTERS[SPECIALIZATION_NOTICE_ID];
-  assert(letter.text.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && letter.text.includes(`From Year ${SPECIALIZATION_PILLAR_YEAR}, a place in the top ${SPECIALIZATION_PILLAR_RANK} of any one pillar`), `it names both routes ("${letter.text.slice(0, 160)}")`);
+  assert(letter.text.includes(specializationOfferRule()) && letter.text.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && letter.text.includes(satisfactionRouteWords()), `it names the three routes ("${letter.text.slice(0, 160)}")`);
   for (const p of PILLARS) {
     const name = SPECIALIZATION_CARDS[p].name.replace(/^The /, 'the ');
     // What each opens, in points of prestige (Plan 95F), never the pillar's.
@@ -239,11 +242,67 @@ function closeSummer(s: GameState): GameState {
   assert(specializationOf(u) === 'athletics', 'a college brought by research may choose athletics');
 }
 
-// ---- The words name both routes (Plan 95R) ----
+// ---- The third route: satisfaction that led the field, from Year SPECIALIZATION_PILLAR_YEAR (Plan 116C) ----
+{
+  // Every year's satisfaction at `at`; the college far down the guide and
+  // out of every pillar's top places, so only satisfaction can bring it.
+  const happyAt = (year: number, week: number, at: number): GameState => {
+    const s = launch();
+    s.clock.year = year;
+    s.clock.week = week;
+    s.history.forEach((h) => { h.satisfactionAverage = at; });
+    const mine = Object.fromEntries(PILLAR_AXES.map((axis) => [axis, standingValue(s, axis)]));
+    for (const r of s.rivals) {
+      r.reputation = Math.max(r.reputation, mine.academics + 1);
+      r.researchStanding = Math.max(r.researchStanding, mine.researchStanding + 1);
+      r.socialStanding = Math.max(r.socialStanding, mine.socialStanding + 1);
+      r.athleticStrength = Math.max(r.athleticStrength, mine.athleticStrength + 1);
+    }
+    standAt(s, 60);
+    if (week === 52) s.pendingInterrupt = { type: 'summer', payload: { beat: 0, tuition: s.finance.listedTuition, admitRate: s.students.admitRate } };
+    return s;
+  };
+  const at = SATISFACTION_LEADS_AT + 5;
+  const s = happyAt(SPECIALIZATION_PILLAR_YEAR, 52, at);
+  assert(satisfactionLeads(s), `satisfaction at ${at} every year leads the field`);
+  assert(playerRank(s) > SPECIALIZATION_MILESTONE_RANK + SPECIALIZATION_NOTICE_PLACES && bestPillarStanding(s).rank > SPECIALIZATION_PILLAR_RANK + SPECIALIZATION_NOTICE_PLACES,
+    `outside the guide's top ${SPECIALIZATION_MILESTONE_RANK} (#${playerRank(s)}) and every pillar's top ${SPECIALIZATION_PILLAR_RANK} (best #${bestPillarStanding(s).rank})`);
+  tickSpecialization(s);
+  assert(s.specializationOffered === s.clock.year, `in Year ${SPECIALIZATION_PILLAR_YEAR}, the offer is made`);
+  assert(s.log[0].message.startsWith(`You have had ${satisfactionRouteWords()}.`), `the log names satisfaction ("${s.log[0].message}")`);
+  // Too early: the notice from SPECIALIZATION_NOTICE_YEARS ahead, and the offer only from the year.
+  const early = happyAt(SPECIALIZATION_PILLAR_YEAR - 1, 52, at);
+  tickSpecialization(early);
+  assert(early.specializationOffered === undefined, `in Year ${early.clock.year}, no offer`);
+  assert(early.specializationNotice === early.clock.year, 'but the notice');
+  const notice = happyAt(SPECIALIZATION_PILLAR_YEAR - SPECIALIZATION_NOTICE_YEARS, 10, at);
+  tickSpecialization(notice);
+  assert(notice.specializationNotice === notice.clock.year && notice.finance.distress?.letters.includes(SPECIALIZATION_NOTICE_ID) === true, `the notice comes in Year ${notice.clock.year}`);
+  const before = happyAt(SPECIALIZATION_PILLAR_YEAR - SPECIALIZATION_NOTICE_YEARS - 1, 10, at);
+  tickSpecialization(before);
+  assert(before.specializationNotice === undefined, `and not in Year ${before.clock.year}`);
+  // One short of the bar: never.
+  for (const year of [SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_PILLAR_YEAR + 15]) {
+    const short = happyAt(year, 52, SATISFACTION_LEADS_AT - 1);
+    tickSpecialization(short);
+    assert(!satisfactionLeads(short) && short.specializationOffered === undefined && short.specializationNotice === undefined, `at ${SATISFACTION_LEADS_AT - 1} in Year ${year}, neither notice nor offer`);
+  }
+  // The letter by this route, and all four choices open.
+  const offer = CHOICE_WORDS.offer(60, SPECIALIZATION_MILESTONE_RANK, { pillar: 'studentLife', rank: 20 }, SPECIALIZATION_PILLAR_RANK, satisfactionRouteWords('its'));
+  assert(offer.includes(`has had ${satisfactionRouteWords('its')}`) && !offer.includes('#60') && offer.split(/(?<=\.)\s+/).length === 1, `the letter names satisfaction, in one sentence ("${offer}")`);
+  let u = closeSummer(s);
+  assert(u.pendingInterrupt?.type === 'specialization', 'the choice at the summer\'s close');
+  u = act(u, { type: 'RESOLVE_SPECIALIZATION', pillar: 'research' });
+  assert(specializationOf(u) === 'research', 'a college brought by satisfaction may choose research');
+}
+
+// ---- The words name the three routes (Plan 95R, Plan 116C) ----
 {
   const s = launch();
   const rule = specializationOfferRule();
-  assert(rule.includes(`top ${SPECIALIZATION_MILESTONE_RANK}`) && rule.includes(`from Year ${SPECIALIZATION_PILLAR_YEAR}, in the top ${SPECIALIZATION_PILLAR_RANK} of any one pillar`), `the rule names both routes ("${rule}")`);
+  assert(rule === `The board offers you a specialization the first summer your college is in the guide's top ${SPECIALIZATION_MILESTONE_RANK}. From Year ${SPECIALIZATION_PILLAR_YEAR}, two more things bring the offer. One is a top-${SPECIALIZATION_PILLAR_RANK} place in any one pillar. The other is student satisfaction of ${SATISFACTION_LEADS_AT} or more in over half your years.`,
+    `the rule names the three routes, a sentence each ("${rule}")`);
+  assert(rule.split(/(?<=\.)\s+/).every((sentence) => sentence.split(/\s+/).length < 20), 'each sentence under twenty words');
   assert(collegeSpecialization(s).endsWith(rule), 'the status line says it');
 }
 
@@ -424,11 +483,14 @@ function closeSummer(s: GameState): GameState {
   assert(PILLARS.every((p) => options.find((o) => o.pillar === p)!.rivals === strongest.rivals[p]), 'each panel counts its own pillar\'s');
 
   // The letter (Plan 110): one sentence, where the college stands.
-  const offer = CHOICE_WORDS.offer(12, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 40 }, SPECIALIZATION_PILLAR_RANK);
+  const offer = CHOICE_WORDS.offer(12, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 40 }, SPECIALIZATION_PILLAR_RANK, satisfactionRouteWords('its'));
   assert(offer.split(/(?<=\.)\s+/).length === 1 && offer.includes('#12 in the guide') && !offer.includes(pillarShareRule()), `the offer is one sentence ("${offer}")`);
   // By the pillar's route (Plan 95R): the pillar, not the guide.
-  const byPillar = CHOICE_WORDS.offer(44, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 6 }, SPECIALIZATION_PILLAR_RANK);
-  assert(byPillar.includes('#6 in athletics') && !byPillar.includes('#44'), `by a pillar, the offer names it ("${byPillar}")`);
+  const byPillar = CHOICE_WORDS.offer(44, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 6 }, SPECIALIZATION_PILLAR_RANK, satisfactionRouteWords('its'));
+  assert(byPillar.includes('#6 in athletics') && !byPillar.includes('#44') && !byPillar.includes('satisfaction'), `by a pillar, the offer names it ("${byPillar}")`);
+  // Slipped from all three since: asked all the same, by no route.
+  const slipped = CHOICE_WORDS.offer(44, SPECIALIZATION_MILESTONE_RANK, { pillar: 'athletics', rank: 16 }, SPECIALIZATION_PILLAR_RANK, null);
+  assert(slipped.includes('earned the offer in an earlier summer') && !/#\d/.test(slipped), `slipped from every route, the offer says it was earned ("${slipped}")`);
   // The page: the question by the college's name, the rule under it.
   assert(CHOICE_WORDS.question('Halifax College') === 'What will Halifax College be known for?', `the page asks by name (${CHOICE_WORDS.question('Halifax College')})`);
   // A choice names its pillar, and the second ask what is lost.

@@ -1,13 +1,14 @@
 import { heldOffices } from '../systems/administration/offices';
 import { officeDef } from '../data/officeData';
 import { specializationOf } from '../systems/prestige/specialization';
+import { satisfactionLeads } from '../systems/prestige/prestigeSystem';
 import { SPECIALIZATION_CARDS } from '../data/specializationData';
 import type { GameState } from './types';
 import { institutionName, totalEnrolled } from './types';
 import { STARTING_ENDOWMENT } from '../data/foundingData';
 import { settledTitle } from '../systems/promises/promises';
 import {
-  AXIS_PHRASES, EARNED_PILLAR_TOP, REPORT_SHAPES, SATISFACTION_LEADS_AT, SATISFACTION_LEAD_SHARE, SPECIALIZATION_AXIS, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
+  AXIS_PHRASES, EARNED_PILLAR_TOP, REPORT_SHAPES, SATISFACTION_LEAD_SHARE, SPECIALIZATION_AXIS, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
 } from '../data/reportData';
 import { STANDINGS, playerRank, rankBy, standingValue, type StandingAxis } from '../systems/rivals/rivalsSystem';
 import { debtOutstanding } from '../systems/finance/treasury';
@@ -97,16 +98,12 @@ export const EPILOGUE_DECADE = 10;
 const mean = (xs: number[]) => (xs.length ? xs.reduce((t, x) => t + x, 0) / xs.length : 0);
 const round1 = (n: number) => Number(n.toFixed(1));
 
-// Whether the college's satisfaction led the field for most of the arc
-// (Plan 95U, the second review's B4-7): the year's average at
-// SATISFACTION_LEADS_AT or over it in more than half the history's rows.
-// The experience axis then reads satisfaction at SATISFACTION_LEAD_SHARE
-// beside the campus-life standing, so the college that kept its students
-// happiest earns the axis that names it.
-export function satisfactionLeads(s: GameState): boolean {
-  const rows = s.history.filter((h) => typeof h.satisfactionAverage === 'number');
-  return rows.length > 0 && rows.filter((h) => h.satisfactionAverage >= SATISFACTION_LEADS_AT).length > rows.length / 2;
-}
+// Whether the college's satisfaction led the field for most of the arc:
+// prestigeSystem.ts's satisfactionLeads, which also brings the offer of a
+// specialization (Plan 116C). The experience axis then reads satisfaction
+// at SATISFACTION_LEAD_SHARE beside the campus-life standing (Plan 95U), so
+// the college that kept its students happiest earns the axis that names it.
+export { satisfactionLeads };
 
 // Each standing over the arc. A year's value comes from its history row
 // (Plan 33's journal); rows from before it carry none, and a run with none
@@ -162,29 +159,42 @@ export const EARNED_TAGS: Readonly<Record<string, (s: GameState) => boolean>> = 
 // standing implies. The guidebooks' own tags first, in their order; then a
 // tag the college earned that they have not caught up with; then the
 // guidebooks' first. Of several earned tags they have not caught up with,
-// the one whose standing the arc graded highest.
+// the one whose standing the arc graded highest. composeTitle sets the
+// campus life of a college whose satisfaction led the field after the
+// first of these and before the rest (Plan 116C).
 export function titleTag(s: GameState, grades: AxisGrade[]): string | undefined {
   const tags = s.identity?.tags ?? [];
-  const earned = (id: string) => EARNED_TAGS[id]?.(s) ?? false;
   const scoreOf = (id: string) => grades.find((g) => g.axis === TAG_AXIS[id])?.score ?? 0;
-  const unheld = Object.keys(EARNED_TAGS).filter((id) => !tags.includes(id) && earned(id)).sort((a, b) => scoreOf(b) - scoreOf(a));
-  return tags.find(earned) ?? unheld[0] ?? tags[0];
+  const unheld = Object.keys(EARNED_TAGS).filter((id) => !tags.includes(id) && earnedTag(s, id)).sort((a, b) => scoreOf(b) - scoreOf(a));
+  return tags.find((id) => earnedTag(s, id)) ?? unheld[0] ?? tags[0];
+}
+
+function earnedTag(s: GameState, id: string): boolean {
+  return EARNED_TAGS[id]?.(s) ?? false;
 }
 
 // "Halifax University: a research powerhouse that never gave its students
-// much of a campus life." Its specialization first, once it has one (Plan
-// 85D: "a college known first for its teaching", the card's own words);
-// else its tag, an earned one first (titleTag), or its strongest standing. Then
-// its weakest if that is weak, never the one the phrase claims.
+// much of a campus life." The phrase names the college in this order (Plan
+// 116C, the third review's C4-6): its specialization, once it has one (Plan
+// 85D: "a college known first for its teaching", the card's own words); a
+// tag the guidebooks hold and the record earns; its campus life, when its
+// satisfaction led the field (satisfactionLeads); an earned tag the
+// guidebooks have not caught up with; their first tag; else its strongest
+// standing. So an earned research powerhouse keeps its name, and an
+// unearned teaching college gives way to the happiest campus. Then its
+// weakest if that is weak, never the one the phrase claims.
 export function composeTitle(s: GameState, grades: AxisGrade[]): string {
   const college = institutionName(s.self);
   const byScore = [...grades].sort((a, b) => b.score - a.score);
   const specialization = specializationOf(s);
   const tag = titleTag(s, grades);
-  const claims = specialization ? SPECIALIZATION_AXIS[specialization] : tag ? TAG_AXIS[tag] : null;
+  const heldAndEarned = tag !== undefined && (s.identity?.tags ?? []).includes(tag) && earnedTag(s, tag);
+  const campusLife = !specialization && !heldAndEarned && satisfactionLeads(s);
+  const claims = specialization ? SPECIALIZATION_AXIS[specialization] : campusLife ? 'experience' : tag ? TAG_AXIS[tag] : null;
   const weakest = [...byScore].reverse().find((g) => g.axis !== claims) ?? byScore[byScore.length - 1];
   const phrase = specialization ? SPECIALIZATION_CARDS[specialization].known
-    : tag && TAG_PHRASES[tag] ? TAG_PHRASES[tag] : AXIS_PHRASES[byScore[0].axis];
+    : campusLife ? AXIS_PHRASES.experience
+      : tag && TAG_PHRASES[tag] ? TAG_PHRASES[tag] : AXIS_PHRASES[byScore[0].axis];
   const shape = weakest.score < WEAKNESS_BELOW ? REPORT_SHAPES.title.replace('{tail}', WEAKNESSES[weakest.axis]) : REPORT_SHAPES.strength;
   return shape.replace('{college}', college).replace('{phrase}', phrase);
 }

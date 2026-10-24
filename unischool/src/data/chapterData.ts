@@ -23,7 +23,8 @@ import { DEMAND_FIRST_YEAR, DEMAND_SATISFACTION_THRESHOLD } from './demandData';
 import { ATTRITION_SATISFACTION_LINE } from '../systems/admissions/admissionsSystem';
 import { SEARCH_COST_WEEKS, SEARCH_WEEKS } from '../systems/faculty/facultySearch';
 import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
-import { SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR } from '../systems/prestige/prestigeSystem';
+import { SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_YEAR } from '../systems/prestige/prestigeSystem';
+import { pillarRouteWords, satisfactionRouteWords } from './prestigeWords';
 import { INITIATIVE_DEPTHS } from './researchData';
 import { PROJECTS } from './projectData';
 import { SEAT_SENIOR_YEARS } from './seatData';
@@ -341,7 +342,8 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'choose-specialization': 'Choose one',
     },
     help: {
-      'offered-specialization': { text: `From year ${SPECIALIZATION_PILLAR_YEAR}, a top ${SPECIALIZATION_PILLAR_RANK} place in any one pillar also counts. The guide in History shows your rank overall and in each pillar.`, door: 'history' },
+      // The later routes (Plan 95R; Plan 116C's satisfaction), in prestigeWords.ts's words.
+      'offered-specialization': { text: `From year ${SPECIALIZATION_PILLAR_YEAR}, ${pillarRouteWords()} also counts. So does ${satisfactionRouteWords()}. The guide in History shows your rank overall and in each pillar.`, door: 'history' },
       'choose-specialization': { text: 'The offer has its own page, showing what each pillar would open. Click "Not this year" to put the choice off for a year.' },
     },
   },

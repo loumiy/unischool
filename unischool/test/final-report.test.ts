@@ -91,6 +91,31 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
   assert(!satisfactionLeads(brief) && experience(brief).score === plain.score, 'twenty years of it of fifty is not most of the arc');
   const good = withSatisfaction(run(60, 60), () => 80);
   assert(!satisfactionLeads(good) && experience(good).score === plain.score, 'good satisfaction is not leading satisfaction');
+
+  // The title (Plan 116C, the third review's C4-6): satisfaction that led
+  // the field names the college before a tag its record has not earned,
+  // never before one it has, nor before its specialization.
+  const happiestTitle = () => {
+    const s = withSatisfaction(run(60, 60, { athleticStrength: [10, 20] }), () => 90);
+    s.identity = { tags: ['teaching-college'], earning: {}, shedding: {} };
+    return s;
+  };
+  const unearned = happiestTitle();
+  const campus = composeTitle(unearned, gradeAxes(unearned));
+  assert(campus === 'Report College: a college with a campus life to envy that never fielded a team anyone feared', `an unearned teaching college gives way to its campus life ("${campus}")`);
+  const plainTagged = withSatisfaction(run(60, 60, { athleticStrength: [10, 20] }), () => 80);
+  plainTagged.identity = { tags: ['teaching-college'], earning: {}, shedding: {} };
+  assert(composeTitle(plainTagged, gradeAxes(plainTagged)).includes('a teaching college'), 'without leading satisfaction, the unearned tag stands');
+  const earned = happiestTitle();
+  earned.history.forEach((h) => { h.standings = { academics: 4 }; });
+  assert(composeTitle(earned, gradeAxes(earned)).includes('a teaching college'), 'an earned teaching college keeps its name');
+  const unheld = happiestTitle();
+  unheld.identity = { tags: [], earning: {}, shedding: {} };
+  unheld.research.prizes = 2;
+  assert(composeTitle(unheld, gradeAxes(unheld)).includes('a campus life to envy'), 'and campus life comes before an earned tag the guidebooks never gave');
+  const specialized = happiestTitle();
+  specialized.specialization = 'academics';
+  assert(!composeTitle(specialized, gradeAxes(specialized)).includes('campus life to envy'), 'a specialization names the college first');
 }
 {
   // An earned tag names the college before one its standing implies.

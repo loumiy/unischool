@@ -1,6 +1,6 @@
 import type { Pillar } from '../state/types';
 import { decimal, pct } from '../format';
-import { EARLY_FADE_YEAR, PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, PRESTIGE_FALL_RATE, riseRateIn, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS } from '../systems/prestige/prestigeSystem';
+import { EARLY_FADE_YEAR, PILLARS, PILLAR_LABELS, PILLAR_WEIGHTS, PRESTIGE_FALL_RATE, riseRateIn, SATISFACTION_LEADS_AT, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS } from '../systems/prestige/prestigeSystem';
 
 // ---------------------------------------------------------------------
 // The pillar rule, said once (Plan 95E, the second review's B2-4): prestige
@@ -66,15 +66,23 @@ export function summerRule(year: number): string {
   return `Prestige is graded each summer. It moves toward that grade. ${era}`;
 }
 
-// When the board offers the choice (Plan 95R, the second review's B4-2):
-// the two routes, from prestigeSystem.ts's constants, as one clause:
-// "the first summer the college stands in the guide's top N or, from Year Y,
-// in the top M of any one pillar's standing".
-export function specializationOfferWhen(): string {
-  return `the first summer the college stands in the guide's top ${SPECIALIZATION_MILESTONE_RANK} or, from Year ${SPECIALIZATION_PILLAR_YEAR}, in the top ${SPECIALIZATION_PILLAR_RANK} of any one pillar's standing`;
+// When the board offers the choice (Plan 95R, the second review's B4-2;
+// Plan 116C, the third review's C4-6): the three routes, from
+// prestigeSystem.ts's constants. The two later routes, each a phrase, for
+// the lines that name the one that brought the offer.
+export function pillarRouteWords(): string {
+  return `a top-${SPECIALIZATION_PILLAR_RANK} place in any one pillar`;
 }
 
-// The same, a sentence.
+// "Over half" is the rule as satisfactionLeads counts it. `whose` is the
+// reader's: "your years", or the college's, "its years".
+export function satisfactionRouteWords(whose: 'your' | 'its' = 'your'): string {
+  return `student satisfaction of ${SATISFACTION_LEADS_AT} or more in over half ${whose} years`;
+}
+
+// The rule, a sentence a route (Plan 111's rules 2 and 6: no sentence
+// carries the rule and its exceptions together). Both later routes start
+// at Year SPECIALIZATION_PILLAR_YEAR, so one sentence says so.
 export function specializationOfferRule(): string {
-  return `The board offers the choice of a specialization at ${specializationOfferWhen()}.`;
+  return `The board offers you a specialization the first summer your college is in the guide's top ${SPECIALIZATION_MILESTONE_RANK}. From Year ${SPECIALIZATION_PILLAR_YEAR}, two more things bring the offer. One is ${pillarRouteWords()}. The other is ${satisfactionRouteWords()}.`;
 }
