@@ -17,6 +17,9 @@ import { ESCALATION_WEEKS_OF_OPEX, seatDef } from '../../data/seatData';
 import { CHARTER_EVENT } from '../../data/eventCatalogue';
 import { CHARTER_INSTANCE, charterVars } from './charter';
 import { FESTIVAL_EVENT, FESTIVAL_INSTANCE, FESTIVAL_WEEK, downtownWorks, festivalHeld } from '../../data/downtownData';
+import { BOARD_QUESTIONS, BOARD_QUESTION_FROM_YEAR, BOARD_QUESTION_INSTANCE, BOARD_QUESTION_WEEK, boardQuestionIndex, donorFamily, isBoardQuestion } from '../../data/boardQuestionData';
+import { closeRefusal } from '../techtree/techSystem';
+import { programById } from '../../data/techData';
 
 // THE PANEL (Plan 32): when the catalog's events fire, how they wait, and
 // how they are answered. Inline events queue in the panel and never stop
@@ -128,10 +131,11 @@ export function tickCatalogue(s: GameState): void {
   if (choice) resolveCatalogueEvent(s, p.instanceId, choice, 'seat');
 }
 
-// The drawn events waiting: the charter and the spring festival are raised,
-// not drawn, and hold no place in the queue the draws are held to.
+// The drawn events waiting: the charter, the spring festival and the board's
+// question are raised, not drawn, and hold no place in the queue the draws
+// are held to.
 function drawnWaiting(c: CatalogueState): number {
-  return c.pending.filter((p) => p.eventId !== CHARTER_EVENT.id && p.eventId !== FESTIVAL_EVENT.id).length;
+  return c.pending.filter((p) => p.eventId !== CHARTER_EVENT.id && p.eventId !== FESTIVAL_EVENT.id && !isBoardQuestion(p.eventId)).length;
 }
 
 // The charter (charter.ts), raised by eventSystem.ts rather than drawn: a
@@ -158,6 +162,48 @@ export function raiseFestival(s: GameState): boolean {
   c.pending.push({ instanceId: FESTIVAL_INSTANCE, eventId: FESTIVAL_EVENT.id, firedWeek: absoluteWeek(s), vars: {}, scale: priceScale(s) });
   c.lastFired[FESTIVAL_EVENT.id] = s.clock.year;
   return true;
+}
+
+// The board's question (Plan 116D, data/boardQuestionData.ts), raised by
+// eventSystem.ts each week before anything can claim it: from
+// BOARD_QUESTION_WEEK of each year from BOARD_QUESTION_FROM_YEAR, once a
+// year, while none waits, never in a sandbox or before the matters chapter.
+// The year's question in turn, or the next that the college can be asked.
+// A fixed id and names read off the state, so it takes nothing from the
+// run's stream, and no seat answers it. An inbox matter with weeks to
+// answer, so it never pauses the clock on arrival.
+export function raiseBoardQuestion(s: GameState): boolean {
+  if (s.sandbox || s.clock.year < BOARD_QUESTION_FROM_YEAR || !chapterGateOpen(s, MATTERS_CHAPTER)) return false;
+  if (s.clock.week < BOARD_QUESTION_WEEK || s.clock.week >= WEEKS_PER_YEAR) return false;
+  const c = s.catalogue ??= { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
+  if (BOARD_QUESTIONS.some((e) => c.lastFired[e.id] === s.clock.year || c.pending.some((p) => p.eventId === e.id))) return false;
+  const first = boardQuestionIndex(s.clock.year);
+  for (let i = 0; i < BOARD_QUESTIONS.length; i += 1) {
+    const e = BOARD_QUESTIONS[(first + i) % BOARD_QUESTIONS.length];
+    const vars = boardQuestionVars(s, e);
+    if (!vars) continue;
+    const scale = priceScale(s);
+    if (e.choices[0].effects.endowment) vars.gift = money(scaledEffects(e.choices[0].effects, scale).endowment!);
+    c.pending.push({ instanceId: BOARD_QUESTION_INSTANCE, eventId: e.id, firedWeek: absoluteWeek(s), vars, scale });
+    c.lastFired[e.id] = s.clock.year;
+    return true;
+  }
+  return false;
+}
+
+// What a board question names, read off the state: the smallest program the
+// college could close (fewest courses, then by id) and the year's donor. Null
+// when it names a program and none can close.
+function boardQuestionVars(s: GameState, e: CatalogueEvent): Record<string, string> | null {
+  const vars: Record<string, string> = { donor: donorFamily(s.clock.year) };
+  if (e.names?.program !== 'closable') return vars;
+  const housed = Object.values(s.halls).flat().map((slot) => slot.programId).filter((id): id is string => id !== null);
+  const size = (id: string) => programById(id)?.courseIds.length ?? 0;
+  const program = housed.filter((id) => closeRefusal(s, id) === null).sort((a, b) => size(a) - size(b) || a.localeCompare(b))[0];
+  if (program === undefined) return null;
+  vars.program = programById(program)?.name ?? program;
+  vars.programId = program;
+  return vars;
 }
 
 export function fire(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
@@ -231,6 +277,8 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   // A named fund (Plan 101F): the answer's gift to the endowment endows it.
   if (choice.fund) endowFund(s, choice.fund.purpose, fill(choice.fund.name, p.vars), scaledEffects(choice.effects, p.scale).endowment ?? 0, p.vars.facultyId);
   if (choice.mascot && !s.self.mascot) s.self.mascot = choice.mascot;
+  // A trade between pillars (Plan 116D), counted for BOARD_STANDING_YEARS.
+  if (choice.standing) (s.boardAnswers ??= []).push({ year: s.clock.year, eventId: e.id, choiceId, prestige: { ...choice.standing } });
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
   journal(c, e, choiceId, by, s.clock.year);
   (c.lastAnswer ??= {})[e.id] = { choiceId, year: s.clock.year };

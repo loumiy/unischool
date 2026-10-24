@@ -3,6 +3,16 @@
 // player sees (the canvas, or the SVG map it falls back to) rather than the
 // SVG's DOM. Not part of the game.
 
+// The game's URL with `?view=parcel`: the map opens on the whole parcel at
+// its widest opening zoom, as every map did before it framed what stands
+// (Plan 115A). The shooting tools set it, so a --zoom/--pan recipe in
+// tools/README.md frames the same campus the same way as it always has.
+export function parcelView(url) {
+  const u = new URL(url);
+  u.searchParams.set('view', 'parcel');
+  return u.href;
+}
+
 // Waits until the map shows its view in full (its drawings made; walkers
 // may still move), and returns which map is up: 'canvas' or 'svg'.
 export async function waitForMap(page, timeout = 15_000) {

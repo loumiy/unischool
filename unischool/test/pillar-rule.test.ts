@@ -96,9 +96,12 @@ const RULES: RegExp[] = [
     });
   }
   assert(typedByHand.length === 0, `no file types the pillar weights by hand; build them with prestigeWords.ts:\n    ${typedByHand.join('\n    ')}`);
-  // When the choice is offered (Plan 95R): the two routes are said in
-  // prestigeWords.ts alone, so no string keeps one route's old figure.
-  const offerByHand = files.filter((f) => relative(SRC, f) !== 'data/prestigeWords.ts' && /stands in the guide's top \$\{/.test(readFileSync(f, 'utf8')));
+  // When the choice is offered (Plan 95R; Plan 116C's three routes): the
+  // routes are said in prestigeWords.ts alone, so no string keeps one
+  // route's old figure. Its old words and its new are both caught.
+  const OFFER_BY_HAND = /(?:stands|is) in the guide's top \$\{|satisfaction of \$\{[^}]*\} or more in over half/;
+  assert(OFFER_BY_HAND.test(['the first summer your college is in the guide\'s top ${', 'student satisfaction of ${AT} or more in over half'].join(' ')), 'the offer scan catches the rule\'s words');
+  const offerByHand = files.filter((f) => relative(SRC, f) !== 'data/prestigeWords.ts' && OFFER_BY_HAND.test(readFileSync(f, 'utf8')));
   assert(offerByHand.length === 0, `no file says when the choice is offered by hand; use specializationOfferRule: ${offerByHand.map((f) => relative(SRC, f)).join(', ')}`);
 }
 

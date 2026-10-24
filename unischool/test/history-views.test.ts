@@ -10,7 +10,10 @@
 //   - a pillar's row reads one scale: "89.8 of 150 → 20.2 of 41.3 points
 //     of prestige";
 //   - the teaching standard is named by its own measure, mean grade points
-//     as a letter.
+//     as a letter;
+//   - how prestige moves is said in the era's words, the same in the
+//     glance and the help (Plan 114B), and a pillar whose door is shut
+//     says what opens it.
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
@@ -21,12 +24,13 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { GameState } from '../src/state/types';
 import { readSave } from '../src/state/persistence';
-import HistoryTab, { HISTORY_VIEW_START, type HistoryView } from '../src/tabs/HistoryTab';
+import HistoryTab, { HISTORY_VIEW_START, prestigeHelp, type HistoryView } from '../src/tabs/HistoryTab';
 import { REPORT_WORDS } from '../src/data/reportData';
 import { STANDINGS } from '../src/systems/rivals/rivalsSystem';
-import { pillarRule } from '../src/data/prestigeWords';
+import { pillarRule, summerRule } from '../src/data/prestigeWords';
+import { researchSchools } from '../src/data/techData';
 import { GRADE_POINTS, meanGradeLetter } from '../src/data/courseQuality';
-import { PILLARS, prestigeBreakdown, teachingCeiling } from '../src/systems/prestige/prestigeSystem';
+import { EARLY_FADE_YEAR, PILLARS, PRESTIGE_FALL_RATE, prestigeBreakdown, riseRateIn, teachingCeiling } from '../src/systems/prestige/prestigeSystem';
 import { prestigeFigure } from '../src/format';
 
 let checks = 0;
@@ -123,6 +127,55 @@ const HOMES: Record<HistoryView, string[]> = {
   const text = html.slice(0, html.indexOf('glance-details')).replace(/<[^>]+>/g, '');
   assert(!/ of 150 → /.test(text) && !/points of prestige/.test(text), 'no pillar line reads two scales');
   assert(!text.includes(prestigeFigure(breakdown.target)) || prestigeFigure(breakdown.target) === prestigeFigure(breakdown.current), 'and the target is not shown as a figure (Plan 98B)');
+}
+
+// ---- How prestige moves, in both eras (Plan 114B, C2-6) ----
+{
+  const weekly = `Until year ${EARLY_FADE_YEAR} it also climbs a little every week.`;
+  const falls = 'It falls faster than it climbs.';
+  for (let year = 1; year <= EARLY_FADE_YEAR + 5; year += 1) {
+    const rule = summerRule(year);
+    assert(rule.startsWith('Prestige is graded each summer. It moves toward that grade. '), `year ${year}: the first two sentences, split (${rule})`);
+    // Each era's sentence only while it is true: the weekly climb ends at
+    // EARLY_FADE_YEAR, and the fall is faster only once the rise has tapered
+    // below it.
+    if (rule.endsWith(weekly)) assert(year < EARLY_FADE_YEAR && riseRateIn(year) >= PRESTIGE_FALL_RATE, `year ${year}: climbs weekly only in the early years`);
+    else assert(rule.endsWith(falls) && riseRateIn(year) < PRESTIGE_FALL_RATE, `year ${year}: falls faster only once it does (${rule})`);
+  }
+  assert(summerRule(1).endsWith(weekly) && summerRule(EARLY_FADE_YEAR).endsWith(falls), 'year 1 climbs weekly, and from the fade year it falls faster');
+  for (const year of [1, EARLY_FADE_YEAR]) {
+    const s = launch();
+    s.clock.year = year;
+    const html = unescape(render(s, 'prestige'));
+    // The help's text shows only when opened, so it is read from its own function.
+    const help = prestigeHelp(s);
+    assert(html.slice(html.indexOf('glance-details')).includes(summerRule(year)) && help.includes(summerRule(year)), `year ${year}: the glance and History's help say the same sentences`);
+    assert(!help.includes('rises slowly') && !help.includes('falls quickly'), 'and the old rule is gone');
+  }
+}
+
+// ---- A pillar whose door is shut says what opens it (Plan 114B, C3-11) ----
+{
+  const s = launch();
+  const labs = new Set(researchSchools().flatMap((r) => r.labIds));
+  const glance = (x: GameState) => {
+    const html = unescape(render(x, 'prestige'));
+    return { html, meters: html.slice(0, html.indexOf('glance-details')), details: html.slice(html.indexOf('glance-details')) };
+  };
+  const row = (meters: string, p: string) => meters.slice(meters.indexOf(`glance-pillar pillar-${p}`)).split('</li>')[0];
+  const withLab = glance(s);
+  assert(s.tech.some((t) => labs.has(t.id) && t.status === 'done') && !withLab.meters.includes('Opens with your first lab'), 'with a lab standing, research says nothing of opening');
+  assert(!withLab.details.includes('not yet'), 'and Details marks nothing "not yet"');
+  const before = launch();
+  for (const t of before.tech) if (labs.has(t.id) && t.status === 'done') t.status = 'available';
+  before.orgs.teams = [];
+  const shut = glance(before);
+  assert(row(shut.meters, 'research').includes('Opens with your first lab'), 'with no lab, research says its first lab opens it');
+  assert(row(shut.meters, 'athletics').includes('Opens with your first varsity team'), 'with no team, athletics says its first varsity team does');
+  assert(!row(shut.meters, 'academics').includes('glance-shut') && !row(shut.meters, 'studentLife').includes('glance-shut'), 'the other pillars carry no such line');
+  const research = shut.details.slice(shut.details.indexOf('pillar-research')).split('</li>')[0];
+  assert(/What the labs have produced not yet/.test(research) && /Fields it can research in not yet/.test(research), `Details marks research's lab terms "not yet" (${research.replace(/<[^>]+>/g, '')})`);
+  assert(!/Capital projects not yet/.test(research), 'but not a term another door opens');
 }
 
 // ---- The teaching standard, by its own measure ----

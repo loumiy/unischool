@@ -419,7 +419,7 @@ function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
       <div className="scoreboard-cell scoreboard-rank" title={neighbours}>
         <span className="scoreboard-label">Rank</span>
         <span className="scoreboard-digits">
-          {place}<small aria-hidden="true">/{list.length}</small><span className="visually-hidden"> of {list.length}</span>
+          #{place}<small aria-hidden="true"> of {list.length}</small><span className="visually-hidden"> of {list.length}</span>
         </span>
       </div>
       <div className="scoreboard-cell">
@@ -453,7 +453,7 @@ function SportScore({ s, team }: { s: GameState; team: VarsityTeam }) {
   return (
     <span className="team-card-standing scoreboard compact">
       <span className="scoreboard-digits" title={neighboursOf(list, place)}>
-        {place}<small aria-hidden="true">/{list.length}</small><span className="visually-hidden"> of {list.length}</span>
+        #{place}<small aria-hidden="true"> of {list.length}</small><span className="visually-hidden"> of {list.length}</span>
       </span>
       <span className="scoreboard-status">
         {last ? <span className={`season-finish ${last.finish}`}>{seasonLabel(last)}</span> : <span className="season-finish none">first season</span>}

@@ -3,7 +3,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import type { CampusLayout } from './campusLayout';
 import { motifOf } from './buildingSpec';
 import { groundSquash, heightScale, projectorFor, type Camera, type Pt } from './isoProjection';
-import { RouteTable, doors, pointStop, roadsides, walkGrid, type Entrance, type Stop, type Waypoint } from './walkRoutes';
+import { RouteTable, doors, forecourt, pickStop as pickNextStop, pointStop, roadsides, walkGrid, type Entrance, type Stop, type Waypoint } from './walkRoutes';
 
 // Students walking real routes between the buildings they use (ported from
 // v2's ambient layer). Drawing only: derived from the campus, never
@@ -377,17 +377,11 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
     const walkable = (c: number, r: number) => c >= 0 && r >= 0 && c < CAMPUS_GRID_WIDTH && r < CAMPUS_GRID_HEIGHT && grid[r * CAMPUS_GRID_WIDTH + c] > 0;
     const roadside = () => edges[Math.floor(random() * edges.length)];
 
-    // Somewhere to go: a building, by weight, or the road one time in five.
-    const pickStop = (notAt: Stop | null): Stop | null => {
-      const pool = stops.filter((d) => !notAt || d.key !== notAt.key);
-      if (pool.length === 0 || random() < 0.2) return roadside() ?? null;
-      let pick = random() * pool.reduce((t, d) => t + d.weight, 0);
-      for (const d of pool) {
-        pick -= d.weight;
-        if (pick <= 0) return d;
-      }
-      return pool[pool.length - 1];
-    };
+    // Somewhere to go: a building, by weight, or the road one time in five;
+    // round Founders Hall's forecourt before there is a second building
+    // (walkRoutes.ts's pickStop, Plan 115C).
+    const court = forecourt(input, grid);
+    const pickStop = (notAt: Stop | null): Stop | null => pickNextStop(stops, notAt, random, edges, court);
     // Off to somewhere new. A route whose tree is not grown yet waits a
     // frame or two at the door.
     const setOff = (w: Walker, now: number): void => {

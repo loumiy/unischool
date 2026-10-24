@@ -90,7 +90,8 @@ Everything that needs to stop time rides on this one mechanism:
   (`RESOLVE_DEAN_RECOMMENDATIONS`). Unanswered, the programs stay dark.
 - **The specialization** (`specialization`, Plan 85D) — raised by
   `RESOLVE_ADMISSIONS` at the close of the first summer the college stands
-  at the milestone (the guide's top 20), and of every summer after until a
+  at the milestone (the guide's top 30, or from Year 20 a pillar's top 10
+  or satisfaction that led the field, Plan 116C), and of every summer after until a
   specialization is chosen (`systems/prestige/milestone.ts`). It is raised
   after the page has turned, on the new year's first week before it runs,
   so its answer (`RESOLVE_SPECIALIZATION`, a pillar or null for "not this
@@ -235,6 +236,21 @@ Everything that needs to stop time rides on this one mechanism:
   has a fixed instance id, draws nothing, is answered by no seat and holds
   no place in the draws' queue; unanswered for six weeks it takes the modest
   weekend (see [student-life.md](../design/student-life.md)'s downtown).
+- **The board's question** — never an interrupt (Plan 116D). From Year 25,
+  at week 20, once a year, the board puts one question in the inbox: the
+  catalogue's third raised inline event (`BOARD_QUESTIONS` in
+  `src/data/boardQuestionData.ts`, `catalogueEngine.ts`'s
+  `raiseBoardQuestion`, called beside `raiseFestival`). The three come in
+  turn by year: an expansion, a gift that closes a small program, an honors
+  college; one the college cannot be asked (no program it could close) gives
+  way to the next. Like the charter and the festival it has a fixed instance
+  id, reads its names off the state, draws nothing, is answered by no seat
+  and holds no place in the draws' queue. Never in a sandbox or before the
+  matters chapter. Six weeks to answer, so it never pauses on arrival
+  (`unseen.ts`'s `SHORT_OF_TIME_WEEKS`), only in its last week unopened;
+  unanswered it takes the answer that changes nothing. Each yes trades one
+  pillar for another for five years (`CatalogueChoice.standing`, the
+  pillar's "The board's question" term), and none is answered by paying.
 - **The athletic director's offer** — the one interrupt athletics raises of its
   own, the first quiet week after the school fields a varsity team: three
   candidates rolled into the payload, and the mascot named in the same modal
@@ -279,14 +295,21 @@ puts away the arrivals already showing.
 
 A matter to decide does not stop the clock the way an interrupt does, but
 the shell can pause it (Plan 78E, `src/systems/inbox/unseen.ts`). With
-Settings' **Pause when a matter arrives** on (the default), a new matter
-pauses the clock and its arrival toast stays until it is opened or
-dismissed. Whatever the setting, a matter that reaches its final week
-unopened pauses the clock once. Both are the pause button pressed for the
-player, in `App.tsx`: the reducer, the save and every replay are
-unchanged, and neither acts while an interrupt or the walkthrough holds the
-clock. With the setting off, Plan 35's ease to 1× on arrival
-(`useGame.ts`) stays. **Pause for news** (Plan 95T, off by default) does
+Settings' **Pause for an urgent matter** on (the default), a new matter
+with two weeks or less to answer (`SHORT_OF_TIME_WEEKS`, Plan 116B)
+pauses the clock. A matter with more weeks, or a gift or board ask with no
+deadline, only arrives. Either way its arrival toast stays until it is
+opened or dismissed. Whatever the setting, a matter that reaches its final
+week unopened pauses the clock once, which catches the matters the arrival
+let pass. Both are the pause button pressed for the player, in `App.tsx`:
+the reducer, the save and every replay are unchanged, and neither acts
+while an interrupt or the walkthrough holds the clock. With the setting
+off, the same urgent arrival eases 2×, 4× and 8× to 1× instead (Plan 35's
+ease, `easesOnArrival`), also never under a hold. A matter's weeks count
+the week it is first seen in, after the tick that raised it, so a
+two-week matter arrives in its final week, and that pause usually comes
+first whatever the setting. The settings key is
+still `pauseOnArrival`, so a saved choice stands. **Pause for news** (Plan 95T, off by default) does
 the same for a new celebration or research report, whose slip then waits
 with the clock.
 

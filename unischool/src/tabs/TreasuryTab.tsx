@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { TreasuryView } from '../data/chapterData';
 import AdvancementPanel from './AdvancementPanel';
 import type { ClassTuition, GameState } from '../state/types';
 import { WEEKS_PER_YEAR, coursesDone as countCoursesDone, standsOnCampus, totalEnrolled } from '../state/types';
@@ -39,7 +40,7 @@ import { aidPerStudent, chairHolder, chairPays, fundIncome, fundsOf } from '../s
 // levers that move next year, with what they come to. The endowment and the
 // estate each have a view of their own.
 
-type View = 'budget' | 'endowment' | 'estate';
+type View = TreasuryView;
 const VIEWS: ReadonlyArray<{ id: View; label: string }> = [
   { id: 'budget', label: 'Operating budget' },
   { id: 'endowment', label: 'Endowment' },
@@ -90,8 +91,18 @@ function rungNote(s: GameState): string {
   }
 }
 
-export default function TreasuryTab({ s, act }: { s: GameState; act: (a: Action) => void }) {
-  const [view, setView] = useState<View>('budget');
+// `target`: the view a door opens it on (Plan 114F: The alumni's campaign
+// opens on the Endowment, where its panel is). Consumed and cleared by the
+// caller.
+export default function TreasuryTab({ s, act, target, onTargetConsumed }: { s: GameState; act: (a: Action) => void; target?: string; onTargetConsumed?: () => void }) {
+  const [view, setView] = useState<View>(() => VIEWS.find((v) => v.id === target)?.id ?? 'budget');
+  useEffect(() => {
+    if (!target) return;
+    const asked = VIEWS.find((v) => v.id === target);
+    if (asked) setView(asked.id);
+    onTargetConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
   const weeksToSummer = WEEKS_PER_YEAR - s.clock.week;
   return (
     <div className="tab-content treasury">

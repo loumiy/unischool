@@ -4,7 +4,7 @@
 // against, and a walk leaves and enters by the doors that suit it; the crowd
 // grows slower than the student body and stops at its cap.
 
-import { doors, desireLines, entrancesOf, growTree, routeTo, walkGrid, RouteTable, LAWN_COST, PATH_COST } from '../src/components/walkRoutes';
+import { doors, desireLines, entrancesOf, forecourt, growTree, pickStop, roadsides, routeTo, walkGrid, RouteTable, LAWN_COST, PATH_COST } from '../src/components/walkRoutes';
 import { MAX_WALKERS, doorOpacity, doorsHeld, walkerCount } from '../src/components/Walkers';
 import { quadCentre, quadTile } from '../src/components/quadGeometry';
 import { createInitialState } from '../src/state/actions';
@@ -12,6 +12,8 @@ import { bindScriptStream } from '../src/engine/random';
 import type { GameState } from '../src/state/types';
 import { GATE_ID, gatePassageTiles, gatePieces } from '../src/components/buildingSpec';
 import { CAMPUS_GRID_WIDTH } from '../src/state/types';
+import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { pathTileKey } from '../src/state/campusMap';
 
 bindScriptStream(2428);
 const store = new Map<string, string>();
@@ -227,6 +229,47 @@ function stand(s: GameState, id: string, row: number, col: number, w: number, h:
   const pieces = gatePieces(gate, 100);
   assert(pieces.filter((b) => b.z0 === 0).length === 4 && pieces.filter((b) => b.z0 > 0).length === 2, 'four piers, and the masonry over each passage');
   assert(pieces.every((b) => b.col >= gate.col && b.row >= gate.row && b.col + b.w <= gate.col + gate.w + 1e-9 && b.row + b.h <= gate.row + gate.h + 1e-9), 'all inside the plot');
+}
+
+// ---- Walkers before paths (Plan 115C, C1-2) ----
+// With Founders Hall alone, no walk goes to the road: every pick is the hall
+// or its forecourt, a few tiles from the front door. Once a second building
+// is done the road gets its one walk in five again.
+{
+  const s = createInitialState('Forecourt'); // headless: the hall sited, the drive laid
+  const hall = s.placements[FOUNDERS_HALL_ID]!;
+  const input = { placements: s.placements, tech: s.tech, pathways: s.pathways };
+  const grid = walkGrid(input);
+  const stops = doors(input, grid);
+  const edges = roadsides();
+  const court = forecourt(input, grid);
+  assert(stops.length === 1 && stops[0].id === FOUNDERS_HALL_ID, `the hall is the only stop (${stops.length})`);
+  assert(court.length >= 1 && court.length <= 2, `one or two forecourt stops (${court.length})`);
+  assert(court.some((st) => s.pathways[pathTileKey(st.entrances[0])]), 'a forecourt stop is on the drive');
+  const near = (st: { entrances: { col: number; row: number }[] }) => st.entrances.every((e) =>
+    Math.max(hall.col - e.col, e.col - (hall.col + hall.w - 1), 0) <= 6 && Math.max(hall.row - e.row, e.row - (hall.row + hall.h - 1), 0) <= 6);
+  let seed = 115;
+  const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; };
+  const roadKeys = new Set(edges.map((e) => e.key));
+  let road = 0;
+  let far = 0;
+  let at = stops[0];
+  for (let k = 0; k < 1000; k++) {
+    const to = pickStop(stops, k % 2 === 0 ? at : null, random, edges, court)!;
+    if (roadKeys.has(to.key)) road++;
+    if (!near(to)) far++;
+    at = to;
+  }
+  assert(road === 0, `alone, no pick goes to the road (${road} of 1000)`);
+  assert(far === 0, `alone, every pick is within six tiles of the hall (${far} far)`);
+
+  const dorm = s.tech.find((t) => t.kind === 'dorm')!;
+  dorm.status = 'done';
+  s.placements[dorm.id] = { row: hall.row, col: hall.col + hall.w + 6, w: 6, h: 4 };
+  const two = doors(input, walkGrid(input));
+  let roadTwo = 0;
+  for (let k = 0; k < 1000; k++) if (roadKeys.has(pickStop(two, null, random, edges, court)!.key)) roadTwo++;
+  assert(two.length === 2 && roadTwo > 150 && roadTwo < 250, `with a dorm done, about one pick in five goes to the road (${roadTwo} of 1000)`);
 }
 
 if (failures === 0) {

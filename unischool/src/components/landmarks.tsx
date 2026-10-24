@@ -1,13 +1,14 @@
 import { useContext } from 'react';
 import type { Buildable, Facing, GameState, Vernacular } from '../state/types';
 import { sidesOf } from './facing';
-import { boxFaces, facePoint, heightScale, lift, polyPoints, project, projectedCircle, type BoxFaces, type Pt } from './isoProjection';
+import { boxFaces, facePoint, heightScale, lift, polyPoints, project, projectedCircle, type BoxFaces, type FaceDir, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { shade } from './tint';
 import { METRES_PER_TILE, across, up } from './campusScale';
 import { GATE_ARCH_HALF, GATE_ARCH_TOP, GATE_BODY_SHARE, GATE_INSET, GATE_SIDE_ARCH_HALF, GATE_SIDE_ARCH_TOP, wallHeightOf } from './buildingSpec';
 import { SCAFFOLD_PATTERN_ID } from './buildingMotifs';
 import { DevelopingContext, CollegeNameContext } from './mapOccasions';
+import { ROOF_SNOW, SnowContext, snowOn } from './seasons';
 
 // The grand landmarks (Plan 25): a campanile, a great dome and a triumphal
 // gate, each drawn bespoke and built in visible stages. While one goes up
@@ -15,7 +16,8 @@ import { DevelopingContext, CollegeNameContext } from './mapOccasions';
 // lower half, then all but the crown, each in scaffolding, and then the
 // finished thing. Drawn in limestone whatever the vernacular: a landmark is
 // a statement, not a neighbor. Only the Great Dome's crown takes the
-// vernacular (Plan 87G); its podium and drum's height do not.
+// vernacular (Plan 87G); its podium and drum's height do not. The snow lies
+// on the roofs: the spire, the domes and the gate's top (Plan 115E).
 
 const STONE = '#ddd3bd';
 const STONE_DARK = '#b8ad95';
@@ -100,15 +102,16 @@ function discOnFace(a: Pt, b: Pt, hgt: number, span: number, uc: number, vc: num
 }
 
 // A thin band proud of a box, from z - depth to z: a string course or a
-// cornice. A course on a wall that rises on above it shows no top.
-function Band({ col, row, w, h, z, depth, proud, tone = STONE, cap = true }: {
-  col: number; row: number; w: number; h: number; z: number; depth: number; proud: number; tone?: string; cap?: boolean;
+// cornice. A course on a wall that rises on above it shows no top; a top
+// open to the sky takes the snow (Plan 115E).
+function Band({ col, row, w, h, z, depth, proud, tone = STONE, cap = true, snow = 0 }: {
+  col: number; row: number; w: number; h: number; z: number; depth: number; proud: number; tone?: string; cap?: boolean; snow?: number;
 }) {
   const f = boxFaces(col - proud, row - proud, w + proud * 2, h + proud * 2, z - depth, depth);
   return (
     <>
       {walls(f, tone)}
-      {cap && <polygon points={polyPoints(f.top)} fill={shade(tone, 0.94)} />}
+      {cap && <polygon points={polyPoints(f.top)} fill={snowOn(shade(tone, 0.94), snow, ROOF_SNOW.deck)} />}
     </>
   );
 }
@@ -172,12 +175,15 @@ function Drum({ cc, cr, r, z0, z1, fill, cap = true, columns = 0, cella = CELLA,
 // pitch): the image of a hemisphere, so its outline is the far arc over the
 // crown and the near half of its base ring, and its ribs are meridians,
 // drawn where they face the camera (Plan 74C).
-function Dome({ cc, cr, r, z, rise, fill, ribs = 0, ribTone, ribWidth = 1.3, rings = 0, ringTone }: {
+function Dome({ cc, cr, r, z, rise, fill: bare, ribs = 0, ribTone, ribWidth = 1.3, rings = 0, ringTone, snow, cover = ROOF_SNOW.roof }: {
   cc: number; cr: number; r: number; z: number; rise: number; fill: string; ribs?: number;
   // The ribs' color and weight, and courses round the dome (its parallels):
   // the Mission dome's tile, the Modern one's glazing bars (Plan 87G).
   ribTone?: string; ribWidth?: number; rings?: number; ringTone?: string;
+  // The snow on it, and its share of the depth: glass holds less (Plan 115E).
+  snow: number; cover?: number;
 }) {
+  const fill = snowOn(bare, snow, cover);
   const o = project(cc, cr);
   const C = lift(o, z);
   const ax = project(cc + r, cr);
@@ -302,11 +308,12 @@ function clockFace(a: Pt, b: Pt, hgt: number, span: number, uc: number, vc: numb
 
 // A square pyramid on a box's top, its two near faces toned by the way they
 // point: the far two lie behind them from any camera above the eaves.
-function pyramidOn(f: BoxFaces, apex: Pt, tone: string) {
+function pyramidOn(f: BoxFaces, apex: Pt, tone: string, snow: number) {
+  const face = (dir: FaceDir) => snowOn(faceTone(dir, tone, shade(tone, 0.78)), snow, ROOF_SNOW[dir]);
   return (
     <>
-      <polygon points={polyPoints([f.Dt, f.Ct, apex])} fill={faceTone(f.dir.CD, tone, shade(tone, 0.78))} />
-      <polygon points={polyPoints([f.Ct, f.Bt, apex])} fill={faceTone(f.dir.BC, tone, shade(tone, 0.78))} />
+      <polygon points={polyPoints([f.Dt, f.Ct, apex])} fill={face(f.dir.CD)} />
+      <polygon points={polyPoints([f.Ct, f.Bt, apex])} fill={face(f.dir.BC)} />
     </>
   );
 }
@@ -334,7 +341,7 @@ function Finial({ base, rise }: { base: Pt; rise: number }) {
 // verdigris needle spire with a gilt finial. Built in stages: the shaft
 // rises in scaffold, then the belfry and attic, then the spire.
 const SPIRE = '#7d968c';
-function Campanile({ t, p, share, building }: { t: Buildable; p: Plot; share: number; building: boolean }) {
+function Campanile({ t, p, share, building, snow }: { t: Buildable; p: Plot; share: number; building: boolean; snow: number }) {
   const H = wallHeightOf(t);
   const plan = Math.min(across(11.5), Math.min(p.w, p.h) * 0.3);
   const c0 = p.col + (p.w - plan) / 2;
@@ -446,7 +453,7 @@ function Campanile({ t, p, share, building }: { t: Buildable; p: Plot; share: nu
       {share >= 1 && attic && (
         <>
           <Band col={c0 + plan * 0.03} row={r0 + plan * 0.03} w={plan * 0.94} h={plan * 0.94} z={atticTop + up(0.3)} depth={up(0.9)} proud={0.06} />
-          {pyramidOn(boxFaces(c0 + plan * 0.04, r0 + plan * 0.04, plan * 0.92, plan * 0.92, atticTop, up(0.3)), lift(centre, apexZ), SPIRE)}
+          {pyramidOn(boxFaces(c0 + plan * 0.04, r0 + plan * 0.04, plan * 0.92, plan * 0.92, atticTop, up(0.3)), lift(centre, apexZ), SPIRE, snow)}
           <Finial base={lift(centre, apexZ - up(0.4))} rise={H - apexZ + up(0.4)} />
         </>
       )}
@@ -458,7 +465,7 @@ function Campanile({ t, p, share, building }: { t: Buildable; p: Plot; share: nu
 // after a Georgian clock tower: a quoined stone stage with a clock to each
 // face, a balustraded cornice, and an open round cupola, its bell hung
 // between the columns, under a copper dome and a gilt finial.
-function BellTower({ t, p, share, building }: { t: Buildable; p: Plot; share: number; building: boolean }) {
+function BellTower({ t, p, share, building, snow }: { t: Buildable; p: Plot; share: number; building: boolean; snow: number }) {
   const H = wallHeightOf(t);
   const plan = Math.min(p.w, p.h) * 0.46;
   const c0 = p.col + (p.w - plan) / 2;
@@ -506,7 +513,7 @@ function BellTower({ t, p, share, building }: { t: Buildable; p: Plot; share: nu
           </g>
         );
       })}
-      <polygon points={polyPoints(stage.top)} fill={shade(STONE, 0.9)} />
+      <polygon points={polyPoints(stage.top)} fill={snowOn(shade(STONE, 0.9), snow, ROOF_SNOW.deck)} />
       {building && <Scaffold f={stage} />}
       {share >= 0.85 && (() => {
         // The cupola: an open ring of columns round a dark interior, the bell
@@ -514,13 +521,13 @@ function BellTower({ t, p, share, building }: { t: Buildable; p: Plot; share: nu
         const hang = lift(project(cc, cr), drumTop - up(1.6));
         return (
           <>
-            <Band col={c0} row={r0} w={plan} h={plan} z={stageTop + up(0.3)} depth={up(1.2)} proud={0.07} />
+            <Band col={c0} row={r0} w={plan} h={plan} z={stageTop + up(0.3)} depth={up(1.2)} proud={0.07} snow={snow} />
             <Balusters col={c0 - 0.07} row={r0 - 0.07} w={plan + 0.14} h={plan + 0.14} z={stageTop + up(0.3)} rise={up(1.1)} />
             <Drum cc={cc} cr={cr} r={r * 1.1} z0={stageTop + up(0.3)} z1={drumBase} fill={STONE} cap />
             <Drum cc={cc} cr={cr} r={r} z0={drumBase} z1={drumTop} fill={STONE} cap={!done} columns={8} cella={shade(OPENING, 1.2)}
               inner={done && <Bell top={hang} metres={3.2} />} />
             {building && <polygon points={polyPoints([...nearHalf(projectedCircle(cc, cr, r * 1.05, 36).map((q) => lift(q, drumBase))), ...nearHalf(projectedCircle(cc, cr, r * 1.05, 36).map((q) => lift(q, drumTop))).reverse()])} fill={`url(#${SCAFFOLD_PATTERN_ID})`} />}
-            {done && <Dome cc={cc} cr={cr} r={r * 1.04} z={drumTop} rise={domeRise} fill={COPPER} ribs={8} />}
+            {done && <Dome snow={snow} cc={cc} cr={cr} r={r * 1.04} z={drumTop} rise={domeRise} fill={COPPER} ribs={8} />}
             {done && <Finial base={lift(project(cc, cr), drumTop + domeRise - up(0.3))} rise={H - drumTop - domeRise + up(0.3)} />}
           </>
         );
@@ -626,7 +633,7 @@ function Prism({ cc, cr, r, z0, z1, n, fill, cap = true, face }: {
   );
 }
 
-function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plot; share: number; building: boolean; vernacular?: Vernacular }) {
+function GreatDome({ t, p, share, building, vernacular, snow }: { t: Buildable; p: Plot; share: number; building: boolean; vernacular?: Vernacular; snow: number }) {
   const style: DomeStyle = (vernacular && DOME_STYLE[vernacular]) || 'classical';
   const H = wallHeightOf(t);
   const cc = p.col + p.w / 2;
@@ -661,11 +668,11 @@ function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plo
         {base}
         {share > 0.1 && <Drum cc={cc} cr={cr} r={r} z0={podiumH} z1={drumH} fill={STONE} cap={!domed} columns={drumUp ? 20 : 0} />}
         {scaffold}
-        {domed && <Dome cc={cc} cr={cr} r={r * 0.98} z={drumTop} rise={rise} fill={done ? COPPER : STONE_DARK} ribs={16} />}
+        {domed && <Dome snow={snow} cc={cc} cr={cr} r={r * 0.98} z={drumTop} rise={rise} fill={done ? COPPER : STONE_DARK} ribs={16} />}
         {done && (
           <>
             <Drum cc={cc} cr={cr} r={lanternR} z0={crown - up(0.6)} z1={crown + lanternH} fill={STONE} cap={false} />
-            <Dome cc={cc} cr={cr} r={lanternR * 1.1} z={crown + lanternH} rise={up(3.2)} fill={GILT} />
+            <Dome snow={snow} cc={cc} cr={cr} r={lanternR * 1.1} z={crown + lanternH} rise={up(3.2)} fill={GILT} />
             <line x1={finialBase.x} y1={finialBase.y} x2={finialBase.x} y2={finialBase.y - up(3) * heightScale()} stroke={GILT} strokeWidth={1.4} />
             <circle cx={finialBase.x} cy={finialBase.y - up(1.6) * heightScale()} r={1.5} fill={GILT} />
           </>
@@ -693,14 +700,14 @@ function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plo
         ))}
         {share > 0.1 && drumUp && <Drum cc={cc} cr={cr} r={r * 1.03} z0={drumTop - up(1.3)} z1={drumTop} fill={TILE} cap={false} />}
         {scaffold}
-        {domed && <Dome cc={cc} cr={cr} r={r * 0.97} z={drumTop} rise={rise} fill={done ? TILE : STONE_DARK} ribs={done ? 12 : 0} ribTone={TILE_GOLD} rings={done ? 3 : 0} ringTone={TILE_BLUE} />}
+        {domed && <Dome snow={snow} cc={cc} cr={cr} r={r * 0.97} z={drumTop} rise={rise} fill={done ? TILE : STONE_DARK} ribs={done ? 12 : 0} ribTone={TILE_GOLD} rings={done ? 3 : 0} ringTone={TILE_BLUE} />}
         {done && (
           <>
             <Drum cc={cc} cr={cr} r={lr} z0={crown - up(0.8)} z1={crown + lanternH} fill={RENDER} cap={false} />
             {nearAngles(cc, cr, lr, 6).map((a) => (
               <polygon key={a} points={polyPoints(drumOpening(cc, cr, lr, a, 0.32, crown + up(0.6), crown + lanternH - up(0.9)))} fill={OPENING} />
             ))}
-            <Dome cc={cc} cr={cr} r={lr * 1.15} z={crown + lanternH} rise={capRise} fill={TILE} ribs={6} ribTone={TILE_GOLD} />
+            <Dome snow={snow} cc={cc} cr={cr} r={lr * 1.15} z={crown + lanternH} rise={capRise} fill={TILE} ribs={6} ribTone={TILE_GOLD} />
             <line x1={tip.x} y1={tip.y} x2={tip.x} y2={tip.y - up(3.6) * heightScale()} stroke="#2e2a26" strokeWidth={1.4} />
             <line x1={tip.x - up(0.9)} y1={tip.y - up(2.5) * heightScale()} x2={tip.x + up(0.9)} y2={tip.y - up(2.5) * heightScale()} stroke="#2e2a26" strokeWidth={1.2} />
           </>
@@ -733,7 +740,7 @@ function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plo
         {base}
         {share > 0.1 && <Prism cc={cc} cr={cr} r={r * 1.04} z0={podiumH} z1={drumH} n={n} fill={STONE} cap={!domed} face={drumUp ? lancets : undefined} />}
         {scaffold}
-        {domed && <Dome cc={cc} cr={cr} r={r * 0.98} z={drumTop} rise={rise} fill={done ? LEAD : STONE_DARK} ribs={n} ribTone={shade(STONE, 1.02)} ribWidth={2.2} />}
+        {domed && <Dome snow={snow} cc={cc} cr={cr} r={r * 0.98} z={drumTop} rise={rise} fill={done ? LEAD : STONE_DARK} ribs={n} ribTone={shade(STONE, 1.02)} ribWidth={2.2} />}
         {/* The near buttresses stand in front of the crown's foot. */}
         {share > 0.1 && drumUp && nearCorners.map(({ a }) => {
           // A buttress at the angle, its pinnacle above the parapet.
@@ -745,7 +752,7 @@ function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plo
             <g key={a}>
               {walls(f, STONE)}
               <polygon points={polyPoints(f.top)} fill={shade(STONE, 0.9)} />
-              {pyramidOn(f, apex, shade(STONE, 0.95))}
+              {pyramidOn(f, apex, shade(STONE, 0.95), snow)}
             </g>
           );
         })}
@@ -753,7 +760,7 @@ function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plo
           <>
             <Prism cc={cc} cr={cr} r={lr} z0={crown - up(1.2)} z1={crown + lanternH} n={n} fill={STONE} cap={false}
               face={(a, b, hgt) => <polygon points={polyPoints(gothicLancet(a, b, hgt))} fill={OPENING} />} />
-            <polygon points={polyPoints([...nearHalf(projectedCircle(cc, cr, lr * 1.05, n).map((q) => lift(q, crown + lanternH))), tip])} fill={LEAD} stroke={LINE} strokeWidth={0.6} />
+            <polygon points={polyPoints([...nearHalf(projectedCircle(cc, cr, lr * 1.05, n).map((q) => lift(q, crown + lanternH))), tip])} fill={snowOn(LEAD, snow, ROOF_SNOW.roof)} stroke={LINE} strokeWidth={0.6} />
             <line x1={tip.x} y1={tip.y} x2={tip.x} y2={tip.y - up(2.6) * heightScale()} stroke={GILT} strokeWidth={1.3} />
             <line x1={tip.x - up(0.7)} y1={tip.y - up(1.8) * heightScale()} x2={tip.x + up(0.7)} y2={tip.y - up(1.8) * heightScale()} stroke={GILT} strokeWidth={1.1} />
           </>
@@ -783,7 +790,7 @@ function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plo
           </>
         )}
         {scaffold}
-        {domed && <Dome cc={cc} cr={cr} r={r} z={drumTop} rise={rise} fill={done ? GLASS : STONE_DARK} ribs={done ? 24 : 0} ribTone={STEEL} ribWidth={0.9} rings={done ? 4 : 0} ringTone={STEEL} />}
+        {domed && <Dome snow={snow} cover={done ? ROOF_SNOW.glass : ROOF_SNOW.roof} cc={cc} cr={cr} r={r} z={drumTop} rise={rise} fill={done ? GLASS : STONE_DARK} ribs={done ? 24 : 0} ribTone={STEEL} ribWidth={0.9} rings={done ? 4 : 0} ringTone={STEEL} />}
         {done && (
           <>
             <polygon points={polyPoints(projectedCircle(cc, cr, r * 0.16, 24).map((q) => lift(q, crown - up(0.6))))} fill="none" stroke={STEEL} strokeWidth={2} />
@@ -811,7 +818,7 @@ function GreatDome({ t, p, share, building, vernacular }: { t: Buildable; p: Plo
         </>
       )}
       {scaffold}
-      {domed && <Dome cc={cc} cr={cr} r={r * 0.96} z={drumTop} rise={rise} fill={done ? '#7a6a4f' : STONE_DARK} ribs={done ? 16 : 0} ribTone={GILT} ribWidth={1.6} />}
+      {domed && <Dome snow={snow} cc={cc} cr={cr} r={r * 0.96} z={drumTop} rise={rise} fill={done ? '#7a6a4f' : STONE_DARK} ribs={done ? 16 : 0} ribTone={GILT} ribWidth={1.6} />}
       {done && (
         <>
           <polygon points={polyPoints([...nearHalf(projectedCircle(cc, cr, r * 0.1, 16).map((q) => lift(q, crown - up(1)))), tip])} fill={GILT} stroke={LINE} strokeWidth={0.5} />
@@ -834,7 +841,7 @@ function gothicLancet(a: Pt, b: Pt, hgt: number): Pt[] {
   return pts;
 }
 
-function TriumphalGate({ t, p, share, building, name }: { t: Buildable; p: Plot; share: number; building: boolean; name: string }) {
+function TriumphalGate({ t, p, share, building, name, snow }: { t: Buildable; p: Plot; share: number; building: boolean; name: string; snow: number }) {
   const H = wallHeightOf(t);
   const fullBody = H * GATE_BODY_SHARE;
   const bodyH = Math.min(fullBody, H * share);
@@ -940,16 +947,16 @@ function TriumphalGate({ t, p, share, building, name }: { t: Buildable; p: Plot;
           {pierced(right)}
         </>
       ) : walls(body, STONE)}
-      <polygon points={polyPoints(body.top)} fill={shade(STONE, 0.92)} />
+      <polygon points={polyPoints(body.top)} fill={snowOn(shade(STONE, 0.92), snow, ROOF_SNOW.deck)} />
       {done && faceDetail(long, true)}
       {done && faceDetail(short, false)}
       {building && <Scaffold f={body} />}
-      {share >= 1 && <Band col={p.col + I} row={p.row + I} w={p.w - I * 2} h={p.h - I * 2} z={fullBody} depth={up(1.3)} proud={0.1} />}
+      {share >= 1 && <Band col={p.col + I} row={p.row + I} w={p.w - I * 2} h={p.h - I * 2} z={fullBody} depth={up(1.3)} proud={0.1} snow={snow} />}
       {attic && (
         <>
           {walls(attic, STONE)}
-          <polygon points={polyPoints(attic.top)} fill={shade(STONE, 0.92)} />
-          <Band col={p.col + 0.6} row={p.row + 0.4} w={p.w - 1.2} h={p.h - 0.8} z={H} depth={up(0.8)} proud={0.06} />
+          <polygon points={polyPoints(attic.top)} fill={snowOn(shade(STONE, 0.92), snow, ROOF_SNOW.deck)} />
+          <Band col={p.col + 0.6} row={p.row + 0.4} w={p.w - 1.2} h={p.h - 0.8} z={H} depth={up(0.8)} proud={0.06} snow={snow} />
           <Inscription attic={attic} name={name} />
         </>
       )}
@@ -1003,18 +1010,18 @@ export function landmarkVolumes(t: Buildable, p: Plot): { col: number; row: numb
 // landmarks are the same in every set.
 export type LandmarkProps = { t: Buildable; p: Plot; developing: boolean; vernacular?: Vernacular };
 export default function Landmark(props: LandmarkProps) {
-  return landmarkArt(props, useContext(DevelopingContext), useContext(CollegeNameContext));
+  return landmarkArt(props, useContext(DevelopingContext), useContext(CollegeNameContext), useContext(SnowContext));
 }
-// The landmark given the weeks left on the works and the college's name:
-// what the canvas map draws (canvasArt.ts).
-export function landmarkArt({ t, p, developing, vernacular }: LandmarkProps, developingWeeks: GameState['developing'], name: string): React.JSX.Element {
+// The landmark given the weeks left on the works, the college's name and
+// the snow on its roofs: what the canvas map draws (canvasArt.ts).
+export function landmarkArt({ t, p, developing, vernacular }: LandmarkProps, developingWeeks: GameState['developing'], name: string, snow: number): React.JSX.Element {
   const weeksLeft = developingWeeks[t.id];
   const fraction = developing && weeksLeft !== undefined && t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   const stage = developing ? Math.min(2, stageOf(fraction)) as Stage : 3;
   const share = STAGE_SHARE[stage];
   const building = developing;
-  if (t.id === 'LANDMARK-CAMPANILE') return <Campanile t={t} p={p} share={share} building={building} />;
-  if (t.id === 'AMENITY-BELLTOWER') return <BellTower t={t} p={p} share={share} building={building} />;
-  if (t.id === 'LANDMARK-DOME') return <GreatDome t={t} p={p} share={share} building={building} vernacular={vernacular} />;
-  return <TriumphalGate t={t} p={p} share={share} building={building} name={name} />;
+  if (t.id === 'LANDMARK-CAMPANILE') return <Campanile t={t} p={p} share={share} building={building} snow={snow} />;
+  if (t.id === 'AMENITY-BELLTOWER') return <BellTower t={t} p={p} share={share} building={building} snow={snow} />;
+  if (t.id === 'LANDMARK-DOME') return <GreatDome t={t} p={p} share={share} building={building} vernacular={vernacular} snow={snow} />;
+  return <TriumphalGate t={t} p={p} share={share} building={building} name={name} snow={snow} />;
 }

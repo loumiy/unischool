@@ -1,23 +1,26 @@
 import type { GameState, Pillar } from '../../state/types';
-import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget } from './prestigeSystem';
+import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS, SPECIALIZATION_PILLAR_RANK, SPECIALIZATION_PILLAR_YEAR, SPECIALIZATION_TERM_WEIGHTS, computePrestigeTarget, satisfactionLeads } from './prestigeSystem';
 import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
 import { postBoardLetter } from '../finance/distress';
-import { specializationOfferRule } from '../../data/prestigeWords';
+import { satisfactionRecordWords, specializationOfferRule } from '../../data/prestigeWords';
 import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationOfferLine, specializationStatus, withShareFull } from '../../data/specializationData';
 
 // ---------------------------------------------------------------------
 // The milestone and the choice (Plan 85D). A college that climbs into the
-// guide's top SPECIALIZATION_MILESTONE_RANK, or into the top
-// SPECIALIZATION_PILLAR_RANK of any one pillar's standing from Year
-// SPECIALIZATION_PILLAR_YEAR (Plan 95R, the second review's B4-2), is asked to choose a specialization: one pillar,
-// for good (specialization.ts). Either route is "the milestone" below.
+// guide's top SPECIALIZATION_MILESTONE_RANK, or, from Year
+// SPECIALIZATION_PILLAR_YEAR, into the top SPECIALIZATION_PILLAR_RANK of
+// any one pillar's standing (Plan 95R, the second review's B4-2) or with
+// satisfaction that led the field (satisfactionLeads, Plan 116C, the third
+// review's C4-6), is asked to choose a specialization: one pillar, for good
+// (specialization.ts). Any route is "the milestone" below.
 // Three beats:
 //
 //   notice  the first week the college stands within
 //           SPECIALIZATION_NOTICE_PLACES of the milestone (overall, or in
-//           a pillar), the board's
-//           letter (a board letter in the inbox; it never stops the clock)
+//           a pillar), or SPECIALIZATION_NOTICE_YEARS before a later route
+//           opens to a college it would bring, the board's letter
+//           (a board letter in the inbox; it never stops the clock)
 //           names the four and what each gives;
 //   offer   the first summer the college stands at the milestone, read on
 //           the summer's own week after the field has moved (the table the
@@ -46,9 +49,12 @@ export function tickSpecialization(s: GameState): void {
   if (!noticeDue && !offerDue) return;
   const rank = playerRank(s);
   const best = bestPillarStanding(s);
-  // Places ahead of the milestone, and years ahead of the pillar's route.
+  // Places ahead of the milestone, and years ahead of the later routes:
+  // a pillar's top places, or satisfaction that led the field (Plan 116C).
+  const late = (years: number) => s.clock.year >= SPECIALIZATION_PILLAR_YEAR - years;
+  const byPillar = (places: number, years: number) => late(years) && best.rank <= SPECIALIZATION_PILLAR_RANK + places;
   const within = (places: number, years: number) => rank <= SPECIALIZATION_MILESTONE_RANK + places
-    || (s.clock.year >= SPECIALIZATION_PILLAR_YEAR - years && best.rank <= SPECIALIZATION_PILLAR_RANK + places);
+    || byPillar(places, years) || (late(years) && satisfactionLeads(s));
   if (noticeDue && within(SPECIALIZATION_NOTICE_PLACES, SPECIALIZATION_NOTICE_YEARS)) {
     s.specializationNotice = s.clock.year;
     postBoardLetter(s, SPECIALIZATION_NOTICE_ID);
@@ -57,7 +63,8 @@ export function tickSpecialization(s: GameState): void {
     s.specializationOffered = s.clock.year;
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
-      message: specializationOfferLine(rank <= SPECIALIZATION_MILESTONE_RANK ? null : best, rank),
+      message: specializationOfferLine(rank <= SPECIALIZATION_MILESTONE_RANK ? { by: 'guide', rank }
+        : byPillar(0, 0) ? { by: 'pillar', ...best } : { by: 'satisfaction', words: satisfactionRecordWords() }),
       kind: 'good',
     });
   }

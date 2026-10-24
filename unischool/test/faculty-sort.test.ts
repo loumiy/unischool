@@ -12,10 +12,10 @@
 import { bindScriptStream } from '../src/engine/random';
 import { generateCandidate } from '../src/data/facultyData';
 import {
-  FACULTY_SORTS, GROUP_SCOPE, NO_GRID_FILTER, bandOf, compareFaculty, facultyMedian, potentialOf, retiringSoon, showsDepartment, showsPerson, yearsLeft,
+  FACULTY_SORTS, GRADE_LINES, GROUP_SCOPE, NO_GRID_FILTER, bandOf, compareFaculty, facultyMedian, potentialOf, retiringSoon, showsDepartment, showsPerson, yearsLeft,
 } from '../src/tabs/facultySort';
 import { emptyCareer } from '../src/systems/faculty/career';
-import { GRADE_A, GRADE_B } from '../src/data/courseQuality';
+import { GRADE_A, GRADE_B, GRADE_C, GRADE_D } from '../src/data/courseQuality';
 import { careerWeeks } from '../src/systems/faculty/facultySystem';
 import { WEEKS_PER_YEAR, type Faculty } from '../src/state/types';
 
@@ -77,6 +77,11 @@ people[3].teaching = people[4].teaching;
 {
   // Letters on the course-grade bands.
   assert(bandOf(GRADE_A) === 'A' && bandOf(GRADE_A - 1) === 'B' && bandOf(GRADE_B) === 'B' && bandOf(GRADE_B - 1) === 'C', 'a stat takes the ink a course of that number would: the top band from 78, the next from 62');
+  // The plot's lines are numbers, not letters (Plan 114C, C2-9): the top
+  // one is named as the top band, the others are bare.
+  const labels = GRADE_LINES.map((g) => g.label);
+  assert(labels.join(' | ') === `${GRADE_D} | ${GRADE_C} | ${GRADE_B} | ${GRADE_A}, the top band`, `the plot's lines read ${GRADE_D}, ${GRADE_C}, ${GRADE_B} and the top band (${labels.join(' | ')})`);
+  assert(labels.every((l) => !/\b[ABCDF]\b/.test(l)), 'and no line carries a letter');
   // The college's median teaching (Plan 104G), what a candidate is read against.
   const at = (teaching: number) => ({ teaching }) as Faculty;
   assert(facultyMedian([]) === null, 'no median with nobody on the payroll');

@@ -310,12 +310,20 @@ export function committeeLamps(s: GameState): CommitteeLamp[] {
 }
 
 export function canStartDevelopment(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): boolean {
+  if (node.kind === 'course' && node.status === 'available' && courseSlotsFree(s) <= 0) return false;
+  return canStartBesidesCommittee(s, node, facultyId, financing);
+}
+
+// Every rule of canStartDevelopment but the committee's room: whether the
+// start waits only for a seat to free. The Curriculum opens a row on it, so
+// a full committee doesn't fold every row and a finished course open them
+// all again (Plan 114H, the third review's C2-4).
+export function canStartBesidesCommittee(s: GameState, node: Buildable, facultyId?: string, financing: Financing = 'cash'): boolean {
   // A course of a program in transit cannot be started.
   if (node.kind === 'course') {
     const programId = programOfCourse(node.id);
     if (programId !== undefined && isInTransit(s, programId)) return false;
   }
-  if (node.kind === 'course' && node.status === 'available' && courseSlotsFree(s) <= 0) return false;
   const facultyOk = !node.requiresFaculty
     || (facultyId === undefined
       ? hasFreeFacultySlot(s, node.requiresFaculty)

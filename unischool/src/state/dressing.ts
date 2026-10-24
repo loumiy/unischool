@@ -1,4 +1,6 @@
-import type { BenchFacing, DressingItem, DressingKind, Pathways } from './types';
+import type { BenchFacing, Buildable, DressingItem, DressingKind, Pathways, Placements } from './types';
+import { occupantAt } from './campusMap';
+import { quadTile } from './quadGeometry';
 
 // Lamps, benches, banner lamps and flower beds (Plan 80I, and the
 // decoration that followed it): what a stored item is, and which way a
@@ -54,4 +56,21 @@ export function defaultBenchFacing(pathways: Pathways, row: number, col: number)
 // else along the column, facing south. The migration keeps it that way.
 export function legacyBenchFacing(pathways: Pathways, row: number, col: number): BenchFacing {
   return `${row},${col - 1}` in pathways || `${row},${col + 1}` in pathways ? 'e' : 's';
+}
+
+// The building that keeps a bench, lamp or bed off a tile, or undefined when
+// one may go there (the reducer's PLACE_DRESSING, and the map's words for a
+// refusal). Nothing goes on a building. A quad is a building too, but since
+// Plan 115H its lawn takes dressing. Its walks and centrepiece still refuse,
+// and the Grand Quad has no lawn a player may dress (quadTile).
+export function dressingBlocker(
+  s: { placements: Placements; tech: ReadonlyArray<Pick<Buildable, 'id' | 'facilityType' | 'tier'>> },
+  row: number, col: number,
+): string | undefined {
+  const id = occupantAt(s.placements, row, col);
+  if (id === undefined) return undefined;
+  const t = s.tech.find((x) => x.id === id);
+  const p = s.placements[id]!;
+  if (t?.facilityType === 'quad' && quadTile(p.col, p.row, p.w, p.h, t.tier ?? 1, col, row) === 'lawn') return undefined;
+  return id;
 }

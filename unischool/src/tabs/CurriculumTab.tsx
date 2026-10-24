@@ -2,7 +2,9 @@ import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { useCallback, useEffect, useState } from 'react';
 import { useCollapse } from '../components/useCollapse';
+import { useSettings, type ObjectivesMode } from '../settings';
 import { ringedProgram } from '../state/chapters';
+import { freeSlot, type NextStep } from '../systems/guidance/nextStep';
 import { facultyPay } from '../systems/finance/financeSystem';
 import type { Action } from '../state/actions';
 import type { Buildable, GameState } from '../state/types';
@@ -13,9 +15,9 @@ import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
-import { canPostSearch, searchCost, searchWeeksLeft } from '../systems/faculty/facultySearch';
+import { canPostSearch, searchCost, searchWeeksLeft, SEARCH_COST_WEEKS, SEARCH_WEEKS } from '../systems/faculty/facultySearch';
 import {
-  canStartDevelopment, committeeOfficeSeats, committeeSetAside, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
+  canStartDevelopment, canStartBesidesCommittee, committeeOfficeSeats, committeeSetAside, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
   isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
@@ -35,7 +37,7 @@ import { CloseIcon, StatusIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
-import { count, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
+import { count, countWord, durationWords, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
 import {
   NO_FILTERS, cellState, filtersActive, matchesFilters, targetFilters, type Filters, type StatusFilter,
 } from './curriculumFilter';
@@ -520,13 +522,15 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
       className="course-drawer-action search-post"
       disabled={!canPostSearch(s, field)}
       onClick={() => act({ type: 'POST_SEARCH', field })}
-      title={`Advertise, headhunt and visit conferences for ${SEARCH_WEEKS_LABEL}. Each week, a ${field} candidate is much more likely to be listed.`}
+      title={`Advertise, headhunt and visit conferences for ${durationWords(SEARCH_WEEKS)}. Each week, a ${field} candidate is much more likely to be listed. ${SEARCH_PRICE_REASON}`}
     >
       Post a search in {field} · {moneyShort(cost)}
     </button>
   );
 }
-const SEARCH_WEEKS_LABEL = 'half a year';
+// Why the search costs what it does (Plan 114G): its price is weeks of
+// running costs (searchCost), so it grows as the college does.
+const SEARCH_PRICE_REASON = `It costs as much as ${countWord(SEARCH_COST_WEEKS)} weeks of running the college, so the price grows as the college does.`;
 
 // Every candidate listed in a field, with Appoint buttons and the search
 // offer. Shared by the drawer and the hall panel's course strip and picker.
@@ -901,6 +905,33 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
   );
 }
 
+// A program row starts open only if you can act on it: its next course can
+// start now, the committee's room aside (a full committee would fold every
+// row and a finished course open them all again), or the program is dark.
+// Every other row starts folded to its one line, and a finished one always
+// does (Plan 114H, the third review's C2-4: Plan 107C opened every
+// unfinished row, 3,561 words at year 16; Plan 76B folded every one).
+// `early` opens every unfinished row, for the first chapters.
+export function programFoldedByDefault(
+  s: GameState, program: ProgramInfo, early: boolean,
+  known: { progress?: ProgramProgress; dark?: boolean; lookup?: Map<string, Buildable> } = {},
+): boolean {
+  const progress = known.progress ?? programProgress(s, program, known.lookup);
+  if (progress.total > 0 && progress.done === progress.total) return true;
+  if (early) return false;
+  if (known.dark ?? unstaffedPrograms(s).has(program.id)) return false;
+  const next = progress.next;
+  const best = next ? eligibleInstructors(s, next)[0] : undefined;
+  return !(next && best && canStartBesidesCommittee(s, next, best.id));
+}
+
+// With the chapters on, every unfinished row is open until A hall of its
+// own opens, so a new college sees each course it could develop next (the
+// owner's year-one intent behind Plan 107C).
+function rowsOpenEarly(s: GameState, objectives: ObjectivesMode): boolean {
+  return objectives !== 'off' && !s.sandbox && s.guidance !== undefined && s.guidance.opened['hall-of-its-own'] === undefined;
+}
+
 function ProgramRowView(
   { s, act, row, lookup, selectedId, onSelect, loads, dnd, rowMark }:
   {
@@ -918,10 +949,13 @@ function ProgramRowView(
   const hallId = hallOfCourse(s, program.entryCourseId);
   const hall = hallId ? lookup.get(hallId) : undefined;
   const dark = unstaffedPrograms(s).has(program.id);
-  // A program is open while it has courses to develop, and folds to its
-  // one line once every course is developed (Plan 107C; Plan 76B folded
-  // every program).
-  const [collapsed, toggle] = useCollapse(`program:${program.id}`, progress.total > 0 && progress.done === progress.total);
+  const finished = progress.total > 0 && progress.done === progress.total;
+  const objectives = useSettings().objectives;
+  const [collapsed, toggle] = useCollapse(
+    `program:${program.id}`,
+    programFoldedByDefault(s, program, rowsOpenEarly(s, objectives), { progress, dark, lookup }),
+    finished,
+  );
 
   return (
     <section
@@ -960,8 +994,9 @@ function ProgramRowView(
 }
 
 // Collapsing (Plan 60, components/useCollapse.ts): a school starts open
-// while incomplete and folded once complete, and so does a program (Plan
-// 107C). A player's click holds until the section next finishes.
+// while incomplete and folded once complete. A program is open only while
+// you can act on it (programFoldedByDefault, Plan 114H). A player's click
+// holds until the section next finishes.
 
 // A school's group: heading (name once founded, color and mark before; see
 // data/schoolPalette.ts), grade and rows.
@@ -1223,8 +1258,23 @@ export function completion(s: GameState, ids: string[]): { done: number; total: 
   return { done, total: ids.length, fraction: ids.length > 0 ? done / ids.length : 0 };
 }
 
+// A hall with room and a program to found in it: NEXT's line, at the head
+// of the tab where programs are listed (Plan 114F, the third review's C3-9:
+// nothing here pointed to a free slot). Programs are founded from the
+// hall's panel, which its Go opens.
+function FreeSlotLine({ s, onGo }: { s: GameState; onGo?: (step: NextStep) => void }) {
+  const step = freeSlot(s);
+  if (!step) return null;
+  return (
+    <p className="curriculum-free-slot">
+      <span>{step.text}.</span>
+      {step.go && onGo && <button type="button" className="objectives-door" onClick={() => onGo(step)}>Go</button>}
+    </p>
+  );
+}
+
 export default function CurriculumTab(
-  { s, act, target, onTargetConsumed, onOpenFaculty }:
+  { s, act, target, onTargetConsumed, onOpenFaculty, onGo }:
   {
     s: GameState; act: (a: Action) => void;
     // Where to go on arrival: a school's name, "program:<id>", "field:<name>",
@@ -1234,6 +1284,8 @@ export default function CurriculumTab(
     onTargetConsumed?: () => void;
     // To the Faculty board, opened on a department.
     onOpenFaculty?: (field: string) => void;
+    // A NEXT line's door: the free slot's hall (Plan 114F).
+    onGo?: (step: NextStep) => void;
   },
 ) {
   const revealedGrad = revealedGraduatePrograms(s);
@@ -1372,6 +1424,7 @@ export default function CurriculumTab(
             head of the tab while the programs scroll (Plan 76B). */}
         <div className="curriculum-pinned">
         {!filtering && <CommitteeBox s={s} lookup={lookup} onOpenFaculty={onOpenFaculty} />}
+        {!filtering && <FreeSlotLine s={s} onGo={onGo} />}
 
         <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
 

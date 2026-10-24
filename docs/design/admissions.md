@@ -73,7 +73,8 @@ below are the same two. What changes is how they are drawn:
   last summer's rate shows as a dashed line;
 - money, mood and the tightest need update beside it (`projectConsequences`);
 - **Send the offers** pours the admitted into the hall's seats, then the
-  Students beat opens in the inbox.
+  Students beat opens in the inbox. It sticks to the foot of the panel, so
+  it stays in view at 1280×720 however long the cards run (Plan 114G).
 
 The cohort cards and the slow ticking reveal described below went with the
 inbox card; the year-over-year line and the price's tier stay.

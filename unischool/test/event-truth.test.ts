@@ -17,6 +17,7 @@
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream, random } from '../src/engine/random';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
+import { BOARD_QUESTIONS, EXPANSION_SHARE } from '../src/data/boardQuestionData';
 import { applyEffects, eligible, eventById, namedDamage, rollVars, TENURE_CASE_MAX_YEARS, TENURE_CASE_MIN_YEARS } from '../src/systems/events/catalogue';
 import { resolveCatalogueEvent } from '../src/systems/events/catalogueEngine';
 import { springTermWeek, winterDepth } from '../src/state/winter';
@@ -64,7 +65,9 @@ const LEVERS: Lever[] = [
   { word: /\bsalar(y|ies)\b/i, ok: () => false, why: 'no event can set salaries' },
   { word: /\b(run|launch) (a|the) (capital )?campaign\b/i, ok: (c) => (e(c).campaign ?? 0) > 0, why: 'running a campaign launches one when the Advancement VP can (Plan 101E)' },
 ];
-for (const ev of EVENT_CATALOGUE) {
+// The board's questions (Plan 116D) are raised, not drawn, and held to the
+// same test.
+for (const ev of [...EVENT_CATALOGUE, ...BOARD_QUESTIONS]) {
   for (const c of ev.choices) {
     for (const lever of LEVERS) {
       if (lever.word.test(c.label)) assert(lever.ok(c), `${ev.id} "${c.label}": ${lever.why}`);
@@ -312,6 +315,27 @@ function college(): GameState {
     assert(lib.floorsAdded === 3 && lib.status === 'done', 'none past the top floor');
   } else {
     assert(false, 'the library is in the tree');
+  }
+}
+
+// ---- The board's questions (Plan 116D): each does what it says ----
+{
+  const [grow, gift, honors] = BOARD_QUESTIONS;
+  const say = (ev: (typeof BOARD_QUESTIONS)[number]) => `${ev.text} ${ev.choices.map((c) => c.label).join(' ')}`;
+  const yes = (ev: (typeof BOARD_QUESTIONS)[number]) => ev.choices.find((c) => c.id !== ev.default)!;
+  const no = (ev: (typeof BOARD_QUESTIONS)[number]) => ev.choices.find((c) => c.id === ev.default)!;
+  assert(yes(grow).effects.enrollmentSpread === EXPANSION_SHARE * 2000 && /across all four years/.test(grow.text), 'the expansion\'s students join every class, as it says');
+  assert((yes(grow).effects.mood ?? 0) < 0 && /satisfaction would fall/.test(grow.text), 'and satisfaction falls, as it says');
+  assert(yes(gift).effects.closeProgram === 1 && (yes(gift).effects.endowment ?? 0) > 0 && yes(gift).fund?.purpose === 'chair', 'the gift endows a chair and closes the program it names');
+  assert((yes(honors).effects.honors ?? 0) > 0, 'the honors college admits smaller classes');
+  const words: Record<string, string> = { academics: 'academics', research: 'research', studentLife: 'student life', athletics: 'athletics' };
+  for (const ev of BOARD_QUESTIONS) {
+    const trade = Object.entries(yes(ev).standing ?? {});
+    const up = trade.find(([, v]) => v > 0)?.[0];
+    const down = trade.find(([, v]) => v < 0)?.[0];
+    assert(trade.length === 2 && up !== undefined && down !== undefined && say(ev).includes(`rate your ${words[up]} higher and your ${words[down]} lower`), `${ev.id}: the trade it names is the one it makes`);
+    assert(Object.keys(no(ev).effects).length === 0 && !no(ev).standing && /If you say no, nothing changes\./.test(ev.text), `${ev.id}: saying no changes nothing, as it says`);
+    assert(ev.choices.every((c) => (c.effects.cash ?? 0) >= 0), `${ev.id}: no answer pays to make it go away`);
   }
 }
 

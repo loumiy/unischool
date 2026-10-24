@@ -60,9 +60,10 @@ seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
 it is about; an **arrival** (a matter or a letter reaching the inbox) carries
 an Open button and stays eight seconds (in year one a founding note or a
 milestone stays until opened or dismissed, Plan 78B), and none arrives while
-the inbox is open. With Settings' "Pause when a matter arrives" on (the
-default), a matter's arrival also pauses the clock and stays until it is
-opened or dismissed; whatever the setting, a matter's final week, unopened,
+the inbox is open. With Settings' "Pause for an urgent matter" on (the
+default), a matter's arrival stays until it is opened or dismissed, and
+one with two weeks or less to answer also pauses the clock (Plan 116B; off,
+it eases the clock to 1× instead); whatever the setting, a matter's final week, unopened,
 pauses the clock once and the Inbox button pulses red (Plan 78E,
 `systems/inbox/unseen.ts`; see
 [interrupts.md](interrupts.md)'s "What does not stop the clock"). And at the
@@ -87,15 +88,23 @@ the right says what to do about it.
 **The objectives** (Plan 106, `state/chapters.ts`, `ObjectivesPanel.tsx`).
 Once the walkthrough is over, the ticker's chapter chip takes the place the
 milestone chip had: "Chapter 2 · Places for every student 480/650", the
-chapter's first objective not met. The next step stays on the strip only
+chapter's first objective not met. The chapter is the open chain chapter;
+a side chapter (The teams, Research and the later ones) shows only when no
+chain chapter is open, and while one is, the drawer's Guide lists the side
+chapters open beside it first, marked "open now" (Plan 114E). The next step stays on the strip only
 when it is urgent or no chapter is open. Clicking the chip, or pressing J,
 opens the **objectives drawer** above the ticker. It holds:
 - the chapter's number and title, a short paragraph about it, and its
-  objectives, each with its count and a circled (?) (Plan 112A). The (?)
+  objectives, each with its count and a circled (?) (Plan 112A). Seats for
+  everyone adds the places with courses under way while they differ, the
+  count the next step reads: "240/350 taught · 320 with courses under way"
+  (Plan 114E). The (?)
   opens a small popover anchored to it (`HelpHint.tsx`; Escape or a click
   elsewhere shuts it, one open at a time) with the objective's help, how
   to meet it, and a Show me that opens the view it needs and rings what
-  to click;
+  to click. While that view is a tab still shut, a muted line says when it
+  opens in place of the button ("The Research tab opens when your first
+  lab is finished.", Plan 114F);
 - the next step, under "Also waiting";
 - the milestones: those reached this chapter as "Unlocked", the next with
   its count, and the whole ladder a button away.
@@ -481,11 +490,21 @@ among the offers, the Found button). The chapters after the walk ring
 the same way (Plan 106 PR C, `state/chapters.ts`'s `ringedProgram` and
 `ringedBuilding`): the program row's develop button in the Curriculum
 while the next course waits, and the next residence hall's and dining
-hall's build tiles while "Somewhere to sleep" is the chapter. Since Plan
+hall's build tiles while "Somewhere to sleep" is the chapter, then, both
+sited, the Paths tile on Grounds until a path joins the residence hall to
+Founders Hall (Plan 115D, `ringedTool`). Since Plan
 112 also the funds figure, the Treasury's button, while "Paying for it"
 waits on the Treasury (`treasuryRinged`), and the first academic hall's
 tile, the build menu opening on the Academic category, while "A hall of
-its own" waits on it. A skipped walk that left the hall
+its own" waits on it. Since Plan 114F also the Student Center while
+"Campus life" waits on it, a first lab while "Research" is open and
+unmet, and the Research Park while its chapter is open, each with the
+menu opening on its tab; "Capital projects" opens the menu on its
+Capital projects tab. A NEXT build line opens the menu on the building
+its intent names and rings it (`nextStep.ts`'s `stepBuilding`), a
+door's Treasury view rides on the tab's target (the campaign opens on
+Endowment), and the Curriculum's head shows the next step's free slot,
+with its Go. A skipped walk that left the hall
 unsited keeps the Build button and the hall's tile rung while the clock
 waits for it.
 
@@ -502,7 +521,8 @@ and tennis courts sit under **Health** with the health chain, where their
 capacity goes (Plan 80B). The menu opens on Grounds (`BuildPopup.tsx`'s `initialBuildTab`,
 Plan 92), except while Founders Hall waits for its ground in a guided
 founding: then it opens on the tab holding the hall, where the walkthrough
-points. The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
+points. A door that names a building, or a chapter that rings one, opens
+it on that building's tab instead (Plan 114F). The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
 `CampusToolsTiles`): four to the space of one building's tile, under one
 "Grounds · free" label, so the row of small, repeatable things stays short.
 **Paths** and **Trees** are one tile each, a row each; armed, its styles

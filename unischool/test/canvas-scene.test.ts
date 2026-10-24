@@ -147,6 +147,28 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
   assert(Object.keys(declared).length === 0, `buildings first, the scene's defs taken in: nothing it cannot draw (${JSON.stringify(declared)})`);
 }
 
+// A fenced sinkhole records, from every side. Its floor carried a stray
+// clipPath="none", which the recorder counts as a clip it cannot draw
+// (Plan 115H, C1-7 (a)).
+{
+  const s4 = structuredClone(s);
+  const holed = layout.placed.filter((e) => !e.developing).slice(0, 8).map((e) => e.t.id);
+  for (const id of holed) s4.tech.find((t) => t.id === id)!.sinkhole = true;
+  const layout4 = campusLayout(s4);
+  for (const [i, c] of cameras.entries()) {
+    const camera = setCamera(c);
+    const scene = canvasSceneOf({
+      layout: layout4, camera, scene: sceneEntries(layout4), groundGeo: groundGeometry(), name: s4.self.name, developing: s4.developing,
+      turning: false, snow: 0, crowds: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
+      labelLayerRef: { current: null }, season: 'sinkhole', groundClass: '',
+    });
+    things.resetStats();
+    for (const e of scene.entries) things.record(`sinkhole-${e.key}`, e.node, scene.values);
+    const unsupported = Object.fromEntries(things.stats.unsupported);
+    assert(Object.keys(unsupported).length === 0, `view ${i} with sinkholes: nothing it cannot draw (${JSON.stringify(unsupported)})`);
+  }
+}
+
 // No shape falls back to the canvas's initial black. The painter reads the
 // stylesheet by an element's own classes, so a rule on a bare tag under a
 // class (`.campus-site-shell polygon`) never reached the canvas: a site's

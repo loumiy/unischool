@@ -32,6 +32,7 @@ import { closeProgram, closeRefusal } from '../techtree/techSystem';
 import { inTitleYear, sportById } from '../../data/studentLifeData';
 import { grantCharter } from './charter';
 import { FESTIVAL_EVENT, districtGrowth } from '../../data/downtownData';
+import { BOARD_QUESTIONS } from '../../data/boardQuestionData';
 import { changeGoodwill, holdFestival } from '../studentlife/downtown';
 import { eventDamageFactor } from '../administration/effects';
 
@@ -545,6 +546,7 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
       }
       case 'paveLine': if (v > 0) paveLine(s); break;
       case 'closeProgram': if (v > 0 && vars.programId) closeProgram(s, vars.programId); break; // techtree/techSystem.ts
+      case 'honors': if (v > 0) s.students.honorsSummers = Math.max(s.students.honorsSummers ?? 0, v); break; // admissions/cohorts.ts's honorsCut
       case 'repairGift': {
         // Money given for the buildings (Plan 101G): the repairs owed first,
         // the rest kept for building in the building fund.
@@ -605,11 +607,13 @@ function departs(s: GameState, vars: Readonly<Record<string, string>>): void {
   });
 }
 
-// Any event a firing can name: the drawn catalog, and the charter and the
-// spring festival, which are raised rather than drawn (charter.ts,
-// catalogueEngine.ts's raiseFestival).
+// Any event a firing can name: the drawn catalog, and the charter, the
+// spring festival and the board's questions, which are raised rather than
+// drawn (charter.ts, catalogueEngine.ts's raiseFestival and
+// raiseBoardQuestion).
 export function eventById(id: string): CatalogueEvent | undefined {
-  return EVENT_CATALOGUE.find((e) => e.id === id) ?? (id === CHARTER_EVENT.id ? CHARTER_EVENT : id === FESTIVAL_EVENT.id ? FESTIVAL_EVENT : undefined);
+  return EVENT_CATALOGUE.find((e) => e.id === id)
+    ?? (id === CHARTER_EVENT.id ? CHARTER_EVENT : id === FESTIVAL_EVENT.id ? FESTIVAL_EVENT : BOARD_QUESTIONS.find((e) => e.id === id));
 }
 
 export { EVENT_CATALOGUE };

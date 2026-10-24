@@ -202,3 +202,20 @@ export function seasonStyle(week: number): CSSProperties {
 // How deep the snow lies, for the roofs (buildingMotifs.tsx's palettes).
 export const SnowContext = createContext(0);
 export const SNOW_COLOR = SNOW;
+
+// How much of the snow a roof holds, by the way it faces: deepest on the
+// lit slopes (Plan 74I), a flat deck and a roof drawn in one tone between
+// them. Glazing holds about half a roof's cover (Plan 115E). snowOnRoofs
+// (buildingMotifs.tsx) and the roofs drawn from their own colors (the
+// sports sheds, the landmarks, the gazebo) all lay it at these weights.
+export const ROOF_SNOW = { negCol: 0.85, negRow: 0.8, posRow: 0.72, posCol: 0.66, roof: 0.8, deck: 0.82, glass: 0.4 } as const;
+// A roof's color under the snow, `cover` being its share of the depth.
+export function snowOn(c: string, snow: number, cover: number): string {
+  return mixColor(c, SNOW_COLOR, snow * cover);
+}
+// See-through glazing under the snow: its #rrggbb color mixed toward white
+// at the glass's cover, its opacity kept.
+export function snowOnGlass(c: string, alpha: number, snow: number): string {
+  const [r, g, b] = hex(snowOn(c, snow, ROOF_SNOW.glass));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

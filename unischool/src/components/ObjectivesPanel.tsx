@@ -1,12 +1,15 @@
 import type { GameState } from '../state/types';
 import type { NextStep } from '../systems/guidance/nextStep';
-import { CHAPTER_COPY, DRAWER_WORDS as W, type Door } from '../data/chapterData';
-import { absoluteWeek, chapterById, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import { CHAPTER_COPY, DRAWER_WORDS as W, shutTabWords, type Door, type Lever } from '../data/chapterData';
+import { stepTarget } from '../systems/guidance/nextStep';
+import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
+import { absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import HelpHint from './HelpHint';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import { count, gameDateOfWeek, prestigeFigure, satisfactionFigure } from '../format';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
+import { DIRECTION_LABELS, PillarMeter, prestigeDirection } from '../tabs/PrestigeGlance';
 import { satisfactionDrag } from '../systems/satisfaction/satisfactionSystem';
 import { NEED_LABELS } from '../data/figureHints';
 
@@ -28,29 +31,35 @@ function milestoneCount(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)}/${figure(p.target, p.unit)}`;
 }
 function objectiveCount(p: ObjectiveProgress): string | null {
-  return typeof p === 'boolean' ? null : `${count(Math.min(p.n, p.of))}/${count(p.of)}`;
+  if (typeof p === 'boolean') return null;
+  const n = `${count(Math.min(p.n, p.of))}/${count(p.of)}`;
+  // A second count, while it differs (Plan 114E): the places with the
+  // courses under way, as the NEXT line counts them.
+  return p.coming !== undefined && p.coming !== p.n ? W.withComing(n, count(p.coming)) : n;
 }
 
 // How many milestones the drawer lists as unlocked at most.
 const UNLOCKED_SHOWN = 3;
-// The Standing chapter's live readout (Plan 106 §2, rule 7): prestige
-// against its target; each pillar's points against the most it can give,
-// which is what makes a good score; what is taken off (crowding, run-down
-// buildings); and the need pulling satisfaction down. Read from
-// prestigeBreakdown and satisfactionDrag; nothing new is said.
+// The Standing chapter's live readout (Plan 106 §2, rule 7): prestige and
+// which way it is heading; the glance's meter per pillar, what each adds
+// (Plan 114B: the glance's words are the only ones, so no target figure and
+// no "of" its most); what is taken off (run-down buildings); and the need
+// pulling satisfaction down. Read from prestigeBreakdown and
+// satisfactionDrag; nothing new is said.
 function StandingLive({ s }: { s: GameState }) {
   const b = prestigeBreakdown(s);
   const pillars = b.inputs.filter((i) => i.pillar !== undefined);
   const taken = b.inputs.filter((i) => i.penalty && i.contribution < -0.05);
   const drag = satisfactionDrag(s);
-  const arrow = b.target > b.current + 0.05 ? '▲' : b.target < b.current - 0.05 ? '▼' : '';
+  const longest = Math.max(...pillars.map((p) => p.weight));
   return (
     <div className="objectives-live">
       <h4>{W.live}</h4>
-      <p>
-        {W.prestigeNow(prestigeFigure(b.current), prestigeFigure(b.target))} <span aria-hidden="true">{arrow}</span>
-      </p>
-      <p>{W.pillars}: {pillars.map((p) => W.pillar(p.label, p.contribution.toFixed(1), p.weight.toFixed(1))).join(' · ')}</p>
+      <p>{W.prestigeNow(prestigeFigure(b.current), DIRECTION_LABELS[prestigeDirection(b)])}</p>
+      <p>{W.pillars}</p>
+      <ul className="glance-rows">
+        {pillars.map((p) => <PillarMeter key={p.key} s={s} input={p} longest={longest} />)}
+      </ul>
       {taken.length > 0 && <p>{W.takenOff}: {taken.map((p) => `${p.label} ${p.contribution.toFixed(1)}`).join(' · ')}</p>}
       <p>
         {W.satisfactionNow(satisfactionFigure(s.students.satisfaction))}
@@ -60,11 +69,26 @@ function StandingLive({ s }: { s: GameState }) {
   );
 }
 
+// An objective's Show me: its door, or, while the door's tab is shut, a
+// muted line saying when it opens (Plan 114F, the third review's C3-9).
+// A plain function, not a component, so the button stands in the panel's
+// own tree (test/chapters.test.ts walks it).
+const isTab = (door: Door): door is TabId => door in TAB_LABELS;
+function showMe(s: GameState, help: Lever, onGo: (go: Door, hallId?: string, programId?: string, target?: string) => void) {
+  const door = help.door;
+  if (!door) return null;
+  if (isTab(door) && !tabAvailable(s, door)) return <span className="objectives-shut">{shutTabWords(door, TAB_LABELS[door])}</span>;
+  return (
+    <button type="button" className="objectives-door" onClick={() => onGo(door, help.hallId, help.ringed ? ringedProgram(s) ?? undefined : undefined, help.view)}>{W.showMe}</button>
+  );
+}
+
 export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, onView }: {
   s: GameState;
   // The NEXT line (nextStep.ts): what waits besides the chapter.
   waiting: NextStep | null;
-  onGo: (go: Door, hallId?: string, programId?: string) => void;
+  // `target`: the building a build door rings, or the view a tab opens on.
+  onGo: (go: Door, hallId?: string, programId?: string, target?: string) => void;
   onOpenLadder: () => void;
   // The Guide (PR G): a chapter met before, read again in place of the
   // current one; null for the current. `onView` turns the page.
@@ -81,7 +105,10 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
   const rows = chapter ? objectiveRows(s, chapter) : [];
   const required = rows.filter((r) => !r.optional);
   const coming = chapter ? null : nextChapter(s);
-  const guide = guideChapters(s).filter((c) => c.id !== chapter?.id);
+  // The Guide's list: the side chapters open beside the current one first
+  // (Plan 114E: the ticker shows the main chapter only), then the rest.
+  const alsoOpen = openSideChapters(s).filter((c) => hasPage(c.id));
+  const guide = [...alsoOpen, ...guideChapters(s).filter((c) => !alsoOpen.includes(c))].filter((c) => c.id !== chapter?.id);
 
   const since = chapter ? s.guidance!.opened[chapter.id] : absoluteWeek(s) - 52;
   const unlocked = MILESTONES
@@ -118,9 +145,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
                   {n && !r.met && <span className="objectives-count">{n}</span>}
                   {help && (
                     <HelpHint text={help.text} align="end" label={W.help(r.text)}>
-                      {help.door && (
-                        <button type="button" className="objectives-door" onClick={() => onGo(help.door!, help.hallId, help.ringed ? ringedProgram(s) ?? undefined : undefined)}>{W.showMe}</button>
-                      )}
+                      {showMe(s, help, onGo)}
                     </HelpHint>
                   )}
                 </li>
@@ -144,7 +169,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
           <h4>{W.waiting}</h4>
           <p className={waiting.urgent ? 'urgent' : undefined}>
             <span>{waiting.text}</span>
-            {waiting.go && <button type="button" className="objectives-door" onClick={() => onGo(waiting.go!, waiting.hallId, waiting.programId)}>{W.go}</button>}
+            {waiting.go && <button type="button" className="objectives-door" onClick={() => onGo(waiting.go!, waiting.hallId, waiting.programId, stepTarget(s, waiting))}>{W.go}</button>}
           </p>
         </section>
       )}
@@ -168,7 +193,10 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
           <h4>{W.guide} · {W.guideList}</h4>
           <p>
             {guide.map((c) => (
-              <button key={c.id} type="button" className="objectives-guide-link" onClick={() => onView(c.id)}>{CHAPTER_COPY[c.id].title}</button>
+              <button key={c.id} type="button" className="objectives-guide-link" onClick={() => onView(c.id)}>
+                {CHAPTER_COPY[c.id].title}
+                {alsoOpen.includes(c) && <span className="objectives-optional"> ({W.guideOpen})</span>}
+              </button>
             ))}
           </p>
         </section>

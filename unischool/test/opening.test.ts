@@ -44,7 +44,8 @@ import { nextStep } from '../src/systems/guidance/nextStep';
 import { openingHoldsClock } from '../src/state/opening';
 import { tabAvailable } from '../src/components/TabNav';
 import { NEEDS_LETTER_ID } from '../src/data/openingData';
-import { CHAPTERS, currentChapter, LOOK_MARKS, ringedBuilding, ringedProgram } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, LOOK_MARKS, ringedBuilding, ringedProgram, ringedTool } from '../src/state/chapters';
+import { pathToFoundersRoute } from '../sim/harness/moves';
 import { OBJECTIVES_OFF_MARK } from '../src/systems/guidance/gates';
 import { awaitsSite, centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -318,7 +319,11 @@ const walkToCourse = (name: string) => reducer(
   const dining = ringedBuilding(s)!;
   assert(dining?.facilityType === 'diningHall', `then a dining hall (${dining?.id})`);
   s = siteAnywhere(s, dining.id);
-  assert(done(s, 'somewhere-to-sleep') && ringedBuilding(s) === null, 'both sited, the chapter is done');
+  // Then the path (Plan 115D): Paths rung, a path laid from the residence
+  // hall to the founding drive.
+  assert(!done(s, 'somewhere-to-sleep') && ringedBuilding(s) === null && ringedTool(s) === 'paths', 'both sited, the build menu rings Paths');
+  s = reducer(s, { type: 'PAINT_PATH_TILES', add: pathToFoundersRoute(s), remove: [] });
+  assert(done(s, 'somewhere-to-sleep') && ringedTool(s) === null, 'a path laid to Founders Hall, the chapter is done');
 
   // No letter after it (Plan 112A): the chapters say what the letters said.
   const { letters, s: after } = playYear(s);

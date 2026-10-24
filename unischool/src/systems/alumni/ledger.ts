@@ -28,11 +28,14 @@ export interface ClassYears {
   programsEstablished: number;
 }
 
-// The four years of the class graduating at the close of `year`.
-export function classYears(s: GameState, year: number): ClassYears {
-  const years = s.history.filter((h) => h.year > year - 4 && h.year <= year);
+// The four years of the class graduating at the close of `year`, read off
+// `rows`. The stamp reads s.history once the closing year's row is in; the
+// summer Review, before it is, passes the row the summer will write (Plan
+// 114D), so the class it describes is the class recorded.
+export function classYears(s: GameState, year: number, rows: readonly YearSnapshot[] = s.history): ClassYears {
+  const years = rows.filter((h) => h.year > year - 4 && h.year <= year);
   const mean = (xs: number[]) => (xs.length === 0 ? s.students.satisfaction : xs.reduce((a, b) => a + b, 0) / xs.length);
-  const first = s.history.find((h) => h.year === year - 4);
+  const first = rows.find((h) => h.year === year - 4);
   const last = years[years.length - 1];
   return {
     years,

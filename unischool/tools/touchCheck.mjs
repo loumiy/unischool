@@ -65,7 +65,8 @@ await page.goto(URL);
 await page.evaluate((s) => localStorage.setItem('unischool.save', s), readFileSync(savePath, 'utf8'));
 // Objectives on Brief: under Guided a chapter's page opens over the map
 // by itself (Plan 106) and covers the building the tap aims at (review III,
-// area 7).
+// area 7). Scenario saves now carry every chapter's page read (Plan 113E),
+// so this stays only as a guard for other saves.
 await page.evaluate(() => localStorage.setItem('unischool.settings.v1', JSON.stringify({ objectives: 'brief' })));
 await page.reload();
 await page.waitForTimeout(1500);
@@ -88,8 +89,11 @@ await page.waitForTimeout(150);
 const v1 = await view();
 check(v0 && v1 && Math.abs(v1.x - v0.x + 100) < 2 && Math.abs(v1.y - v0.y + 70) < 2 && v1.zoom === v0.zoom, `one finger pans by its travel (${JSON.stringify(v0)} → ${JSON.stringify(v1)})`);
 
-// Two pinch.
-await pinch([512, 380], 100, 200);
+// Two pinch, about a building, so one is still on screen for the tap below:
+// the map opens framed on what stands (Plan 115A), and the launch fixture's
+// harness-built strip leaves open grass under the canvas's middle.
+const about = (await mapBuildings(page)).find((b) => b.x > 220 && b.x < 800 && b.y > 200 && b.y < 560);
+await pinch(about ? [about.x, about.y] : [512, 380], 100, 200);
 await page.waitForTimeout(150);
 const v2 = await view();
 check(v1 && v2 && v2.zoom > v1.zoom * 1.6, `two fingers spread to twice the gap zoom in (${v1?.zoom.toFixed(2)} → ${v2?.zoom.toFixed(2)})`);

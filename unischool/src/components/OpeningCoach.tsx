@@ -30,13 +30,15 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, placing, onO
   onOpenHall: () => void;
 }) {
   const stage = s.events.opening.stage;
-  const step = isCoachStage(stage) ? OPENING_STEPS[stage] : null;
+  // A stage the card doesn't know (a retired step on an old save) draws
+  // nothing; persistence.ts carries those to play on load.
+  const step = (isCoachStage(stage) ? OPENING_STEPS[stage] : null) ?? null;
 
   useHotkeys((e) => {
     if (!isKey(e, 'answer') || !step?.next || isActivationTarget(e.target)) return;
     e.preventDefault();
     act({ type: 'ADVANCE_OPENING' });
-  }, step !== null && step.next !== undefined);
+  }, step?.next !== undefined);
 
   if (!step) return null;
 

@@ -22,7 +22,10 @@
 
 import { createInitialState, createPreStartState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
+import { placesComing } from '../src/systems/guidance/seating';
+import { isUndergraduateCourse } from '../src/systems/techtree/techSystem';
+import { isHoused } from '../src/systems/techtree/programOffers';
+import { CHAPTERS, currentChapter, openSideChapters, PATH_OBJECTIVE, pathJoinsResidence, ringedTool, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
@@ -41,9 +44,16 @@ import { setSettings } from '../src/settings';
 import { CHAPTER_IDS, eventFits, stateEvents } from '../src/analytics/events';
 import { ATHLETICS_CHAPTER, chapterGateOpen, MATTERS_CHAPTER, OBJECTIVES_OFF_MARK } from '../src/systems/guidance/gates';
 import { bindScriptStream } from '../src/engine/random';
+import { SPORTS } from '../src/data/studentLifeData';
+import { varsityAsked } from '../src/data/ladderData';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
-import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall } from '../src/data/techData';
+import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall, programOfCourse } from '../src/data/techData';
+import { count } from '../src/format';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
+import { PILLARS } from '../src/systems/prestige/prestigeSystem';
+import { pathToFoundersRoute } from '../sim/harness/moves';
+import { pathTileKey } from '../src/state/campusMap';
+import { driveRoute } from '../src/state/drive';
 
 // A button's onClick in a rendered element tree, found by its words: the
 // panel is a plain function of its props, so calling it gives the tree.
@@ -87,6 +97,13 @@ const done = (s: GameState, id: string) => s.guidance?.done[id] !== undefined;
 function site(s: GameState, test: (t: Buildable) => boolean): void {
   const t = s.tech.find((x) => test(x) && !(x.id in s.placements))!;
   s.placements[t.id] = { row: 0, col: 0, w: 1, h: 1 } as unknown as GameState['placements'][string];
+}
+
+// Somewhere to sleep's path (Plan 115D): the shortest run from beside the
+// residence hall to the paths that join Founders Hall, as the harness's
+// player lays it (sim/harness/moves.ts).
+function pathed(s: GameState): void {
+  for (const tile of pathToFoundersRoute(s)) s.pathways[pathTileKey(tile)] = true;
 }
 
 // A college teaching its pillars: Founders Hall standing, three programs
@@ -140,14 +157,29 @@ const looked = (s: GameState) => {
   assert(MARKED_TABS.has('faculty'), 'opening the Faculty tab is marked');
 }
 
+// ---- Seats for everyone counts what the NEXT line counts (Plan 114E, C3-5) ----
+{
+  const s = looked(teaching());
+  s.students.classes.freshman += 400;
+  const row = () => objectiveRows(s, CHAPTERS.find((c) => c.id === 'seats')!).find((r) => r.id === 'seat-every-student')!.progress as { n: number; of: number; coming?: number };
+  assert(row().coming === row().n, `with no course under way the two counts agree (${row().n}, ${row().coming})`);
+  const course = s.tech.find((t) => isUndergraduateCourse(t) && t.status === 'available' && isHoused(s, programOfCourse(t.id)!))!;
+  course.status = 'developing';
+  assert(row().coming === Math.min(placesComing(s), row().of) && row().coming! > row().n, `a course under way adds to the second count (${row().n}, ${row().coming})`);
+  s.guidance = { opened: { seats: 1 }, done: {}, met: [], marked: [] };
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} })).replace(/<[^>]+>/g, '');
+  assert(html.includes(`${count(row().n)}/${count(row().of)} now · ${count(row().coming!)} once new courses start`), 'the drawer shows both');
+}
+
 // ---- The next chapter waits for its week, and opens already met ----
 {
   const s = looked(teaching());
   s.clock.week = 5;
   site(s, isDorm);
   site(s, isDiningHall);
+  pathed(s);
   settleChapters(s);
-  assert(!opened(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall in week 5 do not open Somewhere to sleep');
+  assert(!opened(s, 'somewhere-to-sleep'), 'a residence hall, a dining hall and a path in week 5 do not open Somewhere to sleep');
   s.clock.week = 10;
   settleChapters(s);
   assert(opened(s, 'somewhere-to-sleep') && done(s, 'somewhere-to-sleep'), 'in week 10 it opens, and is done on the spot');
@@ -163,8 +195,51 @@ const looked = (s: GameState) => {
   assert(objectiveMet(s, 'site-residence-hall') && !done(s, 'somewhere-to-sleep'), 'a residence hall alone meets one objective');
   site(s, isDiningHall);
   settleChapters(s);
-  assert(done(s, 'somewhere-to-sleep'), 'a residence hall and a dining hall sited finish it');
+  assert(!done(s, 'somewhere-to-sleep') && !objectiveMet(s, PATH_OBJECTIVE), 'a residence hall and a dining hall sited, with no path, do not finish it');
+  assert(ringedBuilding(s) === null && ringedTool(s) === 'paths', 'and the build menu rings Paths, no building');
+  pathed(s);
+  settleChapters(s);
+  assert(done(s, 'somewhere-to-sleep'), 'a path from the residence hall to Founders Hall finishes it');
   assert(s.guidance!.done['somewhere-to-sleep'] === 12, 'done the week it was finished');
+  assert(ringedTool(s) === null, 'and Paths is rung no more');
+}
+
+// ---- Somewhere to sleep's path (Plan 115D, the third review's C1-1) ----
+{
+  const s = looked(teaching());
+  s.clock.week = 12;
+  site(s, isDorm);
+  site(s, isDiningHall);
+  const drive = driveRoute(s);
+  assert(drive.length > 0 && drive.every((tile) => pathTileKey(tile) in s.pathways), `the founding laid the drive (${drive.length} tiles)`);
+  assert(!pathJoinsResidence(s), 'the drive alone does not meet it: it joins the hall to the road, not the residence hall');
+  // A path from beside the residence hall to the drive's middle.
+  const dorm = s.tech.find((t) => isDorm(t) && t.id in s.placements)!;
+  s.placements[dorm.id] = { ...s.placements[dorm.id], row: drive[20].row, col: drive[20].col + 6 };
+  for (let col = drive[20].col + 1; col <= drive[20].col + 5; col++) s.pathways[pathTileKey({ row: drive[20].row, col })] = true;
+  assert(pathJoinsResidence(s), 'a path from the residence hall that joins the drive meets it');
+  delete s.pathways[pathTileKey({ row: drive[20].row, col: drive[20].col + 3 })];
+  assert(!pathJoinsResidence(s), 'a gap in it does not');
+  s.pathways[pathTileKey({ row: drive[20].row + 1, col: drive[20].col + 3 })] = true;
+  assert(pathJoinsResidence(s), 'a step to the side, corner to corner, still joins it');
+  // A path under a building joins nothing.
+  const other = { row: drive[20].row - 1, col: drive[20].col + 2, w: 3, h: 3 };
+  s.placements['TEST-SHED'] = other as unknown as GameState['placements'][string];
+  assert(!pathJoinsResidence(s), 'a path under a building joins nothing');
+  delete s.placements['TEST-SHED'];
+  settleChapters(s);
+  assert(objectiveMet(s, PATH_OBJECTIVE) && done(s, 'somewhere-to-sleep'), 'met, the chapter is done');
+  assert(CHAPTER_COPY['somewhere-to-sleep'].help?.[PATH_OBJECTIVE]?.door === 'build', 'its Show me opens the build menu');
+}
+{
+  // A save already past the chapter, from before the path, keeps it done.
+  const s = looked(teaching());
+  s.clock.week = 40;
+  site(s, isDorm);
+  s.guidance!.opened = { founding: 1, 'next-course': 1, 'looking-around': 1, 'somewhere-to-sleep': 10, seats: 12, 'paying-for-it': 30 };
+  s.guidance!.done = { founding: 1, 'next-course': 5, 'looking-around': 8, 'somewhere-to-sleep': 12, seats: 12 };
+  settleChapters(s);
+  assert(done(s, 'somewhere-to-sleep') && !objectiveMet(s, PATH_OBJECTIVE) && ringedTool(s) === null, 'a save past Somewhere to sleep without the path keeps it done, nothing rung');
 }
 
 // ---- The money and the first summer (PR D) ----
@@ -173,6 +248,7 @@ const looked = (s: GameState) => {
   s.clock.week = 12;
   site(s, isDorm);
   site(s, isDiningHall);
+  pathed(s);
   settleChapters(s);
   assert(done(s, 'seats') && !opened(s, 'paying-for-it'), 'Paying for it waits for week 30');
   s.clock.week = 30;
@@ -372,6 +448,37 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(chapterGateOpen(open, MATTERS_CHAPTER) && !chapterGateOpen(open, ATHLETICS_CHAPTER), 'Campus life open opens the matters, not the Athletics tab');
   const freed = play(open, 104);
   assert(Object.keys(freed.events.decisionHistory).length > 0 || (freed.catalogue?.lastInlineWeek ?? 0) > 0, 'and with it open, matters come');
+
+  // Athletics in its chapter (Plan 113C, the third review's I7-2): a sport
+  // club past its tenure, the mascot still to name. With Campus life shut,
+  // two years bring no varsity petition and no mascot stop. The petition
+  // never stamps decisionHistory, so read the stops seen and varsityAsked.
+  const seen = (start: GameState, weeks: number) => {
+    let x = start;
+    const stops: string[] = [];
+    for (let i = 0; i < weeks; i += 1) {
+      if (x.pendingInterrupt) {
+        const p = x.pendingInterrupt;
+        stops.push(p.type === 'decision-event' ? (p.payload as { eventId: string }).eventId : p.type);
+        x = reducer(x, defaultAnswer(x)!);
+      } else x = reducer(x, { type: 'TICK' });
+    }
+    return { x, stops };
+  };
+  const sporty = structuredClone(base);
+  sporty.self.mascot = '';
+  sporty.orgs.mascotBeatPending = true;
+  sporty.orgs.clubs.push({ id: 'club-gates-sport', name: 'Gates Rowing Club', foundedYear: 0, foundingMembers: 20, foundingEnrolled: 300, upkeepPerWeek: 0, sport: SPORTS[0].id, varsityLastAskedYear: null });
+  const shut = seen(structuredClone(sporty), 104);
+  assert(!shut.stops.includes('varsity-petition') && !varsityAsked(shut.x), `with Campus life shut, no varsity petition (${shut.stops.join(',')})`);
+  assert(!shut.stops.includes('first-sport-club') && shut.x.orgs.mascotBeatPending, 'and no mascot stop, still pending');
+  const lifeOpen = structuredClone(sporty);
+  lifeOpen.guidance!.opened['campus-life'] = 105;
+  const asked = seen(lifeOpen, 104);
+  const petition = asked.stops.indexOf('varsity-petition');
+  const mascotStop = asked.stops.indexOf('first-sport-club');
+  assert(petition >= 0 && varsityAsked(asked.x), `with it open, the petition comes (${asked.stops.join(',')})`);
+  assert(mascotStop > petition, `then the mascot stop, once The teams opens (${petition}, ${mascotStop})`);
 }
 {
   // The hall chapter waits for the first academic hall to be buildable.
@@ -389,15 +496,20 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(currentChapter(s)?.id === 'hall-of-its-own', 'once one is, it opens');
 }
 {
-  // Standing's live readout: prestige and its target, the pulls, satisfaction.
+  // Standing's live readout: prestige and which way it is heading, the
+  // glance's pillar meters, satisfaction (Plan 114B: no target, no "of").
   const s = teaching();
   s.clock.year = 2;
   settleChapters(s);
   s.guidance = { opened: { standing: 53 }, done: Object.fromEntries(['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'].map((id) => [id, 1])), met: [], marked: [] };
   s.guidance.opened = { ...s.guidance.done, standing: 53 };
   const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
-  assert(html.includes('Standing') && /Prestige [\d.]+, heading for [\d.]+/.test(html), 'Standing reads prestige against its target');
-  assert(/Its pillars: Academics [\d.]+ of [\d.]+ · Research/.test(html) && html.includes('Satisfaction '), 'with each pillar against its most, and the satisfaction');
+  assert(html.includes('Standing') && /Prestige [\d.]+, (rising|falling|steady)</.test(html), 'Standing reads prestige and which way it is heading');
+  assert(PILLARS.every((p) => html.includes(`glance-pillar pillar-${p}`)) && html.includes('Satisfaction '), 'with the glance\'s meter per pillar, and the satisfaction');
+  const live = html.slice(html.indexOf('objectives-live')).replace(/<[^>]+>/g, ' ');
+  assert(!/target/i.test(live) && !/heading for/.test(live) && !/\d of \d/.test(live), `no drawer word says "target", or a pillar "of" its most (${live})`);
+  const words = [CHAPTER_COPY.standing.about ?? '', ...Object.values(CHAPTER_COPY.standing.objectives), ...Object.values(CHAPTER_COPY.standing.help ?? {}).map((h) => h.text)];
+  assert(words.every((w) => !/target/i.test(w)), 'and no Standing word does either');
 }
 
 // ---- PR F: years 4 and 5, a side chapter, and the Athletics tab ----
@@ -419,9 +531,18 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   s.orgs.clubs.at(-1)!.varsityLastAskedYear = 4;
   s.ladder.reached.sport = 4;
   settleChapters(s);
-  assert(opened(s, 'the-teams'), 'a varsity petition opens The teams beside the chain');
+  assert(!opened(s, 'the-teams') && !tabAvailable(s, 'athletics'), 'a petition alone, turned down, opens neither (Plan 114E)');
+  s.orgs.teams.push({ id: 'team-soccer', sport: 'soccer', status: 'awaitingVenue', venueCategory: 'soccerField' } as unknown as GameState['orgs']['teams'][number]);
+  settleChapters(s);
+  assert(opened(s, 'the-teams'), 'a varsity team opens The teams beside the chain');
   assert(tabAvailable(s, 'athletics'), 'and with it the Athletics tab');
-  assert(currentChapter(s)?.id === 'the-teams', 'the drawer shows the open chapter first in order');
+  // The ticker and the drawer show the main chapter over a side one, and
+  // the Guide lists the side one first (Plan 114E, C3-2).
+  assert(currentChapter(s)?.id === 'running-the-college', `the main chapter is current, not the side one (${currentChapter(s)?.id})`);
+  assert(openSideChapters(s).map((c) => c.id).join(',') === 'the-teams', 'and The teams is open beside it');
+  const drawer = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, onView: () => {} }));
+  const guideAt = drawer.indexOf('objectives-guide');
+  assert(guideAt > 0 && drawer.indexOf('The teams', guideAt) > guideAt && drawer.slice(guideAt).includes('open now'), 'the Guide names The teams, open now');
   assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
 
   const ungated = structuredClone(s);
@@ -528,6 +649,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   s.clock.week = 30;
   site(s, isDorm);
   site(s, isDiningHall);
+  pathed(s);
   settleChapters(s);
   assert(currentChapter(s)?.id === 'paying-for-it' && treasuryRinged(s), 'Paying for it rings the Treasury button');
   s = reducer(s, { type: 'MARK_GUIDANCE', mark: tabMark('treasury') });

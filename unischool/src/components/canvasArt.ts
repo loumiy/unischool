@@ -10,10 +10,10 @@ import type { SchoolColors, GameState } from '../state/types';
 import { registerArt, registerProvider, type ArtScope } from './canvasPaint';
 import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext } from './mapOccasions';
 import { SnowContext } from './seasons';
-import BuildingMotif, { BuildingMass, BuildingMotifArt, RoofFlag, buildingMassArt, roofFlagArt, sameMotif, type BuildingMassProps } from './buildingMotifs';
+import BuildingMotif, { BuildingMass, BuildingMotifArt, InCollegeColors, RoofFlag, buildingMassArt, roofFlagArt, sameMotif, type BuildingMassProps } from './buildingMotifs';
 import Landmark, { landmarkArt, type LandmarkProps } from './landmarks';
 import { Lamp, lampArt } from './dressing';
-import { RakedStand, rakedStandArt, type RakedStandProps } from './groundMarkings';
+import { Gazebo, RakedStand, gazeboArt, rakedStandArt, type GazeboProps, type RakedStandProps } from './groundMarkings';
 import PathwayLayer, { buildPathGeometry, pathwayArt } from './pathways';
 import { RingBack, RingBackArt, RingFront, RingFrontArt, RingGround, RingGroundArt, RingSprites, RingSpritesArt } from './Surroundings';
 import Tree, { TreeArt, TreeBody, TreeBodyArt } from './trees';
@@ -56,8 +56,10 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
 
   // The readers of occasions.
   registerArt(RoofFlag, (p: { at: Pt }, s) => roofFlagArt(p, occasion(s, 'colors')));
+  registerArt(InCollegeColors, (p: { draw: (c: SchoolColors) => React.ReactNode }, s) => p.draw(occasion(s, 'colors')));
   registerArt(BuildingMass, (p: BuildingMassProps, s) => buildingMassArt(p, occasion(s, 'snow')));
-  registerArt(Landmark, (p: LandmarkProps, s) => landmarkArt(p, occasion(s, 'developing'), occasion(s, 'collegeName')));
+  registerArt(Landmark, (p: LandmarkProps, s) => landmarkArt(p, occasion(s, 'developing'), occasion(s, 'collegeName'), occasion(s, 'snow')));
+  registerArt(Gazebo, (p: GazeboProps, s) => gazeboArt(p, occasion(s, 'snow')));
   registerArt(Lamp, (p: { at: Pt }, s) => lampArt(p, occasion(s, 'banner')));
   registerArt(RakedStand, (p: RakedStandProps, s) => {
     const venue = occasion(s, 'venue');

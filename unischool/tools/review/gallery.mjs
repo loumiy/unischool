@@ -13,7 +13,8 @@
 //
 // Writes <out>/<save>-<size>-<nn>-<what>.png, gallery.json and gallery.md.
 // A fresh page with no save is captured too (the title and the founding
-// form) unless --no-fresh. --settings '<json>' plays with the player's
+// form) unless --no-fresh, with a line for either primary button whose
+// foot falls below the window. --settings '<json>' plays with the player's
 // settings set (settings.ts: textScale 1–1.3, vision 'safe', motion
 // 'reduce'), for the sweep at the text scale's extreme.
 // ---------------------------------------------------------------------
@@ -83,6 +84,16 @@ async function capture(page, ctx, what) {
   if (shots) await page.screenshot({ path: join(out, file) });
   rows.push({ save: ctx.name, size: ctx.size, what, file, ...c });
   console.log(`${ctx.name} ${ctx.size} ${what}: ${c.words} words, ${c.controls} controls on ${c.layer}${c.scrolls ? ', scrolls' : ''}`);
+}
+
+// A front screen's primary button whose foot falls below the window
+// (Plan 115G, the review's C1-6: Open the doors under a 1280×720 fold).
+async function belowFold(page, ctx, selector, where) {
+  const foot = await page.locator(selector).first().evaluate((el) => [el.getBoundingClientRect().bottom, innerHeight]).catch(() => null);
+  if (!foot || foot[0] <= foot[1]) return;
+  const error = `the primary button's foot is at ${Math.round(foot[0])} px, below the ${foot[1]} px window`;
+  rows.push({ save: ctx.name, size: ctx.size, what: where, errors: [error] });
+  console.log(`${ctx.name} ${ctx.size} ${where}: ${error}`);
 }
 
 async function closeTop(page) {
@@ -292,8 +303,10 @@ async function session(savePath, size) {
   const ctx = { name, size, n: 0 };
   await capture(page, ctx, 'title screen');
   if (!savePath) {
+    await belowFold(page, ctx, '.title-primary', 'the title');
     await page.locator('.title-primary, button:has-text("New game")').first().click().catch(() => {});
     await capture(page, ctx, 'founding form');
+    await belowFold(page, ctx, '.startup-begin-btn', 'the founding');
   } else {
     await page.locator('.title-primary').first().click().catch(() => {});
     await page.waitForTimeout(1200);

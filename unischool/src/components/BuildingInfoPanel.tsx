@@ -667,6 +667,12 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
                   {picked.school} has a hall of its own: {hallDisplayName(s, pickedHomeHall)}.
                 </p>
               )}
+              {/* What founding costs (Plan 114G). A graduate program's
+                  courses all cost the same (techData.ts), so only a major's
+                  line says the later ones cost more. */}
+              <p className="building-info-line">
+                The price is the program&apos;s first course.{picked.kind === 'major' ? ' Its later courses cost more.' : ''}
+              </p>
               {s.finance.cash < entry.cost && (
                 <p className="building-info-line building-info-construction">
                   You&apos;re {money(Math.ceil(entry.cost - s.finance.cash))} short of the entry course&apos;s cost.

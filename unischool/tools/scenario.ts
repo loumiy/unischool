@@ -35,6 +35,8 @@ import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../sr
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
 import { CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
 import { clearBoardLetters } from '../src/systems/finance/distress';
+import { DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, readMark, tabMark } from '../src/state/chapters';
+import { layPathToFounders } from '../sim/harness/moves';
 
 // `--k v` and `--k=v` both work; other arguments are positional.
 const VALUE_FLAGS = ['player', 'strategy', 'year', 'week', 'from-year', 'modal', 'seed', 'vernacular', 'colors', 'name', 'out'];
@@ -118,12 +120,41 @@ const stop = recipe.stopWhen;
 // 95Y: the share image is taken in the fall, when the leaves have turned).
 const week = flags.week ? Number(flags.week) : null;
 if (week !== null && (stop || !(week >= 1 && week <= 52))) throw new Error('--week takes 1 to 52, and no --modal');
-playUntil(game, player, recipe.year, stop
-  ? (st) => st.clock.year >= fromYear && stop(st)
-  : week !== null ? (st) => st.clock.year >= recipe.year && st.clock.week >= week : () => false);
+const stopAt = stop
+  ? (st: GameState) => st.clock.year >= fromYear && stop(st)
+  : week !== null ? (st: GameState) => st.clock.year >= recipe.year && st.clock.week >= week : () => false;
+// A recipe that breaks the school partway (see Scenario.breakAt): played to
+// the start of that year, broken, then played on to its stopping point.
+const breakAt = named?.breakAt;
+const stoppedBeforeBreak = breakAt !== undefined && playUntil(game, player, breakAt.year - game.s.clock.year, stopAt);
+if (breakAt && !stoppedBeforeBreak) breakAt.apply(game.s);
+if (!stoppedBeforeBreak) playUntil(game, player, recipe.year + 1 - game.s.clock.year, stopAt);
+// The marks a player makes outside the college's state (Plan 113E, the
+// third review's I7-5a): every tab a chapter asks to be opened, the camera's
+// moves and double speed, Somewhere to sleep's path (Plan 115D, as its
+// Show me lays it: sim/harness/moves.ts), then every opened chapter's page
+// read. The harness's players open no tab, so a save would otherwise sit on
+// Paying for it at any year, its briefing opening over the map on Continue.
+markAsPlayed(game);
 const state: GameState = game.s;
 // A recipe that breaks the school after the run (see Scenario.mutate).
 named?.mutate?.(state);
+
+// Marks the guidance as a player who opened the screens would have, settling
+// the chapters after each, until no new chapter opens.
+function markAsPlayed(g: typeof game): void {
+  if (!g.s.guidance) return;
+  for (const mark of [...[...MARKED_TABS].map(tabMark), ...Object.values(LOOK_MARKS), DOUBLE_SPEED_MARK]) {
+    g.act({ type: 'MARK_GUIDANCE', mark });
+  }
+  layPathToFounders(g);
+  for (let unread = unreadChapters(g.s); unread.length > 0; unread = unreadChapters(g.s)) {
+    for (const id of unread) g.act({ type: 'MARK_GUIDANCE', mark: readMark(id) });
+  }
+}
+function unreadChapters(s: GameState): string[] {
+  return Object.keys(s.guidance?.opened ?? {}).filter((id) => !s.guidance!.marked.includes(readMark(id)));
+}
 
 // Failing to reach the requested stopping point is an error, not a caveat.
 // Judged by the clock (the run halts early only if it stopped), so

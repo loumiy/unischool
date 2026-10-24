@@ -5,12 +5,14 @@
 // through one move. Do different plans finish differently?
 //
 //   Completionist  builds and develops everything it can afford, fields
-//                  every team, keeps research running; a thin reserve
+//                  every team, keeps research running, appoints a Provost
+//                  (Plan 113E); a thin reserve
 //   Selective      three schools and no more, all of their courses, priced
 //                  over the market and admitting fewer; a deep reserve
 //   Lean           spends only while the week's net is in the black, and
 //                  builds only for a real shortfall
-//   Idle           does nothing: every interrupt takes the game's default
+//   Idle           does nothing: every interrupt takes the game's default,
+//                  and the board's question its own (Plan 116D)
 //
 // Checked for what must hold (test/archetypes.test.ts); how they finish is
 // the report's (sim/report.ts, `npm run sim`), never a gate.
@@ -31,7 +33,7 @@ import { playerRank } from '../../src/systems/rivals/rivalsSystem';
 import { defaultAnswer } from '../../src/engine/defaultAnswers';
 import { unstaffedIn } from '../../src/systems/faculty/restaffing';
 import type { Game, Player } from './game';
-import { buildDorm, buildable, developCourse, foundable, foundOffer, hireForBlocked, moveHome, openOffices, site, siteNextHall, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, useOffices } from './moves';
+import { appointProvost, buildDorm, buildable, developCourse, foundable, foundOffer, hireForBlocked, moveHome, openOffices, site, siteNextHall, tendTeaching, TEND_EVERY_WEEKS, relieveCrowding, useOffices } from './moves';
 import { buildFor, carry, createGuidedPlayer, foundIn, reserveOf } from './guided';
 import { createNaturalPlayer } from './natural';
 
@@ -127,6 +129,7 @@ const COMPLETIONIST: Policy = {
     if (relieveCrowding(g, buildFor) === 'short') return;
     openOffices(g, OFFICE_PREFERENCE.Completionist, { reserve });
     useOffices(g, { reserve });
+    appointProvost(g, { reserve });
     foundOffer(g, { reserve });
     foundGraduate(g, reserve);
     hireForBlocked(g, { reserve });
@@ -244,6 +247,8 @@ export function createArchetype(name: ArchetypeName): Player & { record: Archety
       policy.act(g);
     },
     answer: policy.answer ? (g) => policy.answer!(g) : undefined,
+    // Idle answers nothing, the board's question among it (Plan 116D).
+    ...(name === 'Idle' ? { boardQuestion: false as const } : {}),
   };
 }
 

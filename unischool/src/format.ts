@@ -144,6 +144,18 @@ export function weeksProse(n: number): string {
   return `${Math.round(n)} week${Math.round(n) === 1 ? '' : 's'}`;
 }
 
+// A duration in words, for a sentence: "half a year", "three years",
+// "eighteen months" for a year and a half, else weeks in words
+// ("two weeks"). Plan 114A: the briefings read their durations from the
+// constants, and say them as a person would.
+export function durationWords(weeks: number): string {
+  if (weeks === WEEKS_PER_YEAR / 2) return 'half a year';
+  const years = weeks / WEEKS_PER_YEAR;
+  if (Number.isInteger(years) && years > 0) return years === 1 ? 'a year' : `${countWord(years)} years`;
+  if (Number.isInteger(years * 2)) return `${countWord(years * 12)} months`;
+  return weeks === 1 ? 'a week' : `${countWord(Math.round(weeks))} weeks`;
+}
+
 // A compact count out of a total, tight: "5/9". Prose says "5 of 9".
 export function fraction(n: number, of: number): string {
   return `${count(n)}/${count(of)}`;

@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import type { FacilityType, Vernacular } from '../state/types';
 import { CrowdContext, VenueContext } from './mapOccasions';
+import { ROOF_SNOW, SnowContext, snowOn } from './seasons';
 import { boxFaces, heightScale, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type FaceDir, type Pt } from './isoProjection';
 import { faceTone } from './light';
 import { METRES_PER_TILE, up } from './campusScale';
@@ -1071,7 +1072,7 @@ const QUAD_TREES: QuadPlanting[] = [
 // the walks, four lawn panels, each framed by a low clipped hedge set back
 // from the walks and closed toward the plaza by a curved flower bed; trees
 // stand in the panels, a row along each side broken by the walk's mouth.
-// Nothing stands or lies on a walk, and the walkers' grid (quadGeometry.ts)
+// Nothing stands or lies on a walk, and the walkers' grid (state/quadGeometry.ts)
 // paves exactly these tiles. Everything is authored as offsets from the
 // centre, mirrored into the four panels, so it turns with the camera.
 const GARDEN_SETBACK = 0.3;   // lawn left between a walk's edge and a hedge
@@ -1827,8 +1828,15 @@ function GazeboGround({ col, row, w, h }: GroundProps) {
 // eight posts and a railing between them in the campus's trim, and a
 // pitched roof rising to a finial. The back of it is drawn first, then the
 // floor's edge, then the front, so posts and rails overlap as they stand.
+// The snow lies on its roof as on the halls' (Plan 115E).
 const GAZEBO_TRIM_FALLBACK = '#f3eee1';  // a style with no trim (modern) paints it white
-function Gazebo({ col, row, w, h, vernacular }: GroundProps & { vernacular?: Vernacular }) {
+export type GazeboProps = GroundProps & { vernacular?: Vernacular };
+export function Gazebo(props: GazeboProps) {
+  return gazeboArt(props, useContext(SnowContext));
+}
+// The gazebo given the snow on its roof: what the canvas map draws
+// (canvasArt.ts).
+export function gazeboArt({ col, row, w, h, vernacular }: GazeboProps, snow: number): React.JSX.Element {
   const cc = col + w / 2; const cr = row + h / 2;
   const R = Math.min(w, h) * 0.38;
   const trimOf = stoneFor(vernacular ?? 'georgian').trim;
@@ -1855,7 +1863,9 @@ function Gazebo({ col, row, w, h, vernacular }: GroundProps & { vernacular?: Ver
     const a = eaves[i]; const b = eaves[(i + 1) % 8];
     // Lit from the left: the facets facing left and up are the light ones.
     const lean = (b.x - a.x) / (Math.hypot(b.x - a.x, b.y - a.y) || 1);
-    return { pts: polyPoints([lift(a, EAVE), lift(b, EAVE), lift(centre, APEX)]), fill: shade(roof, 0.82 + 0.22 * lean), depth: (a.y + b.y) / 2 };
+    // The lit facets hold the most snow, as a hall's lit slopes do.
+    const cover = ROOF_SNOW.posCol + (ROOF_SNOW.negCol - ROOF_SNOW.posCol) * (lean + 1) / 2;
+    return { pts: polyPoints([lift(a, EAVE), lift(b, EAVE), lift(centre, APEX)]), fill: snowOn(shade(roof, 0.82 + 0.22 * lean), snow, cover), depth: (a.y + b.y) / 2 };
   };
   const facets = Array.from({ length: 8 }, (_, i) => facet(i)).sort((x, y) => x.depth - y.depth);
   return (

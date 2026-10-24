@@ -37,7 +37,7 @@ the opening camera), and each kind carries an architectural form
 The view stands at one of **four corners of the campus** (a quarter turn
 apart) and one of **ten pitches**, from nearly level to straight down (Plan
 24), and steps between them instantly: Q/E
-turn, Z/X tilt, Home returns to the opening view — keys only; the corner pill
+turn, Z/X tilt, Home returns to the opening view (its angle, pan and zoom) — keys only; the corner pill
 beside the zoom buttons carries no camera controls. `isoProjection.ts`
 owns one `Camera` (azimuth and pitch) and derives every projection
 coefficient from it, so the two hundred call sites that draw a wall or a
@@ -50,6 +50,16 @@ into shapes nobody drew. The camera is `CampusMap.tsx` state — unlike pan
 and zoom, which are a transform on a `<g>`, a turn changes every polygon —
 and it is never saved: it is where the player is looking from, not a fact
 about the school.
+
+**The opening view** is framed on what stands (Plan 115A, `ringLand.ts`'s
+`framedView`): centred on the box round every placement plus a margin of
+six tiles, at the zoom that fits it, held between 0.4 and 1. A lone
+Founders Hall opens at 1, the view widens as the college grows, and a
+built-out campus opens at 0.4 as every map did before. With nothing placed
+it centres on the parcel's middle. It is set on mount only, so it never
+moves under the player, and Home sets it again. `?view=parcel` keeps the
+old opening view (the whole parcel at 0.4) for the shooting tools, so their
+`--zoom` and `--pan` recipes frame as they always have.
 
 A quarter turn is eased over `TURN_MS` (Plan 37; reduced motion snaps), and
 each of its frames redraws the whole scene at a new angle: the buildings,
@@ -329,14 +339,17 @@ placements.
 
 Walkers (`Walkers.tsx`) walk routes between doors (`walkRoutes.ts`),
 preferring paths, stepped on the frame clock and more numerous as the
-college grows. On the canvas map `Walkers` keeps no DOM: it hands the map
+college grows. A walker heads for a building by weight, or for the road
+one time in five (`pickStop`). Until a second building is done it keeps
+to Founders Hall and a stop or two on its forecourt, and never walks to the
+road (Plan 115C). On the canvas map `Walkers` keeps no DOM: it hands the map
 its crowd (where each walker stands, a painter for it, and the doors held
 open), and the map draws each walker inside the depth order (below). A
 walker going through a door holds it open, and the building is drawn with
 that door open. A Campus
 Quad's walks are paths to them, its lawn is lawn at a lawn's cost (Plan
 80H: at half of it they cut across the grass), and its centerpiece is not
-walkable (`quadGeometry.ts`): on the Grand Quad they keep to its
+walkable (`state/quadGeometry.ts`): on the Grand Quad they keep to its
 perimeter walk, cross walks and the round plaza they meet at, going round
 the fountain; its hedged lawn panels are kept off (Plan 87K). A path drawn tile by tile replans their routes once it has
 stood still for a moment, not at every tile.
@@ -345,7 +358,9 @@ lamps, banner lamps, benches and flower beds (`GameState.dressing`), bike
 racks by the doors of a big college, and the flag at Founders Hall are props
 in the depth-sorted scene. The player's may stand anywhere on open land, off
 the buildings and the road (`PLACE_DRESSING`; until the decoration that
-followed Plan 99 they had to touch a path). A **banner lamp** is a lamp post
+followed Plan 99 they had to touch a path). A Campus Quad's lawn counts as
+open land, its walks and centrepiece do not, and the Grand Quad takes none
+(Plan 115H: `state/dressing.ts`'s `dressingBlocker`, by `quadTile`). A **banner lamp** is a lamp post
 hung for good with a pair of banners in the college's colors, one each side
 of the post (`dressing.tsx`'s `BannerLamp`; the lamps' commencement banner is
 the same drawing, one-sided and for a week). A **flower bed** is painted in
@@ -389,6 +404,18 @@ corner so a joint never crosses the curb. The corners a diagonal run bridges
 are coursed too, each notch as the open tile beside it would be, cut along the
 run's edge (`halfCoursingOf`), so a diagonal brick or cobble walk is coursed
 end to end.
+
+**The founding drive** (Plan 115B, `state/drive.ts`): when Founders Hall
+first gets a placement, a path is laid from the tile before the middle of its
+front wall to the last row of land above the road, by a four-way search that
+tries the step toward the road first. With nothing else standing it is a
+straight drive, about sixty tiles from a hall at the parcel's centre; a hall
+that faces away from the road gets one that goes round it. It is laid inside
+the action that sites the hall (`PLACE_BUILDABLE` in a guided founding,
+`createInitialState` in a headless one), so a replay lays it too, and nothing
+lays it again: a sandbox's move leaves it where it was, and a save from before
+it loads as it was drawn. It is an ordinary path the player may lift or
+repave.
 
 **Benches** (Plan 80I) are the one prop with a direction. A bench is set
 against one edge of its tile and faces out across it, its back to the lawn,

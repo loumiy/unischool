@@ -16,17 +16,33 @@ import type { TabId } from '../components/TabNav';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { COURSE_DEVELOPMENT_SLOTS, FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
-import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID } from './techData';
-import { count, countWord } from '../format';
+import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, MAJOR_COURSE_COUNT, TIER_DURATION_WEEKS } from './techData';
+import { count, countWord, durationWords } from '../format';
+import { WEEKS_PER_YEAR } from '../state/types';
+import { DEMAND_FIRST_YEAR, DEMAND_SATISFACTION_THRESHOLD } from './demandData';
+import { ATTRITION_SATISFACTION_LINE } from '../systems/admissions/admissionsSystem';
+import { SEARCH_COST_WEEKS, SEARCH_WEEKS } from '../systems/faculty/facultySearch';
+import { PLAYOFF_WEEK } from '../systems/athletics/playoffs';
+import { SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_YEAR } from '../systems/prestige/prestigeSystem';
+import { pillarRouteWords, satisfactionRouteWords } from './prestigeWords';
+import { INITIATIVE_DEPTHS } from './researchData';
+import { PROJECTS } from './projectData';
 import { SEAT_SENIOR_YEARS } from './seatData';
 import { GRADE_B } from './courseQuality';
 import { PARK_RESEARCH_BOOST } from './researchParkData';
-import { AD_OFFER_COOLDOWN_YEARS, VARSITY_PETITION_MIN_TENURE_YEARS } from './studentLifeData';
+import { AD_OFFER_COOLDOWN_YEARS } from './studentLifeData';
+import { milestoneForTab } from './ladderData';
 
 export type ChapterId = 'founding' | 'next-course' | 'looking-around' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
   | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life'
   | 'the-teams' | 'running-the-college'
   | 'research' | 'alumni' | 'capital-projects' | 'specialization' | 'research-park';
+
+// The capital projects any college may build, as the build menu offers
+// them: the first year one opens, and the year the rest have (Plan 114A).
+const OPEN_PROJECTS = PROJECTS.filter((p) => !p.project.specialization && !p.project.late);
+const PROJECTS_FIRST_YEAR = Math.min(...OPEN_PROJECTS.map((p) => p.project.fromYear));
+const PROJECTS_LATER_YEAR = Math.max(...OPEN_PROJECTS.map((p) => p.project.fromYear));
 
 // Where a Show me goes: the NEXT line's own doors.
 export type Door = NonNullable<NextStep['go']>;
@@ -34,11 +50,16 @@ export type Door = NonNullable<NextStep['go']>;
 export interface Lever {
   text: string;
   // The view its Show me opens; `ringed` opens it on what the chapter
-  // rings (state/chapters.ts's ringedProgram), `hallId` on that hall.
+  // rings (state/chapters.ts's ringedProgram), `hallId` on that hall, and
+  // `view` on that view of the Treasury (Plan 114F).
   door?: Door;
   ringed?: true;
   hallId?: string;
+  view?: TreasuryView;
 }
+
+// The Treasury's views (TreasuryTab.tsx), which a door can open it on.
+export type TreasuryView = 'budget' | 'endowment' | 'estate';
 
 export interface ChapterCopy {
   title: string;
@@ -94,14 +115,14 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'next-course': {
     title: 'The next course',
-    about: `Each program has ten courses, and each one must be written before it can be taught. The curriculum committee writes ${COMMITTEE} at a time, and each takes ten to fifteen weeks. A program's later courses open once its first course is taught.`,
+    about: `Each program has ${countWord(MAJOR_COURSE_COUNT)} courses, and the curriculum committee writes them ${COMMITTEE} at a time. An entry course takes about ${TIER_DURATION_WEEKS[1]} weeks to write, and a capstone about ${TIER_DURATION_WEEKS[4]}. A program's later courses open once its first course is taught.`,
     objectives: {
       'develop-second-course': "Start a program's second course",
       'run-at-double': 'Run the clock at double speed',
     },
     help: {
       'develop-second-course': { text: 'In the Curriculum, find the program and click Develop on its next course. Then pick a professor to teach it. Each lit lamp under the Curriculum button is a course being written.', door: 'curriculum', ringed: true },
-      'run-at-double': { text: 'Press 2, or click the second speed button, to run at double speed. Space pauses.' },
+      'run-at-double': { text: 'Press 2, or click the double-arrow button, to run at double speed. Space pauses.' },
     },
   },
   'looking-around': {
@@ -124,14 +145,18 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'somewhere-to-sleep': {
     title: 'Somewhere to sleep',
-    about: 'Your students need somewhere to sleep and somewhere to eat, and the campus has neither yet. A residence hall gives beds, and a dining hall serves meals, each for a set number of students. Most students commute, but they still judge the college by its beds and meals.',
+    about: 'A residence hall gives beds, and a dining hall serves meals, each for a set number of students. Most students commute, but they still judge the college by its beds and meals. Students walk on paths where they can, so lay one between your buildings.',
     objectives: {
       'site-residence-hall': 'Place a residence hall',
       'site-dining-hall': 'Place a dining hall',
+      'path-to-founders': 'Lay a path from the residence hall to Founders Hall',
     },
     help: {
       'site-residence-hall': { text: 'Open the build menu and click the ringed residence hall. Then click the map to place it. You pay when you place a building, and it opens when construction is finished.', door: 'build' },
       'site-dining-hall': { text: 'Open the build menu, click a dining hall, then click the map to place it.', door: 'build' },
+      // The two buildings, not the founding drive, which nothing a player
+      // reads names (Plan 115D); a path that joins the drive still counts.
+      'path-to-founders': { text: 'Open the build menu and click Paths. Drag a path from the residence hall to Founders Hall. Paths are free.', door: 'build' },
     },
   },
   seats: {
@@ -152,13 +177,13 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'weekly-surplus': 'Earn more each week than you spend',
     },
     help: {
-      'open-treasury': { text: "Click your funds at the bottom of the screen to open the Treasury. It lists each week's income and costs, and its board scale shows how worried the board is.", door: 'treasury' },
+      'open-treasury': { text: "Click your funds at the bottom of the screen to open the Treasury. It lists each week's income and costs. It also shows how the board rates your finances.", door: 'treasury' },
       'weekly-surplus': { text: "Tuition is most of your income, and each summer you set the next class's price. If you can't afford a building, the build menu offers a loan for the difference, repaid weekly.", door: 'treasury' },
     },
   },
   'first-summer': {
     title: 'The first summer',
-    about: "At week 52 the clock stops for the summer, and waits until you open it from the note above the clock. It has three pages: the year in review, admissions, and the students' petitions. In admissions you set tuition first, and the new class pays that price for all four years.",
+    about: `At week ${WEEKS_PER_YEAR} the clock stops for the summer, and waits until you open it from the note above the clock. It has three pages: the year in review, admissions, and the students' petitions. In admissions you set tuition first, and the new class pays that price for all four years.`,
     objectives: {
       'set-first-class': "Set the first class's tuition and admit rate",
     },
@@ -168,18 +193,18 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   standing: {
     title: 'Standing',
-    about: "Prestige is your college's reputation. Satisfaction is how happy your students are. Neither one jumps: each moves a little every week toward a target.",
+    about: "Prestige is your college's reputation, and satisfaction is how happy your students are. Neither one jumps. Each moves a little at a time.",
     objectives: {
       'open-students': 'Open the Students tab',
       'open-history': 'Open History to see what prestige is made of',
-      'satisfaction-60': 'Satisfaction at 60 or more',
-      'prestige-rising': 'Prestige heading up',
+      'satisfaction-60': `Satisfaction at ${DEMAND_SATISFACTION_THRESHOLD} or more`,
+      'prestige-rising': 'Prestige rising',
     },
     help: {
       'open-students': { text: 'The Students tab shows the five needs, and which one pulls satisfaction down most.', door: 'students' },
       'open-history': { text: 'History shows where prestige is heading, and what each of its four pillars adds: academics, research, student life and athletics.', door: 'history' },
-      'satisfaction-60': { text: "You can't set satisfaction. Raise the need that pulls it down most, and the number follows. Below 50, some students leave each summer, and from year 3 below 60 brings demands.", door: 'students' },
-      'prestige-rising': { text: 'Your endowment and the four pillars raise where prestige is heading, and run-down buildings lower it. History shows the target, and what each pillar adds.', door: 'history' },
+      'satisfaction-60': { text: `You can't set satisfaction. Raise the need that pulls it down most, and the number follows. Below ${ATTRITION_SATISFACTION_LINE}, some students leave each summer, and from year ${DEMAND_FIRST_YEAR} below ${DEMAND_SATISFACTION_THRESHOLD} brings demands.`, door: 'students' },
+      'prestige-rising': { text: 'Your endowment and the four pillars lift prestige, and run-down buildings pull it down. History › Prestige shows which way it is heading and what each pillar adds.', door: 'history' },
     },
   },
   'a-faculty': {
@@ -196,7 +221,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'open-faculty': { text: 'The Faculty tab lists your professors and the market. The rank beside a name, from Adjunct to Distinguished, is the average of the two scores.', door: 'faculty' },
       'every-program-staffed': { text: 'Every course needs a professor in its field. Hire one from the market in the Faculty tab.', door: 'faculty' },
       [teachObjective(COURSE_MILESTONES['a-faculty'])]: teachHelp(' The eighth opens your first academic hall.'),
-      'post-a-search': { text: 'If nobody in a field is on the market, post a search in the Faculty tab. It costs two weeks of running costs and finds someone within half a year.', door: 'faculty' },
+      'post-a-search': { text: `If nobody in a field is on the market, post a search in the Faculty tab. It costs as much as ${countWord(SEARCH_COST_WEEKS)} weeks of running the college. For ${durationWords(SEARCH_WEEKS)}, a candidate in that field is much more likely to turn up.`, door: 'faculty' },
       'appoint-a-b': { text: 'The grade of a course follows the teaching of its professor. Salaries rise with skill and seniority.', door: 'faculty' },
     },
   },
@@ -218,7 +243,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'campus-life': {
     title: 'Campus life',
-    about: "Students start clubs during the year, and you approve them all at once on the summer's last page. From now on the Inbox also collects matters for you to decide, and students make demands when satisfaction falls below 60. A matter you leave unanswered decides itself when its time runs out.",
+    about: `Students start clubs during the year, and you approve them all at once on the summer's last page. From now on the Inbox also collects matters for you to decide, and students make demands when satisfaction falls below ${DEMAND_SATISFACTION_THRESHOLD}. A matter you leave unanswered decides itself when its time runs out.`,
     objectives: {
       'site-student-center': 'Place the Student Center',
       [teachObjective(COURSE_MILESTONES['campus-life'])]: teachWords(COURSE_MILESTONES['campus-life']),
@@ -232,23 +257,19 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'answer-a-matter': { text: 'The Inbox lists each matter, its choices and the weeks left to answer. A demand names a building the students want, and a deadline. Meet it and satisfaction rises.', door: 'inbox' },
     },
   },
-  // Opens at the first varsity petition and walks the department in the
-  // order it comes (Plan 112B): nothing asks for the Athletic Director
-  // before a team exists to direct.
+  // Opens with the first varsity team (Plan 114E: it opened at the petition,
+  // turned down or not) and walks the department in the order it comes
+  // (Plan 112B). The posts and the venues count every team, so the words
+  // say every team's (Plan 114E: "the team's three posts" read 0/6 with two).
   'the-teams': {
     title: 'The teams',
-    about: `A sport club has asked to go varsity. A varsity team plays a season against the other colleges, and the best reach the playoffs in week 47. It needs an Athletic Director over the department, a head coach, an assistant coach, a trainer, and a venue for its sport.`,
+    about: `A sport club has gone varsity. A varsity team plays a season against the other colleges, and the best reach the playoffs in week ${PLAYOFF_WEEK}. It needs an Athletic Director over the department, a head coach, an assistant coach, a trainer, and a venue for its sport.`,
     objectives: {
-      'field-a-varsity-team': 'Field a varsity team',
       'appoint-athletic-director': 'Hire an Athletic Director',
-      'staff-the-team': "Fill the team's three staff posts",
-      'build-the-venue': "Build the team's venue",
+      'staff-the-team': "Fill every team's staff posts",
+      'build-the-venue': "Build every team's venue",
     },
     help: {
-      'field-a-varsity-team': {
-        text: `When a sport club petitions to go varsity, choose Go varsity. If you turned it down, the club asks again in ${countWord(VARSITY_PETITION_MIN_TENURE_YEARS)} years, and nothing else in athletics can start until a team exists.`,
-        door: 'athletics',
-      },
       'appoint-athletic-director': {
         text: `You can't search for an Athletic Director yourself. The board sends you three candidates soon after your first team goes varsity, and not before, so this one may mean waiting. If you appoint nobody, the board tries again in ${countWord(AD_OFFER_COOLDOWN_YEARS)} years.`,
         door: 'athletics',
@@ -288,7 +309,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     },
     help: {
       'site-a-lab': { text: 'A laboratory appears in the build menu once you found a school. Click it, then click the map to place it.', door: 'build' },
-      'commission-research': { text: "In the Research tab, pick an idle lab and commission a project. Choose the topic, a team of one to three professors, and the funding. A team's strength comes from its professors' research scores. A project takes from half a year to three years, and produces papers, grants and now and then a breakthrough. The deepest work, Landmark research, needs the Research Park, which only a college that specializes in research can build.", door: 'research' },
+      'commission-research': { text: `In the Research tab, pick an idle lab and commission a project. Choose the topic, a team of one to three professors, and the funding. A team's strength comes from its professors' research scores. A project takes from ${durationWords(INITIATIVE_DEPTHS[0].weeks)} to ${durationWords(INITIATIVE_DEPTHS[2].weeks)}, and produces papers, grants and now and then a breakthrough. The deepest work, Landmark research, needs the Research Park, which only a college that specializes in research can build.`, door: 'research' },
     },
   },
   alumni: {
@@ -300,12 +321,12 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     },
     help: {
       'appoint-advancement': { text: 'Appoint a VP of Advancement from the seats at the bottom of the Faculty tab.', door: 'faculty' },
-      'run-a-campaign': { text: 'Launch a campaign from the Advancement panel in the Treasury. You can run one at a time, and each one cools the alumni a little. The money it raises can only go to its purpose.', door: 'treasury' },
+      'run-a-campaign': { text: 'Launch a campaign from the Advancement panel in the Treasury. You can run one at a time, and each one makes the alumni a little less warm toward the college. The money it raises can only be spent on what the campaign is for.', door: 'treasury', view: 'endowment' },
     },
   },
   'capital-projects': {
     title: 'Capital projects',
-    about: 'From year 10 the build menu offers capital projects, such as an arts center, a law school and a graduate college. Each costs millions and takes years to build. You can pay half the cost from the endowment, and several come with a graduate program of their own.',
+    about: `From year ${PROJECTS_FIRST_YEAR}, the build menu offers capital projects, the arts center first, and more by year ${PROJECTS_LATER_YEAR}. Each costs millions and takes years to build. You can pay half the cost from the endowment, and several come with a graduate program of their own.`,
     objectives: {
       'begin-a-project': 'Begin a capital project',
     },
@@ -315,13 +336,14 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   specialization: {
     title: 'A specialization',
-    about: "The board offers you a specialization the first time you reach the guide's top 30. You choose academics, research, student life or athletics, once and for good. The choice opens a share of prestige, a building and a program of its own.",
+    about: `The board offers you a specialization the first time you reach the guide's top ${SPECIALIZATION_MILESTONE_RANK}. You choose academics, research, student life or athletics, once and for good. The choice opens a share of prestige, a building and a program of its own.`,
     objectives: {
       'offered-specialization': 'Be offered a specialization',
       'choose-specialization': 'Choose one',
     },
     help: {
-      'offered-specialization': { text: 'From year 20, a top 10 place in any one pillar also counts. The guide in History shows your rank overall and in each pillar.', door: 'history' },
+      // The later routes (Plan 95R; Plan 116C's satisfaction), in prestigeWords.ts's words.
+      'offered-specialization': { text: `From year ${SPECIALIZATION_PILLAR_YEAR}, ${pillarRouteWords()} also counts. So does ${satisfactionRouteWords()}. The guide in History shows your rank overall and in each pillar.`, door: 'history' },
       'choose-specialization': { text: 'The offer has its own page, showing what each pillar would open. Click "Not this year" to put the choice off for a year.' },
     },
   },
@@ -367,16 +389,35 @@ export const DRAWER_WORDS = {
   allDone: 'Every chapter so far is done.',
   guide: 'Guide',
   guideList: 'Read again',
+  // A side chapter open beside the one shown (Plan 114E): the Guide names it
+  // first.
+  guideOpen: 'open now',
+  // Seats for everyone's two counts while they differ (Plan 114E, C3-5).
+  withComing: (taught: string, coming: string) => `${taught} now · ${coming} once new courses start`,
   back: 'Back to the objectives',
   guideTab: (tab: string) => `The Guide on ${tab}`,
   live: 'Now',
-  prestigeNow: (now: string, target: string) => `Prestige ${now}, heading for ${target}`,
-  pillars: 'Its pillars',
-  pillar: (label: string, has: string, of: string) => `${label} ${has} of ${of}`,
+  // Which way it is heading, in the glance's arrow's word, and no target
+  // figure (Plan 114B).
+  prestigeNow: (now: string, heading: string) => `Prestige ${now}, ${heading}`,
+  pillars: 'What lifts it',
   takenOff: 'Taken off',
   satisfactionNow: (now: string) => `Satisfaction ${now}.`,
   drag: (need: string) => `${need} is pulling it down most.`,
 };
+
+// In place of a Show me whose tab is shut (Plan 114F, the third review's
+// C3-9: Research's did nothing before the first lab): when the tab opens,
+// by the ladder's rung that opens it (ladderData.ts's milestoneForTab).
+const SHUT_TAB_WORDS: Record<string, string> = {
+  laboratory: 'The Research tab opens when your first lab is built.',
+  commencement: 'The Students tab opens after your first summer.',
+  sport: 'The Athletics tab opens when a sport club goes varsity.',
+};
+export function shutTabWords(tab: TabId, label: string): string {
+  const rung = milestoneForTab(tab);
+  return (rung && SHUT_TAB_WORDS[rung]) || `The ${label} tab isn't open yet.`;
+}
 
 // THE GUIDE (Plan 106 PR G): each tab's "Guide" button opens the page of
 // the chapter that introduced its system, once that chapter has opened.

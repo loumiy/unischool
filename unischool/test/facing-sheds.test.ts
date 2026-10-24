@@ -74,7 +74,7 @@ for (const c of cases) {
 
 // The sheds keep a door at the middle of every wall the camera sees, the
 // back's and the left side's included, at every facing and view.
-for (const id of ['REC-T1', 'REC-T2', 'GYM', 'ATH-FIELDHOUSE', 'ATH-NATATORIUM']) {
+for (const id of ['REC-T1', 'REC-T2', 'GYM', 'ATH-FIELDHOUSE', 'ATH-NATATORIUM', 'ATH-ARENA']) {
   for (const facing of [0, 1, 2, 3] as Facing[]) {
     for (const az of VIEWS) {
       const svg = art(byId(id), facing, az);

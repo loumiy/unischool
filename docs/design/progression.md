@@ -154,7 +154,8 @@ scale, and prestige steps toward that score by a share of the gap —
 a college that has outgrown its standing earns it a year at a time, so the
 climb to 150 takes about forty years whatever order the catalogue fills in.
 It never jumps to the score: a long-established school's prestige is sticky,
-and a school that falls short falls faster than it climbs. Between summers a
+and, once the early help below has tapered, a school that falls short falls
+faster than it climbs (the glance says which holds in which year, Plan 114B). Between summers a
 weekly tremor, a tenth of the old drift, keeps the toolbar number alive.
 Welfare is graded on the year's *average*, because a player could game it by
 timing a dorm's completion in week 50; everything else on state at the
@@ -196,6 +197,14 @@ of its terms. Two **adjustments** stay outside every pillar:
 - **financial resources per student** (+4, endowment against the enrolled
   body; +8 until Plan 85I, when the owner halved it) — what the late-game endowment campaigns buy;
 - **condition of the buildings** (up to −4) — only neglect counts;
+
+And one term sits on two pillars at once, outside their span: **the
+board's question** (Plan 116D, from Year 25). An answer that says yes
+trades one pillar for another for five years. The pillar it favors stands
+`BOARD_TRADE_PRESTIGE` (1.5) points of prestige higher, read as that over
+its share in the pillar's own points. The pillar it costs stands as many
+lower. So the trade leaves prestige even and moves the two pillars against
+the field.
 
 **Crowding is not one** (Plan 107 PR E, by the owner's decision; a penalty
 of up to 25 from Plan 71 to 106). A campus short of beds, meals or health
@@ -271,22 +280,39 @@ years later.
 PR D; `systems/prestige/milestone.ts`). The specialization is chosen once,
 late, and kept:
 
-- **The milestone is a rank, not a prestige figure,** so it survives a
-  retune: the guide's top 20 (`SPECIALIZATION_MILESTONE_RANK`, beside the
-  term weights). The plan's first number was the top 15, and the first
-  version, with ceilings, used the top 12. Without them the climb is
-  slower, and the owner kept the structure and lowered the milestone (Plan
-  85 §2, 2026-09-30): the top 20 is the tightest rank the Guided and
-  Completionist players reach in the owner's years 25–40 on every seed
-  (Guided 29–31, the Completionist 30–38).
+- **Three routes bring the milestone** (`systems/prestige/prestigeSystem.ts`,
+  beside the term weights; said once, in `data/prestigeWords.ts`'s
+  `specializationOfferRule`):
+  - *The guide's top 30* (`SPECIALIZATION_MILESTONE_RANK`). A rank, not a
+    prestige figure, so it survives a retune. Plan 85 set the top 20, the
+    tightest rank the Guided and Completionist players reached in the
+    owner's years 25–40 on every seed; [Plan 95R](../plans/095-second-review-worked-through.md)
+    (the second review's B4-1) moved it to the top 30, so the choice comes
+    around years 25–35.
+  - *From Year 20, a top-10 place in any one pillar's standing*
+    (`SPECIALIZATION_PILLAR_RANK`, `SPECIALIZATION_PILLAR_YEAR`; Plan 95R,
+    B4-2), so a college strong in one pillar is asked though its blend
+    lags. The year holds it to the plan's window: a young college stands
+    about tenth in student life within its first decade.
+  - *From Year 20, keeping student satisfaction at 85 or more for over
+    half its years* (`satisfactionLeads`, `SATISFACTION_LEADS_AT`;
+    [Plan 116](../plans/116-the-late-years-and-the-happiest-college.md) C,
+    the third review's C4-6). Welfare is full at 80 for every big college,
+    so the happiest college stood only #15–29 in student life and neither
+    rank ever asked it. The same rule lifts the Final Report's experience
+    axis, so the offer and the report read one test.
+
+  All four choices stay open whichever route brought the offer.
 - **The board's notice** comes the first week the college stands within
-  four places of it (`SPECIALIZATION_NOTICE_PLACES`, the top 24): a board
-  letter in the inbox, which never stops the clock, naming the four
-  specializations and the points of its pillar each opens. The strong
-  players have it two to five years ahead of the milestone.
-- **The offer** is made at the first summer the college stands at the
-  milestone, read on the summer's own week after the field has moved (the
-  table the summer's review prints), and stands for good.
+  four places of a rank route (`SPECIALIZATION_NOTICE_PLACES`: the guide's
+  top 34, a pillar's top 14), the later routes no sooner than two years
+  before Year 20 (`SPECIALIZATION_NOTICE_YEARS`): a board letter in the
+  inbox, which never stops the clock, naming the three routes, the four
+  specializations and the points of prestige each opens.
+- **The offer** is made at the first summer the college reaches a route,
+  read on the summer's own week after the field has moved (the table the
+  summer's review prints), and stands for good. The log's line names the
+  route that brought it.
 - **The choice** is raised at that summer's close, after the page has
   turned (so it holds no week). Since [Plan 110](../plans/110-the-board-convenes.md)
   it comes as a short letter from the board in the inbox (where the college
@@ -758,10 +784,19 @@ standings — academics, research, campus life, athletics, access and
 financial strength — read from the history rows, graded A–F on its last
 decade's average, its average over the run and its climb from the first
 decade. Over them sits a mark, which also weighs where the guide left the
-college and how many promises it kept. The **title** is built from what the
-guidebooks call the college (its first tag), or its strongest standing, and
-names its weakest standing where that one lags: *a research powerhouse that
-never gave its students much of a campus life*. The money's verdict, the
+college and how many promises it kept. The **title** names the college by
+the first of these that holds (Plan 116C, the third review's C4-6): its
+specialization; a tag the guidebooks hold and its record earns (Plan 95U's
+`EARNED_TAGS`); its campus life, *a college with a campus life to envy*,
+when its satisfaction led the field (85 or more in over half its years, the
+rule that also brings the specialization's offer); an earned tag the
+guidebooks have not caught up with; the guidebooks' first tag; else its
+strongest standing. So an earned research powerhouse keeps its name, and an
+unearned teaching college gives way to the happiest campus. Then it names
+its weakest standing where that one lags: *a research powerhouse, though
+it never gave its students much of a campus life*. The ", though it" keeps
+the weakness on the college when the phrase ends on another noun (*a
+campus life to envy, though it never built an endowment*). The money's verdict, the
 chronicle's eras and the guide's last word complete it.
 
 **The chronicle names eras for what the college did** (Plan 80C;

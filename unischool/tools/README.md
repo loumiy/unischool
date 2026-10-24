@@ -41,6 +41,14 @@ in, negative out), `--pan=DX,DY` (a drag, in screen pixels), `--clip=x,y,w,h`,
 `--size=W,H` (the viewport, default 1600 by 1000) and `--scale=N` (device pixels
 per CSS pixel — 2 for a print-sharp image at the same framing).
 
+The game opens framed on what stands (Plan 115A): close on a lone Founders
+Hall, wider as the college grows. The shooting tools (`shot`, `review:views`,
+`timelapse:shoot`, `clip`, and so `share-image`) load the game with
+`?view=parcel` instead, the whole parcel at the widest opening zoom, which is
+where every map opened before. So every `--zoom` and `--pan` in this file frames
+the same campus the same way. `shot --framed` drops the query and starts from
+the view a player gets.
+
 ### A campus laid out like a campus
 
 The harness's players site every building at `firstFreeSpot`, a top-left scan,
@@ -224,6 +232,7 @@ npm run sheet -- --vernacular gothic --scale 2       # one set, closer
 npm run sheet -- --only 'hangar|bowl|grounds'        # a regex on the cell labels
 npm run sheet -- --azimuth 225 --pitch 30            # the same set from behind
 npm run sheet -- --every --floors 0,1,2 --only '^DORM-1[2-5]$'   # each at 0, 1, 2 added stories
+npm run sheet -- --every --snow 1 --only 'LANDMARK|GAZEBO'      # the roofs under week 26's snow
 npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html /tmp/gothic --cells
 ```
 
@@ -380,6 +389,7 @@ Both drive the real app in a headless Chromium against a running dev server
 ```sh
 npm run dev                                   # in one shell
 npm run newplayer                             # found a college, follow the walkthrough, play year one
+npm run newplayer -- --follow                 # and follow the first chapters, the path included
 npm run scenario -- --player Completionist --year 40 --clear-modal /tmp/y40.json
 npm run profile -- /tmp/y40.json --seconds=10 # fps, 95th-percentile frame and long tasks per speed
 ```
@@ -391,9 +401,15 @@ year one at the fastest speed open (2x, since 4x waits for a Provost);
 `--years=N` plays N years. It does none of the chapters' objectives (Plan
 106): it is the player who skims, so it closes the drawer Guided opens and
 logs the chapter line each time it changes, which shows where a do-nothing
-run leaves the chapters. It answers every stop with its last button; a matter
+run leaves the chapters. With `--follow` it reads the first chapters instead
+(Plan 115D): The next course and Somewhere to sleep by each objective's Show
+me, Looking around by the keys and the wheel, and the path by the ringed
+Paths tile and a drag from the residence hall to Founders Hall. It saves the
+drawer, the ringed tile and the laid path as `newplayer-sleep-*.png`. It answers every stop with its last button; a matter
 that pauses the clock on arrival it opens from its notice, answers in the
-inbox with its last answer, and resumes. It reports each step, each kind of
+inbox with its last answer, and resumes. The summer that waits at week 52
+(Plan 112C) it opens from its call and plays through. It finds Chromium at
+`CHROMIUM` or `CHROME_PATH`, else `/opt/pw-browsers/chromium`. It reports each step, each kind of
 letter, and any stall: a clock that stopped for 20 seconds with nothing on
 screen asking for anything. It writes a screenshot of each stall to
 `node_modules/.tmp/` and exits non-zero if it stalled or never reached year 2.
@@ -453,6 +469,8 @@ npm run sheet -- --every                   # every placeable, each school's hall
   revenue, the highest prestige, the happiest students, every asset,
   championships, good-then-big, big-then-good) through the harness's own
   moves, and keeps a journal of what each goal wanted and could not do. It
+  counts the clock's pauses as the play statistics count a stop
+  (`sim/harness/pauses.ts`, Plan 116A), beside the stops it answered. It
   runs one child process per core; `--resume` skips finished runs.
 - **`strings.ts`** walks `src/` with the TypeScript compiler, keeps the text
   a player can read (literals, templates and JSX text, not ids, class names

@@ -672,6 +672,9 @@ function AthleticDirectorView({ s, payload, onResolve }: {
   onResolve: (candidate: Coach | null, mascot: string) => void;
 }) {
   const [mascot, setMascot] = useState(payload.mascotSuggestion);
+  // Teams already named keep their name, so the view sends no mascot
+  // (Plan 113C); the field is hidden then too.
+  const named = !!s.self.mascot;
   const cheapest = payload.candidates.reduce((lo, c) => (c.salary < lo.salary ? c : lo), payload.candidates[0]);
 
   return (
@@ -687,7 +690,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
 
       <div className="ad-candidates">
         {payload.candidates.map((c) => (
-          <button key={c.id} className="ad-candidate" onClick={() => onResolve(c, mascot)}>
+          <button key={c.id} className="ad-candidate" onClick={() => onResolve(c, named ? '' : mascot)}>
             <FacultyPortrait
               f={{ id: c.id, gender: c.gender, heritage: c.heritage, seniority: Math.min(0.65, c.quality / 130) }}
               size={40}
@@ -717,7 +720,7 @@ function AthleticDirectorView({ s, payload, onResolve }: {
         </label>
       )}
 
-      <button className="ad-decline" onClick={() => onResolve(null, mascot)}>
+      <button className="ad-decline" onClick={() => onResolve(null, named ? '' : mascot)}>
         Appoint nobody for now
       </button>
     </>

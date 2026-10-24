@@ -157,6 +157,25 @@ function testDecline(): void {
   assert(after.pendingInterrupt === null, 'the interrupt still resolves');
 }
 
+// ---- Teams already named keep their name (Plan 113C, the third review's C3-10) ----
+function testNamedTeamsKeepTheirName(): void {
+  const s = fresh();
+  fieldTeam(s, 'soccer-m');
+  s.self.mascot = 'Bulldogs';
+  const candidates = rollAthleticDirectorCandidates();
+  const after = reducer(
+    { ...s, pendingInterrupt: { type: 'athletic-director', payload: { candidates, mascotSuggestion: 'Miners' } } },
+    { type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate: candidates[0], mascot: 'Miners' },
+  );
+  assert(after.self.mascot === 'Bulldogs', `the Bulldogs stay the Bulldogs (got '${after.self.mascot}')`);
+  assert(!after.log[0].message.includes('Miners'), `and the log names no new mascot (${after.log[0].message})`);
+  const unnamed = reducer(
+    { ...fresh(), pendingInterrupt: { type: 'athletic-director', payload: { candidates, mascotSuggestion: 'Miners' } } },
+    { type: 'RESOLVE_ATHLETIC_DIRECTOR', candidate: candidates[0], mascot: 'Miners' },
+  );
+  assert(unnamed.self.mascot === 'Miners', 'with no name yet, the pick still names them');
+}
+
 // ---- The director's shortage ask ----
 //
 // The event is in the weighted lottery rather than on a cadence of its own,
@@ -226,6 +245,7 @@ testOfferGate();
 testOfferIsPutOnce();
 testHiringLiftsAndCosts();
 testDecline();
+testNamedTeamsKeepTheirName();
 testShortageAsk();
 
 if (failures === 0) {

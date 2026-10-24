@@ -17,6 +17,7 @@ import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from
 import { count, money, multiplier, pct, satisfactionFigure } from '../../format';
 import { SPECIALIZATION_CARDS, specializationTerm, specializedLine } from '../../data/specializationData';
 import { specializationOf } from './specialization';
+import { BOARD_STANDING_LABEL, activeBoardAnswers, boardStandingDetail } from '../../data/boardQuestionData';
 import { clamp, clamp01 } from '../../math';
 
 export { specializationOf };
@@ -60,7 +61,8 @@ export const PRESTIGE_MAX_RISE = 2.1;
 export const EARLY_RISE_RATE = 0.45;
 export const EARLY_MAX_RISE = 6;
 const EARLY_UNTIL_YEAR = 5;
-const EARLY_FADE_YEAR = 10;
+// Exported for the glance's rule (Plan 114B), which says it in words.
+export const EARLY_FADE_YEAR = 10;
 const EARLY_WEEKLY_SHARE = 1 / 3;
 // 0 in the early years, 1 once the help is gone.
 function earlyFade(year: number): number {
@@ -172,6 +174,25 @@ export const SPECIALIZATION_PILLAR_YEAR = 20;
 // SPECIALIZATION_PILLAR_YEAR.
 export const SPECIALIZATION_NOTICE_PLACES = 4;
 export const SPECIALIZATION_NOTICE_YEARS = 2;
+// The third route (Plan 116C, the third review's C4-6): from Year
+// SPECIALIZATION_PILLAR_YEAR, satisfaction that led the field, as
+// satisfactionLeads below reads it. The happiest college stood #15-29 in
+// student life, since welfare is full at 80 for every big college too, so
+// neither rank ever asked it. Its notice comes SPECIALIZATION_NOTICE_YEARS
+// ahead, like the pillar's.
+//
+// Satisfaction that leads the field (Plan 95U, the second review's B4-7;
+// moved here from the Final Report by Plan 116C, so the offer and the
+// report read one rule): the year's average satisfaction at
+// SATISFACTION_LEADS_AT or over it in more than half the history's rows.
+// The guide ranks no rival on satisfaction, so the field is a bar, not a
+// rank.
+export const SATISFACTION_LEADS_AT = 85;
+
+export function satisfactionLeads(s: GameState): boolean {
+  const rows = s.history.filter((h) => typeof h.satisfactionAverage === 'number');
+  return rows.length > 0 && rows.filter((h) => h.satisfactionAverage >= SATISFACTION_LEADS_AT).length > rows.length / 2;
+}
 
 // Each pillar's terms, weighted among themselves. The weights are the terms'
 // old weights where they had one: academics and student life keep their
@@ -551,10 +572,28 @@ function specializationInput(s: GameState, pillar: Pillar): StandingInput {
   return weigh('specialization', SPECIALIZATION_CARDS[pillar].name, SPECIALIZATION_TERM_WEIGHTS[pillar], term.score, term.detail);
 }
 
+// The board's questions answered with a trade (Plan 116D,
+// data/boardQuestionData.ts): each answer's points of prestige for the
+// pillar, as points of the pillar (prestige reads a pillar at its weight),
+// while it lasts. Outside the span, as the condition penalty is: a term no
+// college earns by building. None while nothing is traded.
+export function boardPillarPoints(s: GameState, pillar: Pillar): number {
+  return activeBoardAnswers(s).reduce((sum, a) => sum + (a.prestige[pillar] ?? 0), 0) / PILLAR_WEIGHTS[pillar];
+}
+function boardInput(s: GameState, pillar: Pillar): StandingInput[] {
+  const answers = activeBoardAnswers(s).filter((a) => (a.prestige[pillar] ?? 0) !== 0);
+  if (answers.length === 0) return [];
+  const points = boardPillarPoints(s, pillar);
+  const detail = boardStandingDetail(answers.map((a) => ({ year: a.year, gains: (a.prestige[pillar] ?? 0) > 0 })));
+  return [points >= 0
+    ? weigh('board', BOARD_STANDING_LABEL, points, 1, detail)
+    : penalise('board', BOARD_STANDING_LABEL, -points, 1, detail)];
+}
+
 function pillarOf(
   s: GameState, pillar: Pillar, current: number | null, core: StandingInput[], bonus: StandingInput[],
 ): StandingBreakdown {
-  const terms = [...scaled([...core, ...bonus], PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[pillar]), specializationInput(s, pillar)];
+  const terms = [...scaled([...core, ...bonus], PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[pillar]), specializationInput(s, pillar), ...boardInput(s, pillar)];
   const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, terms);
   // Every pillar is read as it stands (Plan 85I: research and student life
   // were shown as the stocks that drift toward them, tickPrestige).

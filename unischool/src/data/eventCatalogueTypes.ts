@@ -3,6 +3,7 @@
 // catalogue.ts reads its conditions and applies its effects.
 
 import type { EventDomain } from './seatData';
+import type { Pillar } from '../state/types';
 
 // v2's `when` keys this game can read. An event that needs any other was
 // left out of the port.
@@ -60,7 +61,8 @@ export type EffectKey =
   | 'ivy'         // 1: ivy grows on the named building ({building}) until its repairs are paid
   | 'sinkhole'    // 1: a fenced hole stands by the named building until its repairs are paid
   | 'repairGift'  // money for the buildings (Plan 101G): the repairs owed first, the rest into the building fund
-  | 'closeProgram'; // 1: the program the event names ({program}) is closed (Plan 101H)
+  | 'closeProgram' // 1: the program the event names ({program}) is closed (Plan 101H)
+  | 'honors';     // an honors college for this many summers from the next (Plan 116D, students.honorsSummers)
 
 // The facilities an event can need (v2's building ids, read as this game's
 // facility types in systems/events/catalogue.ts).
@@ -81,6 +83,10 @@ export interface CatalogueChoice {
   // for its purpose, under this name (it may name {faculty}). A chair goes
   // to the strongest professor in the field of the one the event names.
   fund?: { purpose: 'scholarship' | 'chair'; name: string };
+  // A trade between pillars (Plan 116D, the board's questions): the points of
+  // prestige each pillar gains or loses for BOARD_STANDING_YEARS, read as a
+  // term of the pillar (prestigeSystem.ts's boardInput).
+  standing?: Partial<Record<Pillar, number>>;
 }
 
 export interface CatalogueEvent {

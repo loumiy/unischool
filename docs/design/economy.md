@@ -229,7 +229,12 @@ The loop turns roughly once per course tier, escalating each time:
 - **Defend (35–50)** — little is left to build and the surplus reappears; the
   elite of the field close on the leader (see
   [progression.md](progression.md)'s "The top has to be held"), and holding
-  the top only means anything because prestige can now fall.
+  the top only means anything because prestige can now fall. From Year 25
+  the board puts one question a year (Plan 116D): grow by a tenth, take a
+  chair for a small program, or found an honors college. Each yes trades
+  one pillar for another for five years, about a point and a half of
+  prestige each way, and none is answered with money, since late money
+  decides little.
 
 Consequences that the code must honor:
 

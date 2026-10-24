@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { money } from '../format';
 
 // ---------------------------------------------------------------------
@@ -90,7 +90,18 @@ export default function AdmissionsCoach({ step, expect, layoutKey, onNext, onDis
 }) {
   const copy = COACH_COPY[step];
   const card = useRef<HTMLElement>(null);
-  const [place, setPlace] = useState<{ top: number; left: number; side: Placed } | null>(null);
+  // `notch`: where the notch points, down the card, when it is not the middle.
+  const [place, setPlace] = useState<{ top: number; left: number; side: Placed; notch?: number } | null>(null);
+
+  // The offers stick to the panel's foot (Plan 114G). Their step scrolls the
+  // page to the panel's end first, where the button stands in its own place,
+  // so the card measured beside it stays beside it. Before the measure,
+  // which runs next; once per step, not as the line moves.
+  useLayoutEffect(() => {
+    if (step !== 'send') return;
+    const target = card.current?.closest('.admissions-page')?.querySelector(`[data-coach="${step}"]`);
+    target?.closest('.admissions-panel')?.scrollIntoView({ block: 'end' });
+  }, [step]);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -112,7 +123,11 @@ export default function AdmissionsCoach({ step, expect, layoutKey, onNext, onDis
         if (t.top - r.top > root.clientHeight / 2) setPlace({ top: Math.max(GAP, y - LABEL_RISE - h), left, side: 'above-right' });
         else setPlace({ top: y + t.height + GAP / 2, left, side: 'below-right' });
       } else if (x - w - GAP >= GAP) {
-        setPlace({ top: Math.max(GAP, y + t.height / 2 - h / 2), left: x - w - GAP, side: 'left' });
+        // Kept above the fold, so the stuck offers' card shows whole
+        // (Plan 114G); the notch still points at the control.
+        const mid = y + t.height / 2;
+        const top = Math.max(GAP, Math.min(mid - h / 2, root.scrollTop + root.clientHeight - h - GAP));
+        setPlace({ top, left: x - w - GAP, side: 'left', notch: mid - top });
       } else {
         // No room beside it (a narrow screen, the panel under the plot).
         setPlace({ top: y + t.height + GAP / 2, left: Math.max(GAP, Math.min(maxLeft, x)), side: 'below' });
@@ -128,7 +143,7 @@ export default function AdmissionsCoach({ step, expect, layoutKey, onNext, onDis
     <aside
       ref={card}
       className={`opening-coach admissions-coach side-${place?.side ?? 'left'}`}
-      style={place ? { top: place.top, left: place.left } : { visibility: 'hidden' }}
+      style={place ? { top: place.top, left: place.left, ...(place.notch !== undefined ? { '--notch': `${place.notch}px` } as CSSProperties : {}) } : { visibility: 'hidden' }}
       role="status"
       aria-live="polite"
       aria-label={copy.title}

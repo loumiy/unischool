@@ -22,7 +22,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { mapMissed, waitForMap } from '../mapReview.mjs';
+import { mapMissed, parcelView, waitForMap } from '../mapReview.mjs';
 
 // `--k=v` and `--k v` both work; everything else is a save.
 const VALUE_FLAGS = ['out', 'zoom', 'pitch', 'size', 'scale', 'clip'];
@@ -46,7 +46,8 @@ const pitch = Number(flag('pitch', 0));
 const [W, H] = flag('size', '1400,900').split(',').map(Number);
 const scale = Number(flag('scale', 1));
 const clip = flag('clip', null)?.split(',').map(Number) ?? null;
-const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
+// The parcel view, so --zoom counts from where it always has (Plan 115A).
+const URL = parcelView(process.env.CAMPUS_URL ?? 'http://localhost:5173/');
 
 const CANDIDATES = [
   process.env.CHROME_PATH,
@@ -100,7 +101,9 @@ for (const savePath of saves) {
   // Objectives on Brief (Plan 106): on Guided a save past the walkthrough
   // opens the drawer on its chapter over the map by itself, which
   // covered a third of every view (review III, area 1). Stats answered,
-  // so the title screen's question is not in the way either.
+  // so the title screen's question is not in the way either. Scenario
+  // saves now carry every chapter's page read (Plan 113E); Brief stays as
+  // a guard for other saves.
   await page.evaluate((s) => {
     localStorage.clear();
     localStorage.setItem('unischool.save', s);

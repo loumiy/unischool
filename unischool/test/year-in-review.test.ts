@@ -122,6 +122,8 @@ console.log('year in review tests');
     assert(!!line.detail && line.detail.trim().length > 0, `${input.label} has a detail line`);
     assert(line.detail === standingDetailLine(input), `${input.label}'s detail is History's line`);
   }
+  // What each term added, as the glance says it, never "of" its most (Plan 114B).
+  for (const line of termLines) assert(/^[^:]+: [+−]\d+\.\d$/.test(line.text), `a term's line reads what it added, no "of" (${line.text})`);
   const academics = termLines.find((l) => l.text.startsWith('Academics: '));
   assert(!!academics?.detail?.includes('35%'), 'a pillar says what share of prestige it is');
   assert(section(s, 'standing').lines.filter((l) => l.detail).length === termLines.length, 'and only the terms carry a detail');

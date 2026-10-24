@@ -23,6 +23,7 @@ import { SEMICENTENNIAL_YEAR } from '../state/types';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
 import type { BelowALink } from './StandingBreakdown';
 import { PrestigeGlance } from './PrestigeGlance';
+import { summerRule } from '../data/prestigeWords';
 import { BELOW_A_TARGET, belowACount } from './curriculumFilter';
 import RankingsPanel from './RankingsPanel';
 
@@ -55,7 +56,11 @@ const VIEW_OF_SECTION: Record<string, HistoryView> = {
 // Prestige (Plans 80C, 85B; at a glance since Plan 107D): the Prestige
 // chip's page. The figure and its direction, a meter per pillar, and the
 // rest under Details (PrestigeGlance.tsx), where the pillar rule is still
-// said in full (Plan 95E's PILLAR_RULE_HOME; Plan 95H).
+// said in full (Plan 95E's PILLAR_RULE_HOME; Plan 95H). The help says how
+// prestige moves in the glance's own sentences (summerRule, Plan 114B).
+export function prestigeHelp(s: GameState): string {
+  return `Prestige is your college's overall standing. It's the number the guide ranks you by. Each pillar's meter is as long as the most that pillar can add, and it fills as you earn it. The figure beside it is what it adds now. ${summerRule(s.clock.year)} Click Details to see what each pillar is made of.`;
+}
 function PrestigePanel({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   const breakdown = prestigeBreakdown(s);
   return (
@@ -69,7 +74,7 @@ function PrestigePanel({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
             <h2>{SECTION_HEADINGS['history.prestige']}</h2>
             <HelpHint
               align="start"
-              text="Prestige is your college's overall standing. It's the number the guide ranks you by. Each pillar's meter is as long as the most that pillar can add, and it fills as you earn it. The figure beside it is what it adds now. Prestige is graded each summer and moves toward that grade. It rises slowly and falls quickly. Click Details to see what each pillar is made of."
+              text={prestigeHelp(s)}
             />
           </div>
         )}

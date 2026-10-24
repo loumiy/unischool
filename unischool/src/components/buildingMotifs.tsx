@@ -46,7 +46,7 @@ import {
 } from './buildingSpec';
 import GroundMarking, { GroundSite, RakedStand, StadiumField, type TilePt } from './groundMarkings';
 import { shade } from './tint';
-import { SNOW_COLOR, SnowContext, mixColor } from './seasons';
+import { ROOF_SNOW, SnowContext, snowOn, snowOnGlass } from './seasons';
 import { Crane, Scaffolding } from './siteWorks';
 import { flagCloth } from './wind';
 import { TiedPortico, crossGable, eitherRoof, porticoPedimentRise, flatRoofAt, gableRoofAt, hipRoofAt, mansardRoofAt, toneSlopes, vaultRoofAt, type RoofAt } from './porticoTie';
@@ -267,12 +267,19 @@ export function paletteFrom(m: Material, shadeFactor = 1): Palette {
 // the lit slopes most (Plan 74I). The walls are untouched.
 export function snowOnRoofs(p: Palette, snow: number): Palette {
   if (snow <= 0) return p;
-  const lay = (c: string, k: number) => mixColor(c, SNOW_COLOR, snow * k);
+  const lay = (c: string, k: number) => snowOn(c, snow, k);
+  const k = ROOF_SNOW;
   return {
     ...p,
-    roof: lay(p.roof, 0.8), roofDeck: lay(p.roofDeck, 0.82),
-    negCol: lay(p.negCol, 0.85), negRow: lay(p.negRow, 0.8), posRow: lay(p.posRow, 0.72), posCol: lay(p.posCol, 0.66),
+    roof: lay(p.roof, k.roof), roofDeck: lay(p.roofDeck, k.deck),
+    negCol: lay(p.negCol, k.negCol), negRow: lay(p.negRow, k.negRow), posRow: lay(p.posRow, k.posRow), posCol: lay(p.posCol, k.posCol),
   };
+}
+// A roof drawn in its own color (SLOPE's four slopes) under the snow, for
+// the roofs a building lays over its palette's (Plan 115E).
+function snowySlope(roof: string, snow: number) {
+  const { negCol, negRow, posRow, posCol } = snowOnRoofs(paletteFrom({ wall: roof, roof }), snow);
+  return { negCol, negRow, posRow, posCol };
 }
 
 // A retail podium's street level: one tall shopfront per bay, near the pavement.
@@ -3854,14 +3861,15 @@ function DecoPortal({ col, row, w, h, outward, wallHeight, stone }: {
 // The Recreation Center, the Gym, the Sports & Recreation Complex, the Field
 // House and the Natatorium shared one render shed with a roof monitor (the
 // natatorium a flat glass box). Each is drawn here as the kind of building it
-// is. The arena keeps its own vault in the hangar branch.
-type SportsShed = 'rec' | 'gym' | 'courts' | 'fieldHouse' | 'natatorium';
+// is. The arena joined them when it got its front (Plan 115F, ArenaShed).
+type SportsShed = 'rec' | 'gym' | 'courts' | 'fieldHouse' | 'natatorium' | 'arena';
 function sportsShedOf(t: Buildable): SportsShed | undefined {
   if (t.id === 'REC-T1') return 'rec';
   if (t.id === 'REC-T2') return 'courts';
   if (t.facilityType === 'gym') return 'gym';
   if (t.facilityType === 'fieldHouse') return 'fieldHouse';
   if (t.facilityType === 'athleticsNatatorium') return 'natatorium';
+  if (t.facilityType === 'athleticsArena') return 'arena';
   return undefined;
 }
 
@@ -3875,6 +3883,9 @@ interface ShedCtx {
   // service side on the building's own sides from it (shedSides), not from
   // `fronts`.
   facing?: Facing;
+  // How deep the snow lies, for the roofs a shed draws from its own colors
+  // rather than `pal` (Plan 115E).
+  snow: number;
 }
 // A shed's own sides, and the walls the camera sees: the grand way in (its
 // steps and canopy or portico) is on the front only; every wall keeps its
@@ -3902,6 +3913,10 @@ const SIGN_PANEL = '#1f5566';
 const SHED_SIGN_LETTER = '#f3eee1';
 const ZINC = '#aeb7ba';
 const POOL_ROOF = '#dfe3e1';
+// A metal vault under the snow: its facets at snowOnRoofs's weights, the
+// lit side (cm 0) as the lit slope, the far side as the shaded one (Plan
+// 115E).
+const vaultSnow = (cm: number) => ROOF_SNOW.negCol - (ROOF_SNOW.negCol - ROOF_SNOW.posCol) * cm;
 const frac = (x: number) => x - Math.floor(x);
 
 // A quad on a wall, in u and heights.
@@ -4784,9 +4799,9 @@ function FieldHouseShed({ c }: { c: ShedCtx }) {
   const vault = barrelVault({
     col, row, w, h, base: Hw, rise, n: N,
     profile: (cc) => Math.sqrt(Math.max(0, 1 - (2 * cc - 1) ** 2)),
-    fill: (cm) => shade(ZINC, 1.12 - 0.36 * cm),
+    fill: (cm) => snowOn(shade(ZINC, 1.12 - 0.36 * cm), c.snow, vaultSnow(cm)),
     ribs: Math.max(6, Math.round((alongW ? w : h) * 1.1)), ribTone: 'rgba(70, 78, 82, 0.55)',
-    lights: [[0.44, 0.56]], lightFill: 'rgba(196, 222, 232, 0.92)',
+    lights: [[0.44, 0.56]], lightFill: snowOnGlass('#c4dee8', 0.92, c.snow),
   });
   const endWall = pal.wall[vault.endDir];
   const lunette = vault.arch(24);
@@ -4840,8 +4855,8 @@ function NatatoriumShed({ c }: { c: ShedCtx }) {
   const vault = barrelVault({
     col, row, w, h, base: H, rise: up(4.2), n: 9,
     profile: (cc) => 1 - (2 * cc - 1) ** 2,
-    fill: (cm) => shade(POOL_ROOF, 1.04 - 0.22 * cm),
-    lights: [[0.24, 0.33], [0.67, 0.76]], lightFill: 'rgba(150, 196, 216, 0.85)',
+    fill: (cm) => snowOn(shade(POOL_ROOF, 1.04 - 0.22 * cm), c.snow, vaultSnow(cm)),
+    lights: [[0.24, 0.33], [0.67, 0.76]], lightFill: snowOnGlass('#96c4d8', 0.85, c.snow),
   });
   const long = (s: ShedFace) => isRowWall(s.dir) === alongW;
   const gh = top - sill;
@@ -4918,6 +4933,271 @@ function NatatoriumShed({ c }: { c: ShedCtx }) {
         </>
       )}
       {shedEntrance(c, box, H, sides.entry, vaultRoofAt(col, row, w, h, H, up(4.2), (cc) => 1 - (2 * cc - 1) ** 2))}
+    </>
+  );
+}
+
+// The Arena (Plan 115F, the review's C1-4): a shallow barrel down the long
+// axis over a glazed concourse, as before, now with a front. A glazed
+// entrance hall stands on the long front with a scoreboard sign over its
+// doors. The field house's fanned lunette fills the end the camera sees
+// (both ends have one). A fascia under the eaves carries the college's
+// colours. Each expansion adds a part as well as its storey: the first a
+// second concourse tier, a glazed band above the first; the second a
+// practice annex on the right end, a low box with its own shallow vault,
+// for which the main hall's vault shortens. Precedents: the college
+// arenas of the 1960s and 70s (Michigan's Crisler, Kentucky's Memorial
+// Coliseum), a barrel over a ring of glass. One drawing in every set, in
+// the set's wall and stone, as the other sports sheds are.
+const ARENA_HALL_DEPTH = across(12);
+const ARENA_HALL_WIDTH = across(40);
+const ARENA_ANNEX_WIDTH = across(22);
+const ARENA_VAULT_RISE = up(6.5);
+const ARENA_ANNEX_HEIGHT = up(6);
+const ARENA_ANNEX_RISE = up(1.8);
+const SCORE_PANEL = '#1b2024';
+const SCORE_AMBER = '#ffb53b';
+const arenaVaultProfile = (cc: number) => Math.sin(Math.PI * cc);
+
+// Where along a wall (0..1) a point falls: the projection is affine, so
+// the screen's own geometry gives it.
+function uAlong(o: Pt, a: Pt, p: Pt): number {
+  const dx = a.x - o.x; const dy = a.y - o.y;
+  return ((p.x - o.x) * dx + (p.y - o.y) * dy) / (dx * dx + dy * dy || 1);
+}
+// A door on face s, centred on u = uc rather than on the face's middle:
+// the walkers' door is at the middle of the footprint's side
+// (walkRoutes.ts), which a part set back or shortened no longer centres.
+function DoorAt({ d, s, H, uc }: { d: DoorDimensions; s: ShedFace; H: number; uc: number }) {
+  const half = Math.min(uc, 1 - uc);
+  if (half <= 0) return null;
+  const lerp = (u: number): Pt => ({ x: s.o.x + (s.a.x - s.o.x) * u, y: s.o.y + (s.a.y - s.o.y) * u });
+  return <Door d={d} origin={lerp(uc - half)} along={lerp(uc + half)} wallHeight={H} span={s.span * half * 2} side={s.dir} />;
+}
+
+// The fascia: a band of the primary colour under the eaves course, with
+// a stripe of the secondary along its foot.
+function arenaFascia(s: ShedFace, H: number, colors: SchoolColors) {
+  const z1 = H - EAVES_COURSE; const z0 = z1 - up(1.7);
+  return (
+    <g key={`fx${s.dir}`} className="arena-fascia">
+      <polygon points={wq(s, H, 0, 1, z0, z1)} fill={colors.primary} />
+      <polygon points={wq(s, H, 0, 1, z0, z0 + up(0.45))} fill={colors.secondary} />
+    </g>
+  );
+}
+
+// The scoreboard over the entrance hall's doors: a dark board framed in
+// the primary colour, a header strip in it lettered with the hall's name,
+// and two scores in amber either side of a clock in the secondary colour.
+function ArenaScoreboard({ s, H, u0, u1, z0, z1, colors }: { s: ShedFace; H: number; u0: number; u1: number; z0: number; z1: number; colors: SchoolColors }) {
+  const hgt = z1 - z0; const wu = u1 - u0;
+  const uq = (a: number, b: number, c: number, e: number) => `M${polyPoints(wallQuad(s.o, s.a, H, a, b, c, e)).replace(/ /g, 'L')}Z`;
+  const head = z0 + hgt * 0.58;
+  // The name: narrow marks, a word, a space, a word.
+  const marks: string[] = [];
+  const widths = [0.8, 1, 0.7, 1, 0.9, 0, 0.6, 1, 0.8, 0.9, 1];
+  const total = widths.reduce((a, x) => a + x + 0.5, 0);
+  const per = (wu * 0.7) / total;
+  let u = u0 + wu * 0.15;
+  for (const k of widths) {
+    if (k > 0) marks.push(uq(u, u + per * k, head + (z1 - head) * 0.3, head + (z1 - head) * 0.72));
+    u += per * (k + 0.5);
+  }
+  // Two digits a side, each drawn as lit bars.
+  const digits: string[] = [];
+  const dz0 = z0 + hgt * 0.14; const dz1 = head - hgt * 0.1;
+  for (const [a, b] of [[0.08, 0.3], [0.7, 0.92]] as const) {
+    for (let k = 0; k < 2; k++) {
+      const d0 = u0 + wu * (a + ((b - a) * k) / 2 + 0.02); const d1 = d0 + wu * ((b - a) / 2 - 0.04);
+      digits.push(uq(d0, d1, dz1 - (dz1 - dz0) * 0.16, dz1));
+      digits.push(uq(d0, d1, dz0, dz0 + (dz1 - dz0) * 0.16));
+      digits.push(uq(d1 - (d1 - d0) * 0.3, d1, dz0, dz1));
+    }
+  }
+  return (
+    <g className="arena-sign">
+      <polygon points={wq(s, H, u0, u1, z0, z1)} fill={SCORE_PANEL} stroke={colors.primary} strokeWidth={1.2} />
+      <polygon points={wq(s, H, u0 + wu * 0.02, u1 - wu * 0.02, head, z1 - hgt * 0.06)} fill={colors.primary} />
+      <path d={marks.join('')} fill={SHED_SIGN_LETTER} />
+      <path d={digits.join('')} fill={SCORE_AMBER} />
+      <polygon points={wq(s, H, u0 + wu * 0.42, u1 - wu * 0.42, dz0, dz1)} fill={colors.secondary} />
+    </g>
+  );
+}
+
+// The college's colours, for the parts that wear them: read from the map's
+// own context, as the roof flag reads it (registered for the canvas in
+// canvasArt.ts).
+export function InCollegeColors({ draw }: { draw: (colors: SchoolColors) => React.ReactNode }) {
+  return <>{draw(useContext(ColorsContext))}</>;
+}
+
+function ArenaShed({ c }: { c: ShedCtx }) {
+  const { H, pal, stone } = c;
+  const d = c.door;
+  const plot = { col: c.col, row: c.row, w: c.w, h: c.h, facing: c.facing };
+  const W = frontWidth(plot); const D = frontDepth(plot);
+  const sides = shedSides(c);
+  const seen = (dir: FaceDir) => sides.seen.includes(dir);
+  const tiered = c.expansions >= 1;
+  const annexed = c.expansions >= 2;
+  // The parts in the building's own frame: the hall on the front, the
+  // annex on the right end, the main hall behind and beside them.
+  const dH = Math.min(ARENA_HALL_DEPTH, D * 0.2);
+  const aW = annexed ? Math.min(ARENA_ANNEX_WIDTH, W * 0.25) : 0;
+  const eW = Math.min(ARENA_HALL_WIDTH, W * 0.45);
+  const main = localBox(plot, 0, dH, W - aW, D);
+  const hall = localBox(plot, (W - eW) / 2, 0, (W + eW) / 2, dH);
+  const annex = localBox(plot, W - aW, dH + across(3), W, D - across(3));
+  // A footprint side's middle, on the ground, where its door is.
+  const middle = (dir: FaceDir) => project(
+    dir === 'posCol' ? c.col + c.w : dir === 'negCol' ? c.col : c.col + c.w / 2,
+    dir === 'posRow' ? c.row + c.h : dir === 'negRow' ? c.row : c.row + c.h / 2,
+  );
+  const doorOnFace = (s: ShedFace, Hs: number) => {
+    if (!d) return null;
+    const uc = uAlong(s.o, s.a, middle(s.dir));
+    return uc > 0.05 && uc < 0.95 ? <DoorAt key={`d${s.dir}`} d={d} s={s} H={Hs} uc={uc} /> : null;
+  };
+
+  // The main hall: piers, the concourse's glass, the tier, the fascia.
+  const mf = boxFaces(main.col, main.row, main.w, main.h, 0, H);
+  const mFaces = shedFaces(mf);
+  const glassHead = Math.min(STOREY * 1.3, clerestorySill(H) - up(0.5));
+  const tier0 = glassHead + up(1.1);
+  const tier1 = Math.min(tier0 + up(2.8), H - EAVES_COURSE - up(2.4));
+  const vault = barrelVault({
+    col: main.col, row: main.row, w: main.w, h: main.h, base: H, rise: ARENA_VAULT_RISE, n: 10,
+    profile: arenaVaultProfile,
+    fill: (cm) => shade(pal.roof, 1.14 - 0.44 * cm),
+    ribs: Math.max(6, Math.round(Math.max(main.w, main.h) * 1.2)), ribTone: 'rgba(30, 34, 38, 0.24)',
+  });
+  const endWall = pal.wall[vault.endDir];
+  // The fan in the lunette, as the field house's, in the shallower arch.
+  const hub = vault.at(0.5, H + up(0.3));
+  const hubDisc = Array.from({ length: 9 }, (_, i) => {
+    const a = Math.PI * (i / 8);
+    return vault.at(0.5 - 0.06 * Math.cos(a), H + up(0.3) + ARENA_VAULT_RISE * 0.22 * Math.sin(a));
+  });
+  const spokes = vault.arch(10, 0.9).slice(1, -1).map((q) => `M${hub.x},${hub.y}L${q.x},${q.y}`);
+  // The front's door is the entrance hall's; the annex hides the right end.
+  const mainDoors = mFaces.filter((s) => s.dir !== sides.front && !(annexed && s.dir === sides.right));
+  const mainHall = (
+    <g key="main">
+      <polygon points={polyPoints(mf.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(mf.right)} fill={pal.wallRight} />
+      {mFaces.map((s) => <Piers key={`p${s.dir}`} stone={stone} col={main.col} row={main.row} w={main.w} h={main.h} height={H} outward={s.dir} pal={pal} />)}
+      {shedCourses(mf, H, c.cornice)}
+      {mFaces.map((s) => <CurtainWall key={`g${s.dir}`} origin={s.o} along={s.a} wallHeight={H} spanTiles={s.span} from={BASE_COURSE} to={glassHead} floors={[]} id={`ag${s.dir}`} />)}
+      {tiered && (
+        <g className="arena-tier">
+          {mFaces.map((s) => (
+            <g key={`t${s.dir}`}>
+              <polygon points={wq(s, H, 0, 1, tier0 - up(0.5), tier0)} fill={c.cornice ?? shade(endWall, 0.85)} />
+              <CurtainWall origin={s.o} along={s.a} wallHeight={H} spanTiles={s.span} from={tier0} to={tier1} floors={[]} id={`at${s.dir}`} />
+            </g>
+          ))}
+        </g>
+      )}
+      <InCollegeColors draw={(colors) => mFaces.map((s) => arenaFascia(s, H, colors))} />
+      {mainDoors.map((s) => doorOnFace(s, H))}
+      {vault.facets}
+      <polygon points={polyPoints(vault.arch(24))} fill={endWall} />
+      <polygon points={polyPoints(vault.arch(24, 0.9))} fill="rgba(128, 170, 192, 0.95)" />
+      <path d={spokes.join('')} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
+      <polyline points={polyPoints(vault.arch(16, 0.5))} fill="none" stroke="rgba(244, 242, 234, 0.9)" strokeWidth={0.9} />
+      <polygon points={polyPoints(hubDisc)} fill={shade(endWall, 0.92)} />
+    </g>
+  );
+
+  // The entrance hall: glass on its walls under a stone fascia, the
+  // scoreboard over the doors, the front's steps.
+  const He = Math.min(up(9.5), H - up(0.8));
+  const hf = boxFaces(hall.col, hall.row, hall.w, hall.h, 0, He);
+  const hFaces = shedFaces(hf);
+  const glassTop = He - up(3.6);
+  // The crowd in the lobby, seen through the front's glass.
+  const lobby = (s: ShedFace, colors: SchoolColors) => {
+    const k = up(1) * heightScale();
+    const shirts = [colors.primary, SHIRTS[1]!, colors.secondary, SHIRTS[4]!, colors.primary, SHIRTS[2]!];
+    return shirts.map((shirt, i) => {
+      const at = facePoint(s.o, s.a, He, 0.1 + 0.8 * frac(i * 0.618 + 0.21), (BASE_COURSE + up(0.2)) / He);
+      const q = (x0: number, x1: number, y0: number, y1: number) => polyPoints([
+        { x: at.x + x0 * k, y: at.y - y0 * k }, { x: at.x + x1 * k, y: at.y - y0 * k }, { x: at.x + x1 * k, y: at.y - y1 * k }, { x: at.x + x0 * k, y: at.y - y1 * k },
+      ]);
+      return (
+        <g key={i}>
+          <polygon points={q(-0.22, 0.22, 0, 0.9)} fill="#2b2f3a" />
+          <polygon points={q(-0.3, 0.3, 0.85, 1.55)} fill={shirt} />
+          <polygon points={polyPoints(discPts({ x: at.x, y: at.y - 1.75 * k }, 0.24 * k))} fill="#c98f63" />
+        </g>
+      );
+    });
+  };
+  const entranceHall = (
+    <g key="hall" className="arena-entrance">
+      <polygon points={polyPoints(hf.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(hf.right)} fill={pal.wallRight} />
+      {hFaces.map((s) => (
+        <SeeThrough key={`h${s.dir}`} s={s} H={He} u0={0.03} u1={0.97} z0={BASE_COURSE} z1={glassTop} pitch={across(3)} transoms={[glassTop * 0.62]}>
+          {s.dir === sides.front && <InCollegeColors draw={(colors) => lobby(s, colors)} />}
+        </SeeThrough>
+      ))}
+      {shedCourses(hf, He, c.cornice)}
+      {hFaces.filter((s) => s.dir === sides.front).map((s) => (
+        <g key={`f${s.dir}`}>
+          <InCollegeColors draw={(colors) => <ArenaScoreboard s={s} H={He} u0={0.12} u1={0.88} z0={glassTop + up(0.3)} z1={He - EAVES_COURSE - up(0.2)} colors={colors} />} />
+          {doorOnFace(s, He)}
+        </g>
+      ))}
+      <polygon points={polyPoints(hf.top)} fill={pal.roofDeck} />
+      {d && sides.entry.map((dir) => {
+        const span = wallSpan(c.w, c.h, dir);
+        const at = outsideWall(c.col, c.row, c.w, c.h, dir, span / 2, 0);
+        const out = outwardOf(dir);
+        return <EntranceSteps key={`s${dir}`} stone={stone} d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} />;
+      })}
+    </g>
+  );
+
+  // The practice annex: a clerestory box under its own shallow vault.
+  const af = boxFaces(annex.col, annex.row, annex.w, annex.h, 0, ARENA_ANNEX_HEIGHT);
+  const aFaces = shedFaces(af);
+  const aVault = annexed ? barrelVault({
+    col: annex.col, row: annex.row, w: annex.w, h: annex.h, base: ARENA_ANNEX_HEIGHT, rise: ARENA_ANNEX_RISE, n: 5,
+    profile: (cc) => 1 - (2 * cc - 1) ** 2,
+    fill: (cm) => shade(pal.roof, 1.1 - 0.3 * cm),
+    ribs: Math.max(4, Math.round(Math.max(annex.w, annex.h) * 1.2)), ribTone: 'rgba(30, 34, 38, 0.24)',
+  }) : null;
+  const practiceAnnex = aVault && (
+    <g key="annex" className="arena-annex">
+      <polygon points={polyPoints(af.left)} fill={pal.wallLeft} />
+      <polygon points={polyPoints(af.right)} fill={pal.wallRight} />
+      {shedCourses(af, ARENA_ANNEX_HEIGHT, c.cornice)}
+      {aFaces.map((s) => (
+        <g key={`w${s.dir}`}>{windows(s.o, s.a, ARENA_ANNEX_HEIGHT, s.span, [clerestorySill(ARENA_ANNEX_HEIGHT)], 0, `aw${s.dir}`, 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, s.span, ARENA_ANNEX_HEIGHT) : undefined)}</g>
+      ))}
+      {aFaces.filter((s) => s.dir === sides.right).map((s) => doorOnFace(s, ARENA_ANNEX_HEIGHT))}
+      {aVault.facets}
+      <polygon points={polyPoints(aVault.arch(12))} fill={pal.wall[aVault.endDir]} />
+    </g>
+  );
+
+  // The hall and the annex stand in front of the main hall where their
+  // wall is seen, behind it where it is not; between them, the nearer last.
+  const parts: Array<{ node: React.ReactNode; box: DepthBox; front: boolean }> = [
+    { node: entranceHall, box: hall, front: seen(sides.front) },
+    ...(practiceAnnex ? [{ node: practiceAnnex, box: annex, front: seen(sides.right) }] : []),
+  ];
+  const depth = (b: DepthBox) => project(b.col + b.w / 2, b.row + b.h / 2).y;
+  const behind = parts.filter((x) => !x.front);
+  const before = parts.filter((x) => x.front).sort((a, b) => depth(a.box) - depth(b.box));
+  return (
+    <>
+      {behind.map((x) => x.node)}
+      {mainHall}
+      {before.map((x) => x.node)}
     </>
   );
 }
@@ -7708,8 +7988,8 @@ function LawFrontispiece({ col, row, w, h, H, dir, stone }: {
 // a low hipped roof (the Supreme Court's), or in the Gothic set a reading
 // room under a steep slate gable, lancets down its side and a great
 // traceried window in its visible end.
-function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
-  col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean;
+function LawAttic({ col, row, w, h, H, pal, stone, gothic, snow }: {
+  col: number; row: number; w: number; h: number; H: number; pal: Palette; stone: StonePalette; gothic: boolean; snow: number;
 }) {
   // The classical attic as wide as the temple front before it, over the
   // building's middle (Plan 87M), its long side to the long front.
@@ -7738,7 +8018,7 @@ function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
             </g>
           );
         })}
-        <HippedRoof col={ac - across(0.3)} row={ar - across(0.3)} w={aw + across(0.6)} h={ah + across(0.6)} base={H + rise} rise={up(2.4)} pal={{ ...pal, ...SLOPE(LAW_ATTIC_ROOF) }} />
+        <HippedRoof col={ac - across(0.3)} row={ar - across(0.3)} w={aw + across(0.6)} h={ah + across(0.6)} base={H + rise} rise={up(2.4)} pal={{ ...pal, ...snowySlope(LAW_ATTIC_ROOF, snow) }} />
       </g>
     );
   }
@@ -7765,7 +8045,7 @@ function LawAttic({ col, row, w, h, H, pal, stone, gothic }: {
           </g>
         );
       })}
-      {gableSlopes(f, alongW, rs, re, { ...pal, ...SLOPE(READING_ROOM_SLATE) })}
+      {gableSlopes(f, alongW, rs, re, { ...pal, ...snowySlope(READING_ROOM_SLATE, snow) })}
       {endDir.map((dir) => {
         const wall = wallOf(f, dir);
         if (!wall.visible) return null;
@@ -10078,26 +10358,25 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
 
   if (motif === 'hangar' && !site) {
     // Clear-span sheds: pier-and-panel walls lit by a band near the eaves,
-    // in three silhouettes, the same in every vernacular:
+    // in two silhouettes, the same in every vernacular:
     //   fitness    box, monitor roof, glazed entrance bay, canopy
-    //   arena      barrel vault over a glazed concourse
     //   studio     blank sound stage with a roller door
-    // The sports sheds draw as what they are (Plan 87C, sportsShedOf).
+    // The sports sheds draw as what they are (Plan 87C, sportsShedOf), the
+    // arena among them (Plan 115F).
     const sports = sportsShedOf(t);
     if (sports) {
       const ctx: ShedCtx = {
         col, row, w, h, H, pal, stone, door, fronts, crest, plantTint, hood, entrance,
-        cornice: surfaceCornice, expansions: t.expansions ?? 0, facing: p.facing,
+        cornice: surfaceCornice, expansions: t.expansions ?? 0, facing: p.facing, snow,
       };
       if (sports === 'rec') return <RecCenterShed c={ctx} />;
       if (sports === 'gym') return <GymShed c={ctx} />;
       if (sports === 'courts') return <CourtsShed c={ctx} />;
       if (sports === 'fieldHouse') return <FieldHouseShed c={ctx} />;
+      if (sports === 'arena') return <ArenaShed c={ctx} />;
       return <NatatoriumShed c={ctx} />;
     }
-    const kind: 'fitness' | 'arena' | 'studio' =
-      t.facilityType === 'athleticsArena' ? 'arena'
-        : t.id === 'LAB-FILM' ? 'studio' : 'fitness';
+    const kind: 'fitness' | 'studio' = t.id === 'LAB-FILM' ? 'studio' : 'fitness';
     const alongW = w >= h;
     const SHED_GLASS = 'rgba(52, 72, 84, 0.6)';
     const clere = [clerestorySill(H)];
@@ -10164,60 +10443,6 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         </>
       );
     })();
-
-    if (kind === 'arena') {
-      // A faceted barrel vault down the long axis, closed at whichever end
-      // faces the camera, over a glazed ground-floor concourse.
-      const VAULT = up(6.5);
-      const N = 7;
-      const along0 = 0.015; const along1 = 0.985;
-      const pt = (a: number, c: number, z: number) => lift(
-        alongW ? project(col + w * a, row + h * c) : project(col + w * c, row + h * a), z,
-      );
-      const zAt = (c: number) => H + VAULT * Math.sin(Math.PI * c);
-      // The vault's two long sides fall toward -row and +row (or -col and
-      // +col): facets on the far side go down first, since near the
-      // springing they are steeper than the view and would paint over
-      // the near side's.
-      const lowSide: FaceDir = alongW ? 'negRow' : 'negCol';
-      const facetOrder = Array.from({ length: N }, (_, i) => i);
-      if (wallOf(f, lowSide).visible) facetOrder.reverse();
-      const facets = facetOrder.map((i) => {
-        const c0 = i / N; const c1 = (i + 1) / N; const cm = (c0 + c1) / 2;
-        return (
-          <polygon
-            key={i}
-            points={polyPoints([pt(along0, c0, zAt(c0)), pt(along1, c0, zAt(c0)), pt(along1, c1, zAt(c1)), pt(along0, c1, zAt(c1))])}
-            fill={shade(pal.roof, 1.14 - 0.44 * cm)}
-          />
-        );
-      });
-      // The end wall's lunette, at the end the camera sees (+col or +row at
-      // the opening camera, the other end half the time).
-      const highEnd: FaceDir = alongW ? 'posCol' : 'posRow';
-      const endDir = wallOf(f, highEnd).visible ? highEnd : opposite(highEnd);
-      const endAt = endDir === highEnd ? along1 : along0;
-      const endFace = (
-        <polygon
-          points={polyPoints(Array.from({ length: N + 1 }, (_, i) => pt(endAt, i / N, zAt(i / N))))}
-          fill={pal.wall[endDir]}
-        />
-      );
-      return (
-        <>
-          <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
-          <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
-          {piers}
-          {courses}
-          <CurtainWall origin={f.D} along={f.C} wallHeight={H} spanTiles={f.spanLeft} from={BASE_COURSE} to={glassHead} floors={[]} id="al" />
-          <CurtainWall origin={f.C} along={f.B} wallHeight={H} spanTiles={f.spanRight} from={BASE_COURSE} to={glassHead} floors={[]} id="ar" />
-          {doors}
-          <polygon points={polyPoints(f.top)} fill={pal.roof} />
-          {facets}
-          {endFace}
-        </>
-      );
-    }
 
     if (kind === 'studio') {
       // The great stage door, taller than a shed's roller (Plan 74F).
@@ -10676,7 +10901,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       )}
       {/* The Law School's attic hall and temple fronts, after its parapet
           (Plan 87G). */}
-      {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} />}
+      {!site && t.id === LAW_ID && <LawAttic col={col} row={row} w={w} h={h} H={H} pal={pal} stone={stone} gothic={!lawTempleFront} snow={snow} />}
       {!site && lawTempleFront && <LawFronts col={col} row={row} w={w} h={h} H={H} facing={p.facing} stone={stone} />}
       {/* A pavilion's bell-gable, on the left face only, after the roof.
           Chapter houses show their letters instead. */}

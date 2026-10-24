@@ -414,6 +414,17 @@ button, input, select, textarea { font-size: inherit; }
 /* The menu: the game's own front-screen card and buttons over the art,
    narrower so the quad shows round it. */
 .title-screen .title-card { width: min(460px, 100%); margin-top: auto; }
+/* A short screen (Plan 115G, the founding card's rule below): the mark,
+   the name and the card's padding close up, so the menu and the hall of
+   fame fit in a 1280×720 laptop without the screen scrolling. */
+@media (max-height: 800px) {
+  .title-screen { gap: var(--space-12); padding-top: var(--space-16); padding-bottom: var(--space-16); }
+  .title-screen .logo { gap: var(--space-6); }
+  .title-screen .logo-mark { width: clamp(56px, 9vh, 88px); }
+  .title-screen .logo-name { font-size: clamp(40px, 9vh, 72px); }
+  .title-screen .title-tagline { margin-top: var(--space-6); font-size: var(--text-lg); }
+  .title-screen .title-card { padding: var(--space-16) var(--space-24); }
+}
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
@@ -2408,8 +2419,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-plot-grade { position: absolute; background: var(--cream-lo); pointer-events: none; }
 .faculty-plot-grade.across { top: 0; bottom: 0; width: 1px; }
 .faculty-plot-grade.up { left: 0; right: 0; height: 1px; }
-.faculty-plot-grade > span { position: absolute; font-family: var(--mono); font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
+/* The grade lines' labels in the UI's own face, so the top band's words
+   read as text, not code (Plan 114C). */
+.faculty-plot-grade > span { position: absolute; font-family: var(--sans); font-weight: 600; font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; }
 .faculty-plot-grade.across > span { top: calc(100% + 4px); transform: translateX(-50%); }
+/* The top band's label runs right from its line, where the plot has room (Plan 114C). */
+.faculty-plot-grade.across.top > span { transform: translateX(-1ch); }
 .faculty-plot-grade.up > span { right: calc(100% + 6px); transform: translateY(-50%); }
 .faculty-plot-median { position: absolute; border: 0 dashed var(--school-primary); }
 .faculty-plot-median.across { top: 0; bottom: 0; border-left-width: 2px; }
@@ -2807,6 +2822,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .glance-adjustment .glance-figure { color: var(--ink); }
 .glance-adjustment.cost .glance-figure { color: var(--bad-on-light); }
 .glance-line { font-size: var(--text-sm); }
+/* A pillar whose door is shut says what opens it (Plan 114B). */
+.glance-shut { grid-column: 2 / -1; margin-top: calc(-1 * var(--space-8)); font-size: var(--text-xs); color: var(--ink-muted); }
 .pillar-academics { --pillar-hue: var(--pillar-academics); }
 .pillar-research { --pillar-hue: var(--pillar-research); }
 .pillar-studentLife { --pillar-hue: var(--pillar-studentLife); }
@@ -3451,6 +3468,20 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The run the doors would erase (founding over one in progress). */
 .startup-replacing { margin: 0 0 var(--space-12); font-size: var(--text-sm); line-height: 1.4; color: var(--danger-ink); text-align: center; }
 .startup-begin-btn { width: 100%; padding: var(--space-12); font-size: var(--text-lg); }
+/* A short screen, a 1280×720 laptop (Plan 115G, the review's C1-6): the
+   facade is capped at 120 px tall, centred, its width following its
+   440×214 viewBox, and the card's padding and margins close up, so Open the
+   doors sits inside 720 px. Height only: a phone is taller than 800 px. */
+@media (max-height: 800px) {
+  .startup { gap: var(--space-8); padding-top: var(--space-12); padding-bottom: var(--space-12); }
+  .startup-brand { font-size: var(--text-2xl); }
+  .startup-brand-mark { width: 32px; }
+  .startup-card { padding: var(--space-16) var(--space-24) var(--space-24); }
+  .startup-card h1 { margin-bottom: var(--space-12); }
+  .startup-facade { margin: var(--space-8) 0 var(--space-12); }
+  .startup-facade-svg { width: min(100%, calc(120px * 440 / 214)); margin: 0 auto; }
+  .startup-color-name { margin: var(--space-6) 0 var(--space-12); }
+}
 
 /* thin scrollbars inside parchment panels */
 .log::-webkit-scrollbar { width: 8px; }
@@ -3836,7 +3867,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .opening-coach.admissions-coach .opening-coach-actions button { padding: var(--space-6) var(--space-12); font-size: var(--text-sm); }
 .admissions-coach::after { content: ''; position: absolute; width: 12px; height: 12px; background: var(--cream);
   border: 3px solid var(--outline); border-width: 3px 3px 0 0; }
-.admissions-coach.side-left::after { right: -9px; top: calc(50% - 6px); transform: rotate(45deg); }
+.admissions-coach.side-left::after { right: -9px; top: calc(var(--notch, 50%) - 6px); transform: rotate(45deg); }
 .admissions-coach.side-below::after, .admissions-coach.side-below-right::after { left: 20px; top: -9px; transform: rotate(-45deg); }
 .admissions-coach.side-above-right::after { left: 20px; bottom: -9px; transform: rotate(135deg); }
 .admissions-coach.side-inside::after { display: none; }
@@ -3865,6 +3896,9 @@ button.inbox-row:hover { background: var(--cream-hi); }
   0%, 100% { box-shadow: inset 0 0 0 3px var(--school-secondary); }
   50% { box-shadow: inset 0 0 0 6px var(--school-secondary); }
 }
+/* A grounds tool's tile (Paths, Plan 115D) sits in the same container: its
+   ring is the inset shadow on the button itself. */
+.build-mini-tile.opening-target { outline: none; border-color: var(--school-secondary); animation: opening-pulse-inset 1.1s ease-in-out infinite; }
 
 /* The next step (LogTicker.tsx): right end of the ticker, at most half of it. */
 .log-ticker-next { margin-left: auto; flex: 0 1 auto; max-width: 52%; min-width: 0; display: flex; align-items: center; gap: 7px; }
@@ -3919,10 +3953,20 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .help-hint-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-8); }
 .help-hint-card p { margin: 0; }
 .objectives-door { flex: none; font-size: var(--text-xs); padding: 3px 10px; }
+/* A Show me whose tab is shut says when it opens instead (Plan 114F). */
+.objectives-shut { color: var(--ink-muted); font-size: var(--text-xs); }
+/* The Curriculum's free slot, NEXT's line with its Go (Plan 114F). */
+.curriculum-free-slot { display: flex; align-items: center; gap: var(--space-8); margin: 0 0 var(--space-8); font-size: var(--text-sm); }
 .objectives-waiting p.urgent span { font-weight: 700; }
 .objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }
 .objectives-milestones p { margin: 0 0 var(--space-6); }
 .objectives-live p { margin: 0 0 var(--space-4); font-variant-numeric: tabular-nums; }
+/* The glance's pillar rows, a size down in the drawer (Plan 114B). */
+.objectives-live .glance-rows { gap: var(--space-8); margin: 0 0 var(--space-8); }
+.objectives-live .glance-row { grid-template-columns: 18px 84px minmax(0, 1fr) 40px; gap: var(--space-8); }
+.objectives-live .glance-icon, .objectives-live .glance-icon svg { width: 18px; height: 18px; }
+.objectives-live .glance-label { font-size: var(--text-sm); }
+.objectives-live .glance-figure { font-size: var(--text-sm); }
 .objectives-back { margin: 0 0 var(--space-8); font-size: var(--text-xs); padding: 3px 10px; }
 .objectives-guide p { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 0; }
 .objectives-guide-link { font-size: var(--text-xs); padding: 3px 10px; }
@@ -4609,3 +4653,8 @@ body:has(.building-info-panel) .pennant { display: none; }
 .admissions-effect-bar span.good { background: var(--ok-on-light); }
 .admissions-effect-bar span.bad { background: var(--bad-on-light); }
 .admissions-send { font-size: var(--text-lg); padding: var(--space-12) var(--space-24); }
+/* "Send the offers" sticks to the foot of the panel (Plan 114G): on a
+   short screen the cards above run past the fold, and the page scrolls.
+   It sticks over the page's own bottom padding, so nothing shows below it. */
+.admissions-send-foot { position: sticky; bottom: calc(-1 * var(--space-24)); z-index: 1; display: flex; flex-direction: column;
+  padding-block: var(--space-8) var(--space-12); background: var(--cream); }

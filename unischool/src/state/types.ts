@@ -152,6 +152,11 @@ export interface StudentBody {
   // its pool and clears this. Never write applicantPool for that: the
   // funnel overwrites it.
   applicantLift: number;
+  // The summers an honors college still has to run (Plan 116D's board
+  // question, data/boardQuestionData.ts): while above 0, the funnel admits
+  // a class HONORS_CUT smaller, its weakest admits turned away, and each
+  // summer counts one off. Absent reads none.
+  honorsSummers?: number;
   admitRate: number;     // most recent cycle's admit rate; a prestige input
   incomingQuality: number; // most recent entering class's average quality, 0..100; a prestige input
   // Last summer's funnel, so the next reveal can say why the pool moved.
@@ -719,6 +724,15 @@ export type OpeningStage = 'welcome' | 'site-hall' | 'found' | 'play';
 
 // The four pillars of prestige (Plan 85; systems/prestige/prestigeSystem.ts).
 export type Pillar = 'academics' | 'research' | 'studentLife' | 'athletics';
+
+// A board question's answer (Plan 116D): `prestige` is the points of
+// prestige each pillar it trades is worth, more or less, while it lasts.
+export interface BoardAnswer {
+  year: number;
+  eventId: string;
+  choiceId: string;
+  prestige: Partial<Record<Pillar, number>>;
+}
 
 // The college's specialization (Plan 85D): none until the player chooses one
 // at the milestone, then one pillar for good (GameState.specialization).
@@ -1423,6 +1437,12 @@ export interface GameState {
   // the year, for the alumni's dip in giving (alumni/giving.ts). Absent
   // before the first.
   closedPrograms?: { programId: string; year: number }[];
+  // The board's questions answered with a trade (Plan 116D,
+  // data/boardQuestionData.ts), oldest first: the year, the question and the
+  // answer, and the prestige points each pillar gains or loses for
+  // BOARD_STANDING_YEARS from that year (prestigeSystem.ts's boardInput).
+  // Absent before the first.
+  boardAnswers?: BoardAnswer[];
   // The objectives (Plan 106, state/chapters.ts). Absent on a save from
   // before them: the run is caught up the first time it is settled.
   guidance?: GuidanceState;

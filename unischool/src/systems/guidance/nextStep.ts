@@ -17,7 +17,6 @@ import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
 import { countWord, pct, satisfactionFigure, weeksProse } from '../../format';
 import { NEED_LABELS } from '../../data/figureHints';
 import { ACADEMIC_LIBRARY_POINTS, libraryPoints } from '../satisfaction/satisfactionSystem';
-import { PARK_WORDS } from '../../data/researchParkData';
 import { slotFree } from '../administration/offices';
 import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
 import { initiativeOffers } from '../../data/researchData';
@@ -106,6 +105,30 @@ export function attributeRemedy(s: GameState, key: keyof SatisfactionAttributes)
   return { text: gate ? `${build.text}, which opens with ${gate.condition}` : build.text, intent: { kind: 'wait' } };
 }
 
+// The building a build door's line names, from its intent (Plan 114F, the
+// third review's C3-9: the menu opened on Grounds whatever the line said):
+// the first of a site's buildings on the menu, or the first building a
+// need's line names, else one that serves the need. The menu opens on its
+// tab and rings it while it can be built.
+export function stepBuilding(s: GameState, intent: StepIntent | undefined): Buildable | null {
+  if (intent?.kind === 'site') {
+    return intent.buildableIds.map((id) => s.tech.find((t) => t.id === id)).find((t) => !!t && t.status !== 'locked') ?? null;
+  }
+  if (intent?.kind !== 'build-for') return null;
+  const key = intent.attribute;
+  const serves = (t: Buildable) => (t.kind === 'facility' && t.effects?.satisfactionAttribute === key) || (key === 'housing' && t.kind === 'dorm');
+  return s.tech.find((t) => ATTRIBUTE_BUILD[key].names(t) && t.status === 'available')
+    ?? s.tech.find((t) => ATTRIBUTE_BUILD[key].names(t) && t.status !== 'locked')
+    ?? s.tech.find((t) => serves(t) && t.status === 'available')
+    ?? null;
+}
+
+// What a line's door opens on, beyond its tab or hall: the building a build
+// line names (Plan 114F).
+export function stepTarget(s: GameState, step: NextStep): string | undefined {
+  return step.go === 'build' ? stepBuilding(s, step.intent)?.id : undefined;
+}
+
 // Shortfall line on the 0..100 attribute scale.
 export const ATTRIBUTE_SHORTFALL = 50;
 
@@ -168,8 +191,8 @@ function seating(s: GameState): NextStep | null {
 // goes to a hall no school claims — Founders Hall, an empty hall, or a
 // mixed one; and a purchased hall one school claims offers that school's
 // programs whatever the draw (Plan 78D), so its room is never a wait on
-// the offer.
-function freeSlot(s: GameState): NextStep | null {
+// the offer. The Curriculum's head shows it too (Plan 114F).
+export function freeSlot(s: GameState): NextStep | null {
   const hasRoom = (hallId: string) => s.halls[hallId]?.some(slotFree) ?? false;
   const nameOf = (hallId: string) => {
     const hall = s.tech.find((t) => t.id === hallId);
@@ -378,11 +401,11 @@ export function labCanStart(s: GameState, labId: string): boolean {
 function idleLab(s: GameState): NextStep | null {
   const idle = s.tech.filter((t) => t.facilityType === 'lab' && t.status === 'done' && !s.research.initiatives[t.id] && labCanStart(s, t.id));
   if (idle.length === 0) return null;
-  const finished = new Set(Array.isArray(s.research.finishedLabs) ? s.research.finishedLabs : []);
-  const unproven = idle.find((t) => !finished.has(t.id));
-  const lab = unproven ?? idle[0];
+  // The first idle lab. Which have finished a project no longer matters
+  // to anything (Plan 114A), so none is put first for it.
+  const lab = idle[0];
   return {
-    text: unproven ? PARK_WORDS.unprovenLab(lab.name) : `${lab.name} is idle: start a research project`,
+    text: `${lab.name} is idle: start a research project`,
     go: 'research',
     intent: { kind: 'research', labId: lab.id },
   };

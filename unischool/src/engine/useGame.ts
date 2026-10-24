@@ -11,7 +11,6 @@ import { startRunLog, type RunLog } from './actionLog';
 import { advanceWeekProgress, MAX_SAMPLE_MS } from './weekClock';
 import { openingHoldsClock } from '../state/opening';
 import { registerCrashSource } from './crashContext';
-import { getSettings } from '../settings';
 import { noteStop, notePlaying, noteWeek, observe, runResumed, runStarted } from '../analytics/analytics';
 
 // Milliseconds per week-tick; 0 = paused. `real` makes a 50-year run take a
@@ -150,19 +149,8 @@ export function useGame() {
     if (interrupted && speed === 'fast') setSpeed('real');
   }, [interrupted]);
 
-  // An event waiting on the player eases the clock back to normal speed
-  // (Plan 35: at four times an event's weeks ran out in seconds, unseen).
-  // Only on a new arrival, so the player can speed up again with it open.
-  // With Settings' "Pause when a matter arrives" on, App.tsx pauses instead
-  // (Plan 78E, systems/inbox/unseen.ts), except under a hold, where the ease
-  // still acts for the clock that resumes after it.
-  const waiting = state.catalogue?.pending.length ?? 0;
-  const lastWaiting = useRef(waiting);
-  useEffect(() => {
-    const pausing = getSettings().pauseOnArrival && !held;
-    if (waiting > lastWaiting.current && !pausing && speed !== 'paused' && speed !== 'real') setSpeed('real');
-    lastWaiting.current = waiting;
-  }, [waiting]);
+  // A new matter eases or pauses the clock in App.tsx, by unseen.ts's rule
+  // (Plans 35, 78E and 116B: only a matter with two weeks or less to answer).
 
   // A speed the seats have not earned (a new game, another save) falls back
   // to double (systems/delegation/seats.ts's speedLock).

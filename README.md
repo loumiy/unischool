@@ -93,7 +93,8 @@ drew, then choose how much of it to admit.</em></p>
 Prestige is a blend of four pillars: academics, research, student life and
 athletics. A school can be excellent at all four, but it can be the very best
 at only one. The first summer the college stands in the guide's top 30 — or,
-from Year 20, in the top 10 of any one pillar — the board offers it a single
+from Year 20, in the top 10 of any one pillar, or with student satisfaction
+of 85 or more in over half its years — the board offers it a single
 specialization: the faculty training program, the research park, the downtown
 and its festival, or the athletic performance complex. Each brings a building
 and a way of working only it has, and fills the share of its pillar that only

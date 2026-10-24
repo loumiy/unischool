@@ -15,8 +15,8 @@
 // Not part of the game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
 
-import type { Buildable, GameState, SatisfactionAttributes } from '../../src/state/types';
-import { totalEnrolled, WEEKS_PER_YEAR } from '../../src/state/types';
+import type { Buildable, GameState, SatisfactionAttributes, TileCoord } from '../../src/state/types';
+import { CAMPUS_GRID_WIDTH, totalEnrolled, WEEKS_PER_YEAR } from '../../src/state/types';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById, type ProgramInfo } from '../../src/data/techData';
 import {
   canFoundProgram, canRelocateProgram, canStartDevelopment, eligibleInstructors, hasFreeFacultySlot, hasFreeSlot,
@@ -26,12 +26,16 @@ import { GRADE_A, qualityOf, tierOf } from '../../src/data/courseQuality';
 import { CROWDING_GRACE, crowdingCoverages } from '../../src/systems/prestige/prestigeSystem';
 import { claimedHalls, claimedSchool, homeSchool, programsAwayFromHome, schoolHall, suggestedMove } from '../../src/systems/techtree/schools';
 import { declineRefusal, drawsGlobalOffers, schoolOffers } from '../../src/systems/techtree/programOffers';
-import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/campusMap';
+import { firstFreeSpot, footprintOf, isLand, isPlaceableKind, pathTileKey, placementTiles } from '../../src/state/campusMap';
+import { besideTiles, objectiveMet, PATH_OBJECTIVE, pathsFromFounders } from '../../src/state/chapters';
+import { isDorm } from '../../src/data/openingData';
 import { bedsWithDowntown } from '../../src/systems/satisfaction/satisfactionSystem';
 import type { Game } from './game';
 import { heldOffices, officeAllowance, officeHeld, officePrice, openOfficeRefusal, slotFree } from '../../src/systems/administration/offices';
 import { charterRefusal, foundTeamCost, foundTeamRefusal } from '../../src/systems/administration/officeActions';
-import { staffingCovers } from '../../src/systems/delegation/seats';
+import { canAppoint, staffingCovers } from '../../src/systems/delegation/seats';
+import { seatDef } from '../../src/data/seatData';
+import { weeklyNet } from '../../src/systems/finance/financeSystem';
 
 export type Pick = <T>(items: readonly T[]) => T | undefined;
 export const first: Pick = (items) => items[0];
@@ -374,4 +378,76 @@ export function useOffices(g: Game, { reserve = 0 }: MoveOptions = {}): void {
   if (!officeHeld(g.s, 'athletics-development')) return;
   const club = g.s.orgs.clubs.find((c) => c.sport !== null && foundTeamRefusal(g.s, c.id) === null);
   if (club && affords(g.s, foundTeamCost(g.s), reserve)) g.act({ type: 'FOUND_TEAM', clubId: club.id });
+}
+
+// ---------------------------------------------------------------------
+// A Provost (Plan 113E, the third review's I7-5c): no harness player
+// filled a seat, so no scenario save had one, 4× stayed locked and
+// Running the college was never done. From PROVOST_FROM_YEAR, the year
+// after the chapter that asks for one opens (Y4W27), a Provost from
+// outside once the week's net pays the salary and the cash stands above
+// the player's reserve. The seat keeps its default policy.
+// ---------------------------------------------------------------------
+export const PROVOST_FROM_YEAR = 5;
+
+export function appointProvost(g: Game, { reserve = 0 }: MoveOptions = {}): boolean {
+  const s = g.s;
+  if (s.clock.year < PROVOST_FROM_YEAR || !canAppoint(s, 'provost', null)) return false;
+  const salary = seatDef('provost')?.outsideSalary ?? 0;
+  if (weeklyNet(s) * WEEKS_PER_YEAR < salary || s.finance.cash < reserve) return false;
+  g.act({ type: 'APPOINT_SEAT', seatId: 'provost', school: null });
+  return true;
+}
+
+// ---------------------------------------------------------------------
+// Somewhere to sleep's path (Plan 115D), laid as a player following its
+// Show me would: the build menu's ringed Paths tile, then a drag from the
+// residence hall to Founders Hall. The shortest run over open ground from
+// beside the first residence hall sited to a path that already joins the
+// hall (the founding drive, state/drive.ts), or to the hall's side. No
+// player in the harness opens the build menu, so nothing else lays a path;
+// without this the chapter, and every main chapter after it, would wait
+// for good. True when it laid one.
+// ---------------------------------------------------------------------
+export function pathToFoundersRoute(s: GameState): TileCoord[] {
+  const hall = s.placements[FOUNDERS_HALL_ID];
+  const dorm = s.tech.find((t) => isDorm(t) && t.id in s.placements);
+  if (!hall || !dorm) return [];
+  const W = CAMPUS_GRID_WIDTH;
+  const covered = new Set(Object.values(s.placements).flatMap((p) => placementTiles(p).map(pathTileKey)));
+  const open = (t: TileCoord) => isLand(t.row, t.col) && !covered.has(pathTileKey(t));
+  const goal = new Set([...pathsFromFounders(s), ...besideTiles(hall).filter(open).map(pathTileKey)]);
+  const index = (t: TileCoord) => t.row * W + t.col;
+  const prev = new Map<number, number>();
+  const queue = besideTiles(s.placements[dorm.id]).filter(open);
+  for (const t of queue) prev.set(index(t), index(t));
+  for (let q = 0; q < queue.length; q++) {
+    const at = queue[q];
+    if (goal.has(pathTileKey(at))) {
+      const route: TileCoord[] = [];
+      for (let i = index(at); ; i = prev.get(i)!) {
+        route.push({ row: Math.floor(i / W), col: i % W });
+        if (prev.get(i) === i) break;
+      }
+      return route;
+    }
+    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const next = { row: at.row + dr, col: at.col + dc };
+      if (!open(next) || prev.has(index(next))) continue;
+      prev.set(index(next), index(at));
+      queue.push(next);
+    }
+  }
+  return [];
+}
+
+export function layPathToFounders(g: Game): boolean {
+  const s = g.s;
+  const guide = s.guidance;
+  const asked = guide?.opened['somewhere-to-sleep'] !== undefined && guide.done['somewhere-to-sleep'] === undefined;
+  if (!asked || objectiveMet(s, PATH_OBJECTIVE)) return false;
+  const add = pathToFoundersRoute(s).filter((t) => !(pathTileKey(t) in s.pathways));
+  if (add.length === 0) return false;
+  g.act({ type: 'PAINT_PATH_TILES', add, remove: [] });
+  return true;
 }

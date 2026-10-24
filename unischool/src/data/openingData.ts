@@ -19,6 +19,10 @@ export interface OpeningStep {
   door?: 'build' | 'hall';
 }
 
+function capitalized(word: string): string {
+  return `${word[0].toUpperCase()}${word.slice(1)}`;
+}
+
 function list(names: string[]): string {
   if (names.length <= 1) return names.join('');
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
@@ -83,8 +87,6 @@ export const SKIP_WORDS = {
   confirm: 'Skip',
   keep: 'Keep the walkthrough',
 };
-// The welcome's line on what the skip would cost.
-export const WALKTHROUGH_LENGTH = 'The walkthrough takes about five minutes.';
 
 export type CoachStage = Exclude<OpeningStage, 'play'>;
 export function isCoachStage(stage: OpeningStage): stage is CoachStage {
@@ -98,7 +100,7 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     // It introduces the college and the one building it begins with (Plan
     // 104L): S1 read the old list of three tasks, in an order the walk then
     // didn't play, twice. Each step introduces its own thing when it comes.
-    body: (s) => `Welcome to ${s.self.name}. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
+    body: (s) => `Welcome to ${s.self.name}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
     next: 'Next',
   },
   'site-hall': {
@@ -117,9 +119,21 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     title: 'Choose the first program',
     body: (s) => {
       const n = teachableOffers(s).length;
-      const offered = n > 1 ? `${countWord(n)[0].toUpperCase()}${countWord(n).slice(1)} are on offer in Founders Hall, and each already has a professor.` : 'One is on offer in Founders Hall, and it already has a professor.';
+      // A 0.1.2 save on the old appointing step resumes here with nobody on
+      // the payroll (Plan 113B, the third review's I7-4): count what is on
+      // offer, and ask for the professor the market shows under it.
+      if (n === 0 && s.programOffers.length > 0) {
+        const m = s.programOffers.length;
+        const offered = m > 1 ? `${capitalized(countWord(m))} are on offer in Founders Hall.` : 'One is on offer in Founders Hall.';
+        return `Programs are the subjects your college teaches. ${offered} Click the ringed slot and pick one. Then appoint its professor and click Found.`;
+      }
+      const offered = n > 1 ? `${capitalized(countWord(n))} are on offer in Founders Hall, and each already has a professor.` : 'One is on offer in Founders Hall, and it already has a professor.';
       return `Programs are the subjects your college teaches. ${offered} Click the ringed slot, pick one, and click Found.`;
     },
     door: 'hall',
   },
 };
+
+// The welcome's line on what the skip would cost: the steps after it,
+// counted (Plan 114A; "about five minutes" was never measured).
+export const WALKTHROUGH_LENGTH = `The walkthrough has ${countWord(Object.keys(OPENING_STEPS).filter((stage) => stage !== 'welcome').length)} steps.`;

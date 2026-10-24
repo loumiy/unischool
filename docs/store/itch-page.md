@@ -230,6 +230,7 @@ production build, at 1920 × 1080 (16:9). In the second review's order
 | 3 | [`itch/3-specialization.jpg`](itch/3-specialization.jpg) | Excellent at all four. The very best at one. |
 | 4 | [`itch/4-faculty.jpg`](itch/4-faculty.jpg) | Every professor, a person. |
 | 5 | [`itch/5-final-report.jpg`](itch/5-final-report.jpg) | Fifty years, graded, and a name for what you built. |
+| 6 | [`itch/6-young-campus.jpg`](itch/6-young-campus.jpg) | Five years in: the first halls round a quad. |
 
 ## The cover image
 
@@ -267,4 +268,7 @@ npm run scenario -- --player Completionist --year 45 --clear-modal --name Halifa
 npm run shot -- late.json ../docs/store/itch/4-faculty.jpg --size=1920,1080 --tab=faculty
 npm run scenario -- final-report --name Halifax --colors navy-gold final.json
 npm run shot -- final.json ../docs/store/itch/5-final-report.jpg --size=1920,1080
+npm run scenario -- --player Guided --year 5 --week 14 --clear-modal --name Halifax --colors navy-gold young.json
+npm run layout -- young.json young-laid.json
+npm run shot -- young-laid.json ../docs/store/itch/6-young-campus.jpg --size=1920,1080 --framed --zoom=3 --tilt=-2
 ```

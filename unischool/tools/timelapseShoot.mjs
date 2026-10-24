@@ -29,7 +29,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { waitForMap } from './mapReview.mjs';
+import { parcelView, waitForMap } from './mapReview.mjs';
 
 const argv = process.argv.slice(2);
 const dir = argv.find((a) => !a.startsWith('--'));
@@ -50,7 +50,9 @@ const jobs = Number(flag('jobs', 4));
 const caption = !argv.includes('--no-caption');
 const png = argv.includes('--png');
 const seasons = argv.includes('--seasons');
-const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
+// The parcel view, so every frame is framed alike and --zoom/--pan count
+// from where they always have (Plan 115A).
+const URL = parcelView(process.env.CAMPUS_URL ?? 'http://localhost:5173/');
 
 const CANDIDATES = [
   process.env.CHROME_PATH,

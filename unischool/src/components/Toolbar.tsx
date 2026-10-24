@@ -65,6 +65,8 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // Build mode and an open tab share one slot, owned by App.tsx.
   buildOpen: boolean;
   onSetBuildOpen: (open: boolean) => void;
+  // The building a door opened the menu on (Plan 114F), held by App.tsx.
+  buildTarget?: string | null;
   speed: Speed;
   setSpeed: (speed: Speed) => void;
   // False while a front screen covers the game, so 1-4 and Space wait.
@@ -87,7 +89,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // The summer waits to be opened (Plan 112C): the gears open it, and Play
   // is rung.
   summerWaiting?: boolean;
-}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held, summerWaiting = false }, ref) => {
+}>(({ s, act, active, onChangeTab, buildOpen, onSetBuildOpen, buildTarget = null, speed, setSpeed, speedKeysLive, weekProgress, placingId, onArmPlacement, pathTool, onSetPathTool, inbox, held, summerWaiting = false }, ref) => {
 
   // The opening walkthrough rings the Build button while its step is to site
   // the hall and the menu is closed, and so does a skipped walk while the
@@ -204,6 +206,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
           pathTool={pathTool}
           onSetPathTool={onSetPathTool}
           onClose={() => onSetBuildOpen(false)}
+          target={buildTarget}
         />
       )}
     </div>

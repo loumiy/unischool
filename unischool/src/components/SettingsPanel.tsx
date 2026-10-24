@@ -5,11 +5,16 @@ import { switchStyle } from './segmentedSwitch';
 import { answerStats, statsAvailable } from '../analytics/analytics';
 import { feedbackAvailable } from '../feedback';
 import { OBJECTIVES_MODES, OBJECTIVES_NOTES, OBJECTIVES_WORDS } from '../data/chapterData';
+import { SHORT_OF_TIME_WEEKS } from '../systems/inbox/unseen';
+import { durationWords } from '../format';
 
 // Settings (Plan 34, from v2's): text size, color vision and motion, the
-// pause when a matter arrives (Plan 78E) and for the news (Plan 95T), the
-// seasons on the map (Plan 74I), and the sound (App.tsx passes
+// pause for an urgent matter (Plans 78E and 116B) and for the news (Plan
+// 95T), the seasons on the map (Plan 74I), and the sound (App.tsx passes
 // SoundControls in).
+
+// The urgent matter's note (Plan 116B), its weeks from unseen.ts's rule.
+const URGENT_NOTE = `Time pauses when a matter arrives with ${durationWords(SHORT_OF_TIME_WEEKS)} or less to answer. If you haven't opened a matter, time pauses in its last week.`;
 
 // The Keyboard section (Plan 98F), from hotkeys.ts's table: by place, and
 // one line for the keys that share a meaning (W A S D and the arrows pan).
@@ -67,12 +72,12 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
           <p className="settings-note">Reduced stops the walkers, the counting numbers and the pulses.</p>
         </fieldset>
         <fieldset className="settings-row">
-          <legend>Pause when a matter arrives</legend>
+          <legend>Pause for an urgent matter</legend>
           <span className="segmented switch" style={switchStyle(2, s.pauseOnArrival ? 0 : 1)}>
             <button type="button" className={s.pauseOnArrival ? 'active' : undefined} aria-pressed={s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: true })}>On</button>
             <button type="button" className={s.pauseOnArrival ? undefined : 'active'} aria-pressed={!s.pauseOnArrival} onClick={() => setSettings({ pauseOnArrival: false })}>Off</button>
           </span>
-          <p className="settings-note">Time pauses for each new matter you need to decide.</p>
+          <p className="settings-note">{URGENT_NOTE}</p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Pause for news</legend>

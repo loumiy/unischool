@@ -10,6 +10,7 @@
 //   npm run sheet -- --every --azimuth 135          # every placeable, not one per form (Plan 73)
 //   npm run sheet -- --facing 2                     # every building turned to face -row
 //   npm run sheet -- --every --floors 0,1,2         # each at 0, 1 and 2 added stories (Plan 112D)
+//   npm run sheet -- --every --snow 1               # the roofs under week 26's snow (Plan 115E)
 //   npm run sheet:shot -- node_modules/.tmp/sheets/sheet-gothic.html out/ --cells
 //
 // `--scale` is screen pixels per world unit (default 1.4). Each cell is a
@@ -20,6 +21,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, materialOf } from '../src/components/buildingMotifs';
 import { groundProps } from '../src/components/groundMarkings';
+import { SnowContext, seasonStyle } from '../src/components/seasons';
 import { SCHOOL_SIGNATURES, motifOf } from '../src/components/buildingSpec';
 import { boxFaces, polyPoints, project, setCamera } from '../src/components/isoProjection';
 import { depthOrder } from '../src/components/depthSort';
@@ -53,6 +55,9 @@ const FACING = (Number(flag('facing', '0')) % 4) as Facing;
 // `--floors 0,1,2` draws each sample once per count of added stories
 // (floorsAdded), side by side, so a story going on can be seen (Plan 112D).
 const FLOORS = flag('floors', '') ? flag('floors', '').split(',').map(Number) : null;
+// `--snow 1` lays snow that deep (0..1) on every roof, as the map's
+// SnowContext does, and puts the ground under week 26's (Plan 115E).
+const SNOW = Math.max(0, Math.min(1, Number(flag('snow', '0'))));
 setCamera({ azimuth: (Number(flag('azimuth', '45')) * Math.PI) / 180, pitch: (Number(flag('pitch', '30')) * Math.PI) / 180 });
 // CampusMap's own inset (see BUILDING_INSET there), so a cell shows the
 // building at the size the map draws it inside its footprint.
@@ -162,15 +167,17 @@ function cell(sample: Sample, v: Vernacular) {
     ? depthOrder(groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, v))
     : [];
   const svg = (
-    <svg className="campus-map-svg" width={W} height={H} viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} xmlns="http://www.w3.org/2000/svg">
+    <svg className="campus-map-svg" style={SNOW > 0 ? seasonStyle(26) : undefined} width={W} height={H} viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} xmlns="http://www.w3.org/2000/svg">
       <defs><ScaffoldPattern /></defs>
       <polygon className="campus-ground" points={polyPoints(plate)} />
       <path className="campus-grid" d={grid.join('')} style={{ stroke: 'rgba(42,56,28,0.12)' }} />
       {!grounds && lift > 0 && (
         <polygon className="campus-building-shadow" points={polyPoints(castShadow(d.col, d.row, d.w, d.h, lift))} />
       )}
-      <BuildingMotif t={t} p={d} material={materialOf(t, v)} vernacular={v} developing={developing} glyphs={sample.glyphs} />
-      {props.map((pr) => <g key={pr.key}>{pr.node}</g>)}
+      <SnowContext.Provider value={SNOW}>
+        <BuildingMotif t={t} p={d} material={materialOf(t, v)} vernacular={v} developing={developing} glyphs={sample.glyphs} />
+        {props.map((pr) => <g key={pr.key}>{pr.node}</g>)}
+      </SnowContext.Provider>
     </svg>
   );
   const id = `${v}-${t.id}${sample.suffix ?? ''}${facing !== 0 ? `-f${facing}` : ''}${sample.developing ? '-dev' : ''}`;
@@ -212,7 +219,7 @@ const base = EVERY ? everySample() : samples();
 const all = FLOORS
   ? base.flatMap((s) => FLOORS.map((n) => ({ ...s, label: `${s.label} +${n} stories`, t: { ...s.t, floorsAdded: n }, suffix: `${s.suffix ?? ''}-s${n}` })))
   : base;
-const cameraTag = EVERY ? `-a${flag('azimuth', '45')}-p${flag('pitch', '30')}` : '';
+const cameraTag = (EVERY ? `-a${flag('azimuth', '45')}-p${flag('pitch', '30')}` : '') + (SNOW > 0 ? `-snow${SNOW}` : '');
 for (const v of VERNS) {
   const cells = all.filter((s) => !ONLY || ONLY.test(s.label) || ONLY.test(s.t.id)).map((s) => cell(s, v));
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>UniSchool motifs · ${v}</title><style>${css}

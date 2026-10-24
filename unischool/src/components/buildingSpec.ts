@@ -435,7 +435,8 @@ export function wallHeightOf(t: Buildable): number {
   if (diningBandOf(t) === 'refectory') return up(refectoryEavesMetres(t)) + addedFloors(t) * STOREY;
   const storeys = storeysOf(t);
   if (storeys > 0) return storeys * STOREY;
-  // An arena or a natatorium rises a storey with each expansion (Plan 54).
+  // An arena or a natatorium rises a storey with each expansion (Plan 54);
+  // the arena's art adds a part as well (Plan 115F, ArenaShed).
   const risen = motif === 'hangar' && (t.facilityType === 'athleticsArena' || t.facilityType === 'athleticsNatatorium')
     ? (t.expansions ?? 0) * STOREY
     : 0;

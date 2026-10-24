@@ -6,7 +6,17 @@
 // Not part of the game: nothing imports it. Run with `npm test`.
 // ---------------------------------------------------------------------
 
-import { SUMMER_GREEN_WEEK, seasonOf, seasonStyle } from '../src/components/seasons';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { SNOW_COLOR, SUMMER_GREEN_WEEK, seasonOf, seasonStyle } from '../src/components/seasons';
+import { buildingMassArt, materialOf, paletteFrom } from '../src/components/buildingMotifs';
+import { landmarkArt } from '../src/components/landmarks';
+import { gazeboArt } from '../src/components/groundMarkings';
+import { stoneFor, wallShadeOf } from '../src/components/buildingSpec';
+import { faceTone } from '../src/components/light';
+import { shade } from '../src/components/tint';
+import { initialFacilities } from '../src/data/facilitiesData';
+import { orientedFootprint } from '../src/state/campusMap';
+import type { Buildable, Facing, Vernacular } from '../src/state/types';
 import { DEFAULT_SETTINGS, normaliseSettings } from '../src/settings';
 
 let checks = 0;
@@ -111,6 +121,69 @@ assert(pinkness(tok(40, '--azalea')) > pinkness(tok(26, '--azalea')), `week 40: 
 // Blossom only while the trees bud.
 for (let w = 1; w <= 52; w++) {
   if (seasonOf(w).bud === 0) assert(tok(w, '--sakura') === tok(w, '--leaf-ornamental'), `no blossom in week ${w}`);
+}
+
+// Week 26 on the roofs drawn from their own colors (Plan 115E, the third
+// review's C1-3): the field house's zinc, the natatorium's pale vault, the
+// Law School's attic and reading room, the four landmarks and the gazebo.
+// Each draws the same shapes at snow 0 and snow 1. Every fill that changes
+// moves toward the snow, some do, and the walls keep theirs.
+{
+  const fills = (markup: string) => [...markup.matchAll(/<(?:polygon|path|polyline|circle|rect|line)\b[^>]*?\bfill="([^"]+)"/g)].map((m) => m[1]!);
+  const rgb = (c: string): number[] | null => {
+    if (/^#[0-9a-f]{6}$/i.test(c)) return [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+    const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c);
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+  };
+  const toSnow = (c: string) => { const v = rgb(c); const s = rgb(SNOW_COLOR)!; return v ? Math.hypot(...v.map((x, i) => x - s[i]!)) : NaN; };
+  const faceTones = (tone: string) => (['negCol', 'negRow', 'posRow', 'posCol'] as const).map((d) => faceTone(d, tone, shade(tone, 0.84)));
+  const catalogue = initialFacilities();
+  const plot = (t: Buildable) => { const fp = orientedFootprint(t, 0); return { col: 0.06, row: 0.06, w: fp.w - 0.12, h: fp.h - 0.12, facing: 0 as Facing }; };
+  // `from` narrows a building to the part drawn from its own colors: the
+  // Law School's main roof always took the snow through its palette.
+  const mass = (id: string, v: Vernacular, from = '') => (snow: number) => {
+    const t = { ...catalogue.find((x) => x.id === id)!, status: 'done' as const };
+    const markup = renderToStaticMarkup(buildingMassArt({ t, p: plot(t), material: materialOf(t, v), vernacular: v, developing: false }, snow));
+    return markup.slice(Math.max(0, markup.indexOf(from)));
+  };
+  const massWalls = (id: string, v: Vernacular) => {
+    const t = catalogue.find((x) => x.id === id)!;
+    const pal = paletteFrom(materialOf(t, v), wallShadeOf(t));
+    return [pal.wallLeft, pal.wallRight];
+  };
+  const landmark = (id: string, v: Vernacular) => (snow: number) => {
+    const t = { ...catalogue.find((x) => x.id === id)!, status: 'done' as const };
+    return renderToStaticMarkup(landmarkArt({ t, p: plot(t), developing: false, vernacular: v }, {}, 'Halifax University', snow));
+  };
+  // landmarks.tsx's STONE, which every landmark's walls are cut from.
+  const LANDMARK_STONE = faceTones('#ddd3bd');
+  const gazebo = (v: Vernacular) => (snow: number) => renderToStaticMarkup(gazeboArt({ col: 0, row: 0, w: 4, h: 4, vernacular: v }, snow));
+  const trim = (v: Vernacular) => { const t = stoneFor(v).trim; return t === 'none' ? '#f3eee1' : t; };
+  const cases: Array<[string, (snow: number) => string, string[]]> = [];
+  for (const v of ['georgian', 'gothic'] as Vernacular[]) {
+    cases.push(
+      [`the field house (${v})`, mass('ATH-FIELDHOUSE', v), massWalls('ATH-FIELDHOUSE', v)],
+      [`the natatorium (${v})`, mass('ATH-NATATORIUM', v), massWalls('ATH-NATATORIUM', v)],
+      [`the Law School (${v})`, mass('PROJ-LAW', v, 'class="law-attic'), massWalls('PROJ-LAW', v)],
+      [`the Campanile (${v})`, landmark('LANDMARK-CAMPANILE', v), LANDMARK_STONE],
+      [`the Bell Tower (${v})`, landmark('AMENITY-BELLTOWER', v), LANDMARK_STONE],
+      [`the Gate (${v})`, landmark('LANDMARK-GATE', v), LANDMARK_STONE],
+      [`the Great Dome (${v})`, landmark('LANDMARK-DOME', v), LANDMARK_STONE],
+      [`the gazebo (${v})`, gazebo(v), [trim(v), shade(trim(v), 0.86), shade(trim(v), 0.9)]],
+    );
+  }
+  for (const [name, draw, walls] of cases) {
+    const bare = fills(draw(0));
+    const deep = fills(draw(1));
+    assert(bare.length > 0 && bare.length === deep.length, `week 26: ${name} draws the same shapes under the snow (${bare.length}, ${deep.length})`);
+    const moved = bare.map((c, i) => [c, deep[i]!] as const).filter(([a, b]) => a !== b);
+    assert(moved.length > 0, `week 26: ${name}'s roof takes the snow`);
+    const away = moved.filter(([a, b]) => !(toSnow(b) < toSnow(a)));
+    assert(away.length === 0, `week 26: every fill on ${name} that changes moves toward the snow (${away.map(([a, b]) => `${a}→${b}`).join(', ')})`);
+    const wallFills = bare.filter((c) => walls.includes(c));
+    const wallsMoved = moved.filter(([a]) => walls.includes(a));
+    assert(wallFills.length > 0 && wallsMoved.length === 0, `week 26: ${name}'s walls keep their color (${wallFills.length} wall fills, ${wallsMoved.length} moved)`);
+  }
 }
 
 // The setting (Plan 74I's seasons, off for a strobe-free time-lapse): on

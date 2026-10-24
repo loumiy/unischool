@@ -69,8 +69,11 @@ export function teachingRank(f: Faculty, faculty: readonly Faculty[]): { rank: n
 
 // The lines the plot draws across both axes: where each course grade
 // begins (courseQuality.ts), so a dot reads as the grade it would teach at.
-export const GRADE_LINES: ReadonlyArray<{ value: number; grade: Grade }> = [
-  { value: GRADE_D, grade: 'D' }, { value: GRADE_C, grade: 'C' }, { value: GRADE_B, grade: 'B' }, { value: GRADE_A, grade: 'A' },
+// Numbers, not letters (Plan 114C): the top line is named as the top band,
+// as Below top band names it, and the others are bare numbers.
+export const GRADE_LINES: ReadonlyArray<{ value: number; label: string }> = [
+  { value: GRADE_D, label: `${GRADE_D}` }, { value: GRADE_C, label: `${GRADE_C}` }, { value: GRADE_B, label: `${GRADE_B}` },
+  { value: GRADE_A, label: `${GRADE_A}, the top band` },
 ];
 
 // How the people are drawn: as tiles, as a table's rows, or as dots on

@@ -3,7 +3,8 @@ import type { Financing } from '../systems/finance/treasury';
 import { borrowingRoom, financingFor, loanBar } from '../systems/finance/treasury';
 import { constructionFrozen } from '../systems/finance/distress';
 import { canStartDevelopment, hasFreeFacultySlot } from '../systems/techtree/techSystem';
-import { awaitsSite, isLand, occupantAt } from '../state/campusMap';
+import { awaitsSite, isLand } from '../state/campusMap';
+import { dressingBlocker } from '../state/dressing';
 import { BUILD_WORDS } from '../data/buildWords';
 import { moneyShort } from '../format';
 
@@ -63,8 +64,12 @@ export function paidWords(financing: Financing | null): string | null {
 // PLACE_DRESSING gate, in words.
 export function dressingRefusal(s: GameState, row: number, col: number): string | null {
   if (!isLand(row, col)) return BUILD_WORDS.dressingOffLand;
-  const occupant = occupantAt(s.placements, row, col);
+  const occupant = dressingBlocker(s, row, col);
   if (occupant === undefined) return null;
-  const name = s.tech.find((x) => x.id === occupant)?.name ?? 'A building';
+  const t = s.tech.find((x) => x.id === occupant);
+  const name = t?.name ?? 'A building';
+  // A quad's walks and centrepiece (Plan 115H). The Grand Quad has no lawn
+  // to dress, so it reads as any other building.
+  if (t?.facilityType === 'quad' && (t.tier ?? 1) < 2) return BUILD_WORDS.dressingOnQuad.replace('{building}', name);
   return BUILD_WORDS.dressingOnBuilding.replace('{building}', name);
 }

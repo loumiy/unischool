@@ -307,7 +307,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PHIL210: 'Reads Kierkegaard, Nietzsche, Heidegger, Sartre, and de Beauvoir on freedom, anxiety, authenticity, and meaning without guarantee.',
   PHIL220: 'Examines consciousness, intentionality, and the mind-body problem, and whether a machine could be conscious or think about anything.',
   PHIL230: 'Reads Descartes, Spinoza, Locke, Hume, and Kant on what the mind can know of the world, and why reason and experience each claimed to settle it.',
-  PHIL240: 'Develops propositional and first-order logic with proofs and models, up to the completeness and the limits of the systems.',
+  PHIL240: 'Develops propositional and first-order logic with proofs and models, up to the completeness theorem and Gödel\'s limits on what such systems can prove.',
   PHIL310: 'Writes and revises one long paper that defends a single thesis against the strongest objections the seminar can raise.',
 
   // === Science ===
@@ -356,9 +356,9 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PHYS140: 'Derives temperature, entropy, and the laws of thermodynamics from the statistics of many particles.',
   PHYS210: 'Develops the Schrödinger equation, operators, angular momentum, and spin, and applies them to atoms and simple systems.',
   PHYS220: 'Covers crystal structure, phonons, band theory, semiconductors, and superconductivity — the physics inside every device.',
-  PHYS230: 'Applies gravity, nuclear physics, and radiation to stars and galaxies, and dates the universe by its microwave background.',
+  PHYS230: 'Applies gravity, nuclear physics and radiation to stars and galaxies, and reads the universe\'s age and makeup from its microwave background.',
   PHYS240: 'Introduces the Standard Model of quarks, leptons, and forces, and how accelerators and detectors test it.',
-  PHYS310: 'Repeats classic experiments such as Millikan\'s oil drop and the Franck-Hertz tube, then carries one question further in a written thesis.',
+  PHYS310: 'Carries one question further in a written thesis, after repeating classic experiments such as Millikan\'s oil drop and the Franck-Hertz tube.',
 
   // --- Environmental Science ---
   ENVS101: 'Surveys the carbon and water cycles, soils, biodiversity, and pollution, with a semester of sampling a local stream.',
@@ -430,7 +430,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   PHRM140: 'Designs dosage forms — tablets, injections, patches — and the kinetics of how a drug is absorbed, distributed, and cleared.',
   PHRM210: 'Extends drug action to infection, cancer, endocrine, and inflammatory disease, with toxicity and resistance.',
   PHRM220: 'Selects and monitors drug therapy for real patient cases, weighing evidence, interactions, and comorbidity.',
-  PHRM230: 'Places students in a clinic to review medications, counsel patients, and advise prescribers under supervision.',
+  PHRM230: 'Shadows pharmacists in a hospital and a community pharmacy, reconciling medication lists and watching counseling done well.',
   PHRM240: 'Studies drug effects after approval through adverse-event reports and claims data, and the boxed warnings and withdrawals they prompt.',
   PHRM310: 'Runs a semester\'s project in a formulation or pharmacology lab, and presents the data as a drug company\'s project team would expect it.',
 
@@ -442,7 +442,7 @@ export const COURSE_DESCRIPTIONS: Record<string, string> = {
   KINE140: 'Examines how skills are acquired and coordinated by the nervous system, and how practice and feedback should be structured.',
   KINE210: 'Designs resistance and conditioning programs for athletes, with periodization, performance testing, and the coaching of lifting technique.',
   KINE220: 'Assesses and rehabilitates common sports injuries, from acute care and taping to return-to-play progressions.',
-  KINE230: 'Screens clients for risk, runs graded exercise tests, and writes a program\'s frequency, intensity, time, and type to ACSM guidelines.',
+  KINE230: 'Screens clients for risk, runs graded exercise tests, and writes a program\'s frequency, intensity, time and type to the American College of Sports Medicine\'s guidelines.',
   KINE240: 'Designs physical activity for people with disabilities and chronic conditions, with inclusion and safety as the starting points.',
   KINE310: 'Works a semester in a clinic, training room, or fitness program under a certified professional, and documents each client\'s progress.',
 
@@ -596,7 +596,7 @@ export const GRADUATE_COURSE_DESCRIPTIONS: Record<string, string> = {
   // --- Doctoral Program in the Humanities (PhD) ---
   PHDL701: 'Trains doctoral students in archives, close reading, and the conventions of scholarly argument across the humanities.',
   PHDL710: 'Reads Derrida, Foucault, and Spivak whole rather than in excerpt, and the affective and ecological turns that have since argued with them.',
-  PHDL720: 'Works through the classic and current theories of how societies hold together, change, and divide, from Durkheim to the present.',
+  PHDL720: 'Reads Durkheim, Weber, Bourdieu and Habermas against one another on how societies hold together, change and divide.',
   PHDL730: 'Supports the dissertation itself: a book-length work of original humanities scholarship, defended before a committee.',
 
   // --- Doctoral Program in Economics (PhD) ---

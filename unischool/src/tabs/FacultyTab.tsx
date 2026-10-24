@@ -598,7 +598,7 @@ function GridTools({ sort, setSort, filter, setFilter, fields, market, training,
           Can take a course
         </label>
         {!market && training && (
-          <label className="dept-tool dept-tool-check" title="Professors below an A in teaching and not yet trained this year">
+          <label className="dept-tool dept-tool-check" title="Professors below the top band in teaching, and not yet trained this year">
             <input type="checkbox" checked={filter.trainable} onChange={(e) => setFilter({ ...filter, trainable: e.target.checked })} />
             {TRAINING_WORDS.filterTrainable}
           </label>

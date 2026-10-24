@@ -86,12 +86,10 @@ export const WEAKNESSES: Readonly<Record<ReportAxis, string>> = {
 // A weakest standing scoring under this is named in the title.
 export const WEAKNESS_BELOW = 45;
 
-// Satisfaction that leads the field (Plan 95U, the second review's B4-7):
-// a year's average satisfaction at this or over it, in more than half the
-// arc's years, and the experience axis reads satisfaction at this share
-// beside the campus-life standing. The guide ranks no rival on
-// satisfaction, so the field is a bar, not a rank.
-export const SATISFACTION_LEADS_AT = 85;
+// When satisfaction leads the field (prestigeSystem.ts's
+// satisfactionLeads, Plan 116C), the experience axis reads satisfaction at
+// this share beside the campus-life standing (Plan 95U, the second
+// review's B4-7).
 export const SATISFACTION_LEAD_SHARE = 0.5;
 
 // A pillar's place that earns its tag (Plan 95U): in the top this many in
@@ -100,7 +98,7 @@ export const EARNED_PILLAR_TOP = 10;
 
 export const REPORT_SHAPES = {
   strength: '{college}: {phrase}, with no glaring weakness',
-  title: '{college}: {phrase} that {tail}',
+  title: '{college}: {phrase}, though it {tail}',
 } as const;
 
 export const VERDICTS = {

@@ -7,7 +7,8 @@ import {
 } from '../systems/prestige/prestigeSystem';
 import { rankForecast } from '../systems/administration/forecast';
 import { collegeSpecialization } from '../systems/prestige/milestone';
-import { pillarRule } from '../data/prestigeWords';
+import { pillarRule, summerRule } from '../data/prestigeWords';
+import { labEquippedFields } from '../data/researchData';
 import { PILLAR_ICONS } from '../components/icons';
 import type { BelowALink } from './StandingBreakdown';
 
@@ -31,6 +32,8 @@ export function prestigeDirection(breakdown: StandingBreakdown): 'up' | 'down' |
   return gap >= 0.05 ? 'up' : gap <= -0.05 ? 'down' : 'level';
 }
 const ARROWS = { up: '↗', down: '↘', level: '→' } as const;
+// The arrow's own word: its label here, and the drawer's (Plan 114B).
+export const DIRECTION_LABELS = { up: 'rising', down: 'falling', level: 'steady' } as const;
 const DIRECTION_WORDS = {
   up: "This year's grade is lifting it.",
   down: "This year's grade is pulling it down.",
@@ -39,26 +42,49 @@ const DIRECTION_WORDS = {
 
 const signed = (v: number) => `${v >= 0.05 ? '+' : v <= -0.05 ? '−' : ''}${Math.abs(v).toFixed(1)}`;
 
-// A pillar's terms in prestige's points: a term's worth on the pillar's own
-// scale times the pillar's share of prestige.
-function termsLine(pillar: StandingBreakdown): string {
-  const share = pillar.share ?? 0;
-  return pillar.inputs.map((t) => `${t.label} ${signed(t.contribution * share)}`).join(' · ');
+// What opens a pillar whose door is shut (Plan 114B, the third review's
+// C3-11): research waits for its first lab, athletics for its first varsity
+// team. Read from the state, not the figure, so a pillar a capital project
+// lifts a little still says what opens the rest. `terms` are the ones behind
+// that door, which Details marks "not yet".
+const PILLAR_DOORS: Partial<Record<Pillar, { shut: (s: GameState) => boolean; line: string; terms: readonly string[] }>> = {
+  research: { shut: (s) => labEquippedFields(s).size === 0, line: 'Opens with your first lab', terms: ['output', 'breadth'] },
+  athletics: { shut: (s) => s.orgs.teams.length === 0, line: 'Opens with your first varsity team', terms: ['program', 'titles', 'flagships'] },
+};
+const NOT_YET = 'not yet';
+export function pillarDoorShut(s: GameState, pillar: Pillar): string | null {
+  const door = PILLAR_DOORS[pillar];
+  return door && door.shut(s) ? door.line : null;
 }
 
-// The summer, in a sentence: how it steps, and what last summer did.
-function lastSummer(breakdown: StandingBreakdown): string {
+// A pillar's terms in prestige's points: a term's worth on the pillar's own
+// scale times the pillar's share of prestige. A term behind a shut door
+// reads "not yet".
+function termsLine(s: GameState, key: Pillar, pillar: StandingBreakdown): string {
+  const share = pillar.share ?? 0;
+  const door = PILLAR_DOORS[key];
+  const shut = door?.shut(s) ? door.terms : [];
+  return pillar.inputs.map((t) => `${t.label} ${shut.includes(t.key) ? NOT_YET : signed(t.contribution * share)}`).join(' · ');
+}
+
+// The summer: how it steps (summerRule, History's help says the same), and
+// what last summer did.
+function lastSummer(s: GameState, breakdown: StandingBreakdown): string {
   const card = breakdown.summer?.reportCard;
-  const rule = 'Prestige is graded each summer. It moves toward its grade, and falls faster than it climbs.';
+  const rule = summerRule(s.clock.year);
   return card
     ? `${rule} Last summer: ${prestigeFigure(card.before)} → ${prestigeFigure(card.after)}.`
     : `${rule} The first grade comes at the first summer.`;
 }
 
-function PillarMeter({ input, longest }: { input: StandingInput; longest: number }) {
+// One pillar's row: its meter as long as the most it can add, filled as far
+// as earned, and what it adds. Exported for the objectives drawer (Plan
+// 114B, as Plan 107D proposed); render it inside a `ul.glance-rows`.
+export function PillarMeter({ s, input, longest }: { s: GameState; input: StandingInput; longest: number }) {
   const key = input.key as Pillar;
   const Icon = PILLAR_ICONS[key];
   const fill = input.weight > 0 ? Math.max(0, Math.min(1, input.contribution / input.weight)) : 0;
+  const shut = pillarDoorShut(s, key);
   return (
     <li className={`glance-row glance-pillar pillar-${key}`}>
       <span className="glance-icon" aria-hidden="true">{Icon && <Icon />}</span>
@@ -69,6 +95,7 @@ function PillarMeter({ input, longest }: { input: StandingInput; longest: number
         </span>
       </span>
       <span className="glance-figure">{signed(input.contribution)}</span>
+      {shut && <span className="glance-shut">{shut}</span>}
     </li>
   );
 }
@@ -107,7 +134,7 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
         {head}
         <span className={`glance-figure-big ${direction}`}>
           {prestigeFigure(breakdown.current)}
-          <span className="glance-arrow" aria-label={direction === 'up' ? 'rising' : direction === 'down' ? 'falling' : 'steady'}>{ARROWS[direction]}</span>
+          <span className="glance-arrow" aria-label={DIRECTION_LABELS[direction]}>{ARROWS[direction]}</span>
         </span>
       </div>
       <p className="glance-sub">
@@ -121,7 +148,7 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
 
       <h3 className="glance-title">What lifts it</h3>
       <ul className="glance-rows">
-        {pillars.map((p) => <PillarMeter key={p.key} input={p} longest={longest} />)}
+        {pillars.map((p) => <PillarMeter key={p.key} s={s} input={p} longest={longest} />)}
         {adjustments.map((a) => (
           <AdjustmentRow key={a.key} input={{ ...a, label: ADJUSTMENT_LABELS[a.key] }} line={adjustmentLine(s, a)} />
         ))}
@@ -133,7 +160,7 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
           {pillars.map((p) => (
             <li key={p.key} className={`pillar-${p.key}`}>
               <strong>{p.label} {signed(p.contribution)}</strong>
-              <span>{termsLine(p.pillar!)}</span>
+              <span>{termsLine(s, p.key as Pillar, p.pillar!)}</span>
             </li>
           ))}
         </ul>
@@ -145,7 +172,7 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
             {' '}#{forecast.rank} in the guide{forecast.rank === forecast.now ? ', where you stand now' : ` (#${forecast.now} now)`}.
           </p>
         )}
-        <p className="stat">{lastSummer(breakdown)}</p>
+        <p className="stat">{lastSummer(s, breakdown)}</p>
         {breakdown.ceiling && (
           <p className={`stat standing-ceiling${breakdown.held ? ' binding' : ''}`}>
             <strong>{breakdown.ceiling.label}:</strong> {breakdown.ceiling.detail}

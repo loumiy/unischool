@@ -7,6 +7,7 @@ import { reducer } from '../src/engine/reducer';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { bindScriptStream } from '../src/engine/random';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
+import { BOARD_QUESTIONS, BOARD_QUESTION_ANSWER_WEEKS } from '../src/data/boardQuestionData';
 import type { CatalogueChoice, CatalogueEvent } from '../src/data/eventCatalogueTypes';
 import { DECISION_EVENT_FIRST_YEAR, DECISION_EVENTS } from '../src/data/eventData';
 import { tagById } from '../src/data/tagData';
@@ -92,6 +93,14 @@ function waiting(s: GameState, e: CatalogueEvent): PendingCatalogueEvent {
   // and in American vocabulary (Plan 76D, the review's pattern 7).
   assert(!/\b(grey|labelled|car parks?|rota|porters?|trolley|queues?|resits?|solicitors?|timetables?|prospectus(es)?|bursar(y|ies)?|gritting|tarpaulin|caravan|rag week|halls of residence|first-years?|second-years?|autumn|takeaways?|minuted|loss adjuster|clerk of works|heritage officer|plant room|common room|fume cupboard|inverted commas|standing order|in-tray|covering letter|got round|going round)\b|students' union|\b(Mr|Mrs|Ms|Dr) /i.test(text), 'in American vocabulary');
   assert(!/\badjunct|\bcharter\b/i.test(text), 'and about nothing this game does not have');
+  // The board's questions (Plan 116D), raised rather than drawn: the same
+  // spelling and vocabulary, and every name they say filled.
+  const board = BOARD_QUESTIONS.map((e) => `${e.title ?? ''} ${e.text} ${e.choices.map((c) => c.label).join(' ')}`).join(' ');
+  assert(!/\b(programmes?|colours?|centres?|first-years?|autumn|enrolment|labelled)\b/i.test(board), 'the board\'s questions in American spelling and vocabulary');
+  assert(BOARD_QUESTIONS.every((e) => e.choices.some((c) => c.id === e.default) && e.choices.length >= 2 && e.timeoutWeeks === BOARD_QUESTION_ANSWER_WEEKS), 'each has a default among two or more answers, and six weeks');
+  const boardVars = { ...vars, donor: 'Whitcombe', gift: '$1' };
+  assert(BOARD_QUESTIONS.every((e) => !/\{\w+\}/.test(fill(e.text, boardVars)) && e.choices.every((c) => !/\{\w+\}/.test(fill(c.label, boardVars)))), 'every name the board\'s questions say is one the game fills');
+  assert(BOARD_QUESTIONS.every((e) => !EVENT_CATALOGUE.some((x) => x.id === e.id) && eventById(e.id) === e), 'none is in the drawn catalog, and eventById knows each');
   assert(DECISION_EVENTS.every((e) => !['roof-failure', 'heating-plant', 'estate-gift', 'winter-storm'].includes(e.id)), 'this game\'s texture events are retired');
   assert(DECISION_EVENTS.some((e) => e.id === 'hellenic-council') && DECISION_EVENTS.some((e) => e.id === 'naming-rights'), 'the questions that belong to a system stay');
 }

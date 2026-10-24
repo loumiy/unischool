@@ -1,6 +1,6 @@
 import type { FunnelFactors, FunnelRecord } from '../../state/types';
 import type { AdmissionsProjection } from './admissionsSystem';
-import { count, pct } from '../../format';
+import { pct } from '../../format';
 
 // Year over year on the admissions reveal. The funnel is a product of its
 // factors (types.ts's FunnelFactors) and last summer's are recorded
@@ -80,17 +80,18 @@ export function poolChange(now: AdmissionsProjection, last: FunnelRecord | null)
 // Why the admit rate opens where it does (Plan 78F). The summer's payload
 // carries last summer's chosen rate (admissionsSystem.ts's tickAdmissions),
 // so an unchanged strategy is a click-through; the first summer carries the
-// founding rate. Beds never limit the rate (housing is a need, not a cap),
-// so they are named only as what admitting more does: when next year's
-// students would already fill the beds there are. When the seats left
-// hold less than that rate, it opens at the most they hold, and says so
-// (Plan 107G).
-export function admitRateOpening(firstSummer: boolean, openingRate: number, beds: number, studentsNextYear: number, roomRate = 1): string {
-  const where = openingRate > roomRate
-    ? `The admit rate starts at ${pct(roomRate)}, the most the places left will hold. ${firstSummer ? 'The founding rate' : 'Last summer\'s rate'} was ${pct(openingRate)}.`
-    : firstSummer
-      ? `The admit rate starts at the founding rate, ${pct(openingRate)}.`
-      : `The admit rate starts where you set it last summer, ${pct(openingRate)}.`;
-  const crowds = beds > 0 && studentsNextYear >= beds ? ` Next year's students already fill your ${count(beds)} beds, so admitting more will crowd them.` : '';
-  return `${where}${crowds}`;
+// founding rate. When the seats left hold less than that rate, it opens at
+// the most they hold, and says so (Plan 107G), naming the rate it came
+// from only when that reads differently. Beds go unnamed: crowding went
+// with Plan 107E, and the page's own row shows the tightest need (Plan
+// 113D, the third review's C3-8).
+export function admitRateOpening(firstSummer: boolean, openingRate: number, roomRate = 1): string {
+  if (openingRate > roomRate) {
+    const capped = `The admit rate starts at ${pct(roomRate)}, the most the places left will hold.`;
+    if (pct(openingRate) === pct(roomRate)) return capped;
+    return `${capped} ${firstSummer ? 'The founding rate' : 'Last summer\'s rate'} was ${pct(openingRate)}.`;
+  }
+  return firstSummer
+    ? `The admit rate starts at the founding rate, ${pct(openingRate)}.`
+    : `The admit rate starts where you set it last summer, ${pct(openingRate)}.`;
 }

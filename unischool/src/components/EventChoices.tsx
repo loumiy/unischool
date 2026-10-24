@@ -11,6 +11,7 @@ import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import { promiseById } from '../data/promiseData';
 import { promiseTitle } from '../systems/promises/promises';
 import { festivalPhrases } from '../data/downtownData';
+import { honorsPhrase, tradePhrase } from '../data/boardQuestionData';
 import { annualGiving } from '../systems/alumni/giving';
 import { facultyPay } from '../systems/finance/financeSystem';
 
@@ -76,7 +77,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       }
       case 'enrollmentSpread': {
         const n = Math.round((v / 2000) * totalEnrolled(s.students));
-        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'student' : 'students'}, from every class`);
+        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'student' : 'students'}, across all four years`);
         break;
       }
       case 'drawRate': {
@@ -96,6 +97,8 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       }
       case 'boosterGift': out.push(`${money(v)} to the athletics department this year`); break;
       case 'closeProgram': out.push(`${vars.program ?? 'the program'} closes, its courses ended`); break;
+      // The board's honors college (Plan 116D).
+      case 'honors': out.push(honorsPhrase(v)); break;
       case 'repairGift': {
         const repairs = repairsOf(s, v);
         if (repairs > 0) out.push(`${money(repairs)} of repairs done`);
@@ -143,6 +146,8 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
           // A named fund (Plan 101F).
           ...(c.fund ? [`endows ${fill(c.fund.name, p.vars).replace(/^The /, 'the ')}`] : []),
           ...(c.mascot && !s.self.mascot ? [`the ${c.mascot} it is`] : []),
+          // The board's trade between two pillars (Plan 116D).
+          ...(c.standing ? [tradePhrase(c.standing)] : []),
         ];
         return (
           <button key={c.id} type="button" className="event-choice" disabled={!affordable} onClick={() => onChoose(c.id)}>
@@ -151,7 +156,7 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
               {marksDefault && c.id === e.default && <span className="event-choice-cost">if nobody answers</span>}
             </span>
             <span className="event-choice-detail">
-              {phrases.length > 0 ? phrases.join(' · ') : 'nothing to speak of'}
+              {phrases.length > 0 ? phrases.join(' · ') : 'no change'}
               {!affordable && " — you can't afford this."}
             </span>
           </button>

@@ -229,6 +229,10 @@ function toNextYear(s: GameState): GameState {
   // The choice's card says so.
   assert(/as professors are trained at the institute/.test(opensLine('academics', 24)), `the card says how it fills ("${opensLine('academics', 24)}")`);
   assert(SPECIALIZATION_CARDS.academics.mechanics.every((m) => m.ready), 'and its mechanics are now, not still to come');
+  // In bands, not letters (Plan 114C, C2-9): a pick moves up one band.
+  const cardWords = [SPECIALIZATION_CARDS.academics.adds, ...SPECIALIZATION_CARDS.academics.mechanics.map((m) => m.text)];
+  assert(cardWords.filter((t) => /moves up one band in teaching, for good\./.test(t)).length === 2 && cardWords.every((t) => !/\bgrade\b/.test(t)),
+    `the card says a pick moves up one band, and never a grade (${cardWords.join(' | ')})`);
   assert(/spring festival/.test(opensLine('studentLife', 30)), 'student life fills with its festivals (Plan 85H)');
 }
 
