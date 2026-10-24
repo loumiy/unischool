@@ -379,6 +379,23 @@ npm run itch:frame -- --check
 shot for the page's cover image (`docs/store/itch-page.md` has the
 commands).
 
+`steamCapsules.mjs` (`npm run steam:capsules`) does the same for Steam's
+capsule set (Plan 117F): the header, small, main, vertical and library
+capsules, the library hero and the library logo, each drawn at exactly
+Steam's size from a wide, a tall and a hero campus shot, and each checked
+for its size once written (exit 1 if one is wrong). It writes
+`docs/store/steam/`; `--only=small,header` redraws some. The two share
+`coverArt.mjs` (the mark read from `Logo.tsx`, the name's face, the sky).
+
+```sh
+npm run shot -- campus-laid.json wide.jpg --bare --size=1920,1080 --tilt=-2 --zoom=0 --pan=0,300 --quality=92
+npm run shot -- campus-laid.json tall.jpg --bare --size=1000,1500 --tilt=-2 --zoom=0 --pan=0,380 --quality=92
+npm run shot -- campus-laid.json hero.jpg --bare --size=1920,620 --tilt=-2 --zoom=-1 --pan=0,150 --scale=2 --quality=92
+npm run steam:capsules -- --wide=wide.jpg --tall=tall.jpg --hero=hero.jpg --vivid
+```
+
+`docs/store/steam-page.md` has the whole recipe, the campus save included.
+
 Uploading is [`docs/store/itch-release.md`](../../docs/store/itch-release.md).
 
 ## Playing it as a newcomer, and timing it

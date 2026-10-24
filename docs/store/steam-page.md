@@ -112,3 +112,37 @@ own; its line in the features carries it.
   §4), then the summer, the four cards and the Final Report.
 - **The disclosure:** [`ai-disclosure.md`](ai-disclosure.md), in Steam's
   AI-content section.
+
+## The fallback capsules
+
+Until the commissioned art ([`art-brief.md`](art-brief.md)) lands, the
+capsules are drawn as the itch.io cover is: the game's own fall campus with
+the title screen's code-drawn mark and name over it (Plan 117F). Nothing in
+them is generated, so they need no AI disclosure. They are in
+[`steam/`](steam/), each at exactly the size Steamworks asks for:
+
+| File | Asset | Size |
+|---|---|---|
+| [`header.jpg`](steam/header.jpg) | Header capsule | 920×430 |
+| [`small.png`](steam/small.png) | Small capsule | 462×174 |
+| [`main.jpg`](steam/main.jpg) | Main capsule | 1232×706 |
+| [`vertical.jpg`](steam/vertical.jpg) | Vertical capsule | 748×896 |
+| [`library.jpg`](steam/library.jpg) | Library capsule | 600×900 |
+| [`library-hero.jpg`](steam/library-hero.jpg) | Library hero (no name) | 3840×1240 |
+| [`library-logo.png`](steam/library-logo.png) | Library logo (transparent) | 1280×720 |
+
+To retake them, from `unischool/`, with the production build served
+(`npm run build && npx vite preview --port 4173 --strictPort`) and
+`CAMPUS_URL=http://localhost:4173/`:
+
+```sh
+npm run scenario -- --player Completionist --year 32 --week 14 --build-all --clear-modal --name Halifax --colors navy-gold campus.json
+npm run layout -- campus.json campus-laid.json
+npm run shot -- campus-laid.json wide.jpg --bare --size=1920,1080 --tilt=-2 --zoom=0 --pan=0,300 --quality=92
+npm run shot -- campus-laid.json tall.jpg --bare --size=1000,1500 --tilt=-2 --zoom=0 --pan=0,380 --quality=92
+npm run shot -- campus-laid.json hero.jpg --bare --size=1920,620 --tilt=-2 --zoom=-1 --pan=0,150 --scale=2 --quality=92
+npm run steam:capsules -- --wide=wide.jpg --tall=tall.jpg --hero=hero.jpg --vivid
+```
+
+The script checks each file's size and fails if one is wrong. Steam lets a
+capsule change, so the commissioned set replaces these when it lands.
