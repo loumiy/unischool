@@ -3,7 +3,7 @@ import { PILLARS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_NO
 import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
 import { postBoardLetter } from '../finance/distress';
-import { satisfactionRouteWords, specializationOfferRule } from '../../data/prestigeWords';
+import { satisfactionRecordWords, specializationOfferRule } from '../../data/prestigeWords';
 import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationOfferLine, specializationStatus, withShareFull } from '../../data/specializationData';
 
 // ---------------------------------------------------------------------
@@ -64,7 +64,7 @@ export function tickSpecialization(s: GameState): void {
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
       message: specializationOfferLine(rank <= SPECIALIZATION_MILESTONE_RANK ? { by: 'guide', rank }
-        : byPillar(0, 0) ? { by: 'pillar', ...best } : { by: 'satisfaction', words: satisfactionRouteWords() }),
+        : byPillar(0, 0) ? { by: 'pillar', ...best } : { by: 'satisfaction', words: satisfactionRecordWords() }),
       kind: 'good',
     });
   }

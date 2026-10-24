@@ -14,7 +14,7 @@ import { durationWords } from '../format';
 // SoundControls in).
 
 // The urgent matter's note (Plan 116B), its weeks from unseen.ts's rule.
-const URGENT_NOTE = `Time pauses when a matter arrives with ${durationWords(SHORT_OF_TIME_WEEKS)} or less to answer. A matter you haven't opened pauses it in its last week.`;
+const URGENT_NOTE = `Time pauses when a matter arrives with ${durationWords(SHORT_OF_TIME_WEEKS)} or less to answer. If you haven't opened a matter, time pauses in its last week.`;
 
 // The Keyboard section (Plan 98F), from hotkeys.ts's table: by place, and
 // one line for the keys that share a meaning (W A S D and the arrows pan).

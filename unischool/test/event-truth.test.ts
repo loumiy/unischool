@@ -324,7 +324,7 @@ function college(): GameState {
   const say = (ev: (typeof BOARD_QUESTIONS)[number]) => `${ev.text} ${ev.choices.map((c) => c.label).join(' ')}`;
   const yes = (ev: (typeof BOARD_QUESTIONS)[number]) => ev.choices.find((c) => c.id !== ev.default)!;
   const no = (ev: (typeof BOARD_QUESTIONS)[number]) => ev.choices.find((c) => c.id === ev.default)!;
-  assert(yes(grow).effects.enrollmentSpread === EXPANSION_SHARE * 2000 && /every class/.test(grow.text), 'the expansion\'s students join every class, as it says');
+  assert(yes(grow).effects.enrollmentSpread === EXPANSION_SHARE * 2000 && /across all four years/.test(grow.text), 'the expansion\'s students join every class, as it says');
   assert((yes(grow).effects.mood ?? 0) < 0 && /satisfaction would fall/.test(grow.text), 'and satisfaction falls, as it says');
   assert(yes(gift).effects.closeProgram === 1 && (yes(gift).effects.endowment ?? 0) > 0 && yes(gift).fund?.purpose === 'chair', 'the gift endows a chair and closes the program it names');
   assert((yes(honors).effects.honors ?? 0) > 0, 'the honors college admits smaller classes');

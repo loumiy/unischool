@@ -294,8 +294,8 @@ late, and kept:
     B4-2), so a college strong in one pillar is asked though its blend
     lags. The year holds it to the plan's window: a young college stands
     about tenth in student life within its first decade.
-  - *From Year 20, student satisfaction of 85 or more in over half its
-    years* (`satisfactionLeads`, `SATISFACTION_LEADS_AT`;
+  - *From Year 20, keeping student satisfaction at 85 or more for over
+    half its years* (`satisfactionLeads`, `SATISFACTION_LEADS_AT`;
     [Plan 116](../plans/116-the-late-years-and-the-happiest-college.md) C,
     the third review's C4-6). Welfare is full at 80 for every big college,
     so the happiest college stood only #15–29 in student life and neither
@@ -793,8 +793,10 @@ rule that also brings the specialization's offer); an earned tag the
 guidebooks have not caught up with; the guidebooks' first tag; else its
 strongest standing. So an earned research powerhouse keeps its name, and an
 unearned teaching college gives way to the happiest campus. Then it names
-its weakest standing where that one lags: *a research powerhouse that
-never gave its students much of a campus life*. The money's verdict, the
+its weakest standing where that one lags: *a research powerhouse, though
+it never gave its students much of a campus life*. The ", though it" keeps
+the weakness on the college when the phrase ends on another noun (*a
+campus life to envy, though it never built an endowment*). The money's verdict, the
 chronicle's eras and the guide's last word complete it.
 
 **The chronicle names eras for what the college did** (Plan 80C;

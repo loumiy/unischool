@@ -155,7 +155,7 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   if ((s.students.honorsSummers ?? 0) > 0) {
     s.students.honorsSummers! -= 1;
     if (s.students.honorsSummers === 0) delete s.students.honorsSummers;
-    s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'admissions', message: `The honors college turns away ${count(outcome.honorsTurnedAway)} of its weakest admits.` });
+    s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'admissions', message: `The honors college turns away the ${count(outcome.honorsTurnedAway)} weakest students you would have admitted.` });
   }
   // The chosen rate, not the realized one: next summer's slider reopens on
   // the policy the player set.

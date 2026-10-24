@@ -145,7 +145,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'somewhere-to-sleep': {
     title: 'Somewhere to sleep',
-    about: 'A residence hall gives beds, and a dining hall serves meals, each for a set number of students. Most students commute, but they still judge the college by its beds and meals. Students keep to a path where there is one.',
+    about: 'A residence hall gives beds, and a dining hall serves meals, each for a set number of students. Most students commute, but they still judge the college by its beds and meals. Students walk on paths where they can, so lay one between your buildings.',
     objectives: {
       'site-residence-hall': 'Place a residence hall',
       'site-dining-hall': 'Place a dining hall',
@@ -221,7 +221,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'open-faculty': { text: 'The Faculty tab lists your professors and the market. The rank beside a name, from Adjunct to Distinguished, is the average of the two scores.', door: 'faculty' },
       'every-program-staffed': { text: 'Every course needs a professor in its field. Hire one from the market in the Faculty tab.', door: 'faculty' },
       [teachObjective(COURSE_MILESTONES['a-faculty'])]: teachHelp(' The eighth opens your first academic hall.'),
-      'post-a-search': { text: `If nobody in a field is on the market, post a search in the Faculty tab. It costs ${countWord(SEARCH_COST_WEEKS)} weeks of running costs and finds someone within ${durationWords(SEARCH_WEEKS)}.`, door: 'faculty' },
+      'post-a-search': { text: `If nobody in a field is on the market, post a search in the Faculty tab. It costs as much as ${countWord(SEARCH_COST_WEEKS)} weeks of running the college. For ${durationWords(SEARCH_WEEKS)}, a candidate in that field is much more likely to turn up.`, door: 'faculty' },
       'appoint-a-b': { text: 'The grade of a course follows the teaching of its professor. Salaries rise with skill and seniority.', door: 'faculty' },
     },
   },
@@ -321,7 +321,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     },
     help: {
       'appoint-advancement': { text: 'Appoint a VP of Advancement from the seats at the bottom of the Faculty tab.', door: 'faculty' },
-      'run-a-campaign': { text: 'Launch a campaign from the Advancement panel in the Treasury. You can run one at a time, and each one cools the alumni a little. The money it raises can only go to its purpose.', door: 'treasury', view: 'endowment' },
+      'run-a-campaign': { text: 'Launch a campaign from the Advancement panel in the Treasury. You can run one at a time, and each one makes the alumni a little less warm toward the college. The money it raises can only be spent on what the campaign is for.', door: 'treasury', view: 'endowment' },
     },
   },
   'capital-projects': {
@@ -393,7 +393,7 @@ export const DRAWER_WORDS = {
   // first.
   guideOpen: 'open now',
   // Seats for everyone's two counts while they differ (Plan 114E, C3-5).
-  withComing: (taught: string, coming: string) => `${taught} taught · ${coming} with courses under way`,
+  withComing: (taught: string, coming: string) => `${taught} now · ${coming} once new courses start`,
   back: 'Back to the objectives',
   guideTab: (tab: string) => `The Guide on ${tab}`,
   live: 'Now',
@@ -410,8 +410,8 @@ export const DRAWER_WORDS = {
 // C3-9: Research's did nothing before the first lab): when the tab opens,
 // by the ladder's rung that opens it (ladderData.ts's milestoneForTab).
 const SHUT_TAB_WORDS: Record<string, string> = {
-  laboratory: 'The Research tab opens when your first lab is finished.',
-  commencement: 'The Students tab opens when your first summer closes.',
+  laboratory: 'The Research tab opens when your first lab is built.',
+  commencement: 'The Students tab opens after your first summer.',
   sport: 'The Athletics tab opens when a sport club goes varsity.',
 };
 export function shutTabWords(tab: TabId, label: string): string {

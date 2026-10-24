@@ -70,7 +70,7 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
   // Access names what it measures, not the college's size.
   const closed = run(100, 120, { access: [10, 20] });
   const title = composeTitle(closed, gradeAxes(closed));
-  assert(title.endsWith('that stayed hard to get into') && !title.includes('opened its doors'), `a weak access standing is a college hard to get into ("${title}")`);
+  assert(title.endsWith(', though it stayed hard to get into') && !title.includes('opened its doors'), `a weak access standing is a college hard to get into ("${title}")`);
 }
 {
   // Satisfaction that leads the field for most of the arc lifts the
@@ -102,7 +102,7 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
   };
   const unearned = happiestTitle();
   const campus = composeTitle(unearned, gradeAxes(unearned));
-  assert(campus === 'Report College: a college with a campus life to envy that never fielded a team anyone feared', `an unearned teaching college gives way to its campus life ("${campus}")`);
+  assert(campus === 'Report College: a college with a campus life to envy, though it never fielded a team anyone feared', `an unearned teaching college gives way to its campus life ("${campus}")`);
   const plainTagged = withSatisfaction(run(60, 60, { athleticStrength: [10, 20] }), () => 80);
   plainTagged.identity = { tags: ['teaching-college'], earning: {}, shedding: {} };
   assert(composeTitle(plainTagged, gradeAxes(plainTagged)).includes('a teaching college'), 'without leading satisfaction, the unearned tag stands');

@@ -168,7 +168,7 @@ const looked = (s: GameState) => {
   assert(row().coming === Math.min(placesComing(s), row().of) && row().coming! > row().n, `a course under way adds to the second count (${row().n}, ${row().coming})`);
   s.guidance = { opened: { seats: 1 }, done: {}, met: [], marked: [] };
   const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} })).replace(/<[^>]+>/g, '');
-  assert(html.includes(`${count(row().n)}/${count(row().of)} taught · ${count(row().coming!)} with courses under way`), 'the drawer shows both');
+  assert(html.includes(`${count(row().n)}/${count(row().of)} now · ${count(row().coming!)} once new courses start`), 'the drawer shows both');
 }
 
 // ---- The next chapter waits for its week, and opens already met ----

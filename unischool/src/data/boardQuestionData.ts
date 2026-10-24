@@ -90,7 +90,7 @@ export const EXPANSION_EVENT: CatalogueEvent = {
   cooldownYears: 0,
   when: {},
   title: 'Should the college grow?',
-  text: `The board has a question for you this year. The town wants the college to grow. It asks you to take in ${pct(EXPANSION_SHARE)} more students now, in every class. Their tuition comes in for as long as they stay. But the campus would be more crowded, and satisfaction would fall ${-EXPANSION_MOOD} points at once. ${tradeWords('academics', 'studentLife')} If you say no, nothing changes.`,
+  text: `The board has a question for you this year. The town wants the college to grow. The board asks you to take in ${pct(EXPANSION_SHARE)} more students now, spread across all four years. They pay tuition for as long as they stay. But with more students sharing the same campus, satisfaction would fall ${-EXPANSION_MOOD} points at once. ${tradeWords('academics', 'studentLife')} If you say no, nothing changes.`,
   timeoutWeeks: BOARD_QUESTION_ANSWER_WEEKS,
   choices: [
     { id: 'grow', label: `Take in ${pct(EXPANSION_SHARE)} more students`, effects: { enrollmentSpread: EXPANSION_SHARE * 2000, mood: EXPANSION_MOOD }, standing: trade('academics', 'studentLife') },
@@ -110,7 +110,7 @@ export const GIFT_EVENT: CatalogueEvent = {
   when: {},
   names: { program: 'closable' },
   title: 'A gift with a condition',
-  text: `The board has a question for you this year. The {donor} family offers {gift} to endow a named chair. One of your professors would hold it. The family asks one thing in return. You would close {program}, a small program they think has run its course. Its courses would end for good. ${tradeWords('research', 'academics')} If you say no, nothing changes.`,
+  text: `The board has a question for you this year. The {donor} family offers {gift} to endow a named chair. One of your professors would hold it. In return, the family asks you to close {program}, a small program they think has run its course. Its courses would end for good. ${tradeWords('research', 'academics')} If you say no, nothing changes.`,
   timeoutWeeks: BOARD_QUESTION_ANSWER_WEEKS,
   choices: [
     { id: 'accept', label: 'Take the gift and close {program}', effects: { endowment: CHAIR_GIFT, closeProgram: 1 }, fund: { purpose: 'chair', name: 'The {donor} Chair' }, standing: trade('research', 'academics') },
@@ -128,11 +128,11 @@ export const HONORS_EVENT: CatalogueEvent = {
   cooldownYears: 0,
   when: {},
   title: 'An honors college?',
-  text: `The board has a question for you this year. It would like you to found an honors college. For the next ${countWords[HONORS_SUMMERS]} summers, you would admit a class ${pct(HONORS_CUT)} smaller. You would turn away your weakest admits, so each class would be stronger. A smaller college takes in less tuition, and fewer students try out for its teams. ${tradeWords('academics', 'athletics')} If you say no, nothing changes.`,
+  text: `The board has a question for you this year. It would like you to found an honors college. For the next ${countWords[HONORS_SUMMERS]} summers, each class you admit would be ${pct(HONORS_CUT)} smaller. The students you turn away would be the weakest, so each class would be stronger. You would take in less tuition, and fewer students would try out for your teams. ${tradeWords('academics', 'athletics')} If you say no, nothing changes.`,
   timeoutWeeks: BOARD_QUESTION_ANSWER_WEEKS,
   choices: [
     { id: 'honors', label: 'Found the honors college', effects: { honors: HONORS_SUMMERS }, standing: trade('academics', 'athletics') },
-    { id: 'decline', label: 'Keep admitting as you do', effects: {} },
+    { id: 'decline', label: 'Keep your classes the size they are', effects: {} },
   ],
   default: 'decline',
 };

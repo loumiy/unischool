@@ -98,7 +98,7 @@ export const EARNED_PILLAR_TOP = 10;
 
 export const REPORT_SHAPES = {
   strength: '{college}: {phrase}, with no glaring weakness',
-  title: '{college}: {phrase} that {tail}',
+  title: '{college}: {phrase}, though it {tail}',
 } as const;
 
 export const VERDICTS = {

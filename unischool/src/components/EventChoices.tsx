@@ -77,7 +77,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       }
       case 'enrollmentSpread': {
         const n = Math.round((v / 2000) * totalEnrolled(s.students));
-        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'student' : 'students'}, from every class`);
+        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'student' : 'students'}, across all four years`);
         break;
       }
       case 'drawRate': {
@@ -156,7 +156,7 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
               {marksDefault && c.id === e.default && <span className="event-choice-cost">if nobody answers</span>}
             </span>
             <span className="event-choice-detail">
-              {phrases.length > 0 ? phrases.join(' · ') : 'nothing to speak of'}
+              {phrases.length > 0 ? phrases.join(' · ') : 'no change'}
               {!affordable && " — you can't afford this."}
             </span>
           </button>

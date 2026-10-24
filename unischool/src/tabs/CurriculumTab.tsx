@@ -530,7 +530,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
 }
 // Why the search costs what it does (Plan 114G): its price is weeks of
 // running costs (searchCost), so it grows as the college does.
-const SEARCH_PRICE_REASON = `It costs ${countWord(SEARCH_COST_WEEKS)} weeks of running costs, so the price grows with the college.`;
+const SEARCH_PRICE_REASON = `It costs as much as ${countWord(SEARCH_COST_WEEKS)} weeks of running the college, so the price grows as the college does.`;
 
 // Every candidate listed in a field, with Appoint buttons and the search
 // offer. Shared by the drawer and the hall panel's course strip and picker.

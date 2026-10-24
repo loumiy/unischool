@@ -162,15 +162,15 @@ export function specializationStatus(
 
 // The log's line on the summer the offer is made (Plan 95R): by the
 // overall ranking, or, when only a pillar brought it, by that pillar, or,
-// when only satisfaction did (Plan 116C), by that: `satisfaction` is
-// prestigeWords.ts's satisfactionRouteWords.
+// when only satisfaction did (Plan 116C), by that: `words` is
+// prestigeWords.ts's satisfactionRecordWords, a sentence.
 export type OfferRoute =
   | { by: 'guide'; rank: number }
   | { by: 'pillar'; pillar: Pillar; rank: number }
   | { by: 'satisfaction'; words: string };
 
 export function specializationOfferLine(route: OfferRoute): string {
-  const where = route.by === 'satisfaction' ? `You have had ${route.words}.`
+  const where = route.by === 'satisfaction' ? route.words
     : `Your college stands ${route.by === 'pillar' ? `#${route.rank} in ${PILLAR_WORDS[route.pillar]} in the standings` : `#${route.rank} in the guide`}.`;
   return `${where} When the summer ends, the board will ask you to choose a specialization.`;
 }
@@ -333,15 +333,18 @@ export const CHOICE_WORDS = {
   // The letter's one sentence: where the college stands, by the route that
   // brought the offer (Plan 95R), the overall ranking first, then a
   // pillar, then satisfaction (Plan 116C: `satisfaction` is
-  // prestigeWords.ts's satisfactionRouteWords('its') when it leads, else
+  // prestigeWords.ts's satisfactionRecordWords when it leads, else
   // null); a college that has slipped from all three since the offer is
   // asked again all the same. The rule (prestigeWords.ts's pillarShareRule,
   // said in one place, Plan 95E) heads the page instead.
   offer: (rank: number, milestone: number, best: { pillar: Pillar; rank: number }, pillarRank: number, satisfaction: string | null) => {
     const where = rank <= milestone ? `stands #${rank} in the guide, in the top ${milestone},`
       : best.rank <= pillarRank ? `stands #${best.rank} in ${PILLAR_WORDS[best.pillar]}, in the top ${pillarRank} of a pillar's standing,`
-        : satisfaction !== null ? `has had ${satisfaction},`
+        : satisfaction !== null ? null
           : 'earned the offer in an earlier summer,';
+    // Satisfaction's route is its own sentence, so the letter stays two
+    // short ones (the plain-words pass after Plan 116).
+    if (where === null) return `${satisfaction} The board asks you to choose the one pillar you mean to be the very best at, for good.`;
     return `Your college ${where} and the board asks you to choose the one pillar you mean to be the very best at, for good.`;
   },
   ranksLabel: 'Where you stand in each pillar',
@@ -401,6 +404,6 @@ export function specializationNotice(offer: string, rule: string): { title: stri
     .join(', ');
   return {
     title: 'Within reach of a specialization',
-    text: `Your college is close to the offer of a specialization. ${offer} At the end of the first summer you reach one, the board will ask you to choose a specialization. That is the one pillar you mean to be the very best at, and you choose it once, for good. ${rule} There are four: ${each}. Athletics also lets a team's quality rise past 80 as easily as below it, and cuts the established powers' postseason edge to a quarter. Each one brings a program of its own, which the choice page describes. Whichever you choose, the other three pillars' shares stay empty.`,
+    text: `Your college is close to the offer of a specialization. ${offer} At the end of the first summer you qualify, the board will ask you to choose a specialization. That is the one pillar you mean to be the very best at, and you choose it once, for good. ${rule} There are four: ${each}. With athletics, your teams improve as quickly above 80 as below it, and the old powers' edge in the postseason shrinks to a quarter. Each one brings a program of its own, which the choice page describes. Whichever you choose, the other three pillars' shares stay empty.`,
   };
 }

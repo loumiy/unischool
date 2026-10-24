@@ -77,7 +77,12 @@ export function pillarRouteWords(): string {
 // "Over half" is the rule as satisfactionLeads counts it. `whose` is the
 // reader's: "your years", or the college's, "its years".
 export function satisfactionRouteWords(whose: 'your' | 'its' = 'your'): string {
-  return `student satisfaction of ${SATISFACTION_LEADS_AT} or more in over half ${whose} years`;
+  return `keeping student satisfaction at ${SATISFACTION_LEADS_AT} or more for over half ${whose} years`;
+}
+
+// The same route, met, as a sentence: the log's line and the board's letter.
+export function satisfactionRecordWords(whose: 'your' | "your college's" = 'your'): string {
+  return `Student satisfaction has been ${SATISFACTION_LEADS_AT} or more in over half ${whose} years.`;
 }
 
 // The rule, a sentence a route (Plan 111's rules 2 and 6: no sentence

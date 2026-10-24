@@ -173,8 +173,8 @@ function earnedTag(s: GameState, id: string): boolean {
   return EARNED_TAGS[id]?.(s) ?? false;
 }
 
-// "Halifax University: a research powerhouse that never gave its students
-// much of a campus life." The phrase names the college in this order (Plan
+// "Halifax University: a research powerhouse, though it never gave its
+// students much of a campus life." The phrase names the college in this order (Plan
 // 116C, the third review's C4-6): its specialization, once it has one (Plan
 // 85D: "a college known first for its teaching", the card's own words); a
 // tag the guidebooks hold and the record earns; its campus life, when its

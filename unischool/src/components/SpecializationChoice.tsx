@@ -8,7 +8,7 @@ import { decimal, gameDate } from '../format';
 import { playerRank } from '../systems/rivals/rivalsSystem';
 import { PILLAR_LABELS, PRESTIGE_MAX, SPECIALIZATION_MILESTONE_RANK, SPECIALIZATION_PILLAR_RANK, satisfactionLeads } from '../systems/prestige/prestigeSystem';
 import { shareFullProjection, specializationOptions, strongestStanding, type ShareFullProjection, type SpecializationOption } from '../systems/prestige/milestone';
-import { pillarShareRule, satisfactionRouteWords, specializationShareWorth } from '../data/prestigeWords';
+import { pillarShareRule, satisfactionRecordWords, specializationShareWorth } from '../data/prestigeWords';
 import { CHOICE_WORDS, SPECIALIZATION_BUILDINGS, SPECIALIZATION_CARDS, choiceParkNote, opensLine } from '../data/specializationData';
 
 // ---------------------------------------------------------------------
@@ -74,7 +74,7 @@ export function SpecializationLetter({ s, onOpen, onLater }: { s: GameState; onO
     <>
       <p className="letter-eyebrow">{W.from} · {gameDate(s.clock.year, s.clock.week)}</p>
       <h2>{W.title}</h2>
-      <p className="letter-body">{W.offer(read.rank, SPECIALIZATION_MILESTONE_RANK, read.strongest, SPECIALIZATION_PILLAR_RANK, read.satisfied ? satisfactionRouteWords('its') : null)}</p>
+      <p className="letter-body">{W.offer(read.rank, SPECIALIZATION_MILESTONE_RANK, read.strongest, SPECIALIZATION_PILLAR_RANK, read.satisfied ? satisfactionRecordWords("your college's") : null)}</p>
       <ul className="spec-letter-ranks" aria-label={W.ranksLabel}>
         {read.options.map((o) => (
           <li key={o.pillar} className={`pillar-${o.pillar}`}>
