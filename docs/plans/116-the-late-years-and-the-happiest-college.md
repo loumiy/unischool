@@ -8,7 +8,9 @@ recommended fix for both. The findings are in
 [the review's area 4](../reviews/2026-10-game-review-iii/4-strategy.md),
 its tables in [4a](../reviews/2026-10-game-review-iii/4a-goal-players.md).*
 
-**Status: Proposed.**
+**Status: Landed on the branch (24 October 2026), A–D, to ship with
+0.1.4.** The owner took §2's recommendations. Notes on where the PRs
+landed differently are in §4.
 
 ---
 
@@ -251,3 +253,53 @@ PR reruns them and records the figures in its **As implemented** note:
   changes when the clock pauses, not how a pause is shown.
 - No other matter's weeks change, and no stop (summer, decision event,
   letter) becomes a matter or the other way round.
+
+## 4. As implemented
+
+- **A.**
+  - `sim/harness/pauses.ts` counts what the shell's `noteStop` would. The
+    summer is a reason of its own, since Plan 112C made it a stop. Two
+    players bound the count: one who opens a matter only when the clock
+    stops for it, and one who opens every slip.
+  - Baseline, years 30–50: 2.5–4.1 pauses a year. Of those, 1.5–3.1 are
+    arrivals, none come in a matter's final week, and the summer is 1.0.
+- **B.**
+  - A matter's weeks count the week it arrives in
+    (`weeksToAnswer = weeksLeft + 1`). Read literally, every three-week
+    event would still have paused.
+  - After B, the player who opens every slip pauses 1.2–1.7 times a year,
+    down from 2.5–4.1. Arrivals fall to 0.2–0.7.
+  - The player who opens only on a pause keeps the same total. Most of
+    those pauses now come in a matter's final week.
+  - A matter that is short of time arrives already in its final week, so
+    the final-week pause covers it. With the setting Off, the ease never
+    acts (0.0 a year), and the setting now decides only whether a matter's
+    slip waits on screen.
+  - The inbox shows a three-week matter as "2 weeks" on arrival, and it
+    does not pause. Left to the owner.
+- **C.**
+  - The satisfaction goal is offered at Year 20 in 3 of 3 runs (it was
+    never offered) and chooses student life. Its mark goes from F ×3 to
+    D ×2 and F ×1.
+  - Good-then-big is offered at Year 20, not Year 24–41.
+  - The harness's Selective player now specializes in student life: Year
+    50 rank 54 → 48, prestige 65.5 → 73.4. `sim/baseline.json` was
+    re-saved.
+  - The campus-life title shows only for a satisfaction-led college with
+    no specialization, since a specialization names the title first.
+  - Pacing is unchanged at 76 of 115.
+- **D.**
+  - Each "yes" also carries a five-year pillar trade, 1.5 points of
+    prestige each way (`BOARD_TRADE_PRESTIGE`). The plan's levers alone
+    moved prestige by a few tenths.
+  - The honors college is a new lever (`honors`). The gift is skipped in
+    a year when no program can be closed.
+  - The pacing players never take an answer that closes a program. Only
+    the goal players take the gift, each with a logged reason.
+  - No save-version bump: an older build drops the waiting question.
+  - Before → after:
+    - Pacing: 76 → 76.
+    - Sweeps: no problems, before or after.
+    - Arrival pauses: unchanged within 0.1.
+    - Guided, academics: academics rank #8 → #1.
+    - Selective, seed 12345: now picks academics after the trade lifted it.
