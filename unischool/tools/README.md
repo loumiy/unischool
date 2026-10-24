@@ -154,19 +154,27 @@ of its programs are opened, since a finished school folds away), and
 are the seven tabs on the same year-50 run as the campus, each from that
 run written again with its own `--colors` (a seeded run replays exactly), and `summer-admissions.png` is the summer scenario's admissions
 beat, once the price is set and the pool it drew is on screen — in a taller
-viewport, since the card is taller than the modal's scroll box. The
+viewport, since the card is taller than the modal's scroll box. The summer
+waits to be opened (Plan 112C), so its first click is the note's *Open the
+summer*. The run's saves are written once a colour (the loop below), and the
+pictures go to the repository's `docs/images`, one level up. The
 presses do nothing but wait: the reveal counts its figures up for some
 seconds, and a shot taken at once catches them mid-count:
 
 ```sh
-for t in faculty research students athletics history treasury; do
-  npm run shot -- node_modules/.tmp/out.json docs/images/tab-$t.png --tab=$t --scale=2
+for tc in curriculum:maroon-gold faculty:royal-gold research:forest-gold students:navy-orange \
+    athletics:black-gold history:purple-gold treasury:crimson-silver; do
+  npm run scenario -- --player Completionist --year 50 --build-all --clear-modal --name Halifax \
+    --colors ${tc#*:} node_modules/.tmp/tab-${tc%%:*}.json
 done
-npm run shot -- node_modules/.tmp/out.json docs/images/tab-curriculum.png --tab=curriculum \
+for t in faculty research students athletics history treasury; do
+  npm run shot -- node_modules/.tmp/tab-$t.json ../docs/images/tab-$t.png --tab=$t --scale=2
+done
+npm run shot -- node_modules/.tmp/tab-curriculum.json ../docs/images/tab-curriculum.png --tab=curriculum \
   --press=".collapse-toggle" --press=".collapse-toggle >> nth=1" --press=".collapse-toggle >> nth=2" --scale=2
 npm run scenario -- summer --name Halifax --colors royal-gold node_modules/.tmp/summer.json
-npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png \
-  --size=1440,900 --click="Continue" --click="Lock the price" \
+npm run shot -- node_modules/.tmp/summer.json ../docs/images/summer-admissions.png \
+  --size=1440,900 --click="Open the summer" --click="Continue" --click="Lock the price" \
   --press=".admissions-page-eyebrow" --press=".admissions-page-eyebrow" \
   --press=".admissions-page-eyebrow" --scale=2
 ```
