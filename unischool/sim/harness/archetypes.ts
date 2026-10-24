@@ -11,7 +11,8 @@
 //                  over the market and admitting fewer; a deep reserve
 //   Lean           spends only while the week's net is in the black, and
 //                  builds only for a real shortfall
-//   Idle           does nothing: every interrupt takes the game's default
+//   Idle           does nothing: every interrupt takes the game's default,
+//                  and the board's question its own (Plan 116D)
 //
 // Checked for what must hold (test/archetypes.test.ts); how they finish is
 // the report's (sim/report.ts, `npm run sim`), never a gate.
@@ -246,6 +247,8 @@ export function createArchetype(name: ArchetypeName): Player & { record: Archety
       policy.act(g);
     },
     answer: policy.answer ? (g) => policy.answer!(g) : undefined,
+    // Idle answers nothing, the board's question among it (Plan 116D).
+    ...(name === 'Idle' ? { boardQuestion: false as const } : {}),
   };
 }
 

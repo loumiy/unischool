@@ -7,6 +7,7 @@ import { departmentPot, sportById, sportEconomics, teamQuality } from '../../dat
 import { officeStrength } from '../administration/offices';
 import { CAREER_SERVICES_PULL, FINANCIAL_AID_DISCOUNT } from '../../data/officeData';
 import { count } from '../../format';
+import { HONORS_CUT } from '../../data/boardQuestionData';
 
 // Student cohorts: an additive lens on admissionsSystem.ts's applicant
 // pool. Their pulls blend into one extra multiplier on the pool
@@ -87,6 +88,9 @@ export interface CohortSignals {
   // The year's one-summer lift in applicants (students.applicantLift, Plan
   // 79C), added to the pool after everything else. Absent reads none.
   applicantLift?: number;
+  // An honors college's cut (Plan 116D): the share of the admits it turns
+  // away, weakest first. Absent reads none.
+  honorsCut?: number;
   // The enrolment offices of Plan 89, at their strength (offices.ts's
   // officeStrength). Absent reads closed.
   careerServices?: number;
@@ -135,6 +139,7 @@ export function deriveCohortSignals(s: GameState): CohortSignals {
     beauty: campusBeauty(s),
     tagPool: tagPoolFactor(s),
     applicantLift: s.students.applicantLift,
+    honorsCut: (s.students.honorsSummers ?? 0) > 0 ? HONORS_CUT : 0,
     careerServices: officeStrength(s, 'career-services'),
     financialAid: officeStrength(s, 'financial-aid'),
     tagQuality: tagQualityShift(s),

@@ -151,6 +151,12 @@ export function resolveAdmissions(s: GameState, action: Extract<Action, { type: 
   // The year's lift is in that pool (deriveCohortSignals read it), and it
   // lifts one summer only.
   s.students.applicantLift = 0;
+  // An honors college's summer is spent (Plan 116D).
+  if ((s.students.honorsSummers ?? 0) > 0) {
+    s.students.honorsSummers! -= 1;
+    if (s.students.honorsSummers === 0) delete s.students.honorsSummers;
+    s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'admissions', message: `The honors college turns away ${count(outcome.honorsTurnedAway)} of its weakest admits.` });
+  }
   // The chosen rate, not the realized one: next summer's slider reopens on
   // the policy the player set.
   s.students.admitRate = chosenAdmitRate;

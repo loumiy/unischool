@@ -191,6 +191,9 @@ export interface AdmissionsProjection {
   // whether the class was clipped to it from the bottom band up.
   seatsLeft: number;
   capped: boolean;
+  // The admits an honors college turned away (Plan 116D's
+  // CohortSignals.honorsCut), its weakest first; 0 without one.
+  honorsTurnedAway: number;
   enrolled: number;            // the incoming class, which IS the admits
   avgIncomingQuality: number;  // 0..100 weighted-average quality of the enrolled class — an input to prestige
   // The enrolled class's cohort counts, summing to `enrolled`, which
@@ -436,6 +439,18 @@ export function projectAdmissions(
     admitsByBand[band] -= cut;
     over -= cut;
   }
+  // An honors college (Plan 116D, students.honorsSummers) enrolls a class
+  // this share smaller than it would, turning away its weakest admits, as
+  // the ceiling does.
+  const admitted = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
+  let honors = admitted * clamp(cohortSignals.honorsCut ?? 0, 0, 1);
+  const honorsTurnedAway = honors;
+  for (const band of [...bands].reverse()) {
+    if (honors <= 0) break;
+    const cut = Math.min(admitsByBand[band], honors);
+    admitsByBand[band] -= cut;
+    honors -= cut;
+  }
   const admits = admitsByBand.top + admitsByBand.mid + admitsByBand.low;
 
   const enrolledRaw = admits;
@@ -458,6 +473,7 @@ export function projectAdmissions(
     admitRate: applicants > 0 ? admits / applicants : 0,
     seatsLeft,
     capped,
+    honorsTurnedAway: Math.round(honorsTurnedAway),
     enrolled,
     avgIncomingQuality,
     // Computed here, not in the reducer, so the consequences.ts preview and

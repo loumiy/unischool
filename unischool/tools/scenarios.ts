@@ -16,6 +16,7 @@ import { instituteStands } from '../src/data/trainingData';
 import { RESEARCH_PARK_ID, parkStands } from '../src/data/researchParkData';
 import { complexStands } from '../src/data/athleticsComplexData';
 import { FESTIVAL_EVENT } from '../src/data/downtownData';
+import { isBoardQuestion } from '../src/data/boardQuestionData';
 import { firstFreeSpot, footprintOf, placementFor } from '../src/state/campusMap';
 import type { SpecializationRule } from '../sim/harness/specialization';
 
@@ -244,6 +245,15 @@ export const SCENARIOS: Scenario[] = [
     year: 45,
     specialization: 'studentLife',
     stopWhen: (s) => s.clock.year >= 38 && (s.catalogue?.pending ?? []).some((p) => p.eventId === FESTIVAL_EVENT.id),
+  },
+  {
+    // The board's question (Plan 116D): Year 25's, the expansion, waiting
+    // in the inbox, the clock running.
+    name: 'board-question',
+    what: 'the board\'s question waiting in the inbox: Year 25, the expansion',
+    player: 'Guided',
+    year: 26,
+    stopWhen: (s) => (s.catalogue?.pending ?? []).some((p) => isBoardQuestion(p.eventId)),
   },
   {
     // Town and gown (Plan 85H): the first town-and-gown event waiting in

@@ -198,6 +198,14 @@ of its terms. Two **adjustments** stay outside every pillar:
   body; +8 until Plan 85I, when the owner halved it) — what the late-game endowment campaigns buy;
 - **condition of the buildings** (up to −4) — only neglect counts;
 
+And one term sits on two pillars at once, outside their span: **the
+board's question** (Plan 116D, from Year 25). An answer that says yes
+trades one pillar for another for five years. The pillar it favors stands
+`BOARD_TRADE_PRESTIGE` (1.5) points of prestige higher, read as that over
+its share in the pillar's own points. The pillar it costs stands as many
+lower. So the trade leaves prestige even and moves the two pillars against
+the field.
+
 **Crowding is not one** (Plan 107 PR E, by the owner's decision; a penalty
 of up to 25 from Plan 71 to 106). A campus short of beds, meals or health
 pays in satisfaction, which already counts them, and class seats are part

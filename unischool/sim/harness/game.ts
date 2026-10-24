@@ -31,6 +31,7 @@ import { useTrainingPicks } from './training';
 import { commissionLandmarks } from './researchPark';
 import { runAthletics } from './athletics';
 import { runDowntown } from './downtown';
+import { runBoardQuestion } from './boardQuestion';
 import { buySpeedUps } from './speedUps';
 
 // The game saves to localStorage; a headless run keeps it in memory.
@@ -91,6 +92,10 @@ export interface Player {
   // share is short of full and the money is there (speedUps.ts, Plan 95X):
   // absent, it does; false, never.
   buys?: false;
+  // Whether it answers the board's question (boardQuestion.ts, Plan 116D)
+  // by its lead pillar: absent, it does; false, never (the question takes
+  // its default, or the player answers it in its own moves).
+  boardQuestion?: false;
 }
 
 export interface FoundOptions {
@@ -152,6 +157,7 @@ export function playWeek(g: Game, player: Player): void {
   if (player.landmarks !== false) commissionLandmarks(g);
   if (player.athletics !== false) runAthletics(g);
   if (player.downtown !== false) runDowntown(g);
+  if (player.boardQuestion !== false) runBoardQuestion(g);
   if (player.buys !== false) buySpeedUps(g);
   player.act(g);
   if (player.trains === undefined || (player.trains !== false && player.trains(g.s))) useTrainingPicks(g);

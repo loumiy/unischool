@@ -11,6 +11,7 @@ import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
 import { promiseById } from '../data/promiseData';
 import { promiseTitle } from '../systems/promises/promises';
 import { festivalPhrases } from '../data/downtownData';
+import { honorsPhrase, tradePhrase } from '../data/boardQuestionData';
 import { annualGiving } from '../systems/alumni/giving';
 import { facultyPay } from '../systems/finance/financeSystem';
 
@@ -96,6 +97,8 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       }
       case 'boosterGift': out.push(`${money(v)} to the athletics department this year`); break;
       case 'closeProgram': out.push(`${vars.program ?? 'the program'} closes, its courses ended`); break;
+      // The board's honors college (Plan 116D).
+      case 'honors': out.push(honorsPhrase(v)); break;
       case 'repairGift': {
         const repairs = repairsOf(s, v);
         if (repairs > 0) out.push(`${money(repairs)} of repairs done`);
@@ -143,6 +146,8 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
           // A named fund (Plan 101F).
           ...(c.fund ? [`endows ${fill(c.fund.name, p.vars).replace(/^The /, 'the ')}`] : []),
           ...(c.mascot && !s.self.mascot ? [`the ${c.mascot} it is`] : []),
+          // The board's trade between two pillars (Plan 116D).
+          ...(c.standing ? [tradePhrase(c.standing)] : []),
         ];
         return (
           <button key={c.id} type="button" className="event-choice" disabled={!affordable} onClick={() => onChoose(c.id)}>

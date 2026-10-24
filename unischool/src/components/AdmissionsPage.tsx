@@ -478,6 +478,8 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
               </p>
             )}
             {showCloud && <p className="stat">{admitRateOpening(!s.students.lastFunnel, payload.admitRate, maxAdmitRate)}</p>}
+            {/* The board's honors college (Plan 116D): the class it cut. */}
+            {showCloud && shownOutcome.honorsTurnedAway > 0 && <p className="stat">Your honors college turns away your {count(shownOutcome.honorsTurnedAway)} weakest admits.</p>}
           </div>
 
           <div className={`admissions-card${showCloud ? '' : ' waiting'}`}>

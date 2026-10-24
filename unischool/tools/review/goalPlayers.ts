@@ -102,6 +102,7 @@ import { RESEARCH_PARK_ID } from '../../src/data/researchParkData';
 import { PILLARS, pillarValue } from '../../src/systems/prestige/prestigeSystem';
 import { specializationOf } from '../../src/systems/prestige/specialization';
 import { declineUnteachable } from '../../sim/harness/moves';
+import { answerBoardQuestion, pendingBoardQuestion } from '../../sim/harness/boardQuestion';
 import type { Pillar } from '../../src/state/types';
 import { slotFree } from '../../src/systems/administration/offices';
 
@@ -1312,6 +1313,46 @@ function specialty(g: Game, j: Journal, goal: Goal): void {
 }
 let specializationRule: SpecializationRule | undefined;
 
+// The board's question (Plan 116D): each goal's answer to each question, and
+// why, read off what the goal wants. Absent, the default (nothing changes).
+const BOARD_ANSWERS: Record<Goal, Partial<Record<string, { choice: string; why: string }>>> = {
+  revenue: {
+    'board-expansion': { choice: 'grow', why: 'More students pay more tuition.' },
+    'board-gift': { choice: 'accept', why: 'The chair lifts research, the goal\'s pillar, and a program\'s courses cost more than they bring.' },
+    'board-honors': { choice: 'decline', why: 'A smaller class pays less tuition.' },
+  },
+  prestige: {
+    'board-expansion': { choice: 'grow', why: 'The trade lifts academics, the goal\'s pillar, for student life.' },
+    'board-honors': { choice: 'honors', why: 'A stronger class: academics up, for athletics, which counts least.' },
+    'board-gift': { choice: 'decline', why: 'A narrower curriculum lowers academics, the goal\'s pillar.' },
+  },
+  satisfaction: {
+    'board-expansion': { choice: 'decline', why: 'More students crowd the campus, and satisfaction falls.' },
+    'board-honors': { choice: 'honors', why: 'A smaller class is a less crowded campus.' },
+  },
+  assets: {
+    'board-expansion': { choice: 'grow', why: 'More students pay for more buildings.' },
+    'board-gift': { choice: 'decline', why: 'A closed program is a hall slot and its courses lost from the catalogue.' },
+    'board-honors': { choice: 'decline', why: 'A smaller class pays for fewer buildings.' },
+  },
+  championships: {
+    'board-honors': { choice: 'decline', why: 'Athletics, the goal\'s pillar, would stand lower.' },
+  },
+  'good-then-big': {
+    'board-expansion': { choice: 'grow', why: 'Past the switch the goal is size.' },
+  },
+  'big-then-good': {
+    'board-honors': { choice: 'honors', why: 'Past the switch the goal is quality: a stronger class.' },
+  },
+};
+function boardQuestion(g: Game, j: Journal, goal: Goal): void {
+  const q = pendingBoardQuestion(g.s);
+  if (!q) return;
+  const answer = BOARD_ANSWERS[goal][q.e.id];
+  const choice = answer?.choice ?? q.e.default;
+  j.because(`${q.e.id}-${choice}`, answer?.why ?? 'The goal reads nothing either answer moves: nothing changes.', () => answerBoardQuestion(g, choice));
+}
+
 export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, specialization?: SpecializationRule): RunRecord {
   const t0 = Date.now();
   specializationRule = specialization;
@@ -1329,6 +1370,8 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, 
     // The championships player runs its own department; specialized in
     // athletics it also fills the complex's flagship slots (Plan 85G).
     ...(goal === 'championships' ? { athletics: false as const } : {}),
+    // The board's question is the goal's to answer (boardQuestion below).
+    boardQuestion: false,
     act(game) {
       if (game.s.clock.year !== lastYear) {
         lastYear = game.s.clock.year;
@@ -1338,6 +1381,7 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, 
       }
       goalMarks(game.s, j, goal);
       specialty(game, j, goal);
+      boardQuestion(game, j, goal);
       policy.act(game, j);
       j.endWeek(game.s);
     },

@@ -236,6 +236,21 @@ Everything that needs to stop time rides on this one mechanism:
   has a fixed instance id, draws nothing, is answered by no seat and holds
   no place in the draws' queue; unanswered for six weeks it takes the modest
   weekend (see [student-life.md](../design/student-life.md)'s downtown).
+- **The board's question** — never an interrupt (Plan 116D). From Year 25,
+  at week 20, once a year, the board puts one question in the inbox: the
+  catalogue's third raised inline event (`BOARD_QUESTIONS` in
+  `src/data/boardQuestionData.ts`, `catalogueEngine.ts`'s
+  `raiseBoardQuestion`, called beside `raiseFestival`). The three come in
+  turn by year: an expansion, a gift that closes a small program, an honors
+  college; one the college cannot be asked (no program it could close) gives
+  way to the next. Like the charter and the festival it has a fixed instance
+  id, reads its names off the state, draws nothing, is answered by no seat
+  and holds no place in the draws' queue. Never in a sandbox or before the
+  matters chapter. Six weeks to answer, so it never pauses on arrival
+  (`unseen.ts`'s `SHORT_OF_TIME_WEEKS`), only in its last week unopened;
+  unanswered it takes the answer that changes nothing. Each yes trades one
+  pillar for another for five years (`CatalogueChoice.standing`, the
+  pillar's "The board's question" term), and none is answered by paying.
 - **The athletic director's offer** — the one interrupt athletics raises of its
   own, the first quiet week after the school fields a varsity team: three
   candidates rolled into the payload, and the mascot named in the same modal

@@ -6,6 +6,7 @@ import { quirkById } from '../data/quirkData';
 import { seatDef } from '../data/seatData';
 import { officeDef } from '../data/officeData';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
+import { isBoardQuestion } from '../data/boardQuestionData';
 import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
@@ -13,7 +14,7 @@ import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
 import { benchItem, dressingBlocker, isDressingItem, legacyBenchFacing } from './dressing';
 import { isPavingValue } from './paving';
 import { LIVE_STAGES } from './opening';
-import type { Advancement, AlumniClass, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, BoardAnswer, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
@@ -464,6 +465,20 @@ function sanitizeCutPrograms(state: GameState): void {
         && Number.isInteger(c.year) && c.year >= 1 && c.year <= state.clock.year
     )).map((c) => ({ programId: c.programId, year: c.year }));
     if (kept.length > 0) state.closedPrograms = kept; else delete state.closedPrograms;
+  }
+  // The board's questions answered with a trade (Plan 116D): a question the
+  // game asks, a year no later than the save's, and points for known
+  // pillars, or nothing.
+  if (state.boardAnswers !== undefined) {
+    const raw = state.boardAnswers as unknown;
+    const pillars = new Set<string>(['academics', 'research', 'studentLife', 'athletics']);
+    const kept = (Array.isArray(raw) ? raw : []).filter((a): a is BoardAnswer => (
+      typeof a === 'object' && a !== null && isBoardQuestion(a.eventId) && typeof a.choiceId === 'string'
+        && Number.isInteger(a.year) && a.year >= 1 && a.year <= state.clock.year
+        && typeof a.prestige === 'object' && a.prestige !== null
+        && Object.entries(a.prestige as Record<string, unknown>).every(([k, v]) => pillars.has(k) && typeof v === 'number' && Number.isFinite(v))
+    )).map((a) => ({ year: a.year, eventId: a.eventId, choiceId: a.choiceId, prestige: { ...a.prestige } }));
+    if (kept.length > 0) state.boardAnswers = kept; else delete state.boardAnswers;
   }
   // A booster club's gift (Plan 101E): a year and a sum, or nothing.
   const gift = state.orgs.boosterGift as unknown as { year?: unknown; amount?: unknown } | undefined;
@@ -1281,7 +1296,7 @@ function sanitizeCatalogue(state: GameState): void {
   state.catalogue!.pending = (c.pending as unknown[]).filter((p): p is PendingCatalogueEvent => {
     const e = p as Partial<PendingCatalogueEvent> | null;
     return typeof e === 'object' && e !== null && typeof e.instanceId === 'string' && typeof e.eventId === 'string'
-      && (e.eventId === CHARTER_EVENT.id || e.eventId === FESTIVAL_EVENT.id || EVENT_CATALOGUE.some((x) => x.id === e.eventId)) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
+      && (e.eventId === CHARTER_EVENT.id || e.eventId === FESTIVAL_EVENT.id || isBoardQuestion(e.eventId) || EVENT_CATALOGUE.some((x) => x.id === e.eventId)) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
       && typeof e.vars === 'object' && e.vars !== null;
   });
   // The journal: malformed entries are dropped.
@@ -1296,8 +1311,8 @@ function sanitizeCatalogue(state: GameState): void {
       && Number.isInteger(a.year) && [a.player, a.seat, a.timeout].every((n) => Number.isInteger(n) && n >= 0)) : [];
     if (cat.answered.length === 0) delete cat.answered;
   }
-  // The last answers (Plan 101B), the charter's and the festival's among
-  // them: a malformed one, or one naming an event the catalog no longer
+  // The last answers (Plan 101B), the charter's, the festival's and the
+  // board's questions' (Plan 116D) among them: a malformed one, or one naming an event the catalog no longer
   // has, is dropped.
   if (cat.lastAnswer !== undefined) {
     const raw = cat.lastAnswer as unknown;
@@ -1306,7 +1321,7 @@ function sanitizeCatalogue(state: GameState): void {
       for (const [id, a] of Object.entries(raw as Record<string, unknown>)) {
         const x = a as { choiceId?: unknown; year?: unknown } | null;
         if (typeof x === 'object' && x !== null && typeof x.choiceId === 'string' && Number.isInteger(x.year)
-          && (id === CHARTER_EVENT.id || id === FESTIVAL_EVENT.id || EVENT_CATALOGUE.some((e) => e.id === id))) kept[id] = { choiceId: x.choiceId, year: x.year as number };
+          && (id === CHARTER_EVENT.id || id === FESTIVAL_EVENT.id || isBoardQuestion(id) || EVENT_CATALOGUE.some((e) => e.id === id))) kept[id] = { choiceId: x.choiceId, year: x.year as number };
       }
     }
     if (Object.keys(kept).length > 0) cat.lastAnswer = kept; else delete cat.lastAnswer;
@@ -1775,4 +1790,7 @@ function sanitize(state: GameState): void {
   // The year's lift (Plan 79C): a count of applicants, never negative.
   const lift = state.students.applicantLift;
   if (!(typeof lift === 'number' && Number.isFinite(lift) && lift >= 0)) state.students.applicantLift = 0;
+  // An honors college's summers left (Plan 116D): a whole count, or none.
+  const honors = state.students.honorsSummers as unknown;
+  if (honors !== undefined && !(Number.isInteger(honors) && (honors as number) > 0)) delete state.students.honorsSummers;
 }

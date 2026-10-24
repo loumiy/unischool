@@ -17,6 +17,7 @@ import { instructionCapacityDetail, instructionCoverage, SEATS_PER_COURSE } from
 import { count, money, multiplier, pct, satisfactionFigure } from '../../format';
 import { SPECIALIZATION_CARDS, specializationTerm, specializedLine } from '../../data/specializationData';
 import { specializationOf } from './specialization';
+import { BOARD_STANDING_LABEL, activeBoardAnswers, boardStandingDetail } from '../../data/boardQuestionData';
 import { clamp, clamp01 } from '../../math';
 
 export { specializationOf };
@@ -571,10 +572,28 @@ function specializationInput(s: GameState, pillar: Pillar): StandingInput {
   return weigh('specialization', SPECIALIZATION_CARDS[pillar].name, SPECIALIZATION_TERM_WEIGHTS[pillar], term.score, term.detail);
 }
 
+// The board's questions answered with a trade (Plan 116D,
+// data/boardQuestionData.ts): each answer's points of prestige for the
+// pillar, as points of the pillar (prestige reads a pillar at its weight),
+// while it lasts. Outside the span, as the condition penalty is: a term no
+// college earns by building. None while nothing is traded.
+export function boardPillarPoints(s: GameState, pillar: Pillar): number {
+  return activeBoardAnswers(s).reduce((sum, a) => sum + (a.prestige[pillar] ?? 0), 0) / PILLAR_WEIGHTS[pillar];
+}
+function boardInput(s: GameState, pillar: Pillar): StandingInput[] {
+  const answers = activeBoardAnswers(s).filter((a) => (a.prestige[pillar] ?? 0) !== 0);
+  if (answers.length === 0) return [];
+  const points = boardPillarPoints(s, pillar);
+  const detail = boardStandingDetail(answers.map((a) => ({ year: a.year, gains: (a.prestige[pillar] ?? 0) > 0 })));
+  return [points >= 0
+    ? weigh('board', BOARD_STANDING_LABEL, points, 1, detail)
+    : penalise('board', BOARD_STANDING_LABEL, -points, 1, detail)];
+}
+
 function pillarOf(
   s: GameState, pillar: Pillar, current: number | null, core: StandingInput[], bonus: StandingInput[],
 ): StandingBreakdown {
-  const terms = [...scaled([...core, ...bonus], PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[pillar]), specializationInput(s, pillar)];
+  const terms = [...scaled([...core, ...bonus], PILLAR_SPAN - SPECIALIZATION_TERM_WEIGHTS[pillar]), specializationInput(s, pillar), ...boardInput(s, pillar)];
   const made = breakdown(PILLAR_LABELS[pillar], PILLAR_FLOOR, 0, terms);
   // Every pillar is read as it stands (Plan 85I: research and student life
   // were shown as the stocks that drift toward them, tickPrestige).

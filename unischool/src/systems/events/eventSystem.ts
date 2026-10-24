@@ -1,6 +1,6 @@
 import { restaffPlan } from '../faculty/restaffing';
 import { ATHLETICS_CHAPTER, chapterGateOpen, guidedRun, MATTERS_CHAPTER } from '../guidance/gates';
-import { raiseCharter, raiseFestival, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
+import { raiseBoardQuestion, raiseCharter, raiseFestival, tickCatalogue, timeOutCatalogue } from './catalogueEngine';
 import { delegate } from '../delegation/seats';
 import type { GameState, NewsLetter } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
@@ -307,6 +307,8 @@ export function tickEvents(s: GameState): void {
   // The spring festival (Plan 85H) joins the inbox whoever claims the week:
   // it never stops the clock.
   raiseFestival(s);
+  // The board's question (Plan 116D), from Year 25: an inbox matter too.
+  raiseBoardQuestion(s);
   // Another system already claimed this week.
   if (s.pendingInterrupt) return;
 
