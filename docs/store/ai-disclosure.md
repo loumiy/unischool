@@ -41,13 +41,14 @@ Checked on `main` on 6 October 2026.
   - The campus art. Every building, tree, path and season on the map, and
     every faculty portrait, is drawn by the game's own code from shapes and
     numbers (`unischool/src/components/`, `FacultyPortrait.tsx`). That code
-    was written with the assistant. No picture in the game comes from an
-    image generator.
+    was written with the assistant. Two pictures are not: the title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art.
   - The music and sound, synthesized live by the game's code through the
     Web Audio API (`unischool/src/components/audio/`), except the title
     screen's theme, which is composed and recorded by a human composer
     (`unischool/src/assets/title-theme.mp3`). No generated audio, and no
     voices.
+  - The store text and the trailer's captions, written with the same
+    assistant.
 - **What is not generated.** The typefaces (Archivo, Bricolage Grotesque,
   Azeret Mono) are open fonts by their designers. The share image
   (`unischool/public/og-image.jpg`) is a screenshot of the game.
@@ -80,6 +81,12 @@ content generated while the game runs. Code assistants are exempt, but
 player-facing content made with one, text included, is to be disclosed.
 
 **Pre-generated content** (shown on the store page):
+
+**Not to be pasted yet** (Plan 117A). While the build ships the
+AI-generated title painting, the second paragraph's "no picture in the game
+comes from an image generator" is false: paste this text only once the
+commissioned title art is in the build. The AI-generated itch.io cover
+never goes on Steam.
 
 > UniSchool is designed and directed by one developer and built with an AI
 > coding assistant, plan by plan. The developer wrote the brief for every
@@ -116,7 +123,7 @@ answers:
 |---|---|---|
 | Text and dialogue | **Yes** | Every player-facing word was written with the assistant. |
 | Code | **Yes** | All of it. |
-| Graphics | **Yes, with the note** | No image generator, but the code that draws every picture was written with the assistant. A *no* invites the reading the review warns about; a *yes* with the note says what happened. The owner decides. |
+| Graphics | **Yes, with the note** | The title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art. Everything else is drawn by code written with the assistant. |
 | Sound and music | **No**, if the form means generated audio | The title theme is by a human composer; the rest is synthesized live by code, and the same note covers it. |
 
 The page's description carries the same text as Steam's pre-generated
@@ -131,8 +138,9 @@ For the README, the game's own site and a press kit:
 > developer's briefs, plan by plan, and the developer chooses between the
 > designs and plays the game between plans. The campus and the portraits are drawn by
 > that code, and the music is synthesized by it, but for a title theme by a
-> human composer. No image, sound or voice
-> comes from a generator, and nothing is generated while you play.
+> human composer. The title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art. No other image,
+> and no sound or voice, comes from a generator, and nothing is generated
+> while you play.
 
 ## What to keep out of any copy
 

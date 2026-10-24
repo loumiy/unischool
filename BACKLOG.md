@@ -102,10 +102,13 @@ yet sorted into a plan.*
 
 ## Launch: toward Next Fest and 1.0
 
-*The timeline is decided (the second review's B6-4, Plan 95): Next Fest in
-June 2027 (registration closes 25 April 2027). The Steam page goes live by
-January 2027 so wishlists build before the fest, the demo goes live in
-February–March, and the game launches in late summer.*
+*The timeline is decided (the second review's B6-4, Plan 95), and dated
+in [Plan 117](docs/plans/117-the-road-to-next-fest.md) §1: the Steam page
+submitted about 10 December 2026 (or the first week of January, after the
+Winter Sale), on the commissioned capsules or Plan 117F's fallbacks; the
+ten-year demo on Steam and itch.io by mid-March 2027; Next Fest
+registration by 25 April (aim: 1,000 wishlists); Next Fest 14–21 June
+(aim: 3,000); launch in August–September, outside the Summer Sale.*
 
 - **The playtest's findings** (B6-5). 0.1.0 is public on itch.io (Plan 97)
   and measures a first run's real length and whether players reach year 30.
@@ -113,10 +116,17 @@ February–March, and the game launches in late summer.*
   what they change.
 - **The Steam page.** The store forms' AI-disclosure answers are drafted in
   `docs/store/ai-disclosure.md`; nothing is on a store page yet. The price
-  is undecided ($14.99 was recommended in the October review's area 6).
+  is decided (Plan 117, C6-9): **$14.99** list, with a 10–15% launch
+  discount; no $19.99, and never under $9.99. It is revisited in April
+  2027 on the demo's wishlist-to-play ratio.
 - **The owner's own tasks** (B6-3):
   - a human edit of the most-read text: the founding letters, the summer,
-    the specialization letter and the Final Report;
+    the specialization letter and the Final Report. "1.0 finished" means
+    feature-complete; the edit runs on into Q1 2027, the opening first,
+    before the demo (Plan 117's O11);
+  - the free full build's end date on itch.io, said on the page (Plan
+    117's O2: recommended "free in full until the demo, about March
+    2027"). Undecided;
   - a devlog started from the plans' quotes;
   - the capsule art and the logo, commissioned.
 - **Held from Plan 97.** Moved out of the itch.io playtest by the owner

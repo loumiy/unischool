@@ -4,8 +4,7 @@
 [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool);
 0.1.1 went live on 13 October 2026. 0.1.2 was built on 16 October 2026
 (the Release workflow's run 4, from `main` at `4f5b83e`) and went up the
-same day. 0.1.3 is ready on `main` (21 October 2026), not yet built or
-uploaded; its description below goes up with it.
+same day. 0.1.3 went up on 21 October 2026, with the description below.
 The owner rewrote the description on itch.io; the text below is the
 owner's, with the changes for 0.1.1, 0.1.2 and 0.1.3. The first draft
 (Plan 97I) was built from [`steam-page.md`](steam-page.md), cut to what
@@ -26,6 +25,7 @@ Uploading the build and the embed settings are in
 | Short description or tagline | Found a college and run it for fifty years. An early playtest: your feedback decides what changes. |
 | Classification | Games |
 | Kind of project | HTML |
+| Inputs | Keyboard, Mouse (not Touchscreen) |
 | Release status | In development |
 | Pricing | No payments (free while it's being tested) |
 | Genre | Simulation |
@@ -209,7 +209,7 @@ with the owner's decision noted:
 |---|---|---|
 | Text and dialogue | **Yes** | Every player-facing word was written with the assistant. |
 | Code | **Yes** | All of it. |
-| Graphics | **Yes, with the note** | No image generator; the code that draws every picture was written with the assistant. *The owner decides between this and "no".* |
+| Graphics | **Yes, with the note** | The title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art. Everything else is drawn by code written with the assistant. |
 | Sound and music | **No** | Synthesized live by code; the description's paragraph covers it. |
 
 The in-game credit is "Halifax Games", with the footnote "Made with the

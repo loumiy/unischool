@@ -113,8 +113,9 @@ slots beside the autosave).
 
 The current focus is presentation and player experience — the campus map,
 the management interfaces, curriculum presentation, faculty interaction and
-the research systems. There is no art pipeline yet; everything on screen is
-drawn from data.
+the research systems. There is no art pipeline yet: the campus and the
+portraits are drawn from data, and the title-screen background is an
+AI-generated stand-in until commissioned art replaces it.
 
 ## Five architectures, eight colours
 
@@ -271,8 +272,10 @@ One developer designs and directs it; an AI coding assistant (Claude Code)
 writes the code and the text from the developer's briefs, plan by plan, and
 the developer chooses between the designs and plays the game between plans.
 The campus and the faculty portraits are drawn by that code, and the music
-is synthesized by it. No image, sound or voice comes from a generator, and
-the game generates nothing while you play: it makes no network calls. The
+is synthesized by it. The title-screen background and the itch.io cover
+are AI-generated stand-ins, to be replaced by commissioned art. No other
+image, and no sound or voice, comes from a generator, and the game
+generates nothing while you play: it makes no network calls. The
 capsule art and the logo will be commissioned from an artist. The full
 disclosure, as worded for Steam and itch.io, is
 [`docs/store/ai-disclosure.md`](docs/store/ai-disclosure.md).
