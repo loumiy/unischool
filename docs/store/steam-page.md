@@ -4,7 +4,7 @@
 Plan 95Z drafted it for 0.1.1. Plan 117 PR D rewrote the copy for
 0.1.3–0.1.4, in the players' terms, after the third review's C6-5
 ([`6-marketability.md`](../reviews/2026-10-game-review-iii/6-marketability.md)).
-The order of the five screenshots follows the second review's §4
+The order of the six screenshots (the sixth, the chapters, Plan 117B) follows the second review's §4
 ([`6-marketability.md`](../reviews/2026-10-game-review-ii/6-marketability.md)).
 The same words serve itch.io and the game's own site.
 
