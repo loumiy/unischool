@@ -1,89 +1,124 @@
 # The Steam page — a draft
 
-**Status:** a draft for the owner to edit (Plan 95Z, the second review's
-B6-3 and B6-5). Nothing here is published. The order of the hooks and the
-five screenshots follow the review's §4
+**Status:** a draft for the owner to edit. Nothing here is published.
+Plan 95Z drafted it for 0.1.1. Plan 117 PR D rewrote the copy for
+0.1.3–0.1.4, in the players' terms, after the third review's C6-5
+([`6-marketability.md`](../reviews/2026-10-game-review-iii/6-marketability.md)).
+The order of the five screenshots follows the second review's §4
 ([`6-marketability.md`](../reviews/2026-10-game-review-ii/6-marketability.md)).
 The same words serve itch.io and the game's own site.
 
-Two rules for every line below:
-- it says only what the game does on `main` today;
-- "AI" never sits beside "school simulator" (review §2). The disclosure
+The rules for every line below:
+- It says only what the game does on `main` today.
+- It leads with what players praised: watching the college grow, building
+  the campus, the depth, and the calm. No player named the blind price or
+  the specialization as their best moment, so those come later.
+- It follows the plain-words rules of the
+  [text review](../reviews/2026-10-text-review.md): talk to the player, one
+  idea per sentence, no clever turns.
+- Quotes come from [`quotes.md`](quotes.md)'s shortlist. Each is credited to
+  "a playtester", never by handle, and no player is quoted twice. No quote
+  goes on a capsule, because Steam allows no text on one beyond the title.
+- "AI" never sits beside "school simulator" (review II §2). The disclosure
   ([`ai-disclosure.md`](ai-disclosure.md)) goes in Steam's own section for
   it, not in this copy.
 
 ## Short description
 
 Steam shows it beside the capsule, and caps it at 300 characters. This one
-is 220:
+is 186:
 
-> Found a college and run it for fifty years. Hire the faculty, build the
-> campus, price each summer's class blind. Be excellent at academics,
-> research, student life and athletics — but you can only be the very best
-> at one.
+> Found a college and watch it grow over fifty years. Build the campus,
+> hire the professors and choose each summer's class. A deep management
+> game that's calm enough to play with a coffee.
 
 ## Long description
 
-> **UniSchool** is a university management game about building an
-> institution, from a small college with three programs into a major
-> university, over fifty years.
+> **UniSchool** is a university management game. You found a college with
+> one hall and its first program, and you grow it into a major university
+> over fifty years.
 >
-> **Choose once.** Prestige is a blend of four pillars: academics,
-> research, student life and athletics. A school can be excellent at all
-> four. But the first summer it stands in the guide's top 30, or from Year
-> 20 in the top 10 of any one pillar, the board offers a single
-> specialization — the faculty training program, the
-> research park, the downtown and its festival, or the athletic performance
-> complex — and that choice is kept for good. Your rivals specialize too.
+> *"This feels like the football manager of universities …"*
+> (a playtester)
 >
-> **Price the year blind.** Every summer you set tuition before you see who
-> applies, then decide how much of the pool to admit, and live with the
-> class those two decisions draw: its size, its quality, the beds it needs.
+> **Watch it grow.** Raise halls, labs, residences, venues and landmarks on
+> an isometric map. Build in one of nine architectures, four of them earned
+> in play, and in your own school colours. Lay out the paths and plant the
+> trees. Every autumn the leaves turn, and every winter the quads go white.
 >
-> **A campus through fifty years.** Raise halls, labs, residences, venues
-> and landmarks on an isometric map in one of five architectures and your
-> own school colours. Watch the trees turn in the autumn and the quads go
-> white at the turn of the terms.
+> **Run all of it.** You teach more than 400 real courses across 42 majors,
+> and each one needs a professor. Every professor is a person, with a face,
+> a career and a few quirks. Their teaching and research show as numbers.
+> Hire them, give them courses, and keep the good ones when a bigger
+> college tries to hire them away.
 >
-> **A faculty of people.** Every professor has a face, a career, a few
-> quirks and a teaching and research record. Hire them, assign them to
-> courses, and watch the good ones get poached.
+> *"I've been looking for exactly this type of game for a long time."*
+> (a playtester)
 >
-> **A legacy, not a score.** In the fiftieth summer the Final Report grades
-> the run on six axes and names what the school became. Then play on: the
-> college keeps running after the report, and every tenth summer adds a
-> decade to the record.
+> **Learn it as you go.** The first five years play as chapters. Each
+> chapter sets you a few objectives. Click the (?) beside one to see how,
+> and **Show me** takes you to the right place. Each tab's **Guide** button
+> opens its chapter again. If you'd rather find your own way, turn the
+> chapters off.
 >
-> Growth is slow on purpose. Prestige is graded once a year and moves toward
-> what the school earned, slowly up and faster down. Money paces the first
-> decades, and every commitment is paid up front while its payoff waits for
-> next summer.
+> **One big decision a year.** Each summer you set tuition before you see
+> who applies. Then you choose how many to admit, and you live with the
+> class you get: its size, its quality and the beds it needs. The summer
+> waits for you. The clock stops until you decide, so you can finish what
+> you were doing first.
+>
+> **No rush.** Prestige is your college's reputation. It moves a little
+> every week toward what your college has earned, and takes its biggest
+> step each summer. It climbs slowly and falls faster. Money sets the pace
+> in the early decades. You pay for everything up front, and the payoff
+> comes the next summer.
+>
+> *"An alarmingly believable university simulator."*
+> (a playtester on Reddit)
+>
+> **Fifty years, graded.** In the fiftieth summer, the Final Report grades
+> your run on six axes and names what your school became. Then you can
+> play on. The college keeps running, and every tenth summer adds a decade
+> to the record.
+>
+> **Then found another.** Prestige comes from four pillars: academics,
+> research, student life and athletics. You can be excellent at all four.
+> Once your college stands out, the board offers you one
+> specialization. You pick one of four, and it's yours for good. Your rivals specialize
+> too. The next college can be different, and the architectures you've
+> earned are there for it.
 
 ## Features
 
-- **Four pillars, one specialization.** Academics, research, student life
-  and athletics, and one permanent choice of the very best, offered the
-  first summer the college stands in the guide's top 30, or from Year 20
-  in the top 10 of any one pillar.
-- **The summer decision.** Set the price, see the pool it drew, choose the
-  class.
-- **More than 400 real courses** in 42 majors and seven schools, each
-  needing a professor to teach it.
-- **A faculty of named people,** with careers, quirks and portraits.
-- **Research** commissioned by topic, team and depth out of a specific lab,
-  producing publications, breakthroughs and prizes.
-- **Student life and varsity athletics:** clubs, Greek life, a hundred
-  rival schools and the playoffs.
-- **Five architectures and eight pairs of school colours.** Every campus
-  is drawn from your choices.
-- **Seasons on the map,** and land, hills and haze around the campus.
-- **The Final Report** at fifty years: six graded axes, a name for what the
-  school became, and a report card to share.
+- **A campus that grows for fifty years,** from one hall to a university,
+  on an isometric map with seasons, hills and haze around it.
+- **Nine architectures, four of them earned,** and eight pairs of school
+  colours. Every campus is drawn from your choices.
+- **Free grounds to garden:** paths, trees, lamps, benches and flower beds.
+- **More than 400 real courses** in 42 majors and seven schools. Each
+  course needs a professor to teach it.
+- **A faculty of named people,** with faces, careers and quirks.
+- **Research** that you commission by topic, team and depth from one of
+  your labs. It brings publications, breakthroughs and prizes.
+- **Student life and varsity athletics:** clubs, Greek life, the playoffs,
+  and 99 rival schools.
+- **Learn it as you go.** The first five years play as chapters, with help
+  a click away. You can turn them off.
+- **The summer decision.** Set the price, see who applies, then choose
+  your class. The summer waits until you're ready.
+- **Prestige that moves through the year,** a little every week and a big
+  step each summer.
+- **One specialization, for good.** Four pillars to be excellent at, and
+  one to be the very best at. The next college can be different.
+- **The Final Report** at fifty years: six graded axes, a name for what
+  your school became, and a report card to share.
 - **Play on after the Final Report.** The run goes on past year fifty, and
-  every ten years the report gains an addendum for the decade.
+  every tenth summer adds a decade to the record.
 - **Sandbox mode,** from the title screen: unlimited funds, instant
-  building and every building open, to lay out a campus without waiting.
-- **Saves in your browser,** with export and import.
+  building and every building open, so you can lay out a campus without
+  waiting.
+- **Save slots.** You can also download a save as a file and load it
+  again.
 
 ## The five screenshots
 
@@ -106,9 +141,14 @@ own; its line in the features carries it.
 
 ## What waits on others
 
-- **The capsule art and the logo:** commissioned, not drawn by code
-  (B6-3). The page does not go up without them.
-- **The trailer:** the time-lapse re-cut with one seasonal year (review
-  §4), then the summer, the four cards and the Final Report.
+- **The capsule art and the logo:** commissioned from an artist
+  ([`art-brief.md`](art-brief.md)), due 1 December. If they are late, the
+  page can go up on the fallback capsules (Plan 117 PR F). Those are cut
+  from the game's own campus render under the code-drawn mark, so they
+  need no AI disclosure. Swap in the commission when it lands. Steam lets
+  you change a capsule. The AI-generated itch.io cover never goes on
+  Steam, not even as a placeholder.
+- **The trailer:** the cut list and its captions are in
+  [`trailer.md`](trailer.md) (Plan 117 PR E). The owner cuts it.
 - **The disclosure:** [`ai-disclosure.md`](ai-disclosure.md), in Steam's
   AI-content section.
