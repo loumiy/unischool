@@ -31,6 +31,7 @@ import { answerAll, foundGame, playWeek } from '../../sim/harness/game';
 import { playerNamed } from '../../sim/harness/archetypes';
 import { brokenRules } from '../../sim/harness/invariants';
 import { exportSave, readSave } from '../../src/state/persistence';
+import { foundersHallUnsited, openingHoldsClock } from '../../src/state/opening';
 import type { GameState } from '../../src/state/types';
 
 const args = process.argv.slice(2);
@@ -101,7 +102,13 @@ if (args.includes('--fixtures')) {
           const end = g.s.clock.year + years;
           let ticks = 0;
           while (g.s.clock.year < end && problems.length < 5) {
+            const week = g.s.clock.week;
             playWeek(g, player);
+            // A save held by the walkthrough (a 0.1.2 save on the old
+            // appointing step, Plan 113B) waits for a program to be founded.
+            // A player that founds none skips the walk, as the card offers,
+            // rather than leave the clock held for good.
+            if (g.s.clock.week === week && openingHoldsClock(g.s) && !foundersHallUnsited(g.s)) g.act({ type: 'SKIP_OPENING', keepLetters: true });
             ticks += 1;
             if (ticks > years * 52 * 4 + 100) { problems.push(`clock stalled at y${g.s.clock.year}w${g.s.clock.week}`); break; }
             for (const rule of brokenRules(g.s)) problems.push(`y${g.s.clock.year}w${g.s.clock.week} invariant: ${rule}`);
