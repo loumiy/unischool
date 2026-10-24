@@ -18,15 +18,15 @@
 // (styles.css's .logo-name: Archivo 800, wide capitals, white, the soft
 // blue shadow). The title screen's art puts them on a blue sky; the campus
 // shot's sky is a pale haze, so a band of that blue fades in behind them.
+//
+// The mark, the face, the sky and the browser are coverArt.mjs's, which the
+// Steam capsules (steamCapsules.mjs, Plan 117F) share.
 // ---------------------------------------------------------------------
 
-import { readFileSync, writeFileSync, mkdtempSync, existsSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
-import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { archivoFace, drawPages, logoMark, photoFilter as vividFilter, skyStops } from './coverArt.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const [bgPath, outPath] = args.filter((a) => !a.startsWith('--'));
 const sizeArg = args.find((a) => a.startsWith('--size='));
@@ -37,20 +37,13 @@ if (!bgPath || !outPath || !(W > 0 && H > 0)) {
   process.exit(2);
 }
 
-// The mark's paths, read from Logo.tsx so the cover never drifts from it.
-const logo = readFileSync(join(ROOT, 'src/components/Logo.tsx'), 'utf8');
-const paths = [...logo.matchAll(/<path\s+(?:fillRule="evenodd"\s+)?d="([^"]+)"/g)].map((m, i) => `<path ${i === 0 ? 'fill-rule="evenodd" ' : ''}d="${m[1]}"/>`);
-const viewBox = logo.match(/viewBox="([^"]+)"/)[1];
-const font = readFileSync(join(ROOT, 'node_modules/@fontsource/archivo/files/archivo-latin-800-normal.woff2')).toString('base64');
 const bg = readFileSync(resolve(bgPath)).toString('base64');
 
 // Vivid: the photo brightened and saturated, and the sky band a clearer, more cyan blue.
-const photoFilter = vivid ? 'filter: brightness(1.22) saturate(1.2) contrast(1.04);' : '';
-const sky = vivid
-  ? 'rgba(40, 165, 250, 0.95) 0%, rgba(70, 180, 250, 0.8) 45%, rgba(120, 200, 245, 0.35) 75%, rgba(150, 210, 240, 0) 100%'
-  : 'rgba(58, 128, 205, 0.92) 0%, rgba(86, 152, 220, 0.78) 45%, rgba(120, 175, 225, 0.35) 75%, rgba(150, 190, 225, 0) 100%';
+const photoFilter = vividFilter(vivid);
+const sky = skyStops(vivid);
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-@font-face { font-family: 'Archivo'; font-weight: 800; src: url(data:font/woff2;base64,${font}) format('woff2'); }
+${archivoFace()}
 html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
 .cover { position: relative; width: ${W}px; height: ${H}px; overflow: hidden; }
 .photo { position: absolute; inset: 0; background: url(data:image/jpeg;base64,${bg}) center / cover; ${photoFilter} }
@@ -63,20 +56,8 @@ html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
 .name { margin: 0; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 64px; line-height: 1;
   letter-spacing: 0.04em; text-transform: uppercase; }
 </style></head><body><div class="cover"><div class="photo"></div><div class="sky"></div><div class="head">
-<svg class="mark" viewBox="${viewBox}"><g fill="currentColor">${paths.join('')}</g></svg>
+${logoMark('mark')}
 <h1 class="name">UniSchool</h1></div></div></body></html>`;
 
-const CANDIDATES = [process.env.CHROME_PATH, `${process.env.PLAYWRIGHT_BROWSERS_PATH ?? ''}/chromium-1194/chrome-linux/chrome`, '/opt/pw-browsers/chromium', '/usr/bin/chromium', '/usr/bin/google-chrome'].filter(Boolean);
-const executablePath = CANDIDATES.find((p) => existsSync(p));
-if (!executablePath) { console.error('no Chromium found; set CHROME_PATH.'); process.exit(2); }
-
-const dir = mkdtempSync(join(tmpdir(), 'cover-'));
-const page = join(dir, 'cover.html');
-writeFileSync(page, html);
-const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
-const tab = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 2 });
-await tab.goto(`file://${page}`);
-await tab.evaluate(() => document.fonts.ready);
-await tab.locator('.cover').screenshot({ path: outPath, type: 'jpeg', quality: 90 });
-await browser.close();
+await drawPages([{ html, width: W, height: H, scale: 2, out: outPath, selector: '.cover', type: 'jpeg', quality: 90 }]);
 console.log(`wrote ${outPath} (${W * 2} by ${H * 2}, ${W} by ${H} at twice the density)`);

@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "build:itch": "tsc -b && node tools/buildItch.mjs",
     "itch:frame": "node tools/itchFrame.mjs",
+    "steam:capsules": "node tools/steamCapsules.mjs",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "preview": "vite preview",
