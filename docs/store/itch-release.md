@@ -35,6 +35,11 @@ What the build uses:
   such as `https://halifaxgames.itch.io/unischool`. The report card's
   *Copy summary* names it. Until it is set, the line names no address,
   since the frame's own address on itch.io's servers is no use to anyone.
+- **`STORE_PAGE_URL`**, another repository *variable*, optional: the
+  game's Steam page (Plan 117G). When set, the title menu and the Final
+  Report show *Wishlist on Steam*, opening it in a new tab. Unset, or
+  anything but an `https` address, and no link shows. Set it the day the
+  page goes up, and release a build (Plan 117's O12).
 
 Before the zip, the workflow runs `npm run check` and plays the game in an
 itch.io-style frame in Chrome (`npm run itch:frame -- --check`). A red run
