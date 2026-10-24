@@ -257,8 +257,11 @@ building's four sides, and a facing shows that they turn with it.
 
 The trailer's opening shot (see `docs/reviews/2026-10-game-review/6-marketability.md`):
 one campus from its first week to year 50, the camera fixed, the interface
-gone. `timelapse.ts` plays one run and keeps a snapshot every `--every` weeks
-(13 by default, four a year); `timelapseShoot.mjs` photographs each and joins
+gone. The trailer's whole cut list, with the command for every shot and
+the seasonal year cut from this run, is
+[`docs/store/trailer.md`](../../docs/store/trailer.md). `timelapse.ts`
+plays one run and keeps a snapshot every `--every` weeks (13 by default,
+four a year); `timelapseShoot.mjs` photographs each and joins
 them into a WebM.
 
 ```sh
