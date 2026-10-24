@@ -163,7 +163,7 @@ different pair of school colours.
 
 | | |
 |---|---|
-| ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: a figure row of course slots, then the faculty as a grid of faces, each with a grade for teaching and research, a quirk and the courses they carry](docs/images/tab-faculty.png) |
+| ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: a figure row of course slots, then the faculty as a grid of faces, each with a number for teaching and one for research, a quirk and the courses they carry](docs/images/tab-faculty.png) |
 | **Curriculum** — the catalogue by school and program, each with who teaches it and the grade they earn; a finished school folds away. | **Faculty** — the people: a grid of faces, each with a career, quirks and the courses they carry, under one row of figures, or as a table or a plot of teaching against research; the market and the departments a switch away. |
 | ![The Research tab: every lab with its initiative, team, depth and progress](docs/images/tab-research.png) | ![The Students tab: what the guidebooks say, satisfaction by attribute, clubs and Greek chapters](docs/images/tab-students.png) |
 | **Research** — each lab's running initiative: the topic, the team, the depth and what it has produced. | **Students** — satisfaction by attribute and what serves it, the clubs, the chapters and the demands. |

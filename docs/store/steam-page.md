@@ -85,7 +85,7 @@ is 220:
   building and every building open, to lay out a campus without waiting.
 - **Saves in your browser,** with export and import.
 
-## The five screenshots
+## The six screenshots
 
 Steam wants at least five, at 1920×1080 or larger, 16:9. The pictures in
 `docs/images` are 3200×2000 (16:10), so each is taken again at 1920×1080 or
@@ -99,6 +99,7 @@ review gives:
 | 3 | Excellent at all four. The very best at one. | The specialization letter with its four cards side by side. | None. [`85d-choice.jpg`](../reviews/2026-10-pillars/85d-choice.jpg) shows the frame wanted, on an older build (its cards still read "Arrives in a later update"). Take it new. |
 | 4 | Every professor, a person. | The Faculty grid of faces, careers and quirks, late in a run. | [`tab-faculty.png`](../images/tab-faculty.png) at year 51 fits as it is. |
 | 5 | Fifty years, graded, and a name for what you built. | The Final Report: the six axes, the grade and the school's title. | None. [`tab-history.png`](../images/tab-history.png) shows History's Prestige view; the report is on its *The record* view; [`85d-final-report.jpg`](../reviews/2026-10-pillars/85d-final-report.jpg) shows the frame, on an older build. Take it new. |
+| 6 | Chapters teach the founding years, one objective at a time. | A founding-years campus with the objectives drawer open: the chapter, its paragraph and its objectives, one objective's (?) help open. | None in `docs/images`; [`itch/6-chapters.jpg`](itch/6-chapters.jpg) is it (Plan 117 PR B), a Guided run in year 3, at 1920×1080. |
 
 Left out, as the review advises: the inbox and the Curriculum. They are the
 game's working screens, not its pictures. The Sandbox has no shot of its
