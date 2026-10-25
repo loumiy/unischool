@@ -731,8 +731,10 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
 .panel-action { padding: var(--space-4) var(--space-12); font-size: var(--text-xs); white-space: nowrap; }
 
 /* ---------- Toolbar popups ----------
-   Cards above the toolbar (ToolbarPopup.tsx), leaving the map clickable. */
-.toolbar-popup { position: fixed; z-index: 20; bottom: calc(var(--toolbar-height) + 12px);
+   Cards above the toolbar and the activity strip (ToolbarPopup.tsx),
+   leaving the map clickable. Clear of the strip: its line read as struck
+   through under a popup's bottom edge (Plan 117B's chapters shot). */
+.toolbar-popup { position: fixed; z-index: 20; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
   display: flex; flex-direction: column; background: var(--cream); border: 3px solid var(--outline);
   border-radius: var(--radius-xl); box-shadow: var(--elevation-popup); color: var(--ink);
   animation: popup-rise 150ms cubic-bezier(0.2, 0.8, 0.3, 1); }

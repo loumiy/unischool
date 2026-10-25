@@ -4,6 +4,7 @@ import type { HallEntry } from '../state/hall';
 import { CARD_HEIGHT, CARD_WIDTH, reportCardSummary, reportCardSvg, type CardFonts } from '../state/reportCard';
 import { reportShared } from '../analytics/analytics';
 import { siteUrl } from '../build';
+import { STORE_LINK_LABEL, STORE_URL, openStorePage } from '../storeLink';
 
 // The report card's two buttons (Plan 70J): Download card renders the card's
 // SVG (state/reportCard.ts) to a PNG in the browser and saves it, nothing
@@ -86,6 +87,8 @@ export default function ReportCardActions({ entry }: { entry: HallEntry }) {
     <div className="report-card-actions">
       <button type="button" onClick={() => { reportShared('download'); void downloadCard(entry).catch(() => setSaid("Couldn't draw the card.")); }}>Download card</button>
       <button type="button" onClick={() => { void copy(); }}>Copy summary</button>
+      {/* Beside the card, the store page (Plan 117G), once a build names one. */}
+      {STORE_URL && <button type="button" onClick={openStorePage}>{STORE_LINK_LABEL}</button>}
       {said && <span className="report-card-said" role="status">{said}</span>}
       {manual && (
         <label className="report-card-manual">

@@ -8,7 +8,9 @@ name: Release
 # VITE_POSTHOG_KEY is the repository secret of that name, so the build
 # sends play statistics; ITCH_PAGE_URL, a repository variable, is the
 # address the report card's share line names (leave it unset until the
-# page exists).
+# page exists); STORE_PAGE_URL, another, is the store page the title menu
+# and the Final Report's *Wishlist on Steam* open (Plan 117G; unset, no
+# link shows).
 on:
   push:
     tags: ['v*']
@@ -34,6 +36,7 @@ jobs:
         env:
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_SITE_URL: ${{ vars.ITCH_PAGE_URL }}
+          VITE_STORE_URL: ${{ vars.STORE_PAGE_URL }}
       # The game in an itch.io-style frame, in Chrome: saves, downloads, the
       # clipboard's fallback, keys, the wheel, sound and two frames.
       - run: npm run itch:frame -- --check

@@ -7,7 +7,28 @@ C6-12, each "do the recommended fix": the road from today's itch.io
 playtest to Next Fest (14–21 June 2027, registration closing 25 April)
 and a launch in late summer.*
 
-**Status: Proposed.**
+**Status: In progress (24 October 2026).** On the branch: A (all but
+the end date, O2, still the owner's), B, D, E, F and G. C was dropped by
+the owner (§2 Decision 2). H, I and J wait for their dates.
+
+- **A, as implemented:** the live itch.io tagline couldn't be read from
+  the build machine, so `itch-page.md`'s tagline row is unchanged; the
+  owner's to correct. The free full build's end date is in `BACKLOG.md`
+  as undecided.
+- **B, as implemented:** the chapters shot keeps the name `6-chapters.jpg`
+  (its place in the Steam table) and goes up seventh on itch.io, after
+  `6-young-campus.jpg`. Its first take showed the objectives drawer's
+  bottom edge through the activity strip; the toolbar popups now sit above
+  the strip, and the shot was retaken.
+- **D, as implemented:** the short description is 186 characters. The
+  specialization line no longer names the top 30, since Plan 116C added a
+  satisfaction route; the rivals are 99, not a hundred.
+- **E, as implemented:** the seasonal year is shot `--every 2` (one frame a
+  week runs out of memory), and an end card is added. No shot shows the
+  title screen, so its generated painting stays out of the trailer.
+- **F, as implemented:** a script of its own, `npm run steam:capsules`,
+  sharing `tools/coverArt.mjs` with the itch cover; the library hero and
+  logo are made too.
 
 Most of this is the owner's work outside the repository: forms, uploads,
 a commission, a search. So §1 lists the repository's PRs and the owner's

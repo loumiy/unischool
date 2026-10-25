@@ -17,11 +17,61 @@ archive, and what is left here waits for later.*
 
 ---
 
-## Shipped in 0.1.3
+## Shipped in 0.1.4
+
+*Everything merged after the 0.1.3 build (`b1f2114`) to 25 October 2026,
+from the playtest's players since 0.1.3 (F7, F8, S3), the third game
+review (Plan 109) and the owner's own play; the upload is the owner's.
+What players see is in
+[`docs/store/changelog.md`](docs/store/changelog.md).*
+
+- [Plan 110](docs/plans/110-the-board-convenes.md): the specialization as
+  a short letter and a full-screen page, a panel per pillar with what it
+  builds drawn and where the college stands, and a second ask in a bar.
+- [Plan 111](docs/plans/111-plain-words.md): plain words for the first
+  hour, the chapters, the letters, the summer, the help and the events;
+  buttons that say what happens, red for losses; a text check in the
+  tests.
+- [Plan 112](docs/plans/112-the-owners-notes-for-0-1-4.md): the
+  objectives drawer as a list with (?) help and Show me; the summer that
+  waits; a guided first summer; the calendar in weeks 1–52; athletics
+  from the varsity petition, walked; course milestones; *Promises* and
+  *The long game* removed; the chair's letters folded into the chapters;
+  the map's notes; the hall as a room; every program moving the same
+  way.
+- *Looking around*, a chapter for the camera (F7), and the map's keys
+  live under the drawer.
+- [Plan 113](docs/plans/113-the-old-save-and-loose-ends.md): the 0.1.2
+  save on a retired walkthrough step loads (no 0.1.3.1; the fix ships
+  here), the old appointing step, athletics' stops held to their
+  chapters, a named team kept, the admit note, and the harness's marks,
+  `demand` and Provost.
+- [Plan 114](docs/plans/114-words-that-hold-and-doors-that-land.md): the
+  briefings' numbers tied to their constants, one prestige vocabulary,
+  the Review's class line, numbers for letters, *The teams* on a team and
+  the ticker on the main chapter, doors that land, the small doubts, and
+  a Curriculum that opens only what you can act on.
+- [Plan 115](docs/plans/115-the-young-campus.md): the camera framed on
+  what stands, the founding drive, walkers before paths, a path
+  objective, winter on the newer roofs, the Arena's front, the founding
+  and title screens in 720 px, dressing on a quad's lawn, and the year-5
+  store shot.
+- [Plan 116](docs/plans/116-the-late-years-and-the-happiest-college.md):
+  a matter pauses only when short of time, the satisfaction route to the
+  specialization and its title, and the board's yearly question from
+  Year 25.
+- The tuition slider ends at $60,000; the toolbar popups sit above the
+  activity strip; the admission line's handle lies along the line; the
+  ghost's rotate handle is gone (S3).
+- [Plan 117](docs/plans/117-the-road-to-next-fest.md), in progress: its
+  store link (G) is in the build but shows nothing until a build sets
+  it; the rest is docs and tools.
+
+## Shipped in 0.1.3 (21 October 2026)
 
 *Everything merged after the 0.1.2 build (`4f5b83e`) to 21 October 2026,
 from the playtest's players since 0.1.2 (F5, F6, S2) and the owner's own
-play; the upload is the owner's. What players see is in
+play; uploaded 21 October 2026 (`b1f2114`). What players see is in
 [`docs/store/changelog.md`](docs/store/changelog.md).*
 
 - [Plan 106](docs/plans/106-the-first-five-years.md): the walkthrough ends
@@ -102,10 +152,13 @@ yet sorted into a plan.*
 
 ## Launch: toward Next Fest and 1.0
 
-*The timeline is decided (the second review's B6-4, Plan 95): Next Fest in
-June 2027 (registration closes 25 April 2027). The Steam page goes live by
-January 2027 so wishlists build before the fest, the demo goes live in
-February–March, and the game launches in late summer.*
+*The timeline is decided (the second review's B6-4, Plan 95), and dated
+in [Plan 117](docs/plans/117-the-road-to-next-fest.md) §1: the Steam page
+submitted about 10 December 2026 (or the first week of January, after the
+Winter Sale), on the commissioned capsules or Plan 117F's fallbacks; the
+ten-year demo on Steam and itch.io by mid-March 2027; Next Fest
+registration by 25 April (aim: 1,000 wishlists); Next Fest 14–21 June
+(aim: 3,000); launch in August–September, outside the Summer Sale.*
 
 - **The playtest's findings** (B6-5). 0.1.0 is public on itch.io (Plan 97)
   and measures a first run's real length and whether players reach year 30.
@@ -113,10 +166,17 @@ February–March, and the game launches in late summer.*
   what they change.
 - **The Steam page.** The store forms' AI-disclosure answers are drafted in
   `docs/store/ai-disclosure.md`; nothing is on a store page yet. The price
-  is undecided ($14.99 was recommended in the October review's area 6).
+  is decided (Plan 117, C6-9): **$14.99** list, with a 10–15% launch
+  discount; no $19.99, and never under $9.99. It is revisited in April
+  2027 on the demo's wishlist-to-play ratio.
 - **The owner's own tasks** (B6-3):
   - a human edit of the most-read text: the founding letters, the summer,
-    the specialization letter and the Final Report;
+    the specialization letter and the Final Report. "1.0 finished" means
+    feature-complete; the edit runs on into Q1 2027, the opening first,
+    before the demo (Plan 117's O11);
+  - the free full build's end date on itch.io, said on the page (Plan
+    117's O2: recommended "free in full until the demo, about March
+    2027"). Undecided;
   - a devlog started from the plans' quotes;
   - the capsule art and the logo, commissioned.
 - **Held from Plan 97.** Moved out of the itch.io playtest by the owner

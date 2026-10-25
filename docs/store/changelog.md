@@ -5,7 +5,177 @@ point to the development records in `docs/plans/`.*
 
 ---
 
-## 0.1.3
+## 0.1.4
+
+*The specialization as the board's own page (Plan 110), plain words
+across the game (Plan 111), the owner's notes and Stephen's livestream
+(Plan 112), and the third review's findings worked through: the old save
+that stopped the game, words that hold and doors that land, the young
+campus, and the late years (Plans 113–116).*
+
+### The chapters
+
+- **Objectives with help.** The drawer is now a short list. It shows the
+  chapter's number and title, a few lines on what it covers, and its
+  objectives. Each objective has a (?) button that tells you how. Its
+  *Show me* takes you to the place and rings what to click. (112A)
+- **Looking around**, a new chapter after *The next course*. Pan, turn,
+  tilt and zoom the view once each, and *Somewhere to sleep* opens.
+  Going back to the starting view is optional. The map's keys now work
+  while the drawer is open. (F7)
+- **Courses count.** *A faculty*, *Campus life* and *Running the college*
+  each ask you to teach a number of courses: 8, 16 and 24. (112A)
+- **Fewer chapters.** *Promises* and *The long game* are gone. *Research*
+  no longer asks you to answer the board on the university charter. The
+  board's offer comes by itself once a lab is at work. (112A)
+- **The chair's letters are folded into the chapters.** With chapters on,
+  the chair no longer writes what the objectives already say. With
+  chapters Off, the letters still come. (112A)
+- **A path in *Somewhere to sleep*.** The chapter asks you to lay a path
+  from the residence hall to Founders Hall, and rings the Paths tool.
+  (115D)
+- **The teams opens with your first varsity team.** It walks you through
+  the Athletic Director, every team's staff and its venue, ringing each
+  in turn. It says plainly that the board sends Athletic Director
+  candidates only after a team goes varsity. In a guided run, the
+  Athletics tab opens with the chapter. The tab shows ! while a team is
+  short of staff. (112B, 114E)
+- **The ticker shows the main chapter.** Open side chapters are listed
+  first in the Guide. The Research Park gets a side chapter of its own
+  when you specialize in research. (112A, 114E)
+- **Show me lands where it says.** The build menu opens on the right
+  category with the building ringed, if you can pay or borrow for it.
+  *Paying for it* rings the funds button, and *A hall of its own* rings
+  the first academic hall. Treasury doors open on the view they name. A
+  Show me for a tab that's still shut says when it opens. (112A, 114F)
+- ***Seats for everyone* shows both counts** while they differ: places
+  taught, and places with courses under way. (114E)
+
+### The summer
+
+- **The summer waits for you.** At week 52 the clock still stops, but
+  nothing opens over what you're doing. The summer waits at the top of
+  the Inbox and in a note above the clock. Play, Space or any speed opens
+  it, so you can finish what you were reading first. (112C, S3)
+- **Your first summer is walked through**, one control at a time: the
+  price, its lock, the applicants, the line, the class and the offers.
+  Each is ringed in turn. Use it or click Next to move on. You can close
+  the guide at any point. (112C)
+- **The admit line has a handle.** A grip tab with arrows, turned along
+  the line, replaces the yellow dot. (112C)
+- **The hall is a room**, with walls and a lectern and the seats centred
+  in it. The class below it is a table, with each group's share and a
+  row for the freshman class. (112C)
+- **"In line with your prestige" is yellow**, so the price tags read
+  green, yellow, amber and red, whatever your colours. (112C)
+- **The tuition slider ends at $60,000.** It went to $100,000, but no
+  college's standing supports more than about $40,500. A price an old
+  save's board froze above $60,000 is kept.
+- **The admit note is shorter.** It no longer warns about crowding the
+  beds, and it doesn't repeat the rate when both read the same.
+  *Incoming quality* says it is part of your academics score. (113D)
+- ***Send the offers* stays in view** on a 1280 × 720 screen. (114G)
+
+### New
+
+- **The board convenes.** The specialization now comes as a short letter.
+  Click *Convene the board* to open a full-screen page with four panels,
+  one for each pillar, in its own colour. Each panel draws the building
+  it gives you, shows where you stand in that pillar and who leads it,
+  and says what choosing it adds. Choosing asks twice. A bar at the foot
+  of the screen says what you give up. (110)
+- **A third way to the specialization.** From Year 20, a college whose
+  student satisfaction was 85 or more in over half its years is offered
+  one too. With no specialization, the Final Report names such a college
+  "a college with a campus life to envy". (116C)
+- **The board's question.** From Year 25, the board asks you one question
+  a year. Should the college grow? Will you take a gift with a condition?
+  Should you found an honors college? Each "yes" lifts one pillar and
+  lowers another for five years. If you say no, or don't answer, nothing
+  changes. (116D)
+- **A drive to Founders Hall**, laid from the road to its front door when
+  you place the hall. (115B)
+- **The Arena has a front**, with a sign, arched windows and your
+  college's colours, and each expansion adds a part you can see. (115F)
+
+### Changed
+
+- **Plain words.** Most of the game's text is rewritten: the walkthrough,
+  the chapters, the NEXT line, the letters, the summer, the help, the
+  tooltips and the events. It talks to you, keeps to one idea a
+  sentence, and keeps flavour apart from instructions. Each promise now
+  says what keeping it and missing it does. (111)
+- **Buttons that ask first say what happens**, such as "Move English (no
+  classes for 4 weeks)". Red is kept for what you can't undo: closing a
+  program, demolishing a building, dismissing someone. (111E, S3)
+- **Fewer pauses late in a run.** A new matter pauses the clock only if
+  it has two weeks or less to answer. A matter you haven't opened still
+  pauses it in its last week. The setting is now *Pause for an urgent
+  matter*. (116B)
+- **The calendar counts the year's weeks**, 1 to 52, as the chapters do.
+  (112E)
+- **The map opens on your campus**, not the middle of the land. A new
+  college opens close on Founders Hall, and the view widens as the campus
+  grows. Home goes back to that view. (115A)
+- **Walkers stay near Founders Hall** while it stands alone, instead of
+  heading for the road. (115C)
+- **Every program moves the same way.** A program's tile lists its moves
+  in the open, one button for each hall with room. (112F, S3)
+- **The last letter grades are gone.** The Faculty plot's lines are
+  numbers, and training says each professor moves up one band. A team's
+  rank reads "#7 of 100", not "7/100". (114C)
+- **Prestige in one set of words**, in the drawer, History and the year
+  in review: where it's heading, and what each pillar adds. A pillar at
+  zero says what opens it. (114B)
+- **The briefings' numbers come from the game**, so they stay true. A few
+  lines that were wrong are fixed, such as how long a course takes to
+  write and when the law school opens. (114A)
+- **The Curriculum opens only the rows you can act on.** The rest start
+  folded. (114H)
+- **Small things.** The search button says why its price grows. Founding
+  says its price is the program's first course. The Paths tile says that
+  students wear tracks in the lawn. Enter founds your college on the
+  founding screen. A search that finds someone says so in a toast.
+  (114G)
+- **The founding and title screens fit a 1280 × 720 laptop.** (115G)
+- **No rotate handle on a picked-up building.** Press R to turn it. On a
+  touch screen, the placing bar keeps its Rotate button. (S3)
+- **On the map.** Snow falls on the newer roofs: the field house, the
+  natatorium, the Law School, the landmarks and the gazebo (115E). Every
+  building that takes an added story draws it, towers included. The
+  Grand Quad's flowers match the flower beds, and the Student Center's
+  clock clears its entrance. The dots over a hall's courses ring silver
+  for established and gold for distinguished, not red (112D).
+- **Benches on the quad.** You can set out benches, lamps and flower beds
+  on a first quad's lawn. The Grand Quad's planted panels take none.
+  (115H)
+- **An unlocked architecture's letter shows its buildings**: Founders
+  Hall and the library, drawn in it. (112D)
+
+### Fixed
+
+- **A 0.1.2 save on an old walkthrough step stopped the game** on
+  Continue in 0.1.3. It now loads and plays on. A save on the old
+  appointing step counts the programs on offer and asks you to appoint a
+  professor. (113A–B)
+- **Athletics came before its chapter.** The mascot letter and the
+  varsity petition now wait for their chapters. (113C)
+- **A named team lost its name** when you appointed the Athletic
+  Director. It keeps it now. (113C)
+- **The year in review's class line** now describes the class the
+  summer records. (114D)
+- **The objectives drawer, the log and the milestones** no longer run
+  over the strip at the bottom of the screen.
+
+### Saves
+
+A save from 0.1.3 opens in 0.1.4. A run in *Promises* or *The long game*
+moves on past them, and a save made at the summer opens with the summer
+waiting for you.
+
+---
+
+## 0.1.3 — 21 October 2026
 
 *The first five years rebuilt as chapters (Plan 106), the owner's notes
 after playing them (Plan 107), the summer's admissions as a page of its

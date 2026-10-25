@@ -43,6 +43,11 @@ const PX = 70, PY = 70, PW = 500, PH = 520;
 const ROOM = { x: 616, y: 66, w: 252, h: 330 };
 const HALL = { x: ROOM.x + 14, y: ROOM.y + 14, w: ROOM.w - 28, h: ROOM.h - 60 };
 const LEDGER_Y = ROOM.y + ROOM.h + 28;
+// The line's tilt on screen, in degrees: it falls one GPA step for one SAT
+// step, so across the plot it drops PH for PW. The handle is turned to lie
+// along it, its chevrons pointing the two ways it moves (the owner, after
+// Plan 117).
+const LINE_ANGLE = (Math.atan2(PH, PW) * 180) / Math.PI;
 const RAIN_MS = 1_500;
 const FLOW_MS = 1_900;
 // The class shown seated a moment before the Students beat takes over.
@@ -374,9 +379,10 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             {stage === 'cut' && (
               <g>
                 <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} className="adm-cut" />
-                {/* The handle (Plan 112C): a grip tab with a chevron above
-                    and below, so it reads as a thing to drag up and down
-                    (the yellow dot it replaced was taken for a marker). */}
+                {/* The handle (Plan 112C): a grip tab with a chevron on
+                    either side, so it reads as a thing to drag (the yellow
+                    dot it replaced was taken for a marker), turned to lie
+                    along the line (LINE_ANGLE). */}
                 <g
                   className={`adm-handle${coach === 'line' ? ' coach-ring' : ''}`}
                   role="slider"
@@ -387,7 +393,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
                   aria-valuenow={Math.round(admitRate * 100)}
                   aria-valuetext={`Admit ${pct(admitRate)}: SAT ${count(minSat)} and GPA ${minGpa.toFixed(1)} and up`}
                   onKeyDown={onKey}
-                  transform={`translate(${line.mx} ${line.my})`}
+                  transform={`translate(${line.mx} ${line.my}) rotate(${LINE_ANGLE})`}
                   data-coach="line"
                 >
                   {coach === 'line' && <circle className="adm-handle-ring" r={30} />}

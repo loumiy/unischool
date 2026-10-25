@@ -154,19 +154,27 @@ of its programs are opened, since a finished school folds away), and
 are the seven tabs on the same year-50 run as the campus, each from that
 run written again with its own `--colors` (a seeded run replays exactly), and `summer-admissions.png` is the summer scenario's admissions
 beat, once the price is set and the pool it drew is on screen — in a taller
-viewport, since the card is taller than the modal's scroll box. The
+viewport, since the card is taller than the modal's scroll box. The summer
+waits to be opened (Plan 112C), so its first click is the note's *Open the
+summer*. The run's saves are written once a colour (the loop below), and the
+pictures go to the repository's `docs/images`, one level up. The
 presses do nothing but wait: the reveal counts its figures up for some
 seconds, and a shot taken at once catches them mid-count:
 
 ```sh
-for t in faculty research students athletics history treasury; do
-  npm run shot -- node_modules/.tmp/out.json docs/images/tab-$t.png --tab=$t --scale=2
+for tc in curriculum:maroon-gold faculty:royal-gold research:forest-gold students:navy-orange \
+    athletics:black-gold history:purple-gold treasury:crimson-silver; do
+  npm run scenario -- --player Completionist --year 50 --build-all --clear-modal --name Halifax \
+    --colors ${tc#*:} node_modules/.tmp/tab-${tc%%:*}.json
 done
-npm run shot -- node_modules/.tmp/out.json docs/images/tab-curriculum.png --tab=curriculum \
+for t in faculty research students athletics history treasury; do
+  npm run shot -- node_modules/.tmp/tab-$t.json ../docs/images/tab-$t.png --tab=$t --scale=2
+done
+npm run shot -- node_modules/.tmp/tab-curriculum.json ../docs/images/tab-curriculum.png --tab=curriculum \
   --press=".collapse-toggle" --press=".collapse-toggle >> nth=1" --press=".collapse-toggle >> nth=2" --scale=2
 npm run scenario -- summer --name Halifax --colors royal-gold node_modules/.tmp/summer.json
-npm run shot -- node_modules/.tmp/summer.json docs/images/summer-admissions.png \
-  --size=1440,900 --click="Continue" --click="Lock the price" \
+npm run shot -- node_modules/.tmp/summer.json ../docs/images/summer-admissions.png \
+  --size=1440,900 --click="Open the summer" --click="Continue" --click="Lock the price" \
   --press=".admissions-page-eyebrow" --press=".admissions-page-eyebrow" \
   --press=".admissions-page-eyebrow" --scale=2
 ```
@@ -249,8 +257,11 @@ building's four sides, and a facing shows that they turn with it.
 
 The trailer's opening shot (see `docs/reviews/2026-10-game-review/6-marketability.md`):
 one campus from its first week to year 50, the camera fixed, the interface
-gone. `timelapse.ts` plays one run and keeps a snapshot every `--every` weeks
-(13 by default, four a year); `timelapseShoot.mjs` photographs each and joins
+gone. The trailer's whole cut list, with the command for every shot and
+the seasonal year cut from this run, is
+[`docs/store/trailer.md`](../../docs/store/trailer.md). `timelapse.ts`
+plays one run and keeps a snapshot every `--every` weeks (13 by default,
+four a year); `timelapseShoot.mjs` photographs each and joins
 them into a WebM.
 
 ```sh
@@ -378,6 +389,23 @@ npm run itch:frame -- --check
 `itchCover.mjs` lays the title screen's mark and name over a bare campus
 shot for the page's cover image (`docs/store/itch-page.md` has the
 commands).
+
+`steamCapsules.mjs` (`npm run steam:capsules`) does the same for Steam's
+capsule set (Plan 117F): the header, small, main, vertical and library
+capsules, the library hero and the library logo, each drawn at exactly
+Steam's size from a wide, a tall and a hero campus shot, and each checked
+for its size once written (exit 1 if one is wrong). It writes
+`docs/store/steam/`; `--only=small,header` redraws some. The two share
+`coverArt.mjs` (the mark read from `Logo.tsx`, the name's face, the sky).
+
+```sh
+npm run shot -- campus-laid.json wide.jpg --bare --size=1920,1080 --tilt=-2 --zoom=0 --pan=0,300 --quality=92
+npm run shot -- campus-laid.json tall.jpg --bare --size=1000,1500 --tilt=-2 --zoom=0 --pan=0,380 --quality=92
+npm run shot -- campus-laid.json hero.jpg --bare --size=1920,620 --tilt=-2 --zoom=-1 --pan=0,150 --scale=2 --quality=92
+npm run steam:capsules -- --wide=wide.jpg --tall=tall.jpg --hero=hero.jpg --vivid
+```
+
+`docs/store/steam-page.md` has the whole recipe, the campus save included.
 
 Uploading is [`docs/store/itch-release.md`](../../docs/store/itch-release.md).
 

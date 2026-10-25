@@ -4,10 +4,11 @@
 [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool);
 0.1.1 went live on 13 October 2026. 0.1.2 was built on 16 October 2026
 (the Release workflow's run 4, from `main` at `4f5b83e`) and went up the
-same day. 0.1.3 is ready on `main` (21 October 2026), not yet built or
-uploaded; its description below goes up with it.
+same day. 0.1.3 went up on 21 October 2026 (`b1f2114`). 0.1.4 is ready
+on `main` (25 October 2026), not yet built or uploaded; its description
+below goes up with it.
 The owner rewrote the description on itch.io; the text below is the
-owner's, with the changes for 0.1.1, 0.1.2 and 0.1.3. The first draft
+owner's, with the changes for 0.1.1, 0.1.2, 0.1.3 and 0.1.4. The first draft
 (Plan 97I) was built from [`steam-page.md`](steam-page.md), cut to what
 an early playtest page needs. Every line says only what the game does on
 `main` today. "AI" never sits beside "school simulator" (the second
@@ -26,6 +27,7 @@ Uploading the build and the embed settings are in
 | Short description or tagline | Found a college and run it for fifty years. An early playtest: your feedback decides what changes. |
 | Classification | Games |
 | Kind of project | HTML |
+| Inputs | Keyboard, Mouse (not Touchscreen) |
 | Release status | In development |
 | Pricing | No payments (free while it's being tested) |
 | Genre | Simulation |
@@ -51,7 +53,17 @@ the fullscreen button and no automatic start.
 
 ## The description
 
-The text for 0.1.3, proposed on 21 October 2026 for the owner to agree.
+The text for 0.1.4, proposed on 25 October 2026 for the owner to agree.
+Four changes for 0.1.4:
+- the first line says "now 0.1.4";
+- *Make the big decisions* says the summer waits for you, the board
+  convenes for the specialization, and from Year 25 the board asks one
+  question a year;
+- *What to expect* says each objective has help a click away, and the
+  first summer is walked through with you;
+- the feedback ask names the text, which Plan 111 rewrote.
+
+The text for 0.1.3, proposed on 21 October 2026, went up with 0.1.3.
 Three changes for 0.1.3:
 - the first line says "now 0.1.3";
 - *Make the big decisions* says the summer's admissions are a page of
@@ -75,7 +87,7 @@ the line into the page's **Description**. The bold lines are its headings.
 
 ---
 
-**An early playtest build, now 0.1.3. Your feedback will help inform version 1.0.0!**
+**An early playtest build, now 0.1.4. Your feedback will help inform version 1.0.0!**
 
 UniSchool is a university management simulation about watching a small
 college become a robust institution.
@@ -122,8 +134,9 @@ attracting attention, decide what to do with its growing reputation.
 Every summer brings another year of consequences.
 
 How much should you charge for tuition? How many students should you
-admit? On admissions day the applicants rain in as a cloud, and you draw
-the line. Where should the next major investment go? Should you expand
+admit? When summer comes, the clock stops and waits until you open it.
+On admissions day the applicants rain in as a cloud, and you draw the
+line. Where should the next major investment go? Should you expand
 into a new field or deepen the ones you already have?
 
 You won't always know exactly what those decisions will produce. The
@@ -136,10 +149,12 @@ says, and the college remembers how you answered.
 
 Eventually, the university's identity starts to take shape.
 
-At a certain point, the board will ask you to choose what the college will
-become known for. You get one specialization, and your rivals will make
-their own choices. From there, the university's path is increasingly its
-own.
+At a certain point, the board will convene and ask you to choose what the
+college will become known for. Each pillar gets a panel of its own,
+with what it would build. You get one specialization, and your rivals
+will make their own choices. From there, the university's path is
+increasingly its own. In the later decades, the board asks one question
+a year, and each answer trades one strength for another.
 
 **Fifty years from now**
 
@@ -159,8 +174,10 @@ And after the report, you can keep playing.
 
 - Your first run opens with a short walkthrough that founds your first
   program with you (you can skip it). After it, the first five years run
-  as chapters: a few objectives at a time, each with a briefing a click
-  away. Settings can turn them down to a line or off.
+  as chapters, a few objectives at a time. Each objective has help a
+  click away, and *Show me* rings what to click. Your first summer is
+  walked through with you, one control at a time. Settings can turn the
+  chapters down to a line or off.
 - A full run is fifty years: roughly two to four hours, depending on the
   speed you play at, over as many sittings as you like. Growth is slow on
   purpose, and money paces the first decades.
@@ -181,7 +198,8 @@ And after the report, you can keep playing.
 
 What I most want to know: where you stopped, and why; whether you reached
 the specialization; whether the walkthrough and the chapters made sense;
-and what you thought of the summers and the Final Report.
+whether any sentence tripped you up; and what you thought of the summers
+and the Final Report.
 
 **Play statistics**
 
@@ -209,7 +227,7 @@ with the owner's decision noted:
 |---|---|---|
 | Text and dialogue | **Yes** | Every player-facing word was written with the assistant. |
 | Code | **Yes** | All of it. |
-| Graphics | **Yes, with the note** | No image generator; the code that draws every picture was written with the assistant. *The owner decides between this and "no".* |
+| Graphics | **Yes, with the note** | The title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art. Everything else is drawn by code written with the assistant. |
 | Sound and music | **No** | Synthesized live by code; the description's paragraph covers it. |
 
 The in-game credit is "Halifax Games", with the footnote "Made with the
@@ -221,7 +239,13 @@ part by part, as the disclosure doc advises.
 Retaken on 12 October 2026 (`main` after PR #341, the tinted shadows and 8px corners) with the repository's own
 tools (`npm run scenario`, `npm run layout`, `npm run shot`), on the
 production build, at 1920 × 1080 (16:9). In the second review's order
-(§4). Upload them in this order, under **Screenshots**.
+(§4). Upload them in this order, under **Screenshots**. Shots 2 and 4
+were retaken, and `6-chapters.jpg` added, on 24 October 2026 (Plan 117
+PR B, `main` after Plan 112: the admissions page with its hall, teaching
+and research as numbers, the objectives drawer). `6-chapters.jpg` is
+numbered for the Steam page's six; here it goes up seventh. It is laid out
+at 1440 × 810 and written at 1920 × 1080 (`--scale`), so the drawer's
+words read at the size of a store thumbnail.
 
 | # | File | Caption (for the alt text) |
 |---|---|---|
@@ -231,6 +255,7 @@ production build, at 1920 × 1080 (16:9). In the second review's order
 | 4 | [`itch/4-faculty.jpg`](itch/4-faculty.jpg) | Every professor, a person. |
 | 5 | [`itch/5-final-report.jpg`](itch/5-final-report.jpg) | Fifty years, graded, and a name for what you built. |
 | 6 | [`itch/6-young-campus.jpg`](itch/6-young-campus.jpg) | Five years in: the first halls round a quad. |
+| 7 | [`itch/6-chapters.jpg`](itch/6-chapters.jpg) | Chapters teach the founding years, one objective at a time. |
 
 ## The cover image
 
@@ -261,7 +286,8 @@ node tools/itchCover.mjs cover-bg.jpg ../docs/store/itch/cover.jpg --vivid
 npm run shot -- campus-laid.json cover-wide-bg.jpg --bare --size=1920,1080 --tilt=-2 --zoom=0 --pan=0,300
 node tools/itchCover.mjs cover-wide-bg.jpg ../docs/store/itch/cover-wide.jpg --size=960,540 --vivid
 npm run scenario -- summer summer.json
-npm run shot -- summer.json ../docs/store/itch/2-admissions.jpg --size=1920,1080 --click=Continue --click="Set tuition for the year"
+npm run shot -- summer.json ../docs/store/itch/2-admissions.jpg --size=1920,1080 --click="Open the summer" --click=Continue \
+  --click="Lock the price" --press=".admissions-page-eyebrow" --press=".admissions-page-eyebrow" --press=".admissions-page-eyebrow"
 npm run scenario -- specialization spec.json
 npm run shot -- spec.json ../docs/store/itch/3-specialization.jpg --size=1920,1080
 npm run scenario -- --player Completionist --year 45 --clear-modal --name Halifax --colors navy-gold late.json
@@ -271,4 +297,7 @@ npm run shot -- final.json ../docs/store/itch/5-final-report.jpg --size=1920,108
 npm run scenario -- --player Guided --year 5 --week 14 --clear-modal --name Halifax --colors navy-gold young.json
 npm run layout -- young.json young-laid.json
 npm run shot -- young-laid.json ../docs/store/itch/6-young-campus.jpg --size=1920,1080 --framed --zoom=3 --tilt=-2
+npm run scenario -- --player Guided --year 3 --week 14 --clear-modal --name Halifax --colors navy-gold founding.json
+npm run shot -- founding.json ../docs/store/itch/6-chapters.jpg --size=1440,810 --scale=1.3334 --framed --zoom=2 --tilt=-2 --pan=200,-20 \
+  --press=".map-tools-toggle" --press=".log-ticker-objective" --press=".objectives-list li:not(.met) .help-hint-btn >> nth=1"
 ```

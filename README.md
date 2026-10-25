@@ -52,7 +52,9 @@ there is a legacy, and more than one way to earn a good one.
 - ⚖️ **Deal with the unexpected** — donor offers, faculty departures, facility
   failures, chapter scandals and student demands. Every answer does what it
   says (a hire, a named scholarship, a campaign, a repair on the building
-  in question), and the college remembers how it answered.
+  in question), and the college remembers how it answered. From Year 25
+  the board also asks one question a year, each answer trading one pillar
+  for another for five years.
 
 ## The core loop
 
@@ -94,8 +96,9 @@ Prestige is a blend of four pillars: academics, research, student life and
 athletics. A school can be excellent at all four, but it can be the very best
 at only one. The first summer the college stands in the guide's top 30 — or,
 from Year 20, in the top 10 of any one pillar, or with student satisfaction
-of 85 or more in over half its years — the board offers it a single
-specialization: the faculty training program, the research park, the downtown
+of 85 or more in over half its years — the board convenes, on a page of
+its own with a panel for each pillar and what it would build, and offers
+the college a single specialization: the faculty training program, the research park, the downtown
 and its festival, or the athletic performance complex. Each brings a building
 and a way of working only it has, and fills the share of its pillar that only
 it can fill: without one, no pillar reaches the top. The choice is kept for
@@ -113,8 +116,9 @@ slots beside the autosave).
 
 The current focus is presentation and player experience — the campus map,
 the management interfaces, curriculum presentation, faculty interaction and
-the research systems. There is no art pipeline yet; everything on screen is
-drawn from data.
+the research systems. There is no art pipeline yet: the campus and the
+portraits are drawn from data, and the title-screen background is an
+AI-generated stand-in until commissioned art replaces it.
 
 ## Five architectures, eight colours
 
@@ -162,7 +166,7 @@ different pair of school colours.
 
 | | |
 |---|---|
-| ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: a figure row of course slots, then the faculty as a grid of faces, each with a grade for teaching and research, a quirk and the courses they carry](docs/images/tab-faculty.png) |
+| ![The Curriculum tab: the catalogue by school, a school opened to its programs, every course carrying its instructor and grade](docs/images/tab-curriculum.png) | ![The Faculty tab: a figure row of course slots, then the faculty as a grid of faces, each with a number for teaching and one for research, a quirk and the courses they carry](docs/images/tab-faculty.png) |
 | **Curriculum** — the catalogue by school and program, each with who teaches it and the grade they earn; a finished school folds away. | **Faculty** — the people: a grid of faces, each with a career, quirks and the courses they carry, under one row of figures, or as a table or a plot of teaching against research; the market and the departments a switch away. |
 | ![The Research tab: every lab with its initiative, team, depth and progress](docs/images/tab-research.png) | ![The Students tab: what the guidebooks say, satisfaction by attribute, clubs and Greek chapters](docs/images/tab-students.png) |
 | **Research** — each lab's running initiative: the topic, the team, the depth and what it has produced. | **Students** — satisfaction by attribute and what serves it, the clubs, the chapters and the demands. |
@@ -182,8 +186,10 @@ npm run dev
 Open the printed localhost URL. Name your school, pick its architecture and
 its colours, and a short walkthrough takes you through the first clicks —
 raise Founders Hall and found the first program. From there the first five
-years run as chapters in the NEXT bar, each a few objectives with a
-briefing a click away (J), until the college is yours to run.
+years run as chapters in the NEXT bar (J opens them): a few objectives at
+a time, each with help behind its (?) and a *Show me* that rings what to
+click. The first summer is walked through control by control, until the
+college is yours to run.
 
 ## Controls
 
@@ -192,12 +198,12 @@ briefing a click away (J), until the college is yours to run.
 | `W` `A` `S` `D`, arrows | Pan the camera |
 | Middle mouse drag | Pan |
 | Scroll / pinch, `+` `−` | Zoom |
-| `Space` | Pause / resume |
+| `Space` | Pause / resume (when the summer waits, open it) |
 | `1` `2` | Game speed |
 | `P` | Path tool |
 | `Q` `E` | Turn the view a quarter turn |
 | `Z` `X` | Tilt the view flatter / steeper |
-| `Home` | Back to the opening view |
+| `Home` | Back to the opening view, framed on what stands |
 | `R` | Rotate the picked-up building |
 | `Esc` | Back / close |
 | `Enter` | Dismiss the interrupt on screen |
@@ -271,8 +277,10 @@ One developer designs and directs it; an AI coding assistant (Claude Code)
 writes the code and the text from the developer's briefs, plan by plan, and
 the developer chooses between the designs and plays the game between plans.
 The campus and the faculty portraits are drawn by that code, and the music
-is synthesized by it. No image, sound or voice comes from a generator, and
-the game generates nothing while you play: it makes no network calls. The
+is synthesized by it. The title-screen background and the itch.io cover
+are AI-generated stand-ins, to be replaced by commissioned art. No other
+image, and no sound or voice, comes from a generator, and the game
+generates nothing while you play: it makes no network calls. The
 capsule art and the logo will be commissioned from an artist. The full
 disclosure, as worded for Steam and itch.io, is
 [`docs/store/ai-disclosure.md`](docs/store/ai-disclosure.md).
