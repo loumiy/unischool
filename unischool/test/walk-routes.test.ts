@@ -272,6 +272,12 @@ function stand(s: GameState, id: string, row: number, col: number, w: number, h:
   assert(two.length === 2 && roadTwo > 150 && roadTwo < 250, `with a dorm done, about one pick in five goes to the road (${roadTwo} of 1000)`);
 }
 
+// The road is a way off campus, not a spot to stand at (the owner,
+// playing 0.1.4): its stops fade a walker out over a few steps, and one
+// arriving there rests out of sight.
+assert(roadsides().every((st) => st.entrances.every((e) => e.away === true && e.side === null)), 'every road stop is a way out');
+assert(doorOpacity(9, 10, false, true, 0.35, 1.5) < 1 && doorOpacity(9, 10, false, true) === 1, 'a walker fades over the road\'s longer reach');
+
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);
