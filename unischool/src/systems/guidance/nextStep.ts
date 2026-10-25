@@ -22,6 +22,7 @@ import { crowdingCoverages, CROWDING_GRACE } from '../prestige/prestigeSystem';
 import { initiativeOffers } from '../../data/researchData';
 import { milestoneById, milestoneForBuildable } from '../../data/ladderData';
 import { financeBreakdown } from '../finance/financeSystem';
+import { guidedRun } from './gates';
 
 // The next step: one toolbar line naming the highest-value thing on offer.
 // In year 1 it is the earliest undone letter ask (the letters' order must
@@ -158,6 +159,7 @@ function letterAsk(s: GameState): NextStep | null {
   for (const letter of OPENING_LETTERS) {
     if (!read.includes(letter.id) || letter.done(s)) continue;
     if (!letter.arrives && s.clock.year !== 1) continue;
+    if (chapterSpeaks(s, letter.chapter)) continue;
     const ask = letter.ask(s);
     return {
       text: ask.text, ...(ask.go ? { go: ask.go } : {}), ...(ask.hallId ? { hallId: ask.hallId } : {}),
@@ -165,6 +167,22 @@ function letterAsk(s: GameState): NextStep | null {
     };
   }
   return null;
+}
+
+// In a run the chapters guide, a letter's ask waits for its chapter and
+// then gives way to it until the chapter is done: the drawer's "Also
+// waiting" is this line, and it asked for a residence hall two weeks
+// before *Somewhere to sleep* opened, then said what the chapter said
+// (the owner, playing 0.1.4).
+function chapterSpeaks(s: GameState, chapter: string | undefined): boolean {
+  return chapter !== undefined && guidedRun(s) && s.guidance!.done[chapter] === undefined;
+}
+// The students' needs, as figures, wait for *Standing*, the chapter that
+// shows them (from the first commencement, Plan 104M); before it the
+// chapters ask for the buildings, not a number.
+const NEEDS_CHAPTER = 'standing';
+function needsShown(s: GameState): boolean {
+  return !guidedRun(s) || s.guidance!.opened[NEEDS_CHAPTER] !== undefined;
 }
 
 // A school to establish (Plan 80D): once a second academic hall stands,
@@ -318,6 +336,7 @@ export function comingFor(s: GameState, key: keyof SatisfactionAttributes): { bu
 // does not build twice either; once the building opens, the line reads the
 // need afresh.
 function shortfall(s: GameState): NextStep | null {
+  if (!needsShown(s)) return null;
   let worst: { key: keyof SatisfactionAttributes; score: number } | null = null;
   for (const key of Object.keys(ATTRIBUTE_LABEL) as Array<keyof SatisfactionAttributes>) {
     const score = s.students.satisfactionBreakdown[key];
@@ -352,6 +371,7 @@ const CROWDED_LABEL: Partial<Record<keyof SatisfactionAttributes, string>> = {
   housing: 'Housing', basicNeeds: 'Dining', health: 'Health care',
 };
 function crowding(s: GameState, rest: NextStep | null): NextStep | null {
+  if (!needsShown(s)) return rest;
   const worst = crowdingCoverages(s).find((c) => c.attribute !== undefined && c.coverage < CROWDING_GRACE);
   if (!worst?.attribute) return rest;
   const need = `${CROWDED_LABEL[worst.attribute] ?? ATTRIBUTE_LABEL[worst.attribute]} at ${pct(worst.coverage)}`;
