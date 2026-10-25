@@ -52,7 +52,9 @@ there is a legacy, and more than one way to earn a good one.
 - ⚖️ **Deal with the unexpected** — donor offers, faculty departures, facility
   failures, chapter scandals and student demands. Every answer does what it
   says (a hire, a named scholarship, a campaign, a repair on the building
-  in question), and the college remembers how it answered.
+  in question), and the college remembers how it answered. From Year 25
+  the board also asks one question a year, each answer trading one pillar
+  for another for five years.
 
 ## The core loop
 
@@ -94,8 +96,9 @@ Prestige is a blend of four pillars: academics, research, student life and
 athletics. A school can be excellent at all four, but it can be the very best
 at only one. The first summer the college stands in the guide's top 30 — or,
 from Year 20, in the top 10 of any one pillar, or with student satisfaction
-of 85 or more in over half its years — the board offers it a single
-specialization: the faculty training program, the research park, the downtown
+of 85 or more in over half its years — the board convenes, on a page of
+its own with a panel for each pillar and what it would build, and offers
+the college a single specialization: the faculty training program, the research park, the downtown
 and its festival, or the athletic performance complex. Each brings a building
 and a way of working only it has, and fills the share of its pillar that only
 it can fill: without one, no pillar reaches the top. The choice is kept for
@@ -183,8 +186,10 @@ npm run dev
 Open the printed localhost URL. Name your school, pick its architecture and
 its colours, and a short walkthrough takes you through the first clicks —
 raise Founders Hall and found the first program. From there the first five
-years run as chapters in the NEXT bar, each a few objectives with a
-briefing a click away (J), until the college is yours to run.
+years run as chapters in the NEXT bar (J opens them): a few objectives at
+a time, each with help behind its (?) and a *Show me* that rings what to
+click. The first summer is walked through control by control, until the
+college is yours to run.
 
 ## Controls
 
@@ -193,12 +198,12 @@ briefing a click away (J), until the college is yours to run.
 | `W` `A` `S` `D`, arrows | Pan the camera |
 | Middle mouse drag | Pan |
 | Scroll / pinch, `+` `−` | Zoom |
-| `Space` | Pause / resume |
+| `Space` | Pause / resume (when the summer waits, open it) |
 | `1` `2` | Game speed |
 | `P` | Path tool |
 | `Q` `E` | Turn the view a quarter turn |
 | `Z` `X` | Tilt the view flatter / steeper |
-| `Home` | Back to the opening view |
+| `Home` | Back to the opening view, framed on what stands |
 | `R` | Rotate the picked-up building |
 | `Esc` | Back / close |
 | `Enter` | Dismiss the interrupt on screen |

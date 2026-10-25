@@ -17,11 +17,61 @@ archive, and what is left here waits for later.*
 
 ---
 
-## Shipped in 0.1.3
+## Shipped in 0.1.4
+
+*Everything merged after the 0.1.3 build (`b1f2114`) to 25 October 2026,
+from the playtest's players since 0.1.3 (F7, F8, S3), the third game
+review (Plan 109) and the owner's own play; the upload is the owner's.
+What players see is in
+[`docs/store/changelog.md`](docs/store/changelog.md).*
+
+- [Plan 110](docs/plans/110-the-board-convenes.md): the specialization as
+  a short letter and a full-screen page, a panel per pillar with what it
+  builds drawn and where the college stands, and a second ask in a bar.
+- [Plan 111](docs/plans/111-plain-words.md): plain words for the first
+  hour, the chapters, the letters, the summer, the help and the events;
+  buttons that say what happens, red for losses; a text check in the
+  tests.
+- [Plan 112](docs/plans/112-the-owners-notes-for-0-1-4.md): the
+  objectives drawer as a list with (?) help and Show me; the summer that
+  waits; a guided first summer; the calendar in weeks 1–52; athletics
+  from the varsity petition, walked; course milestones; *Promises* and
+  *The long game* removed; the chair's letters folded into the chapters;
+  the map's notes; the hall as a room; every program moving the same
+  way.
+- *Looking around*, a chapter for the camera (F7), and the map's keys
+  live under the drawer.
+- [Plan 113](docs/plans/113-the-old-save-and-loose-ends.md): the 0.1.2
+  save on a retired walkthrough step loads (no 0.1.3.1; the fix ships
+  here), the old appointing step, athletics' stops held to their
+  chapters, a named team kept, the admit note, and the harness's marks,
+  `demand` and Provost.
+- [Plan 114](docs/plans/114-words-that-hold-and-doors-that-land.md): the
+  briefings' numbers tied to their constants, one prestige vocabulary,
+  the Review's class line, numbers for letters, *The teams* on a team and
+  the ticker on the main chapter, doors that land, the small doubts, and
+  a Curriculum that opens only what you can act on.
+- [Plan 115](docs/plans/115-the-young-campus.md): the camera framed on
+  what stands, the founding drive, walkers before paths, a path
+  objective, winter on the newer roofs, the Arena's front, the founding
+  and title screens in 720 px, dressing on a quad's lawn, and the year-5
+  store shot.
+- [Plan 116](docs/plans/116-the-late-years-and-the-happiest-college.md):
+  a matter pauses only when short of time, the satisfaction route to the
+  specialization and its title, and the board's yearly question from
+  Year 25.
+- The tuition slider ends at $60,000; the toolbar popups sit above the
+  activity strip; the admission line's handle lies along the line; the
+  ghost's rotate handle is gone (S3).
+- [Plan 117](docs/plans/117-the-road-to-next-fest.md), in progress: its
+  store link (G) is in the build but shows nothing until a build sets
+  it; the rest is docs and tools.
+
+## Shipped in 0.1.3 (21 October 2026)
 
 *Everything merged after the 0.1.2 build (`4f5b83e`) to 21 October 2026,
 from the playtest's players since 0.1.2 (F5, F6, S2) and the owner's own
-play; the upload is the owner's. What players see is in
+play; uploaded 21 October 2026 (`b1f2114`). What players see is in
 [`docs/store/changelog.md`](docs/store/changelog.md).*
 
 - [Plan 106](docs/plans/106-the-first-five-years.md): the walkthrough ends
