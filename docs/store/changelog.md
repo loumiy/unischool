@@ -149,8 +149,8 @@ campus, and the late years (Plans 113–116).*
 - **Benches on the quad.** You can set out benches, lamps and flower beds
   on a first quad's lawn. The Grand Quad's planted panels take none.
   (115H)
-- **An unlocked architecture's letter shows its buildings**: an academic
-  hall, a residence, the Student Center and the library. (112D)
+- **An unlocked architecture's letter shows its buildings**: Founders
+  Hall and the library, drawn in it. (112D)
 
 ### Fixed
 
