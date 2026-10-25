@@ -34,6 +34,7 @@ import { isDiningHall, isDorm } from '../src/data/openingData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { loadGame, saveGame } from '../src/state/persistence';
+import { nextStep } from '../src/systems/guidance/nextStep';
 import { teachPillars } from './fixtures/teaching';
 import type { Buildable, GameState } from '../src/state/types';
 import { createElement, isValidElement, type ReactElement, type ReactNode } from 'react';
@@ -728,6 +729,36 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(stateEvents(old, after).every((e) => !e.name.startsWith('chapter_')), 'an old save caught up all at once sends nothing');
   assert(eventFits('guide_opened', { chapter: 'standing', from: 'tab' }) && !eventFits('guide_opened', { chapter: 'nothing', from: 'tab' }), 'guide_opened takes only a known chapter');
   assert(CHAPTERS.every((c) => CHAPTER_IDS.includes(c.id)), 'every chapter can be named');
+}
+
+// ---- The NEXT line defers to the chapters (the owner, playing 0.1.4) ----
+{
+  // Year 1, week 8, a guided run between Looking around and Somewhere to
+  // sleep: the drawer's "Also waiting" asked for a residence hall two weeks
+  // before the chapter opened, and gave the needs as figures.
+  const y1 = teaching();
+  y1.clock.year = 1;
+  y1.clock.week = 8;
+  y1.events.opening.read = ['doors-open'];
+  y1.events.opening.skipped = false;
+  // No beds yet: housing is the worst need.
+  y1.students.satisfactionBreakdown.housing = 10;
+  const done = { founding: 1, 'next-course': 1, 'looking-around': 1, seats: 1 };
+  y1.guidance = { opened: { ...done }, done: { ...done }, met: [], marked: [], gated: true };
+  const step = nextStep(y1);
+  assert(!/out of 100|residence|dining/i.test(step?.text ?? ''), `before Somewhere to sleep opens, NEXT asks for neither a building nor a need's figure (${step?.text})`);
+  const headless = structuredClone(y1);
+  headless.guidance!.gated = undefined;
+  const plain = nextStep(headless);
+  assert(/residence hall/.test(plain?.text ?? ''), `with chapters off the line reads the needs as before (${plain?.text})`);
+  // Once Standing opens, the needs speak again.
+  const y2 = structuredClone(y1);
+  y2.guidance!.opened.standing = 53;
+  y2.events.opening.skipped = true;
+  y2.clock.year = 2;
+  y2.clock.week = 1;
+  const later = nextStep(y2);
+  assert(later !== null, `from Standing the line reads the campus again (${later?.text})`);
 }
 
 if (failures === 0) {

@@ -364,7 +364,9 @@ const walkToCourse = (name: string) => reducer(
   assert(!(FOUNDERS_HALL_ID in h.placements) && openingHoldsClock(h), 'but the hall stays unplaced and the clock held');
   assert(nextStep(h)?.text.startsWith('Place Founders Hall') === true, 'and the line says to site it');
   h = siteHall(h);
-  assert(!openingHoldsClock(h) && nextStep(h)?.text === OPENING_LETTERS[0].ask(h).text, `sited, the line is the first letter's ask (${nextStep(h)?.text})`);
+  // The first letter's ask gives way to its chapter, Seats for everyone,
+  // and the line reads the seating, which asks the same in its own words.
+  assert(!openingHoldsClock(h) && /found a program in Founders Hall/.test(nextStep(h)?.text ?? ''), `sited, the line asks for the first program (${nextStep(h)?.text})`);
 
   // From the program's step: the hall stands, so the clock runs.
   let f = siteHall(reducer(foundWalk('Skip found'), { type: 'ADVANCE_OPENING' }));

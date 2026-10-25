@@ -253,10 +253,10 @@ function measure(route: Waypoint[]): number[] {
 }
 
 // How far a walker has faded into a wall: 1 in the open, 0 behind a door.
-export function doorOpacity(u: number, total: number, fromDoor: boolean, toDoor: boolean): number {
+export function doorOpacity(u: number, total: number, fromDoor: boolean, toDoor: boolean, fromFade = DOOR_FADE, toFade = DOOR_FADE): number {
   let o = 1;
-  if (fromDoor) o = Math.min(o, u / DOOR_FADE);
-  if (toDoor) o = Math.min(o, (total - u) / DOOR_FADE);
+  if (fromDoor) o = Math.min(o, u / fromFade);
+  if (toDoor) o = Math.min(o, (total - u) / toFade);
   return Math.max(0, Math.min(1, o));
 }
 
@@ -271,6 +271,13 @@ export function doorsHeld(u: number, total: number, exit: string | null, entry: 
 }
 
 const doorKey = (id: string | null, e: Entrance | null) => (id && e?.side ? `${id}|${e.side}` : null);
+// A walker goes out of sight at a door, and at the road, where it leaves
+// the campus over a few steps rather than standing at the edge and turning
+// back (the owner, playing 0.1.4: "they walk to a random spot, stop, and
+// turn around").
+const ROAD_FADE = 1.5;
+const vanishes = (e: Entrance | null) => !!e && (e.side !== null || e.away === true);
+const fadeOf = (e: Entrance | null) => (e?.away ? ROAD_FADE : DOOR_FADE);
 
 function along(route: Waypoint[], lengths: number[], u: number): Waypoint {
   const total = lengths[lengths.length - 1] ?? 0;
@@ -332,6 +339,8 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
     const timer = setTimeout(() => setRouteLayout(layout), PATH_SETTLE_MS);
     return () => clearTimeout(timer);
   }, [layout, routeLayout]);
+  // The buildings the walkers' routes under way were planned on (routeKeyOf).
+  const plannedRef = useRef<string | null>(null);
   const randomRef = useRef(rng(0x5eed));
   // In tens past the first few dozen: a week that loses a student must not
   // rebuild the crowd and its routes.
@@ -396,7 +405,7 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
         w.route = [w.at.entrances[0].face];
         w.lengths = [0];
         w.u = 0;
-        w.inside = false;
+        w.inside = true;
         w.waitUntil = now + 100;
         return;
       }
@@ -421,16 +430,28 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
       const door = start.entrances[0];
       walkers.push({
         ...made, shirt, trousers, moving: false, route: [door.face], lengths: [0], u: 0,
-        at: start, exit: null, entry: null, exitId: null, entryId: null, inside: door.side !== null,
+        at: start, exit: null, entry: null, exitId: null, entryId: null, inside: vanishes(door),
         pace: 1 - PACE_SPREAD + random() * PACE_SPREAD * 2, phase: random() * Math.PI * 2, opacity: -1,
         waitUntil: performance.now() + random() * 1500,
       });
     }
     // A new campus: every walker keeps its place and finds its way again.
     // One on its way sets off afresh from where it stands; one at rest
-    // leaves from where it rests, or from where its building stood.
+    // leaves from where it rests, or from where its building stood. Only
+    // when the buildings changed, though: a path laid or lifted, or the
+    // crowd grown by ten, left every route the crowd was on still good,
+    // and replanning them all stopped the whole campus mid-stride for a
+    // beat (S3, more than once). Those walk on, and take the new paths on
+    // their next way out.
+    const plannedKey = routeKeyOf(routeLayout);
+    const replan = plannedRef.current !== null && plannedRef.current !== plannedKey;
+    plannedRef.current = plannedKey;
     for (const w of walkers) {
       const total = w.lengths[w.lengths.length - 1];
+      if (!replan) {
+        if (w.at.id) w.at = byKey.get(w.at.key) ?? w.at;
+        continue;
+      }
       const pos = along(w.route, w.lengths, w.u);
       const c = Math.floor(pos.col);
       const r = Math.floor(pos.row);
@@ -446,7 +467,7 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
         else if (w.at.id) {
           const e = w.at.entrances[0];
           w.at = walkable(e.col, e.row) ? pointStop(e.col, e.row) : roadside();
-          w.inside = false;
+          w.inside = vanishes(w.at.entrances[0]);
         }
       }
       w.route = [pos];
@@ -567,14 +588,14 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
             moving = true;
             if (w.u >= total) {
               w.waitUntil = now + LINGER_MS[0] + random() * (LINGER_MS[1] - LINGER_MS[0]);
-              w.inside = !!w.entry?.side;
+              w.inside = vanishes(w.entry);
             }
           }
         }
         const len = w.lengths[w.lengths.length - 1];
         // Faded into a wall at either end; hidden while it rests inside.
         const o = len > 0
-          ? doorOpacity(w.u, len, !!w.exit?.side, !!w.entry?.side)
+          ? doorOpacity(w.u, len, vanishes(w.exit), vanishes(w.entry), fadeOf(w.exit), fadeOf(w.entry))
           : (w.inside ? 0 : 1);
         const oq = Math.round(o * 20) / 20;
         if (oq !== w.opacity) {

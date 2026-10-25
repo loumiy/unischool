@@ -164,7 +164,7 @@ export const MILESTONES: readonly Milestone[] = [
     id: 'curriculum',
     tier: 'Founding',
     name: 'A curriculum',
-    condition: `${FIRST_HALL_COURSE_GATE} courses developed`,
+    condition: `${FIRST_HALL_COURSE_GATE} courses taught`,
     reached: (s) => coursesDone(s) >= FIRST_HALL_COURSE_GATE,
     progress: (s) => ({ value: coursesDone(s), target: FIRST_HALL_COURSE_GATE, unit: 'courses' }),
     buildables: ['HALL-01'],

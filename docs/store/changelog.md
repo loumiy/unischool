@@ -154,6 +154,17 @@ campus, and the late years (Plans 113–116).*
 
 ### Fixed
 
+- **Walkers no longer stop when you lay a path.** Placing or lifting a
+  path made every student on campus stop mid-stride and pick a new way.
+  Now they finish the walk they're on and use the new path next time.
+  (S3)
+- **Walkers no longer stand at the edge of campus and turn back.** A
+  student heading for the road now walks off campus and fades out, as
+  through a door, and comes back from there later.
+- **The objectives box no longer asks ahead of its chapters.** Its *Also
+  waiting* line asked for a residence hall before *Somewhere to sleep*
+  opened, and gave the students' needs as numbers before *Standing*
+  shows them. With chapters on, it now waits for the chapter.
 - **A 0.1.2 save on an old walkthrough step stopped the game** on
   Continue in 0.1.3. It now loads and plays on. A save on the old
   appointing step counts the programs on offer and asks you to appoint a

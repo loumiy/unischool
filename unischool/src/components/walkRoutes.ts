@@ -41,7 +41,9 @@ export interface Tile { col: number; row: number }      // a tile, by its corner
 // A way in: the tile a walker steps from, and the point on the wall it walks
 // to (the door, at the wall's middle). `side` is null for a stop with no
 // wall to go through: the road, a sports ground, a village green.
-export interface Entrance extends Tile { face: Waypoint; side: FaceDir | null }
+// `away`: the road, where a walker leaves the campus, fading out as it
+// would through a door, rather than standing at the edge and turning back.
+export interface Entrance extends Tile { face: Waypoint; side: FaceDir | null; away?: true }
 
 // Somewhere to walk to: a building's open doors, or a point by the road.
 export interface Stop {
@@ -146,7 +148,10 @@ export function doors(input: WalkInput, grid: Float32Array): Stop[] {
 // along the road.
 export function roadsides(): Stop[] {
   const out: Stop[] = [];
-  for (let c = 4; c < W - 4; c += 8) out.push(pointStop(c, ROAD_FIRST_ROW));
+  for (let c = 4; c < W - 4; c += 8) {
+    const st = pointStop(c, ROAD_FIRST_ROW);
+    out.push({ ...st, entrances: st.entrances.map((e) => ({ ...e, away: true as const })) });
+  }
   return out;
 }
 
