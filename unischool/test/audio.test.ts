@@ -8,9 +8,8 @@ import { CEREMONIAL_FROM, SILENT_TOPICS, ambienceFor, cuesFor, linesSince, state
 import { DEFAULT_AUDIO, normaliseAudio } from '../src/components/audio/settings';
 import { AudioEngine } from '../src/components/audio/engine';
 import { RUNG_FREEZE, RUNG_TIGHT, foundingDistress } from '../src/systems/finance/distress';
-import { OCCASIONS } from '../src/systems/athletics/season';
 import { statSync } from 'node:fs';
-import { LOG_TOPICS, type GameState, type LogEntry, type VarsityTeam } from '../src/state/types';
+import { LOG_TOPICS, type GameState, type LogEntry } from '../src/state/types';
 
 bindScriptStream(3340);
 
@@ -98,29 +97,11 @@ for (const theme of THEMES) {
 
 // ---- The campus ----
 {
-  const s = at(10, 36);
-  s.students.classes = { freshman: 600, sophomore: 500, junior: 450, senior: 400 };
-  const term = ambienceFor(s);
-  assert(term.crowd > 0 && term.crowd < 1, `a murmur with the roll (${term.crowd.toFixed(2)})`);
-  s.pendingInterrupt = { type: 'summer', payload: { beat: 0, tuition: 0, admitRate: 0.5 } } as GameState['pendingInterrupt'];
-  assert(ambienceFor(s).crowd < term.crowd, 'thinner over the summer');
-  s.students.classes = { freshman: 0, sophomore: 0, junior: 0, senior: 0 };
-  assert(ambienceFor(s).crowd === 0, 'silent with nobody there');
   assert(winterDepth(26) === 1 && winterDepth(27) === 1 && winterDepth(1) === 0 && winterDepth(52) === 0, 'winter is deepest at the turn of the terms, and summer has none');
   const deep = ambienceFor(at(10, 26));
   const warm = ambienceFor(at(10, 44));
-  assert(deep.wind > warm.wind && warm.birds > deep.birds, 'wind in the winter, birds out of it');
-}
-
-// ---- The stadium ----
-{
-  const game = OCCASIONS[0].week;
-  const s = at(10, game);
-  assert(!ambienceFor(s).roar, 'no roar without a team');
-  s.orgs.teams = [{ id: 't', sport: 'football', status: 'active' } as unknown as VarsityTeam];
-  assert(ambienceFor(s).roar, 'a roar on a game week');
-  s.clock.week = game + 1;
-  assert(!ambienceFor(s).roar, 'and not the week after');
+  assert(warm.birds > deep.birds && deep.birds === 0, 'birds out of the winter, none in its deep');
+  assert(Object.keys(warm).join() === 'birds', 'the campus is birdsong, nothing else');
 }
 
 // ---- The log cues its effects ----

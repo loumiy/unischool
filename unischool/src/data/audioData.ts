@@ -53,10 +53,7 @@ interface AudioFile {
   // A log topic to the effect its new lines play.
   cues: Partial<Record<LogTopic, string>>;
   ambience: {
-    crowd: { gain: number; fullAt: number; summer: number };
-    wind: { gain: number };
     birds: { perSecond: number; gain: number };
-    roar: { gain: number };
   };
   words: Record<'sound' | 'mute' | 'unmute' | 'master' | 'music' | 'ambience' | 'sfx' | 'hint', string>;
 }
@@ -628,20 +625,9 @@ const AUDIO: AudioFile = {
     "training": "tick"
   },
   "ambience": {
-    "crowd": {
-      "gain": 0.35,
-      "fullAt": 6000,
-      "summer": 0.35
-    },
-    "wind": {
-      "gain": 0.25
-    },
     "birds": {
       "perSecond": 0.35,
       "gain": 0.04
-    },
-    "roar": {
-      "gain": 0.3
     }
   },
   "words": {
@@ -652,7 +638,7 @@ const AUDIO: AudioFile = {
     "music": "Music",
     "ambience": "Campus",
     "sfx": "Effects",
-    "hint": "Music follows the college's fortunes; the campus sounds like however many live there. M mutes."
+    "hint": "Music follows the college's fortunes; birds sing on the campus out of the winter. M mutes."
   }
 };
 

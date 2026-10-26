@@ -5,16 +5,15 @@ import { audio } from './engine';
 // The listening bench (Plan 34, v2's), in the debug panel: the mix has never been
 // heard by a person, and this is where a person hears it. Solo and loop
 // each theme, solo a layer (music, ambience, effects), fire each effect,
-// set the season's ambience by hand, and take the scripted tour — the four
+// set the season's birdsong by hand, and take the scripted tour — the four
 // themes and the seasons in turn — so a listener can set the levels in
 // data/audioData.ts and flag anything harsh, repetitive or wrong.
 
 const LAYERS = ['music', 'ambience', 'sfx'] as const;
 const SEASONS = [
-  { label: 'Summer', a: { crowd: 0.4, wind: 0, birds: 0.8, roar: false } },
-  { label: 'Term', a: { crowd: 1, wind: 0.1, birds: 0.3, roar: false } },
-  { label: 'Winter', a: { crowd: 0.6, wind: 1, birds: 0, roar: false } },
-  { label: 'Game day', a: { crowd: 1, wind: 0.2, birds: 0.1, roar: true } },
+  { label: 'Summer', a: { birds: 0.8 } },
+  { label: 'Term', a: { birds: 0.3 } },
+  { label: 'Winter', a: { birds: 0 } },
 ];
 const TOUR_SECONDS = 24;
 
