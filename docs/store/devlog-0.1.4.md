@@ -1,7 +1,7 @@
 # Devlog draft — UniSchool 0.1.4
 
-*A draft for the itch.io devlog, for the owner to edit and post with the
-0.1.4 upload. Started by Plan 117A with the correction that has to open
+*The itch.io devlog for 0.1.4, posted with the upload on 26 October
+2026. Started by Plan 117A with the correction that has to open
 it. The rest covers everything merged since the 0.1.3 build (`b1f2114`):
 Plans 110–116, the tuition slider's new top, and the small fixes beside
 them. Plan 117's store link stays dormant in this build, so it isn't

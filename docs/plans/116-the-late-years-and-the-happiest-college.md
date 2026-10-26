@@ -8,8 +8,8 @@ recommended fix for both. The findings are in
 [the review's area 4](../reviews/2026-10-game-review-iii/4-strategy.md),
 its tables in [4a](../reviews/2026-10-game-review-iii/4a-goal-players.md).*
 
-**Status: Landed on the branch (24 October 2026), A–D, to ship with
-0.1.4.** The owner took §2's recommendations. Notes on where the PRs
+**Status: Landed on the branch (24 October 2026), A–D, shipped in
+0.1.4 (26 October 2026).** The owner took §2's recommendations. Notes on where the PRs
 landed differently are in §4.
 
 ---

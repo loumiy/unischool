@@ -11,8 +11,8 @@ the glance saying what opens a zero pillar; the small doubts; The teams
 opening on a team, with the ticker on the main chapter; and a Curriculum
 that opens only the rows you can act on.*
 
-**Status: Landed on the branch (23 October 2026), A–H, to ship with
-0.1.4.** The owner took §2's recommendations. Notes on where the PRs
+**Status: Landed on the branch (23 October 2026), A–H, shipped in
+0.1.4 (26 October 2026).** The owner took §2's recommendations. Notes on where the PRs
 landed differently are in §4.
 
 ---

@@ -9,8 +9,8 @@ before there are paths, winter on the newer roofs, an Arena that is not a
 shed, and a founding screen that fits a 1280×720 laptop. The review is
 [`docs/reviews/2026-10-game-review-iii/1-aesthetics.md`](../reviews/2026-10-game-review-iii/1-aesthetics.md).*
 
-**Status: Landed on the branch (23 October 2026), A–I, to ship with
-0.1.4.** The owner took §2's recommendations. Notes on where the PRs
+**Status: Landed on the branch (23 October 2026), A–I, shipped in
+0.1.4 (26 October 2026).** The owner took §2's recommendations. Notes on where the PRs
 landed differently are in §4.
 
 ---

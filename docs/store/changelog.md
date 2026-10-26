@@ -5,7 +5,7 @@ point to the development records in `docs/plans/`.*
 
 ---
 
-## 0.1.4
+## 0.1.4 — 26 October 2026
 
 *The specialization as the board's own page (Plan 110), plain words
 across the game (Plan 111), the owner's notes and Stephen's livestream

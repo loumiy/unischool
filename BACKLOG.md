@@ -17,7 +17,7 @@ archive, and what is left here waits for later.*
 
 ---
 
-## Shipped in 0.1.4
+## Shipped in 0.1.4 (26 October 2026)
 
 *Everything merged after the 0.1.3 build (`b1f2114`) to 25 October 2026,
 from the playtest's players since 0.1.3 (F7, F8, S3), the third game

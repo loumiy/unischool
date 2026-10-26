@@ -8,8 +8,8 @@ renames the teams (C3-10), the admissions note that still talks of
 crowding (C3-8, I7-6), three harness gaps (I7-5a, I7-5b, I7-5c) and two
 stale records (I7-7). The owner took the recommended fix on each.*
 
-**Status: Landed on the branch (23 October 2026), A–F, to ship with
-0.1.4.** The owner chose (b) on §2.1: no 0.1.3.1. On §2.2, Guided and the
+**Status: Landed on the branch (23 October 2026), A–F, shipped in
+0.1.4 (26 October 2026).** The owner chose (b) on §2.1: no 0.1.3.1. On §2.2, Guided and the
 Completionist appoint the Provost, as recommended.
 
 ---

@@ -4,9 +4,9 @@
 [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool);
 0.1.1 went live on 13 October 2026. 0.1.2 was built on 16 October 2026
 (the Release workflow's run 4, from `main` at `4f5b83e`) and went up the
-same day. 0.1.3 went up on 21 October 2026 (`b1f2114`). 0.1.4 is ready
-on `main` (25 October 2026), not yet built or uploaded; its description
-below goes up with it.
+same day. 0.1.3 went up on 21 October 2026 (`b1f2114`). 0.1.4 was built on
+26 October 2026 (the Release workflow's run 7, from `main` at `d085c5a`)
+and went up the same day, with the description below.
 The owner rewrote the description on itch.io; the text below is the
 owner's, with the changes for 0.1.1, 0.1.2, 0.1.3 and 0.1.4. The first draft
 (Plan 97I) was built from [`steam-page.md`](steam-page.md), cut to what
@@ -53,7 +53,7 @@ the fullscreen button and no automatic start.
 
 ## The description
 
-The text for 0.1.4, proposed on 25 October 2026 for the owner to agree.
+The text for 0.1.4, up with it on 26 October 2026.
 Four changes for 0.1.4:
 - the first line says "now 0.1.4";
 - *Make the big decisions* says the summer waits for you, the board
