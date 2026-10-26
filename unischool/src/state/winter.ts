@@ -5,7 +5,7 @@ import { WEEKS_PER_YEAR } from './types';
 // summer beat at week 52, so winter is the turn of the terms: it sets in
 // from week 17, is deepest from week 24 to week 29 (while the map's snow
 // lies deepest, components/seasons.ts), and is gone by week 36. The events'
-// winter conditions and the ambience's wind read it; it used to center on
+// winter conditions and the ambience's birds read it; it used to center on
 // week 52, the summer.
 export const WINTER_FROM = 17;
 export const WINTER_DEEP_FROM = 24;

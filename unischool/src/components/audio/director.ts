@@ -1,10 +1,8 @@
 import { AMBIENCE, CUES, type ThemeId } from '../../data/audioData';
-import { WEEKS_PER_YEAR, totalEnrolled, type GameState, type LogEntry, type LogTopic } from '../../state/types';
+import { WEEKS_PER_YEAR, type GameState, type LogEntry, type LogTopic } from '../../state/types';
 import { playerRank } from '../../systems/rivals/rivalsSystem';
 import { RUNG_FREEZE, distressOf } from '../../systems/finance/distress';
-import { OCCASIONS } from '../../systems/athletics/season';
 import { winterDepth } from '../../state/winter';
-import { PLAYOFF_WEEK } from '../../systems/athletics/playoffs';
 
 // What the college sounds like, read off the state (Plan 34, v2's director
 // rewritten for this game's). Pure: the engine plays whatever these say,
@@ -27,37 +25,21 @@ export function themeFor(s: GameState | null): ThemeId {
 }
 
 export interface AmbienceLevels {
-  crowd: number; // 0–1 of the crowd's gain: how many live here
-  wind: number; // 0–1: how deep the winter is
   birds: number; // chirps a second
-  roar: boolean; // a game this week
 }
 
 // How deep into winter the week is: the catalog's own reading
 // (state/winter.ts), deepest at the turn of the terms.
 export { winterDepth };
 
-// A game on this week: one of the season's dated occasions, or the
-// postseason, once the college has a varsity team.
-export function gameWeek(s: GameState): boolean {
-  const dated = OCCASIONS.some((o) => o.week === s.clock.week) || s.clock.week === PLAYOFF_WEEK;
-  return dated && s.orgs.teams.some((t) => t.status === 'active');
-}
-
-// The campus: a murmur that scales with the roll (and thins over the
-// summer, when the students are away), wind with the winter, birds when it
-// is not, and a stadium's roar on a game week.
+// The campus: birds, fewer in the autumn and none in the deep of winter.
+// (The crowd's murmur, the winter wind and the stadium's roar were looped
+// noise, and late in a big college's game they read as static; gone.)
 export function ambienceFor(s: GameState | null): AmbienceLevels {
-  if (!s) return { crowd: 0, wind: 0.3, birds: 0.2, roar: false };
-  const away = s.pendingInterrupt?.type === 'summer' ? AMBIENCE.crowd.summer : 1;
+  if (!s) return { birds: 0.2 };
   const winter = winterDepth(s.clock.week);
   const autumn = s.clock.week <= WEEKS_PER_YEAR / 2 ? 0.5 : 1;
-  return {
-    crowd: Math.min(1, totalEnrolled(s.students) / AMBIENCE.crowd.fullAt) * away,
-    wind: winter,
-    birds: AMBIENCE.birds.perSecond * (1 - winter) * autumn,
-    roar: gameWeek(s),
-  };
+  return { birds: AMBIENCE.birds.perSecond * (1 - winter) * autumn };
 }
 
 // Topics that play nothing, on purpose, each with its reason (Plan 70H: a

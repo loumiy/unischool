@@ -23,9 +23,8 @@ import {
 // gesture (browsers refuse sound before one), four buses — master, and
 // under it music, ambience and effects — and everything synthesised: the
 // themes are scheduled a fraction of a second ahead from data/audioData.ts,
-// the ambience is looped noise through filters whose gains follow the
-// campus, and an effect is a few enveloped oscillators. Where there is no
-// Web Audio (tests, old browsers) every call is a no-op.
+// the ambience is birdsong scheduled with the music, and an effect is a
+// few enveloped oscillators. Where there is no Web Audio (tests, old browsers) every call is a no-op.
 //
 // One exception to "everything synthesised": the title screen plays a
 // recorded theme (assets/title-theme.mp3), looped with a crossfade, and the
@@ -73,12 +72,7 @@ export class AudioEngine {
   private titleNext = 0; // when the next pass begins
 
   // Ambience
-  private crowd: GainNode | null = null;
-  private wind: GainNode | null = null;
-  private windFilter: BiquadFilterNode | null = null;
   private birdsPerSecond = 0;
-  private roaring = false;
-  private ambience: AmbienceLevels | null = null;
   private lastSfx = new Map<string, number>();
 
   constructor() {
@@ -132,7 +126,6 @@ export class AudioEngine {
     this.synth.connect(this.buses.music);
     this.noise = makeNoise(ctx);
     this.applyLevels();
-    this.startAmbience();
     if (this.titleOn) void this.startTitle();
     this.nextAt = ctx.currentTime + 0.1;
     this.timer = setInterval(() => this.schedule(), SCHEDULE_MS);
@@ -344,51 +337,8 @@ export class AudioEngine {
 
   // ---------- ambience ----------
 
-  private startAmbience(): void {
-    const ctx = this.ctx!;
-    const loop = () => {
-      const src = ctx.createBufferSource();
-      src.buffer = this.noise;
-      src.loop = true;
-      src.start();
-      return src;
-    };
-    // The crowd: noise in the band a room of voices fills, with a slow
-    // swell so it breathes rather than hisses.
-    const crowdBand = ctx.createBiquadFilter();
-    crowdBand.type = 'bandpass';
-    crowdBand.frequency.value = 520;
-    crowdBand.Q.value = 0.8;
-    this.crowd = ctx.createGain();
-    this.crowd.gain.value = 0;
-    loop().connect(crowdBand).connect(this.crowd).connect(this.buses!.ambience);
-    // The wind: low noise under a filter an LFO sweeps.
-    this.windFilter = ctx.createBiquadFilter();
-    this.windFilter.type = 'lowpass';
-    this.windFilter.frequency.value = 400;
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 0.08;
-    const depth = ctx.createGain();
-    depth.gain.value = 220;
-    lfo.connect(depth).connect(this.windFilter.frequency);
-    lfo.start();
-    this.wind = ctx.createGain();
-    this.wind.gain.value = 0;
-    loop().connect(this.windFilter).connect(this.wind).connect(this.buses!.ambience);
-    // Whatever the campus sounded like before the first gesture, it
-    // sounds like now.
-    if (this.ambience) this.setAmbience(this.ambience);
-  }
-
   setAmbience(a: AmbienceLevels): void {
-    this.ambience = a;
     this.birdsPerSecond = a.birds;
-    if (!this.ctx || !this.crowd || !this.wind) return;
-    const now = this.ctx.currentTime;
-    this.crowd.gain.setTargetAtTime(a.crowd * AMBIENCE.crowd.gain, now, 1.5);
-    this.wind.gain.setTargetAtTime(a.wind * AMBIENCE.wind.gain, now, 2);
-    if (a.roar && !this.roaring) this.roar();
-    this.roaring = a.roar;
   }
 
   private maybeBird(at: number, span: number): void {
@@ -408,14 +358,6 @@ export class AudioEngine {
       osc.start(t);
       osc.stop(t + 0.1);
     }
-  }
-
-  // A stadium somewhere past the trees: a swell of broad noise.
-  private roar(): void {
-    this.voice(
-      { wave: 'noise', freq: 900, attack: 1.2, decay: 3, gain: AMBIENCE.roar.gain },
-      this.buses!.ambience,
-    );
   }
 
   // ---------- effects ----------
@@ -462,7 +404,7 @@ export class AudioEngine {
   }
 }
 
-// Two seconds of white noise, shared by every loop and burst.
+// Two seconds of white noise, shared by every noise burst.
 function makeNoise(ctx: Ctx): AudioBuffer {
   const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const data = buffer.getChannelData(0);
