@@ -3,7 +3,7 @@ import { INITIATIVE_HISTORY_LIMIT, WEEKS_PER_YEAR } from '../../state/types';
 import {
   GRANT_PER_PUBLICATION_CHANCE, PUBLICATION_POINTS, annualBreakthroughChance, article, awardChance,
   disciplineVocab, facilitySchool, facultyResearchOutput, initiativeDepth, initiativeWeeklyOutput,
-  isBreakthroughRollWeek, rollGrantAmount, rollGrantFunder, rollPrizeName, teamStrength,
+  isBreakthroughRollWeek, prizeName, rollGrantAmount, rollGrantFunder, teamStrength,
 } from '../../data/researchData';
 import { researchTopic } from '../../data/researchTopics';
 import { generateCandidate, marketStandingOf } from '../../data/facultyData';
@@ -119,10 +119,10 @@ function concludeInitiative(s: GameState, initiative: Initiative, cancelled: boo
       if (winner) {
         winner.acclaim += 1;
         s.research.prizes += 1;
-        // Named for the facility's discipline.
-        const prizeName = rollPrizeName(disciplineVocab(facilitySchool(initiative.labId)));
-        award = { facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName };
-        log(s, `${winner.name} has been awarded ${prizeName} for "${name}".`, 'good', 'prize', winner.id);
+        // Named for the winner's field, at the run's depth.
+        const prize = prizeName(winner.field, initiative.labId, initiative.depth);
+        award = { facultyId: winner.id, facultyName: winner.name, field: winner.field, prizeName: prize };
+        log(s, `${winner.name} has been awarded ${prize} for "${name}".`, 'good', 'prize', winner.id);
       }
     }
     const papers = initiative.publications;
