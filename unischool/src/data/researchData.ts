@@ -102,9 +102,9 @@ export function rollGrantAmount(s: GameState, depth: InitiativeDepth): number {
   return Math.round(Math.max(s.finance.weeklyOpEx, MIN_OPEX_SCALE) * weeks * GRANT_DEPTH_SCALE[depth]);
 }
 
-// Grant funders and prize names are flavor only, authored per discipline
-// (below). A prize's salary premium is facultyData.ts's
-// ACCLAIM_SALARY_PREMIUM.
+// Grant funders and prize names are flavor only: funders are authored per
+// discipline (below), prizes per field (FIELD_PRIZES). A prize's salary
+// premium is facultyData.ts's ACCLAIM_SALARY_PREMIUM.
 
 export function pick<T>(items: readonly T[]): T {
   return items[Math.floor(random() * items.length)];
@@ -114,13 +114,9 @@ export function rollGrantFunder(vocab: DisciplineVocab): string {
   return pick([...SHARED_FUNDERS, ...vocab.funders]);
 }
 
-export function rollPrizeName(vocab: DisciplineVocab): string {
-  return pick([...SHARED_PRIZES, ...vocab.prizes]);
-}
-
 // === What the work is called, by discipline ===
 // Words only; nothing branches on them. Each discipline adds its own
-// funders and prizes to shared neutral pools.
+// funders to a shared neutral pool.
 
 // Fictional, like every other institution the game names (see
 // facultyData.ts's universities).
@@ -131,13 +127,94 @@ const SHARED_FUNDERS: readonly string[] = [
   'the Halvorsen Endowment',
 ];
 
-// Discipline-neutral prize names.
-const SHARED_PRIZES: readonly string[] = [
-  'the Halvorsen Prize',
-  'the Marchmont Medal',
-  'the Ravensmoor Prize',
-  'the International Prize for Advancement of Knowledge',
-];
+// === Prizes, by field and depth ===
+// Three rungs, as the academic world has them: a scholarly society's medal,
+// the field's leading prize, and the international honor above it. The rung
+// is the run's depth, so the top one only comes from Landmark work, which
+// needs the Research Park.
+//
+// Invented names that nod to real ones (the Östberg Prize to the Nobel, the
+// Halting Award to the Turing, the Ravensmoor Prize to the Holberg), never
+// the real names (Plan 47). Academic honors only: a film or arts prize from
+// industry (an Oscar, a festival) is not what scholarship wins. Ashcombe,
+// Marchmont and Ravensmoor are rival universities' names too, so those read
+// as prizes a university gives, as real ones often are.
+//
+// Fields with no prize above their society's lifetime award in the real
+// world (Marketing, Management, Kinesiology, Psychology) top out there.
+type PrizeLadder = readonly [society: string, field: string, top: string];
+
+const OSTBERG_ECONOMICS = 'the Central Bank Prize in Economic Sciences in Memory of Karl Östberg';
+const SOVEREIGN = 'the Sovereign Prize for Engineering';
+const HALTING = 'the Halting Award';
+const RAVENSMOOR = 'the Ravensmoor Prize';
+const MARCHMONT = 'the Marchmont Prize';
+
+const FIELD_PRIZES: Record<string, PrizeLadder> = {
+  // Humanities & arts. Communication, Art & Design and Music are studied,
+  // not produced, in the Media Production Studio's topics.
+  'English': ["the Language Association's Prize for a First Book", 'the Lowden Prize for Literary Scholarship', RAVENSMOOR],
+  'History': ["the Historical Society's Prize for a First Book", 'the Ashcombe Prize for Historical Scholarship', RAVENSMOOR],
+  'Philosophy': ["the Philosophical Association's Book Prize", 'the Sorites Prize in Logic and Philosophy', RAVENSMOOR],
+  'Communication': ["the Communication Association's Top Paper Award", "the Communication Association's Fellows Award", MARCHMONT],
+  'Art & Design': ['the Wrenfield Book Award of the Art History Association', "the Conservation Society's Prize for Conservation Science", MARCHMONT],
+  'Music': ["the Musicological Society's First Book Award", 'the Cadence Medal for Musicology', MARCHMONT],
+  // Social sciences.
+  'Economics': ['the Thorne Medal', 'the Calder Medal of the Society for Quantitative Economics', OSTBERG_ECONOMICS],
+  'Political Science': ["the Political Science Society's Best Book Award", 'the Tessin Prize for Political Science', RAVENSMOOR],
+  'Psychology': ['the Ostrander Award of the Psychological Society', 'the Weller Award for Ideas in Psychology', "the Psychological Society's Gold Medal"],
+  'Sociology': ["the Sociological Society's Early Career Award", "the Sociological Society's Distinguished Book Award", RAVENSMOOR],
+  // Natural sciences & mathematics. Biology's work is ecological, so its
+  // top rung is the Ardell (the Crafoord), not a prize for medicine.
+  'Mathematics': ['the Calloway Prize of the Mathematical Society', 'the Meadows Medal', 'the Ardell Prize in Mathematics'],
+  'Physics': ['the Ferrand Medal of the Physical Society', 'the Lindenau Medal', 'the Östberg Prize in Physics'],
+  'Chemistry': ['the Corwen Medal of the Chemical Society', 'the Pneumatic Medal', 'the Östberg Prize in Chemistry'],
+  'Biology': ["the Ecological Society's Early Career Award", 'the Galápagos Medal', 'the Ardell Prize in Biosciences'],
+  // Health.
+  'Public Health': ['the Pumphandle Medal', 'the Lindqvist Award for Public Service', 'the Harcourt Award for Global Health'],
+  'Clinical Health': ['the Thayer Medal of the Clinical Research Society', 'the Lindqvist Award for Clinical Research', 'the Östberg Prize in Physiology or Medicine'],
+  'Neuroscience': ['the Synapse Medal of the Neuroscience Society', 'the Cortex Prize', 'the Östberg Prize in Physiology or Medicine'],
+  'Kinesiology': ["the Sports Medicine Society's Young Investigator Award", 'the Stadion Prize for Sport Science', "the Sports Medicine Society's Honor Award"],
+  // Computing.
+  'Computer Science': ['the Vance Prize in Computing', 'the Ashdown Medal', HALTING],
+  'Artificial Intelligence': ['the Machines and Minds Award', 'the Ashdown Medal', HALTING],
+  'Information Systems': ['the Ledger Prize of the Information Systems Society', 'the Ashdown Medal', HALTING],
+  // Engineering. Operations Research tops out in economics, where linear
+  // programming won its prize.
+  'Mechanical Engineering': ["the Flywheel Medal of the Mechanical Engineers' Guild", 'the Voronenko Medal for Applied Mechanics', SOVEREIGN],
+  'Electrical Engineering': ["the Halden Medal of the Electrical Engineers' Society", "the Electrical Engineers' Society Medal of Honor", SOVEREIGN],
+  'Civil Engineering': ['the Keystone Medal', 'the Spandrel Medal for Structural Engineering', SOVEREIGN],
+  'Operations Research': ['the Pell Prize of the Operations Society', 'the Ledgerwood Theory Prize', OSTBERG_ECONOMICS],
+  // Business.
+  'Accounting & Finance': ['the Fenwick Prize in Financial Economics', "the Accounting Society's Seminal Contribution Award", OSTBERG_ECONOMICS],
+  'Marketing': ["the Marketing Society's Early Career Award", 'the Award for Distinguished Contributions to Marketing Thought', 'the Award for Distinguished Contributions to Marketing Thought'],
+  'Management': ["the Management Society's Best Paper Award", 'the Award for Scholarly Contributions to Management', 'the Award for Scholarly Contributions to Management'],
+  // Law.
+  'Law': ["the Law Teachers' Association's Scholarly Paper Prize", 'the Blackwood Prize for Legal Scholarship', RAVENSMOOR],
+};
+
+// The applied twins (researchTopics.ts): Chemistry in the Chemical
+// Engineering Labs and Physics in the Aerospace Engineering Labs win
+// engineering's prizes.
+const APPLIED_PRIZES: Record<string, Record<string, PrizeLadder>> = {
+  'LAB-CHEN': { 'Chemistry': ["the Founders' Medal of the Process Engineers' Guild", 'the Catalyst Prize', SOVEREIGN] },
+  'LAB-AERO': { 'Physics': ['the Fairing Medal of the Aeronautical Society', 'the Halloran Medal for Aeronautics', SOVEREIGN] },
+};
+
+// For a field with no ladder (none in the seeded catalog).
+const FALLBACK_PRIZES: PrizeLadder = ['the Kellner Award for Research', 'the Kellner Medal', 'the Halvorsen Prize'];
+
+const PRIZE_RUNG: Record<InitiativeDepth, 0 | 1 | 2> = {
+  pilot: 0, project: 0, program: 1, landmark: 2,
+};
+
+// The prize a winner in this field takes for a run of this depth in this
+// lab. The winner's field, not the lab's: a lab hosts several fields, and a
+// cross-disciplinary team's winner is honored in their own.
+export function prizeName(field: string, labId: string, depth: InitiativeDepth): string {
+  const ladder = APPLIED_PRIZES[labId]?.[field] ?? FIELD_PRIZES[field] ?? FALLBACK_PRIZES;
+  return ladder[PRIZE_RUNG[depth]];
+}
 
 export interface DisciplineVocab {
   publication: string;             // the cheap, frequent output
@@ -146,7 +223,6 @@ export interface DisciplineVocab {
    *  per discipline: a film is not published. */
   breakthroughTail: string;
   funders: readonly string[];      // added to SHARED_FUNDERS for this discipline
-  prizes: readonly string[];       // added to SHARED_PRIZES for this discipline
 }
 
 // "An acclaimed work", not "A acclaimed work".
@@ -160,7 +236,6 @@ const DEFAULT_VOCAB: DisciplineVocab = {
   breakthrough: 'breakthrough',
   breakthroughTail: 'published and taken up widely',
   funders: ['the Federal Science Council', 'an industrial research consortium'],
-  prizes: ['the Kellner Award for Scientific Achievement'],
 };
 
 // "Scholarship" here is deliberate: it is the Humanities' own word for the
@@ -171,42 +246,36 @@ const DISCIPLINE_VOCAB: Record<string, DisciplineVocab> = {
     breakthrough: 'landmark work of scholarship',
     breakthroughTail: 'published to wide acclaim',
     funders: ['the Federal Humanities Council', 'the Ravensmoor Library Fellowship'],
-    prizes: ['the Ashcombe Prize for Historical Scholarship'],
   },
   'Business': {
     publication: 'case study',
     breakthrough: 'influential study',
     breakthroughTail: 'published and widely cited',
     funders: ['a central bank research office', 'the Institute for Economic Research'],
-    prizes: ['the Ashcombe Medal in Economic Sciences'],
   },
   'Arts & Media': {
     publication: 'exhibited work',
     breakthrough: 'acclaimed work',
     breakthroughTail: 'shown and widely praised',
     funders: ['the National Arts Council', 'the Delacourt Film Fund'],
-    prizes: ['the Delacourt Award for Artistic Achievement'],
   },
   'Computer Science': {
     publication: 'paper',
     breakthrough: 'breakthrough',
     breakthroughTail: 'published and taken up widely',
     funders: ['the Federal Science Council', 'a technology research consortium'],
-    prizes: ['the Vance Prize in Computing'],
   },
   'Engineering': {
     publication: 'paper',
     breakthrough: 'breakthrough',
     breakthroughTail: 'published and put into practice',
     funders: ['a defense research agency', 'an industrial research consortium'],
-    prizes: ['the Kellner Award for Scientific Achievement'],
   },
   'Health Science': {
     publication: 'paper',
     breakthrough: 'clinical breakthrough',
     breakthroughTail: 'published and taken into the clinic',
     funders: ['the Institute of Health Sciences', 'a medical research foundation'],
-    prizes: ['the Kellner Award for Medicine'],
   },
 };
 

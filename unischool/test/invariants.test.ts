@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { reducer } from '../src/engine/reducer';
 import { createInitialState } from '../src/state/actions';
 import { initialTech, majorPrefixes, graduatePrograms, ACADEMIC_HALL_COUNT, ACADEMIC_HALL_SLOTS, FIRST_HALL_COURSE_GATE, isAcademicHall } from '../src/data/techData';
-import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder, rollPrizeName } from '../src/data/researchData';
+import { weeklyResearchPoints, facilitySchool, disciplineVocab, rollGrantFunder, prizeName } from '../src/data/researchData';
 import { researchSchools } from '../src/data/techData';
 import { findDecisionEvent, type DecisionEventContext } from '../src/data/eventData';
 import { totalEnrolled } from '../src/state/types';
@@ -491,10 +491,10 @@ const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pair
 // 8b. AN OUTPUT IS DESCRIBED BY THE DISCIPLINE THAT PRODUCED IT
 //
 // Every research facility resolves to the school that owns it, and every
-// word the log puts around an output — the noun, the funder, the prize —
-// comes from that school's vocabulary. The bug this guards used a
-// campus-wide weighted draw across everyone producing scholarship, which
-// was right when production WAS the whole equipped roster and is simply
+// word the log puts around an output — the noun, the funder — comes from
+// that school's vocabulary, and the prize from the winner's field. The bug
+// this guards used a campus-wide weighted draw across everyone producing
+// scholarship, which was right when production WAS the whole equipped roster and is simply
 // wrong against initiatives: a project in the Humanities Research
 // Institute logged "a new paper" whenever the campus also ran physics
 // labs, because the draw landed on a physicist with nothing to do with it.
@@ -523,25 +523,30 @@ const LAYOUT_READERS = new Set(['systems/estate/beauty.ts', 'systems/estate/pair
   // miss vanishingly unlikely to be luck.
   const SCIENCE_ONLY = ['Science Foundation', 'defense', 'industrial', 'Scientific Achievement', 'Health Sciences', 'Medicine'];
   let strayFunder: string | null = null;
-  let strayPrize: string | null = null;
   for (let i = 0; i < 400; i += 1) {
     const funder = rollGrantFunder(humanities);
-    const prize = rollPrizeName(humanities);
     if (SCIENCE_ONLY.some((w) => funder.includes(w))) strayFunder = funder;
-    if (SCIENCE_ONLY.some((w) => prize.includes(w))) strayPrize = prize;
+  }
+  // Prizes follow the winner's field, so the humanities institute's own
+  // departments never take a science prize at any depth.
+  let strayPrize: string | null = null;
+  for (const field of ['History', 'English', 'Philosophy', 'Sociology', 'Political Science', 'Law']) {
+    for (const depth of ['pilot', 'project', 'program', 'landmark'] as const) {
+      const prize = prizeName(field, 'LAB-HIST', depth);
+      if (SCIENCE_ONLY.some((w) => prize.includes(w))) strayPrize = prize;
+    }
   }
   assert(strayFunder === null, `a humanities project is never funded by a science body (drew "${strayFunder}")`);
   assert(strayPrize === null, `a humanities project never wins a science prize (drew "${strayPrize}")`);
 
   // And every school that can run research has vocabulary of its own or a
-  // default that fits it — no school draws from an empty pool.
+  // default that fits it — no school draws from an empty pool. Prize
+  // ladders are pinned in research-prizes.test.ts.
   for (const school of schools) {
     if (school.labIds.length === 0) continue;
     const vocab = disciplineVocab(school.schoolName);
-    assert(vocab.funders.length > 0 && vocab.prizes.length > 0,
-      `${school.schoolName} has funders and prizes to draw from`);
-    assert(rollGrantFunder(vocab).length > 0 && rollPrizeName(vocab).length > 0,
-      `${school.schoolName} draws a real funder and a real prize name`);
+    assert(vocab.funders.length > 0, `${school.schoolName} has funders to draw from`);
+    assert(rollGrantFunder(vocab).length > 0, `${school.schoolName} draws a real funder`);
   }
 }
 
