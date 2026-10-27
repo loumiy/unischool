@@ -25,8 +25,9 @@ marked **0.1.x** and fixed in a patch.*
   details." Also "looks pretty good", "looked like a fun concept",
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
-  building game I played in a long long time". *18 players · reddit (R1,
-  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4), live (T1), form (F1, F2, F3, F4, F6,
+  building game I played in a long long time"; "really really fun game!"
+  *19 players · reddit (R1,
+  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5), live (T1), form (F1, F2, F3, F4, F6,
   F7, F8), discord (D1), service (S1, S2).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
@@ -232,6 +233,19 @@ marked **0.1.x** and fixed in a patch.*
   could be because of user error too." With T1's quiet letters, the
   second player to miss something waiting on them. *1 player · form
   (F8).*
+- **"Start a program's second course" points at a course that can't
+  start yet.** Straight after founding English, the objective's help says
+  to click Develop on the next course, but ENGL 110 still needs ENGL 101,
+  which has four weeks left. The chapter's text explains the
+  prerequisite, but the help doesn't. Suggested: a first line that
+  depends on the state, such as "Let ENGL 101 finish first (4 weeks
+  left), then develop the next course." Once ENGL 101 finished, the
+  action worked and Chapter 3 opened. Confirmed in the code: the help in
+  `chapterData.ts` is fixed text, with nothing for a first course still
+  being written. On 0.1.4, from an AI agent driving the browser (Codex),
+  which said so itself: "a bounded instruction-flow check, not a human
+  full-run review." It found the two-step walkthrough and choosing the
+  instructor clear. *1 check · comment (I7).*
 
 ## 3 · Intuitive gameplay
 
@@ -344,6 +358,21 @@ marked **0.1.x** and fixed in a patch.*
   having to renovate all buildings was annoying, further the consequences
   were never expressed, though I presume it's bad for my reputation."
   *1 player · form (F7).*
+- **The capital projects never appear.** Stuck on the *Capital projects*
+  chapter at year 12: "I can't find the way to build a capital project.
+  No tab has shown up." The chapter says they open from year 10, but each
+  also waits on something: the Arts Center on every Arts & Media course
+  being taught, the three from year 15 on a school's whole curriculum,
+  the specialization buildings on the specialization. The build menu
+  shows no Capital projects tab until one of them unlocks, so a player
+  who hasn't met a condition sees nothing and isn't told why. Two related
+  details: 0.1.4's new chapter text still leaves the curriculum condition
+  out, and the Medical Center (a health building) doesn't count for the
+  objective. The owner answered with the unlocks and plans to make them
+  clear in the chapter or change the gates. *1 player · comment (I5).*
+- **Does the game end at year 50?** "When we reach year 50 is it the game
+  ends?" The game doesn't say up front that year 50 is the scored ending,
+  or that the Epilogue lets you keep playing. *1 player · comment (I6).*
 
 ## 4 · Strategy
 
@@ -1280,3 +1309,26 @@ one.*
   "Está muy bueno, demasiado, ojalá en español algún día (^w^)": "It's
   really good, very much so. I hope it's in Spanish someday." Not yet
   answered.
+- **I5** · a player (their itch name is an email address, left out
+  here) · comment, 26 October — "Really really fun game! But I am stuck
+  on guide question 16... I can't find the way to build a capital
+  project. No tab has shown up even though I am on year 12 now. What am
+  I missing?"
+  *Owner (Halifax Games):* listed the unlocks (the Arts Center at year 10
+  with every Arts & Media course taught; the Graduate College, the Law
+  School and the Graduate Business School at year 15 with their school's
+  curriculum taught) and said making this clear in Chapter 16, or
+  changing the gates, is coming in an update.
+- **I6** · Fonnesx · comment, 26 October — "when we reach year 50 is it
+  the game ends?"
+  *Owner (Halifax Games):* "You'll get a Final Report at the end of Year
+  50, but you can keep playing after that if you want."
+- **I7** · TheodorNEngoy · comment on the 0.1.4 devlog, 26 October — an
+  AI agent (Codex, with browser controls) checking 0.1.4's opening up to
+  Chapter 3: "a bounded instruction-flow check, not a human full-run
+  review." It placed Founders Hall, founded English, used the chapter
+  help and Show me, then started ENGL 110 once ENGL 101 finished. "The
+  two-step walkthrough and the instructor selection were clear." The one
+  suggestion is filed under *UI and text*. It stopped there on purpose,
+  so it didn't look at the summers, the specialization or the fifty-year
+  balance. Not yet answered.
