@@ -26,8 +26,8 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time"; "really really fun game!"
-  *19 players · reddit (R1,
-  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5), live (T1), form (F1, F2, F3, F4, F6,
+  *20 players · reddit (R1,
+  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8), live (T1), form (F1, F2, F3, F4, F6,
   F7, F8), discord (D1), service (S1, S2).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
@@ -625,7 +625,7 @@ how often the form is opened, `feedback_opened`).*
 | 15 October | 615 | 341 | 1 (★★★★★) | 2 | 7 | 4,721 | 3.73% |
 | 20 October | 865 | 501 | 2 (both ★★★★★) | 2 | 11 | 1,852 | 3.94% |
 | 23 October | 1,042 | 609 | 2 (both ★★★★★) | 3 | 16 | 2,028 | 3.80% |
-| 27 October | 1,238 | 733 | 3 | 7 | 21 | 2,403 | 5.04% |
+| 27 October | 1,238 | 733 | 3 (all ★★★★★) | 7 | 21 | 2,403 | 5.04% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
@@ -704,8 +704,7 @@ visits, and aigamehub.app 8 (+1 since 20 October). The one file
 download is still the 0.1.2 web build, twice.
 
 On 27 October (30 days): 1,238 views (+196 since 23 October), 733
-browser plays (+124), a **third rating** (its stars aren't shown in the
-snapshot), 7 comments (I5, I6 and the owner's replies among them; I7 is
+browser plays (+124), a **third rating**, five stars again (I8), 7 comments (I5, I6 and the owner's replies among them; I7 is
 on the 0.1.4 devlog), 21 collections (+5) and still 2 downloads. The
 7-day impressions rose again, from 2,028 to 2,403, and the click-through
 rate passed 5% for the first time (5.04%, up from 3.80%). Daily views
@@ -1353,3 +1352,5 @@ one.*
   suggestion is filed under *UI and text*. It stopped there on purpose,
   so it didn't look at the summers, the specialization or the fifty-year
   balance. Not yet answered.
+- **I8** · alfonsothegreat · rating, about 24 October — ★★★★★, no
+  review. The page's third rating; all three are five stars.
