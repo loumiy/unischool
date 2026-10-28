@@ -5,6 +5,14 @@ point to the development records in `docs/plans/`.*
 
 ---
 
+## 0.1.4.1
+
+- **Past the Final Report.** Continuing into the Epilogue no longer stops
+  at the fiftieth summer's admissions, with nothing to press. A save
+  stuck there opens on the admissions page. (I9)
+
+---
+
 ## 0.1.4
 
 *The specialization as the board's own page (Plan 110), plain words
