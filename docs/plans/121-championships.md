@@ -47,6 +47,8 @@ was tuned to 25–40 titles a run (Plan 85G).
 
 ## 3. Open questions
 
+*Decided (the owner, 28 October 2026): both as proposed.*
+
 1. **The second specialization building** (Plan 120 C): if a college can
    build the complex without specializing in athletics, B's targets are set
    both with it and without it.
