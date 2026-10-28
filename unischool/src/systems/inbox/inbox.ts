@@ -89,7 +89,7 @@ export function interruptPageUp(s: GameState): boolean {
   const i = s.pendingInterrupt;
   if (i?.type !== 'summer') return false;
   const p = i.payload as SummerPayload | undefined;
-  return finalReportUp(s) || (p?.beat === 1 && !p.final);
+  return finalReportUp(s) || p?.beat === 1;
 }
 
 // The summer, while one is pending: the key the shell keeps against it,

@@ -82,6 +82,13 @@ function assert(cond: boolean, msg: string): void {
   const waiting = renderToStaticMarkup(createElement(InterruptModal, { s, act: () => {}, summerWaiting: true }));
   assert(waiting === '', 'the summer waiting draws nothing over the screen (Plan 112C)');
 
+  // The fiftieth summer (I9): past the Final Report, admissions is the same
+  // page, never the summer card's "on its own page" with nothing to press.
+  const final = { ...s, pendingInterrupt: { type: 'summer' as const, payload: { ...payload, final: true } } };
+  assert(admissionsPageUp(final) && interruptPageUp(final), 'the fiftieth summer\'s admissions is a page too');
+  const finalHtml = renderToStaticMarkup(createElement(InterruptModal, { s: final, act: () => {} }));
+  assert(finalHtml.includes('admissions-page') && !finalHtml.includes('Admissions is open on its own page'), 'so the run goes on past the Final Report');
+
   const locked = { ...s, pendingInterrupt: { type: 'summer' as const, payload: { ...payload, lockedTuition: payload.tuition } } };
   const after = renderToStaticMarkup(createElement(InterruptModal, { s: locked, act: () => {} }));
   assert(after.includes('Send the offers') && after.includes('role="slider"'), 'a locked price resumes on the line');

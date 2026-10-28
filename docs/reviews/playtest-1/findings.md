@@ -588,6 +588,21 @@ marked **0.1.x** and fixed in a patch.*
   prestige, and a large backlog brings events.
   **Left as it is** (the owner, 22 October).
 
+- **0.1.x: after the Final Report, the game stops.** "But the game won't
+  let me press anything", in reply to the owner's answer that you can keep
+  playing past Year 50. Continue into the Epilogue moves the fiftieth
+  summer on to admissions. Since 0.1.3, admissions is a page of its own
+  (Plan 108), but the page was told not to open in the final summer
+  (`admissionsPageUp` and `interruptPageUp` waited on `!final`). So the
+  summer card showed only "Admissions is open on its own page.", with no
+  page and no button, and the run went no further. PostHog agrees: a 0.1.3
+  player who continued on 24 October has no event past Year 50 and
+  founded a new college two minutes later. Choosing Found another college
+  was never affected. *1 player · comment (I9).* **Fixed** (28 October,
+  for the next patch): the fiftieth summer's admissions opens as a page
+  like any other, and `test/admissions-page.test.ts` covers it. A save
+  stuck there opens on the page once the patch is up.
+
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Traced and fixed by Plan 99E (13 October), shipped in 0.1.1. *Owner.*
 
@@ -1354,3 +1369,7 @@ one.*
   balance. Not yet answered.
 - **I8** · alfonsothegreat · rating, about 24 October — ★★★★★, no
   review. The page's third rating; all three are five stars.
+- **I9** · Fonnesx (the player of I6) · comment, 27 October, a reply to
+  the owner's answer under I6 — "but the game won't let me press
+  anything". Filed under *Bugs*; fixed for the next patch. Not yet
+  answered.
