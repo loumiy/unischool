@@ -35,6 +35,9 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
         <h2>The endowment</h2>
         <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into your income every week. Draw less and it grows faster. Draw more and you get more income now, but less later. Above ${rate(DRAW_RATE_PRUDENT)}, the draw takes most of the return. Then the fund grows little or shrinks, and next year's draw shrinks with it. Cash you move in stays in. It pays out only at the draw rate, or to cover half a capital project. If you can't pay for a building in cash, you can borrow for it. You can borrow up to ${pct(BORROWING_SHARE)} of the endowment, repaid weekly over ${LOAN_YEARS} years at ${rate(LOAN_RATE)}.`} />
       </div>
+      {/* What the fund is, in a sentence (Plan 118G, F10: "parts of
+          endowment could be confusing"). */}
+      <p className="budget-line-note">Money the college keeps invested. Each week it pays part of what it earns into your income, and it can pay half of a capital project.</p>
       <div className="treasury-dial">
         <span>Draw rate</span>
         <button type="button" className="panel-action small" aria-label="Draw less" disabled={held || draw <= DRAW_RATE_MIN} onClick={() => setDraw(draw - DRAW_RATE_STEP)}>−</button>
