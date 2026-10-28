@@ -133,7 +133,7 @@ export function runAthletics(g: Game): boolean {
   if (house && house.status === 'available' && !(house.id in g.s.placements) && g.s.finance.cash - house.cost >= reserve) site(g, house);
   for (const venue of new Set(g.s.orgs.teams.map((t) => venueForCategory(g.s, t.venueCategory)))) {
     if (!venue || venue.status !== 'done') continue;
-    const plan = nextVenueExpansion(venue);
+    const plan = nextVenueExpansion(venue, g.s);
     if (plan && g.s.finance.cash - plan.cost >= reserve) g.act({ type: 'EXPAND_VENUE', venueId: venue.id });
   }
   return g.actions > before;

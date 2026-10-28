@@ -964,13 +964,14 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     // reads seats off its expansions count (facilitiesData.ts's venueSeatsOf).
     case 'EXPAND_VENUE': {
       const node = s.tech.find((t) => t.id === action.venueId);
-      const plan = node && !constructionFrozen(s) ? nextVenueExpansion(node) : null;
+      const plan = node && !constructionFrozen(s) ? nextVenueExpansion(node, s) : null;
       if (node && plan && node.status === 'done' && s.finance.cash >= plan.cost) {
         const servesPopulation = (node.effects?.servesPopulation ?? 0) + plan.servesGain;
         node.renovatingFrom = node.effects?.servesPopulation ?? 0;
         node.status = 'developing';
         s.developing[node.id] = plan.weeks;
         s.finance.cash -= plan.cost;
+        node.expansionsPaid = (node.expansionsPaid ?? 0) + plan.cost;
         node.expansions = (node.expansions ?? 0) + 1;
         node.effects = {
           ...node.effects,
