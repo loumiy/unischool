@@ -277,10 +277,11 @@ function findChapter(s: GameState, id: string | undefined): GreekChapter | undef
   return s.orgs.chapters.find((c) => c.id === id);
 }
 
-// Chapters never asked about housing. Each is asked at most once, so the
-// petition can never become a modal spiral.
+// Chapters never asked about housing. Each is answered at most once, so the
+// petition can never become a modal spiral; one told "not yet" for want of
+// cash waits half a year before asking again (Plan 118B).
 function chaptersAwaitingHousing(s: GameState): GreekChapter[] {
-  return s.orgs.chapters.filter((c) => !c.housed && !c.housingAsked);
+  return s.orgs.chapters.filter((c) => !c.housed && !c.housingAsked && (c.housingAskAfter ?? 0) <= absoluteWeek(s));
 }
 
 // One house per chapter, derived from its id, so the pairing survives
@@ -381,6 +382,11 @@ const GREEK_SCANDAL_PR_SATISFACTION_HIT = 3; // standing behind the chapter cost
 const GREEK_HOUSE_BUILD_COST_WEEKS = 3.5;   // a chapter house is a real building, priced against the facility chain
 const GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX = 0.004; // and it roughly doubles that chapter's weekly line, forever
 const GREEK_HOUSE_REFUSAL_SATISFACTION_HIT = 2;
+// "Not yet" (Plan 118B, F10): offered only when the house can't be paid
+// for. A chapter refused for want of cash lost its house for good, though
+// the money was often there a week later.
+const GREEK_HOUSE_DEFER_SATISFACTION_HIT = 1;
+const GREEK_HOUSE_ASK_AGAIN_WEEKS = Math.round(WEEKS_PER_YEAR / 2);
 
 // --- varsity athletics (see data/studentLifeData.ts) -------------------
 //
@@ -656,6 +662,21 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
             s.tech.push(house);
           }
           return entry(s, `You approved a chapter house for ${ctx.subjectName}. Place it from the build menu.`, 'good');
+        },
+      },
+      {
+        id: 'not-yet',
+        mood: -GREEK_HOUSE_DEFER_SATISFACTION_HIT,
+        label: 'Not yet: ask again when we can afford it',
+        hidden: (s, ctx) => (ctx.amount ?? 0) <= s.finance.cash,
+        describe: (s, ctx) =>
+          `Costs nothing. You're ${money((ctx.amount ?? 0) - Math.max(0, s.finance.cash))} short today. Satisfaction drops ${GREEK_HOUSE_DEFER_SATISFACTION_HIT} point, and recovers over the following weeks. ${ctx.subjectName} asks again in about half a year.`,
+        cost: () => 0,
+        apply: (s, ctx) => {
+          const chapter = findChapter(s, ctx.subjectId);
+          if (chapter) chapter.housingAskAfter = absoluteWeek(s) + GREEK_HOUSE_ASK_AGAIN_WEEKS;
+          dentSatisfaction(s, GREEK_HOUSE_DEFER_SATISFACTION_HIT);
+          return entry(s, `You told ${ctx.subjectName} the college can't afford a chapter house yet. They'll ask again.`, 'info');
         },
       },
       {

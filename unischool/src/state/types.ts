@@ -959,6 +959,9 @@ export interface GreekChapter extends StudentOrgBase {
   glyphs: string;
   housed: boolean;       // a dedicated chapter house has been built for them
   housingAsked: boolean; // already petitioned; never asked again
+  // Told "not yet" for want of cash (Plan 118B): the absolute week it may
+  // ask again. Optional: older saves have none.
+  housingAskAfter?: number;
 }
 
 // A head coach, assistant or trainer. A separate hiring pool on Faculty's
