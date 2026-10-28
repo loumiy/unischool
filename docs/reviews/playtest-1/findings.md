@@ -26,9 +26,11 @@ marked **0.1.x** and fixed in a patch.*
   "pretty damn awesome, idea and execution", and a five-star rating:
   "deeply impressed", and "the most fun and detailed simulation/city
   building game I played in a long long time"; "really really fun game!"
-  *20 players · reddit (R1,
+  F10: "I am very excited to see where the game goes. I really loved the
+  new update on student admission." F11: "Nice replayability and
+  concept." *22 players · reddit (R1,
   R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8), live (T1), form (F1, F2, F3, F4, F6,
-  F7, F8), discord (D1), service (S1, S2).*
+  F7, F8, F10, F11), discord (D1), service (S1, S2).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
   game"; best moment, turning schools distinguished and then founding the
@@ -103,6 +105,12 @@ marked **0.1.x** and fixed in a patch.*
   *Somewhere to sleep* opens; Home is optional. (First built as a side
   chapter that stepped aside; in play it was passed over, so the owner
   made it a step of the chain.)
+
+- **The title screen's background reads as AI art.** "Maybe if you have
+  a second, a non AI bg to the start screen would be great, in my
+  opinion." *1 player · form (F13).* **Decided** (the owner, 28 October):
+  the 0.1.5 devlog says the owner is looking for an artist to replace
+  it.
 
 ## 2 · UI and text
 
@@ -246,6 +254,20 @@ marked **0.1.x** and fixed in a patch.*
   which said so itself: "a bounded instruction-flow check, not a human
   full-run review." It found the two-step walkthrough and choosing the
   instructor clear. *1 check · comment (I7).*
+- **"Access" is graded but never explained.** An F for Access on the
+  report card, "but I never heard of it during the game"; the player
+  guessed it meant buildings joined by paths, and wondered whether
+  gardens counted. Access is half the admit rate and half how far the
+  price sits below what prestige could charge (`rivalsSystem.ts`'s
+  `selfAccess`). It is explained only in History › Standings' help
+  hint, and a winning college, selective and priced to its name, fails
+  it almost by design. The owner fails it too, and is weighing a
+  replacement grade. *1 player · form (F13).*
+- **Parts of the endowment are confusing.** "It is pretty straightforward
+  although I think parts of endowment could be confusing." *1 player ·
+  form (F10).*
+- **What does student quality do?** "Also what is the point of student
+  quality. does it affect anything?" *1 player · form (F10).*
 
 ## 3 · Intuitive gameplay
 
@@ -285,6 +307,18 @@ marked **0.1.x** and fixed in a patch.*
   Founders Hall went down and the people walked towards the road, S2
   wasn't sure it wasn't a bug, with no paths placed yet. *1 player ·
   service (S2).*
+- **With only Founders Hall built, the students pace a few steps out and
+  back.** On 0.1.4: "My little student dudes seem to love walking a few
+  steps away from the founders hall and nowhere else (tbf I have nothing
+  else at all built but they seem stuck in this loop)." This is 0.1.4's
+  answer to S2's road-walkers (Plan 115C, `walkRoutes.ts`'s `forecourt`
+  and `pickStop`): until two buildings stand, the only stops besides the
+  hall are two spots three and five tiles out from its front door. So
+  the crowd shuttles between three points, which reads as stuck.
+  Possible fixes: more forecourt spots, spread around the hall and along
+  the drive; students who linger there before turning back; or a few
+  walking off down the drive after all. It only lasts until the second
+  building. *1 player · service (S4).*
 - **How long is a run meant to be?** S2 was in year 3 at 20–25 minutes
   and asked whether players are expected to keep saves going for 50
   years. *1 player · service (S2).*
@@ -425,7 +459,9 @@ marked **0.1.x** and fixed in a patch.*
   That is by design: the owner asked for about 25 to 40 titles by year 50
   for a specialist (Plan 85G's review, 1 October), against 50 to 80
   with no edge. What the player can't see is why: nothing says the
-  stage favours the established powers. *1 player · form (F3).*
+  stage favours the established powers. *1 player · form (F3).* F10,
+  later: "plus I still think you can only win 2 titles per year." *2
+  players · form (F3, F10).*
 
 - **A program can't simply be chosen.** "That one cannot independently
   choose which faculty to establish" was the most frustrating part of a
@@ -447,6 +483,24 @@ marked **0.1.x** and fixed in a patch.*
   would expect them to be at least somewhat good; could you add a bonus
   for teachers attracted by research? … it just felt underwhelming." *1
   player · form (F7).*
+- **Athletics is the hard pillar.** F9's most frustrating part, in one
+  word: "athletics". F10 ranks the specializations Academics, Research,
+  Athletics, Student life: "athletics seems to be harder than one would
+  expect even after focusing on it." *2 players · form (F9, F10).*
+- **Specializations should be money sinks with paths, and no cap.**
+  Student life "is the most fun of the specializations because you see
+  it slowly grow and develop. I think all of the specialization should
+  follow more so student life and become money sinks with multiple
+  improvement options and paths." Also "there shouldn't be a cap on
+  specialization points." *1 player · form (F10).*
+- **The game rewards size over quality.** "There should exist a
+  reward/building/recognition for having a distinguished college above a
+  certain quality threshold … As of now the game really pushes creating
+  simply massive university instead of quality." *1 player · form (F10).*
+- **Seven distinguished schools earns too little.** "The reward is just
+  one more office in founders hall. by time you reach that those offices
+  aren't really worth much. I think the better reward would be unlocking
+  a second specialization building." *1 player · form (F10).*
 
 ## Asked for in play
 
@@ -499,6 +553,22 @@ marked **0.1.x** and fixed in a patch.*
   enjoyed placing benches more than almost anything else. *1 player ·
   live (T1).*
 
+- **Paint paths and paving by line or area.** "Landscaping. Having to
+  paint ground tiles by hand is excruciating and it leads to many errors.
+  If you can you should add a paint path or paving with a line or a grid,
+  the playing experience would be much better." *1 player · form (F11).*
+- **Replace teachers with better ones automatically.** "Could there be
+  some sort of mechanic to automatically substitute teaching staff with
+  better ones I have? Else it is very tedious to change them, and hurts
+  my grade." With F7's earlier filling of slots by hand "to avoid getting
+  a C teacher". *1 player · form (F13).* The Deans can already reassign
+  teachers, but only on the policy "Staff the weakest courses first",
+  which is not the default. A Provost turns the Deans' staffing off, and
+  only a professor with a free slot is moved, never swapped (`seats.ts`'s
+  `staffForTheA`). **Decided** (the owner, 28 October): the Deans pick the
+  best professor for each of their school's courses, as a matter of
+  course, for 0.1.5.
+
 - **Moving a building.** "Can we pick up and move structures?" Only in a
   sandbox today; in a normal run a building comes down and goes up again
   elsewhere (Founders Hall can't). *1 player · reddit (R15).*
@@ -525,6 +595,11 @@ marked **0.1.x** and fixed in a patch.*
   failure, an unnecessary calculation. *1 player · service (S2).*
   Still so on 0.1.3: "every time you place a path segment, they'll change
   where they're going … not really a big deal." (S3)
+  **Fixed** for 0.1.4: routes already under way are kept unless a
+  building changes, and new paths are used on the next trip (commit
+  `3f6cdbd9`). The same reviewer confirmed it on 0.1.4: "I noticed you
+  fixed the issue where they recalculate their path each time you place
+  a path segment." (S4)
 
 - **A red ghost with no reason.** S1 couldn't place buildings in several
   spots and never got a reason: more housing in year two, while housing
@@ -587,6 +662,31 @@ marked **0.1.x** and fixed in a patch.*
   speak only of wear, while condition also lowers the campus's beauty and
   prestige, and a large backlog brings events.
   **Left as it is** (the owner, 22 October).
+
+- **0.1.x: after the Final Report, the game stops.** "But the game won't
+  let me press anything", in reply to the owner's answer that you can keep
+  playing past Year 50. Continue into the Epilogue moves the fiftieth
+  summer on to admissions. Since 0.1.3, admissions is a page of its own
+  (Plan 108), but the page was told not to open in the final summer
+  (`admissionsPageUp` and `interruptPageUp` waited on `!final`). So the
+  summer card showed only "Admissions is open on its own page.", with no
+  page and no button, and the run went no further. PostHog agrees: a 0.1.3
+  player who continued on 24 October has no event past Year 50 and
+  founded a new college two minutes later. Choosing Found another college
+  was never affected. F12 hit it too: F1's player, back on 0.1.4 with a
+  save continued past the Final Report on 0.1.1, sent "I am not sure what
+  to do here..? I think it is broken." from Year 50 week 52. *2 players ·
+  comment (I9), form (F12).* **Fixed** (28 October,
+  for the next patch): the fiftieth summer's admissions opens as a page
+  like any other, and `test/admissions-page.test.ts` covers it. A save
+  stuck there opens on the page once the patch is up.
+
+- **A club asks for money, is refused, and the money arrives the next
+  tick.** "When a greek life or sports approaches for money. I don't have
+  enough so I reject them and then in the next tick I instantly have
+  enough money to cover them. It is worse for greek life since they don't
+  approach again." Not yet traced: the ask may be checked against cash
+  before the week's income lands. *1 player · form (F10).*
 
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Traced and fixed by Plan 99E (13 October), shipped in 0.1.1. *Owner.*
@@ -1155,6 +1255,85 @@ that in mind.*
     published and the newest update makes me very excited as someone who
     likes to decorate. If I didn't know this was a playtest, I wouldn't
     have figured it out and thought it was a completed game."
+- **F9** · 25 October, 09:53 UTC · 0.1.3 (build `b1f2114`, itch.io),
+  sent from year 50 week 52, rank 9: a finished run. No install id. Left
+  an email for updates (kept out of this file).
+  - *How long:* 4+ hours.
+  - *A moment you didn't know what to do next?* "NIL" (none).
+  - *Best moment:* "seeing the money come in"
+  - *Most frustrating:* "athletics"
+  - *Play again?* "yes"
+  - *Would pay:* under $5.
+  - *Anything else:* "no"
+- **F10** · 25 October, 05:47 UTC · 0.1.3 (build `b1f2114`, itch.io),
+  sent from year 39 week 1, rank 8. Install id `2b0be7f4…`: the player
+  who exported saves most often (PostHog). Asks again about the two-title
+  cap, as F3 did, from a different install.
+  - *How long:* 4+ hours.
+  - *A moment you didn't know what to do next?* "It is pretty
+    straightforward although I think parts of endowment could be
+    confusing"
+  - *Best moment:* "getting the specialty buildings/ programs or winning
+    titles."
+  - *Most frustrating:* "When a greek life or sports approaches for money.
+    I don't have enough so I reject them and then in the next tick I
+    instantly have enough money to cover them. It is worse for greek life
+    since they don't approach again."
+  - *Play again?* "Yes, I have I am very excited to see where the game
+    goes. I really loved the new update on student admission"
+  - *Would pay:* $15–20.
+  - *Anything else:* after "several different universities": (1) seven
+    distinguished schools earns only one more office, and a second
+    specialization building would be a better reward; (B) a clear ranking
+    of specializations, Academics, Research, Athletics ("harder than one
+    would expect even after focusing on it", and "you can only win 2
+    titles per year"), Student life, though student life "is the most fun
+    … because you see it slowly grow and develop", so every
+    specialization should become a money sink with "multiple improvement
+    options and paths", with no cap on specialization points; (c) a
+    reward for a distinguished college above a quality threshold, since
+    "the game really pushes creating simply massive university instead of
+    quality"; (d) "what is the point of student quality. does it affect
+    anything?"
+- **F11** · 26 October, 21:40 UTC · 0.1.4 (build `d085c5a`, itch.io),
+  sent from year 51 week 11, rank 1. No install id; PostHog's one 0.1.4
+  finisher at rank 1 on that build, specialized in student life, 58
+  played minutes, is very likely the same player.
+  - *How long:* 2–4 hours.
+  - *A moment you didn't know what to do next?* "Nah"
+  - *Best moment:* "Completing everything"
+  - *Most frustrating:* "Landscaping. Having to paint ground tiles by hand
+    is excruciating and it leads to many errors. If you can you should add
+    a paint path or paving with a line or a grid, the playing experience
+    would be much better"
+  - *Play again?* "Yes! Nice replayability and concept"
+  - *Would pay:* under $5.
+- **F12** · 28 October, 18:09 UTC · 0.1.4 (build `d085c5a`, itch.io),
+  sent from year 50 week 52, rank 1. Install id `de05c5f2…`: F1's player
+  (and so F3's). PostHog: finished at rank 1 on 0.1.1 on 15 October and
+  continued into the Epilogue; reopened the save on 0.1.4 today, opened
+  the Guide three times, then the bug report's and the menu's feedback
+  links. Stuck on I9's dead end.
+  - *How long:* under 30 minutes (this visit).
+  - *Anything broken?* "I am not sure what to do here..? I think it is
+    broken." With a screenshot (Tally's file store isn't reachable from
+    this repo's tools). Every other answer ".".
+  - *Would pay:* nothing.
+- **F13** · 28 October, 17:57 and 18:03 UTC (sent twice, the second
+  longer, with a screenshot of the report card) · 0.1.4 (build
+  `d085c5a`, itch.io), sent from year 1 week 1 of a new college, rank 75.
+  No install id. "I am the same person who sent you the long feedback.
+  Thanks for reading it, I saw you mentioned it!": very likely F7.
+  - *How long:* 1–2 hours.
+  - *Would pay:* under $5.
+  - *Anything else:* (1) "I did not understand what "Access" means … in
+    the report grade I got an F, but I never heard of it during the
+    game", guessing it meant buildings joined by paths ("I liked the idea
+    of people walking through the grass … I considered the gardens as
+    paths"); (2) "some sort of mechanic to automatically substitute
+    teaching staff with better ones I have? Else it is very tedious to
+    change them, and hurts my grade"; (3) "Maybe if you have a second, a
+    non AI bg to the start screen would be great, in my opinion."
 
 ### We Playtest Games — a service's unsolicited playtest (16 October)
 
@@ -1294,6 +1473,24 @@ one.*
     co-host noted the game is "very American-centric" about universities,
     though "it broadly translates".
 
+### Indie Game Booster — Discord (27 October)
+
+*In the project-showcase thread "Unischool - university tycoon", after
+the owner's post about 0.1.4 (the text rewritten for clarity, with a
+thank-you to Indie Game Booster).*
+
+- **S4** · Stephen | IGB (the reviewer of S2 and S3) · Discord, 27
+  October, on 0.1.4 — "Ah awesome. Just having a read now. Thanks for
+  the mention in the post too 🙂 A few quick comments:
+  - Adding a path directly from the founders hall to the road is a good
+    touch 🙂
+  - My little student dudes seem to love walking a few steps away from
+    the founders hall and nowhere else (tbf I have nothing else at all
+    built but they seem stuck in this loop)
+  - I noticed you fixed the issue where they recalculate their path each
+    time you place a path segment."
+  With a short video of the students between the hall and the drive.
+
 ### Live — Twitch, a streamer the owner found (13 October)
 
 - **T1** · @dea066 on Twitch, a small channel with no viewers, asked by
@@ -1354,3 +1551,7 @@ one.*
   balance. Not yet answered.
 - **I8** · alfonsothegreat · rating, about 24 October — ★★★★★, no
   review. The page's third rating; all three are five stars.
+- **I9** · Fonnesx (the player of I6) · comment, 27 October, a reply to
+  the owner's answer under I6 — "but the game won't let me press
+  anything". Filed under *Bugs*; fixed for the next patch. Not yet
+  answered.

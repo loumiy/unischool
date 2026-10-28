@@ -117,12 +117,15 @@ function median(xs: number[]): number {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
-// The summer's admissions beat, when it is up: the page.
+// The summer's admissions beat, when it is up: the page. The fiftieth
+// summer's too: it once waited on `!final`, so after the Final Report the
+// summer card said admissions was on its own page and showed no page and no
+// button, and the run could go no further (I9).
 export function admissionsPageUp(s: GameState): boolean {
   const i = s.pendingInterrupt;
   if (i?.type !== 'summer') return false;
   const p = i.payload as SummerPayload | undefined;
-  return p?.beat === 1 && !p.final;
+  return p?.beat === 1;
 }
 
 export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Action) => void }) {
