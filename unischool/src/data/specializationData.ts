@@ -134,10 +134,10 @@ export function teamSlowed(earned: number, quality: number): string {
 // The team quality in the Athletics tab's help (Plan 85C), as the college's
 // specialization leaves it (Plan 85D).
 export function teamLimitHelp(knee: number, chosen: Pillar | null): string {
-  if (chosen === 'athletics') return 'You specialized in athletics, so a program\'s quality rises as easily above ' + knee + ' as below it. In the postseason, the established powers keep only a quarter of their edge over you.';
+  if (chosen === 'athletics') return 'You specialized in athletics, so a program\'s quality rises as easily above ' + knee + ' as below it. In the postseason, the established powers keep less of their edge over you, and the Athletic Performance Complex takes more of it away.';
   return chosen
-    ? `You specialized in ${PILLAR_WORDS[chosen]}, so a program's quality rises more slowly above ${knee}, and it can't reach 100. The established powers are even stronger in semifinals and finals, so titles are rare.`
-    : `Without a specialization in athletics, a program's quality rises more slowly above ${knee}, and it can't reach 100. The established powers are even stronger in semifinals and finals, so titles are rare.`;
+    ? `You specialized in ${PILLAR_WORDS[chosen]}, so a program's quality rises more slowly above ${knee}, and it can't reach 100. The established powers play a little stronger in semifinals and finals, so a title takes a strong program and some luck.`
+    : `Without a specialization in athletics, a program's quality rises more slowly above ${knee}, and it can't reach 100. The established powers play a little stronger in semifinals and finals, so a title takes a strong program and some luck.`;
 }
 
 // The specialized pillar's own line (Plan 85D): nothing is empty.
@@ -280,10 +280,10 @@ export const SPECIALIZATION_CARDS: Readonly<Record<Pillar, SpecializationCard>> 
     name: 'The athletic performance complex',
     summary: 'A college known first for its teams.',
     known: 'a college known first for its teams',
-    alsoNow: 'A program\'s quality no longer slows above 80, so a team can play up to 100. In the postseason, the established powers keep only a quarter of their edge.',
+    alsoNow: 'A program\'s quality no longer slows above 80, so a team can play up to 100. In the postseason, the established powers keep less of their edge.',
     fills: COMPLEX_WORDS.fills,
     what: 'The Athletic Performance Complex, where the varsity programs train.',
-    adds: 'A team can play up to 100, and the established powers keep only a quarter of their postseason edge.',
+    adds: 'A team can play up to 100, and the established powers keep less of their postseason edge.',
     fillsShort: `The share fills with deep postseason runs, full at ${COMPLEX_POINTS_FOR_FULL} points of them in ${COMPLEX_WINDOW_YEARS} years.`,
     mechanics: [
       { text: COMPLEX_WORDS.cardComplex, ready: true },

@@ -44,7 +44,7 @@ import { SPECIALIZATION_CARDS, opensLine } from '../src/data/specializationData'
 import { closedBySpecialization, projectLift, projectOpen } from '../src/systems/estate/projects';
 import { unlockAvailable } from '../src/systems/techtree/techSystem';
 import { pillarBreakdown } from '../src/systems/prestige/prestigeSystem';
-import { SPECIALIZED_STAGE_SHARE, STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
+import { SPECIALIZED_STAGE_EDGE, STAGE_EDGE, stageEdge } from '../src/systems/athletics/playoffs';
 import { tickRecruiting } from '../src/systems/athletics/athleticsSystem';
 import { brokenRules } from '../sim/harness/invariants';
 import { foundGame } from '../sim/harness/game';
@@ -157,8 +157,8 @@ function college(specialization: GameState['specialization'], status: 'locked' |
   assert(at(college('research')).join() === rounds.map((r) => STAGE_EDGE[r]).join(), 'and with the complex at a college specialized in research');
   // The specialization shrinks the big stage to a quarter (the owner's
   // decision in 85G's review): 2, 5 and 9.
-  const quarter = rounds.map((r) => Math.round(STAGE_EDGE[r] * SPECIALIZED_STAGE_SHARE));
-  assert(SPECIALIZED_STAGE_SHARE === 0.25 && quarter.join() === '2,5,9', `a quarter of the big stage (${quarter.join(', ')})`);
+  const quarter = rounds.map((r) => SPECIALIZED_STAGE_EDGE[r]);
+  assert(quarter.join() === '1,4,9' && rounds.every((r) => SPECIALIZED_STAGE_EDGE[r] <= STAGE_EDGE[r]), `what is left of the big stage, never more than the unspecialized edge (${quarter.join(', ')})`);
   assert(at(college('athletics', 'locked')).join() === quarter.join(), 'specialized in athletics without the complex, a quarter of the edge stands against it');
   assert(at(college('athletics', 'developing')).join() === quarter.join(), 'and while it goes up');
   const works = at(college('athletics'));

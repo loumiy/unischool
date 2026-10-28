@@ -722,8 +722,9 @@ function teamQualityRaw(team: VarsityTeam, s: GameState, pot?: DepartmentPot): n
 // and the best-run program plays in the low 90s. The specialization takes
 // the slowdown away (specialization.ts's athleticsLifted, the hook the
 // performance complex of Plan 85G extends). With the big stage
-// (playoffs.ts's STAGE_EDGE) it makes a title rare on the unspecialized
-// path; before Plan 85C, a college that staffed and funded two flagships had
+// (playoffs.ts's STAGE_EDGE) it makes a title hard-won on the unspecialized
+// path: about one every two or three years for a maxed department from
+// Year 30 (Plan 121B). Before Plan 85C, a college that staffed and funded two flagships had
 // its first title by about year 8 and dozens by year 50.
 export const TEAM_QUALITY_KNEE = 80;
 export const TEAM_QUALITY_SOFT_SPAN = 10;

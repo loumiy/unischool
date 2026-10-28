@@ -126,7 +126,7 @@ export const PILLAR_LABELS: Readonly<Record<Pillar, string>> = {
 // specialization is worth over unspecialized play. Student life's and
 // athletics' are the largest: student life is the easiest pillar to fill,
 // and without the athletics specialization a program's quality slows above
-// TEAM_QUALITY_KNEE and titles are rare (studentLifeData.ts), so a strong
+// TEAM_QUALITY_KNEE and titles are hard-won (studentLifeData.ts), so a strong
 // department without titles stands about where its term leaves it.
 export const SPECIALIZATION_TERM_WEIGHTS: Readonly<Record<Pillar, number>> = {
   academics: 28,

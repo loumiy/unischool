@@ -263,7 +263,9 @@ function coach(quality: number, field: string): Coach {
   assert(STAGE_EDGE.quarterfinal <= STAGE_EDGE.semifinal && STAGE_EDGE.semifinal < STAGE_EDGE.final && stageEdge(s, 'final') === STAGE_EDGE.final, 'the big stage grows round by round, and stands against an unspecialized college');
 
   // The strongest school in the sport, seeded first: a title in a season
-  // is rare.
+  // is earned, not owed. Since Plan 121B (the owner: a maxed unspecialized
+  // department should win one every two or three years) the strongest
+  // program wins about one season in four, not one in ten.
   const best = Math.max(...s.rivals.map((r) => sportStrengthFor(r, sport.id)));
   assert(teamQuality(team, s) >= best, `the team is the sport's strongest (${teamQuality(team, s)} against ${best})`);
   const roll = makeRivalRng(777);
@@ -275,8 +277,8 @@ function coach(quality: number, field: string): Coach {
     if (result.finish === 'champion') titles += 1;
     if (result.finish === 'champion' || result.finish === 'final') finals += 1;
   }
-  assert(titles / seasons < 0.1, `the sport's strongest program wins fewer than one title in ten seasons (${(titles / seasons * 100).toFixed(1)}%)`);
-  assert(titles / finals < 0.35, `and loses most of its finals (${titles} of ${finals} won)`);
+  assert(titles / seasons > 0.15 && titles / seasons < 0.4, `the sport's strongest program wins a title in about one season in four (${(titles / seasons * 100).toFixed(1)}%)`);
+  assert(titles / finals < 0.6, `and loses nearly half its finals (${titles} of ${finals} won)`);
 
   // A sport's table keeps the old tie rule: level, the rival seeds ahead.
   const r = s.rivals[0];
