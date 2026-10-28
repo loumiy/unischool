@@ -253,7 +253,8 @@ marked **0.1.x** and fixed in a patch.*
   being written. On 0.1.4, from an AI agent driving the browser (Codex),
   which said so itself: "a bounded instruction-flow check, not a human
   full-run review." It found the two-step walkthrough and choosing the
-  instructor clear. *1 check · comment (I7).*
+  instructor clear. *1 check · comment (I7).* **Fixed** for 0.2.0 (Plan 118E): while the
+  first course is written, the help says to wait, and how long.
 - **"Access" is graded but never explained.** An F for Access on the
   report card, "but I never heard of it during the game"; the player
   guessed it meant buildings joined by paths, and wondered whether
@@ -265,9 +266,11 @@ marked **0.1.x** and fixed in a patch.*
   replacement grade. *1 player · form (F13).*
 - **Parts of the endowment are confusing.** "It is pretty straightforward
   although I think parts of endowment could be confusing." *1 player ·
-  form (F10).*
+  form (F10).* **Fixed** for 0.2.0 (Plan 118G): a sentence opens the endowment
+  panel.
 - **What does student quality do?** "Also what is the point of student
-  quality. does it affect anything?" *1 player · form (F10).*
+  quality. does it affect anything?" *1 player · form (F10).* **Fixed** for 0.2.0
+  (Plan 118G): the Students tab says what it feeds.
 
 ## 3 · Intuitive gameplay
 
@@ -318,7 +321,8 @@ marked **0.1.x** and fixed in a patch.*
   Possible fixes: more forecourt spots, spread around the hall and along
   the drive; students who linger there before turning back; or a few
   walking off down the drive after all. It only lasts until the second
-  building. *1 player · service (S4).*
+  building. *1 player · service (S4).* **Fixed** for 0.2.0 (Plan 118C): up to six spots, and
+  students who stand about at one.
 - **How long is a run meant to be?** S2 was in year 3 at 20–25 minutes
   and asked whether players are expected to keep saves going for 50
   years. *1 player · service (S2).*
@@ -403,10 +407,13 @@ marked **0.1.x** and fixed in a patch.*
   details: 0.1.4's new chapter text still leaves the curriculum condition
   out, and the Medical Center (a health building) doesn't count for the
   objective. The owner answered with the unlocks and plans to make them
-  clear in the chapter or change the gates. *1 player · comment (I5).*
+  clear in the chapter or change the gates. *1 player · comment (I5).* **Fixed** for 0.2.0 (Plan
+  118D): the tab shows from year 10 with each project greyed out and what
+  opens it; the chapter names the gate; the Medical Center counts.
 - **Does the game end at year 50?** "When we reach year 50 is it the game
   ends?" The game doesn't say up front that year 50 is the scored ending,
-  or that the Epilogue lets you keep playing. *1 player · comment (I6).*
+  or that the Epilogue lets you keep playing. *1 player · comment (I6).* **Fixed** for 0.2.0 (Plan
+  118F): the chair's welcome says it.
 
 ## 4 · Strategy
 
@@ -686,7 +693,9 @@ marked **0.1.x** and fixed in a patch.*
   enough so I reject them and then in the next tick I instantly have
   enough money to cover them. It is worse for greek life since they don't
   approach again." Not yet traced: the ask may be checked against cash
-  before the week's income lands. *1 player · form (F10).*
+  before the week's income lands. *1 player · form (F10).* **Fixed** for 0.2.0 (Plan 118B): the order was fine; the
+  chapter-house ask's only free answer closed it for good. A college that
+  can't pay now gets "Not yet", and the chapter asks again in half a year.
 
 - **Stairs drawn backwards** (the owner, 12 October, in a reply to R8).
   Traced and fixed by Plan 99E (13 October), shipped in 0.1.1. *Owner.*

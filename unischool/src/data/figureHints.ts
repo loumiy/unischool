@@ -51,7 +51,8 @@ export const FIGURE_HINTS = {
   applicants: 'Everyone who applied at this price.',
   room: 'Class places for next year, minus the places the students who stay on will take.',
   freshmen: 'The class that enrolls.',
-  incomingQuality: 'The average preparation of the class that enrolls, out of 100.',
+  // What it feeds (Plan 118G, F10: "what is the point of student quality").
+  incomingQuality: 'The average preparation of the class that enrolls, out of 100, and part of your academics score.',
   projectedNet: 'Your weekly net once this class and the three above it pay their locked prices, compared with today\'s.',
   projectedSatisfaction: 'How many points this class moves satisfaction, up or down, once it arrives on campus.',
   tightestNeed: 'Beds or dining, whichever will be more stretched, as a share of what your students need, now and with this class.',

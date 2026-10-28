@@ -136,7 +136,7 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
           />
           <FunnelLine
             label="Incoming quality"
-            note="The class that enrolled, on average."
+            note="The class that enrolled, on average. Part of your academics score, and better students expect better teaching."
             value={`${count(s.students.incomingQuality)}/100`}
           />
           <FunnelLine

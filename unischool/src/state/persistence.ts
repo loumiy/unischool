@@ -1211,6 +1211,8 @@ function sanitizeChapters(state: GameState): void {
   }
   for (const chapter of state.orgs.chapters) {
     if (typeof chapter.glyphs !== 'string') chapter.glyphs = glyphsFor(chapter.name);
+    // "Not yet"'s week (Plan 118B): optional, and dropped if malformed.
+    if (chapter.housingAskAfter !== undefined && !Number.isFinite(chapter.housingAskAfter)) delete chapter.housingAskAfter;
   }
 }
 

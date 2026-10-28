@@ -913,7 +913,7 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
               </span>
               <span className="event-choice-detail">
                 {choice.describe(s, ctx)}
-                {!affordable && " — you can't afford this."}
+                {!affordable && ` You're ${money(cost - Math.max(0, s.finance.cash))} short.`}
               </span>
             </button>
           );

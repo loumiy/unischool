@@ -1,5 +1,5 @@
 import type { Buildable, GameState, OpeningStage } from '../state/types';
-import { servingPopulation, totalEnrolled } from '../state/types';
+import { SEMICENTENNIAL_YEAR, servingPopulation, totalEnrolled } from '../state/types';
 import { programById } from './techData';
 import { count, countWord } from '../format';
 
@@ -100,7 +100,9 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     // It introduces the college and the one building it begins with (Plan
     // 104L): S1 read the old list of three tasks, in an order the walk then
     // didn't play, twice. Each step introduces its own thing when it comes.
-    body: (s) => `Welcome to ${s.self.name}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
+    // How long a run is, said up front (Plan 118F, I6: "when we reach
+    // year 50 is it the game ends?").
+    body: (s) => `Welcome to ${s.self.name}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there. A run lasts ${countWord(SEMICENTENNIAL_YEAR)} years. At the end of Year ${SEMICENTENNIAL_YEAR} the board writes your Final Report, and you can keep playing after it.`,
     next: 'Next',
   },
   'site-hall': {

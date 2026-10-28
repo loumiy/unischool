@@ -1,5 +1,6 @@
 import { closedBySpecialization, endowmentHalf } from '../systems/estate/projects';
 import { CLOSED_BUILD_WORDS } from '../data/specializationData';
+import { PROJECTS, projectOpens, projectOpensShort } from '../data/projectData';
 import { specializationOf } from '../systems/prestige/prestigeSystem';
 import { specializationOfferRule } from '../data/prestigeWords';
 import { createContext, useContext, useEffect, useState } from 'react';
@@ -46,8 +47,10 @@ import { DOWNTOWN_WORDS } from '../data/downtownData';
 // ToolbarPopup). Each tile arms a pickup the map resolves into
 // PLACE_BUILDABLE when a tile is clicked (CampusMap.tsx's placeById).
 //
-// Locked Buildables are left off entirely rather than teased, but for one
-// kind: a specialization's own building that would be open but for the
+// Locked Buildables are left off entirely rather than teased, but for two
+// kinds. A capital project any college may build shows greyed out from its
+// first year, saying what opens it (Plan 118D). And a specialization's own
+// building that would be open but for the
 // specialization (Plan 85F: the Research Park, once the labs have earned
 // it, is the case the old game built for every college) shows closed at the
 // end of the capital projects, saying why. Repeatable
@@ -182,6 +185,15 @@ export function visibleBuildableIds(s: GameState): string[] {
 // so the pairing is named here rather than routed through FACILITY_CATEGORY_OF.
 const HOUSING_GROUP_KEYS: ReadonlySet<string> = new Set(['dorm', 'chapterHouse']);
 
+// A capital project any college may build, not open yet, once the first
+// such project's year has come (Plan 118D, I5: "No tab has shown up even
+// though I am on year 12"). The specialization buildings keep their own
+// rule (closedBySpecialization).
+const FIRST_PROJECT_YEAR = Math.min(...PROJECTS.filter((p) => !p.project.specialization).map((p) => p.project.fromYear));
+function projectNotYetOpen(s: GameState, t: Buildable): boolean {
+  return t.status === 'locked' && !!t.project && t.project.specialization === undefined && s.clock.year >= FIRST_PROJECT_YEAR;
+}
+
 function buildGroups(s: GameState): TypeGroup[] {
   return TYPE_MATCHERS
     .map(({ key, label, repeatable, sequential, match }) => ({
@@ -195,9 +207,11 @@ function buildGroups(s: GameState): TypeGroup[] {
         : ACADEMIC_GROUP_KEYS.has(key) ? 'academic'
           : FACILITY_CATEGORY_OF[key as FacilityType]) as BuildCategory | undefined,
       items: s.tech.filter((t) => match(t) && t.status !== 'locked'),
-      closed: key === 'project' ? s.tech.filter((t) => match(t) && closedBySpecialization(s, t)) : [],
+      closed: key === 'project' ? s.tech.filter((t) => match(t) && (closedBySpecialization(s, t) || projectNotYetOpen(s, t))) : [],
     }))
-    .filter((g) => g.items.length > 0);
+    // The capital projects show from their first year with none open yet:
+    // a player hunting for them is told what opens each (Plan 118D, I5).
+    .filter((g) => g.items.length > 0 || g.closed.some((t) => projectNotYetOpen(s, t)));
 }
 
 // A run of consecutive same-category groups becomes one tab; everything else
@@ -656,7 +670,19 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
 // a closed tile with the reason, never armed.
 function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
   const Icon = iconForBuildable(t);
-  const pillar = t.project!.specialization!;
+  const pillar = t.project!.specialization;
+  // A capital project not open yet (Plan 118D): what opens it.
+  if (pillar === undefined) {
+    const why = projectOpens(t.project!);
+    return (
+      <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
+        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} />
+        <span className="build-tile-name">{t.name}</span>
+        <span className="build-tile-sub">{projectOpensShort(t.project!)}</span>
+        <span className="build-tile-foot">not open yet</span>
+      </button>
+    );
+  }
   const why = CLOSED_BUILD_WORDS.why(t.name, pillar, specializationOf(s), specializationOfferRule());
   return (
     <button type="button" className="build-tile available closed" disabled title={why} aria-label={`${t.name}: ${why}`}>
