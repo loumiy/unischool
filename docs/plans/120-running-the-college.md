@@ -39,6 +39,8 @@ distinguished schools. Part of 0.2.0 (see
 
 ## 2. Open questions
 
+*Decided (the owner, 28 October 2026): all three as proposed.*
+
 1. **The milestone's office.** Proposed: drop it, since the building is the
    reward and the office was the complaint.
 2. **The Athletic Performance Complex as a second building** lifts the stage

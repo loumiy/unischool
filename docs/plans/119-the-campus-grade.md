@@ -59,6 +59,8 @@ it anywhere earns a C.
 
 ## 3. Open questions
 
+*Decided (the owner, 28 October 2026): both as proposed.*
+
 1. **Where the player sees it during a run.** Today Access shows only in
    Standings. Campus should show where the player builds, for example a
    line in the build menu or the campus beauty figure, so the grade
