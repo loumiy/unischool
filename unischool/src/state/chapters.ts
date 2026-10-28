@@ -7,6 +7,7 @@ import { weeklyNet } from '../systems/finance/financeSystem';
 import { computePrestigeTarget } from '../systems/prestige/prestigeSystem';
 import { darkPrograms } from '../systems/techtree/darkness';
 import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
+import { MEDICAL_CENTER_ID } from '../data/projectData';
 import { RESEARCH_PARK_ID } from '../data/researchParkData';
 import { GRADE_B } from '../data/courseQuality';
 import { openChairs, venueForCategory } from '../data/studentLifeData';
@@ -319,7 +320,9 @@ export const CHAPTERS: readonly Chapter[] = [
     earliest: week(10, 1),
     side: true,
     objectives: [
-      { id: 'begin-a-project', progress: (s) => s.tech.some((t) => t.facilityType === 'project' && (t.status === 'developing' || t.status === 'done' || t.id in s.placements)) },
+      // The Medical Center counts: a capital project in all but its place in the
+      // build menu (projectData.ts; Plan 118D, I5).
+      { id: 'begin-a-project', progress: (s) => s.tech.some((t) => (t.facilityType === 'project' || t.id === MEDICAL_CENTER_ID) && (t.status === 'developing' || t.status === 'done' || t.id in s.placements)) },
     ],
   },
   {

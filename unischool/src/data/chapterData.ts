@@ -326,12 +326,12 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'capital-projects': {
     title: 'Capital projects',
-    about: `From year ${PROJECTS_FIRST_YEAR}, the build menu offers capital projects, the arts center first, and more by year ${PROJECTS_LATER_YEAR}. Each costs millions and takes years to build. You can pay half the cost from the endowment, and several come with a graduate program of their own.`,
+    about: `From year ${PROJECTS_FIRST_YEAR}, the build menu offers capital projects, the arts center first and more by year ${PROJECTS_LATER_YEAR}. Each one opens once its school's courses are all taught, so the Arts Center waits for every Arts & Media course. Each costs millions and takes years to build, and you can pay half from the endowment.`,
     objectives: {
       'begin-a-project': 'Begin a capital project',
     },
     help: {
-      'begin-a-project': { text: 'Open the Capital projects category in the build menu. It shows what each one costs, how long it takes and what it needs. The endowment panel in the Treasury shows how much of the fund a project can use.', door: 'build' },
+      'begin-a-project': { text: 'Open the Capital projects category in the build menu. A project you can\'t build yet is greyed out, and says what opens it. The Curriculum shows which courses you still need to teach. The endowment panel in the Treasury shows how much of the fund a project can use.', door: 'build' },
     },
   },
   specialization: {

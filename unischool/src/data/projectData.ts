@@ -150,6 +150,15 @@ export function projectOpens(p: CapitalProject): string {
   return once ? `Opens from ${year}, once ${once}.` : `Opens from ${year}.`;
 }
 
+// The same gates in a few words, for a greyed-out tile in the build menu
+// (Plan 118D): the year first, then the courses it waits on.
+export function projectOpensShort(p: CapitalProject): string {
+  const year = p.late ? `Year ${DEFEND_ERA_YEAR}–${p.fromYear}` : `Year ${p.fromYear}`;
+  if (p.curriculum === ANY_SCHOOL) return `${year} · one school's courses taught`;
+  if (p.curriculum) return `${year} · all ${p.curriculum} taught`;
+  return year;
+}
+
 // The Medical Center's id: facilitiesData.ts's HEALTH_CENTER_TIER3_ID,
 // written out here because facilitiesData.ts imports this file.
 export const MEDICAL_CENTER_ID = 'HLTH-T3';
