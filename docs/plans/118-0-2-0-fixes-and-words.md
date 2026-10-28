@@ -5,8 +5,37 @@ fourth week: everything players tripped on since 0.1.4 that is a bug or a
 missing sentence. The rest of 0.2.0 is Plans 119–121. The findings it
 answers are in [findings.md](../reviews/playtest-1/findings.md).*
 
-**Status: Proposed (28 October 2026).** A is done: on main as PR #428 and
-on `release/0.1.4.1` as the hotfix.
+**Status: In progress (28 October 2026).** A is on main (PR #428) and
+shipped as 0.1.4.1 (PR #430). B–H are on `claude/stoic-ride-wge7g3`. I
+waits for Plans 119–121.
+
+- **B, as implemented:** the trace found no wrong order. Events fire after
+  the week's finance, so the cash a player sees is the week's. The fault
+  was the chapter-house ask: its only free answer closed it for good. So a
+  third choice, "Not yet", is offered only when the house can't be paid
+  for. It names the shortfall, dents satisfaction a point, and lets the
+  chapter ask again in half a year (`housingAskAfter`, kept on load). A
+  team's varsity petition already asks again. Every unaffordable choice in
+  a decision now says how much you're short, not "you can't afford this".
+- **C, as implemented:** up to six forecourt spots
+  (`walkRoutes.ts`'s `FORECOURT_SPOTS`), and a student stands four to
+  eleven seconds at one (`Walkers.tsx`'s `STAND_MS`).
+- **D, as implemented:** the tab shows from the first open project's year
+  (10), so the specialization buildings alone, closed from year 1, don't
+  bring it up early. A greyed-out tile shows the gate in a few words
+  (`projectOpensShort`), with `projectOpens`'s sentence on hover.
+- **E, as implemented:** the help in the drawer only
+  (`chapters.ts`'s `objectiveHelp`, which already varied by state). The
+  NEXT line was left as it is.
+- **F, as implemented:** *The long game* chapter went in 0.1.4, so the
+  chair's welcome letter says it instead: a run lasts fifty years, the
+  board writes the Final Report at the end of Year 50, and you can keep
+  playing after it. The title screen was left alone.
+- **G, as implemented:** incoming quality's note on the Students tab, and
+  its hint (one sentence, as the figure hints must be). The endowment's
+  sentence opens its Treasury panel.
+- **H, as implemented:** `test/summer-dead-ends.test.ts`. With I9's fix
+  taken back out, it fails on the fiftieth summer's admissions.
 
 0.2.0 is one update made of four plans:
 
