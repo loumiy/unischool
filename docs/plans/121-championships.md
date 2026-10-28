@@ -10,9 +10,9 @@ late game." With F9 ("athletics") and F10 ("harder than one would expect
 even after focusing on it", "you can only win 2 titles per year"). Part
 of 0.2.0 (see [Plan 118](118-0-2-0-fixes-and-words.md)).*
 
-**Status: In progress (28 October 2026).** A, B and E are on
-`claude/stoic-ride-wge7g3`. C waits for the owner's choice of how venues
-are priced. D answered itself (below).
+**Status: Landed (28 October 2026), on `claude/stoic-ride-wge7g3`.** The
+owner left the specialist as it is, and chose venue prices that scale with
+the college.
 
 - **A, as implemented:** the harness's department (`sim/harness/athletics.ts`)
   now also expands every venue its programs play in, once the money is
@@ -33,6 +33,15 @@ are priced. D answered itself (below).
   and 9 (`SPECIALIZED_STAGE_EDGE`). The specialist wins 49–71 titles a run,
   above Plan 85G's 25–40, as it already did before this plan (39–75): the
   owner's call whether to bring it down.
+- **C, as implemented:** an expansion costs its fixed price or one, two
+  and four weeks of operating cost by rung, whichever is more
+  (`facilitiesData.ts`'s `VENUE_EXPANSION_OPEX_WEEKS`). What was paid is
+  stored (`expansionsPaid`) so upkeep reads it; an older save's
+  expansions read the fixed price. The harness's median cash at Year 45
+  falls from about $1.5B to $600M. With the dearer venues, the
+  unspecialized department at 1, 4 and 10 wins 5.9 titles in Years 30–50
+  on seeds 1–10 and 10.0 on seeds 11–20: 7.95 across the twenty, one about
+  every 2.5 years. The specialist wins 56 a run (41–72).
 - **D, as implemented:** nothing caps titles at two a year. Each fielded
   sport plays its own bracket. What a player meets is the odds, and the
   flagships: the high subsidy names six (and the complex two more), and the
