@@ -285,6 +285,18 @@ marked **0.1.x** and fixed in a patch.*
   Founders Hall went down and the people walked towards the road, S2
   wasn't sure it wasn't a bug, with no paths placed yet. *1 player ·
   service (S2).*
+- **With only Founders Hall built, the students pace a few steps out and
+  back.** On 0.1.4: "My little student dudes seem to love walking a few
+  steps away from the founders hall and nowhere else (tbf I have nothing
+  else at all built but they seem stuck in this loop)." This is 0.1.4's
+  answer to S2's road-walkers (Plan 115C, `walkRoutes.ts`'s `forecourt`
+  and `pickStop`): until two buildings stand, the only stops besides the
+  hall are two spots three and five tiles out from its front door. So
+  the crowd shuttles between three points, which reads as stuck.
+  Possible fixes: more forecourt spots, spread around the hall and along
+  the drive; students who linger there before turning back; or a few
+  walking off down the drive after all. It only lasts until the second
+  building. *1 player · service (S4).*
 - **How long is a run meant to be?** S2 was in year 3 at 20–25 minutes
   and asked whether players are expected to keep saves going for 50
   years. *1 player · service (S2).*
@@ -525,6 +537,11 @@ marked **0.1.x** and fixed in a patch.*
   failure, an unnecessary calculation. *1 player · service (S2).*
   Still so on 0.1.3: "every time you place a path segment, they'll change
   where they're going … not really a big deal." (S3)
+  **Fixed** for 0.1.4: routes already under way are kept unless a
+  building changes, and new paths are used on the next trip (commit
+  `3f6cdbd9`). The same reviewer confirmed it on 0.1.4: "I noticed you
+  fixed the issue where they recalculate their path each time you place
+  a path segment." (S4)
 
 - **A red ghost with no reason.** S1 couldn't place buildings in several
   spots and never got a reason: more housing in year two, while housing
@@ -1308,6 +1325,24 @@ one.*
     viewer would leave the stream on in the background for the music. The
     co-host noted the game is "very American-centric" about universities,
     though "it broadly translates".
+
+### Indie Game Booster — Discord (27 October)
+
+*In the project-showcase thread "Unischool - university tycoon", after
+the owner's post about 0.1.4 (the text rewritten for clarity, with a
+thank-you to Indie Game Booster).*
+
+- **S4** · Stephen | IGB (the reviewer of S2 and S3) · Discord, 27
+  October, on 0.1.4 — "Ah awesome. Just having a read now. Thanks for
+  the mention in the post too 🙂 A few quick comments:
+  - Adding a path directly from the founders hall to the road is a good
+    touch 🙂
+  - My little student dudes seem to love walking a few steps away from
+    the founders hall and nowhere else (tbf I have nothing else at all
+    built but they seem stuck in this loop)
+  - I noticed you fixed the issue where they recalculate their path each
+    time you place a path segment."
+  With a short video of the students between the hall and the drive.
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
