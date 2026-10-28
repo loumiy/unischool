@@ -1,12 +1,12 @@
 import type { Buildable, GameState, GuidanceState, Placement, TileCoord, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
-import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
+import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { weeklyNet } from '../systems/finance/financeSystem';
 import { computePrestigeTarget } from '../systems/prestige/prestigeSystem';
 import { darkPrograms } from '../systems/techtree/darkness';
-import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
+import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall, programById } from '../data/techData';
 import { MEDICAL_CENTER_ID } from '../data/projectData';
 import { RESEARCH_PARK_ID } from '../data/researchParkData';
 import { GRADE_B } from '../data/courseQuality';
@@ -504,6 +504,14 @@ export function treasuryRinged(s: GameState): boolean {
 // goes to the Curriculum (Plan 112A).
 export function objectiveHelp(s: GameState, chapter: ChapterId, objective: string): Lever | undefined {
   if (objective === 'site-academic-hall' && s.tech.find((t) => t.id === FIRST_HALL_ID)?.status === 'locked') return HALL_LOCKED_HELP;
+  // No program's first course taught yet, and one still being written: wait
+  // for it before the second (Plan 118E, I7).
+  if (objective === 'develop-second-course' && walkProgram(s) === null) {
+    const writing = housedPrograms(s)
+      .map((id) => s.tech.find((t) => t.id === programById(id)?.entryCourseId))
+      .find((t) => t?.status === 'developing');
+    if (writing) return secondCourseWaitHelp(writing.name.split(' · ')[0], s.developing[writing.id] ?? writing.duration);
+  }
   return CHAPTER_COPY[chapter].help?.[objective];
 }
 

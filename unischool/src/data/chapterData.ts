@@ -17,7 +17,7 @@ import type { NextStep } from '../systems/guidance/nextStep';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { COURSE_DEVELOPMENT_SLOTS, FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, MAJOR_COURSE_COUNT, TIER_DURATION_WEEKS } from './techData';
-import { count, countWord, durationWords } from '../format';
+import { count, countWord, durationWords, weeksProse } from '../format';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { DEMAND_FIRST_YEAR, DEMAND_SATISFACTION_THRESHOLD } from './demandData';
 import { ATTRITION_SATISFACTION_LINE } from '../systems/admissions/admissionsSystem';
@@ -99,6 +99,16 @@ export const HALL_LOCKED_HELP: Lever = {
   text: `The first academic hall appears in the build menu once ${count(FIRST_HALL_COURSE_GATE)} courses are taught. Develop more in the Curriculum.`,
   door: 'curriculum',
 };
+
+// While the program's first course is still being written, the second can't
+// start (Plan 118E, I7): its help says to wait, and how long, before it
+// says where to click.
+export function secondCourseWaitHelp(code: string, weeksLeft: number): Lever {
+  return {
+    text: `${code} is still being written, with ${weeksProse(weeksLeft)} to go. Once it's taught, open the Curriculum and click Develop on the program's next course.`,
+    door: 'curriculum',
+  };
+}
 
 export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   // Taught by the walkthrough's card; never shown in the drawer.
