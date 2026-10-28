@@ -46,6 +46,9 @@ const WALK_SPEED = 1.35;
 const PACE_SPREAD = 0.15;
 const MAX_GAIT = 8;
 const LINGER_MS = [600, 2600] as const;
+// At a spot on the lawn or the drive, with no door to go in by (the
+// forecourt, Plan 118C): long enough to read as standing about, not pacing.
+const STAND_MS = [4000, 11000] as const;
 const SHIRTS = ['#c94b4b', '#3d6a9c', '#e0b64a', '#5b8a5b', '#8c5a9c', '#e88a4a', '#f2ede2'];
 const TROUSERS = ['#34363f', '#4a4f5c', '#5b4a3a', '#2f3b4f', '#6b6a64'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -587,7 +590,8 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
             w.phase = (w.phase + du * STRIDE_PER_TILE) % (Math.PI * 2);
             moving = true;
             if (w.u >= total) {
-              w.waitUntil = now + LINGER_MS[0] + random() * (LINGER_MS[1] - LINGER_MS[0]);
+              const rest = w.entry?.side === null && !w.entry.away ? STAND_MS : LINGER_MS;
+              w.waitUntil = now + rest[0] + random() * (rest[1] - rest[0]);
               w.inside = vanishes(w.entry);
             }
           }

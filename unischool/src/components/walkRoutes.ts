@@ -162,11 +162,15 @@ export function pointStop(col: number, row: number): Stop {
 }
 
 // Before there are two buildings, somewhere to stand outside the one there
-// is (Plan 115C, the third review's C1-2): a stop or two on the lawn three
-// and five tiles out from Founders Hall's front door, on the drive when it
-// runs there. Without them the only other stop was the road, so the first
-// students spent the founding weeks walking away from the hall.
-const FORECOURT_STEPS = [3, 5];
+// is (Plan 115C, the third review's C1-2): a few stops on the lawn and the
+// drive before Founders Hall's front door. Without them the only other stop
+// was the road, so the first students spent the founding weeks walking away
+// from the hall. Two stops read as a loop (Plan 118C, S4: "they seem stuck
+// in this loop"), so there are up to six, out along the drive and to either
+// side of the front, and a student lingers at one (Walkers.tsx).
+// Each spot is [tiles out from the front wall, tiles along it]; the first
+// prefers the drive where it runs.
+const FORECOURT_SPOTS: ReadonlyArray<readonly [number, number]> = [[3, 0], [6, 0], [3, 3], [3, -3], [5, 2], [5, -2]];
 
 export function forecourt(input: WalkInput, grid: Float32Array): Stop[] {
   const p = input.placements[FOUNDERS_HALL_ID];
@@ -179,15 +183,14 @@ export function forecourt(input: WalkInput, grid: Float32Array): Stop[] {
   const out = front === 'posRow' ? [0, 1] : front === 'negRow' ? [0, -1] : front === 'posCol' ? [1, 0] : [-1, 0];
   const along = [out[1], out[0]];
   const stops: Stop[] = [];
-  for (const [k, step] of FORECOURT_STEPS.entries()) {
-    const c0 = door.col + out[0] * (step - 1);
-    const r0 = door.row + out[1] * (step - 1);
-    // On the drive where it passes. Off it, the open tile nearest the line
-    // out, the far stop two tiles to one side so the two are not a queue.
-    const tries = (k === 0 ? [0, 1, -1] : [2, -2, 1, -1, 0]).map((d) => ({ col: c0 + along[0] * d, row: r0 + along[1] * d }));
-    const onDrive = [0, 1, -1].map((d) => ({ col: c0 + along[0] * d, row: r0 + along[1] * d }))
-      .find((t) => input.pathways[pathTileKey(t)] && open(t.col, t.row));
-    const at = onDrive ?? tries.find((t) => open(t.col, t.row));
+  for (const [step, side] of FORECOURT_SPOTS) {
+    const c0 = door.col + out[0] * (step - 1) + along[0] * side;
+    const r0 = door.row + out[1] * (step - 1) + along[1] * side;
+    // On the drive where it passes near the line out; else the open tile
+    // nearest the spot.
+    const near = [0, 1, -1].map((d) => ({ col: c0 + along[0] * d, row: r0 + along[1] * d }));
+    const onDrive = side === 0 ? near.find((t) => input.pathways[pathTileKey(t)] && open(t.col, t.row)) : undefined;
+    const at = onDrive ?? near.find((t) => open(t.col, t.row));
     if (at && !stops.some((st) => st.key === `at:${at.col},${at.row}`)) stops.push(pointStop(at.col, at.row));
   }
   return stops;

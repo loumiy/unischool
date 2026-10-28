@@ -244,7 +244,11 @@ function stand(s: GameState, id: string, row: number, col: number, w: number, h:
   const edges = roadsides();
   const court = forecourt(input, grid);
   assert(stops.length === 1 && stops[0].id === FOUNDERS_HALL_ID, `the hall is the only stop (${stops.length})`);
-  assert(court.length >= 1 && court.length <= 2, `one or two forecourt stops (${court.length})`);
+  // Two stops read as a loop (Plan 118C, S4): several, spread before the hall.
+  assert(court.length >= 4 && court.length <= 6, `four to six forecourt stops (${court.length})`);
+  const cols = new Set(court.map((st) => st.entrances[0].col));
+  const rows = new Set(court.map((st) => st.entrances[0].row));
+  assert(cols.size >= 3 || rows.size >= 3, 'spread out, not in a line');
   assert(court.some((st) => s.pathways[pathTileKey(st.entrances[0])]), 'a forecourt stop is on the drive');
   const near = (st: { entrances: { col: number; row: number }[] }) => st.entrances.every((e) =>
     Math.max(hall.col - e.col, e.col - (hall.col + hall.w - 1), 0) <= 6 && Math.max(hall.row - e.row, e.row - (hall.row + hall.h - 1), 0) <= 6);
