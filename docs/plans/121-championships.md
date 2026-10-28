@@ -10,7 +10,35 @@ late game." With F9 ("athletics") and F10 ("harder than one would expect
 even after focusing on it", "you can only win 2 titles per year"). Part
 of 0.2.0 (see [Plan 118](118-0-2-0-fixes-and-words.md)).*
 
-**Status: Proposed (28 October 2026).**
+**Status: In progress (28 October 2026).** A, B and E are on
+`claude/stoic-ride-wge7g3`. C waits for the owner's choice of how venues
+are priced. D answered itself (below).
+
+- **A, as implemented:** the harness's department (`sim/harness/athletics.ts`)
+  now also expands every venue its programs play in, once the money is
+  there. Titles per run and in Years 30–50, the Guided player held to each
+  path (`npm run sim -- --players "^Guided, (unspecialized|athletics)$"`):
+
+  | Edge (QF, SF, F) | Seeds | Unspecialized, Y30–50 | Specialist, per run |
+  |---|---|---|---|
+  | 8, 20, 35 (before) | 1–10 | 0.6 (venues not expanded), 0.3 (expanded) | 56 |
+  | 4, 10, 18 | 1–10 | 4.9: one every 4.1 years | not run |
+  | 2, 6, 12 | 1–10 | 6.9: one every 2.9 years | not run |
+  | **1, 4, 10** | 1–10 | **7.7: one every 2.6 years** | not run |
+  | **1, 4, 10** | 11–20 | **7.2: one every 2.8 years** | 49.5 at 2, 5, 9; **57.0 at 1, 4, 9** |
+
+- **B, as implemented:** `STAGE_EDGE` is 1, 4 and 10. The specialist's
+  edge was a quarter of the old one (2, 5, 9), which the new unspecialized
+  edge undercut in the first two rounds, so it is now capped by it: 1, 4
+  and 9 (`SPECIALIZED_STAGE_EDGE`). The specialist wins 49–71 titles a run,
+  above Plan 85G's 25–40, as it already did before this plan (39–75): the
+  owner's call whether to bring it down.
+- **D, as implemented:** nothing caps titles at two a year. Each fielded
+  sport plays its own bracket. What a player meets is the odds, and the
+  flagships: the high subsidy names six (and the complex two more), and the
+  rest are funded at 60%, so about six of twenty programs can contend.
+- **E, as implemented:** the specialization's help and its card no longer
+  say titles are rare or that the specialist faces a quarter of the edge.
 
 ---
 
