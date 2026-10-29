@@ -1,4 +1,3 @@
-import { GRADE_A, GRADE_B, GRADE_C, GRADE_D } from './courseQuality';
 
 // The administration's seats (Plan 28, from v2's seats.json). Each covers a
 // domain of routine events, is filled once and paid for for good, and
@@ -21,16 +20,12 @@ export interface PolicyDef {
   id: string;
   rule: PolicyRule;
   label: string;
-  // The academic seats' teaching policy (Plan 95S, the second review's
-  // B4-5): besides answering the routine by its rule, the seat staffs the
-  // courses under 78 each week (systems/delegation/seats.ts's tickStaffing).
-  staffs?: true;
-  // Said in place of the rule's note when the policy does more than its rule.
-  note?: string;
 }
 
-// The teaching policy's id, the same on the Provost's seat and a Dean's.
-export const STAFFING_POLICY = 'staff-for-a';
+// The teaching policy the Provost and the Deans once had (Plan 95S). Since
+// Plan 120 every Dean staffs its school, so a save on it loads on the
+// seat's default (persistence.ts's sanitizeSeats).
+export const RETIRED_STAFFING_POLICY = 'staff-for-a';
 
 export interface SeatDef {
   id: string;
@@ -53,13 +48,9 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'economical', rule: 'thrifty', label: 'Hold the line on spending' },
       { id: 'invest', rule: 'thorough', label: 'Spend on the academic side' },
       { id: 'collegial', rule: 'popular', label: 'Keep the students on side' },
-      {
-        id: STAFFING_POLICY, rule: 'popular', label: 'Staff the weakest courses first', staffs: true,
-        note: `Each week, moves the best free instructor in the field onto each course below the top band, weakest course first. Only moves someone who'd lift the course a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Otherwise answers like Keep the students on side.`,
-      },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments and the faculty\'s routine. On Staff the weakest courses first, also picks who teaches the courses below the top band. Usually the first seat a college fills. Opens game speed 4×.',
+    blurb: 'Runs the academic side: offers from elsewhere, visiting appointments and the faculty\'s routine. Picks who teaches the courses of any school without a Dean. Usually the first seat a college fills. Opens game speed 4×.',
   },
   {
     id: 'dean', title: 'Dean', domain: 'academic', perSchool: true,
@@ -68,13 +59,9 @@ export const SEATS: readonly SeatDef[] = [
       { id: 'economical', rule: 'thrifty', label: 'Run the school lean' },
       { id: 'invest', rule: 'thorough', label: 'Back the school\'s requests' },
       { id: 'collegial', rule: 'popular', label: 'Keep the students happy' },
-      {
-        id: STAFFING_POLICY, rule: 'popular', label: 'Staff the weakest courses first', staffs: true,
-        note: `With no Provost: each week, moves the best free instructor in the field onto each of the school's courses below the top band, weakest course first. Only moves someone who'd lift the course a band (past ${GRADE_D}, ${GRADE_C}, ${GRADE_B} or ${GRADE_A}). Never hires or dismisses. Otherwise answers like Keep the students happy.`,
-      },
     ],
     defaultPolicy: 'collegial',
-    blurb: 'One for each school you\'ve founded. Takes the academic routine when there\'s no Provost. With a Provost, three Deans open game speed 8×.',
+    blurb: 'One for each school you\'ve founded. Each week, puts the best professor you\'ve hired on each of the school\'s courses. Never hires or dismisses. Takes the academic routine when there\'s no Provost. With a Provost, three Deans open game speed 8×.',
   },
   {
     id: 'facilities', title: 'Facilities Director', domain: 'estate', perSchool: false,

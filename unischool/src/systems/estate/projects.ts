@@ -2,7 +2,7 @@ import type { Buildable, CapitalProject, GameState } from '../../state/types';
 import { ALL_PROJECT_TERMS, DEFEND_ERA_PRESTIGE, DEFEND_ERA_YEAR, ENDOWMENT_PROJECT_SHARE, LATE_TIER_YEAR } from '../../data/projectData';
 import { curriculumGateMet } from '../../data/techData';
 import { conditionOf } from './estate';
-import { specializationOf } from '../prestige/specialization';
+import { buildingOpenTo } from '../prestige/specialization';
 
 // CAPITAL PROJECTS (Plan 33, data/projectData.ts): when one opens, what it
 // lifts while it stands, and paying for half of it from the endowment.
@@ -21,8 +21,8 @@ export function projectOpen(s: GameState, t: Buildable): boolean {
   if (!p) return true;
   // A specialization's own building (Plan 85E: the Faculty Training
   // Institute; Plan 85F: the Research Park) opens to the college specialized
-  // in it, and to no other.
-  if (p.specialization !== undefined && specializationOf(s) !== p.specialization) return false;
+  // in it, and since Plan 120C to the college that picked it as its second.
+  if (p.specialization !== undefined && !buildingOpenTo(s, p.specialization)) return false;
   if (p.late) return lateTierOpen(s);
   if (s.clock.year < p.fromYear) return false;
   // A graduate program's host waits on its school's whole curriculum (Plan 51).
@@ -35,7 +35,7 @@ export function projectOpen(s: GameState, t: Buildable): boolean {
 // reason, so the college sees what the choice would let it build.
 export function closedBySpecialization(s: GameState, t: Buildable): boolean {
   const p = t.project;
-  if (!p || p.specialization === undefined || specializationOf(s) === p.specialization) return false;
+  if (!p || p.specialization === undefined || buildingOpenTo(s, p.specialization)) return false;
   return t.status === 'locked' && projectOpen(s, { ...t, project: { ...p, specialization: undefined } });
 }
 

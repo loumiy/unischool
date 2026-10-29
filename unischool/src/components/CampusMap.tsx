@@ -1,7 +1,7 @@
 import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
 import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
-import type { BenchFacing, Buildable, Facing, GameState, HallSlot, Initiative, PathMaterial, Placement, TileCoord, Vernacular } from '../state/types';
+import type { BenchFacing, Buildable, Facing, GameState, HallSlot, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { entryKey, useCampusLayout, type CampusLayout } from './campusLayout';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
@@ -43,6 +43,7 @@ import { buildStyle, pathSurface } from './pathChoice';
 import { isSandbox } from '../systems/sandbox/sandbox';
 import { moveRefusal } from '../state/sandboxMoves';
 import { surfaceOf } from '../state/paving';
+import { shapeStroke, tilesBetween, type Stroke } from './pathStroke';
 import { castShadow } from './light';
 import {
   DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
@@ -210,17 +211,6 @@ export function groundGeometry(): { plate: string; grid: string; road: string; k
 }
 const MAP_HEIGHT = WORLD.maxY - WORLD.minY + MAP_PADDING * 2 + WORLD_TOP_HEADROOM;
 
-// The tiles of an eight-connected line from `a` to `b`, both included.
-function tilesBetween(a: TileCoord, b: TileCoord): TileCoord[] {
-  const steps = Math.max(Math.abs(b.row - a.row), Math.abs(b.col - a.col));
-  const out: TileCoord[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = steps === 0 ? 0 : i / steps;
-    out.push({ row: Math.round(a.row + (b.row - a.row) * t), col: Math.round(a.col + (b.col - a.col) * t) });
-  }
-  return out;
-}
-
 // What a stroke paints with: an armed tool, or what the secondary mouse
 // button paints with under it, which deletes only what the tool lays (the
 // paving tool's right button lifts paths and leaves the trees). The eraser
@@ -243,7 +233,7 @@ function otherPathTool(tool: CampusTool): StrokeTool {
 // text. Pieces in <kbd> are keys or buttons. A touch screen has neither a
 // second button nor Shift: it is told only what a drag or a tap does.
 const TOOL_HINTS: Record<CampusTool, { mouse: string[]; touch: string }> = {
-  draw: { mouse: ['Drag to pave', '[Shift]+drag for a straight line', '[Right click] to delete'], touch: 'Drag to pave' },
+  draw: { mouse: ['Drag to pave', '[Shift]+drag for a straight line', '[Ctrl]+drag for a rectangle', '[Right click] to delete'], touch: 'Drag to pave' },
   plant: { mouse: ['Drag to plant', '[Right click] to delete'], touch: 'Drag to plant' },
   lamp: { mouse: ['Click to place', '[Right click] to delete'], touch: 'Tap to place' },
   bannerLamp: { mouse: ['Click to place', '[Right click] to delete'], touch: 'Tap to place' },
@@ -1481,7 +1471,7 @@ export default function CampusMap({
   const pathLastRef = useRef<TileCoord | null>(null);
   // Where the current stroke began and the tiles it has laid, for the
   // Shift-held straight run.
-  const strokeRef = useRef<{ anchor: TileCoord; laid: Set<string>; prior: Map<string, true | PathMaterial> } | null>(null);
+  const strokeRef = useRef<Stroke | null>(null);
   // Touch (Plan 70F), read from pointer events of type 'touch' only, so the
   // mouse keeps exactly the handlers above. One finger pans, moves the
   // ghost while a building is picked up, or paints with a path tool; two
@@ -1900,33 +1890,23 @@ export default function CampusMap({
 
   // A freehand stroke paints every tile between the last one painted and
   // the one under the pointer, so a fast drag leaves no gaps. With Shift held
-  // the draw tool lays a straight run from where the stroke began instead,
-  // diagonals included (drawn as one band, see pathways.tsx), and moving the
-  // pointer moves the run: tiles this stroke laid off the new line are lifted.
-  function paintStroke(e: { clientX: number; clientY: number; shiftKey: boolean }, tool: StrokeTool) {
+  // the paving tool lays a straight run from where the stroke began instead,
+  // diagonals included (drawn as one band, see pathways.tsx), and with Ctrl
+  // (or ⌘) a filled rectangle (Plan 120B). Moving the pointer moves the
+  // shape: tiles this stroke laid off it are lifted. The right button's
+  // stroke lifts paths the same way, and puts them back if the shape moves
+  // off them. A shape skips the tiles under a building.
+  function paintStroke(e: { clientX: number; clientY: number; shiftKey: boolean; ctrlKey?: boolean; metaKey?: boolean }, tool: StrokeTool) {
     const here = tileFromEvent(e);
     if (!here) return;
     const stroke = strokeRef.current;
-    if (e.shiftKey && tool === 'draw' && stroke) {
-      // Tiles the run crosses that were paved with something else are
-      // repaved, and put back as they were if the run moves off them.
+    const shape = stroke && (tool === 'draw' || tool === 'unpave')
+      ? (e.ctrlKey || e.metaKey ? 'area' : e.shiftKey ? 'line' : null)
+      : null;
+    if (shape && stroke) {
       const surface = pathSurface();
-      const line = tilesBetween(stroke.anchor, here);
-      const onLine = new Set(line.map(pathTileKey));
-      const add = line.filter((t) => {
-        const key = pathTileKey(t);
-        return !(key in s.pathways) || (!stroke.laid.has(key) && surfaceOf(s.pathways[key]) !== surface);
-      });
-      const off = [...stroke.laid].filter((key) => !onLine.has(key));
-      const remove = off.filter((key) => !stroke.prior.has(key)).map((key) => parsePathTileKey(key)!);
-      const restore = off.filter((key) => stroke.prior.has(key)).map((key) => ({ tile: parsePathTileKey(key)!, paving: stroke.prior.get(key)! }));
-      for (const key of off) { stroke.laid.delete(key); stroke.prior.delete(key); }
-      for (const t of add) {
-        const key = pathTileKey(t);
-        if (key in s.pathways) stroke.prior.set(key, s.pathways[key]!);
-        stroke.laid.add(key);
-      }
-      if (add.length > 0 || off.length > 0) {
+      const { add, remove, restore } = shapeStroke(s.pathways, s.placements, stroke, here, shape, tool === 'draw' ? 'draw' : 'unpave', surface);
+      if (add.length > 0 || remove.length > 0 || restore.length > 0) {
         act({ type: 'PAINT_PATH_TILES', add, remove, ...(surface === 'paving' ? {} : { surface }), ...(restore.length > 0 ? { restore } : {}) });
       }
       pathLastRef.current = here;
@@ -2744,7 +2724,7 @@ export default function CampusMap({
             <>
               <HelpHint
                 align="end"
-                text="This is your campus. To add a building, click Build in the toolbar, pick a building, and click the map to place it. You pay when you place it, and it goes up right there. Press R to turn it 90 degrees. With the bench tool, R turns the bench. A building needs empty ground under its whole footprint. It also needs a walking route from the road on the south edge. If a spot won't work, the ghost tells you why. Paths are free. Press P, or click Paths in the build menu and pick Paving, Cobbles or Brick. Drag to pave, right click to delete, and hold Shift for a straight line. Paths shape the quads and add to campus beauty. The Grounds tab in the build menu has trees of each kind, lamps, banner lamps, benches and flower beds. Place them anywhere on open ground. Its Eraser deletes any of them, paths and trees too. Every tab opens over the map. To come back, click Campus or the tab's Close, or press Escape. Keys: W, A, S, D or the arrows pan. Q and E turn the view. Z and X tilt it. Home goes back to the starting view. R rotates. P draws paths. Escape backs out one step at a time. C opens Curriculum, F opens Faculty, and L opens Students. Space pauses. 1 to 4 set the speed. M mutes. You can also pan by dragging the map or holding the scroll wheel. Scroll or pinch to zoom. On a touch screen, one finger pans and two fingers pinch to zoom. Tap a building to open it. To place a building, tap or drag to set it down, then tap Place. The curved-arrow buttons turn the view. ⤓ and ⤒ tilt it. ⌂ goes back to the starting view."
+                text="This is your campus. To add a building, click Build in the toolbar, pick a building, and click the map to place it. You pay when you place it, and it goes up right there. Press R to turn it 90 degrees. With the bench tool, R turns the bench. A building needs empty ground under its whole footprint. It also needs a walking route from the road on the south edge. If a spot won't work, the ghost tells you why. Paths are free. Press P, or click Paths in the build menu and pick Paving, Cobbles or Brick. Drag to pave, and right click to delete. Hold Shift for a straight line, or Ctrl (⌘ on a Mac) to fill a rectangle. Paths shape the quads and add to campus beauty. The Grounds tab in the build menu has trees of each kind, lamps, banner lamps, benches and flower beds. Place them anywhere on open ground. Its Eraser deletes any of them, paths and trees too. Every tab opens over the map. To come back, click Campus or the tab's Close, or press Escape. Keys: W, A, S, D or the arrows pan. Q and E turn the view. Z and X tilt it. Home goes back to the starting view. R rotates. P draws paths. Escape backs out one step at a time. C opens Curriculum, F opens Faculty, and L opens Students. Space pauses. 1 to 4 set the speed. M mutes. You can also pan by dragging the map or holding the scroll wheel. Scroll or pinch to zoom. On a touch screen, one finger pans and two fingers pinch to zoom. Tap a building to open it. To place a building, tap or drag to set it down, then tap Place. The curved-arrow buttons turn the view. ⤓ and ⤒ tilt it. ⌂ goes back to the starting view."
               />
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>

@@ -128,7 +128,7 @@ export function AllowanceRow({ s }: { s: GameState }) {
   return (
     <div className="office-allowance" title="Offices you can hold">
       <span>Offices</span>
-      {Array.from({ length: MAX_OFFICES }, (_, i) => (
+      {Array.from({ length: Math.max(MAX_OFFICES, held) }, (_, i) => (
         <i key={i} className={i < held ? 'held' : i < allowance ? 'free' : 'locked'} aria-hidden="true" />
       ))}
       <span>{held} held{allowance > held ? `, ${allowance - held} free` : ''}{nextLine}</span>

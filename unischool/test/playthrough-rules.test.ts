@@ -112,6 +112,9 @@ function orphanEnglish(s: GameState): void {
   const school = programById('ENGL')!.school;
   s.seats = [{ seatId: 'dean', school, holder: 'Dean Test', internal: false, policy: 'collegial', salary: 190_000, appointedYear: 1 }];
   orphanEnglish(s);
+  // Nobody left in the field: with a free professor, the Dean would staff
+  // the course from the roster first (Plan 120A).
+  s.faculty = s.faculty.filter((f) => f.field !== programById('ENGL')!.field);
   s.events.opening.skipped = true;
   s.clock.year = 3;
   s.clock.week = 2;

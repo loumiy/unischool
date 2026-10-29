@@ -76,7 +76,7 @@ import { projectConsequences } from '../../src/systems/admissions/consequences';
 import { CROWDING_GRACE, crowdingCoverages, teachingCeiling, prestigeBreakdown } from '../../src/systems/prestige/prestigeSystem';
 import { athleticRank, playerRank, rankBy } from '../../src/systems/rivals/rivalsSystem';
 import { canAppoint, heldSeat, seatCandidates, staffingSeats } from '../../src/systems/delegation/seats';
-import { STAFFING_POLICY, seatDef } from '../../src/data/seatData';
+import { seatDef } from '../../src/data/seatData';
 import { marketRateMultiplier } from '../../src/data/facultyData';
 import { openCampaigns } from '../../src/systems/alumni/campaigns';
 import { canExtend, extensionCost } from '../../src/systems/estate/estate';
@@ -508,13 +508,9 @@ function staffTeams(g: Game, j: Journal, reserve: number, upgrade: boolean): voi
 // Advancement is what campaigns need.
 function appoint(g: Game, j: Journal, seatId: 'provost' | 'advancement' | 'facilities' | 'dean-of-students', reason: string): void {
   const s = g.s;
-  // A Provost held is put on Staff for the A (Plan 95S): it answers the
-  // routine as the default does, and makes the teaching swaps tendTeaching
-  // then leaves to it.
+  // A Provost staffs the schools with no Dean (Plan 120A), and tendTeaching
+  // leaves those courses to it.
   const held = heldSeat(s, seatId, null);
-  if (seatId === 'provost' && held && held.policy !== STAFFING_POLICY) {
-    j.because('provost-staffing', 'The Provost puts the best free instructor on each course below A, so the player need not.', () => g.act({ type: 'SET_SEAT_POLICY', seatId, school: null, policy: STAFFING_POLICY }));
-  }
   if (held || !canAppoint(s, seatId, null)) return;
   const def = seatDef(seatId);
   if (!def || weeklyNet(s) <= (2 * def.outsideSalary * marketRateMultiplier(s.self.reputation)) / 52) return;

@@ -1395,6 +1395,9 @@ export interface GameState {
   tech: Buildable[];
   developing: Record<string, number>; // course id -> weeks remaining
   courseFaculty: CourseFaculty;       // see CourseFaculty
+  // Courses the player staffed by hand, and the week they did (Plan 120A):
+  // the Deans leave each alone for a year (delegation/seats.ts).
+  staffedByHand?: Record<string, number>;
   halls: Record<string, HallSlot[]>;  // see HallSlot
   programOffers: string[];            // see HallSlot
   // Which school claimed each purchased hall, and the week it did (Plan
@@ -1478,6 +1481,10 @@ export interface GameState {
   // SPECIALIZATION_TERM_WEIGHTS).
   specialization: Specialization;
   // The summer it was chosen. Absent while none.
+  // The second specialization building (Plan 120C): a pillar's building,
+  // picked when every school is distinguished, that does its own work without
+  // filling that pillar's specialization share.
+  secondBuilding?: Pillar;
   specializationYear?: number;
   // The year the board's notice came, when the college first stood within
   // reach of the milestone. Absent before.

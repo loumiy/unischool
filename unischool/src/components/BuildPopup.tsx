@@ -790,7 +790,7 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
     key, label, title, art, armed: pathTool === key, onClick: () => onSetPathTool(key),
   });
   const paths = {
-    ...tool('draw', 'Paths', `Draw paths for free (P). Drag to pave, hold Shift for a straight line, right click to delete. ${PATHS_DESIRE_NOTE}`,
+    ...tool('draw', 'Paths', `Draw paths for free (P). Drag to pave. Hold Shift for a straight line, or Ctrl (⌘ on a Mac) for a rectangle. Right click deletes, the same ways. ${PATHS_DESIRE_NOTE}`,
       <DecorThumb d={{ kind: 'path', surface }} />),
     ringed: ringedTool(s) === 'paths',
   };

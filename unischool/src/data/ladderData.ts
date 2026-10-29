@@ -73,7 +73,7 @@ export interface Milestone {
   letter: string;
   opens: readonly string[];
   // Opens one more office of the administration (Plan 89): the college may
-  // hold as many offices as it has reached of these six.
+  // hold as many offices as it has reached of these five.
   office?: true;
 }
 
@@ -81,11 +81,15 @@ const enrolled = (s: GameState) => totalEnrolled(s.students);
 const keysWith = (s: GameState, prefix: string) => Object.keys(s.milestones).filter((k) => k.startsWith(prefix) && s.milestones[k]).length;
 const SCHOOL_COUNT = milestoneSchools().length;
 
-// The office milestones (Plan 89 §3): six, spread from about the third year
-// to about the thirty-fourth, each opening one more office.
+// The office milestones (Plan 89 §3): five since Plan 120C, spread from
+// about the third year to about the thirtieth, each opening one more office.
 const OFFICE_SCHOOLS = 4;
 export const OFFICE_RANK = 25;
 const OFFICE_LINE = 'An office: one more slot in Founders Hall can hold one';
+// Plan 120C: the last milestone opens a second specialization's building
+// in place of a sixth office.
+export const SECOND_BUILDING_MILESTONE = 'every-school-distinguished';
+export const SECOND_BUILDING_LINE = 'A second specialization building, yours to pick';
 const housedPrograms = (s: GameState) => Object.values(s.halls).flat().filter((slot) => slot.programId !== null).length;
 const hasMilestone = (s: GameState, prefix: string) => Object.keys(s.milestones).some((k) => k.startsWith(prefix));
 
@@ -182,7 +186,7 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: [],
     tabs: [],
     letter: "A program has moved to a hall of its own, so Founders Hall has room to spare. A free slot there can now hold an office instead of a program. Offices include Admissions, Sponsored Research and Career Services.",
-    opens: [`${OFFICE_LINE} (the first of six)`],
+    opens: [`${OFFICE_LINE} (the first of five)`],
     office: true,
   },
   {
@@ -342,7 +346,7 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: [],
     tabs: [],
     letter: `The guide ranks you #${OFFICE_RANK} or better. You're one of the country's top ${OFFICE_RANK}, and you can run your college like one.`,
-    opens: [OFFICE_LINE],
+    opens: [`${OFFICE_LINE} (the fifth and last)`],
     office: true,
   },
   {
@@ -354,9 +358,8 @@ export const MILESTONES: readonly Milestone[] = [
     progress: (s) => ({ value: keysWith(s, 'school-distinguished:'), target: SCHOOL_COUNT, unit: 'schools distinguished' }),
     buildables: [],
     tabs: [],
-    letter: 'Every school now teaches every course it has. Your college is complete, and you can open your last office.',
-    opens: [`${OFFICE_LINE} (the sixth and last)`],
-    office: true,
+    letter: 'Every school now teaches every course it has. Your college is complete, and the board will let you build a second specialization\'s building. It does its own work, but doesn\'t fill that pillar\'s specialization share.',
+    opens: [SECOND_BUILDING_LINE],
   },
 ];
 

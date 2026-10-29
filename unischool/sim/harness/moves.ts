@@ -297,8 +297,8 @@ export function tendTeaching(g: Game, { reserve = 0, hires = 2 }: MoveOptions & 
     .sort((a, b) => a.q.score - b.q.score);
   for (const { t, q } of weak) {
     const current = g.s.courseFaculty[t.id];
-    // A Provost or Dean on Staff for the A (Plan 95S) makes this course's
-    // swaps: the player leaves step 1 to the seat, and still hires.
+    // A course a Dean or the Provost staffs (Plan 120A) is left to the
+    // seat: the player stops step 1 for it, and still hires.
     const better = staffingCovers(g.s, t) ? undefined : eligibleInstructors(g.s, t, t.id)
       .filter((f) => f.id !== current)
       .map((f) => ({ f, score: projectedQuality(t, f).score }))

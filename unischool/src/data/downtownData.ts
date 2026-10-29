@@ -107,7 +107,7 @@ export function festivalScaleOf(index: number): FestivalScale | 'none' {
 // The college the downtown grows for: specialized in student life
 // (s.specialization read directly: specialization.ts is a systems module).
 export function downtownWorks(s: GameState): boolean {
-  return s.specialization === 'studentLife';
+  return s.specialization === 'studentLife' || s.secondBuilding === 'studentLife';
 }
 
 // How far the district has grown, 0 to 1; nothing at another college.
@@ -240,7 +240,7 @@ export const DOWNTOWN_WORDS = {
 
   // The Students tab's panel.
   head: 'The downtown',
-  panelHelp: `The town beside the campus, growing into a downtown district while your college is specialized in student life. It meets part of your students' social, dining and housing needs, up to ${pct(OFF_CAMPUS_SHARE)} of each once fully grown. The warmer the town's goodwill, the faster it grows. Each spring, you decide how large a festival to hold. The festivals of the last ${FESTIVAL_WINDOW_YEARS} years fill student life's specialization share, carried by the district's growth and the town's goodwill.`,
+  panelHelp: `The town beside the campus, growing into a downtown district beside your college. It meets part of your students' social, dining and housing needs, up to ${pct(OFF_CAMPUS_SHARE)} of each once fully grown. The warmer the town's goodwill, the faster it grows. Each spring, you decide how large a festival to hold. The festivals of the last ${FESTIVAL_WINDOW_YEARS} years fill student life's specialization share, if it's your specialization, carried by the district's growth and the town's goodwill.`,
   growth: 'Grown',
   goodwill: 'The town\'s goodwill',
   festivals: (s: GameState) => `${festivalsSummary(s)} in the last ${FESTIVAL_WINDOW_YEARS} years, ${num(festivalPoints(s))} of the ${FESTIVAL_POINTS_FOR_FULL} points`,

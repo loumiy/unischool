@@ -28,6 +28,7 @@ import { GRADE_A, type CourseQuality } from '../data/courseQuality';
 import {
   averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
 } from '../systems/faculty/facultyAssignment';
+import { handStaffedWeeksLeft, staffingSeatFor } from '../systems/delegation/seats';
 import HelpHint from '../components/HelpHint';
 import { ScoreMark } from '../components/GradeMark';
 import { facultyMedian } from './facultySort';
@@ -597,6 +598,9 @@ function CourseDrawer(
   const [code, titleFromName] = t.name.split(' · ');
   const title = titleFromName ?? code;
   const weeksLeft = s.developing[t.id] ?? 0;
+  // The Dean or Provost who staffs this course (Plan 120A).
+  const staffingSeat = staffingSeatFor(s, t);
+  const staffer = staffingSeat ? (staffingSeat.seatId === 'dean' ? 'Dean' : 'Provost') : null;
   const shortfall = t.cost - s.finance.cash;
 
   function develop() {
@@ -724,6 +728,13 @@ function CourseDrawer(
                   <button type="button" className="course-drawer-action" disabled={!chosen || chosen === instructor?.id} onClick={reassign}>
                     {chosen && chosen !== instructor?.id ? 'Move this course to them' : 'Currently assigned'}
                   </button>
+                )}
+                {offered && staffer && (
+                  <p className="course-drawer-note">
+                    {handStaffedWeeksLeft(s, t.id) > 0
+                      ? `You staffed this course, so the ${staffer} leaves it to you for ${handStaffedWeeksLeft(s, t.id)} more weeks.`
+                      : `The ${staffer} picks who teaches this course each week. If you move it yourself, it stays yours for a year.`}
+                  </p>
                 )}
               </>
             )}

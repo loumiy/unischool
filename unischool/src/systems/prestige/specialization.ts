@@ -14,10 +14,23 @@ export function specializationOf(s: GameState): Pillar | null {
   return chosen === 'academics' || chosen === 'research' || chosen === 'studentLife' || chosen === 'athletics' ? chosen : null;
 }
 
+// The second building (Plan 120C): a pillar the college may also build for,
+// picked once every school is distinguished. Never its specialization.
+export function secondBuildingOf(s: GameState): Pillar | null {
+  const second = s.secondBuilding;
+  return second !== undefined && second !== specializationOf(s) ? second : null;
+}
+
+// Whether a pillar's own building is open to the college: its
+// specialization's, or its second building's.
+export function buildingOpenTo(s: GameState, pillar: Pillar): boolean {
+  return specializationOf(s) === pillar || secondBuildingOf(s) === pillar;
+}
+
 // The athletics specialization's lift (Plan 85D): with it, a program's
 // quality no longer slows above the knee (studentLifeData.ts's
-// teamQualityCurve) and the big stage (playoffs.ts's stageEdge) shrinks to a quarter
-// (SPECIALIZED_STAGE_EDGE; Plan 85G's review). The one hook both read. The
+// teamQualityCurve) and the big stage (playoffs.ts's stageEdge) shrinks
+// (SPECIALIZED_STAGE_EDGE; Plan 121). The one hook both read. The
 // athletic performance complex (Plan 85G) adds its own mechanics on top, while
 // it stands (data/athleticsComplexData.ts's complexWorks): more flagships, a
 // recruiting boost and the college's own edge in a semifinal and a final.

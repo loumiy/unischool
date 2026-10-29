@@ -16,6 +16,16 @@ import {
 
 const SHORTLIST = 3;
 
+// What a held academic seat does for the teaching (Plan 120A).
+function staffingNote(s: GameState, seatId: string): string | null {
+  if (seatId === 'dean') return 'Puts the best professor you\'ve hired on each of the school\'s courses, every week. A course you staff yourself is left to you for a year.';
+  if (seatId !== 'provost') return null;
+  const deanless = seatSlots(s).filter((x) => x.def.id === 'dean' && !heldSeat(s, 'dean', x.school)).length;
+  return deanless > 0
+    ? `Picks who teaches the courses of the ${deanless === 1 ? 'school' : `${deanless} schools`} with no Dean, every week.`
+    : 'Every school has a Dean, who picks who teaches its courses.';
+}
+
 export default function AdministrationPanel({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const market = marketRateMultiplier(s.self.reputation);
   const slots = seatSlots(s);
@@ -49,6 +59,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                   <span>{seat.holder}</span>
                   <span className="stat">{seat.internal ? 'from the faculty' : 'from outside'} · {moneyShort(seat.salary * market)}/yr</span>
                 </div>
+                {staffingNote(s, def.id) && <p className="seat-blurb">{staffingNote(s, def.id)}</p>}
                 <div className="seat-policies" role="radiogroup" aria-label={`${title}'s policy`}>
                   {def.policies.map((p) => (
                     <button
@@ -57,7 +68,7 @@ export default function AdministrationPanel({ s, act }: { s: GameState; act: (a:
                       className={`panel-action small ${seat.policy === p.id ? 'on' : ''}`}
                       role="radio"
                       aria-checked={seat.policy === p.id}
-                      title={p.note ?? POLICY_RULE_NOTES[p.rule]}
+                      title={POLICY_RULE_NOTES[p.rule]}
                       onClick={() => act({ type: 'SET_SEAT_POLICY', seatId: def.id, school, policy: p.id })}
                     >
                       {p.label}

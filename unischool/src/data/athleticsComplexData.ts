@@ -75,7 +75,7 @@ export function complexGoingUp(s: GameState): boolean {
 // complex standing. (s.specialization read directly: specialization.ts is a
 // systems module.)
 export function complexWorks(s: GameState): boolean {
-  return s.specialization === 'athletics' && complexStands(s);
+  return (s.specialization === 'athletics' || s.secondBuilding === 'athletics') && complexStands(s);
 }
 
 // The flagships the complex adds above the subsidy's: COMPLEX_FLAGSHIPS, or 0.

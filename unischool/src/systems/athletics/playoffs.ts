@@ -60,7 +60,8 @@ export const SPECIALIZED_STAGE_EDGE: Readonly<Record<Round, number>> = {
 };
 
 export function stageEdge(s: GameState, round: Round): number {
-  return athleticsLifted(s) ? SPECIALIZED_STAGE_EDGE[round] - complexEdge(s, round) : STAGE_EDGE[round];
+  // The complex's own edge counts as a second building too (Plan 120C).
+  return Math.max(0, (athleticsLifted(s) ? SPECIALIZED_STAGE_EDGE[round] : STAGE_EDGE[round]) - complexEdge(s, round));
 }
 
 // Resolve one sport's postseason from the player's side. Only fielded sports
