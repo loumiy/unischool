@@ -28,9 +28,12 @@ marked **0.1.x** and fixed in a patch.*
   building game I played in a long long time"; "really really fun game!"
   F10: "I am very excited to see where the game goes. I really loved the
   new update on student admission." F11: "Nice replayability and
-  concept." *22 players · reddit (R1,
+  concept." S5, wrapping up a 2-hour paid playtest: "Generally, it's a
+  very fun game"; "the whole setting-up of it kind of reminds me of Zoo
+  Tycoon, RollerCoaster Tycoon, which I like a lot"; "I like being able to
+  make my own layout"; "I like seeing the seasons change". *23 players · reddit (R1,
   R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8), live (T1), form (F1, F2, F3, F4, F6,
-  F7, F8, F10, F11), discord (D1), service (S1, S2).*
+  F7, F8, F10, F11), discord (D1), service (S1, S2, S5).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
   game"; best moment, turning schools distinguished and then founding the
@@ -93,6 +96,10 @@ marked **0.1.x** and fixed in a patch.*
   they found a Gothic college. Kept in mind under *Direction, not plan*
   in `BACKLOG.md`.
 
+- **The Commons' door sits off the path's centre.** Laying a path to the
+  first dining hall: "the original Commons are a bit off center with the
+  door … just a little OCD thing for me." *1 player · service (S5).*
+  A frame from 10:54 asked for.
 - **The camera hides what stands behind a building.** "Do you warrant I
   can be more free with the camera? I could not see the paths behind
   buildings." Playing in the Mission style, F7 also "found the towers not
@@ -152,7 +159,10 @@ marked **0.1.x** and fixed in a patch.*
 
 - **The letters that stop the clock are too quiet.** The player didn't
   notice that time had stopped, or that something was waiting for him.
-  *1 player · live (T1).*
+  *1 player · live (T1).* S5 found herself paused without knowing six
+  times in two hours ("Oh, I was paused this whole time"; "Did not even
+  know it was paused"), most often after the summer. *2 players · live
+  (T1), service (S5).*
 - **The pennant split the college's name mid-word.** "Baltimoore
   College" showed as "Baltimoor / e College": the banner sizes the name
   by its total length and lets a word break. Plan 104 as K. *Owner, from
@@ -240,7 +250,34 @@ marked **0.1.x** and fixed in a patch.*
   decided" events "since it also works the same way as the news, but it
   could be because of user error too." With T1's quiet letters, the
   second player to miss something waiting on them. *1 player · form
-  (F8).*
+  (F8).* S5, the third: "missed small decision events, need them to be
+  bigger"; at speed a letter's answer "went away so fast", so "we need a
+  note when time passes fast … do the notifications as a warning"; a
+  board letter vanished before she read it; and the toasts sit where she
+  works: "can you move the notifications to where I am not clicking
+  constantly?" Late in the run, with teams and departures, "it's hard to
+  do that when all these dang notifications come up." *2 players · form
+  (F8), service (S5).* Frames from 1:02:38 and 2:04:05 asked for.
+- **A long college name runs off the welcome letter.** The name field
+  took "The College of Gingerbrook College and College" ("able to name
+  the college name SUPER long lol"), and the chair's first letter cut it
+  off. *1 player · service (S5).* A frame from 3:11 asked for.
+- **The chapter drawer can't be moved, and hides its top line.** With
+  the largest text setting, "cannot move the Founders Hall and
+  objectives box so the top one text is cut off". *1 player · service
+  (S5).* A frame from 5:30 asked for.
+- **Where is campus beauty?** A summer promise named campus beauty (72,
+  from 59) and she decorated for it: "How do I see my beauty scale?"
+  *1 player · service (S5).* 0.2.0's Campus line in the build menu
+  shows the campus's standing and weakest part (Plan 119); campus beauty
+  itself is still found only on a building's panel.
+- **What is the Administration for?** "Not really sure what this was
+  really for … reading all this at once is a lot for me. It's a little
+  overwhelming." She appointed a Provost and a VP of Advancement because
+  objectives asked, found the seats only through a chapter's help ("open
+  seats are for hire at the Faculty tab"), and in year 17 had one Dean
+  and couldn't find how to appoint more for 8×. *1 player · service
+  (S5).* A frame from 1:14:03 asked for.
 - **"Start a program's second course" points at a course that can't
   start yet.** Straight after founding English, the objective's help says
   to click Develop on the next course, but ENGL 110 still needs ENGL 101,
@@ -302,6 +339,15 @@ marked **0.1.x** and fixed in a patch.*
   owner, 22 October): the ⟳ was clickable in theory, not in practice, so
   it goes; R turns a building, and on a touch screen the placing bar's
   Rotate button does.
+  S5, on 0.1.4.1, never found R in two hours: "how can I rotate
+  buildings? If I can, can you add [it] to the tutorial?" The key is in
+  the map's help hint only. *2 players · service (S3, S5).*
+- **Adding a story found by accident.** In year 3: "Add a story? What?
+  Didn't even know you could do that … how did I not know you could just
+  add a story to stuff?" She asks for it in the tutorial; afterwards she
+  added stories everywhere. Right-click to delete was found the same way
+  ("I just realized you can right click to destroy. That is very
+  helpful"). *1 player · service (S5).*
 
 - **Where to found the next program.** A few months in, S2 wanted a
   third subject and couldn't remember where the eight program slots
@@ -334,6 +380,11 @@ marked **0.1.x** and fixed in a patch.*
   thought you just keep adding programs, and didn't realize they need
   developing further. This is the same seam as R2 (lost after the first
   course) from the other side. *2 players · live (T1), reddit (R2).*
+  S5: "did not understand developing the programs until I got the third
+  one." *3 players · live (T1), reddit (R2), service (S5).*
+- **Chapter 2's objective was unclear.** "Objective chapter 2 was a bit
+  confusing, not sure what I did exactly." *1 player · service (S5).* A
+  frame from 6:17 would show which step.
 - **Overwhelming at first, and the tutorial easy to miss.** "A little
   hard to figure things out (maybe there was a tutorial I skipped
   accidentally)": not a problem for them, but they expect it would be
@@ -376,7 +427,26 @@ marked **0.1.x** and fixed in a patch.*
   continuing to plummet? So I'm not entirely sure what it is that makes a
   'good' score." The same gap as S1's satisfaction: the number moves and
   the game doesn't say what moved it. "None of that really impacted my
-  enjoyment." *1 player · form (F6).*
+  enjoyment." *1 player · form (F6).* S5, at a milestone asking for
+  prestige 70: "When I hover over prestige required 70, please add a note
+  on how to increase prestige." *2 players · form (F6), service (S5).*
+- **Academics stuck at 66, and is it the library?** "Can't get the
+  academic score over 66???"; she asks whether the library must stand
+  near the classrooms or the dorms, and fears restructuring the campus.
+  It needn't: academic satisfaction is 60 points of teaching (the
+  courses' mean grade against what the intake expects, nothing at C or
+  below) and 40 of library seats, wherever the library stands
+  (`satisfactionSystem.ts`). She read "teaching 9 of 60, library 40":
+  her library was full and her teaching near the C floor, with the
+  expectation rising as she admitted stronger classes. Nothing on the
+  Students tab says so. *1 player · service (S5).*
+- **A program closed and she couldn't tell why.** About year 32: "Artificial
+  Intelligence is closed. Its courses end and their teachers are free for
+  others." "Why did the AI class close suddenly??" Almost certainly the
+  board's gift ("Take the gift and close {program}"), answered in a run
+  of quick clicks at 1:39:55 ("Got something for me … do this, do
+  this"); its default declines. The closing line doesn't name the gift.
+  *1 player · service (S5).* A frame from 1:40:10 asked for.
 - **Why satisfaction falls in year two isn't said.** S1 couldn't find
   satisfaction at first, then couldn't work out why it kept dropping in
   year two with dining, academic and social all full and health "not yet
@@ -412,6 +482,11 @@ marked **0.1.x** and fixed in a patch.*
   clear in the chapter or change the gates. *1 player · comment (I5).* **Fixed** for 0.2.0 (Plan
   118D): the tab shows from year 10 with each project greyed out and what
   opens it; the chapter names the gate; the Medical Center counts.
+  S5, on 0.1.4.1, from year 10 to year 34: "chapter 16: I don't see where
+  to begin a capital project", and "I can't do the capital project" to
+  the end; she put the money in the endowment instead. *2 players ·
+  comment (I5), service (S5).* Frames from 56:30 and about 1:11:30
+  asked for, to check 0.2.0's tab covers her case.
 - **Does the game end at year 50?** "When we reach year 50 is it the game
   ends?" The game doesn't say up front that year 50 is the scored ending,
   or that the Epilogue lets you keep playing. *1 player · comment (I6).* **Fixed** for 0.2.0 (Plan
@@ -452,6 +527,18 @@ marked **0.1.x** and fixed in a patch.*
   faculty should grow across the game; shown as letters, a weak early
   market reads as failure. Teaching becomes a number, so a 50 among 40s
   reads as a good hire. Plan 104 as G.
+  S5, from year 3 ("Management search has turned up something. Garbage.
+  Straight garbage.") to year 37, when an Accounting search ended with
+  "five weeks left, no candidates": "hard to find better teachers for
+  classes the more I went on." *3 players · service (S1, S5), form
+  (F1).* A frame from 1:54 asked for.
+- **The late run's departures swamp the player.** From year 32 a wave of
+  retirements left courses with "no instructor" faster than she could
+  move them: "I keep moving courses and then they're gone … this is all
+  I can do now." She stopped a little past year 37, "getting so overwhelmed", with
+  academics falling to 47; "probably like 30, it does speed up a lot."
+  *1 player · service (S5).* 0.2.0's Deans fill empty courses from the
+  roster (Plan 120A), but she had one Dean.
 
 - **Every run starts the same.** After one full run, the most
   frustrating part of the second was "the beginning because it starts
@@ -586,6 +673,9 @@ marked **0.1.x** and fixed in a patch.*
   each week, swaps included, and fills empty courses from the roster. The
   Provost covers schools with no Dean. A course you staff by hand is left
   to you for a year.
+  S5: "wish there was an auto assign new instructor option"; "some kind
+  of mass button I could push to do all this." *2 players · form (F13),
+  service (S5).*
 
 - **Moving a building.** "Can we pick up and move structures?" Only in a
   sandbox today; in a normal run a building comes down and goes up again
@@ -699,6 +789,12 @@ marked **0.1.x** and fixed in a patch.*
   like any other, and `test/admissions-page.test.ts` covers it. A save
   stuck there opens on the page once the patch is up.
 
+- **Founding a program in Maple Hall refused for a while.** "Could not
+  found programs for a bit in Maple Hall": in year 11 Pharmacy wouldn't
+  found ("Why can't I do this?"), then a little later it would. Not yet
+  known whether a rule refused it (the hall still going up, a program in
+  transit) or a fault. *1 player · service (S5).* A frame from 1:00:25
+  asked for.
 - **A club asks for money, is refused, and the money arrives the next
   tick.** "When a greek life or sports approaches for money. I don't have
   enough so I reject them and then in the next tick I instantly have
@@ -995,7 +1091,7 @@ on Steam in the next few weeks" (5 upvotes, 8 comments when read, 23
 October). From the owner's screenshots; the thread's link wasn't kept.*
 
 - **R13** · Best-Cheetah-4422 — "hey! sent you a DM about playing!!"
-  Likely a creator or service offer; not feedback.
+  A playtest offer: the owner paid for it, and it is S5.
 - **R14** · Anxious-Drink3453 — "Very good! When work and university give
   me some time, I'm going to explore it completely!" They also linked a
   web game of their own (YonaZakkart, one of the two new itch.io
@@ -1510,6 +1606,56 @@ thank-you to Indie Game Booster).*
   - I noticed you fixed the issue where they recalculate their path each
     time you place a path segment."
   With a short video of the students between the hall and the drive.
+
+### Ginger Brooke — a paid playtest (29 October)
+
+*Ginger Brooke (u/Best-Cheetah-4422, R13) offered to playtest; the owner
+paid $20 for two hours, recorded on
+[YouTube](https://youtu.be/2GzdFOBS-8s). Most likely 0.1.4.1 (the page
+was "updated 5 hours ago"). She asked for feedback on the middle and late
+game and got past year 37 (rank 48 of 100), specialized in
+student life (year 21), national champions in one sport. The largest
+text setting. The transcript, reformatted, is not kept in the repository;
+the owner has it. Her notes from the video's description, as written:*
+
+- **S5** · Ginger Brooke · service, 29 October.
+  - able to name the college name SUPER long lol
+  - first text box the college name was long so it got cut off
+  - cannot move the founders hall and objectives box so the top one text
+    is cut off 5:00
+  - objective chapter 2 was a bit confusing, not sure what i did exactly
+  - QUESTION: how can i rotate buildings? if i can, can you add to the
+    tutorial
+  - the original commons are a bit off center with the door
+  - did not understand developing the programs until i got the third one
+  - had no idea i could add stories to buildings, maybe suggest adding
+    that to the tutorial
+  - missed small decision events, need them to be bigger
+  - QUESTION: how do i see my beauty scale?
+  - chapter 16: i dont see where to begin a capital project
+  - could not found programs for a bit in maple hall
+  - need a note when time passes fast so do the notifications as a
+    warning
+  - cant get the academic score over 66???
+  - When I hover over prestige required 70, please add a note on how to
+    increase prestige
+  - QUESTION: why did the AI class close suddenly?? 1:42:00
+  - hard to find better teachers for classes the more i went on
+  - QUESTION: what is the administration really for?
+  - do i need to have the library near all of the classrooms?? if so can
+    we add a note about that in the tutorial
+  - wish there was an auto assign new instructor option
+  - can you move the notifications to where i am not clicking
+    constantly?
+  - *From the video:* six times paused without knowing; right-click to
+    delete found at year 7; never built a capital project; the
+    Administration's seats found only through chapter help; a
+    wave-crashing sound she liked but couldn't place (1:35:14). Her
+    close: "Generally, it's a very fun game. Got to think a lot. It does
+    start to get a little overwhelming as you continue to go further";
+    she'd like to keep playing to year 50, given a way to keep up with
+    the teachers. Frames asked for at 3:11, 5:30, 6:17, 10:54, 56:30,
+    1:00:25, 1:02:38, 1:14:03, 1:40:10, 1:54 and 2:04:05.
 
 ### Live — Twitch, a streamer the owner found (13 October)
 
