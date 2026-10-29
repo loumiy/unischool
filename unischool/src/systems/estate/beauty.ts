@@ -1,7 +1,7 @@
 import { tagTeeth } from '../identity/teeth';
 import type { GameState } from '../../state/types';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH, standsOnCampus } from '../../state/types';
-import { isPlaceableKind } from '../../state/campusMap';
+import { isPlaceableKind, pathTileKey } from '../../state/campusMap';
 import { detectQuads } from '../../state/quads';
 import { TREE_COVERAGE } from '../../data/treeData';
 import { conditionOf } from './estate';
@@ -16,6 +16,9 @@ import { conditionOf } from './estate';
 //              estate's condition.
 // It reaches the applicant pool (admissionsSystem.ts, capped at the layout
 // cap) and prestige (prestigeSystem.ts), both neutral at 50.
+//
+// Also the Campus standing (Plan 119), which the Final Report grades in place
+// of Access.
 //
 // The one module in systems/ that reads the map: the layout is load-bearing
 // here on purpose (test/invariants.test.ts, section 4).
@@ -81,4 +84,73 @@ export function campusBeauty(s: GameState): number {
 // either end.
 export function beautyPoolFactor(beauty: number): number {
   return 1 + Math.max(-1, Math.min(1, (beauty - 50) / 50)) * LAYOUT_CAP;
+}
+
+// ---------------------------------------------------------------------
+// Campus (Plan 119, the owner: reward "players who spend time making the
+// campus look good, not just buying every asset"). Four parts, each 0–1 and
+// each a ratio, so a campus's size doesn't decide it (F10: the game "pushes
+// creating simply massive university instead of quality"):
+//   decoration    lamps, benches, banner lamps and flower beds, per building;
+//   quads         the quads the buildings make, against what the campus's
+//                 size could hold;
+//   paths         the share of buildings with a path at a door (the middle of
+//                 a wall, where the walkers go in);
+//   assets        the buildings the college may build that stand, at their
+//                 condition.
+// On the 0–150 scale the standings use.
+// ---------------------------------------------------------------------
+
+export const CAMPUS_SCALE = 150;
+export const DECOR_PER_BUILDING = 3;
+export const BUILDINGS_PER_QUAD = 8;
+// Weighted so a campus laid out with care reads an A, and one that bought
+// everything and dressed none of it about a C (Plan 119D).
+export const CAMPUS_WEIGHTS = { decoration: 0.25, quads: 0.2, paths: 0.25, assets: 0.3 } as const;
+
+export interface CampusTerms {
+  decoration: number; // 0–1
+  quads: number;      // 0–1
+  paths: number;      // 0–1
+  assets: number;     // 0–1
+  score: number;      // 0–150
+}
+
+// The tiles just outside the middle of each wall: where a door is.
+function doorTiles(p: { row: number; col: number; w: number; h: number }): Array<{ row: number; col: number }> {
+  const out: Array<{ row: number; col: number }> = [];
+  for (const c of new Set([p.col + Math.floor((p.w - 1) / 2), p.col + Math.ceil((p.w - 1) / 2)])) {
+    out.push({ row: p.row - 1, col: c }, { row: p.row + p.h, col: c });
+  }
+  for (const r of new Set([p.row + Math.floor((p.h - 1) / 2), p.row + Math.ceil((p.h - 1) / 2)])) {
+    out.push({ row: r, col: p.col - 1 }, { row: r, col: p.col + p.w });
+  }
+  return out;
+}
+
+export function campusTerms(s: GameState): CampusTerms {
+  const standing = s.tech.filter((t) => isPlaceableKind(t) && t.facilityType !== 'quad' && standsOnCampus(t) && t.id in s.placements);
+  const n = standing.length;
+  const decor = Object.keys(s.dressing ?? {}).length;
+  const decoration = n === 0 ? 0 : Math.min(1, decor / (DECOR_PER_BUILDING * n));
+  const quads = n === 0 ? 0 : Math.min(1, quadQuality(s) / Math.max(1, n / BUILDINGS_PER_QUAD));
+  const atDoor = standing.filter((t) => doorTiles(s.placements[t.id]).some((d) => s.pathways[pathTileKey(d)])).length;
+  const paths = n === 0 ? 0 : atDoor / n;
+  const open = s.tech.filter((t) => isPlaceableKind(t) && t.facilityType !== 'quad' && t.status !== 'locked');
+  const assets = open.length === 0 ? 0 : standing.reduce((sum, t) => sum + conditionOf(t), 0) / open.length;
+  const score = CAMPUS_SCALE * (
+    decoration * CAMPUS_WEIGHTS.decoration + quads * CAMPUS_WEIGHTS.quads
+    + paths * CAMPUS_WEIGHTS.paths + Math.min(1, assets) * CAMPUS_WEIGHTS.assets
+  );
+  return {
+    decoration: Number(decoration.toFixed(3)),
+    quads: Number(quads.toFixed(3)),
+    paths: Number(paths.toFixed(3)),
+    assets: Number(Math.min(1, assets).toFixed(3)),
+    score: Number(score.toFixed(1)),
+  };
+}
+
+export function campusStanding(s: GameState): number {
+  return campusTerms(s).score;
 }

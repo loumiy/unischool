@@ -19,7 +19,7 @@ import { SATISFACTION_TREND, TrendFigure } from '../components/TrendFigure';
 import { DEMAND_URGENT_WEEKS, demandCopy } from '../data/demandData';
 import { demandProgress, demandStakes } from '../systems/demands/demandSystem';
 import { ProgressBar } from '../components/Progress';
-import { DOWNTOWN_WORDS, districtGrowth, goodwillOf } from '../data/downtownData';
+import { DOWNTOWN_WORDS, districtGrowth, downtownWorks, goodwillOf } from '../data/downtownData';
 import { offCampusPlaces } from '../systems/satisfaction/satisfactionSystem';
 import { count, fraction, gameDateOfWeek, money, moneyShort, satisfactionFigure, satisfactionShown, signed, weeksShort } from '../format';
 
@@ -412,7 +412,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
         {/* First, and always: the reading that explains the headline. */}
         <SatisfactionBreakdownPanel s={s} />
         <StudentDemandPanel s={s} />
-        {s.specialization === 'studentLife' && <DowntownPanel s={s} act={act} />}
+        {downtownWorks(s) && <DowntownPanel s={s} act={act} />}
         {!clubsOpen ? (
           <section className="panel">
             <h2>Student organizations</h2>

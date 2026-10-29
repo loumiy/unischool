@@ -144,8 +144,8 @@ function numbersOnly(html: string, what: string, expectScore = true): void {
   ];
   for (const w of words) assert(!/\([A-F]\)|\b[A-F] to [A-F]\b|an A\b/.test(w), `no letter: "${w}"`);
   assert(TRAINING_WORDS.trained('Dr. A', 58, 76, '').includes('58 → 76'), 'a training reads "58 → 76"');
-  const staffing = SEATS.flatMap((seat) => seat.policies).filter((p) => p.staffs);
-  assert(staffing.length > 0 && staffing.every((p) => p.label === 'Staff the weakest courses first' && !/below A|for the A|letter/.test(p.note ?? '')), 'the staffing policy is named without a letter');
+  const academic = SEATS.filter((seat) => seat.id === 'provost' || seat.id === 'dean');
+  assert(academic.length === 2 && academic.every((seat) => !/below A|for the A|letter/.test(seat.blurb)), 'the academic seats\' staffing is said without a letter');
 }
 
 console.log(failures === 0 ? `  ✓ all ${checks} checks passed` : `  ${failures} of ${checks} checks failed`);

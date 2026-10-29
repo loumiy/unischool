@@ -1,5 +1,5 @@
 import { WEEKS_PER_YEAR, type GameState } from '../state/types';
-import { districtStep } from '../data/downtownData';
+import { districtStep, downtownWorks } from '../data/downtownData';
 
 // One look at the downtown (Plan 95C, the second review's B1-7). The
 // district stands in the ring along the road, outside the opening view, so
@@ -23,7 +23,7 @@ export function districtSeen(s: GameState): DistrictSeen {
   return {
     name: s.self.name,
     week: s.clock.year * WEEKS_PER_YEAR + s.clock.week,
-    studentLife: s.specialization === 'studentLife',
+    studentLife: downtownWorks(s),
     step: districtStep(s),
   };
 }

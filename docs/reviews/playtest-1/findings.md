@@ -262,8 +262,10 @@ marked **0.1.x** and fixed in a patch.*
   price sits below what prestige could charge (`rivalsSystem.ts`'s
   `selfAccess`). It is explained only in History › Standings' help
   hint, and a winning college, selective and priced to its name, fails
-  it almost by design. The owner fails it too, and is weighing a
-  replacement grade. *1 player · form (F13).*
+  it almost by design. The owner fails it too. *1 player · form (F13).*
+  **Fixed** for 0.2.0 (Plan 119): Campus replaces Access. It grades
+  decoration, quads, paths to doors and buildings in repair, and the
+  build menu shows it with its weakest part.
 - **Parts of the endowment are confusing.** "It is pretty straightforward
   although I think parts of endowment could be confusing." *1 player ·
   form (F10).* **Fixed** for 0.2.0 (Plan 118G): a sentence opens the endowment
@@ -508,6 +510,9 @@ marked **0.1.x** and fixed in a patch.*
   one more office in founders hall. by time you reach that those offices
   aren't really worth much. I think the better reward would be unlocking
   a second specialization building." *1 player · form (F10).*
+  **Fixed** for 0.2.0 (Plan 120C): the milestone opens a second
+  specialization's building in place of the office. It does its own work
+  but doesn't fill that pillar's share.
 
 ## Asked for in play
 
@@ -564,6 +569,9 @@ marked **0.1.x** and fixed in a patch.*
   paint ground tiles by hand is excruciating and it leads to many errors.
   If you can you should add a paint path or paving with a line or a grid,
   the playing experience would be much better." *1 player · form (F11).*
+  Shift already laid a straight line, but only a hint said so. **Fixed**
+  for 0.2.0 (Plan 120B): Ctrl (⌘ on a Mac) and drag fills a rectangle,
+  and the right button deletes by line or rectangle too.
 - **Replace teachers with better ones automatically.** "Could there be
   some sort of mechanic to automatically substitute teaching staff with
   better ones I have? Else it is very tedious to change them, and hurts
@@ -574,7 +582,10 @@ marked **0.1.x** and fixed in a patch.*
   only a professor with a free slot is moved, never swapped (`seats.ts`'s
   `staffForTheA`). **Decided** (the owner, 28 October): the Deans pick the
   best professor for each of their school's courses, as a matter of
-  course, for 0.1.5.
+  course. **Fixed** for 0.2.0 (Plan 120A): every Dean staffs its school
+  each week, swaps included, and fills empty courses from the roster. The
+  Provost covers schools with no Dean. A course you staff by hand is left
+  to you for a year.
 
 - **Moving a building.** "Can we pick up and move structures?" Only in a
   sandbox today; in a normal run a building comes down and goes up again

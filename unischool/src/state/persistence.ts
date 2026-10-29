@@ -3,7 +3,7 @@ import { tagById } from '../data/tagData';
 import { campaignById } from '../data/campaignData';
 import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
-import { seatDef } from '../data/seatData';
+import { RETIRED_STAFFING_POLICY, seatDef } from '../data/seatData';
 import { officeDef } from '../data/officeData';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { isBoardQuestion } from '../data/boardQuestionData';
@@ -685,6 +685,9 @@ function sanitizeSpecialization(state: GameState): void {
   }
   // A pending choice for a college that has already chosen is spent.
   if (state.pendingInterrupt?.type === 'specialization' && state.specialization !== 'none') state.pendingInterrupt = null;
+  // The second building (Plan 120C): a pillar, never the specialization.
+  const second = state.secondBuilding as unknown;
+  if (second !== undefined && (second === 'none' || !isSpecialization(second) || second === state.specialization)) delete state.secondBuilding;
 }
 
 // The chain: from-version -> the step to the next. A step mutates the parsed
@@ -1149,11 +1152,32 @@ function sanitizeEstate(state: GameState): void {
   }
 }
 
+// Courses staffed by hand: optional; a malformed entry is dropped.
+function sanitizeStaffedByHand(state: GameState): void {
+  const raw = state.staffedByHand as unknown;
+  if (raw === undefined) return;
+  const valid: Record<string, number> = {};
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+    for (const [id, week] of Object.entries(raw)) if (Number.isInteger(week)) valid[id] = week as number;
+  }
+  if (Object.keys(valid).length > 0) state.staffedByHand = valid;
+  else delete state.staffedByHand;
+}
+
 // Seats: optional; a malformed one is dropped, and a seat the game no
 // longer has (or a policy it no longer offers) with it.
 function sanitizeSeats(state: GameState): void {
   const raw = state.seats as unknown;
   if (raw === undefined) return;
+  // A seat on the retired teaching policy keeps its seat, on the default.
+  if (Array.isArray(raw)) {
+    for (const x of raw) {
+      if (typeof x === 'object' && x !== null && x.policy === RETIRED_STAFFING_POLICY && typeof x.seatId === 'string') {
+        const def = seatDef(x.seatId);
+        if (def) x.policy = def.defaultPolicy;
+      }
+    }
+  }
   const valid = Array.isArray(raw)
     ? raw.filter((x): x is Seat => typeof x === 'object' && x !== null
       && typeof x.seatId === 'string' && seatDef(x.seatId) !== undefined
@@ -1760,6 +1784,7 @@ function sanitize(state: GameState): void {
   sanitizeEstate(state);
   sanitizeMilestoneYears(state);
   sanitizeSeats(state);
+  sanitizeStaffedByHand(state);
   sanitizeQuirks(state);
   sanitizeCareers(state);
   sanitizeCompletedWeeks(state);

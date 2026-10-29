@@ -6,7 +6,7 @@ import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueE
 import { CHARTER_INSTANCE, charterVars } from '../systems/events/charter';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
-import { appointSeat, setSeatPolicy, tickStaffing } from '../systems/delegation/seats';
+import { appointSeat, markStaffedByHand, setSeatPolicy, tickStaffing } from '../systems/delegation/seats';
 import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, dropBoardLetters, shiftBoardLetter, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
@@ -26,7 +26,7 @@ import {
   foundProgram,
   relocateProgram,
   closeProgram,
-  swapInstructors,
+  swapInstructors, canSwapInstructors,
   unlockAvailable,
 } from '../systems/techtree/techSystem';
 import { postSearch } from '../systems/faculty/facultySearch';
@@ -360,6 +360,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       const programId = programOfCourse(course.id);
       if (programId !== undefined && isInTransit(s, programId)) return s;
       if (!eligibleInstructors(s, course, course.id).some((f) => f.id === action.facultyId)) return s;
+      if (s.courseFaculty[course.id] !== action.facultyId) markStaffedByHand(s, course.id);
       s.courseFaculty[course.id] = action.facultyId;
       return s;
     }
@@ -947,7 +948,12 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     case 'SWAP_COURSE_FACULTY': {
-      swapInstructors(s, action.courseA, action.courseB);
+      // The Deans leave both courses to the player for a year (Plan 120A).
+      if (canSwapInstructors(s, action.courseA, action.courseB)) {
+        swapInstructors(s, action.courseA, action.courseB);
+        markStaffedByHand(s, action.courseA);
+        markStaffedByHand(s, action.courseB);
+      }
       return s;
     }
 

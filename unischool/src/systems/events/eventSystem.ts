@@ -4,9 +4,10 @@ import { raiseBoardQuestion, raiseCharter, raiseFestival, tickCatalogue, timeOut
 import { delegate } from '../delegation/seats';
 import type { GameState, NewsLetter } from '../../state/types';
 import { WEEKS_PER_YEAR } from '../../state/types';
+import { SECOND_BUILDING_MILESTONE } from '../../data/ladderData';
 import type { DecisionEvent, DecisionEventContext, MilestoneEntry, MilestonePayload } from '../../data/eventData';
 import {
-  DECISION_EVENTS, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR,
+  DECISION_EVENTS, SECOND_BUILDING_EVENT, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR,
   DECISION_EVENT_REPEAT_COOLDOWN_WEEKS, DECISION_EVENT_WEEKLY_CHANCE,
   MILESTONE_INTERRUPT_MIN_WEEKS_BETWEEN, OPENING_LETTERS, VARSITY_PETITION_WEEK,
   absoluteWeek, describeMilestone, findDecisionEvent, hasFreeChoice,
@@ -156,6 +157,16 @@ function fireAthleticDirectorOffer(s: GameState): boolean {
 // VARSITY_PETITION_WEEK, rather than entering the weighted lottery. A
 // decision event, so in a guided run it waits for "Campus life" as the
 // others do (Plan 113C); "The teams" opens on it.
+// The second specialization building (Plan 120C): asked once, the week
+// after every school is distinguished, until it is answered.
+function fireSecondBuilding(s: GameState): boolean {
+  if (s.ladder.reached[SECOND_BUILDING_MILESTONE] === undefined || s.secondBuilding !== undefined || s.sandbox) return false;
+  const event = findDecisionEvent(SECOND_BUILDING_EVENT);
+  if (!event || !hasFreeChoice(s, event, {})) return false;
+  s.pendingInterrupt = { type: 'decision-event', payload: { eventId: event.id, ctx: {} } };
+  return true;
+}
+
 function fireVarsityPetition(s: GameState): boolean {
   if (s.clock.week < VARSITY_PETITION_WEEK) return false;
   if (!chapterGateOpen(s, MATTERS_CHAPTER)) return false;
@@ -315,6 +326,7 @@ export function tickEvents(s: GameState): void {
   // Priority order: earned celebrations and one-shot questions first, the
   // random decision roll last.
   if (fireMilestoneCelebration(s)) return;
+  if (fireSecondBuilding(s)) return;
   if (fireCharter(s)) return;
   if (fireDeanRecommendations(s)) return;
   if (fireResearchReport(s)) return;

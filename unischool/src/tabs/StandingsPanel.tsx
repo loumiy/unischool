@@ -13,7 +13,7 @@ import { PILLARS, pillarBreakdown } from '../systems/prestige/prestigeSystem';
 import { Standing, type BelowALink } from './StandingBreakdown';
 
 // The league table (Plan 31, V1-22, V1-33): where the college stands on
-// prestige, its four pillars, access and financial strength this year, who
+// prestige, its four pillars, campus and financial strength this year, who
 // leads each, and each rank charted over the run. Lower is better; the
 // charts are drawn upside down to read that way. Under the cards, what each
 // pillar reads (Plan 85B): prestige is their blend.
@@ -30,7 +30,7 @@ export default function StandingsPanel({ s, belowA }: { s: GameState; belowA?: B
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text={`Seven rankings of the same colleges. Prestige is the one the guide leads with, and the one Rank shows. It blends four pillars, the same way for you and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others. To see how a specialization raises your own pillar, open ${PILLAR_RULE_HOME}. Access measures your admit rate, and how far your price sits below what your prestige could charge. Financial strength measures your endowment per student. Neither counts toward prestige. The Final Report grades the six rankings beside prestige, and reads prestige once, as the guide's final word.`} />
+          <HelpHint text={`Seven rankings of the same colleges. Prestige is the one the guide leads with, and the one Rank shows. It blends four pillars, the same way for you and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others. To see how a specialization raises your own pillar, open ${PILLAR_RULE_HOME}. Campus measures how well you've laid out your grounds, from decorations and quads to paths at the doors and buildings in good repair. Financial strength measures your endowment per student. Neither counts toward prestige. The Final Report grades the six rankings beside prestige, and reads prestige once, as the guide's final word.`} />
         </span>
         <span className="stat">of {field}</span>
       </div>

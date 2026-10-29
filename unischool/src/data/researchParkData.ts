@@ -66,7 +66,7 @@ export function parkGoingUp(s: GameState): boolean {
 // standing. (s.specialization read directly: specialization.ts is a systems
 // module.)
 export function parkWorks(s: GameState): boolean {
-  return s.specialization === 'research' && parkStands(s);
+  return (s.specialization === 'research' || s.secondBuilding === 'research') && parkStands(s);
 }
 
 // The labs' output multiplier the park adds: 1 + the boost, or 1.

@@ -52,7 +52,7 @@ function assert(cond: boolean, msg: string): void {
 
 console.log('office tests');
 
-// A college with all six office milestones reached (89D's allowance), so
+// A college with all five office milestones reached (89D's allowance), so
 // the gates below are the office's own.
 function college(name = 'Offices'): GameState {
   const s = createInitialState(name);
@@ -176,7 +176,7 @@ const founders = (s: GameState) => s.halls[FOUNDERS_HALL_ID];
 
 // ---- 7. The six milestones (89D) ----
 {
-  assert(OFFICE_MILESTONES.length === MAX_OFFICES, `six milestones open offices (${OFFICE_MILESTONES.map((m) => m.id).join(', ')})`);
+  assert(OFFICE_MILESTONES.length === MAX_OFFICES, `five milestones open offices (${OFFICE_MILESTONES.map((m) => m.id).join(', ')})`);
   const s = createInitialState('Milestones');
   s.finance.cash = 500_000_000;
   assert(officeAllowance(s) === 0, 'a new college may hold no office');
@@ -219,7 +219,7 @@ const founders = (s: GameState) => s.halls[FOUNDERS_HALL_ID];
   for (const m of milestoneSchools()) s.milestones[`school-distinguished:${m.schoolName}`] = true;
   assert(reached('every-school-distinguished'), 'every school distinguished');
   tickLadder(s);
-  assert(officeAllowance(s) === MAX_OFFICES && nextOfficeMilestone(s) === null, 'all six reached: six offices');
+  assert(officeAllowance(s) === MAX_OFFICES && nextOfficeMilestone(s) === null, 'all five reached: five offices');
 }
 
 console.log(`  ${checks - failures}/${checks} checks passed`);

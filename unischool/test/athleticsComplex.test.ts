@@ -165,6 +165,14 @@ function college(specialization: GameState['specialization'], status: 'locked' |
   assert(works.join() === rounds.map((r, i) => quarter[i] - COMPLEX_HOME_EDGE[r]).join(),
     `with the complex, the college plays ${COMPLEX_HOME_EDGE.semifinal} stronger in a semifinal and ${COMPLEX_HOME_EDGE.final} in a final than the quarter left (${works.join(', ')})`);
   assert(COMPLEX_HOME_EDGE.semifinal > 0 && COMPLEX_HOME_EDGE.final >= COMPLEX_HOME_EDGE.semifinal, 'deeper rounds, a bigger edge');
+  // A second building (Plan 120C): the complex's own edge, off the
+  // unspecialized one.
+  const second = college('research');
+  second.secondBuilding = 'athletics';
+  assert(projectOpen(second, complex(second)), 'picked as a second building, the complex is open to a college specialized in research');
+  assert(at(second).join() === rounds.map((r) => Math.max(0, STAGE_EDGE[r] - COMPLEX_HOME_EDGE[r])).join(),
+    `and its edge counts off the unspecialized one (${at(second).join(', ')})`);
+  assert(term(second).score === 0, 'but the athletics specialization share stays empty');
 }
 
 // ---- The term reads the complex ----

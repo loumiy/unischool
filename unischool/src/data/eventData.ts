@@ -413,6 +413,9 @@ export const VARSITY_PETITION_WEEK = Math.floor((WEEKS_PER_YEAR * 3) / 4);
 // rival); the texture is the catalog's (data/eventCatalogue.ts). A saved
 // interrupt naming a retired event resolves as "an event has passed".
 // =====================================================================
+// The second building's event id (Plan 120C).
+export const SECOND_BUILDING_EVENT = 'second-building';
+
 export const DECISION_EVENTS: readonly DecisionEvent[] = [
   {
     id: 'naming-rights',
@@ -954,6 +957,35 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
     ],
   },
+  // The second specialization building (Plan 120C): when every school is
+  // distinguished, the board lets the college build one more pillar's own
+  // building, effects only. Fired once by eventSystem.ts's
+  // fireSecondBuilding, never drawn; the specialization's own is not offered.
+  {
+    id: SECOND_BUILDING_EVENT,
+    title: 'A second building',
+    domain: 'board',
+    weight: 0,
+    eligible: () => false,
+    prompt: () => 'Every school now teaches every course it has, and the board would like to mark it. You may build one more specialization\'s own building. It does its own work, but it doesn\'t fill that pillar\'s specialization share. Which will it be?',
+    choices: ([
+      ['academics', 'The Faculty Training Institute', 'Each year it trains the professors you pick, and each moves up one band in teaching, for good. Build it from the Capital projects in the build menu.'],
+      ['research', 'The Research Park', `While it stands, every lab's output is ${Math.round(PARK_RESEARCH_BOOST * 100)}% higher, and its labs can run Landmark Programs. Build it from the Capital projects in the build menu.`],
+      ['athletics', 'The Athletic Performance Complex', 'While it stands, two more programs can be flagships, recruiting is stronger, and your teams play stronger in a semifinal and a final. Build it from the Capital projects in the build menu.'],
+      ['studentLife', 'A downtown district', 'The town beside the campus grows into a downtown that meets part of the students\' social, dining and housing needs. The town will ask for a festival each spring.'],
+    ] as const).map(([pillar, label, what]): DecisionChoice => ({
+      id: pillar,
+      label,
+      hidden: (s) => s.specialization === pillar,
+      describe: () => what,
+      cost: () => 0,
+      apply: (s) => {
+        s.secondBuilding = pillar;
+        return entry(s, `The board approves a second specialization building: ${label.replace(/^The /, 'the ').replace(/^A /, 'a ')}.`, 'good');
+      },
+    })),
+  },
+
   {
     id: 'varsity-petition',
     title: 'A petition to go varsity',

@@ -4,7 +4,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
-import { MILESTONES, LADDER_TIERS, milestoneForBuildable, CHARTER_ID } from '../src/data/ladderData';
+import { MILESTONES, LADDER_TIERS, milestoneForBuildable, CHARTER_ID, SECOND_BUILDING_MILESTONE } from '../src/data/ladderData';
 import { initialTech } from '../src/data/techData';
 import { initialDorms } from '../src/data/campusData';
 import { HEALTH_CENTER_TIER1_POPULATION_GATE, initialFacilities } from '../src/data/facilitiesData';
@@ -51,7 +51,7 @@ console.log('ladder tests');
   assert(MILESTONES.every((m) => LADDER_TIERS.includes(m.tier)), 'every milestone sits in a tier');
   assert(MILESTONES.every((m) => m.opens.length > 0 && m.name.length > 0 && m.condition.length > 0), 'every milestone says what it is and what it opens');
   assert(MILESTONES.filter((m) => m.id !== CHARTER_ID).every((m) => m.letter.length > 40), 'every milestone after the charter has a letter');
-  assert(MILESTONES.every((m) => m.side || m.office || m.buildables.length > 0 || m.tabs.length > 0 || m.id === CHARTER_ID), 'every main milestone opens something (an office counts, Plan 89)');
+  assert(MILESTONES.every((m) => m.side || m.office || m.buildables.length > 0 || m.tabs.length > 0 || m.id === CHARTER_ID || m.id === SECOND_BUILDING_MILESTONE), 'every main milestone opens something (an office counts, Plan 89; the second building, Plan 120C)');
 }
 
 // ---- Founding ----

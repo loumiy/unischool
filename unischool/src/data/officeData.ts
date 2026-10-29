@@ -45,9 +45,10 @@ export const OFFICE_CLOSING_WEEKS = 12;
 // large while its seat is filled.
 export const OFFICE_SEAT_BONUS = 1.5;
 
-// The most offices a college may hold, one for each of the six milestones
-// that open them (Plan 89 §3).
-export const MAX_OFFICES = 6;
+// The most offices a college may hold, one for each of the five milestones
+// that open them (Plan 89 §3; the sixth gave way to a second specialization
+// building, Plan 120C). A save from before holds the six it had.
+export const MAX_OFFICES = 5;
 
 export const OFFICES: readonly OfficeDef[] = [
   {

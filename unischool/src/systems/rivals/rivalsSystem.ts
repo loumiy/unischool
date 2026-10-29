@@ -1,5 +1,4 @@
 import { totalEnrolled } from '../../state/types';
-import { priceTolerance } from '../admissions/admissionsSystem';
 import type { GameState, Pillar, Rival, VarsityTeam } from '../../state/types';
 import { SEMICENTENNIAL_YEAR, WEEKS_PER_YEAR, institutionName } from '../../state/types';
 import { athleticProgramStrength, teamQuality } from '../../data/studentLifeData';
@@ -7,6 +6,7 @@ import { ELITE_RIVAL_IDS, baseRivals, makeRivalRng, sportStrengthFor } from '../
 import { clamp } from '../../math';
 import { PILLAR_FLOOR, PILLAR_SPAN, PILLAR_WEIGHTS, athleticStanding, pillarValue, specializationOf } from '../prestige/prestigeSystem';
 import { random } from '../../engine/random';
+import { campusStanding } from '../estate/beauty';
 
 // ---------------------------------------------------------------------
 // Rivals evolve so the ranking stays a live target across decades
@@ -350,40 +350,36 @@ function driftMomentum(current: number, roll: () => number): number {
 // 'reputation' is prestige, the overall: the blend of the four pillars
 // (Plan 85B). 'academics', 'researchStanding', 'socialStanding' and
 // 'athleticStrength' are the pillars.
-export type StandingAxis = 'reputation' | 'academics' | 'socialStanding' | 'researchStanding' | 'athleticStrength' | 'access' | 'financial';
+export type StandingAxis = 'reputation' | 'academics' | 'socialStanding' | 'researchStanding' | 'athleticStrength' | 'campus' | 'financial';
 
 // The standings in the league (Plan 31, V1-22), in the order the History
-// tab lists them: prestige, its four pillars, then access and financial
-// strength, which are ranked but count toward nothing.
+// tab lists them: prestige, its four pillars, then campus and financial
+// strength, which are ranked but count toward nothing. Campus took Access's
+// place in Plan 119.
 export const STANDINGS: ReadonlyArray<{ axis: StandingAxis; label: string }> = [
   { axis: 'reputation', label: 'Prestige' },
   { axis: 'academics', label: 'Academics' },
   { axis: 'researchStanding', label: 'Research' },
   { axis: 'socialStanding', label: 'Student life' },
   { axis: 'athleticStrength', label: 'Athletics' },
-  { axis: 'access', label: 'Access' },
+  { axis: 'campus', label: 'Campus' },
   { axis: 'financial', label: 'Financial strength' },
 ];
 
 // The four pillars' axes, in the pillars' order.
 export const PILLAR_AXES: ReadonlyArray<StandingAxis> = ['academics', 'researchStanding', 'socialStanding', 'athleticStrength'];
 
-// Access and financial strength (Plan 31) are read, not stored. The player's:
-// access is half the admit rate and half how far the price sits under what
-// its standing could charge; financial strength is endowment per student
-// against $80,000, the stewardship axis's full mark. Both on the 0–150
-// scale the other axes use.
-const ACCESS_SCALE = 150;
+// Campus and financial strength (Plans 119 and 31) are read, not stored.
+// The player's: campus is estate/beauty.ts's campusTerms (decoration, quads,
+// paths to doors and assets placed); financial strength is endowment per
+// student against $80,000, the stewardship axis's full mark. Both on the
+// 0–150 scale the other axes use.
+const READ_SCALE = 150;
 export const FINANCIAL_FULL_PER_STUDENT = 80_000;
-export function selfAccess(s: GameState): number {
-  const tolerance = priceTolerance(s.self.reputation);
-  const affordability = tolerance > 0 ? Math.max(0, Math.min(1, 1 - s.finance.listedTuition / (2 * tolerance))) : 0;
-  return ACCESS_SCALE * (0.5 * Math.max(0, Math.min(1, s.students.admitRate)) + 0.5 * affordability);
-}
 export function selfFinancial(s: GameState): number {
   const enrolled = totalEnrolled(s.students);
   const perStudent = enrolled > 0 ? s.finance.endowment / enrolled : 0;
-  return ACCESS_SCALE * Math.max(0, Math.min(1, perStudent / FINANCIAL_FULL_PER_STUDENT));
+  return READ_SCALE * Math.max(0, Math.min(1, perStudent / FINANCIAL_FULL_PER_STUDENT));
 }
 
 // A rival's: read off its reputation, tilted by a fixed share from its id,
@@ -398,8 +394,9 @@ function tilt(id: string, salt: number): number {
   return 0.8 + ((h % 1000) / 1000) * 0.4;
 }
 function rivalValue(r: Rival, axis: StandingAxis): number {
-  if (axis === 'access') return Math.max(0, ACCESS_SCALE - r.reputation * 0.75 * tilt(r.id, 1));
-  if (axis === 'financial') return Math.min(ACCESS_SCALE, r.reputation * 0.8 * tilt(r.id, 2));
+  // A rival's grounds follow its standing, as its endowment does (Plan 119).
+  if (axis === 'campus') return Math.min(READ_SCALE, r.reputation * 0.75 * tilt(r.id, 1));
+  if (axis === 'financial') return Math.min(READ_SCALE, r.reputation * 0.8 * tilt(r.id, 2));
   if (axis === 'reputation') return rivalOverall(r);
   if (axis === 'academics') return r.reputation;
   return r[axis];
@@ -423,12 +420,12 @@ function selfValue(s: GameState, axis: StandingAxis): number {
   if (axis === 'researchStanding') return pillarValue(s, 'research');
   if (axis === 'socialStanding') return pillarValue(s, 'studentLife');
   if (axis === 'athleticStrength') return athleticStanding(s);
-  if (axis === 'access') return selfAccess(s);
+  if (axis === 'campus') return campusStanding(s);
   if (axis === 'financial') return selfFinancial(s);
   return s.self[axis];
 }
 
-// The standings' order (prestige, the four pillars, access, financial
+// The standings' order (prestige, the four pillars, campus, financial
 // strength, the movers' year-ago table): the higher value first, and on a
 // tie the college ahead (the owner's rule, Plan 85C). A sport's own table
 // keeps the old rule (byStrength). Ties are common at the unspecialized
@@ -637,7 +634,7 @@ function otherStandings(s: GameState): OtherStanding[] {
     otherStanding(s, 'Research', 'researchStanding'),
     otherStanding(s, 'Student life', 'socialStanding'),
     otherStanding(s, 'Athletics', 'athleticStrength'),
-    otherStanding(s, 'Access', 'access'),
+    otherStanding(s, 'Campus', 'campus'),
     otherStanding(s, 'Financial strength', 'financial'),
   ];
 }
