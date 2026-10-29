@@ -237,7 +237,7 @@ const TOOL_HINTS: Record<CampusTool, { mouse: string[]; touch: string }> = {
   plant: { mouse: ['Drag to plant', '[Right click] to delete'], touch: 'Drag to plant' },
   lamp: { mouse: ['Click to place', '[Right click] to delete'], touch: 'Tap to place' },
   bannerLamp: { mouse: ['Click to place', '[Right click] to delete'], touch: 'Tap to place' },
-  bench: { mouse: ['Click to place', '[R] turns it', '[Right click] to delete'], touch: 'Tap to place' },
+  bench: { mouse: ['Click to place', '[R] to rotate', '[Right click] to delete'], touch: 'Tap to place' },
   flowerbed: { mouse: ['Drag to plant a border', '[Right click] to delete'], touch: 'Drag to plant a border' },
   erase: { mouse: ['Drag to delete paths, trees and decoration'], touch: 'Drag to delete paths, trees and decoration' },
 };
@@ -249,8 +249,8 @@ function coarsePointer(): boolean {
 // A building in hand (the owner's note, 29 October): the same bar, in place
 // of the keys the build menu's strip once listed. A move (the sandbox's)
 // says so.
-const PLACING_HINT = { mouse: ['Click open ground to build', '[R] turns it'], touch: 'Tap or drag to set it down, then tap Place' };
-const MOVING_HINT = { mouse: ['Click open ground to move it', '[R] turns it'], touch: 'Tap or drag to set it down, then tap Place' };
+const PLACING_HINT = { mouse: ['Click open ground to build', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
+const MOVING_HINT = { mouse: ['Click open ground to move it', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
 function ToolHint({ tool, touch }: { tool: CampusTool; touch: boolean }) {
   return <HintBar hint={TOOL_HINTS[tool]} touch={touch} />;
 }
