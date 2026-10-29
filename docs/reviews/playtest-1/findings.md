@@ -487,6 +487,11 @@ marked **0.1.x** and fixed in a patch.*
   the end; she put the money in the endowment instead. *2 players ·
   comment (I5), service (S5).* Frames from 56:30 and about 1:11:30
   asked for, to check 0.2.0's tab covers her case.
+  **Fixed** for 0.2.0 too (the owner, 29 October): the chapter opens only
+  once a project can be begun, not at year 10 regardless. And Research's
+  first objective is now to build a lab, met when it stands, since the
+  Research tab its next objective needs opens only then; while the lab
+  goes up, the help says so and how long.
 - **Does the game end at year 50?** "When we reach year 50 is it the game
   ends?" The game doesn't say up front that year 50 is the scored ending,
   or that the Epilogue lets you keep playing. *1 player · comment (I6).* **Fixed** for 0.2.0 (Plan
