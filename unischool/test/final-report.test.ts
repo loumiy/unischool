@@ -67,10 +67,10 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
 
 // ---- The path, read (Plan 95U, the second review's B4-7) ----
 {
-  // Access names what it measures, not the college's size.
-  const closed = run(100, 120, { access: [10, 20] });
-  const title = composeTitle(closed, gradeAxes(closed));
-  assert(title.endsWith(', though it stayed hard to get into') && !title.includes('opened its doors'), `a weak access standing is a college hard to get into ("${title}")`);
+  // Campus names what it measures, not the college's size (Plan 119).
+  const bare = run(100, 120, { campus: [10, 20] });
+  const title = composeTitle(bare, gradeAxes(bare));
+  assert(title.endsWith(', though it never made its campus a place to walk'), `a weak campus standing is a campus nobody walks ("${title}")`);
 }
 {
   // Satisfaction that leads the field for most of the arc lifts the
@@ -163,12 +163,12 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
     'jock-school': ['athletics'],
     artsy: ['academics', 'experience'],
     commuter: ['experience'],
-    'country-club': ['access', 'experience'],
-    'pressure-cooker': ['access', 'experience', 'academics'],
-    'the-bargain': ['access'],
+    'country-club': ['campus', 'experience'],
+    'pressure-cooker': ['experience', 'academics'],
+    'the-bargain': ['academics'],
     'old-money': ['finance'],
   };
-  const axes: ReportAxis[] = ['academics', 'research', 'experience', 'athletics', 'access', 'finance'];
+  const axes: ReportAxis[] = ['academics', 'research', 'experience', 'athletics', 'campus', 'finance'];
   for (const { id } of TAGS) {
     assert(READS[id]?.includes(TAG_AXIS[id]), `${id} claims a standing its test reads (${TAG_AXIS[id]})`);
     // With the claimed standing the weakest and an unread one weak too, the

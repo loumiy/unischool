@@ -780,8 +780,9 @@ History lists them: open, kept and missed.
 ranking has one right answer, which is what had turned the game into a
 checklist. The report grades the whole arc, not the last snapshot
 (`state/finalReport.ts`, its words in `data/reportData.ts`): each of the six
-standings — academics, research, campus life, athletics, access and
-financial strength — read from the history rows, graded A–F on its last
+standings — academics, research, campus life, athletics, campus (in
+place of access since Plan 119: decoration, quads, paths to doors and what
+stands) and financial strength — read from the history rows, graded A–F on its last
 decade's average, its average over the run and its climb from the first
 decade. Over them sits a mark, which also weighs where the guide left the
 college and how many promises it kept. The **title** names the college by

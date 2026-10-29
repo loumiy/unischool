@@ -20,7 +20,7 @@ export function reportGrade(score: number): string {
 // The six standings the report grades, as it names them: rivalsSystem.ts's
 // seven less prestige, the blend of four of them, which the report reads
 // once, as the guide's last word (Plan 95J, the second review's 2c D10).
-export type ReportAxis = 'academics' | 'research' | 'experience' | 'athletics' | 'access' | 'finance';
+export type ReportAxis = 'academics' | 'research' | 'experience' | 'athletics' | 'campus' | 'finance';
 
 export const TAG_PHRASES: Readonly<Record<string, string>> = {
   'research-powerhouse': 'a research powerhouse',
@@ -47,8 +47,10 @@ export const SPECIALIZATION_AXIS: Readonly<Record<Pillar, ReportAxis>> = {
 // The standing each tag is, in effect, a claim about: the one its test in
 // identity/tags.ts reads, so a tag never hides the weakness of a standing
 // it does not measure (Plan 98F). A commuter school is a campus-life claim
-// (its test reads beds), a country club a price claim (its test reads the
-// price against what families expect, and the grounds).
+// (its test reads beds), a country club a claim about its grounds (its test
+// reads the price against what families expect, and the campus's beauty).
+// Access's two claims moved with it (Plan 119): the country club to campus,
+// the bargain to academics (its test reads the class's quality).
 export const TAG_AXIS: Readonly<Record<string, ReportAxis>> = {
   'research-powerhouse': 'research',
   'teaching-college': 'academics',
@@ -56,9 +58,9 @@ export const TAG_AXIS: Readonly<Record<string, ReportAxis>> = {
   'jock-school': 'athletics',
   artsy: 'academics',
   commuter: 'experience',
-  'country-club': 'access',
+  'country-club': 'campus',
   'pressure-cooker': 'academics',
-  'the-bargain': 'access',
+  'the-bargain': 'academics',
   'old-money': 'finance',
 };
 
@@ -67,7 +69,7 @@ export const AXIS_PHRASES: Readonly<Record<ReportAxis, string>> = {
   research: 'a research college',
   experience: 'a college with a campus life to envy',
   athletics: 'an athletic college',
-  access: 'a college that opened its doors',
+  campus: 'a college with a campus worth walking',
   finance: 'a well-endowed college',
 };
 
@@ -76,10 +78,9 @@ export const WEAKNESSES: Readonly<Record<ReportAxis, string>> = {
   research: 'never wrote a paper anyone read',
   experience: 'never gave its students much of a campus life',
   athletics: 'never fielded a team anyone feared',
-  // Access is half the admit rate and half the price, not the college's
-  // size: the phrase names what it measures (Plan 95U, the second review's
-  // B4-7).
-  access: 'stayed hard to get into',
+  // Campus is care, not size: decoration, quads, paths to doors and what
+  // stands (Plan 119).
+  campus: 'never made its campus a place to walk',
   finance: 'never built an endowment to match its size',
 };
 

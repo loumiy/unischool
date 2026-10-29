@@ -84,7 +84,7 @@ const REPORT_AXES: ReadonlyArray<{ axis: ReportAxis; standing: StandingAxis }> =
   { axis: 'research', standing: 'researchStanding' },
   { axis: 'experience', standing: 'socialStanding' },
   { axis: 'athletics', standing: 'athleticStrength' },
-  { axis: 'access', standing: 'access' },
+  { axis: 'campus', standing: 'campus' },
   { axis: 'finance', standing: 'financial' },
 ];
 // This game's standings run to 150; the report reads them on v2's 100.

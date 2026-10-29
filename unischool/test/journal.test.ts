@@ -50,7 +50,7 @@ function fresh(): GameState {
   const row = captureYearSnapshot(s, { attrition: 0, satisfactionAverage: 60, graduated: 0 });
   assert(row.standingValues !== undefined && STANDINGS.every(({ axis }) => typeof row.standingValues![axis] === 'number'), 'each year keeps the college\'s value on all six');
   assert(Math.abs(row.standingValues!.reputation - s.self.reputation) < 0.01, 'academics is its prestige');
-  assert(Math.abs(row.standingValues!.access - standingValue(s, 'access')) < 0.01, 'and the read axes are read');
+  assert(Math.abs(row.standingValues!.campus - standingValue(s, 'campus')) < 0.01, 'and the read axes are read');
 }
 
 // ---- Tags earned and shed ----
