@@ -342,6 +342,10 @@ marked **0.1.x** and fixed in a patch.*
   S5, on 0.1.4.1, never found R in two hours: "how can I rotate
   buildings? If I can, can you add [it] to the tutorial?" The key is in
   the map's help hint only. *2 players · service (S3, S5).*
+  **Fixed** for 0.2.0 (the owner, 29 October): a building in hand shows
+  the grounds tools' hint bar at the top of the map: "Click open ground
+  to build · R to rotate · Esc to cancel", in place of the keys line in
+  the build menu's strip.
 - **Adding a story found by accident.** In year 3: "Add a story? What?
   Didn't even know you could do that … how did I not know you could just
   add a story to stuff?" She asks for it in the tutorial; afterwards she

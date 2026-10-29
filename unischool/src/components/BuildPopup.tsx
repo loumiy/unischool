@@ -914,7 +914,6 @@ export default function BuildPopup({
               .replace('{cost}', money(held.status === 'done' ? 0 : held.cost))
               .replace('{pay}', BUILD_WORDS.pay[financing ?? 'none'])}
           </span>
-          <span className="build-holding-keys">{BUILD_WORDS.holdingKeys}</span>
           <StylePicker s={s} />
           <button type="button" className="menu-btn btn-quiet" onClick={() => onArmPlacement(null)}>{BUILD_WORDS.putDown}</button>
         </div>

@@ -3,7 +3,6 @@
 // read as "place it" (Plan 95Q, the second review's B3-10).
 export const BUILD_WORDS = {
   holding: 'Placing: {building} · {cost} · {pay}',
-  holdingKeys: 'Click open ground to build · R turns it · Esc cancels',
   putDown: 'Cancel',
   pay: {
     cash: 'paid in cash',
