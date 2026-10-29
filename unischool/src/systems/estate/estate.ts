@@ -131,7 +131,10 @@ export function facilityPrice(t: Buildable): number {
   for (let i = 0; i < (t.floorsAdded ?? 0); i += 1) {
     price += isLibrary(t) ? nextLibraryFloor({ ...t, floorsAdded: i })?.cost ?? 0 : Math.round(t.cost * EXTENSION_COST_SHARE);
   }
-  for (let i = 0; i < (t.expansions ?? 0); i += 1) price += nextVenueExpansion({ ...t, expansions: i })?.cost ?? 0;
+  // What the expansions cost as paid (Plan 121C); an older save's at the
+  // fixed price.
+  if (t.expansionsPaid !== undefined) price += t.expansionsPaid;
+  else for (let i = 0; i < (t.expansions ?? 0); i += 1) price += nextVenueExpansion({ ...t, expansions: i })?.cost ?? 0;
   return price;
 }
 export function facilityUpkeepOf(t: Buildable): number {

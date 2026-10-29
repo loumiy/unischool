@@ -1,5 +1,6 @@
 import { hostedPrograms, isGraduateHost, MEDICAL_CENTER_ID, MEDICAL_CENTER_PROJECT, PROJECTS, projectOpens } from './projectData';
-import type { Buildable, FacilityType } from '../state/types';
+import type { Buildable, FacilityType, GameState } from '../state/types';
+import { weeksOfOpEx } from './moneyScale';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { FOUNDING_BODY } from './foundingData';
 import { count } from '../format';
@@ -359,6 +360,12 @@ export const VENUE_EXPANSION_SEATS_GAIN = 0.5;
 const SECOND_DECK_SEATS_GAIN = 0.6;
 const VENUE_EXPANSION_COST_SHARE = 0.45;
 const VENUE_EXPANSION_COST_GROWTH = 1.3;
+// What an expansion costs at least, in weeks of the college's operating
+// cost, by rung (Plan 121C, the owner: "maxing out the athletics investment
+// doesn't feel like a big hurdle in the late game where you have a lot of
+// cash"). The fixed price stands early; late, a first rung is about a week
+// of running the college, a second two, and the stadium's second deck four.
+const VENUE_EXPANSION_OPEX_WEEKS: readonly number[] = [1, 2, 4];
 const VENUE_EXPANSION_WEEKS_SHARE = 0.5;
 const VENUE_EXPANSION_SERVES_GAIN = 0.3;
 const VENUE_EXPANSION_PRESTIGE_GAIN = 0.02;
@@ -381,14 +388,18 @@ const VENUE_BASE: Readonly<Record<string, { cost: number; weeks: number }>> = {
   'ATH-STADIUM': { cost: FOOTBALL_STADIUM_COST, weeks: FOOTBALL_STADIUM_WEEKS },
 };
 
-export function nextVenueExpansion(node: Buildable): VenueExpansionPlan | null {
+// `s` prices the rung against the college (Plan 121C); without it, the
+// fixed price alone, as an old save's upkeep reads a rung it never stored.
+export function nextVenueExpansion(node: Buildable, s?: GameState): VenueExpansionPlan | null {
   const base = VENUE_BASE[node.id];
   const seats = VENUE_SEATS[node.id];
   if (!base || seats === undefined) return null;
   const done = node.expansions ?? 0;
   if (done >= venueExpansionsMax(node.id)) return null;
+  const fixed = Math.round(base.cost * VENUE_EXPANSION_COST_SHARE * VENUE_EXPANSION_COST_GROWTH ** done);
+  const scaled = s ? weeksOfOpEx(s, VENUE_EXPANSION_OPEX_WEEKS[Math.min(done, VENUE_EXPANSION_OPEX_WEEKS.length - 1)]) : 0;
   return {
-    cost: Math.round(base.cost * VENUE_EXPANSION_COST_SHARE * VENUE_EXPANSION_COST_GROWTH ** done),
+    cost: Math.max(fixed, scaled),
     weeks: Math.round(base.weeks * VENUE_EXPANSION_WEEKS_SHARE),
     seatsGain: venueSeatsOf({ ...node, expansions: done + 1 }) - venueSeatsOf(node),
     servesGain: Math.round((node.effects?.servesPopulation ?? 0) * VENUE_EXPANSION_SERVES_GAIN),

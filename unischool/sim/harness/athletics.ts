@@ -29,6 +29,10 @@
 //                  rest, and no flagship it has invested in is demoted
 //   scholarships   full on every flagship, once the year's net covers them
 //   the field house   built when it opens: a lift to every program
+//   the venues     each venue a program plays in expanded to its top, once
+//                  the money is there (Plan 121A: the owner's maxed
+//                  department had every venue upgraded; the expansions are
+//                  half a program's pull)
 //
 // Not part of the game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
@@ -41,6 +45,8 @@ import {
   FIELD_HOUSE_ID, TRAINER_FIELD, departmentPot, orderedTeams, scholarshipCostFor, teamQuality,
 } from '../../src/data/studentLifeData';
 import { weeklyNet } from '../../src/systems/finance/financeSystem';
+import { nextVenueExpansion } from '../../src/data/facilitiesData';
+import { venueForCategory } from '../../src/data/studentLifeData';
 import { specializationOf } from '../../src/systems/prestige/specialization';
 import { WEEKS_PER_YEAR } from '../../src/state/types';
 import type { Game } from './game';
@@ -125,5 +131,10 @@ export function runAthletics(g: Game): boolean {
   }
   const house = g.s.tech.find((t) => t.id === FIELD_HOUSE_ID);
   if (house && house.status === 'available' && !(house.id in g.s.placements) && g.s.finance.cash - house.cost >= reserve) site(g, house);
+  for (const venue of new Set(g.s.orgs.teams.map((t) => venueForCategory(g.s, t.venueCategory)))) {
+    if (!venue || venue.status !== 'done') continue;
+    const plan = nextVenueExpansion(venue, g.s);
+    if (plan && g.s.finance.cash - plan.cost >= reserve) g.act({ type: 'EXPAND_VENUE', venueId: venue.id });
+  }
   return g.actions > before;
 }

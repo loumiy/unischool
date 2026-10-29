@@ -1108,6 +1108,11 @@ function sanitizeMilestoneYears(state: GameState): void {
 }
 
 function sanitizeEstate(state: GameState): void {
+  // A venue's expansions as paid (Plan 121C): optional, dropped if malformed,
+  // and upkeep then reads them at the fixed price.
+  for (const t of state.tech ?? []) {
+    if (t.expansionsPaid !== undefined && !(Number.isFinite(t.expansionsPaid) && t.expansionsPaid >= 0)) delete t.expansionsPaid;
+  }
   const f = state.finance.maintenanceFunding;
   if (f !== undefined && !(Number.isFinite(f) && f >= 0 && f <= 1)) delete state.finance.maintenanceFunding;
   const loans = state.finance.loans as unknown;

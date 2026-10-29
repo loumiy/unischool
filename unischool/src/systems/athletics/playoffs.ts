@@ -31,31 +31,36 @@ const ROUND_NAMES = ['quarterfinal', 'semifinal', 'final'] as const;
 type Round = (typeof ROUND_NAMES)[number];
 
 // The big stage (Plan 85C): in the postseason an established power plays
-// above its number, the more so the deeper the round, and a college without
-// the athletic performance complex has nothing to match it. In each round
-// the college's opponent plays this many points stronger. The athletics
-// specialization closes it (Plan 85D, specialization.ts's athleticsLifted,
-// the hook the complex of Plan 85G extends). With the slowdown of a
-// program's quality above studentLifeData.ts's TEAM_QUALITY_KNEE it makes a first title
-// rare before year 20 on the unspecialized path. Only the college's own
-// games: a bracket between rivals is as it was, and the draws are the same.
-// The Athletic Performance Complex (Plan 85G) turns the stage the college's
-// way: while it works, the edge is negative, the college playing
-// athleticsComplexData.ts's COMPLEX_HOME_EDGE stronger in a semifinal and a
-// final.
-export const STAGE_EDGE: Readonly<Record<Round, number>> = { quarterfinal: 8, semifinal: 20, final: 35 };
+// above its number, the more so the deeper the round. In each round the
+// college's opponent plays this many points stronger. The athletics
+// specialization shrinks it (Plan 85D, specialization.ts's athleticsLifted,
+// the hook the complex of Plan 85G extends). Only the college's own games:
+// a bracket between rivals is as it was, and the draws are the same.
+//
+// Plan 121B (the owner, 28 October 2026): an unspecialized college with
+// its department at the top won a title every ten to sixty years, at 8, 20
+// and 35 points. The owner asked for one every two or three years from
+// Year 30. At 1, 4 and 10 the harness's maxed unspecialized department
+// (twenty programs, the high subsidy, full scholarships, every venue
+// expanded) wins one about every 2.6 years from Year 30 (ten seeds).
+export const STAGE_EDGE: Readonly<Record<Round, number>> = { quarterfinal: 1, semifinal: 4, final: 10 };
 
 // What is left of the big stage against a college specialized in athletics
 // (the owner's decision, 2026-10-01, in Plan 85G's review, amending 85D,
-// which took it all away): a quarter, 2, 5 and 9 points. With no slowdown
-// and no edge at all every flagship of a specialist played at 100 and won,
-// some 50 to 80 titles by year 50; the owner asked for about 25 to 40. The
-// Athletic Performance Complex's own edge (+3 in a semifinal, +4 in a
-// final) is taken off what is left.
-export const SPECIALIZED_STAGE_SHARE = 0.25;
+// which took it all away): 2, 5 and 9 points, a quarter of the old edge.
+// Plan 121B lowered the unspecialized edge below it in the first two
+// rounds, so the specialist's is never more than the unspecialized one's:
+// 1, 4 and 9. The Athletic Performance Complex's own edge (+3 in a
+// semifinal, +4 in a final) is taken off what is left.
+const SPECIALIZED_EDGE_BEFORE_121: Readonly<Record<Round, number>> = { quarterfinal: 2, semifinal: 5, final: 9 };
+export const SPECIALIZED_STAGE_EDGE: Readonly<Record<Round, number>> = {
+  quarterfinal: Math.min(SPECIALIZED_EDGE_BEFORE_121.quarterfinal, STAGE_EDGE.quarterfinal),
+  semifinal: Math.min(SPECIALIZED_EDGE_BEFORE_121.semifinal, STAGE_EDGE.semifinal),
+  final: Math.min(SPECIALIZED_EDGE_BEFORE_121.final, STAGE_EDGE.final),
+};
 
 export function stageEdge(s: GameState, round: Round): number {
-  return athleticsLifted(s) ? Math.round(STAGE_EDGE[round] * SPECIALIZED_STAGE_SHARE) - complexEdge(s, round) : STAGE_EDGE[round];
+  return athleticsLifted(s) ? SPECIALIZED_STAGE_EDGE[round] - complexEdge(s, round) : STAGE_EDGE[round];
 }
 
 // Resolve one sport's postseason from the player's side. Only fielded sports

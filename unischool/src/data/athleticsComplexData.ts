@@ -42,7 +42,7 @@ export const COMPLEX_RECRUITING_BOOST = 1 / 6;
 // its own semifinals and finals (playoffs.ts's stageEdge; at 25 points of
 // difference the stronger side wins about three times in four). The
 // athletics specialization alone shrinks the established powers' edge to a
-// quarter (playoffs.ts's SPECIALIZED_STAGE_SHARE); the complex's edge comes
+// quarter (playoffs.ts's SPECIALIZED_STAGE_EDGE); the complex's edge comes
 // off what is left.
 export const COMPLEX_HOME_EDGE: Readonly<Record<'quarterfinal' | 'semifinal' | 'final', number>> = { quarterfinal: 0, semifinal: 3, final: 4 };
 
@@ -56,7 +56,7 @@ export const COMPLEX_HOME_EDGE: Readonly<Record<'quarterfinal' | 'semifinal' | '
 // athletics specialist fills it 10 to 12 years after the choice, the
 // complex's build included, as academics and research fill. It was 40 until
 // the owner kept a quarter of the big stage against the specialized college
-// (playoffs.ts's SPECIALIZED_STAGE_SHARE), which brought the deep runs down.
+// (playoffs.ts's SPECIALIZED_STAGE_EDGE), which brought the deep runs down.
 export const COMPLEX_WINDOW_YEARS = 10;
 export const COMPLEX_POINTS: Readonly<Record<ComplexRun['finish'], number>> = { champion: 1, final: 0.5, semifinal: 0.25 };
 export const COMPLEX_POINTS_FOR_FULL = 30;

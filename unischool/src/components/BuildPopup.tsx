@@ -452,7 +452,7 @@ function BuildTile({
   if (t.status === 'done' && t.id in s.placements) {
     const lines = tileLines(s, t);
     // A venue rung: the same in-place offer, up to its expansions cap.
-    const rung = t.athleticsVenueReveal ? nextVenueExpansion(t) : null;
+    const rung = t.athleticsVenueReveal ? nextVenueExpansion(t, s) : null;
     if (rung) {
       const shortfall = rung.cost - s.finance.cash;
       const frozen = constructionFrozen(s);

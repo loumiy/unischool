@@ -99,10 +99,10 @@ function testMissedIsARecordedResult(): void {
   assert(result.champion.length > 0, 'and still says who did win it — the season happened without you');
 }
 
-// ---- A strong department wins, rarely (Plan 85C) ----
+// ---- A strong department wins, now and then (Plan 85C, 121B) ----
 // Without the athletics specialization no program plays above the team
 // ceiling, and the big stage stands against it in a semifinal and a final:
-// a title is rare, not never.
+// a title is earned, not owed.
 function testStrongDepartmentWins(): void {
   let titles = 0;
   let entered = 0;
@@ -117,10 +117,11 @@ function testStrongDepartmentWins(): void {
     if (result.finish === 'champion') titles += 1;
   }
   assert(entered === runs, `an elite program qualifies every year (entered ${entered} of ${runs})`);
-  // Neither never nor often: an upset is always available, but the big
-  // stage makes a title rare. Bracketed rather than pinned, since the
-  // exact rate is a tuning value.
-  assert(titles > 0 && titles < runs * 0.1,
+  // Neither never nor often: an upset is always available, and the big
+  // stage keeps a title from being owed. Bracketed rather than pinned, since
+  // the exact rate is a tuning value (Plan 121B lowered the stage: about one
+  // season in four for an elite program, not one in ten).
+  assert(titles > 0 && titles < runs * 0.4,
     `and wins a title now and then, not often — a title is earned, not owed (${titles} of ${runs})`);
 }
 

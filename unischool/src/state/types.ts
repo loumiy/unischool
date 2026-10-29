@@ -355,6 +355,10 @@ export interface Buildable {
   // Times this venue has been expanded in place (EXPAND_VENUE); read by
   // systems/athletics/gate.ts for seats.
   expansions?: number;
+  // What its expansions cost, added up, as paid (Plan 121C: a rung is priced
+  // against the college, so upkeep reads what was paid). Optional: older
+  // saves and unexpanded venues have none.
+  expansionsPaid?: number;
   // A Greek chapter's house, made at runtime ('greek-housing'). No
   // `effects`: its beds and satisfaction come via GreekChapter.housed.
   chapterHouse?: true;
