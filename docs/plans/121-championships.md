@@ -31,8 +31,8 @@ the college.
   edge was a quarter of the old one (2, 5, 9), which the new unspecialized
   edge undercut in the first two rounds, so it is now capped by it: 1, 4
   and 9 (`SPECIALIZED_STAGE_EDGE`). The specialist wins 49–71 titles a run,
-  above Plan 85G's 25–40, as it already did before this plan (39–75): the
-  owner's call whether to bring it down.
+  above Plan 85G's 25–40, as it already did before this plan (39–75). The
+  owner left it as it is (28 October 2026).
 - **C, as implemented:** an expansion costs its fixed price or one, two
   and four weeks of operating cost by rung, whichever is more
   (`facilitiesData.ts`'s `VENUE_EXPANSION_OPEX_WEEKS`). What was paid is
