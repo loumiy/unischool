@@ -3684,8 +3684,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* ---------- The build menu, folded while a building is held (Plan 34) ---------- */
 .build-popup.holding { max-height: none; }
 .build-holding { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.build-holding-name { font-weight: 700; }
-.build-holding-keys { font-size: var(--text-sm); color: var(--ink-muted); flex: 1; }
+.build-holding-name { font-weight: 700; flex: 1; }
 .build-holding .menu-btn { width: auto; margin: 0; flex: none; }
 
 /* ---------- The chronicle (Plan 33, ChroniclePanel.tsx) ---------- */
