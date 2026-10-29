@@ -48,6 +48,7 @@ import type { GameState, Pillar } from '../src/state/types';
 import { totalEnrolled } from '../src/state/types';
 import { OFFICE_MILESTONES } from '../src/data/ladderData';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
+import { campusTerms } from '../src/systems/estate/beauty';
 
 const argv = process.argv.slice(2);
 const arg = (flag: string) => {
@@ -92,6 +93,8 @@ export interface PillarYear {
   term: number;
   endowment: number;
   titles: number;
+  // The Campus standing's parts (Plan 119D).
+  campus: { decoration: number; quads: number; paths: number; assets: number; score: number };
 }
 
 function pillarYear(s: GameState): PillarYear {
@@ -115,6 +118,7 @@ function pillarYear(s: GameState): PillarYear {
     term: chosen ? specializationTerm(s, chosen).score : 0,
     endowment: endowmentScore(s),
     titles: s.orgs.titles.length,
+    campus: campusTerms(s),
   };
 }
 

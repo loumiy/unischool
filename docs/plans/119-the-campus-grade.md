@@ -5,7 +5,31 @@ grade with Campus. "I want to make sure it's rewarding players who spend
 time making the campus look good, not just buying every asset." Part of
 0.2.0 (see [Plan 118](118-0-2-0-fixes-and-words.md)).*
 
-**Status: Proposed (28 October 2026).**
+**Status: Landed (29 October 2026), on `claude/stoic-ride-wge7g3`.**
+
+- **A, as implemented:** `beauty.ts`'s `campusTerms` and `campusStanding`.
+  Decoration is dressing items per building against three each; quads are
+  the quads found against one for every eight buildings; paths are the
+  share of buildings with a path on a tile at a door; assets are the
+  buildings and landmarks that can be built, standing, at their condition.
+  Each part is capped at 1. The weights are 0.25, 0.2, 0.25 and 0.3
+  (`CAMPUS_WEIGHTS`), on the 0–150 scale. In `test/campus-grade.test.ts`,
+  everything bought and nothing laid out reads 45 of 150 (an F as a
+  standing), and the same campus dressed, pathed and set round quads
+  reads 120 (an A).
+- **B and C, as implemented:** the standing is `'campus'`. Rivals read
+  three quarters of their reputation with their tilt. The country club
+  title reads campus, and the bargain reads academics. History ›
+  Standings' help says what Campus measures. An old save's Access values
+  are left unread.
+- **D, as implemented:** the sim's players build but place no decoration
+  and almost no paths, so they stand for "bought everything". Their
+  campus on the report, seeds 1–3: Completionist C, D, D; Guided D, C, D;
+  Selective and Lean F (they build half the campus). The weights were
+  kept. The build menu's top line shows the Campus standing and its
+  weakest part, once the opening is over (`BuildPopup.tsx`'s
+  `CampusFigure`), and the sim's report records the four parts each
+  year.
 
 ---
 

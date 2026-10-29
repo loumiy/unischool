@@ -1,6 +1,7 @@
 import { closedBySpecialization, endowmentHalf } from '../systems/estate/projects';
 import { CLOSED_BUILD_WORDS } from '../data/specializationData';
 import { PROJECTS, projectOpens, projectOpensShort } from '../data/projectData';
+import { campusTerms, type CampusTerms } from '../systems/estate/beauty';
 import { specializationOf } from '../systems/prestige/prestigeSystem';
 import { specializationOfferRule } from '../data/prestigeWords';
 import { createContext, useContext, useEffect, useState } from 'react';
@@ -666,6 +667,21 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
   );
 }
 
+// The Campus standing where the player builds (Plan 119, the owner: no
+// surprise at Year 50), with its weakest part.
+const CAMPUS_PARTS: Record<keyof Omit<CampusTerms, 'score'>, string> = {
+  decoration: 'decoration', quads: 'quads', paths: 'paths to doors', assets: 'buildings standing',
+};
+function CampusFigure({ s }: { s: GameState }) {
+  const terms = campusTerms(s);
+  const weakest = (Object.keys(CAMPUS_PARTS) as Array<keyof typeof CAMPUS_PARTS>).reduce((a, b) => (terms[b] < terms[a] ? b : a));
+  return (
+    <span className="stat" title={`Your Campus standing, out of 150, which the Final Report grades. It counts decorations for each building, quads, paths at the doors, and how much of what you can build stands in good repair. Weakest now: ${CAMPUS_PARTS[weakest]}.`}>
+      campus {count(terms.score)} · weakest: {CAMPUS_PARTS[weakest]}
+    </span>
+  );
+}
+
 // A specialization's own building the college may not build (Plan 85F):
 // a closed tile with the reason, never armed.
 function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
@@ -919,6 +935,7 @@ export default function BuildPopup({
             {count(s.students.capacity)} beds{offCampusBeds > 0 && <span title={DOWNTOWN_WORDS.offCampusHint}> · {DOWNTOWN_WORDS.offCampusBeds(count(offCampusBeds))}</span>} · {count(totalEnrolled(s.students))} enrolled
           </span>
           {tabAvailable(s, 'students') && <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>}
+          {s.events.opening.stage === 'play' && <CampusFigure s={s} />}
           <StylePicker s={s} />
         </div>
 

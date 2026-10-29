@@ -262,8 +262,10 @@ marked **0.1.x** and fixed in a patch.*
   price sits below what prestige could charge (`rivalsSystem.ts`'s
   `selfAccess`). It is explained only in History › Standings' help
   hint, and a winning college, selective and priced to its name, fails
-  it almost by design. The owner fails it too, and is weighing a
-  replacement grade. *1 player · form (F13).*
+  it almost by design. The owner fails it too. *1 player · form (F13).*
+  **Fixed** for 0.2.0 (Plan 119): Campus replaces Access. It grades
+  decoration, quads, paths to doors and buildings in repair, and the
+  build menu shows it with its weakest part.
 - **Parts of the endowment are confusing.** "It is pretty straightforward
   although I think parts of endowment could be confusing." *1 player ·
   form (F10).* **Fixed** for 0.2.0 (Plan 118G): a sentence opens the endowment
