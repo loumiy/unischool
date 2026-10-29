@@ -103,6 +103,15 @@ export const HALL_LOCKED_HELP: Lever = {
 // While the program's first course is still being written, the second can't
 // start (Plan 118E, I7): its help says to wait, and how long, before it
 // says where to click.
+// The first lab placed and still going up (Research's first objective):
+// the Research tab waits for it.
+export function labRisingHelp(weeksLeft: number): Lever {
+  return {
+    text: `Your laboratory is going up, with ${weeksProse(weeksLeft)} to go. The Research tab opens once it's built.`,
+    door: 'build',
+  };
+}
+
 export function secondCourseWaitHelp(code: string, weeksLeft: number): Lever {
   return {
     text: `${code} is still being written, with ${weeksProse(weeksLeft)} to go. Once it's taught, open the Curriculum and click Develop on the program's next course.`,
@@ -314,11 +323,11 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     // With the letter "The laboratories" (Plan 112A).
     about: 'A founded school can build a laboratory. Each lab works on one research project at a time, with a topic, a team of professors and its funding. Once a lab is at work, the board offers to make your college a university.',
     objectives: {
-      'site-a-lab': 'Place a laboratory',
+      'site-a-lab': 'Build a laboratory',
       'commission-research': 'Commission a research project',
     },
     help: {
-      'site-a-lab': { text: 'A laboratory appears in the build menu once you found a school. Click it, then click the map to place it.', door: 'build' },
+      'site-a-lab': { text: 'A laboratory appears in the build menu once you found a school. Click it, then click the map to place it. The Research tab opens once it\'s built.', door: 'build' },
       'commission-research': { text: `In the Research tab, pick an idle lab and commission a project. Choose the topic, a team of one to three professors, and the funding. A team's strength comes from its professors' research scores. A project takes from ${durationWords(INITIATIVE_DEPTHS[0].weeks)} to ${durationWords(INITIATIVE_DEPTHS[2].weeks)}, and produces papers, grants and now and then a breakthrough. The deepest work, Landmark research, needs the Research Park, which only a college that specializes in research can build.`, door: 'research' },
     },
   },

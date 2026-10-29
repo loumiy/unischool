@@ -50,6 +50,7 @@ import { varsityAsked } from '../src/data/ladderData';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall, programOfCourse } from '../src/data/techData';
 import { count } from '../src/format';
+import { MEDICAL_CENTER_ID } from '../src/data/projectData';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
 import { PILLARS } from '../src/systems/prestige/prestigeSystem';
 import { pathToFoundersRoute } from '../sim/harness/moves';
@@ -607,7 +608,15 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(!opened(s, 'capital-projects') && !opened(s, 'specialization'), 'capital projects and the specialization wait for their years');
   s.clock.year = 15;
   settleChapters(s);
-  assert(opened(s, 'capital-projects') && opened(s, 'specialization'), 'by year 15 both are open, Research unfinished or not');
+  assert(opened(s, 'specialization'), 'by year 15 the specialization is open, Research unfinished or not');
+  // Capital projects waits for a project that can be begun (the owner's
+  // note, 29 October; I5, S5).
+  for (const t of s.tech) if (t.facilityType === 'project' || t.id === MEDICAL_CENTER_ID) t.status = 'locked';
+  settleChapters(s);
+  assert(!opened(s, 'capital-projects'), 'with no project open, Capital projects waits past its year');
+  s.tech.find((t) => t.facilityType === 'project')!.status = 'available';
+  settleChapters(s);
+  assert(opened(s, 'capital-projects'), 'and opens once one can be begun');
   s.specializationOffered = 15;
   settleChapters(s);
   assert(done(s, 'specialization'), 'the board offering the choice ends the specialization chapter');
@@ -759,6 +768,23 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   y2.clock.week = 1;
   const later = nextStep(y2);
   assert(later !== null, `from Standing the line reads the campus again (${later?.text})`);
+}
+
+// ---- Research: the lab built, not just placed (the owner's note, 29 October) ----
+{
+  const s = teaching();
+  const lab = s.tech.find((t) => t.facilityType === 'lab')!;
+  const met = () => CHAPTERS.find((c) => c.id === 'research')!.objectives.find((o) => o.id === 'site-a-lab')!.progress(s) === true;
+  assert(CHAPTER_COPY.research.objectives['site-a-lab'] === 'Build a laboratory', 'the objective asks for a lab built');
+  s.placements[lab.id] = { row: 30, col: 30, w: 2, h: 2 } as GameState['placements'][string];
+  lab.status = 'developing';
+  s.developing[lab.id] = 9;
+  assert(!met(), 'placed and going up, the lab is not yet built');
+  const help = objectiveHelp(s, 'research', 'site-a-lab')?.text ?? '';
+  assert(/going up/.test(help) && /9 weeks/.test(help) && /Research tab opens once it's built/.test(help), `and the help says it is going up, and for how long ("${help}")`);
+  lab.status = 'done';
+  delete s.developing[lab.id];
+  assert(met(), 'built, it is met');
 }
 
 if (failures === 0) {

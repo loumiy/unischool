@@ -1,6 +1,6 @@
 import type { Buildable, GameState, GuidanceState, Placement, TileCoord, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
-import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
+import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, labRisingHelp, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { weeklyNet } from '../systems/finance/financeSystem';
@@ -298,7 +298,9 @@ export const CHAPTERS: readonly Chapter[] = [
     side: true,
     opensWhen: (s) => schoolsFounded(s) > 0,
     objectives: [
-      { id: 'site-a-lab', progress: (s) => sitedAny(s, (t) => t.facilityType === 'lab') },
+      // Built, not placed: the Research tab the next objective opens comes
+      // with the first lab that stands (the owner's note, 29 October).
+      { id: 'site-a-lab', progress: labBuilt },
       { id: 'commission-research', progress: (s) => Object.keys(s.research.initiatives).length > 0 || s.research.completedInitiatives.length > 0 },
     ],
   },
@@ -315,10 +317,14 @@ export const CHAPTERS: readonly Chapter[] = [
     ],
   },
   {
-    // Capital projects, which open from year 10 (projectData.ts).
+    // Capital projects, from year 10 (projectData.ts), once one can be
+    // begun: each also waits on a school's courses or the specialization,
+    // and the chapter asking for one before then reads as a dead end (I5,
+    // S5).
     id: 'capital-projects',
     earliest: week(10, 1),
     side: true,
+    opensWhen: (s) => s.tech.some((t) => (t.facilityType === 'project' || t.id === MEDICAL_CENTER_ID) && t.status !== 'locked'),
     objectives: [
       // The Medical Center counts: a capital project in all but its place in the
       // build menu (projectData.ts; Plan 118D, I5).
@@ -433,7 +439,7 @@ export function ringedBuilding(s: GameState): Buildable | null {
   // The side chapters, from their opening as the teams' venue (Plan 112B),
   // so a Show me from the Guide's list finds its building ringed under a
   // main chapter too: the first lab and the Research Park (Plan 114F).
-  if (chapterOpen(s, 'research') && !objectiveMet(s, 'site-a-lab')) {
+  if (chapterOpen(s, 'research') && !sitedAny(s, isLab)) {
     const lab = unsited(s, (t) => t.facilityType === 'lab');
     if (lab) return lab;
   }
@@ -502,7 +508,19 @@ export function treasuryRinged(s: GameState): boolean {
 // except where they would point at something not there yet. The first
 // academic hall still locked, its help says what opens it and its Show me
 // goes to the Curriculum (Plan 112A).
+const isLab = (t: Buildable) => t.facilityType === 'lab';
+
+// The first lab built, not just placed: the Research tab opens with it.
+function labBuilt(s: GameState): boolean {
+  return s.tech.some((t) => isLab(t) && t.status === 'done' && t.id in s.placements);
+}
+
 export function objectiveHelp(s: GameState, chapter: ChapterId, objective: string): Lever | undefined {
+  // A lab placed and going up: say so, and how long (the owner's note).
+  if (objective === 'site-a-lab' && !labBuilt(s)) {
+    const rising = s.tech.find((t) => isLab(t) && t.status === 'developing' && t.id in s.placements);
+    if (rising) return labRisingHelp(s.developing[rising.id] ?? rising.duration);
+  }
   if (objective === 'site-academic-hall' && s.tech.find((t) => t.id === FIRST_HALL_ID)?.status === 'locked') return HALL_LOCKED_HELP;
   // No program's first course taught yet, and one still being written: wait
   // for it before the second (Plan 118E, I7).
