@@ -466,19 +466,29 @@ button, input, select, textarea { font-size: inherit; }
 .title-screen.title-v-live { background:
   radial-gradient(ellipse 55% 42% at 50% 14%, rgba(16, 32, 58, 0.62), rgba(16, 32, 58, 0) 100%),
   linear-gradient(180deg, rgba(16, 32, 58, 0.35) 0%, rgba(16, 32, 58, 0) 45%); }
-:root:has(.title-v-live) { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
-body:has(.title-v-live) :is(.pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
+:root:has(.title-backdrop) { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
+body:has(.title-backdrop) :is(.pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
   .toast, .objectives-popup, .hint-bar) { display: none !important; }
-/* No run: the demo campus (TitleBackdrop.tsx), its map under the title. */
-.title-backdrop { display: contents; }
+/* The campus behind the title and the screens reached from it
+   (TitleBackdrop.tsx): a layer of its own over the game (the shell's
+   panels, menus and map stay under it) and under the front screens (60),
+   which trade their painting for a wash while it is up. */
+.title-backdrop { position: fixed; inset: 0; z-index: 55; }
 /* ?orbit: a square wide enough to cover the screen at any angle (the
    screen's diagonal is under 1.42 of its longer side), turning once in four
    minutes. The transform makes it the map's containing block, so the map's
    position: fixed fills the square, not the screen. */
-.title-backdrop-orbit { display: block; position: fixed; z-index: 0; left: 50%; top: 50%; width: 142vmax; height: 142vmax;
+.title-backdrop-orbit { inset: auto; left: 50%; top: 50%; width: 142vmax; height: 142vmax;
   translate: -50% -50%; animation: title-orbit 240s linear infinite; }
 @keyframes title-orbit { to { rotate: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .title-backdrop-orbit { animation: none; } }
+/* The founding screen and the hall, settings and credits over it: the
+   wash the title has, so their white words and cards read on the map. */
+:root:has(.title-backdrop) :is(.startup, .front-art > .front-screen) {
+  background: linear-gradient(180deg, rgba(16, 32, 58, 0.45) 0%, rgba(16, 32, 58, 0.12) 40%, rgba(16, 32, 58, 0.12) 100%); }
+/* The founding screen is in the page's flow, not fixed as the others are:
+   lifted over the backdrop with them. */
+:root:has(.title-backdrop) .startup { position: relative; z-index: 60; }
 .title-v-live .title-head { text-shadow: 0 2px 16px rgba(10, 25, 50, 0.5); }
 .title-v-live .title-card { background: color-mix(in srgb, var(--cream-hi) 94%, transparent); backdrop-filter: blur(6px); }
 

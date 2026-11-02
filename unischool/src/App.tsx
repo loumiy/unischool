@@ -568,12 +568,18 @@ export default function App() {
     ? <div className="front-art">{frontPage}</div>
     : frontPage;
 
+  // MOCKUP (TitleBackdrop.tsx): the campus behind the title and every
+  // screen reached from it, founding a college included, in one layer over
+  // the game.
+  const backdrop = titleVariant() === 'live' && onTitle
+    ? <Suspense fallback={null}><TitleBackdrop run={s.started ? s : null} /></Suspense>
+    : null;
+
   if (!s.started || front === 'found') {
     // On this screen the debug panel offers Load alone (see DebugPanel.tsx).
     return (
       <>
-        {/* MOCKUP: no run to draw, so the demo campus (TitleBackdrop.tsx). */}
-        {front === 'title' && titleVariant() === 'live' && <Suspense fallback={null}><TitleBackdrop /></Suspense>}
+        {backdrop}
         {front !== 'found' && frontScreen ? frontScreen : (
           <StartupScreen
             sandbox={foundSandbox}
@@ -754,6 +760,7 @@ export default function App() {
           <button type="button" className="btn-primary" onClick={openHere}>Open it here</button>
         </div>
       )}
+      {backdrop}
       {frontScreen}
       {/* Behind the playtest flag (see DebugPanel.tsx). Outside the one-slot
           rule: it stays open while you look at something else. */}
