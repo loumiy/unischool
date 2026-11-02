@@ -28,6 +28,7 @@ import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
 import { TAB_GUIDE } from './data/chapterData';
+import type { ChapterId } from './data/chapterData';
 import { currentChapter, DOUBLE_SPEED_MARK, hasPage, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
 import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import { stepTarget, type NextStep } from './systems/guidance/nextStep';
@@ -129,6 +130,12 @@ export default function App() {
   const [objectivesOpen, setObjectivesOpen] = useState(false);
   // The Guide's page: a chapter met before, read again (Plan 106 PR G).
   const [objectivesView, setObjectivesView] = useState<string | null>(null);
+  // A chapter just finished inside a tab, held on the drawer, marked done,
+  // until the player leaves that tab (Plan 122E, from Ginger's playtest:
+  // Paying for it vanished the moment the Treasury opened). Shell state:
+  // what the save records is unchanged.
+  const [lingering, setLingering] = useState<{ id: string; tab: TabId } | null>(null);
+  const lastChapter = useRef<string | null>(null);
   // The founding notes read this session: the one letter the save does not
   // mark (systems/inbox/foundingNote.ts). Everything else the inbox holds
   // is read off the state (Plan 77).
@@ -225,14 +232,37 @@ export default function App() {
   }, chaptersOn);
   useEffect(() => {
     if (!chapterNow || marked(s, readMark(chapterNow.id))) return;
-    if (objectivesOpen) act({ type: 'MARK_GUIDANCE', mark: readMark(chapterNow.id) });
+    if (objectivesOpen && !lingering) act({ type: 'MARK_GUIDANCE', mark: readMark(chapterNow.id) });
     else if (objectivesMode === 'guided' && hasPage(chapterNow.id) && !stopUp && !overlay && !buildOpen) {
       setObjectivesOpen(true);
       setLogOpen(false);
       setLadderOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterNow?.id, objectivesOpen, objectivesMode, stopUp, overlay, buildOpen]);
+  }, [chapterNow?.id, objectivesOpen, objectivesMode, stopUp, overlay, buildOpen, lingering]);
+  // The chapter before, finished while a tab is open: the drawer opens over
+  // the tab on it, marked done (Plan 122E). Leaving the tab, by closing it
+  // or going to another screen, lets it go; on the map the next chapter
+  // then opens by itself as before.
+  useEffect(() => {
+    const prev = lastChapter.current;
+    lastChapter.current = chapterNow?.id ?? null;
+    if (!prev || prev === chapterNow?.id || s.guidance?.done[prev] === undefined) return;
+    if (!overlay || overlay.tab === 'inbox' || stopUp || !hasPage(prev as ChapterId)) return;
+    setLingering({ id: prev, tab: overlay.tab });
+    setObjectivesView(prev);
+    setObjectivesOpen(true);
+    setLogOpen(false);
+    setLadderOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapterNow?.id]);
+  useEffect(() => {
+    if (!lingering || overlay?.tab === lingering.tab) return;
+    setLingering(null);
+    setObjectivesView(null);
+    setObjectivesOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlay?.tab]);
   useEffect(() => {
     if (shellLive && speed === 'double' && s.guidance && !marked(s, DOUBLE_SPEED_MARK)) act({ type: 'MARK_GUIDANCE', mark: DOUBLE_SPEED_MARK });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -650,9 +680,10 @@ export default function App() {
             ladderOpen={ladderOpen}
             onSetLadderOpen={(o) => { setLadderOpen(o); if (o) { setLogOpen(false); setObjectivesOpen(false); closeBuild(); } }}
             objectivesOpen={objectivesOpen}
-            onSetObjectivesOpen={(o) => { setObjectivesOpen(o); setObjectivesView(null); if (o) { setLogOpen(false); setLadderOpen(false); closeBuild(); } }}
+            onSetObjectivesOpen={(o) => { setObjectivesOpen(o); setObjectivesView(null); setLingering(null); if (o) { setLogOpen(false); setLadderOpen(false); closeBuild(); } }}
             objectivesView={objectivesView}
-            onSetObjectivesView={(id) => { if (id) guideOpened(id, 'list'); setObjectivesView(id); }}
+            objectivesFinished={lingering !== null && lingering.id === objectivesView}
+            onSetObjectivesView={(id) => { if (id) guideOpened(id, 'list'); setObjectivesView(id); setLingering(null); }}
             onGo={goTo}
             inboxOpen={overlay?.tab === 'inbox'}
             onOpenMarket={(field) => openTab('faculty', `${MARKET_TARGET}${field}`)}

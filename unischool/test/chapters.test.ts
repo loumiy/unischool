@@ -259,10 +259,16 @@ const looked = (s: GameState) => {
   s = reducer(s, { type: 'MARK_GUIDANCE', mark: tabMark('treasury') });
   assert(done(s, 'paying-for-it'), 'the Treasury opened ends it, a surplus or not');
   assert(MARKED_TABS.has('treasury'), 'the shell marks the Treasury when it opens');
-  assert(!opened(s, 'first-summer'), 'The first summer waits for week 46');
   s.clock.week = 46;
   settleChapters(s);
-  assert(currentChapter(s)?.id === 'first-summer', 'in week 46 it is the chapter');
+  assert(!opened(s, 'first-summer'), 'The first summer waits for the summer (Plan 122F), not week 46');
+  s.clock.week = 52;
+  settleChapters(s);
+  assert(!opened(s, 'first-summer'), 'nor for week 52 alone');
+  s.pendingInterrupt = { type: 'summer' } as GameState['pendingInterrupt'];
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'first-summer', 'the summer waiting, it is the chapter');
+  s.pendingInterrupt = null;
   s.history.push({ ...(s.history[0] ?? {}) } as GameState['history'][number]);
   settleChapters(s);
   assert(done(s, 'first-summer'), 'the summer closed ends it');

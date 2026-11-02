@@ -186,9 +186,13 @@ export const CHAPTERS: readonly Chapter[] = [
     // The first summer (week 52): the chapter says what the price and the
     // admit rate do before the beat asks, and no warning comes at the
     // choice (§7.5: a careless admit rate is still punished). Done when the
-    // summer has closed.
+    // summer has closed. It opens when the summer does, the clock stopped
+    // (Plan 122F, from Ginger's playtest: a warning at week 46 that the
+    // summer was coming confused more than it prepared). A run that reaches
+    // it after its summer has closed opens it met.
     id: 'first-summer',
-    earliest: week(1, 46),
+    earliest: week(1, WEEKS_PER_YEAR),
+    opensWhen: (s) => s.pendingInterrupt?.type === 'summer' || s.history.length >= 1,
     objectives: [
       { id: 'set-first-class', progress: (s) => s.history.length >= 1 },
     ],

@@ -213,7 +213,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'first-summer': {
     title: 'The first summer',
-    about: `At week ${WEEKS_PER_YEAR} the clock stops for the summer, and waits until you open it from the note above the clock. It has three pages: the year in review, admissions, and the students' petitions. In admissions you set tuition first, and the new class pays that price for all four years.`,
+    about: `The clock has stopped for the summer, and it waits until you open the summer from the note at the bottom left. The summer has three pages: the year in review, admissions, and the students' petitions. In admissions you set tuition first, and the new class pays that price for all four years.`,
     objectives: {
       'set-first-class': "Set the first class's tuition and admit rate",
     },
@@ -435,6 +435,8 @@ export const DRAWER_WORDS = {
   // Seats for everyone's two counts while they differ (Plan 114E, C3-5).
   withComing: (taught: string, coming: string) => `${taught} now · ${coming} once new courses start`,
   back: 'Back to the objectives',
+  // A chapter finished in the open tab, held until the tab closes (Plan 122E).
+  chapterDone: (n: number) => `Chapter ${n} done.`,
   guideTab: (tab: string) => `The Guide on ${tab}`,
   live: 'Now',
   // Which way it is heading, in the glance's arrow's word, and no target

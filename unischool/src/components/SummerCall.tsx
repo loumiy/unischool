@@ -3,7 +3,7 @@ import { SUMMER_CALL, summerOpenLabel } from '../systems/inbox/inbox';
 
 // The summer's call (Plan 112C). Week 52 stops the clock, but the summer no
 // longer opens over whatever the player has open: this note stands over the
-// map, above the clock, for as long as the summer waits (bar over the
+// map, at the bottom left (Plan 122B), for as long as the summer waits (bar over the
 // inbox, whose first row is the same door), and can't be put away, since
 // the clock runs again only through the summer. The play
 // button is rung with it (StatusHeader.tsx), and the summer's row in the

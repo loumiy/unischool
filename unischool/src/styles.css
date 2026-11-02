@@ -4043,6 +4043,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 /* The Curriculum's free slot, NEXT's line with its Go (Plan 114F). */
 .curriculum-free-slot { display: flex; align-items: center; gap: var(--space-8); margin: 0 0 var(--space-8); font-size: var(--text-sm); }
 .objectives-waiting p.urgent span { font-weight: 700; }
+.objectives-finished { display: flex; align-items: baseline; gap: var(--space-8); margin: 0 0 var(--space-8); font-weight: 700; color: var(--ok-on-light); }
 .objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }
 .objectives-milestones p { margin: 0 0 var(--space-6); }
 .objectives-live p { margin: 0 0 var(--space-4); font-variant-numeric: tabular-nums; }
