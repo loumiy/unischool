@@ -1218,7 +1218,7 @@ function useSteadyValue<T>(value: T, ms: number): T {
 
 export default function CampusMap({
   s: live, resting = false, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait,
+  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait, startPitch,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -1259,6 +1259,9 @@ export default function CampusMap({
   // it and the walkers stop, so a week under a tab costs the map nothing.
   // It catches up the moment the tab closes.
   resting?: boolean;
+  // MOCKUP (TitleBackdrop.tsx): the tilt to open on, as a PITCHES index
+  // (the last is the plan view). Read once, at mount.
+  startPitch?: number;
 }) {
   // The state the map draws: today's, or while resting the last it showed.
   // Every memo keyed on the state then holds under a tab.
@@ -1295,7 +1298,7 @@ export default function CampusMap({
   // React state, unlike pan and zoom, because a turn changes every polygon.
   // Set on the projection here at the top of the render so everything below
   // draws at it. Not persisted.
-  const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
+  const [camera, setCameraState] = useState<Camera>(() => startPitch === undefined ? DEFAULT_CAMERA : { ...DEFAULT_CAMERA, pitch: PITCHES[startPitch] });
   setCamera(camera);
   // The camera's moves, marked once each for the Looking around chapter
   // (state/chapters.ts). Through a ref, since the wheel and the keys bind
@@ -1325,7 +1328,7 @@ export default function CampusMap({
   // folded again, since zooming is done in runs.
   const [toolsOpen, setToolsOpen] = useState(false);
   // The camera is derived from these, so it only rests on a crisp view.
-  const stanceRef = useRef({ view: 0, pitch: DEFAULT_PITCH_INDEX });
+  const stanceRef = useRef({ view: 0, pitch: startPitch ?? DEFAULT_PITCH_INDEX });
   // Buildings that finished within the last COMPLETION_PULSE_MS. Derived by
   // diffing the previous developing set, so nothing enters GameState.
   const [justFinished, setJustFinished] = useState<readonly string[]>([]);

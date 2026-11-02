@@ -29,11 +29,13 @@ const SHOWN = 3;
 // MOCKUP (not for release): the title layouts tried without the painting,
 // picked by ?title= in the address. colours: the school's colours, flat,
 // with a scarf's stripes; split: the mark on a panel, the menu beside it;
-// live: the campus itself behind the menu (only with a run underway, since
-// the map is drawn only then). Anything else is the painted title.
+// live: the campus itself behind the menu, the run's own or, with none
+// underway, a finished demo campus (TitleBackdrop.tsx). Anything else is
+// the painted title.
 const VARIANTS = ['colours', 'split', 'live'] as const;
 type Variant = typeof VARIANTS[number];
-function titleVariant(): Variant | null {
+export function titleVariant(): Variant | null {
+  if (typeof window === 'undefined') return null;
   const v = new URLSearchParams(window.location.search).get('title');
   return (VARIANTS as readonly string[]).includes(v ?? '') ? v as Variant : null;
 }
@@ -56,7 +58,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
   const settings = useSettings();
   const asking = statsAvailable() && settings.stats === 'unasked';
   const [variant] = useState(titleVariant);
-  const shown = variant === 'live' && !underway ? 'colours' : variant;
+  const shown = variant;
   return (
     <div className={`front-screen title-screen${shown ? ` title-v-${shown}` : ''}`} role="dialog" aria-modal="true" aria-label="UniSchool">
       <header className="title-head">

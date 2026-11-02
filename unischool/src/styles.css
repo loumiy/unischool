@@ -469,6 +469,16 @@ button, input, select, textarea { font-size: inherit; }
 :root:has(.title-v-live) { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
 body:has(.title-v-live) :is(.pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
   .toast, .objectives-popup, .hint-bar) { display: none !important; }
+/* No run: the demo campus (TitleBackdrop.tsx), its map under the title. */
+.title-backdrop { display: contents; }
+/* ?orbit: a square wide enough to cover the screen at any angle (the
+   screen's diagonal is under 1.42 of its longer side), turning once in four
+   minutes. The transform makes it the map's containing block, so the map's
+   position: fixed fills the square, not the screen. */
+.title-backdrop-orbit { display: block; position: fixed; z-index: 0; left: 50%; top: 50%; width: 142vmax; height: 142vmax;
+  translate: -50% -50%; animation: title-orbit 240s linear infinite; }
+@keyframes title-orbit { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .title-backdrop-orbit { animation: none; } }
 .title-v-live .title-head { text-shadow: 0 2px 16px rgba(10, 25, 50, 0.5); }
 .title-v-live .title-card { background: color-mix(in srgb, var(--cream-hi) 94%, transparent); backdrop-filter: blur(6px); }
 

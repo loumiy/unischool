@@ -11,7 +11,8 @@ import MainMenu from './components/MainMenu';
 import TouchTitles from './components/TouchTitles';
 import Toasts from './components/Toasts';
 import SummerCall from './components/SummerCall';
-import TitleScreen from './components/TitleScreen';
+import TitleScreen, { titleVariant } from './components/TitleScreen';
+const TitleBackdrop = lazy(() => import('./components/TitleBackdrop'));
 import { applySettings, getSettings, useSettings } from './settings';
 import HallOfFame from './components/HallOfFame';
 import SettingsPanel from './components/SettingsPanel';
@@ -571,6 +572,8 @@ export default function App() {
     // On this screen the debug panel offers Load alone (see DebugPanel.tsx).
     return (
       <>
+        {/* MOCKUP: no run to draw, so the demo campus (TitleBackdrop.tsx). */}
+        {front === 'title' && titleVariant() === 'live' && <Suspense fallback={null}><TitleBackdrop /></Suspense>}
         {front !== 'found' && frontScreen ? frontScreen : (
           <StartupScreen
             sandbox={foundSandbox}
