@@ -1876,8 +1876,10 @@ export interface DiningPlan {
   terrace: ChapelBox;
   // The café's or hall's own mass.
   hall: ChapelBox;
-  // A refectory's kitchen at the service end and its lower range behind.
-  kitchen?: ChapelBox; back?: ChapelBox;
+  // A refectory's kitchen at the service end and its lower range behind;
+  // and its buttery at the other end (Plan 122D), the kitchen's twin, so the
+  // hall between them, and its door, stand on the front's middle tile.
+  kitchen?: ChapelBox; back?: ChapelBox; buttery?: ChapelBox;
 }
 
 // The plan, given the walls the camera sees (isoProjection's visibleWalls).
@@ -1902,13 +1904,20 @@ export function diningPlan(t: Buildable, p: Plot, v: Vernacular): DiningPlan {
   const G = Math.min(3.0, Math.max(2.3, S * 0.4));
   const K = Math.min(2.3, Math.max(1.8, L * 0.2));
   const B = Math.min(2.2, S - T - G);
+  // The kitchen square, as the college kitchens are; the range runs on
+  // behind it. The buttery (Plan 122D, from Ginger's playtest: the door sat
+  // off the middle of the front) mirrors it at the free end: the hall
+  // between them is centred on the front, so its door is on the middle tile
+  // (an odd front, as every refectory's is), where the walkers and a path
+  // drawn straight out meet it, as the old college halls had their buttery
+  // and pantry at the screens end.
+  const end = (x0: number, x1: number) => box(x0, x1, T + 0.2, T + 0.2 + Math.min(G + B - 0.2, K * 1.1));
   return {
     band, alongW, front, service,
     terrace: box(0, L, 0, T),
-    hall: box(0, L - K, T, T + G),
-    // The kitchen square, as the college kitchens are; the range runs on
-    // behind it.
-    kitchen: box(L - K, L, T + 0.2, T + 0.2 + Math.min(G + B - 0.2, K * 1.1)),
+    hall: box(K, L - K, T, T + G),
+    kitchen: end(L - K, L),
+    buttery: end(0, K),
     back: box(0.35, L - 0.3, T + G, T + G + B),
   };
 }

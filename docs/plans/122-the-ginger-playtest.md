@@ -6,7 +6,7 @@ selection, a completion line, off-centre doors, three chapters that close
 or open at the wrong moment, the Curriculum's batch button, and "+80
 places". The owner's answers to §2 the same day are folded in.*
 
-**Status: Proposed.**
+**Status: Landed (2 November 2026), on `claude/modest-thompson-ovkilc`.**
 
 ---
 
@@ -70,6 +70,18 @@ places". The owner's answers to §2 the same day are folded in.*
 | I | **No "+80 places" on the program row** (the owner). The worth line keeps the milestone and drops the places. A course's places stay in the course drawer and the hall panel's "Teaching: N places". |
 
 | J | **A path to the road, drawn by the player** (the owner, 2 November, added during the work). The game no longer lays Founders Hall's drive in a guided founding. Every founding opens with a walk along the road: the last row of land, paved across the parcel, with its trees cleared. The walkthrough gets a new step two after the hall is sited, "A path to the road". It holds the clock until a path joins the hall to the walk, and rings Paths in the build menu's Grounds tab. The founding chapter gets the same objective, so a run that skipped the walkthrough is asked for it in the drawer. |
+
+**A, H, I, as implemented:** both welcomes use `institutionName`. "{name} is complete." The batch button, its calculation and the `loads` prop that fed only it are gone from `RowAction`. "+80 places" is off the row. The course drawer and the hall panel keep the figure.
+
+**B, C, as implemented:** the objectives chip moved to the strip's right end (CSS `order`), and the drawer is anchored at `right: 16px`, 52vh high. It grows out of the corner when it opens. It closes without an animation, since `ToolbarPopup` unmounts at once. The toasts and the summer's note sit at `left: 16px` for good. `user-select: none` is on `body`, and inputs, text areas, `.selectable` and the crash screen's details stay selectable. Nothing differs in the downloadable build: it is the same page.
+
+**E, as implemented:** shell state in `App.tsx` (`lingering`). When the current chapter changes while a tab other than the inbox is open, the drawer opens over that tab on the chapter just finished, with a "Chapter N done." line and no back button. Changing or closing the tab lets it go. Escape closes the drawer first, as the shell's Escape order already did. It applies to any chapter finished in a tab.
+
+**F, as implemented:** `first-summer` opens at week 52, once the summer is waiting or has closed. Its text says the clock has stopped and that the summer opens from the note at the bottom left. The non-guided letter got the same new location.
+
+**G, as implemented:** the walk's mark is the old tab mark (`tabMark`), now set when a walk is finished or skipped instead of when the tab opens. The objective ids stay the same, so saves, the harness and the scenario tool are unaffected. A walk shows only while its chapter is open and its objective unmet (`walkAsked`). The steps are `data/tabWalkData.ts`. The card is `components/TabWalk.tsx`, at the bottom left, and it rings each section and scrolls it to the top. The Guide button does not replay a walk yet.
+
+**D, as implemented:** every building's `Door` now moves its middle to the nearest tile's centre. On a seam (an even wall) it goes to the tile past the seam, the one `walkRoutes.ts`'s `entrancesOf` already opens such a wall onto. `EntranceSteps` snaps the same way, on the grid. The refectories (Waterside Commons, Harborview Market, Central Dining Pavilion) gained a buttery at the free end, the kitchen's twin without flues, so the hall and its door are centred on the front. The free-end door moved to the buttery. The Medical Center's door and canopy stand on the front's middle tile instead of the wing's middle. No footprint changed, so saves are unaffected. `npm run review:door-centres` draws every building in every vernacular and facing with a probe on `Door`. It fails if any door is off a tile's centre or any front door is off the walkers' tile, and it passes. With `--all-doors` it also lists side doors that are on a tile centre but not the walkers' tile: the terrace-band dining halls, the Central Dining Pavilion, the Medical Center, the Museum and the Sports & Recreation Complex. Those are left for a follow-up, because fixing them means passing the plot down to the shared pavilion drawing.
 
 **J, as implemented:** `state/drive.ts` gains `laySidewalk` and `SIDEWALK_ROW`, and `pathsFromFounders` and `besideTiles` move there from `chapters.ts`, which re-exports them. That way `opening.ts` can read them without an import cycle. A headless founding (the harness, the tests) keeps its drive. Path actions now settle the walkthrough. When Paths is picked on the path step, the build menu folds away and the tool stays in hand, so the ground down to the road can be seen. A path that touches the walk diagonally counts as joined, the same rule Somewhere to sleep uses.
 
