@@ -5,9 +5,16 @@ fourth week: everything players tripped on since 0.1.4 that is a bug or a
 missing sentence. The rest of 0.2.0 is Plans 119–121. The findings it
 answers are in [findings.md](../reviews/playtest-1/findings.md).*
 
-**Status: In progress (28 October 2026).** A is on main (PR #428) and
-shipped as 0.1.4.1 (PR #430). B–H are on `claude/stoic-ride-wge7g3`. I
-waits for Plans 119–121.
+**Status: Landed (2 November 2026).** A shipped as 0.1.4.1 (PR #430).
+B–I are on main. 0.2.0 is ready, not yet built or uploaded.
+
+- **I, as implemented:** `docs/store/changelog.md`'s 0.2.0 entry and
+  `docs/store/devlog-0.2.0.md`, in the owner's first person, with the
+  line on the title screen's artist. They cover Plans 118–121, the
+  follow-ups from Ginger Brooke's playtest (S5: the hint bar, the lab
+  built, Capital projects once one can be begun, *A school of its own*,
+  the specialization every five years), research prizes by field and the
+  birdsong. `package.json` and the lockfile are at 0.2.0.
 
 - **B, as implemented:** the trace found no wrong order. Events fire after
   the week's finance, so the cash a player sees is the week's. The fault
