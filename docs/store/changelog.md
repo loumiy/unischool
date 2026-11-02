@@ -5,6 +5,112 @@ point to the development records in `docs/plans/`.*
 
 ---
 
+## 0.2.0
+
+*One update made of four plans: fixes and words from the playtest
+(Plan 118), the Campus grade in place of Access (119), Deans who staff,
+paths by rectangle and a second specialization building (120), and
+championships you can win (121). With them, the owner's notes from
+Ginger Brooke's playtest.*
+
+### New
+
+- **The Campus grade replaces Access** on the report card and in History
+  › Standings. It grades how well the grounds are laid out: decorations
+  for the number of buildings, quads, paths that reach the buildings'
+  doors, and buildings in repair. Buying everything and placing it
+  anywhere earns about an F; the same campus laid out with care earns an
+  A. The build menu's top line shows your Campus standing and its weakest
+  part. Access was half the admit rate and half the price, so a winning
+  college failed it by design, and nobody was told what it was. (119)
+- **Deans staff their schools.** Every Dean now puts the best professor
+  you've hired on each of the school's courses, each week. They fill an
+  empty course from the staff on hand, move in a free professor who would
+  lift a course a band, and swap two professors when the pair does
+  better. They never hire or dismiss. The Provost staffs the schools with
+  no Dean. A course you staff yourself is left to you for a year, and its
+  panel says so. The policy "Staff the weakest courses first" is gone: it
+  is what a Dean does now. (120A)
+- **Paths by rectangle.** With the Paths tool, Ctrl and drag (⌘ on a Mac)
+  fills a rectangle, beside Shift and drag for a straight line. The right
+  button deletes by either shape. A shape skips water and the ground
+  under a building, and puts back what it leaves as you drag. (120B)
+- **A second specialization building.** When every school is
+  distinguished, the board lets you build one more pillar's own building:
+  the Faculty Training Institute, the Research Park, the Athletic
+  Performance Complex, or a downtown district. It does its own work, but
+  doesn't fill that pillar's specialization share. It replaces the sixth
+  office, so a college now holds five. A save that already holds six
+  keeps them. (120C)
+- ***A school of its own*, a new side chapter** after *A hall of its own*.
+  It asks you to put three programs from one school in one hall, then
+  six, which founds the school. Founding opens the school's laboratories
+  and its Dean, and every school has courses that need a lab, so none
+  can finish its curriculum until it is founded. The help names the
+  school closest to six and where. Chapters after it are numbered one
+  higher.
+- **Research prizes by field.** Each field has its own three prizes, from
+  a society's medal for a small project to an international honor for a
+  Landmark Program. The film, broadcast and festival awards are gone.
+
+### Changed
+
+- **Championships every two or three years.** A department not
+  specialized in athletics, with full funding, good coaches and expanded
+  venues, now wins a title about every two or three years from midgame,
+  instead of about once a decade. The specialist's odds stay as they
+  were. (121)
+- **Venue expansions cost more as the college grows.** Each costs its old
+  price, or one, two and four weeks of operating costs by step, whichever
+  is more. Maxing athletics is a real late-game spend. An expansion
+  bought before 0.2.0 keeps its old price. (121C)
+- **The specialization offer comes every five years.** "Not now" (it was
+  "Not this year") puts the board's offer off for five summers, not one.
+  The log names the summer it returns.
+- **Placing a building shows a hint bar** at the top of the map, as the
+  Grounds tools do: "Click open ground to build · R to rotate · Esc to
+  cancel". The keys line in the build menu's strip is gone.
+- ***Research* asks you to build a laboratory**, met when it stands, not
+  when it's placed. While it goes up, the help says how long is left. The
+  Research tab opens with the first lab that stands.
+- ***Capital projects* opens once a project can be begun**, not at Year
+  10 regardless. The build menu's Capital projects tab now shows from
+  Year 10 with each project you can't build yet greyed out, and says what
+  opens it. The Medical Center counts for the chapter. (118D)
+- **The welcome says how long a run is**: fifty years, with the Final
+  Report at the end of Year 50, and you can keep playing after it. (118F)
+- **Student quality and the endowment, in a sentence each.** The
+  Students tab says what incoming quality feeds, and the Treasury's
+  endowment panel opens with what the fund is for. (118G)
+- **The second course's help waits for the first.** While a program's
+  first course is still being written, *Start a program's second course*
+  says to let it finish, and how many weeks are left. (118E)
+- **The campus sounds are birdsong.** The crowd's murmur, the winter wind
+  and the stadium's roar were looped noise, and could sound like static.
+  The Campus volume now sets the birds.
+
+### Fixed
+
+- **A chapter house asked for when you can't pay for it** offered only a
+  refusal that closed the matter for good. Now there's a "Not yet" that
+  says how much you're short. The chapter asks again half a year later.
+  Every choice you can't afford says how much you're short. (118B)
+- **Students paced back and forth** between Founders Hall and two spots
+  while it stood alone. They now spread over up to six, and stand a while
+  at each. (118C)
+- **Past the Final Report**, the fix from 0.1.4.1: continuing into the
+  Epilogue no longer stops at the fiftieth summer's admissions.
+
+### Saves
+
+A save from 0.1.4 or 0.1.4.1 opens in 0.2.0. Its report card grades
+Campus from the campus as it stands, and Access is dropped. A Dean or
+Provost on the old staffing policy keeps the seat on its default policy.
+A college that declined the specialization is asked again at its next
+summer, then every five years.
+
+---
+
 ## 0.1.4.1
 
 - **Past the Final Report.** Continuing into the Epilogue no longer stops
