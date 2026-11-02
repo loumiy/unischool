@@ -18,7 +18,9 @@ import { PITCHES } from './isoProjection';
 const noop = () => {};
 
 export default function TitleBackdrop() {
-  const orbit = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('orbit');
+  // The default on this branch (no ?title=), or asked for with ?orbit.
+  const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const orbit = !!q && (q.has('orbit') || !q.has('title'));
   const [demo, setDemo] = useState<GameState | null>(null);
   useEffect(() => {
     let live = true;
