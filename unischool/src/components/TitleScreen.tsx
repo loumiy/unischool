@@ -26,6 +26,18 @@ import { STORE_LINK_LABEL, STORE_URL, openStorePage } from '../storeLink';
 
 const SHOWN = 3;
 
+// MOCKUP (not for release): the title layouts tried without the painting,
+// picked by ?title= in the address. colours: the school's colours, flat,
+// with a scarf's stripes; split: the mark on a panel, the menu beside it;
+// live: the campus itself behind the menu (only with a run underway, since
+// the map is drawn only then). Anything else is the painted title.
+const VARIANTS = ['colours', 'split', 'live'] as const;
+type Variant = typeof VARIANTS[number];
+function titleVariant(): Variant | null {
+  const v = new URLSearchParams(window.location.search).get('title');
+  return (VARIANTS as readonly string[]).includes(v ?? '') ? v as Variant : null;
+}
+
 export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, onHall, onSettings, onCredits }: {
   s: GameState;
   onContinue: () => void;
@@ -43,11 +55,14 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
   // is sent, in a build that sends them at all.
   const settings = useSettings();
   const asking = statsAvailable() && settings.stats === 'unasked';
+  const [variant] = useState(titleVariant);
+  const shown = variant === 'live' && !underway ? 'colours' : variant;
   return (
-    <div className="front-screen title-screen" role="dialog" aria-modal="true" aria-label="UniSchool">
+    <div className={`front-screen title-screen${shown ? ` title-v-${shown}` : ''}`} role="dialog" aria-modal="true" aria-label="UniSchool">
       <header className="title-head">
         <Logo />
         <p className="title-tagline">Fifty years to build a university.</p>
+        {shown === 'colours' && <div className="title-scarf" aria-hidden="true" />}
       </header>
       <div className="title-card">
         {asking && (
