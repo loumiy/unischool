@@ -48,7 +48,7 @@ import { bindScriptStream } from '../src/engine/random';
 import { SPORTS } from '../src/data/studentLifeData';
 import { varsityAsked } from '../src/data/ladderData';
 import { defaultAnswer } from '../src/engine/defaultAnswers';
-import { academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall, programOfCourse } from '../src/data/techData';
+import { programs, academicHallId, FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, isAcademicHall, programOfCourse } from '../src/data/techData';
 import { count } from '../src/format';
 import { MEDICAL_CENTER_ID } from '../src/data/projectData';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
@@ -541,7 +541,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   // The ticker and the drawer show the main chapter over a side one, and
   // the Guide lists the side one first (Plan 114E, C3-2).
   assert(currentChapter(s)?.id === 'running-the-college', `the main chapter is current, not the side one (${currentChapter(s)?.id})`);
-  assert(openSideChapters(s).map((c) => c.id).join(',') === 'the-teams', 'and The teams is open beside it');
+  assert(openSideChapters(s).some((c) => c.id === 'the-teams'), `and The teams is open beside it (${openSideChapters(s).map((c) => c.id).join(', ')})`);
   const drawer = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, onView: () => {} }));
   const guideAt = drawer.indexOf('objectives-guide');
   assert(guideAt > 0 && drawer.indexOf('The teams', guideAt) > guideAt && drawer.slice(guideAt).includes('open now'), 'the Guide names The teams, open now');
@@ -785,6 +785,39 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   lab.status = 'done';
   delete s.developing[lab.id];
   assert(met(), 'built, it is met');
+}
+
+// ---- A school of its own: founding as an objective (S5, 2 November) ----
+{
+  const s = teaching();
+  s.clock.year = 3;
+  s.clock.week = 10;
+  const before = ['founding', 'next-course', 'looking-around', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing', 'a-faculty'];
+  s.guidance = { opened: Object.fromEntries(before.map((id) => [id, 1])), done: Object.fromEntries(before.map((id) => [id, 1])), met: [], marked: [] };
+  const chapter = CHAPTERS.find((c) => c.id === 'found-a-school')!;
+  assert(chapter.side === true && chapter.objectives.every((o) => !o.optional), 'a side chapter, both objectives required');
+  assert(!CHAPTERS.find((c) => c.id === 'hall-of-its-own')!.objectives.some((o) => o.id === 'claim-a-hall'), 'A hall of its own no longer holds the claim');
+  settleChapters(s);
+  assert(!opened(s, 'found-a-school'), 'it waits for A hall of its own');
+  s.guidance.opened['hall-of-its-own'] = 1;
+  s.guidance.done['hall-of-its-own'] = 1;
+  settleChapters(s);
+  assert(opened(s, 'found-a-school'), 'and opens once it is done');
+  assert(/laboratories/.test(CHAPTER_COPY['found-a-school'].about ?? '') && /graduate programs/.test(CHAPTER_COPY['found-a-school'].about ?? ''), 'its page says what founding opens');
+  // Three of one school in Elm Hall: the help names the school, the count and the hall.
+  const elm = s.tech.find((t) => t.id === academicHallId(0))!;
+  elm.status = 'done';
+  s.placements[elm.id] = { row: 40, col: 40, w: 4, h: 4 } as GameState['placements'][string];
+  const school = programs().find((p) => p.kind !== 'graduate')!.school;
+  const three = programs().filter((p) => p.school === school && p.kind !== 'graduate' && !isHoused(s, p.id)).slice(0, 3);
+  s.halls[elm.id] = s.halls[elm.id] ?? Array.from({ length: 6 }, () => ({ programId: null }));
+  three.forEach((p, i) => { s.halls[elm.id][i] = { programId: p.id }; });
+  const help = objectiveHelp(s, 'found-a-school', 'found-a-school');
+  assert(!!help && help.door === 'hall' && help.hallId === elm.id && help.text.includes(`${school} has 3 of its six programs`) && /three more/.test(help.text), `the help names the school closest to six ("${help?.text}")`);
+  const met = (id: string) => chapter.objectives.find((o) => o.id === id)!.progress(s) === true;
+  assert(!met('found-a-school'), 'not founded yet');
+  s.milestones[`school-founded:${school}`] = true as never;
+  assert(met('found-a-school'), 'founded, it is met');
 }
 
 if (failures === 0) {

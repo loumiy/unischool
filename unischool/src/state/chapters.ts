@@ -1,6 +1,6 @@
 import type { Buildable, GameState, GuidanceState, Placement, TileCoord, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
-import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, labRisingHelp, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
+import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, foundSchoolHelp, labRisingHelp, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { weeklyNet } from '../systems/finance/financeSystem';
@@ -11,6 +11,7 @@ import { MEDICAL_CENTER_ID } from '../data/projectData';
 import { RESEARCH_PARK_ID } from '../data/researchParkData';
 import { GRADE_B } from '../data/courseQuality';
 import { openChairs, venueForCategory } from '../data/studentLifeData';
+import { closestSchool, hallDisplayName } from '../systems/techtree/schools';
 import { schoolsFounded } from '../systems/guidance/establish';
 import { foundersHallUnsited, laterCourseStarted } from './opening';
 import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
@@ -231,7 +232,21 @@ export const CHAPTERS: readonly Chapter[] = [
     objectives: [
       { id: 'site-academic-hall', progress: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.id in s.placements) },
       { id: 'move-a-program', progress: (s) => Object.entries(s.halls).some(([id, slots]) => id !== FOUNDERS_HALL_ID && slots.some((slot) => slot.programId !== null)) },
-      { id: 'claim-a-hall', progress: (s) => Object.keys(s.hallClaims ?? {}).some((id) => id !== FOUNDERS_HALL_ID), optional: true },
+    ],
+  },
+  {
+    // Founding a school (S5, the owner's note of 30 October): six of its
+    // programs in one hall. Its labs, and through them every school's
+    // finished curriculum, its Dean and research, wait on it. A side
+    // chapter, after A hall of its own: filling a hall takes years, and
+    // must not hold back the chapters after it.
+    id: 'found-a-school',
+    earliest: week(2, 27),
+    side: true,
+    opensWhen: (s) => s.guidance?.done['hall-of-its-own'] !== undefined,
+    objectives: [
+      { id: 'claim-a-hall', progress: (s) => Object.keys(s.hallClaims ?? {}).some((id) => id !== FOUNDERS_HALL_ID) },
+      { id: 'found-a-school', progress: (s) => schoolsFounded(s) > 0 },
     ],
   },
   {
@@ -516,6 +531,12 @@ function labBuilt(s: GameState): boolean {
 }
 
 export function objectiveHelp(s: GameState, chapter: ChapterId, objective: string): Lever | undefined {
+  // The school closest to six, and where (the hall's panel shows the same).
+  if (objective === 'found-a-school' && schoolsFounded(s) === 0) {
+    const p = closestSchool(s);
+    const hall = p ? s.tech.find((t) => t.id === p.hallId) : undefined;
+    if (p && hall) return foundSchoolHelp(p.school, p.housed, hallDisplayName(s, hall), p.hallId);
+  }
   // A lab placed and going up: say so, and how long (the owner's note).
   if (objective === 'site-a-lab' && !labBuilt(s)) {
     const rising = s.tech.find((t) => isLab(t) && t.status === 'developing' && t.id in s.placements);

@@ -35,7 +35,7 @@ import { AD_OFFER_COOLDOWN_YEARS } from './studentLifeData';
 import { milestoneForTab } from './ladderData';
 
 export type ChapterId = 'founding' | 'next-course' | 'looking-around' | 'somewhere-to-sleep' | 'seats' | 'paying-for-it' | 'first-summer'
-  | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'campus-life'
+  | 'standing' | 'a-faculty' | 'hall-of-its-own' | 'found-a-school' | 'campus-life'
   | 'the-teams' | 'running-the-college'
   | 'research' | 'alumni' | 'capital-projects' | 'specialization' | 'research-park';
 
@@ -106,6 +106,16 @@ export const HALL_LOCKED_HELP: Lever = {
 // says where to click.
 // The first lab placed and still going up (Research's first objective):
 // the Research tab waits for it.
+// The school closest to six, named (A school of its own's second objective).
+export function foundSchoolHelp(school: string, housed: number, hall: string, hallId: string): Lever {
+  const left = 6 - housed;
+  return {
+    text: `${school} has ${count(housed)} of its six programs in ${hall}. Found or move ${countWord(left)} more ${school} ${left === 1 ? 'program' : 'programs'} there to found the School of ${school}, and open its labs and its Dean.`,
+    door: 'hall',
+    hallId,
+  };
+}
+
 export function labRisingHelp(weeksLeft: number): Lever {
   return {
     text: `Your laboratory is going up, with ${weeksProse(weeksLeft)} to go. The Research tab opens once it's built.`,
@@ -253,12 +263,22 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     objectives: {
       'site-academic-hall': 'Place an academic hall',
       'move-a-program': 'Move a program into it',
-      'claim-a-hall': 'Put three programs from one school in one hall',
     },
     help: {
       'site-academic-hall': { text: 'The build menu rings your first academic hall in its Academic category. Click the hall, then click the map to place it.', door: 'build' },
       'move-a-program': { text: `Found a program in the new hall's free slot, or move one in. To move one, click the hall it is in, pick the program, and click the hall to move it to. A program leaving Founders Hall stops teaching for ${count(FOUNDERS_MOVE_WEEKS)} weeks, and one moving between other halls for ${count(RELOCATION_WEEKS)}.`, door: 'hall', hallId: FOUNDERS_HALL_ID },
+    },
+  },
+  'found-a-school': {
+    title: 'A school of its own',
+    about: 'A school is founded when six of its programs share one academic hall. Founding it opens the school\'s laboratories and a seat for its Dean. Every school has advanced courses that need a lab, so none can finish its curriculum, become distinguished or open graduate programs until it is founded.',
+    objectives: {
+      'claim-a-hall': 'Put three programs from one school in one hall',
+      'found-a-school': 'Found a school with six of its programs in one hall',
+    },
+    help: {
       'claim-a-hall': { text: "Three programs from one school in one hall make it that school's hall. Six found the school, and each school after it grows the same way in a hall of its own. The Curriculum groups your programs by school.", door: 'curriculum' },
+      'found-a-school': { text: 'Put six programs from one school in one hall, with nothing from another school. Found them there, or move them in from other halls. The Curriculum groups your programs by school.', door: 'curriculum' },
     },
   },
   'campus-life': {
