@@ -4045,12 +4045,12 @@ function shedCourses(f: BoxFaces, H: number, cornice?: string) {
   ));
 }
 // A door in the middle of each visible wall of box b, and the front's steps.
-function shedDoors(c: ShedCtx, b: DepthBox, f: BoxFaces, H: number) {
+function shedDoors(c: ShedCtx, b: DepthBox, f: BoxFaces, H: number, skip?: FaceDir) {
   const d = c.door;
   if (!d) return null;
   return (
     <>
-      {shedFaces(f).map((s) => <Door key={s.dir} d={d} origin={s.o} along={s.a} wallHeight={H} span={s.span} side={s.dir} />)}
+      {shedFaces(f).filter((s) => s.dir !== skip).map((s) => <Door key={s.dir} d={d} origin={s.o} along={s.a} wallHeight={H} span={s.span} side={s.dir} />)}
       {shedSides(c).entry.map((dir) => {
         const span = wallSpan(b.w, b.h, dir);
         const at = outsideWall(b.col, b.row, b.w, b.h, dir, span / 2, 0);
@@ -4501,6 +4501,18 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
       <Crest crest={c.crest} col={tb.col} row={tb.row} w={tb.w} h={tb.h} base={Ht} fronts={sides.seen} pal={pal} stone={stone} tile={c.plantTint} />
     </>
   );
+  // The right side's door stands on the stretch of wall behind the tower,
+  // a tile back from the walkers' tile, which the tower covers (the owner,
+  // 2 November 2026: it showed only a sliver beside the glass).
+  const rightDir = sides.right;
+  const byRows = rightDir === 'posCol' || rightDir === 'negCol';
+  const behind: DepthBox = byRows
+    ? { col, row: posR ? row : row + T, w, h: h - T }
+    : { col: posC ? col : col + T, row, w: w - T, h };
+  const behindWall = wallOf(boxFaces(behind.col, behind.row, behind.w, behind.h, 0, H), rightDir);
+  const sideDoor = d && behindWall.visible
+    ? <Door d={d} origin={behindWall.origin} along={behindWall.along} wallHeight={H} span={wallSpan(behind.w, behind.h, rightDir)} side={rightDir} />
+    : null;
   return (
     <>
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
@@ -4512,7 +4524,8 @@ function RecCenterShed({ c }: { c: ShedCtx }) {
           {windows(s.o, s.a, H, s.span, [clerestorySill(H)], 0, `rc${i}`, 'ribbon', 'rgba(52, 72, 84, 0.6)', d ? doorBay(d, s.span, H) : undefined)}
         </g>
       ))}
-      {shedDoors(c, box, f, H)}
+      {shedDoors(c, box, f, H, rightDir)}
+      {sideDoor}
       {signFace && <WallSign s={signFace} H={H} uc={0.42} width={across(15)} z0={signZ0} z1={signZ0 + up(1.6)} />}
       <polygon points={polyPoints(f.top)} fill={pal.roof} />
       <polygon className="iso-rooflight" points={polyPoints(strip)} />

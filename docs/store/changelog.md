@@ -123,6 +123,11 @@ Ginger Brooke's playtest (122).*
 
 ### Fixed
 
+- **A faculty search is one toast, not one a find.** Its first find
+  still pops up. Later finds go to the log and the market without one,
+  so a search no longer crowds the screen.
+- **The Recreation Center's side door** stood behind its climbing tower,
+  a sliver showing. It is a tile further back now.
 - **Text no longer highlights by accident** when you drag or double-click.
   Text boxes, and anything meant to be copied, can still be selected.
   (122C)

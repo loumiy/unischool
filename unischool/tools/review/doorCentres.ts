@@ -38,6 +38,13 @@ const INSET = 0.06;
 // How far from a tile's centre a door may sit, in tiles.
 const SLACK = 0.05;
 
+// A door kept off the walkers' tile on purpose, by building: the side it
+// is on, for a facing. The Recreation Center's climbing tower stands over
+// its right side's middle tile, so that side's door is a tile further back
+// (the owner, 2 November 2026).
+const OFF_ON_PURPOSE: Record<string, (facing: Facing) => FaceDir> = {
+  'REC-T1': (facing) => sidesOf(facing).right,
+};
 const byCol = (side: FaceDir) => side === 'posRow' || side === 'negRow';
 interface Hit { id: string; name: string; v: Vernacular; facing: Facing; side: FaceDir; front: boolean; at: number; fp: string; family: string; why: 'off-centre' | 'not-the-walkers-tile' }
 const hits: Hit[] = [];
@@ -77,6 +84,7 @@ for (const t of CATALOGUE) {
       for (const h of heard.values()) {
         if (!h) continue;
         if (h.why === 'not-the-walkers-tile' && served.has(h.side)) continue;
+        if (h.why === 'not-the-walkers-tile' && OFF_ON_PURPOSE[h.id]?.(h.facing) === h.side) continue;
         hits.push(h);
       }
     }
