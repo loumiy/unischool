@@ -4,11 +4,11 @@
 [halifaxgames.itch.io/unischool](https://halifaxgames.itch.io/unischool);
 0.1.1 went live on 13 October 2026. 0.1.2 was built on 16 October 2026
 (the Release workflow's run 4, from `main` at `4f5b83e`) and went up the
-same day. 0.1.3 went up on 21 October 2026 (`b1f2114`). 0.1.4 is ready
-on `main` (25 October 2026), not yet built or uploaded; its description
-below goes up with it.
+same day. 0.1.3 went up on 21 October 2026 (`b1f2114`), then 0.1.4 and
+its hotfix 0.1.4.1. 0.2.0 is ready on `main` (2 November 2026), not yet
+built or uploaded; its description below goes up with it.
 The owner rewrote the description on itch.io; the text below is the
-owner's, with the changes for 0.1.1, 0.1.2, 0.1.3 and 0.1.4. The first draft
+owner's, with the changes for 0.1.1, 0.1.2, 0.1.3, 0.1.4 and 0.2.0. The first draft
 (Plan 97I) was built from [`steam-page.md`](steam-page.md), cut to what
 an early playtest page needs. Every line says only what the game does on
 `main` today. "AI" never sits beside "school simulator" (the second
@@ -53,7 +53,15 @@ the fullscreen button and no automatic start.
 
 ## The description
 
-The text for 0.1.4, proposed on 25 October 2026 for the owner to agree.
+The text for 0.2.0, proposed on 2 November 2026 for the owner to agree.
+Four changes for 0.2.0:
+- the first line says "now 0.2.0";
+- *Build a campus* says a path can be drawn as a line or a rectangle;
+- *Grow the institution* says Deans put the best professors on their
+  school's courses;
+- *What to expect* says four tabs open with a short walk.
+
+The text for 0.1.4, proposed on 25 October 2026, went up with 0.1.4.
 Four changes for 0.1.4:
 - the first line says "now 0.1.4";
 - *Make the big decisions* says the summer waits for you, the board
@@ -87,7 +95,7 @@ the line into the page's **Description**. The bold lines are its headings.
 
 ---
 
-**An early playtest build, now 0.1.4. Your feedback will help inform version 1.0.0!**
+**An early playtest build, now 0.2.0. Your feedback will help inform version 1.0.0!**
 
 UniSchool is a university management simulation about watching a small
 college become a robust institution.
@@ -106,8 +114,9 @@ classrooms, residences, dining halls, student centers, health facilities,
 athletic venues and landmarks.
 
 Lay out the campus yourself on an isometric map. Choose its architecture
-and school colors. Lay paths in flagstone, cobbles or brick, plant trees by
-species, and set out lamps, benches and flower beds, all free. Watch
+and school colors. Lay paths in flagstone, cobbles or brick, a line or a
+whole rectangle at a time, plant trees by species, and set out lamps,
+benches and flower beds, all free. Watch
 familiar places emerge as the years pass: the
 quad, the science buildings, the residential quarter, the stadium, the
 places that eventually become part of the school's identity.
@@ -120,7 +129,8 @@ Develop your curriculum and decide which fields deserve investment. A hall
 becomes a school's once it holds three of its programs, and a program that
 isn't earning its place can be closed. Hire professors with their own
 strengths, careers and personalities. Give them courses to teach and
-research to pursue. Watch promising faculty become stars, and occasionally
+research to pursue, and appoint Deans who put the best of them on their
+school's courses. Watch promising faculty become stars, and occasionally
 watch another university come calling.
 
 Create the student experience too. Build the facilities, clubs,
@@ -175,8 +185,10 @@ And after the report, you can keep playing.
 - Your first run opens with a short walkthrough that founds your first
   program with you (you can skip it). After it, the first five years run
   as chapters, a few objectives at a time. Each objective has help a
-  click away, and *Show me* rings what to click. Your first summer is
-  walked through with you, one control at a time. Settings can turn the
+  click away, and *Show me* rings what to click. The Treasury, Students,
+  History and Faculty tabs each open with a short walk through what they
+  show, and your first summer is walked through with you, one control at
+  a time. Settings can turn the
   chapters down to a line or off.
 - A full run is fifty years: roughly two to four hours, depending on the
   speed you play at, over as many sittings as you like. Growth is slow on
