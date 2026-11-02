@@ -60,7 +60,7 @@ places". The owner's answers to §2 the same day are folded in.*
 | PR | Change |
 |---|---|
 | A | **Words.** Both welcomes use `institutionName`. Grep `src/` for other places where the bare `s.self.name` is used as the institution's name in prose, and leave alone the ones used as a key (`Toasts.tsx`, `useAudio.ts`, `App.tsx`, the seeds). Replace "The builders are out of {name}." with "{name} is complete." |
-| B | **The drawer opens from the bottom right.** Move the chip to the right end of the ticker. Anchor `.objectives-popup` at `right: 16px`, and have it grow from that corner and fold back into it, using the same short transition the popups already use. The toasts and the summer's note stack above the drawer while it is open (their `bottom` reads a CSS variable that the drawer sets), so nothing hides under it. On a phone the drawer stays full width, as now. The Milestones popup stays on the left. |
+| B | **The drawer opens from the bottom right.** Move the chip to the right end of the ticker. Anchor `.objectives-popup` at `right: 16px`, and have it grow from that corner and fold back into it, using the same short transition the popups already use. The toasts and the summer's note move to the bottom left for good (§2.1), so nothing hides under the drawer. On a phone the drawer stays full width, as now. The Milestones popup stays on the left. |
 | C | **No stray selection.** Set `user-select: none` on `.app`, and turn it back on for `input`, `textarea`, `[contenteditable]` and anything meant to be copied (the save export and the crash screen's report). Check the map's drag, the admissions drag and the sliders. Add a line to the release checklist that the itch build was checked. |
 | D | **Every door on a tile's centre**, so a one-tile path drawn straight out meets it (the owner: no two-tile entrances). The rule: a door is one tile wide, on a wall an odd number of tiles long, centred on that wall's middle tile. (1) A new checker rule, `door-off-centre`: each door-drawing motif exports where its door is along the wall, and the checker compares that with the centre of the tile it lands on, in all four facings and every vernacular. `door-on-seam` becomes an error, not a note. The asset gallery (`npm run gallery:assets`) runs both over every buildable, not only the saved arrangements. (2) Fix what they find. The Original Commons and the small pavilion put the door in the middle of the footprint and move the kitchen to one side. The Student Center is fixed the same way. A door on an even wall moves to the odd wall of the same footprint (every even footprint with a door has one: 5×4, 7×4, 7×6, 9×6, 9×8, 11×8, 13×8). Only where that would put the front somewhere wrong does the footprint change to odd dimensions. Each such change is listed in the PR, and an old save keeps the building's old footprint where it stands (§2.4). (3) Re-shoot the gallery, and check that walkers still reach the moved doors (`walkRoutes.ts`). |
 | E | **A done chapter stays while its tab is open.** When the objective that completes a chapter is met inside a tab (a tab opened, or since G a tab's walk finished), and that tab is still open, the drawer opens over the tab on that chapter, marked done (every objective ticked, and a "Chapter 6 done" line). It hands over to the next chapter when the tab closes or the player goes to another screen. This is shell state in `App.tsx` (the drawer's `objectivesView` already shows a chosen chapter over a tab, as the Guide button does), so no save change. It applies to any chapter finished this way, not just chapter 6. |
@@ -74,10 +74,10 @@ both put the drawer over a tab. D is the largest and stands alone.
 
 ## 2. Open questions
 
-1. **The drawer and the toasts (B).** *Open; mocked up for the owner.*
-   Either the toasts and the summer's note stack above the open drawer
-   in the bottom right, or they move to the bottom left for good, where
-   the drawer used to be. The drawer's height drops from 60vh to 52vh
+1. **The drawer and the toasts (B).** *Decided (the owner, from two
+   mockups): they move to the bottom left for good,* where the drawer
+   used to be. The other mockup had them stacking above the open drawer
+   in the bottom right. The drawer's height drops from 60vh to 52vh
    either way. (A shorter drawer with the toasts left where they are was
    proposed first and dropped, since the two would overlap.)
 2. **Skipping the walk (G).** *Decided:* Skip counts as done. History,
