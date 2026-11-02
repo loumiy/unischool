@@ -1,4 +1,4 @@
-import type { Buildable, GameState, GuidanceState, Placement, TileCoord, VarsityTeam } from './types';
+import type { Buildable, GameState, GuidanceState, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, foundSchoolHelp, labRisingHelp, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
@@ -13,10 +13,11 @@ import { GRADE_B } from '../data/courseQuality';
 import { openChairs, venueForCategory } from '../data/studentLifeData';
 import { closestSchool, hallDisplayName } from '../systems/techtree/schools';
 import { schoolsFounded } from '../systems/guidance/establish';
-import { foundersHallUnsited, laterCourseStarted } from './opening';
+import { foundersHallUnsited, foundersReachRoad, laterCourseStarted } from './opening';
 import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
 import { placesComing } from '../systems/guidance/seating';
-import { pathTileKey, placementTiles } from './campusMap';
+import { pathTileKey } from './campusMap';
+import { besideTiles, pathsFromFounders } from './drive';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
 // one season's lesson each, in the manner of Transport Fever's missions:
@@ -110,6 +111,9 @@ export const CHAPTERS: readonly Chapter[] = [
     earliest: week(1, 1),
     objectives: [
       { id: 'site-founders-hall', progress: (s) => !foundersHallUnsited(s) },
+      // The path to the road (Plan 122J): the walkthrough's step, and the
+      // drawer's ask in a run that skipped it.
+      { id: 'path-to-road', progress: foundersReachRoad },
       { id: 'found-first-program', progress: (s) => housedPrograms(s).length > 0 },
     ],
   },
@@ -383,44 +387,10 @@ export const CHAPTERS: readonly Chapter[] = [
 export const tabMark = (tab: string) => `tab:${tab}`;
 export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history', 'faculty']);
 
-// The paths joined to Founders Hall (Plan 115D), as tile keys: every path
-// tile reached from one beside the hall, a step at a time along the paths,
-// diagonals included (the draw tool lays a diagonal run as one band,
-// pathways.tsx). The founding drive is among them (state/drive.ts), and a
-// path that joins it counts. A path under a building joins nothing.
-export function pathsFromFounders(s: GameState): Set<string> {
-  const hall = s.placements[FOUNDERS_HALL_ID];
-  const joined = new Set<string>();
-  if (!hall) return joined;
-  const covered = new Set(Object.values(s.placements).flatMap((p) => placementTiles(p).map(pathTileKey)));
-  const paved = (key: string) => key in s.pathways && !covered.has(key) && !joined.has(key);
-  const queue = besideTiles(hall).filter((t) => paved(pathTileKey(t)));
-  for (const t of queue) joined.add(pathTileKey(t));
-  for (let q = 0; q < queue.length; q++) {
-    const { row, col } = queue[q];
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const next = { row: row + dr, col: col + dc };
-        const key = pathTileKey(next);
-        if (!paved(key)) continue;
-        joined.add(key);
-        queue.push(next);
-      }
-    }
-  }
-  return joined;
-}
-
-// The tiles round a placement's footprint, corners included.
-export function besideTiles(p: Placement): TileCoord[] {
-  const tiles: TileCoord[] = [];
-  for (let row = p.row - 1; row <= p.row + p.h; row++) {
-    for (let col = p.col - 1; col <= p.col + p.w; col++) {
-      if (row < p.row || row >= p.row + p.h || col < p.col || col >= p.col + p.w) tiles.push({ row, col });
-    }
-  }
-  return tiles;
-}
+// The paths joined to Founders Hall and the tiles round a footprint live
+// in state/drive.ts since Plan 122J (the walkthrough's path step reads
+// them too); re-exported here for the harness.
+export { besideTiles, pathsFromFounders };
 
 // A sited residence hall has a path beside it that joins Founders Hall.
 export function pathJoinsResidence(s: GameState): boolean {
@@ -479,6 +449,9 @@ export function ringedBuilding(s: GameState): Buildable | null {
 // With nothing ringed the menu opens on Grounds (BuildPopup.tsx's
 // initialBuildTab), where the tile is.
 export function ringedTool(s: GameState): 'paths' | null {
+  // The walkthrough's path step (Plan 122J), and the founding's objective
+  // in a run that skipped it.
+  if (!foundersHallUnsited(s) && !foundersReachRoad(s) && (s.events.opening.stage === 'path' || currentChapter(s)?.id === 'founding')) return 'paths';
   if (currentChapter(s)?.id !== 'somewhere-to-sleep' || objectiveMet(s, PATH_OBJECTIVE)) return null;
   return sitedAny(s, isDorm) && ringedBuilding(s) === null ? 'paths' : null;
 }

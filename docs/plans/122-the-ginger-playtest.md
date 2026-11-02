@@ -69,6 +69,10 @@ places". The owner's answers to §2 the same day are folded in.*
 | H | **No batch button.** Remove the "All N with X" button and the batch calculation from `RowAction`. The comment above it, the Curriculum's help text and `docs/design/curriculum.md` lose it too. |
 | I | **No "+80 places" on the program row** (the owner). The worth line keeps the milestone and drops the places. A course's places stay in the course drawer and the hall panel's "Teaching: N places". |
 
+| J | **A path to the road, drawn by the player** (the owner, 2 November, added during the work). The game no longer lays Founders Hall's drive in a guided founding. Every founding opens with a walk along the road: the last row of land, paved across the parcel, with its trees cleared. The walkthrough gets a new step two after the hall is sited, "A path to the road". It holds the clock until a path joins the hall to the walk, and rings Paths in the build menu's Grounds tab. The founding chapter gets the same objective, so a run that skipped the walkthrough is asked for it in the drawer. |
+
+**J, as implemented:** `state/drive.ts` gains `laySidewalk` and `SIDEWALK_ROW`, and `pathsFromFounders` and `besideTiles` move there from `chapters.ts`, which re-exports them. That way `opening.ts` can read them without an import cycle. A headless founding (the harness, the tests) keeps its drive. Path actions now settle the walkthrough. When Paths is picked on the path step, the build menu folds away and the tool stays in hand, so the ground down to the road can be seen. A path that touches the walk diagonally counts as joined, the same rule Somewhere to sleep uses.
+
 PRs A, C and H are small and independent. B goes before E and G, since
 both put the drawer over a tab. D is the largest and stands alone.
 

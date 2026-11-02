@@ -48,6 +48,7 @@ import { CHAPTERS, currentChapter, LOOK_MARKS, ringedBuilding, ringedProgram, ri
 import { pathToFoundersRoute } from '../sim/harness/moves';
 import { OBJECTIVES_OFF_MARK } from '../src/systems/guidance/gates';
 import { awaitsSite, centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
+import { SIDEWALK_ROW } from '../src/state/drive';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { loadGame, saveGame } from '../src/state/persistence';
@@ -212,6 +213,16 @@ const siteHall = (s: GameState) => {
   const spot = centredPlacement(footprintOf(hall));
   return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
 };
+// The path step (Plan 122J): a path straight down from the middle of the
+// hall's front (facing 0 faces the road) to the walk along the road.
+const layPath = (s: GameState) => {
+  const p = s.placements[FOUNDERS_HALL_ID]!;
+  const col = p.col + Math.floor(p.w / 2);
+  const add = [];
+  for (let row = p.row + p.h; row < SIDEWALK_ROW; row++) add.push({ row, col });
+  return reducer(s, { type: 'PAINT_PATH_TILES', add, remove: [] });
+};
+const siteHallAndPath = (s: GameState) => layPath(siteHall(s));
 // Plays weeks, answering stops with the shared defaults, until `until`
 // holds.
 const untilWeek = (start: GameState, until: (s: GameState) => boolean) => {
@@ -230,7 +241,7 @@ const siteAnywhere = (s: GameState, id: string) => {
 };
 // A guided walk done to its program founded: English, with Bennett.
 const walkToCourse = (name: string) => reducer(
-  siteHall(reducer(foundWalk(name), { type: 'ADVANCE_OPENING' })),
+  siteHallAndPath(reducer(foundWalk(name), { type: 'ADVANCE_OPENING' })),
   { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR },
 );
 {
@@ -277,7 +288,13 @@ const walkToCourse = (name: string) => reducer(
   s = siteHall(s);
   assert(FOUNDERS_HALL_ID in s.placements, 'the hall is sited');
   assert(s.finance.cash === cash, 'and nothing was charged for it');
-  assert(s.events.opening.stage === 'found' && openingHoldsClock(s), 'the hall standing moves the walk on, to the first program, the clock still held');
+  assert(s.events.opening.stage === 'path' && openingHoldsClock(s), 'the hall standing moves the walk on, to the path to the road, the clock still held (Plan 122J)');
+  assert(ringedTool(s) === 'paths', 'and the build menu rings Paths');
+  s = reducer(s, { type: 'ADVANCE_OPENING' });
+  assert(s.events.opening.stage === 'path', 'Next does nothing on the path step');
+  s = layPath(s);
+  assert(s.events.opening.stage === 'found' && openingHoldsClock(s), 'the path reaching the walk moves the walk on, to the first program, the clock still held');
+  assert(ringedTool(s) === null, 'and Paths is no longer ringed');
   s = reducer(s, { type: 'ADVANCE_OPENING' });
   assert(s.events.opening.stage === 'found', 'Next does nothing here either');
   // Any of the three (Plan 107A): no program named, no professor named.
@@ -364,13 +381,13 @@ const walkToCourse = (name: string) => reducer(
   assert(h.events.opening.stage === 'play' && !h.events.opening.skipped, 'skipping the rest keeps the letters');
   assert(!(FOUNDERS_HALL_ID in h.placements) && openingHoldsClock(h), 'but the hall stays unplaced and the clock held');
   assert(nextStep(h)?.text.startsWith('Place Founders Hall') === true, 'and the line says to site it');
-  h = siteHall(h);
+  h = siteHallAndPath(h);
   // The first letter's ask gives way to its chapter, Seats for everyone,
   // and the line reads the seating, which asks the same in its own words.
   assert(!openingHoldsClock(h) && /found a program in Founders Hall/.test(nextStep(h)?.text ?? ''), `sited, the line asks for the first program (${nextStep(h)?.text})`);
 
   // From the program's step: the hall stands, so the clock runs.
-  let f = siteHall(reducer(foundWalk('Skip found'), { type: 'ADVANCE_OPENING' }));
+  let f = siteHallAndPath(reducer(foundWalk('Skip found'), { type: 'ADVANCE_OPENING' }));
   assert(f.events.opening.stage === 'found', 'on the program\'s step');
   f = reducer(f, { type: 'SKIP_OPENING', keepLetters: true });
   assert(f.events.opening.stage === 'play' && !openingHoldsClock(f), 'skipped, the clock runs');
@@ -394,7 +411,7 @@ const walkToCourse = (name: string) => reducer(
   // needs letter read, so with the chapters Off it comes at week 9 as it
   // always did. With them on, its chapter says it (Plan 112A), and it is
   // recorded read unsent.
-  let k = siteHall(reducer(foundWalk('Skip letters'), { type: 'ADVANCE_OPENING' }));
+  let k = siteHallAndPath(reducer(foundWalk('Skip letters'), { type: 'ADVANCE_OPENING' }));
   k = reducer(k, { type: 'SKIP_OPENING', keepLetters: true });
   const guidedYear = playYear(structuredClone(k));
   assert(guidedYear.letters.length === 0 && guidedYear.s.events.opening.read.includes(NEEDS_LETTER_ID), `skipped before the program, a guided run is sent no needs letter (${guidedYear.letters.map((l) => l.id).join(',')})`);
@@ -414,7 +431,7 @@ const walkToCourse = (name: string) => reducer(
   const words = (stage: GameState['events']['opening']['stage'], s: GameState) => OPENING_STEPS[stage as 'welcome'].body(s).toLowerCase();
   const w = foundWalk('Order');
   const site = reducer(w, { type: 'ADVANCE_OPENING' });
-  const found = siteHall(site);
+  const found = siteHallAndPath(site);
   // A card names no step it doesn't lead to: the welcome and the hall's
   // step no professor, program or course; choosing the program no course,
   // no professor by name and no program to prefer (Plan 107A).
@@ -442,8 +459,9 @@ const walkToCourse = (name: string) => reducer(
   check();
   w = reducer(w, { type: 'ADVANCE_OPENING' }); check();
   w = siteHall(w); check();
+  w = layPath(w); check();
   w = reducer(w, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR }); check();
-  assert(seen.join(',') === 'welcome,site-hall,found', `every card checked (${seen.join(',')})`);
+  assert(seen.join(',') === 'welcome,site-hall,path,found', `every card checked (${seen.join(',')})`);
   assert(Object.values(OPENING_STEPS).every((step) => step.door === undefined || step.door === 'build' || step.door === 'hall'), 'no card has a door to a tab');
 }
 
@@ -474,9 +492,10 @@ const walkToCourse = (name: string) => reducer(
 
   const welcome = foundWalk('Ask');
   const siteStep = reducer(welcome, { type: 'ADVANCE_OPENING' });
-  const foundStep = siteHall(siteStep);
-  const steps = [welcome, siteStep, foundStep];
-  assert(steps.map((x) => x.events.opening.stage).join(',') === 'welcome,site-hall,found',
+  const pathStep = siteHall(siteStep);
+  const foundStep = layPath(pathStep);
+  const steps = [welcome, siteStep, pathStep, foundStep];
+  assert(steps.map((x) => x.events.opening.stage).join(',') === 'welcome,site-hall,path,found',
     `every card is reached (${steps.map((x) => x.events.opening.stage).join(',')})`);
 
   for (const s of steps) {

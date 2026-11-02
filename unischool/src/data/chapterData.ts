@@ -136,10 +136,12 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     title: 'Founding',
     objectives: {
       'site-founders-hall': 'Raise Founders Hall',
+      'path-to-road': 'Lay a path from Founders Hall to the road',
       'found-first-program': 'Found the first program',
     },
     help: {
       'site-founders-hall': { text: 'Open the build menu, click Founders Hall, then click anywhere on the map to place it.', door: 'build' },
+      'path-to-road': { text: 'Open the build menu and pick Paths from Grounds. Drag from the front door of Founders Hall to the walk beside the road. Hold Shift for a straight line.', door: 'build' },
       'found-first-program': { text: 'Click Founders Hall on the map and found a program in a free slot.', door: 'hall', hallId: FOUNDERS_HALL_ID },
     },
   },

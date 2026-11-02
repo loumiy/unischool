@@ -17,6 +17,8 @@ import { FOUNDING_PROGRAMS, FOUNDING_VERNACULAR } from '../src/data/foundingData
 import { canFoundProgram, canStartDevelopment, committeeSeats, courseSlotsFree, facultyGate } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
 import type { GameState } from '../src/state/types';
+import { CAMPUS_GRID_WIDTH } from '../src/state/types';
+import { SIDEWALK_ROW } from '../src/state/drive';
 import { bindScriptStream } from '../src/engine/random';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { ROAD_FIRST_ROW, centredPlacement, footprintOf, occupantAt, parsePathTileKey, placementCovers } from '../src/state/campusMap';
@@ -251,9 +253,11 @@ console.log('founding tests');
   assert(facultyGate(full, field) !== 'open', `and facultyGate says why (${facultyGate(full, field)})`);
 }
 
-// ---- the founding drive (Plan 115B) ----
-// A path from a tile next to Founders Hall to the road, laid when the hall
-// is first sited, and only then.
+// ---- the founding drive (Plan 115B) and the walk along the road ----
+// A headless founding opens with a path from a tile next to Founders Hall
+// to the road. Since Plan 122J a guided founding's player draws it (the
+// walkthrough's path step), and every founding opens with the walk along
+// the road.
 {
   const start = (guided: boolean, sandbox = false) => reducer(createPreStartState(), {
     type: 'START_GAME', name: 'Drive', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), guided, sandbox, seed: 115,
@@ -281,20 +285,24 @@ console.log('founding tests');
     return occupantAt(s.placements, t.row, t.col) !== undefined;
   });
 
+  const isWalk = (k: string) => parsePathTileKey(k)!.row === SIDEWALK_ROW;
+  const drive = (s: GameState) => Object.keys(s.pathways).filter((k) => !isWalk(k));
   const headless = createInitialState('Drive');
+  const walk = Object.keys(headless.pathways).filter(isWalk);
+  assert(walk.length === CAMPUS_GRID_WIDTH && SIDEWALK_ROW === ROAD_FIRST_ROW - 1, `the walk runs the width of the parcel beside the road (${walk.length} tiles)`);
   assert(Object.keys(headless.pathways).length > 0 && joined(headless), 'a headless founding opens with a path from the hall to the road');
   assert(underHall(headless).length === 0, 'and the drive never crosses the hall');
   const hall = headless.placements[FOUNDERS_HALL_ID]!;
-  assert(Object.keys(headless.pathways).length === ROAD_FIRST_ROW - (hall.row + hall.h), `with the hall facing the road it runs straight down (${Object.keys(headless.pathways).length} tiles)`);
+  assert(drive(headless).length === ROAD_FIRST_ROW - 1 - (hall.row + hall.h), `with the hall facing the road it runs straight down to the walk (${drive(headless).length} tiles)`);
 
   const unsited = reducer(start(true), { type: 'ADVANCE_OPENING' });
-  assert(Object.keys(unsited.pathways).length === 0, 'a guided founding has no drive before the hall is sited');
+  assert(drive(unsited).length === 0 && Object.keys(unsited.pathways).every(isWalk), 'a guided founding opens with the walk and no drive');
   const node = unsited.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   for (const facing of [0, 1, 2, 3] as const) {
     const spot = centredPlacement(footprintOf(node));
     const s = reducer(unsited, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing });
-    assert(FOUNDERS_HALL_ID in s.placements && joined(s), `a guided siting facing ${facing} lays a path from the hall to the road`);
-    assert(underHall(s).length === 0, `and that drive never crosses the hall (facing ${facing})`);
+    assert(FOUNDERS_HALL_ID in s.placements && drive(s).length === 0 && !joined(s), `a guided siting facing ${facing} lays no drive: the player draws it (Plan 122J)`);
+    assert(s.events.opening.stage === 'path', `and the walk asks for the path (facing ${facing})`);
   }
 
   // Siting it again (a sandbox's move) lays no second drive.

@@ -22,6 +22,7 @@ import { FOUNDING_VERNACULAR, WALKTHROUGH_PROFESSOR, WALKTHROUGH_PROGRAM } from 
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { centredPlacement, footprintOf } from '../src/state/campusMap';
+import { SIDEWALK_ROW } from '../src/state/drive';
 
 let checks = 0;
 let failures = 0;
@@ -41,6 +42,13 @@ const found = () => reducer(createPreStartState(), {
 const siteHall = (s: GameState) => {
   const spot = centredPlacement(footprintOf(s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!));
   return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
+};
+// The path step (Plan 122J): straight down from the hall's front to the walk.
+const layPath = (s: GameState) => {
+  const p = s.placements[FOUNDERS_HALL_ID]!;
+  const add = [];
+  for (let row = p.row + p.h; row < SIDEWALK_ROW; row++) add.push({ row, col: p.col + Math.floor(p.w / 2) });
+  return reducer(s, { type: 'PAINT_PATH_TILES', add, remove: [] });
 };
 const noop = () => {};
 const bar = (s: GameState) => renderToStaticMarkup(createElement(Toolbar, {
@@ -62,11 +70,12 @@ const TABS = ['Curriculum', 'Faculty', 'Students', 'History', 'Inbox'];
 const shutOf = (b: Map<string, boolean>) => [...b.entries()].filter(([k, off]) => off && !k.endsWith('×')).map(([k]) => k);
 
 const siteStep = reducer(found(), { type: 'ADVANCE_OPENING' });
-const foundStep = siteHall(siteStep);
+const pathStep = siteHall(siteStep);
+const foundStep = layPath(pathStep);
 const played = reducer(foundStep, { type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
-assert([siteStep, foundStep, played].map((x) => x.events.opening.stage).join(',') === 'site-hall,found,play', 'the walk reaches each step');
+assert([siteStep, pathStep, foundStep, played].map((x) => x.events.opening.stage).join(',') === 'site-hall,path,found,play', 'the walk reaches each step');
 
-for (const [s, door] of [[siteStep, 'build'], [foundStep, 'campus']] as const) {
+for (const [s, door] of [[siteStep, 'build'], [pathStep, 'build'], [foundStep, 'campus']] as const) {
   const stage = s.events.opening.stage;
   assert(openingQuietDoor(s) === door, `${stage}: the step's door is ${door}`);
   const html = bar(s);
@@ -74,7 +83,7 @@ for (const [s, door] of [[siteStep, 'build'], [foundStep, 'campus']] as const) {
   const shut = TABS.filter((t) => [...b.keys()].some((k) => k.startsWith(t) && b.get(k)));
   assert(shut.length === TABS.filter((t) => [...b.keys()].some((k) => k.startsWith(t))).length && shut.length >= 4, `${stage}: every tab is shut (${shut.join(', ')})`);
   assert(b.get('Campus map') === false, `${stage}: Campus stays live`);
-  assert(b.get('Open build menu') === (door !== 'build'), `${stage}: Build is ${door === 'build' ? 'live, to site the hall' : 'shut'}`);
+  assert(b.get('Open build menu') === (door !== 'build'), `${stage}: Build is ${door === 'build' ? 'live, to site the hall or draw the path' : 'shut'}`);
   assert(b.get('Treasury') === true, `${stage}: the funds figure is not a door to the Treasury`);
   assert(html.includes('toolbar-stats quiet') && !/aria-label="(Rank|Enrolled|Prestige|Satisfaction) [^"]*— open/.test(html), `${stage}: the figures are dimmed and not doors`);
   assert(/\$[\d,]+/.test(html), `${stage}: and still readable`);
@@ -90,8 +99,8 @@ for (const [s, door] of [[siteStep, 'build'], [foundStep, 'campus']] as const) {
   assert(openingQuietDoor(s) === null && !bar(s).includes('toolbar-stats quiet'), 'and it stays live as the weeks pass');
 }
 
-// A skip lifts it at once, from any of the three.
-for (const s of [siteStep, foundStep]) {
+// A skip lifts it at once, from any of the four.
+for (const s of [siteStep, pathStep, foundStep]) {
   const skipped = reducer(s, { type: 'SKIP_OPENING', keepLetters: true });
   const shut = shutOf(buttons(bar(skipped)));
   assert(openingQuietDoor(skipped) === null && shut.length === 0, `skipped from ${s.events.opening.stage}: nothing is shut (${shut.join(', ')})`);
