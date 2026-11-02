@@ -157,6 +157,8 @@ and most of them are fixed.
   they're for.
 - **Research prizes** now come from each field's own ladder, from a
   society's medal to an international honor.
+- **A faculty search is one alert, not one a find.** Its first find still
+  pops up; the rest go to the market and the log quietly.
 - **The campus sounds are birdsong.** The crowd, the wind and the stadium
   were looped noise, and could sound like static or waves.
 
