@@ -679,7 +679,8 @@ function sanitizeSpecialization(state: GameState): void {
   const notice = year(state.specializationNotice);
   const offered = year(state.specializationOffered);
   const chosen = state.specialization === 'none' ? undefined : year(state.specializationYear) ?? offered ?? state.clock.year;
-  for (const [key, value] of [['specializationNotice', notice], ['specializationOffered', offered], ['specializationYear', chosen]] as const) {
+  const deferred = state.specialization === 'none' ? year(state.specializationDeferredTo) : undefined;
+  for (const [key, value] of [['specializationNotice', notice], ['specializationOffered', offered], ['specializationYear', chosen], ['specializationDeferredTo', deferred]] as const) {
     if (value === undefined) delete state[key];
     else state[key] = value;
   }

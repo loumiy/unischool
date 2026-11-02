@@ -19,6 +19,7 @@ import { COURSE_DEVELOPMENT_SLOTS, FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from 
 import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, MAJOR_COURSE_COUNT, TIER_DURATION_WEEKS } from './techData';
 import { count, countWord, durationWords, weeksProse } from '../format';
 import { WEEKS_PER_YEAR } from '../state/types';
+import { SPECIALIZATION_ASK_AGAIN_YEARS } from './specializationData';
 import { DEMAND_FIRST_YEAR, DEMAND_SATISFACTION_THRESHOLD } from './demandData';
 import { ATTRITION_SATISFACTION_LINE } from '../systems/admissions/admissionsSystem';
 import { SEARCH_COST_WEEKS, SEARCH_WEEKS } from '../systems/faculty/facultySearch';
@@ -363,7 +364,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     help: {
       // The later routes (Plan 95R; Plan 116C's satisfaction), in prestigeWords.ts's words.
       'offered-specialization': { text: `From year ${SPECIALIZATION_PILLAR_YEAR}, ${pillarRouteWords()} also counts. So does ${satisfactionRouteWords()}. The guide in History shows your rank overall and in each pillar.`, door: 'history' },
-      'choose-specialization': { text: 'The offer has its own page, showing what each pillar would open. Click "Not this year" to put the choice off for a year.' },
+      'choose-specialization': { text: `The offer has its own page, showing what each pillar would open. Click "Not now" to put the choice off for ${durationWords(SPECIALIZATION_ASK_AGAIN_YEARS * WEEKS_PER_YEAR)}.` },
     },
   },
   // The letter "The Research Park", as a side chapter (Plan 112A).

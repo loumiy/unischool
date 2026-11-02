@@ -1493,6 +1493,9 @@ export interface GameState {
   // offered at the close of that summer and of every summer after until it
   // is made. Absent before.
   specializationOffered?: number;
+  // The summer the board asks again after "Not now" (Plan 118 follow-up:
+  // every five years, milestone.ts's SPECIALIZATION_ASK_AGAIN_YEARS).
+  specializationDeferredTo?: number;
   // The faculty training program's year (Plan 85E, systems/faculty/
   // training.ts): the professors trained at the institute in `year`. The
   // picks left are the year's allowance less these; a new year starts a new

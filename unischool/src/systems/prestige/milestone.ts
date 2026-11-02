@@ -4,7 +4,7 @@ import { specializationOf } from './specialization';
 import { PILLAR_AXES, pillarColumns, playerRank, rankBy, rivalPillars } from '../rivals/rivalsSystem';
 import { postBoardLetter } from '../finance/distress';
 import { satisfactionRecordWords, specializationOfferRule } from '../../data/prestigeWords';
-import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationOfferLine, specializationStatus, withShareFull } from '../../data/specializationData';
+import { PILLAR_WORDS, SPECIALIZATION_ASK_AGAIN_YEARS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializationOfferLine, specializationStatus, withShareFull } from '../../data/specializationData';
 
 // ---------------------------------------------------------------------
 // The milestone and the choice (Plan 85D). A college that climbs into the
@@ -27,13 +27,15 @@ import { PILLAR_WORDS, SPECIALIZATION_CARDS, SPECIALIZATION_NOTICE_ID, specializ
 //           summer's review prints), the offer is made and stands for good;
 //   choice  at the close of that summer (after RESOLVE_ADMISSIONS turns the
 //           page) the choice is raised as its own stop, and at the close of
-//           every summer after until it is made. "Not this year" puts it
-//           off; nothing ever makes it for the player.
+//           every fifth summer after until it is made. "Not now" puts it
+//           off five years; nothing ever makes it for the player.
 //
 // A college that never reaches the milestone is never offered it. Reads the
 // ranking and draws nothing, so the harness's runs are unmoved until a
 // choice is made.
 // ---------------------------------------------------------------------
+
+export { SPECIALIZATION_ASK_AGAIN_YEARS };
 
 export interface SpecializationPayload {
   // The summer the choice closes: the year it is recorded against.
@@ -92,6 +94,7 @@ export function specializationOpen(s: GameState): boolean {
 // week before it has run, so answering it holds no week.
 export function raiseSpecializationChoice(s: GameState, summerYear: number): void {
   if (!specializationOpen(s) || s.pendingInterrupt) return;
+  if (s.specializationDeferredTo !== undefined && summerYear < s.specializationDeferredTo) return;
   const payload: SpecializationPayload = { year: summerYear };
   s.pendingInterrupt = { type: 'specialization', payload };
 }
@@ -104,9 +107,11 @@ export function resolveSpecialization(s: GameState, pillar: Pillar | null): void
   if (!specializationOpen(s)) return;
   if (pillar !== null && !PILLARS.includes(pillar)) pillar = null;
   if (pillar === null) {
+    const again = (payload?.year ?? s.clock.year - 1) + SPECIALIZATION_ASK_AGAIN_YEARS;
+    s.specializationDeferredTo = again;
     s.log.unshift({
       year: s.clock.year, week: s.clock.week,
-      message: 'You haven\'t chosen a specialization this year. The board will ask again at the end of next summer.',
+      message: `You haven't chosen a specialization. The board will ask again in ${SPECIALIZATION_ASK_AGAIN_YEARS} years, at the end of the Year ${again} summer.`,
       kind: 'info',
     });
     return;
