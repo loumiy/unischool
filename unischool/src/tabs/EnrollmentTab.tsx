@@ -94,7 +94,7 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
 
   return (
     <div className="tab-content">
-      <section className="panel">
+      <section className="panel" data-walk="students-body">
         <div className="panel-head"><h2>The student body</h2></div>
         <div className="body-legend">
           {bodyTotals.map((c) => (
@@ -123,7 +123,7 @@ export default function EnrollmentTab({ s, funnel = true }: { s: GameState; funn
         </div>
       </section>
 
-      {funnel && <section className="panel">
+      {funnel && <section className="panel" data-walk="students-funnel">
         <div className="panel-head"><h2>Last summer's funnel</h2></div>
         <div className="funnel-lines">
           <FunnelLine

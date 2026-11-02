@@ -1,6 +1,6 @@
 import type { CampusTool } from './state/actions';
 import { MILESTONES } from './data/ladderData';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { SPEEDS, useGame, type Speed } from './engine/useGame';
 import { openingHoldsClock, openingQuietDoor } from './state/opening';
 import { SHORTCUTS, isKey, mapBackOutLive, mapControlsLive, useHotkeys, type ShellOverlays } from './components/hotkeys';
@@ -29,7 +29,8 @@ import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
 import { TAB_GUIDE } from './data/chapterData';
 import type { ChapterId } from './data/chapterData';
-import { currentChapter, DOUBLE_SPEED_MARK, hasPage, MARKED_TABS, marked, readMark, tabMark } from './state/chapters';
+import { currentChapter, DOUBLE_SPEED_MARK, hasPage, isWalkTab, marked, readMark, tabMark, walkAsked } from './state/chapters';
+import TabWalk from './components/TabWalk';
 import { OBJECTIVES_OFF_MARK } from './systems/guidance/gates';
 import { stepTarget, type NextStep } from './systems/guidance/nextStep';
 import InboxTab from './components/InboxTab';
@@ -275,14 +276,15 @@ export default function App() {
     if (shellLive && objectivesMode === 'off' && s.guidance?.gated && !marked(s, OBJECTIVES_OFF_MARK)) act({ type: 'MARK_GUIDANCE', mark: OBJECTIVES_OFF_MARK });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objectivesMode, shellLive, s.guidance?.gated]);
-  // A tab an objective asks to be opened (chapter 5's Treasury, chapter 8's
-  // Faculty).
+  // A tab an objective asks to be walked through (Plan 122G): the Treasury,
+  // Students, History and Faculty. The walk shows while its chapter is open
+  // and the objective unmet; finishing or skipping it marks the tab.
   const openTabId = overlay?.tab;
-  useEffect(() => {
-    if (!shellLive || !openTabId || !MARKED_TABS.has(openTabId) || !s.guidance || marked(s, tabMark(openTabId))) return;
-    act({ type: 'MARK_GUIDANCE', mark: tabMark(openTabId) });
+  const walkTab = chaptersOn && !stopUp && openTabId && isWalkTab(openTabId) && walkAsked(s, openTabId) ? openTabId : null;
+  const endWalk = useCallback(() => {
+    if (walkTab) act({ type: 'MARK_GUIDANCE', mark: tabMark(walkTab) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openTabId, shellLive]);
+  }, [walkTab]);
 
   // A tab's Guide button: the page of the chapter that introduced it,
   // once that chapter has opened, read in the drawer over the tab.
@@ -667,6 +669,7 @@ export default function App() {
             before the toasts, which stack above it. Not over the inbox,
             whose first row is the same door. */}
         {shellLive && summerWaiting && overlay?.tab !== 'inbox' && <SummerCall s={s} onOpen={() => openSummer()} />}
+        {walkTab && <TabWalk key={walkTab} tab={walkTab} label={TAB_LABELS[walkTab]} onEnd={endWalk} />}
         {/* The week's small news (Plan 70H), a school's banner, and what
             arrives in the inbox (Plan 77), each with a way to open it. */}
         <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />

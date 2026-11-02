@@ -17,6 +17,7 @@ import { foundersHallUnsited, foundersReachRoad, laterCourseStarted } from './op
 import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
 import { placesComing } from '../systems/guidance/seating';
 import { pathTileKey } from './campusMap';
+import type { WalkTab } from '../data/tabWalkData';
 import { besideTiles, pathsFromFounders } from './drive';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
@@ -382,9 +383,26 @@ export const CHAPTERS: readonly Chapter[] = [
   },
 ];
 
-// The tabs an objective asks to be opened, marked by the shell when they
-// are (App.tsx), since an open tab is the shell's, not the college's.
+// The tabs an objective asks to be walked through, marked by the shell
+// (App.tsx), since an open tab is the shell's, not the college's. Marked
+// when the tab was opened until Plan 122G; since then when its walk is
+// finished or skipped (components/TabWalk.tsx), and the objectives keep
+// their ids, so a save that met one keeps it.
 export const tabMark = (tab: string) => `tab:${tab}`;
+// Which chapter's objective each walk meets.
+export const WALK_ASKS: Record<WalkTab, { chapter: ChapterId; objective: string }> = {
+  treasury: { chapter: 'paying-for-it', objective: 'open-treasury' },
+  students: { chapter: 'standing', objective: 'open-students' },
+  history: { chapter: 'standing', objective: 'open-history' },
+  faculty: { chapter: 'a-faculty', objective: 'open-faculty' },
+};
+export const isWalkTab = (tab: string): tab is WalkTab => tab in WALK_ASKS;
+// Whether the open tab's walk is asked for: its chapter open and its
+// objective not yet met.
+export function walkAsked(s: GameState, tab: WalkTab): boolean {
+  const ask = WALK_ASKS[tab];
+  return chapterOpen(s, ask.chapter) && !objectiveMet(s, ask.objective) && !marked(s, tabMark(tab));
+}
 export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history', 'faculty']);
 
 // The paths joined to Founders Hall and the tiles round a footprint live
