@@ -7,11 +7,11 @@ point to the development records in `docs/plans/`.*
 
 ## 0.2.0
 
-*One update made of four plans: fixes and words from the playtest
+*One update made of five plans: fixes and words from the playtest
 (Plan 118), the Campus grade in place of Access (119), Deans who staff,
-paths by rectangle and a second specialization building (120), and
-championships you can win (121). With them, the owner's notes from
-Ginger Brooke's playtest.*
+paths by rectangle and a second specialization building (120),
+championships you can win (121), and the rest of the owner's notes from
+Ginger Brooke's playtest (122).*
 
 ### New
 
@@ -49,11 +49,45 @@ Ginger Brooke's playtest.*
   can finish its curriculum until it is founded. The help names the
   school closest to six and where. Chapters after it are numbered one
   higher.
+- **Short walks through four tabs.** The chapters used to ask you to open
+  the Treasury, the Students tab, History and the Faculty tab, then left
+  you facing the whole screen. Now opening each one starts a walk of three
+  to five steps, ringing one section at a time with a line or two about
+  it. Back, Next and Skip are on the card, and skipping counts. A tab's
+  Guide button plays its walk again. (122G)
+- **You draw the path to the road.** A new game opens with a paved walk
+  along the road, and the game no longer lays Founders Hall's path for
+  you. Step two of the walkthrough asks you to draw one from Founders
+  Hall to the walk, with the Paths tool ringed. If you skipped the
+  walkthrough, the objectives ask for it instead. (122J)
 - **Research prizes by field.** Each field has its own three prizes, from
   a society's medal for a small project to an international honor for a
   Landmark Program. The film, broadcast and festival awards are gone.
 
 ### Changed
+
+- **The objectives open from the bottom right**, from a chip at the right
+  end of the strip, and fold back there. The toasts and the summer's note
+  moved to the bottom left to make room. (122B)
+- **A chapter finished in a tab stays on screen**, marked done, until you
+  close the tab or go somewhere else. *Paying for it* used to vanish the
+  moment the Treasury opened. (122E)
+- ***The first summer* opens when the summer does**, with the clock
+  stopped, instead of warning at week 46 that it was coming. (122F)
+- **Every door is on a tile's centre**, so a one-tile path drawn straight
+  out meets it, and each side's door is on the tile the walkers use. The
+  Original Commons and the Student Center had doors between tiles; so did
+  many others. The three largest dining halls gain a low buttery at the
+  end opposite the kitchen, so the hall and its door stand in the middle
+  of the front. The Medical Center's entrance moved to the middle of its
+  front. No building changed size. (122D)
+- **The Curriculum loses the "All # with X" button**, which started a
+  band of courses at once and mostly confused. The program row no longer
+  says "+80 places": every course seats 80 more students, and the course
+  panel and the hall's panel still say so. (122H, I)
+- **The welcome uses your college's full name**: "Welcome to Halifax
+  College", not "Welcome to Halifax". A finished building now reads
+  "*Name* is complete." in the log. (122A)
 
 - **Championships every two or three years.** A department not
   specialized in athletics, with full funding, good coaches and expanded
@@ -91,6 +125,10 @@ Ginger Brooke's playtest.*
 
 ### Fixed
 
+- **Text no longer highlights by accident** when you drag or double-click.
+  Text boxes, and anything meant to be copied, can still be selected.
+  (122C)
+
 - **A chapter house asked for when you can't pay for it** offered only a
   refusal that closed the matter for good. Now there's a "Not yet" that
   says how much you're short. The chapter asks again half a year later.
@@ -107,7 +145,9 @@ A save from 0.1.4 or 0.1.4.1 opens in 0.2.0. Its report card grades
 Campus from the campus as it stands, and Access is dropped. A Dean or
 Provost on the old staffing policy keeps the seat on its default policy.
 A college that declined the specialization is asked again at its next
-summer, then every five years.
+summer, then every five years. A tab you already opened for its chapter
+counts as walked through. Buildings keep their footprints, so no campus
+moves.
 
 ---
 
