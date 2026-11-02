@@ -6,7 +6,6 @@ import type { Action } from './actions';
 import { fellTrees } from '../data/treeData';
 import { awaitsSite, canPlace, orientedFootprint, placementFor } from './campusMap';
 import { settleOpening } from './opening';
-import { layDrive } from './drive';
 import { canStartDevelopment, startDevelopment } from '../systems/techtree/techSystem';
 
 function financingOf(action: Extract<Action, { type: 'PLACE_BUILDABLE' }>): Financing {
@@ -35,8 +34,8 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
         if (awaitsSite(s, node)) {
           s.placements[node.id] = placement;
           fellTrees(s.trees, placement);
-          // Its drive to the road (Plan 115B), laid once, here.
-          layDrive(s);
+          // No drive laid for it since Plan 122J: the walkthrough asks the
+          // player to draw the path to the road.
         }
       } else if (canStartDevelopment(s, node, undefined, financingOf(action))) {
         s.placements[node.id] = placement;

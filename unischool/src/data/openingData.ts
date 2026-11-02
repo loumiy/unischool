@@ -1,5 +1,5 @@
 import type { Buildable, GameState, OpeningStage } from '../state/types';
-import { SEMICENTENNIAL_YEAR, servingPopulation, totalEnrolled } from '../state/types';
+import { SEMICENTENNIAL_YEAR, institutionName, servingPopulation, totalEnrolled } from '../state/types';
 import { programById } from './techData';
 import { count, countWord } from '../format';
 
@@ -101,8 +101,9 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     // 104L): S1 read the old list of three tasks, in an order the walk then
     // didn't play, twice. Each step introduces its own thing when it comes.
     // How long a run is, said up front (Plan 118F, I6: "when we reach
-    // year 50 is it the game ends?").
-    body: (s) => `Welcome to ${s.self.name}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there. A run lasts ${countWord(SEMICENTENNIAL_YEAR)} years. At the end of Year ${SEMICENTENNIAL_YEAR} the board writes your Final Report, and you can keep playing after it.`,
+    // year 50 is it the game ends?"). The college by its full name, "Halifax
+    // College" (Plan 122A, from Ginger's playtest).
+    body: (s) => `Welcome to ${institutionName(s.self)}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there. A run lasts ${countWord(SEMICENTENNIAL_YEAR)} years. At the end of Year ${SEMICENTENNIAL_YEAR} the board writes your Final Report, and you can keep playing after it.`,
     next: 'Next',
   },
   'site-hall': {
@@ -113,11 +114,20 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     body: () => 'Buildings come from the build menu at the bottom of the screen. Click Founders Hall to pick it up. Then click anywhere on the map to place it.',
     door: 'build',
   },
+  // The path to the road (Plan 122J, the owner): the game no longer lays
+  // Founders Hall's drive, and the walk along the road is there from the
+  // founding for it to join.
+  path: {
+    eyebrow: 'Step two',
+    title: 'A path to the road',
+    body: () => 'Students arrive from the road, so Founders Hall needs a path to it. In the build menu, pick Paths from Grounds. Then drag from the front door of Founders Hall down to the walk beside the road. Hold Shift for a straight line. Paths are free.',
+    door: 'build',
+  },
   // Choosing the first program (Plan 107A): any of the three on offer, each
   // with its professor already appointed. No names and no favourite; the
   // tile and the button carry the cost.
   found: {
-    eyebrow: 'Step two',
+    eyebrow: 'Step three',
     title: 'Choose the first program',
     body: (s) => {
       const n = teachableOffers(s).length;

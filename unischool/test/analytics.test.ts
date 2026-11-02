@@ -34,6 +34,7 @@ import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { centredPlacement, firstFreeSpot, footprintOf } from '../src/state/campusMap';
 import { openingSkipped } from '../src/analytics/analytics';
+import { SIDEWALK_ROW } from '../src/state/drive';
 
 let checks = 0;
 let failures = 0;
@@ -223,11 +224,18 @@ function testOpening(): void {
       const spot = centred ? centredPlacement(footprintOf(t)) : firstFreeSpot(s, t, footprintOf(t))!;
       step({ type: 'PLACE_BUILDABLE', buildableId: id, row: spot.row, col: spot.col, facing: 0 });
     };
+    // The path step (Plan 122J): straight down from the hall to the walk.
+    const path = () => {
+      const p = s.placements[FOUNDERS_HALL_ID]!;
+      const add = [];
+      for (let row = p.row + p.h; row < SIDEWALK_ROW; row++) add.push({ row, col: p.col + Math.floor(p.w / 2) });
+      step({ type: 'PAINT_PATH_TILES', add, remove: [] });
+    };
     const until = (stage: GameState['events']['opening']['stage']) => {
       for (let i = 0; i < 60 && s.events.opening.stage !== stage; i += 1) step(s.pendingInterrupt ? defaultAnswer(s)! : { type: 'TICK' });
     };
     const skip = (keepLetters: boolean) => { openingSkipped(s.events.opening.stage, keepLetters); step({ type: 'SKIP_OPENING', keepLetters }); };
-    return { get s() { return s; }, step, site, until, skip };
+    return { get s() { return s; }, step, site, path, until, skip };
   };
   const steps = () => events().filter((e) => e.event === 'opening_step').map((e) => e.properties.stage);
   const skips = () => events().filter((e) => e.event === 'opening_skipped').map((e) => `${String(e.properties.stage)}:${String(e.properties.letters)}`);
@@ -237,10 +245,11 @@ function testOpening(): void {
   const w = walk('Walked');
   w.step({ type: 'ADVANCE_OPENING' });
   w.site(FOUNDERS_HALL_ID, true);
+  w.path();
   w.step({ type: 'FOUND_PROGRAM', programId: WALKTHROUGH_PROGRAM, hallId: FOUNDERS_HALL_ID, slot: 0, facultyId: WALKTHROUGH_PROFESSOR });
   flush();
   // The walk ends on the program founded (Plan 106 PR C).
-  const walked = 'site-hall,found,play';
+  const walked = 'site-hall,path,found,play';
   assert(w.s.events.opening.stage === 'play' && steps().join(',') === walked, `each stage reached is an opening_step, in order (${steps().join(',')})`);
   assert(skips().length === 0, 'and a walk finished sends no opening_skipped');
 
@@ -249,9 +258,10 @@ function testOpening(): void {
   const k = walk('Kept');
   k.step({ type: 'ADVANCE_OPENING' });
   k.site(FOUNDERS_HALL_ID, true);
+  k.path();
   k.skip(true);
   flush();
-  assert(k.s.events.opening.stage === 'play' && steps().join(',') === 'site-hall,found', `skipped on the program's card: the steps before it (${steps().join(',')})`);
+  assert(k.s.events.opening.stage === 'play' && steps().join(',') === 'site-hall,path,found', `skipped on the program's card: the steps before it (${steps().join(',')})`);
   assert(skips().join(',') === 'found:true', `and opening_skipped with the card and the letters kept (${skips().join(',')})`);
 
   // Skipped from the welcome, the letters declined.

@@ -1,0 +1,100 @@
+// ---------------------------------------------------------------------
+// THE DOOR CENTRE CHECKER (Plan 122D, from Ginger's playtest: "Doors should
+// always be centered on a tile"). Every placeable building, in every
+// vernacular and all four facings, is drawn through the game's own
+// BuildingMotif with a probe on its Door (buildingMotifs.ts's setDoorProbe),
+// in each of the four views, so every door that draws is heard once. Each
+// door's middle, at the foot of its wall, is taken back to the grid, and
+// its place along the wall must be a tile's centre, so a one-tile path
+// drawn straight out meets it, and the tile the walkers come and go by
+// (walkRoutes.ts's entrancesOf: the wall's middle tile, or on an even wall
+// the one past the middle), so the path, the walkers and the Campus
+// grade's paths to doors (beauty.ts) agree.
+//
+//   npm run review:door-centres                  # every building
+//   npm run review:door-centres -- --all-doors   # side and service doors too
+//
+// Exits non-zero when any door is off a tile's centre, or a front door off
+// the walkers' tile. Not part of the game: nothing in src/ imports this.
+// ---------------------------------------------------------------------
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import BuildingMotif, { materialOf, setDoorProbe } from '../../src/components/buildingMotifs';
+import { doorFamilyOf, motifOf } from '../../src/components/buildingSpec';
+import { DEFAULT_PITCH, VIEWS, setCamera, unproject, type FaceDir } from '../../src/components/isoProjection';
+import { sidesOf } from '../../src/components/facing';
+import { initialTech } from '../../src/data/techData';
+import { initialDorms } from '../../src/data/campusData';
+import { initialFacilities } from '../../src/data/facilitiesData';
+import { isPlaceableKind, orientedFootprint } from '../../src/state/campusMap';
+import type { Buildable, Facing, Vernacular } from '../../src/state/types';
+
+const ALL_DOORS = process.argv.includes('--all-doors');
+const VERNS: Vernacular[] = ['georgian', 'gothic', 'classical', 'mission', 'modern', 'tudor', 'italianate', 'secondEmpire', 'artDeco'];
+const CATALOGUE: Buildable[] = [...initialTech(), ...initialDorms(), ...initialFacilities()].filter(isPlaceableKind);
+// The map's inset (CampusMap.tsx's BUILDING_INSET): symmetric, so no door
+// moves for it.
+const INSET = 0.06;
+// How far from a tile's centre a door may sit, in tiles.
+const SLACK = 0.05;
+
+const byCol = (side: FaceDir) => side === 'posRow' || side === 'negRow';
+interface Hit { id: string; name: string; v: Vernacular; facing: Facing; side: FaceDir; front: boolean; at: number; fp: string; family: string; why: 'off-centre' | 'not-the-walkers-tile' }
+const hits: Hit[] = [];
+let doors = 0;
+
+for (const t of CATALOGUE) {
+  if (!doorFamilyOf(t) && motifOf(t) !== 'village') continue;
+  for (const v of VERNS) {
+    for (const facing of [0, 1, 2, 3] as Facing[]) {
+      const fp = orientedFootprint(t, facing);
+      const p = { col: INSET, row: INSET, w: fp.w - 2 * INSET, h: fp.h - 2 * INSET, facing };
+      const front = sidesOf(facing).front;
+      const heard = new Map<string, Hit | null>();
+      for (const az of VIEWS) {
+        setCamera({ azimuth: az, pitch: DEFAULT_PITCH });
+        setDoorProbe(({ origin, along, side, family }) => {
+          const mid = unproject((origin.x + along.x) / 2, (origin.y + along.y) / 2);
+          // Along the wall: a wall on ±row runs along the columns.
+          const at = byCol(side) ? mid.col : mid.row;
+          const key = `${side}:${at.toFixed(2)}`;
+          if (heard.has(key)) return;
+          const off = Math.abs((at % 1 + 1) % 1 - 0.5);
+          // The tile walkRoutes.ts's entrancesOf opens this side onto: the
+          // wall's middle tile, or on an even wall the one past the middle.
+          const walkers = Math.floor((byCol(side) ? fp.w : fp.h) / 2) + 0.5;
+          const why = off > SLACK ? 'off-centre' : Math.abs(at - walkers) > SLACK ? 'not-the-walkers-tile' : null;
+          heard.set(key, why ? { id: t.id, name: t.name, v, facing, side, front: side === front, at, fp: `${fp.w}x${fp.h}`, family, why } : null);
+        });
+        renderToStaticMarkup(createElement('svg', null, createElement(BuildingMotif, { t, p, material: materialOf(t, v), vernacular: v, developing: false })));
+      }
+      setDoorProbe(null);
+      doors += heard.size;
+      for (const h of heard.values()) if (h && (ALL_DOORS || h.front || h.why === 'off-centre')) hits.push(h);
+    }
+  }
+}
+
+// One line per building and side kind, with the vernaculars and facings it
+// is off in.
+const groups = new Map<string, Hit[]>();
+for (const h of hits) {
+  const k = `${h.id}|${h.front ? 'front' : 'other'}|${h.family}|${h.why}`;
+  groups.set(k, [...(groups.get(k) ?? []), h]);
+}
+console.log(`door centres: ${doors} doors heard on ${CATALOGUE.length} buildables`);
+for (const [k, hs] of [...groups.entries()].sort()) {
+  const [id, which, family, why] = k.split('|');
+  const vs = [...new Set(hs.map((h) => h.v))];
+  const fs = [...new Set(hs.map((h) => h.facing))];
+  console.log(`  ${id} (${hs[0].name}, ${hs[0].fp}) ${which} ${family} door ${why === 'off-centre' ? 'off a tile centre' : 'on a tile, not the walkers\' one'} at ${[...new Set(hs.map((h) => h.at.toFixed(2)))].slice(0, 4).join('/')} — ${vs.length === VERNS.length ? 'every vernacular' : vs.join(', ')}; facing ${fs.join(',')}`);
+}
+// A failure: any door off a tile's centre, or a front door off the
+// walkers' tile. A side door on another tile is reported (--all-doors), not
+// failed: the walkers use one door a side, and a side door's tile is a
+// matter for each building's own plan (Plan 122D's follow-ups).
+const failed = hits.filter((h) => h.why === 'off-centre' || h.front).length;
+console.log(failed === 0
+  ? `  ✓ every door is on a tile centre, and every front door on the walkers' tile${ALL_DOORS ? ` (${hits.length} side doors on another tile, listed above)` : ''}`
+  : `  ✗ ${failed} doors off a tile centre or front doors off the walkers' tile`);
+process.exit(failed === 0 ? 0 : 1);

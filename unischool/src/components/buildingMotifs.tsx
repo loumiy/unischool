@@ -1,6 +1,6 @@
 import { memo, useContext } from 'react';
 import type { Buildable, Facing, SchoolColors, Vernacular } from '../state/types';
-import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
+import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, unproject, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { frontDepth, frontWidth, localBox, localToGrid, sideSeen, sidesOf, type Plot } from './facing';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
 import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
@@ -846,6 +846,40 @@ const LINTEL = 0.05;      // the lintel's depth above the head, in v
 // Each door is tagged with its grid wall (`side`), and the walkers open it
 // by class while someone is on its step (Walkers.tsx): the leaves swing in
 // to their hinges and the hall behind shows.
+// Where a door's middle sits along its wall, as a share of the wall (Plan
+// 122D): the wall's own middle moved to the nearest tile's centre, so a
+// one-tile path drawn straight out meets it. A middle on a seam (an even
+// wall's) goes to the tile past it, toward the higher column or row, the
+// tile walkRoutes.ts's entrancesOf opens such a wall onto. Clamped so the
+// door stays on its wall.
+export function snapAlong(a0: number, a1: number, widthShare: number): number {
+  const len = a1 - a0;
+  if (Math.abs(len) < 1e-6) return 0.5;
+  const mid = (a0 + a1) / 2;
+  const seam = Math.abs(mid - Math.round(mid)) < 1e-3;
+  const centre = seam ? Math.round(mid) + 0.5 : Math.floor(mid) + 0.5;
+  const u = (centre - a0) / len;
+  const half = widthShare / 2;
+  return Math.min(1 - half, Math.max(half, u));
+}
+function snappedDoorCentre(origin: Pt, along: Pt, side: FaceDir, widthShare: number): number {
+  const g0 = unproject(origin.x, origin.y);
+  const g1 = unproject(along.x, along.y);
+  const byCol = side === 'posRow' || side === 'negRow';
+  return snapAlong(byCol ? g0.col : g0.row, byCol ? g1.col : g1.row, widthShare);
+}
+// The same for a flight of steps, whose middle is on the grid already.
+function snapOnGrid(at: number): number {
+  return Math.abs(at - Math.round(at)) < 1e-3 ? Math.round(at) + 0.5 : Math.floor(at) + 0.5;
+}
+
+// A checker's ear on every door drawn (tools/review/doorCentres.ts, Plan
+// 122D): the wall's foot and the side, for each door that draws. Null in
+// the game.
+export type DoorProbe = (door: { origin: Pt; along: Pt; side: FaceDir; family: DoorDimensions['family']; width: number }) => void;
+let doorProbe: DoorProbe | null = null;
+export function setDoorProbe(probe: DoorProbe | null): void { doorProbe = probe; }
+
 function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
   d: DoorDimensions;
   origin: Pt; along: Pt; wallHeight: number;
@@ -860,9 +894,16 @@ function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
   const v0 = d.threshold / wallHeight;
   const v1 = (d.threshold + d.height) / wallHeight;
   if (v1 > 1) return null;            // taller than the wall it is on: draw nothing rather than overflow
+  // On a tile's centre (Plan 122D): where the door's middle falls along the
+  // wall, moved to the nearest tile's middle, and on a seam to the tile past
+  // it (the one walkRoutes.ts's entrancesOf opens an even wall onto). The
+  // wall's foot is on the ground, so its ends go back to the grid; the
+  // door stays inside the wall.
+  const uc = snappedDoorCentre(origin, along, side, dw);
+  doorProbe?.({ origin: facePoint(origin, along, 0, uc - 0.5, 0), along: facePoint(origin, along, 0, uc + 0.5, 0), side, family: d.family, width: dw * span });
   const h = v1 - v0;
-  const u0 = 0.5 - dw / 2;
-  const u1 = 0.5 + dw / 2;
+  const u0 = uc - dw / 2;
+  const u1 = uc + dw / 2;
   const at = (u: number, v: number) => facePoint(origin, along, wallHeight, u, v);
   const quad = (a: number, b: number, c: number, e: number) =>
     polyPoints([at(a, c), at(b, c), at(b, e), at(a, e)]);
@@ -872,7 +913,7 @@ function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
   const reveal = dw * 0.08;         // how far the leaves sit inside the opening
   const bar = h * 0.045;            // the transom bar itself
   // Open, each leaf is seen edge-on against its hinge: a sliver.
-  const swung = (0.5 - mull - (u0 + reveal)) * 0.22;
+  const swung = (uc - mull - (u0 + reveal)) * 0.22;
   const openLeaves = (
     <>
       <polygon className="iso-door-leaf-open" points={quad(u0 + reveal, u0 + reveal + swung, v0 + h * 0.02, transom - bar)} />
@@ -892,8 +933,8 @@ function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
       <g className="iso-door-way" data-door={side}>
         <polygon className="iso-door-surround" points={arch(u0 - SURROUND, u1 + SURROUND, v0, v1 + 0.012)} />
         <polygon className="iso-door" points={arch(u0, u1, v0, v1)} />
-        <polygon className="iso-door-leaf" points={quad(u0 + reveal, 0.5 - mull, v0 + h * 0.02, transom - bar)} />
-        <polygon className="iso-door-leaf" points={quad(0.5 + mull, u1 - reveal, v0 + h * 0.02, transom - bar)} />
+        <polygon className="iso-door-leaf" points={quad(u0 + reveal, uc - mull, v0 + h * 0.02, transom - bar)} />
+        <polygon className="iso-door-leaf" points={quad(uc + mull, u1 - reveal, v0 + h * 0.02, transom - bar)} />
         {openLeaves}
         <polygon className="iso-door-bar" points={quad(u0, u1, transom - bar, transom)} />
         <polygon className="iso-door-glass" points={fan} />
@@ -908,8 +949,8 @@ function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
       <polygon className="iso-door" points={quad(u0, u1, v0, v1)} />
 
       {/* Two leaves either side of the mull. */}
-      <polygon className="iso-door-leaf" points={quad(u0 + reveal, 0.5 - mull, v0 + h * 0.02, transom - bar)} />
-      <polygon className="iso-door-leaf" points={quad(0.5 + mull, u1 - reveal, v0 + h * 0.02, transom - bar)} />
+      <polygon className="iso-door-leaf" points={quad(u0 + reveal, uc - mull, v0 + h * 0.02, transom - bar)} />
+      <polygon className="iso-door-leaf" points={quad(uc + mull, u1 - reveal, v0 + h * 0.02, transom - bar)} />
       {openLeaves}
 
       {/* The transom bar, and the fanlight over it. */}
@@ -960,6 +1001,9 @@ function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }:
   const stepStone = stone.trim === 'none' ? stone.towerStone : stone.trim;
   const halfW = Math.min(d.widthTiles, span * 0.6) / 2 + STEP_OVERHANG;
   const rise = d.threshold / d.treads;
+  // Before the door, on the tile its middle was moved to (Plan 122D).
+  if (outRow !== 0) centreCol = snapOnGrid(centreCol);
+  else centreRow = snapOnGrid(centreRow);
   const out: React.JSX.Element[] = [];
   for (let i = d.treads - 1; i >= 0; i--) {
     const { col, row, w, h } = treadBox(d.treads, i, centreCol, centreRow, outCol, outRow, halfW);
@@ -8513,7 +8557,7 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   const trimStone = trim ? stone.trim : stone.towerStone;
   const parts = partsFor(vernacular);
   const door = doorOf(t);
-  const hall = plan.hall; const kitchen = plan.kitchen!; const back = plan.back!;
+  const hall = plan.hall; const kitchen = plan.kitchen!; const back = plan.back!; const buttery = plan.buttery!;
   const { alongW } = plan;
   const KH = H0 * REFECTORY_KITCHEN_EAVES; const BH = H0 * REFECTORY_BACK_EAVES;
   const pitched = spec.roof !== 'flat';
@@ -8679,7 +8723,6 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
           );
         })}
         {!frontis && doorway(hall, plan.front, H)}
-        {doorway(hall, freeEnd, H)}
         {parts.brackets && pitched && faces.map((face) => (
           <EavesBrackets key={`k${face.dir}`} origin={face.o} along={face.a} wallHeight={H} span={face.span} top={H} stone={stone} />
         ))}
@@ -8769,8 +8812,10 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
     );
   };
 
-  // The kitchen: a lower block with its tall flues, and a service door.
-  const kitchenArt = () => {
+  // The kitchen: a lower block with its tall flues, and a service door. The
+  // buttery at the other end (Plan 122D) is the same block without them,
+  // with the free end's door.
+  const kitchenArt = (kitchen: ChapelBox = plan.kitchen!, isKitchen = true) => {
     const f = boxFaces(kitchen.col, kitchen.row, kitchen.w, kitchen.h, 0, KH);
     const faces = chapelFaces(f);
     const kAlongW = kitchen.w >= kitchen.h;
@@ -8788,6 +8833,7 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
         return { cc: kitchen.col + kitchen.w * u, cr: kitchen.row + kitchen.h * v, foot: KH + rise * Math.min(1, du / inset, dv / inset) };
       })
       : [0.3, 0.5, 0.7].map((u) => ({ ...along(u), foot: KH }));
+    if (!isKitchen) stacks.length = 0;
     const service = doorDimensions('service');
     return (
       <>
@@ -8802,7 +8848,8 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
         {faces.map((face) => (
           <g key={`w${face.dir}`}>
             {windows(face.o, face.a, KH, face.span, [KH - up(1.6) - WINDOW_HEIGHT], windowWidthOf(t), `kw${face.dir}`, glazed ? 'ribbon' : shape, stone.glass)}
-            {face.dir === plan.service && <Door d={service} origin={face.o} along={face.a} wallHeight={KH} span={face.span} side={face.dir} />}
+            {isKitchen && face.dir === plan.service && <Door d={service} origin={face.o} along={face.a} wallHeight={KH} span={face.span} side={face.dir} />}
+            {!isKitchen && face.dir === freeEnd && door && <Door d={plainDoorOf(door, false)!} origin={face.o} along={face.a} wallHeight={KH} span={face.span} side={face.dir} shape={doorShape} />}
           </g>
         ))}
         {pitched
@@ -8869,9 +8916,9 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   };
 
   // Buttresses at the front's bay lines, stepping back once (as the chapel's).
-  type Part = DepthBox & { part: 'hall' | 'kitchen' | 'back' | 'arcade' | 'buttress' | 'slab' | 'frontis'; lower?: DepthBox; upper?: DepthBox };
+  type Part = DepthBox & { part: 'hall' | 'kitchen' | 'buttery' | 'back' | 'arcade' | 'buttress' | 'slab' | 'frontis'; lower?: DepthBox; upper?: DepthBox };
   const items: Part[] = [
-    { ...hall, part: 'hall' }, { ...kitchen, part: 'kitchen' },
+    { ...hall, part: 'hall' }, { ...kitchen, part: 'kitchen' }, { ...buttery, part: 'buttery' },
   ];
   if (back.w > 0 && back.h > 0) items.push({ ...back, part: 'back' });
   if (spec.buttresses && isSeen(plan.front)) {
@@ -8892,7 +8939,8 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   const taken = spec.arcade ? ARCADE_DEPTH : oversail > 0 ? oversail + across(1.5) : spec.buttresses ? across(0.85) : frontis ? across(0.9) : 0;
   // The terrace before the front; with the front turned away it lies
   // behind the hall, so its tables are drawn first.
-  const furniture = <TerraceFurniture plan={plan} doorAt={hallLen / 2} free={T - taken} cafe={false} plain={vernacular === 'modern'} />;
+  // The door is the front's middle (the hall is centred on it, Plan 122D).
+  const furniture = <TerraceFurniture plan={plan} doorAt={(alongW ? plan.terrace.w : plan.terrace.h) / 2} free={T - taken} cafe={false} plain={vernacular === 'modern'} />;
   return (
     <>
       <TerracePaving plan={plan} />
@@ -8901,6 +8949,7 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
         switch (it.part) {
           case 'hall': return <g key="hall">{hallArt()}</g>;
           case 'kitchen': return <g key="kitchen">{kitchenArt()}</g>;
+          case 'buttery': return <g key="buttery">{kitchenArt(buttery, false)}</g>;
           case 'back': return <g key="back">{backArt()}</g>;
           case 'slab': return <g key="slab">{slabArt()}</g>;
           case 'frontis': return <g key="frontis">{frontisArt()}</g>;
@@ -9957,6 +10006,11 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     const wingFront = sides.front;
     const wingWall = wallOf(wf, wingFront);
     const wingSpan = wallSpan(wing.w, wing.h, wingFront);
+    // The entrance's stretch of the wing's front, centred on the front's
+    // middle (Plan 122D).
+    const entry = localBox(p, fw / 2 - 1.2, 0, fw / 2 + 1.2, fd * (1 - SLAB_ROW_FRACTION));
+    const entryWall = wallOf(boxFaces(entry.col, entry.row, entry.w, entry.h, 0, wingH), wingFront);
+    const entrySpan = wallSpan(entry.w, entry.h, wingFront);
     const crossDir = [sides.right, sides.left].find(isSeen);
     const crossWall = crossDir ? wallOf(wf, crossDir) : null;
     // The slab's own ways in: a plain door on each side, the service door
@@ -10030,11 +10084,13 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           />
         )}
 
-        {/* The way in, under the glazed front. */}
-        {door && wingWall.visible && <Door d={door} origin={wingWall.origin} along={wingWall.along} wallHeight={wingH} span={wingSpan} side={wingFront} />}
+        {/* The way in, under the glazed front: on the front's middle tile
+            (Plan 122D), where the walkers come and go, not the wing's
+            middle, which sat two tiles to the left of it. */}
+        {door && wingWall.visible && <Door d={door} origin={entryWall.origin} along={entryWall.along} wallHeight={wingH} span={entrySpan} side={wingFront} />}
         {door && wingWall.visible && (
           <Canopy stone={stone}
-            d={door} col={wing.col} row={wing.row} w={wing.w} h={wing.h}
+            d={door} col={entry.col} row={entry.row} w={entry.w} h={entry.h}
             outward={wingFront} wallHeight={wingH}
           />
         )}

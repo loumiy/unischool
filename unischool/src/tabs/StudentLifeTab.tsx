@@ -77,7 +77,7 @@ function StudentLifeEffect({ s }: { s: GameState }) {
   const share = (contribution: number) => signed(satisfactionShown(effect.target) - satisfactionShown(effect.target - contribution));
 
   return (
-    <section className="panel">
+    <section className="panel" data-walk="students-effect">
       <div className="panel-head">
         <h2>Effect on satisfaction</h2>
         <HelpHint

@@ -83,7 +83,7 @@ function showMe(s: GameState, help: Lever, onGo: (go: Door, hallId?: string, pro
   );
 }
 
-export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, onView }: {
+export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, finished = false, onView }: {
   s: GameState;
   // The NEXT line (nextStep.ts): what waits besides the chapter.
   waiting: NextStep | null;
@@ -93,6 +93,10 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
   // The Guide (PR G): a chapter met before, read again in place of the
   // current one; null for the current. `onView` turns the page.
   view?: string | null;
+  // `view` is a chapter just finished in the open tab (Plan 122E): shown
+  // marked done, with no way back to the next, which waits for the tab to
+  // close.
+  finished?: boolean;
   onView?: (id: string | null) => void;
 }) {
   const current = currentChapter(s);
@@ -120,7 +124,10 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
 
   return (
     <div className="objectives">
-      {reading && onView && (
+      {reading && finished && (
+        <p className="objectives-finished"><span className="objectives-mark" aria-hidden="true">✓</span> {W.chapterDone(chapterNumber(reading))}</p>
+      )}
+      {reading && !finished && onView && (
         <button type="button" className="objectives-back" onClick={() => onView(null)}>← {W.back}</button>
       )}
       {chapter && copy ? (

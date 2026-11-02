@@ -14,7 +14,7 @@ import { repriceCatalogue, unlockAvailable } from '../systems/techtree/techSyste
 import { refillOffers } from '../systems/techtree/programOffers';
 import { initialDorms } from '../data/campusData';
 import { seedTrees } from '../data/treeData';
-import { layDrive } from './drive';
+import { layDrive, laySidewalk } from './drive';
 import { initialFacilities } from '../data/facilitiesData';
 import { initialRivals } from '../data/rivalData';
 import { initialCandidatePool } from '../data/facultyData';
@@ -503,8 +503,11 @@ function foundState(
     guidance: { opened: {}, done: {}, met: [], marked: [] },
   };
 
-  // A headless founding's hall stands from the start, and so does its drive
-  // to the road (Plan 115B); a guided one's is laid when the hall is sited.
+  // The walk along the road, for every founding (Plan 122J). A headless
+  // founding's hall stands from the start, and so does its drive to the road
+  // (Plan 115B); a guided founding's player draws theirs (the walkthrough's
+  // 'path' step).
+  laySidewalk(state);
   if (!guided) layDrive(state);
   appointFoundingFaculty(state);
   holdBackUnreached(state);

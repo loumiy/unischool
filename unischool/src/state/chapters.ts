@@ -1,4 +1,4 @@
-import type { Buildable, GameState, GuidanceState, Placement, TileCoord, VarsityTeam } from './types';
+import type { Buildable, GameState, GuidanceState, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, foundSchoolHelp, labRisingHelp, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
@@ -13,10 +13,12 @@ import { GRADE_B } from '../data/courseQuality';
 import { openChairs, venueForCategory } from '../data/studentLifeData';
 import { closestSchool, hallDisplayName } from '../systems/techtree/schools';
 import { schoolsFounded } from '../systems/guidance/establish';
-import { foundersHallUnsited, laterCourseStarted } from './opening';
+import { foundersHallUnsited, foundersReachRoad, laterCourseStarted } from './opening';
 import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
 import { placesComing } from '../systems/guidance/seating';
-import { pathTileKey, placementTiles } from './campusMap';
+import { pathTileKey } from './campusMap';
+import type { WalkTab } from '../data/tabWalkData';
+import { besideTiles, pathsFromFounders } from './drive';
 
 // THE OBJECTIVES (Plan 106). The first five years are taught as chapters,
 // one season's lesson each, in the manner of Transport Fever's missions:
@@ -110,6 +112,9 @@ export const CHAPTERS: readonly Chapter[] = [
     earliest: week(1, 1),
     objectives: [
       { id: 'site-founders-hall', progress: (s) => !foundersHallUnsited(s) },
+      // The path to the road (Plan 122J): the walkthrough's step, and the
+      // drawer's ask in a run that skipped it.
+      { id: 'path-to-road', progress: foundersReachRoad },
       { id: 'found-first-program', progress: (s) => housedPrograms(s).length > 0 },
     ],
   },
@@ -186,9 +191,13 @@ export const CHAPTERS: readonly Chapter[] = [
     // The first summer (week 52): the chapter says what the price and the
     // admit rate do before the beat asks, and no warning comes at the
     // choice (§7.5: a careless admit rate is still punished). Done when the
-    // summer has closed.
+    // summer has closed. It opens when the summer does, the clock stopped
+    // (Plan 122F, from Ginger's playtest: a warning at week 46 that the
+    // summer was coming confused more than it prepared). A run that reaches
+    // it after its summer has closed opens it met.
     id: 'first-summer',
-    earliest: week(1, 46),
+    earliest: week(1, WEEKS_PER_YEAR),
+    opensWhen: (s) => s.pendingInterrupt?.type === 'summer' || s.history.length >= 1,
     objectives: [
       { id: 'set-first-class', progress: (s) => s.history.length >= 1 },
     ],
@@ -374,49 +383,32 @@ export const CHAPTERS: readonly Chapter[] = [
   },
 ];
 
-// The tabs an objective asks to be opened, marked by the shell when they
-// are (App.tsx), since an open tab is the shell's, not the college's.
+// The tabs an objective asks to be walked through, marked by the shell
+// (App.tsx), since an open tab is the shell's, not the college's. Marked
+// when the tab was opened until Plan 122G; since then when its walk is
+// finished or skipped (components/TabWalk.tsx), and the objectives keep
+// their ids, so a save that met one keeps it.
 export const tabMark = (tab: string) => `tab:${tab}`;
+// Which chapter's objective each walk meets.
+export const WALK_ASKS: Record<WalkTab, { chapter: ChapterId; objective: string }> = {
+  treasury: { chapter: 'paying-for-it', objective: 'open-treasury' },
+  students: { chapter: 'standing', objective: 'open-students' },
+  history: { chapter: 'standing', objective: 'open-history' },
+  faculty: { chapter: 'a-faculty', objective: 'open-faculty' },
+};
+export const isWalkTab = (tab: string): tab is WalkTab => tab in WALK_ASKS;
+// Whether the open tab's walk is asked for: its chapter open and its
+// objective not yet met.
+export function walkAsked(s: GameState, tab: WalkTab): boolean {
+  const ask = WALK_ASKS[tab];
+  return chapterOpen(s, ask.chapter) && !objectiveMet(s, ask.objective) && !marked(s, tabMark(tab));
+}
 export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history', 'faculty']);
 
-// The paths joined to Founders Hall (Plan 115D), as tile keys: every path
-// tile reached from one beside the hall, a step at a time along the paths,
-// diagonals included (the draw tool lays a diagonal run as one band,
-// pathways.tsx). The founding drive is among them (state/drive.ts), and a
-// path that joins it counts. A path under a building joins nothing.
-export function pathsFromFounders(s: GameState): Set<string> {
-  const hall = s.placements[FOUNDERS_HALL_ID];
-  const joined = new Set<string>();
-  if (!hall) return joined;
-  const covered = new Set(Object.values(s.placements).flatMap((p) => placementTiles(p).map(pathTileKey)));
-  const paved = (key: string) => key in s.pathways && !covered.has(key) && !joined.has(key);
-  const queue = besideTiles(hall).filter((t) => paved(pathTileKey(t)));
-  for (const t of queue) joined.add(pathTileKey(t));
-  for (let q = 0; q < queue.length; q++) {
-    const { row, col } = queue[q];
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const next = { row: row + dr, col: col + dc };
-        const key = pathTileKey(next);
-        if (!paved(key)) continue;
-        joined.add(key);
-        queue.push(next);
-      }
-    }
-  }
-  return joined;
-}
-
-// The tiles round a placement's footprint, corners included.
-export function besideTiles(p: Placement): TileCoord[] {
-  const tiles: TileCoord[] = [];
-  for (let row = p.row - 1; row <= p.row + p.h; row++) {
-    for (let col = p.col - 1; col <= p.col + p.w; col++) {
-      if (row < p.row || row >= p.row + p.h || col < p.col || col >= p.col + p.w) tiles.push({ row, col });
-    }
-  }
-  return tiles;
-}
+// The paths joined to Founders Hall and the tiles round a footprint live
+// in state/drive.ts since Plan 122J (the walkthrough's path step reads
+// them too); re-exported here for the harness.
+export { besideTiles, pathsFromFounders };
 
 // A sited residence hall has a path beside it that joins Founders Hall.
 export function pathJoinsResidence(s: GameState): boolean {
@@ -475,6 +467,9 @@ export function ringedBuilding(s: GameState): Buildable | null {
 // With nothing ringed the menu opens on Grounds (BuildPopup.tsx's
 // initialBuildTab), where the tile is.
 export function ringedTool(s: GameState): 'paths' | null {
+  // The walkthrough's path step (Plan 122J), and the founding's objective
+  // in a run that skipped it.
+  if (!foundersHallUnsited(s) && !foundersReachRoad(s) && (s.events.opening.stage === 'path' || currentChapter(s)?.id === 'founding')) return 'paths';
   if (currentChapter(s)?.id !== 'somewhere-to-sleep' || objectiveMet(s, PATH_OBJECTIVE)) return null;
   return sitedAny(s, isDorm) && ringedBuilding(s) === null ? 'paths' : null;
 }

@@ -25,7 +25,7 @@ import { reducer } from '../src/engine/reducer';
 import { placesComing } from '../src/systems/guidance/seating';
 import { isUndergraduateCourse } from '../src/systems/techtree/techSystem';
 import { isHoused } from '../src/systems/techtree/programOffers';
-import { CHAPTERS, currentChapter, openSideChapters, PATH_OBJECTIVE, pathJoinsResidence, ringedTool, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged } from '../src/state/chapters';
+import { CHAPTERS, currentChapter, openSideChapters, PATH_OBJECTIVE, pathJoinsResidence, ringedTool, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged, walkAsked } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
 import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
@@ -156,7 +156,7 @@ const looked = (s: GameState) => {
   const faculty = objectiveRows(s, CHAPTERS.find((c) => c.id === 'a-faculty')!);
   assert(faculty[0].id === 'open-faculty' && !faculty[0].optional, 'A faculty opens with the Faculty tab, required');
   assert(faculty.find((r) => r.id === 'post-a-search')!.optional, 'and posting a search is optional');
-  assert(MARKED_TABS.has('faculty'), 'opening the Faculty tab is marked');
+  assert(MARKED_TABS.has('faculty'), 'walking through the Faculty tab is marked');
 }
 
 // ---- Seats for everyone counts what the NEXT line counts (Plan 114E, C3-5) ----
@@ -256,13 +256,21 @@ const looked = (s: GameState) => {
   s.clock.week = 30;
   settleChapters(s);
   assert(currentChapter(s)?.id === 'paying-for-it', 'in week 30 it is the chapter');
+  assert(walkAsked(s, 'treasury') && !walkAsked(s, 'students') && !walkAsked(s, 'faculty'), "the Treasury's walk is asked for while its chapter is open, and no other");
   s = reducer(s, { type: 'MARK_GUIDANCE', mark: tabMark('treasury') });
-  assert(done(s, 'paying-for-it'), 'the Treasury opened ends it, a surplus or not');
-  assert(MARKED_TABS.has('treasury'), 'the shell marks the Treasury when it opens');
-  assert(!opened(s, 'first-summer'), 'The first summer waits for week 46');
+  assert(done(s, 'paying-for-it'), 'the Treasury walked through ends it, a surplus or not');
+  assert(!walkAsked(s, 'treasury'), 'and its walk is not asked again');
+  assert(MARKED_TABS.has('treasury'), 'the shell marks the Treasury when its walk ends (Plan 122G)');
   s.clock.week = 46;
   settleChapters(s);
-  assert(currentChapter(s)?.id === 'first-summer', 'in week 46 it is the chapter');
+  assert(!opened(s, 'first-summer'), 'The first summer waits for the summer (Plan 122F), not week 46');
+  s.clock.week = 52;
+  settleChapters(s);
+  assert(!opened(s, 'first-summer'), 'nor for week 52 alone');
+  s.pendingInterrupt = { type: 'summer' } as GameState['pendingInterrupt'];
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'first-summer', 'the summer waiting, it is the chapter');
+  s.pendingInterrupt = null;
   s.history.push({ ...(s.history[0] ?? {}) } as GameState['history'][number]);
   settleChapters(s);
   assert(done(s, 'first-summer'), 'the summer closed ends it');

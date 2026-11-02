@@ -89,7 +89,7 @@ function PrestigeCharts({ s }: { s: GameState }) {
   const history = s.history;
   const years = history.map((h) => h.year);
   return (
-    <section className="panel">
+    <section className="panel" data-walk="history-charts">
       <h2>By year</h2>
       <div className="history-charts">
         <HistoryChart

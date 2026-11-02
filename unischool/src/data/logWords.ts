@@ -58,7 +58,7 @@ export const UPSET_LEAD = {
 } as const;
 
 export const COMPLETION_LINES = {
-  building: ['Built: {name}.', '{name} is finished, and open.', 'The builders are out of {name}.'],
+  building: ['Built: {name}.', '{name} is finished, and open.', '{name} is complete.'],
   course: ['Developed: {name}.', '{name} is written and on the schedule.', 'A new course: {name}.'],
   program: ['Founded {name} in {hall}.', '{name} has a home in {hall}.', '{hall} takes in a new program: {name}.'],
 } as const;
