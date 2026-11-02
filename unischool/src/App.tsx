@@ -405,9 +405,6 @@ export default function App() {
   function setPathTool(mode: CampusTool) {
     setPathToolState((cur) => (cur === mode ? null : mode));
     setPlacingIdState(null);
-    // The walkthrough's path step (Plan 122J): the menu folds away once
-    // Paths is in hand, tool kept, so the ground down to the road is seen.
-    if (mode === 'draw' && s.events.opening.stage === 'path') setBuildOpenState(false);
   }
 
   // Closing the build popup drops its path tool, but not a picked-up
@@ -495,8 +492,6 @@ export default function App() {
     if (prev === stage) return;
     actedStage.current = stage;
     if (stage === 'site-hall') setBuildOpen(true);
-    // The path to the road (Plan 122J): the build menu, on Grounds.
-    else if (stage === 'path') setBuildOpen(true);
     // Founding happens in the hall's panel, so that is what opens.
     else if (stage === 'found') {
       closeBuild();

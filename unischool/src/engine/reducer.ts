@@ -379,7 +379,6 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'ADD_PATH_TILE': {
       if (isLand(action.tile.row, action.tile.col)) s.pathways[pathTileKey(action.tile)] = pavingValue(action.surface);
-      settleOpening(s); // the walkthrough's path step ends on a path to the road (Plan 122J)
       return s;
     }
 
@@ -392,7 +391,6 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       for (const tile of action.remove) delete s.pathways[pathTileKey(tile)];
       for (const { tile, paving } of action.restore ?? []) if (isLand(tile.row, tile.col)) s.pathways[pathTileKey(tile)] = paving;
       for (const tile of action.add) if (isLand(tile.row, tile.col)) s.pathways[pathTileKey(tile)] = pavingValue(action.surface);
-      settleOpening(s); // the walkthrough's path step (Plan 122J)
       return s;
     }
 

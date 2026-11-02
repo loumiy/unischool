@@ -115,10 +115,9 @@ and most of them are fixed.
   their front doors could sit in the middle, and the Medical Center's
   entrance moved to the middle of its front. No building changed size,
   so your campus stays where it is.
-- **You draw the path to the road.** A new game starts with a walk along
-  the road, and the walkthrough now asks you to draw Founders Hall's
-  path to it yourself, instead of the game laying it for you. It's the
-  path tool taught on day one, where you'll use it all game.
+- **A walk along the road.** A new game starts with a paved walk the
+  length of the road. The game no longer lays a path from Founders Hall
+  for you, so the paths are yours to lay wherever you like.
 - **Walks through the tabs.** A chapter would send you to the Students
   tab, the objective would tick the moment it opened, and you were left
   with a screen full of information and nothing pointing at any of it.

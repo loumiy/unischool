@@ -114,20 +114,11 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     body: () => 'Buildings come from the build menu at the bottom of the screen. Click Founders Hall to pick it up. Then click anywhere on the map to place it.',
     door: 'build',
   },
-  // The path to the road (Plan 122J, the owner): the game no longer lays
-  // Founders Hall's drive, and the walk along the road is there from the
-  // founding for it to join.
-  path: {
-    eyebrow: 'Step two',
-    title: 'A path to the road',
-    body: () => 'Students arrive from the road, so Founders Hall needs a path to it. In the build menu, pick Paths from Grounds. Then drag from the front door of Founders Hall down to the walk beside the road. Hold Shift for a straight line. Paths are free.',
-    door: 'build',
-  },
   // Choosing the first program (Plan 107A): any of the three on offer, each
   // with its professor already appointed. No names and no favourite; the
   // tile and the button carry the cost.
   found: {
-    eyebrow: 'Step three',
+    eyebrow: 'Step two',
     title: 'Choose the first program',
     body: (s) => {
       const n = teachableOffers(s).length;

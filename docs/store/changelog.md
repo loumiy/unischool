@@ -55,11 +55,9 @@ Ginger Brooke's playtest (122).*
   to five steps, ringing one section at a time with a line or two about
   it. Back, Next and Skip are on the card, and skipping counts. A tab's
   Guide button plays its walk again. (122G)
-- **You draw the path to the road.** A new game opens with a paved walk
-  along the road, and the game no longer lays Founders Hall's path for
-  you. Step two of the walkthrough asks you to draw one from Founders
-  Hall to the walk, with the Paths tool ringed. If you skipped the
-  walkthrough, the objectives ask for it instead. (122J)
+- **A walk along the road.** A new game opens with a paved walk the
+  length of the road. The game no longer lays a path from Founders Hall
+  to the road: lay your paths where you like. (122J)
 - **Research prizes by field.** Each field has its own three prizes, from
   a society's medal for a small project to an international honor for a
   Landmark Program. The film, broadcast and festival awards are gone.

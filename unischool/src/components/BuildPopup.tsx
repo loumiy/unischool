@@ -280,8 +280,6 @@ export function initialBuildTab(s: GameState, target?: string | null): string {
 function walkBuildTab(s: GameState): string | undefined {
   const t = ringedBuilding(s);
   if (t) return buildTabOf(s, t.id);
-  // A path asked for (Plan 122J): Grounds, where the Paths tool is.
-  if (ringedTool(s) === 'paths') return TOOLS_SECTION_ID;
   return projectsAsked(s) ? buildSections(s).find((section) => section.id === PROJECTS_SECTION_ID)?.id : undefined;
 }
 const PROJECTS_SECTION_ID = 'project';

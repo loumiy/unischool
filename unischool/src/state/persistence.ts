@@ -1708,6 +1708,9 @@ export function readSave(raw: string): { state: GameState; savedAt: number | nul
 function sanitizeOpening(state: GameState): void {
   const opening = state.events?.opening as { stage: string } | undefined;
   if (opening?.stage === 'appoint') opening.stage = 'found';
+  // The path step (Plan 122J) went the same day it came: a walk held on it
+  // goes on to the program's step.
+  if (opening?.stage === 'path') opening.stage = 'found';
   if (opening && !LIVE_STAGES.has(opening.stage)) opening.stage = 'play';
   // And the crowding accumulators, which went with Plan 107E.
   const students = state.students as unknown as Record<string, unknown> | undefined;

@@ -1,8 +1,7 @@
 import type { GameState, OpeningStage } from './types';
 import { FOUNDERS_HALL_ID, programs } from '../data/techData';
 import { housedPrograms, NEEDS_LETTER_ID } from '../data/openingData';
-import { awaitsSite, parsePathTileKey } from './campusMap';
-import { pathsFromFounders, SIDEWALK_ROW } from './drive';
+import { awaitsSite } from './campusMap';
 
 // The opening walkthrough: the first clicks of a new school, with the clock
 // held until each step is actually done. The stage lives in state
@@ -19,9 +18,9 @@ import { pathsFromFounders, SIDEWALK_ROW } from './drive';
 //              asks first (Plan 104C, components/OpeningCoach.tsx).
 //   site-hall  Founders Hall is not pre-placed in a guided founding; done
 //              when the hall stands on the map (siting is free).
-//   path       a path from Founders Hall to the walk along the road (Plan
-//              122J, the owner); done when one joins them (paths are free).
-//              The game no longer lays the drive for a guided founding.
+//   (path      Plan 122J's step, a path to the road, went the same day at
+//              the owner's word: players lay paths as they see fit. A walk
+//              held on it goes on to 'found', here and on load.)
 //   found      choose any of the three programs on offer and found it into
 //              Founders Hall; done when a program is housed. Its entry
 //              course goes to the committee. (Plan 104L's separate
@@ -59,16 +58,6 @@ export function foundersHallUnsited(s: GameState): boolean {
   return hall !== undefined && awaitsSite(s, hall);
 }
 
-// A path joins Founders Hall to the walk along the road (Plan 122J): some
-// path tile joined to the hall lies on the walk's row. The walk itself
-// counts once a path reaches it.
-export function foundersReachRoad(s: GameState): boolean {
-  for (const key of pathsFromFounders(s)) {
-    if (parsePathTileKey(key)?.row === SIDEWALK_ROW) return true;
-  }
-  return false;
-}
-
 // Whether the walk holds the clock: gates the reducer's TICK and useGame's
 // sampler, like a pending interrupt. A skipped walk still holds it while
 // Founders Hall is unsited: nothing can be taught before it stands.
@@ -85,7 +74,6 @@ export type QuietDoor = 'build' | 'campus';
 export function openingQuietDoor(s: GameState): QuietDoor | null {
   switch (s.events.opening.stage) {
     case 'site-hall': return 'build';
-    case 'path': return 'build';
     case 'found': return 'campus';
     default: return null;
   }
@@ -108,17 +96,16 @@ export function laterCourseStarted(s: GameState): boolean {
 function stepDone(s: GameState, stage: OpeningStage): boolean {
   switch (stage) {
     case 'site-hall': return !foundersHallUnsited(s);
-    case 'path': return foundersReachRoad(s);
     case 'found': return housedPrograms(s).length > 0;
     default: return false;
   }
 }
 
-const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = { 'site-hall': 'path', path: 'found', found: 'play' };
+const NEXT_STAGE: Partial<Record<OpeningStage, OpeningStage>> = { 'site-hall': 'found', found: 'play' };
 // The stages a walk can stand on today. Any other is a retired step
 // (Plans 103 and 107A), and a run on one goes on as `play`: here on a
 // tick, and in persistence.ts's sanitizeOpening on load.
-export const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome', 'site-hall', 'path', 'found', 'play']);
+export const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome', 'site-hall', 'found', 'play']);
 
 // The steps that end when the thing was done, called after every action
 // that could do one. Moves on through every step already done. A walk
@@ -126,6 +113,7 @@ export const LIVE_STAGES: ReadonlySet<string> = new Set<OpeningStage>(['welcome'
 // chapter "Somewhere to sleep" asks for the same buildings (Plan 106 PR C).
 export function settleOpening(s: GameState): void {
   const o = s.events.opening;
+  if ((o.stage as string) === 'path') o.stage = 'found';
   if (!LIVE_STAGES.has(o.stage)) o.stage = 'play';
   const from = o.stage;
   for (let stage = o.stage; NEXT_STAGE[stage] !== undefined && stepDone(s, stage); stage = o.stage) {

@@ -301,8 +301,8 @@ console.log('founding tests');
   for (const facing of [0, 1, 2, 3] as const) {
     const spot = centredPlacement(footprintOf(node));
     const s = reducer(unsited, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing });
-    assert(FOUNDERS_HALL_ID in s.placements && drive(s).length === 0 && !joined(s), `a guided siting facing ${facing} lays no drive: the player draws it (Plan 122J)`);
-    assert(s.events.opening.stage === 'path', `and the walk asks for the path (facing ${facing})`);
+    assert(FOUNDERS_HALL_ID in s.placements && drive(s).length === 0 && !joined(s), `a guided siting facing ${facing} lays no drive: the player lays paths as they see fit (Plan 122J)`);
+    assert(s.events.opening.stage === 'found', `and the walk goes on to the program (facing ${facing})`);
   }
 
   // Siting it again (a sandbox's move) lays no second drive.
