@@ -1218,7 +1218,7 @@ function useSteadyValue<T>(value: T, ms: number): T {
 
 export default function CampusMap({
   s: live, resting = false, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait,
+  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait, startPitch, zoomScale,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -1259,6 +1259,13 @@ export default function CampusMap({
   // it and the walkers stop, so a week under a tab costs the map nothing.
   // It catches up the moment the tab closes.
   resting?: boolean;
+  // MOCKUP (TitleBackdrop.tsx): the tilt to open on, as a PITCHES index
+  // (the last is the plan view). Read once, at mount.
+  startPitch?: number;
+  // MOCKUP (TitleBackdrop.tsx): the opening view's zoom times this, and
+  // the floor on zooming out lowered as far, for a canvas larger than the
+  // screen whose edges are never seen.
+  zoomScale?: number;
 }) {
   // The state the map draws: today's, or while resting the last it showed.
   // Every memo keyed on the state then holds under a tab.
@@ -1295,7 +1302,7 @@ export default function CampusMap({
   // React state, unlike pan and zoom, because a turn changes every polygon.
   // Set on the projection here at the top of the render so everything below
   // draws at it. Not persisted.
-  const [camera, setCameraState] = useState<Camera>(DEFAULT_CAMERA);
+  const [camera, setCameraState] = useState<Camera>(() => startPitch === undefined ? DEFAULT_CAMERA : { ...DEFAULT_CAMERA, pitch: PITCHES[startPitch] });
   setCamera(camera);
   // The camera's moves, marked once each for the Looking around chapter
   // (state/chapters.ts). Through a ref, since the wheel and the keys bind
@@ -1325,7 +1332,7 @@ export default function CampusMap({
   // folded again, since zooming is done in runs.
   const [toolsOpen, setToolsOpen] = useState(false);
   // The camera is derived from these, so it only rests on a crisp view.
-  const stanceRef = useRef({ view: 0, pitch: DEFAULT_PITCH_INDEX });
+  const stanceRef = useRef({ view: 0, pitch: startPitch ?? DEFAULT_PITCH_INDEX });
   // Buildings that finished within the last COMPLETION_PULSE_MS. Derived by
   // diffing the previous developing set, so nothing enters GameState.
   const [justFinished, setJustFinished] = useState<readonly string[]>([]);
@@ -1546,7 +1553,8 @@ export default function CampusMap({
   // (Plan 81B): the canvas never shows past the ring's outer edge.
   function zoomFloor(): number {
     const size = canvasSizeRef.current;
-    return size ? Math.max(MIN_ZOOM, ringZoomFloor(size.width, size.height)) : MIN_ZOOM;
+    const floor = size ? Math.max(MIN_ZOOM, ringZoomFloor(size.width, size.height)) : MIN_ZOOM;
+    return zoomScale === undefined ? floor : Math.max(MIN_ZOOM, floor * Math.min(1, zoomScale));
   }
 
   function applyView(next: { x: number; y: number; zoom: number }) {
@@ -1725,7 +1733,13 @@ export default function CampusMap({
     const MIN_COVERAGE = 1.15;
     const coverage = (rect.height * MIN_COVERAGE) / MAP_HEIGHT;
     if (!parcelViewWanted(window.location.search)) {
-      return framedView(rect, placementsRef.current, Math.max(zoomFloor(), coverage));
+      const framed = framedView(rect, placementsRef.current, Math.max(zoomFloor(), coverage));
+      if (zoomScale === undefined) return framed;
+      // Out about the canvas's center, so the campus stays centred.
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const zoom = framed.zoom * zoomScale;
+      return { x: cx - ((cx - framed.x) / framed.zoom) * zoom, y: cy - ((cy - framed.y) / framed.zoom) * zoom, zoom };
     }
     const zoom = Math.max(DEFAULT_ZOOM, coverage);
     // Center on the world's real midpoint (the diamond starts at negative x).

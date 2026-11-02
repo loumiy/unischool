@@ -425,6 +425,73 @@ button, input, select, textarea { font-size: inherit; }
   .title-screen .title-tagline { margin-top: var(--space-6); font-size: var(--text-lg); }
   .title-screen .title-card { padding: var(--space-16) var(--space-24); }
 }
+/* MOCKUP (TitleScreen.tsx's ?title=): three titles without the painting. */
+/* 1 · The school's colours: flat primary, the mark and name in the
+   secondary, a scarf's stripes under the tagline. */
+.title-screen.title-v-colours { background: var(--school-primary); }
+.title-v-colours .title-head { color: var(--school-secondary); text-shadow: none; }
+.title-v-colours .logo-mark { color: var(--school-secondary); filter: none; }
+.title-v-colours .logo-name { color: var(--school-on-primary); }
+.title-v-colours .title-tagline { color: color-mix(in srgb, var(--school-on-primary) 82%, var(--school-primary)); font-weight: 500; }
+.title-scarf { width: min(460px, 80vw); height: 22px; margin: clamp(14px, 3vh, 28px) auto 0;
+  background: linear-gradient(180deg,
+    var(--school-secondary) 0 22%, var(--school-primary) 22% 39%, var(--school-on-primary) 39% 61%,
+    var(--school-primary) 61% 78%, var(--school-secondary) 78% 100%); }
+.title-v-colours .title-card { border-color: color-mix(in srgb, var(--school-primary) 55%, black); }
+
+/* 3 · Split: the mark on a panel of the school's colour at the left, the
+   menu on cream at the right, full height. A phone stacks them. */
+.title-screen.title-v-split { flex-direction: row; align-items: stretch; gap: 0; padding: 0; background: var(--cream); overflow: hidden; }
+.title-v-split .title-head { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: var(--space-24); background: var(--school-primary); color: var(--school-on-primary); text-shadow: none;
+  border-right: 3px solid var(--outline); }
+.title-v-split .logo-mark { width: clamp(120px, 16vw, 220px); color: var(--school-secondary); filter: none; }
+.title-v-split .logo-name { font-size: clamp(44px, 6.4vw, 104px); color: var(--school-on-primary); }
+.title-v-split .title-tagline { color: color-mix(in srgb, var(--school-on-primary) 82%, var(--school-primary)); font-weight: 500; }
+.title-v-split .title-card { flex: 0 0 min(460px, 42vw); width: auto; margin: 0; overflow-y: auto; border: 0; border-radius: 0;
+  box-shadow: none; background: var(--cream-hi); padding: clamp(20px, 5vh, 48px) var(--space-24); }
+@media (max-width: 720px) {
+  .title-screen.title-v-split { flex-direction: column; overflow-y: auto; }
+  .title-v-split .title-head { flex: 0 0 auto; padding: var(--space-24) var(--space-16); border-right: 0; border-bottom: 3px solid var(--outline); }
+  .title-v-split .logo { flex-direction: row; gap: var(--space-12); }
+  .title-v-split .logo-mark { width: 52px; }
+  .title-v-split .logo-name { font-size: 40px; }
+  .title-v-split .title-tagline { margin-top: var(--space-6); font-size: var(--text-md); }
+  .title-v-split .title-card { flex: 1 0 auto; padding: var(--space-16); }
+}
+
+/* 7 · Live: no picture; the map App.tsx already draws under the title
+   shows through, with the game's chrome hidden and a soft wash at the top
+   for the white name. */
+.title-screen.title-v-live { background:
+  radial-gradient(ellipse 55% 42% at 50% 14%, rgba(16, 32, 58, 0.62), rgba(16, 32, 58, 0) 100%),
+  linear-gradient(180deg, rgba(16, 32, 58, 0.35) 0%, rgba(16, 32, 58, 0) 45%); }
+:root:has(.title-backdrop) { --toolbar-height: 0px !important; --log-ticker-height: 0px !important; }
+body:has(.title-backdrop) :is(.pennant, .main-menu, .map-tools-toggle, .campus-map-zoom-controls, .log-ticker, .toolbar,
+  .toast, .objectives-popup, .hint-bar) { display: none !important; }
+/* The campus behind the title and the screens reached from it
+   (TitleBackdrop.tsx): a layer of its own over the game (the shell's
+   panels, menus and map stay under it) and under the front screens (60),
+   which trade their painting for a wash while it is up. */
+.title-backdrop { position: fixed; inset: 0; z-index: 55; }
+/* ?orbit: a square wide enough to cover the screen at any angle (the
+   screen's diagonal is under 1.42 of its longer side), turning once in four
+   minutes. The transform makes it the map's containing block, so the map's
+   position: fixed fills the square, not the screen. */
+.title-backdrop-orbit { inset: auto; left: 50%; top: 50%; width: 142vmax; height: 142vmax;
+  translate: -50% -50%; animation: title-orbit 240s linear infinite; }
+@keyframes title-orbit { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .title-backdrop-orbit { animation: none; } }
+/* The founding screen and the hall, settings and credits over it: the
+   wash the title has, so their white words and cards read on the map. */
+:root:has(.title-backdrop) :is(.startup, .front-art > .front-screen) {
+  background: linear-gradient(180deg, rgba(16, 32, 58, 0.45) 0%, rgba(16, 32, 58, 0.12) 40%, rgba(16, 32, 58, 0.12) 100%); }
+/* The founding screen is in the page's flow, not fixed as the others are:
+   lifted over the backdrop with them. */
+:root:has(.title-backdrop) .startup { position: relative; z-index: 60; }
+.title-v-live .title-head { text-shadow: 0 2px 16px rgba(10, 25, 50, 0.5); }
+.title-v-live .title-card { background: color-mix(in srgb, var(--cream-hi) 94%, transparent); backdrop-filter: blur(6px); }
+
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
   font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
