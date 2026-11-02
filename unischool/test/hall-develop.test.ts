@@ -28,7 +28,6 @@ import { ProgramTile } from '../src/components/BuildingInfoPanel';
 import { RowAction } from '../src/tabs/CurriculumTab';
 import { programById, type ProgramInfo } from '../src/data/techData';
 import { programProgress, programStanding } from '../src/systems/techtree/programProgress';
-import { facultyLoads } from '../src/systems/faculty/facultyAssignment';
 import { courseSlotsFree } from '../src/systems/techtree/techSystem';
 
 let checks = 0;
@@ -71,7 +70,7 @@ function curriculum(s: GameState, program: ProgramInfo) {
   const acted: Action[] = [];
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   const row = RowAction({
-    s, act: (a) => acted.push(a), program, progress: programProgress(s, program, lookup), lookup, loads: facultyLoads(s), onSelect: () => {}, compact: true,
+    s, act: (a) => acted.push(a), program, progress: programProgress(s, program, lookup), lookup, onSelect: () => {}, compact: true,
   });
   return { acted, row };
 }

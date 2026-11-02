@@ -18,7 +18,7 @@ import { hostedPrograms, isGraduateHost } from '../data/projectData';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
 import { CLAIM_AT, claimedSchool, dedicatedSchool, hallDisplayName, schoolHall } from '../systems/techtree/schools';
 import { GradeChip, InstructorOption, MarketInField, RowAction } from '../tabs/CurriculumTab';
-import { averageCourseQuality, facultyLoads } from '../systems/faculty/facultyAssignment';
+import { averageCourseQuality } from '../systems/faculty/facultyAssignment';
 import { schoolMark } from '../data/schoolPalette';
 import {
   canFoundProgram, canRelocateProgram, closeRefusal, courseSlotsFree, eligibleInstructors, relocationWeeks,
@@ -220,7 +220,6 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
   onOpenCurriculum?: (sectionKey: string) => void;
 }) {
   const mark = schoolMark(program.school);
-  const loads = facultyLoads(s);
   const avg = averageCourseQuality(s, program.courseIds);
   const progress = programProgress(s, program);
   const inTransit = transitWeeks(s, program.id);
@@ -261,7 +260,6 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
                 program={program}
                 progress={progress}
                 lookup={new Map(s.tech.map((t) => [t.id, t]))}
-                loads={loads}
                 onSelect={(id) => onOpenCurriculum?.(`course:${id}`)}
                 compact
                 showWorth={false}

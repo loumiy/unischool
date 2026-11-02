@@ -251,10 +251,11 @@ const walkToCourse = (name: string) => reducer(
   assert(s.events.opening.stage === 'welcome' && openingHoldsClock(s), 'a guided founding opens on the welcome with the clock held');
   assert(!(FOUNDERS_HALL_ID in s.placements), 'Founders Hall is not placed');
   assert(s.events.opening.read.includes(OPENING_LETTERS[0].id) && !s.events.opening.skipped, 'the first letter is counted read — the welcome is its content');
-  // The welcome welcomes (Plan 104L): the college, and the building it
-  // begins with; no list of tasks, no order to remember.
+  // The welcome welcomes (Plan 104L): the college by its full name (Plan
+  // 122A), and the building it begins with; no list of tasks, no order to
+  // remember.
   const welcome = OPENING_STEPS.welcome.body(s);
-  assert(welcome === 'Welcome to Walk. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there. A run lasts 50 years. At the end of Year 50 the board writes your Final Report, and you can keep playing after it.', `the welcome's words (${welcome})`);
+  assert(welcome === 'Welcome to Walk College. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there. A run lasts 50 years. At the end of Year 50 the board writes your Final Report, and you can keep playing after it.', `the welcome's words (${welcome})`);
   assert(nextStep(s) === null, 'the next-step line is silent while the walk holds the clock');
   const week = s.clock.week;
   s = reducer(s, { type: 'TICK' });

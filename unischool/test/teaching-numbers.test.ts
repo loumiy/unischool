@@ -34,7 +34,7 @@ import { ProgramTile } from '../src/components/BuildingInfoPanel';
 import { facultyMedian } from '../src/tabs/facultySort';
 import { programById } from '../src/data/techData';
 import { programProgress } from '../src/systems/techtree/programProgress';
-import { facultyLoads, instructorQuality, projectedQuality } from '../src/systems/faculty/facultyAssignment';
+import { instructorQuality, projectedQuality } from '../src/systems/faculty/facultyAssignment';
 import { qualityOf } from '../src/data/courseQuality';
 import { TRAINING_WORDS } from '../src/data/trainingData';
 import { CAREER_WORDS } from '../src/data/careerWords';
@@ -119,7 +119,7 @@ function numbersOnly(html: string, what: string, expectScore = true): void {
   const english = programById('ENGL')!;
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   const row = renderToStaticMarkup(createElement(RowAction, {
-    s, act, program: english, progress: programProgress(s, english, lookup), lookup, loads: facultyLoads(s), onSelect: () => {},
+    s, act, program: english, progress: programProgress(s, english, lookup), lookup, onSelect: () => {},
   }));
   numbersOnly(row, "the row's next start");
   numbersOnly(renderToStaticMarkup(createElement(ProgramTile, { program: english, s, act, open: true, onToggle: () => {} })), "the hall's program tile");

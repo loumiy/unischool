@@ -18,15 +18,14 @@ import { schoolMark } from '../data/schoolPalette';
 import { canPostSearch, searchCost, searchWeeksLeft, SEARCH_COST_WEEKS, SEARCH_WEEKS } from '../systems/faculty/facultySearch';
 import {
   canStartDevelopment, canStartBesidesCommittee, committeeOfficeSeats, committeeSetAside, committeeSeats, courseSlotsFree, coursesInDevelopment, nextCommitteeSeatAt, COMMITTEE_PRESTIGE_STEPS, COURSE_DEVELOPMENT_SLOTS, facultyGate, eligibleInstructors, assignedInstructor,
-  isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, effectiveCourseSlots, neededFacultyFields,
+  isUnstaffed, facultyLoad, hallOfCourse, canSwapInstructors, neededFacultyFields,
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
-import { courseHoldReason, crossMajorPrereqs, milestoneLine, programProgress, tierBands, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
-import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
+import { courseHoldReason, crossMajorPrereqs, milestoneLine, programProgress, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
 import { facultyQualityTier } from '../data/facultyData';
 import { GRADE_A, type CourseQuality } from '../data/courseQuality';
 import {
-  averageCourseQuality, courseQuality, facultyLoads, projectedQuality, type FacultyLoads,
+  averageCourseQuality, courseQuality, projectedQuality,
 } from '../systems/faculty/facultyAssignment';
 import { handStaffedWeeksLeft, staffingSeatFor } from '../systems/delegation/seats';
 import HelpHint from '../components/HelpHint';
@@ -804,25 +803,23 @@ function CourseDrawer(
 
 // The row's own action: the next start (course, strongest eligible teacher,
 // projected grade, cost) with a Develop button, "choose…" for the drawer,
-// and what the start is worth toward the next milestone. When several
-// courses in the same tier band are ready and the teacher has the slots, a
-// batch button starts them all, with the grades they would earn.
-// Each start is its own START_DEVELOPMENT, so one that becomes illegal
-// mid-batch is refused.
+// and what the start is worth toward the next milestone. No batch button
+// and no "+80 places" (Plan 122H, I: from Ginger's playtest, a button
+// rarely useful and a figure that read as a puzzle; a course's places stay
+// in its drawer and the hall's panel).
 // Compact, it is the program's one line (Plan 76B): the next course and
-// its one action, without "choose…" and the batch. A hall's program summary
+// its one action, without "choose…". A hall's program summary
 // shows the same compact line (Plan 104A), without the milestone, which the
 // summary states above it.
-export function RowAction({ s, act, program, progress, lookup, loads, onSelect, compact = false, showWorth = true }: {
+export function RowAction({ s, act, program, progress, lookup, onSelect, compact = false, showWorth = true }: {
   s: GameState; act: (a: Action) => void; program: ProgramInfo; progress: ProgramProgress;
-  lookup: Map<string, Buildable>; loads: FacultyLoads; onSelect: (id: string) => void; compact?: boolean;
+  lookup: Map<string, Buildable>; onSelect: (id: string) => void; compact?: boolean;
   showWorth?: boolean;
 }) {
   const next = progress.next;
   const worth = showWorth && (
     <span className="row-action-worth">
       {milestoneLine(progress)}
-      {progress.toMilestone > 0 && <> · +{SEATS_PER_COURSE} places</>}
     </span>
   );
 
@@ -870,18 +867,6 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
   const projected = projectedQuality(next, best);
   const canStart = canStartDevelopment(s, next, best.id);
 
-  // The batch: other ready courses in the same band, up to the teacher's free
-  // slots. The capstone is a band of one, never batched.
-  const bands = tierBands(program);
-  const band = bands ? [bands.tier2, bands.tier3].find((ids) => ids.includes(next.id)) : undefined;
-  const ready = (band ?? []).map((id) => lookup.get(id)).filter((t): t is Buildable => !!t && t.status === 'available');
-  const free = Math.max(0, effectiveCourseSlots(s, best) - (loads.get(best.id) ?? 0));
-  const batch = ready.slice(0, free);
-  const batchCost = batch.reduce((sum, t) => sum + t.cost, 0);
-  const batchOk = batch.length >= 2 && batchCost <= s.finance.cash;
-  // The same number for every course of a band (Plan 104J: no load).
-  const batchScores = [...new Set(batch.map((t) => count(projectedQuality(t, best).score)))];
-
   return (
     <p className="row-action">
       <button
@@ -901,16 +886,6 @@ export function RowAction({ s, act, program, progress, lookup, loads, onSelect, 
       </button>
       <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
       {!compact && <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">Choose…</button>}
-      {!compact && batchOk && (
-        <button
-          type="button"
-          className="row-action-secondary batch"
-          title={`Start all ${batch.length} with ${best.name}: ${money(batchCost)}, each ${batchScores.join(' or ')} out of 100`}
-          onClick={() => { for (const t of batch) act({ type: 'START_DEVELOPMENT', nodeId: t.id, facultyId: best.id }); }}
-        >
-          All {batch.length} with {surnameOf(best.name)} → {batchScores.join(' / ')}
-        </button>
-      )}
       {worth}
     </p>
   );
@@ -944,10 +919,10 @@ function rowsOpenEarly(s: GameState, objectives: ObjectivesMode): boolean {
 }
 
 function ProgramRowView(
-  { s, act, row, lookup, selectedId, onSelect, loads, dnd, rowMark }:
+  { s, act, row, lookup, selectedId, onSelect, dnd, rowMark }:
   {
     s: GameState; act: (a: Action) => void; row: ProgramRow; lookup: Map<string, Buildable>;
-    selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads; dnd: DragHandlers;
+    selectedId: string | null; onSelect: (id: string) => void; dnd: DragHandlers;
     // Its home school's color and mark, in a section that is not its school's.
     rowMark?: ProgramRowMark;
   },
@@ -984,10 +959,10 @@ function ProgramRowView(
         {avg !== null && <GradeChip score={avg} title={`${program.name} averages ${count(avg)} out of 100`} />}
         {hall && <span className="program-row-hall" title="The hall it is taught in">{hallDisplayName(s, hall)}</span>}
         {dark && <span className="program-row-dark" title="A course has no instructor">dark · unstaffed</span>}
-        {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} compact />}
+        {collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} onSelect={onSelect} compact />}
         <span className="lane-count">{fraction(progress.done, progress.total)}</span>
       </header>
-      {!collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} loads={loads} onSelect={onSelect} />}
+      {!collapsed && <RowAction s={s} act={act} program={program} progress={progress} lookup={lookup} onSelect={onSelect} />}
       {!collapsed && <div className={`program-row-cells${graduate ? ' graduate' : ''}`} style={graduate ? { gridTemplateColumns: `repeat(${program.courseIds.length}, minmax(0, 1fr))` } : undefined}>
         {program.courseIds.map((id, i) => {
           const t = lookup.get(id);
@@ -1012,10 +987,10 @@ function ProgramRowView(
 // A school's group: heading (name once founded, color and mark before; see
 // data/schoolPalette.ts), grade and rows.
 function SchoolGroupView(
-  { s, act, group, lookup, selectedId, onSelect, loads, dnd }:
+  { s, act, group, lookup, selectedId, onSelect, dnd }:
   {
     s: GameState; act: (a: Action) => void; group: SchoolGroup; lookup: Map<string, Buildable>;
-    selectedId: string | null; onSelect: (id: string) => void; loads: FacultyLoads; dnd: DragHandlers;
+    selectedId: string | null; onSelect: (id: string) => void; dnd: DragHandlers;
   },
 ) {
   const ids = group.rows.flatMap((row) => row.program.courseIds);
@@ -1075,7 +1050,7 @@ function SchoolGroupView(
         <div className="program-rows">
           {group.rows.map((row) => (
             <ProgramRowView
-              key={row.program.id} s={s} act={act} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd}
+              key={row.program.id} s={s} act={act} row={row} lookup={lookup} selectedId={selectedId} onSelect={onSelect} dnd={dnd}
               rowMark={mixed ? schoolMark(row.program.school) : undefined}
             />
           ))}
@@ -1310,8 +1285,6 @@ export default function CurriculumTab(
   const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
-  // Built once per render and shared: counting loads per cell would be quadratic.
-  const loads = facultyLoads(s);
   const sections = buildSections(s, revealedGrad);
   const groups = schoolGroups(s, sections);
 
@@ -1464,7 +1437,7 @@ export default function CurriculumTab(
             )
           ) : (
             groups.map((group) => (
-              <SchoolGroupView key={group.key} s={s} act={act} group={group} lookup={lookup} selectedId={selectedId} onSelect={onSelect} loads={loads} dnd={dnd} />
+              <SchoolGroupView key={group.key} s={s} act={act} group={group} lookup={lookup} selectedId={selectedId} onSelect={onSelect} dnd={dnd} />
             ))
           )}
         </div>

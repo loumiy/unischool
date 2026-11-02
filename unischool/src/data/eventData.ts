@@ -1213,7 +1213,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
       const faculty = FOUNDING_MARKET.filter((p) => s.faculty.some((f) => f.id === p.id)).map((p) => `${p.name} in ${p.field}`);
       const listed = FOUNDING_MARKET.filter((p) => s.candidates.some((c) => c.id === p.id)).map((p) => `${p.name} in ${p.field}`);
       const staff = faculty.length > 0 ? `your founding faculty is ${list(faculty)}` : 'nobody has been hired to teach them';
-      return `Welcome to ${s.self.name}. ${countOf(totalEnrolled(s.students))} students have enrolled, and ${staff}. But there isn't a single course yet, and Founders Hall, your only building, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and you can hire ${list(listed)} from the market` : ''}. ` : ''}Open Founders Hall on the map and found a program in a free slot. Its first course goes to the curriculum committee straight away. Each course you teach gives ${countOf(SEATS_PER_COURSE)} students a place in class, and every student needs one.`;
+      return `Welcome to ${institutionName(s.self)}. ${countOf(totalEnrolled(s.students))} students have enrolled, and ${staff}. But there isn't a single course yet, and Founders Hall, your only building, stands empty. ${offers.length > 0 ? `${list(offers)} are on offer${listed.length > 0 ? `, and you can hire ${list(listed)} from the market` : ''}. ` : ''}Open Founders Hall on the map and found a program in a free slot. Its first course goes to the curriculum committee straight away. Each course you teach gives ${countOf(SEATS_PER_COURSE)} students a place in class, and every student needs one.`;
     },
     ask: seatAsk,
     done: (s) => housedAnywhere(s) && !studentsUnseated(s),
