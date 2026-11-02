@@ -397,11 +397,12 @@ marked **0.1.x** and fixed in a patch.*
   sent in a Guided run; the NEXT line's "Establish a school" yields to
   the class-seats line; and "Needs the Economics Lab, built on the map"
   doesn't say the lab waits on founding. (The owner, 30 October, from
-  S5's video.) *1 player · service (S5).* **Partly fixed** for 0.2.0: a
+  S5's video.) *1 player · service (S5).* **Fixed** for 0.2.0: a
   side chapter, *A school of its own*, asks for the claim and then the
   founding, says what founding opens, and its help names the school
-  closest to six and where. The lab's message, the NEXT line's order and
-  the letter are still to do.
+  closest to six and where. **Decided** (the owner, 2 November): that
+  alone; the lab's message, the NEXT line's order, the letter and the
+  Curriculum's heading stay as they are, since each would add words.
 - **Chapter 2's objective was unclear.** "Objective chapter 2 was a bit
   confusing, not sure what I did exactly." *1 player · service (S5).* A
   frame from 6:17 would show which step.
