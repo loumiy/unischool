@@ -1,9 +1,14 @@
 import type { GameState, Pillar } from '../state/types';
-import { decimal, moneyShort, pct } from '../format';
+import { countWord, decimal, moneyShort, pct } from '../format';
 import { FACULTY_PER_TRAINING_PICK, MIN_TRAINING_PICKS, TRAINED_SHARE_FOR_FULL, TRAINING_INSTITUTE_ID, TRAINING_WORDS, instituteStands, trainedCount, trainingReading } from './trainingData';
 import { LANDMARK_WINDOW_YEARS, LANDMARK_YEARS_FOR_FULL, PARK_RESEARCH_BOOST, PARK_WORDS, RESEARCH_PARK_ID, landmarkYears, landmarksCounted, landmarksRunning, parkGoingUp, parkReading, parkStands } from './researchParkData';
 import { ATHLETICS_COMPLEX_ID, COMPLEX_POINTS_FOR_FULL, COMPLEX_WINDOW_YEARS, COMPLEX_WORDS, complexGoingUp, complexReading, complexStands } from './athleticsComplexData';
 import { DISTRICT_YEARS_TO_FULL, DOWNTOWN_WORDS, FESTIVAL_POINTS_FOR_FULL, FESTIVAL_WINDOW_YEARS, OFF_CAMPUS_SHARE, downtownReading, festivalPoints } from './downtownData';
+
+// After "Not now", the board asks again this many summers on (the owner,
+// 1 November: asked every year, a player who had said no declined it 19
+// summers running). systems/prestige/milestone.ts reads it.
+export const SPECIALIZATION_ASK_AGAIN_YEARS = 5;
 
 // ---------------------------------------------------------------------
 // The words for specializations: the tags that show a rival's (Plan 85C);
@@ -156,7 +161,7 @@ export function specializationStatus(
   if (chosen) {
     return `You specialized in ${PILLAR_WORDS[chosen]}${year !== undefined ? ` in Year ${year}` : ''}, so ${PILLAR_WORDS[chosen]} can rise to the full ${max}.`;
   }
-  if (offered) return "You haven't chosen a specialization yet, so every pillar's specialization share is empty. The board's offer stands. It comes back at the end of every summer until you choose.";
+  if (offered) return `You haven't chosen a specialization yet, so every pillar's specialization share is empty. The board's offer stands. It comes back every ${countWord(SPECIALIZATION_ASK_AGAIN_YEARS)} years until you choose.`;
   return `You have no specialization, so every pillar's specialization share is empty. ${offer}`;
 }
 
@@ -385,8 +390,8 @@ export const CHOICE_WORDS = {
   confirm: 'Confirm',
   back: 'Back',
   warning: (pillar: Pillar) => `Your college will be specialized in ${PILLAR_WORDS[pillar]} for good. You can't change or undo it.`,
-  later: 'Not this year',
-  laterNote: 'The offer will come back next summer.',
+  later: 'Not now',
+  laterNote: `The board will ask again in ${countWord(SPECIALIZATION_ASK_AGAIN_YEARS)} years.`,
 };
 
 // The board's notice (Plan 85D), when the college first comes within reach

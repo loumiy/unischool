@@ -112,6 +112,11 @@ const KNOWN: Record<string, string> = {
   // 235 weeks on seed 4242, whose first team is football: the stadium costs
   // several times what the other venues do.
   'build-the-venue': 'a football team waits years for its stadium',
+  // 154 to 189 weeks (added with the chapter, 2 November). Six programs of
+  // one school in one hall take the guided player about three years: each
+  // waits on its school's offer, a teacher and a free slot.
+  'claim-a-hall': 'three programs of one school in one hall take the guided player years',
+  'found-a-school': 'and six take a little longer',
 };
 
 // Every button in a rendered element tree with these words, and every

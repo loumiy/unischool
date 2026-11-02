@@ -45,6 +45,7 @@ import {
 } from '../src/systems/prestige/prestigeSystem';
 import {
   bestPillarStanding, collegeSpecialization, shareFullProjection, specializationOptions, strongestStanding, tickSpecialization, type SpecializationPayload,
+  SPECIALIZATION_ASK_AGAIN_YEARS,
 } from '../src/systems/prestige/milestone';
 import { decimal } from '../src/format';
 import { pillarShareRule, satisfactionRecordWords, satisfactionRouteWords, specializationOfferRule, specializationShareWorth } from '../src/data/prestigeWords';
@@ -327,12 +328,19 @@ function closeSummer(s: GameState): GameState {
   // The game's own default never chooses.
   assert(JSON.stringify(defaultAnswer(s)) === JSON.stringify({ type: 'RESOLVE_SPECIALIZATION', pillar: null }), 'the game\'s default puts it off');
 
-  // Not this year: open, and back at the next summer's close, even below the milestone.
+  // Not now: open, and back five summers on, even below the milestone (the
+  // owner, 1 November: every summer read as a nag).
   s = act(s, { type: 'RESOLVE_SPECIALIZATION', pillar: null });
-  assert(s.pendingInterrupt === null && specializationOf(s) === null && s.clock.week === 1, 'not this year: nothing chosen, and no week passes');
+  assert(s.pendingInterrupt === null && specializationOf(s) === null && s.clock.week === 1, 'not now: nothing chosen, and no week passes');
+  assert(s.specializationDeferredTo === summerYear + SPECIALIZATION_ASK_AGAIN_YEARS && s.log[0].message.includes(`Year ${summerYear + SPECIALIZATION_ASK_AGAIN_YEARS} summer`), `asked again in five years (${s.log[0].message})`);
+  for (let i = 1; i < SPECIALIZATION_ASK_AGAIN_YEARS; i += 1) {
+    s = toSummer(s, (x) => standAt(x, SPECIALIZATION_MILESTONE_RANK + 8));
+    s = closeSummer(s);
+    assert(s.pendingInterrupt?.type !== 'specialization', `not at the close of summer ${i} after`);
+  }
   s = toSummer(s, (x) => standAt(x, SPECIALIZATION_MILESTONE_RANK + 8));
   s = closeSummer(s);
-  assert(s.pendingInterrupt?.type === 'specialization', `the next summer's close offers it again, even at #${playerRank(s)}`);
+  assert(s.pendingInterrupt?.type === 'specialization', `the fifth summer's close offers it again, even at #${playerRank(s)}`);
 
   // A mid-choice save round trip.
   const mid = readSave(exportSave(s).text);
@@ -343,7 +351,7 @@ function closeSummer(s: GameState): GameState {
   const researchBefore = pillarBreakdown(s, 'research');
   s = act(s, { type: 'RESOLVE_SPECIALIZATION', pillar: 'research' });
   assert(s.specialization === 'research' && specializationOf(s) === 'research', 'research is chosen');
-  assert(s.specializationYear === summerYear + 1, `in the year of the summer it closed (Year ${s.specializationYear})`);
+  assert(s.specializationYear === summerYear + SPECIALIZATION_ASK_AGAIN_YEARS, `in the year of the summer it closed (Year ${s.specializationYear})`);
   assert(s.pendingInterrupt === null && s.clock.week === 1, 'and the clock is free, with no week passed');
   const term = (x: GameState, p: Pillar) => pillarBreakdown(x, p).inputs.find((i) => i.key === 'specialization')!;
   assert(term(s, 'research').score > 0 && term(s, 'research').weight === SPECIALIZATION_TERM_WEIGHTS.research, `research's term opens (${term(s, 'research').score} of it)`);
@@ -368,14 +376,14 @@ function closeSummer(s: GameState): GameState {
 
   // A save round trip.
   const back = readSave(exportSave(s).text);
-  assert(!('refused' in back) && back.state.specialization === 'research' && back.state.specializationYear === summerYear + 1, 'a save round trip keeps the specialization and its year');
+  assert(!('refused' in back) && back.state.specialization === 'research' && back.state.specializationYear === summerYear + SPECIALIZATION_ASK_AGAIN_YEARS, 'a save round trip keeps the specialization and its year');
   // The Final Report names the specialization first, in the card's words.
   const title = finalReport(s).title;
   assert(title.includes(': a college known first for what its laboratories find'), `the Final Report names the specialization first ("${title}")`);
   assert(!Object.values(TAG_PHRASES).some((p) => title.includes(`: ${p}`)), 'not a guidebook tag');
   // The chronicle marks the year.
   const said = chronicleOf(s).eras.flatMap((e) => e.lines).filter((l) => /chose to specialize in research/.test(l));
-  assert(said.length === 1 && said[0].includes(`Year ${summerYear + 1}`), `the chronicle marks the year once (${said.join(' | ')})`);
+  assert(said.length === 1 && said[0].includes(`Year ${summerYear + SPECIALIZATION_ASK_AGAIN_YEARS}`), `the chronicle marks the year once (${said.join(' | ')})`);
 }
 
 // ---- A college that never specialized keeps the guidebooks' phrase ----

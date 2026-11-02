@@ -386,6 +386,23 @@ marked **0.1.x** and fixed in a patch.*
   course) from the other side. *2 players · live (T1), reddit (R2).*
   S5: "did not understand developing the programs until I got the third
   one." *3 players · live (T1), reddit (R2), service (S5).*
+- **She never founded a school, and so never reached the late game.**
+  Founding needs six of one school's programs in one academic hall. Every
+  school has advanced courses that need a lab, and a school's labs open
+  only once it is founded, so without one no curriculum finishes: no
+  distinguished school, graduate program, capital project, research or
+  Dean beyond the first. The game says so only in places she didn't see:
+  *A hall of its own* asked for the three-program claim as an optional
+  objective and never for six; the "A school takes shape" letter isn't
+  sent in a Guided run; the NEXT line's "Establish a school" yields to
+  the class-seats line; and "Needs the Economics Lab, built on the map"
+  doesn't say the lab waits on founding. (The owner, 30 October, from
+  S5's video.) *1 player · service (S5).* **Fixed** for 0.2.0: a
+  side chapter, *A school of its own*, asks for the claim and then the
+  founding, says what founding opens, and its help names the school
+  closest to six and where. **Decided** (the owner, 2 November): that
+  alone; the lab's message, the NEXT line's order, the letter and the
+  Curriculum's heading stay as they are, since each would add words.
 - **Chapter 2's objective was unclear.** "Objective chapter 2 was a bit
   confusing, not sure what I did exactly." *1 player · service (S5).* A
   frame from 6:17 would show which step.

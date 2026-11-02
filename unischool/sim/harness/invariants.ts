@@ -10,7 +10,7 @@
 // Not part of the game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
 
-import type { GameState } from '../../src/state/types';
+import type { GameState, Pillar } from '../../src/state/types';
 import { WEEKS_PER_YEAR } from '../../src/state/types';
 import { NON_FLAGSHIP_FUNDED_SHARE, RECRUITING_MAX_LIFT, departmentPot } from '../../src/data/studentLifeData';
 import { programById } from '../../src/data/techData';
@@ -34,6 +34,10 @@ function nonFinite(value: unknown, path: string, seen: Set<object>): string | nu
   }
   return null;
 }
+
+// A pillar's own building is the college's to build: its specialization's,
+// or since Plan 120C the second building it picked.
+const buildsFor = (s: GameState, pillar: Pillar) => s.specialization === pillar || s.secondBuilding === pillar;
 
 export function brokenRules(s: GameState): string[] {
   const out: string[] = [];
@@ -170,7 +174,7 @@ export function brokenRules(s: GameState): string[] {
     }
   }
   for (const c of s.candidates) if (c.training) out.push(`${c.name} is a candidate with training`);
-  if (s.training.trained.length > 0 && s.specialization !== 'academics' && s.sandbox !== true) out.push('professors trained at a college not specialized in academics');
+  if (s.training.trained.length > 0 && !buildsFor(s, 'academics') && s.sandbox !== true) out.push('professors trained at a college with no Faculty Training Institute to build');
 
   // The research park (Plan 85F): open to build only at a college
   // specialized in research (one standing at another, built before Plan
@@ -178,7 +182,7 @@ export function brokenRules(s: GameState): string[] {
   // inside the window, and no more than landmarksCounted a week (Plan 95X: more
   // with the park's second wing).
   const park = s.tech.find((t) => t.id === RESEARCH_PARK_ID);
-  if (park?.status === 'available' && s.specialization !== 'research' && s.sandbox !== true) out.push('the Research Park is open at a college not specialized in research');
+  if (park?.status === 'available' && !buildsFor(s, 'research') && s.sandbox !== true) out.push('the Research Park is open at a college that can\'t build it');
   const work = s.research.landmarkWork;
   for (let i = 0; i < work.length; i += 1) {
     const w = work[i];
@@ -191,7 +195,7 @@ export function brokenRules(s: GameState): string[] {
   // college specialized in athletics; its deep runs are inside the window,
   // in the last four, one a sport a year, and only at such a college.
   const complex = s.tech.find((t) => t.id === ATHLETICS_COMPLEX_ID);
-  if (complex?.status === 'available' && s.specialization !== 'athletics' && s.sandbox !== true) out.push('the Athletic Performance Complex is open at a college not specialized in athletics');
+  if (complex?.status === 'available' && !buildsFor(s, 'athletics') && s.sandbox !== true) out.push('the Athletic Performance Complex is open at a college that can\'t build it');
   const runs = s.orgs.complexRuns;
   const seen = new Set<string>();
   for (const r of runs) {
@@ -200,7 +204,7 @@ export function brokenRules(s: GameState): string[] {
     if (seen.has(`${r.sport}:${r.year}`)) out.push(`two deep runs in ${r.sport} in Year ${r.year}`);
     seen.add(`${r.sport}:${r.year}`);
   }
-  if (runs.length > 0 && s.specialization !== 'athletics' && s.sandbox !== true) out.push('deep runs recorded at a college not specialized in athletics');
+  if (runs.length > 0 && !buildsFor(s, 'athletics') && s.sandbox !== true) out.push('deep runs recorded at a college with no complex to build');
 
   // The programs cut (Plan 95V): none in a year still to come.
   for (const c of s.orgs.cutPrograms ?? []) {
@@ -214,7 +218,7 @@ export function brokenRules(s: GameState): string[] {
   const d = s.downtown;
   if (!(d.growth >= 0 && d.growth <= 1)) out.push(`the downtown grown ${d.growth}`);
   if (!(d.goodwill >= 0 && d.goodwill <= GOODWILL_MAX)) out.push(`the town's goodwill at ${d.goodwill}`);
-  if (s.specialization !== 'studentLife' && (d.growth > 0 || d.festivals.length > 0)) out.push('a downtown at a college not specialized in student life');
+  if (!buildsFor(s, 'studentLife') && (d.growth > 0 || d.festivals.length > 0)) out.push('a downtown at a college that neither specialized in student life nor picked it second');
   d.festivals.forEach((f, i) => {
     if (f.year > s.clock.year) out.push(`a festival in Year ${f.year}, still to come`);
     if (i > 0 && f.year <= d.festivals[i - 1]!.year) out.push(`festivals out of order at Year ${f.year}`);
