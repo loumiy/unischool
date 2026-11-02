@@ -279,20 +279,31 @@ export default function App() {
   // A tab an objective asks to be walked through (Plan 122G): the Treasury,
   // Students, History and Faculty. The walk shows while its chapter is open
   // and the objective unmet; finishing or skipping it marks the tab.
+  // A tab's Guide button replays its walk (Plan 122's follow-up): `replay`
+  // names the tab and counts the presses, so a second press starts over.
   const openTabId = overlay?.tab;
-  const walkTab = chaptersOn && !stopUp && openTabId && isWalkTab(openTabId) && walkAsked(s, openTabId) ? openTabId : null;
+  const [replay, setReplay] = useState<{ tab: TabId; n: number } | null>(null);
+  const askedWalk = chaptersOn && !stopUp && openTabId && isWalkTab(openTabId) && walkAsked(s, openTabId) ? openTabId : null;
+  const replayed = !stopUp && replay && replay.tab === openTabId && isWalkTab(replay.tab) ? replay.tab : null;
+  const walkTab = askedWalk ?? replayed;
   const endWalk = useCallback(() => {
-    if (walkTab) act({ type: 'MARK_GUIDANCE', mark: tabMark(walkTab) });
+    if (askedWalk) act({ type: 'MARK_GUIDANCE', mark: tabMark(askedWalk) });
+    setReplay(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walkTab]);
+  }, [askedWalk]);
+  useEffect(() => {
+    if (replay && replay.tab !== openTabId) setReplay(null);
+  }, [openTabId, replay]);
 
   // A tab's Guide button: the page of the chapter that introduced it,
-  // once that chapter has opened, read in the drawer over the tab.
+  // once that chapter has opened, read in the drawer over the tab, and on
+  // a tab with a walk (Plan 122G) the walk again, from its first step.
   function guideFor(tab: TabId): (() => void) | undefined {
     const id = TAB_GUIDE[tab];
     if (!id || s.guidance?.opened[id] === undefined) return undefined;
     return () => {
       guideOpened(id, 'tab');
+      if (isWalkTab(tab)) setReplay((r) => ({ tab, n: (r?.n ?? 0) + 1 }));
       setObjectivesView(id);
       setObjectivesOpen(true);
       setLogOpen(false);
@@ -669,7 +680,7 @@ export default function App() {
             before the toasts, which stack above it. Not over the inbox,
             whose first row is the same door. */}
         {shellLive && summerWaiting && overlay?.tab !== 'inbox' && <SummerCall s={s} onOpen={() => openSummer()} />}
-        {walkTab && <TabWalk key={walkTab} tab={walkTab} label={TAB_LABELS[walkTab]} onEnd={endWalk} />}
+        {walkTab && <TabWalk key={`${walkTab}:${replay?.n ?? 0}`} tab={walkTab} label={TAB_LABELS[walkTab]} onEnd={endWalk} />}
         {/* The week's small news (Plan 70H), a school's banner, and what
             arrives in the inbox (Plan 77), each with a way to open it. */}
         <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />
