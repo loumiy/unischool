@@ -188,7 +188,12 @@
 /* The map is a fixed background and all chrome floats over it. */
 html, body, #root { height: 100%; }
 body { margin: 0; font-family: var(--sans); font-weight: 500; font-size: var(--text-base); font-variant-numeric: tabular-nums;
-  background: var(--cream); color: var(--ink); }
+  background: var(--cream); color: var(--ink);
+  /* No stray selection (Plan 122C, from Ginger's playtest): a drag or a
+     double-click highlighted the text under it. A game's words are not
+     selected; what is typed or meant to be copied still is. */
+  user-select: none; -webkit-user-select: none; }
+input, textarea, [contenteditable="true"], .selectable, .crash-detail { user-select: text; -webkit-user-select: text; }
 /* Controls take the text around them, so the player's text size reaches
    them too (the browser's own is off the scale). */
 button { cursor: pointer; font-family: inherit; }
@@ -3997,7 +4002,19 @@ button.inbox-row:hover { background: var(--cream-hi); }
   .log-ticker-objective { max-width: 72%; flex-shrink: 0.2; }
   .log-ticker-objective .log-ticker-next-label { padding: 2px 5px; }
 }
-.objectives-popup { left: 16px; width: min(440px, calc(100vw - 32px)); max-height: 60vh; }
+.objectives-popup { right: 16px; width: min(440px, calc(100vw - 32px)); max-height: 52vh;
+  transform-origin: bottom right; animation: popup-from-corner 170ms cubic-bezier(0.2, 0.8, 0.3, 1); }
+/* The drawer opens from the bottom right, where its chip is, and grows out
+   of that corner (Plan 122B, from Ginger's playtest: "it should pop up from
+   the bottom right, so that it is also intuitive that it collapses there").
+   The chip stands at the strip's right end. The toasts and the summer's
+   note moved to the bottom left to leave it the corner. */
+.log-ticker .log-ticker-objective { order: 99; margin-left: auto; }
+@keyframes popup-from-corner {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .objectives-popup { animation: none; } }
 .objectives h3 { margin: 0 0 var(--space-6); }
 .objectives h4 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ink-muted); }
@@ -4381,7 +4398,7 @@ body:has(.building-info-panel) .pennant { display: none; }
    is not drawn at all (CampusMap.tsx), and nothing pulses. */
 
 /* Toasts: one line each, stacked above the ticker at the right. */
-.toasts { position: fixed; z-index: 14; right: 16px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height, 28px) + 12px);
+.toasts { position: fixed; z-index: 14; left: 16px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height, 28px) + 12px);
   width: min(360px, calc(100vw - 32px)); margin: 0; padding: 0; list-style: none;
   display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: var(--space-8); padding: var(--space-8) var(--space-8) var(--space-8) var(--space-12);
@@ -4398,10 +4415,10 @@ body:has(.building-info-panel) .pennant { display: none; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 /* The summer's call (Plan 112C, SummerCall.tsx): where the toasts stand,
-   above the clock it stopped, for as long as the summer waits; the toasts
-   stack over it. Over an open tab too (the dock's height), since nothing
+   at the bottom left since Plan 122B, for as long as the summer waits; the
+   toasts stack over it. Over an open tab too (the dock's height), since nothing
    puts it away but opening the summer. */
-.summer-call { position: fixed; z-index: 15; right: 16px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height, 28px) + 12px);
+.summer-call { position: fixed; z-index: 15; left: 16px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height, 28px) + 12px);
   width: min(360px, calc(100vw - 32px)); box-sizing: border-box; display: grid; grid-template-columns: auto 1fr; gap: var(--space-4) var(--space-12);
   align-items: start; padding: var(--space-12) var(--space-16); background: var(--cream); color: var(--ink);
   border: 3px solid var(--outline); border-left: 8px solid var(--school-secondary); border-radius: var(--radius-lg);
