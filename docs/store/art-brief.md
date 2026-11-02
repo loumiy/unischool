@@ -1,10 +1,11 @@
 # UniSchool — The art brief
 
 *What to commission from a human artist, and what each piece is for (Plan
-117's O5). It replaces two things that stand in for now: the title screen's
-painting, which is AI-generated and kept as a placeholder by the owner's
-choice (23 October 2026), and the store's capsules, which F draws from the
-game's own campus until the commission lands. Send it by 31 October and ask
+117's O5). It replaces what stands in for now: the store's capsules, which
+F draws from the game's own campus until the commission lands. (It also
+covered the title screen's AI-generated painting. Since 0.2.0 the title
+shows the game's own campus and the painting is gone, so §1 is no longer
+needed.) Send it by 31 October and ask
 for delivery by 1 December 2026, so the Steam page can go up on the
 commissioned art.*
 
@@ -31,10 +32,6 @@ are no characters to brand.
   campus growing.
 - `docs/assets/`: every building in every one of the nine architectural
   styles, as the game draws it.
-- `unischool/src/assets/campus-quad.webp`: the placeholder title painting.
-  The commission replaces it. Its composition is a fair starting point
-  (two halls framing a quad and a path, students walking, a clear sky);
-  its execution is not.
 
 **The look:**
 - **Style:** the Georgian set, the one a new game starts in: red brick,
@@ -47,7 +44,12 @@ are no characters to brand.
 - **Type:** the game's face is Archivo (Google Fonts, open licence), in
   heavy weights for the name. The logo may use it or replace it.
 
-## 1. The title art (replaces the placeholder)
+## 1. The title art (no longer needed)
+
+*Withdrawn in 0.2.0: the title screen and the founding screen now show the
+game's own campus, turning slowly (`TitleBackdrop.tsx`), so there is no
+painting to replace. Kept for the record, and in case the owner wants a
+painting back.*
 
 The background of the title screen and the founding screen
 (`.title-screen, .startup` in `unischool/src/styles.css`). It is shown full
@@ -84,12 +86,13 @@ Steamworks before the artist starts.
 - The capsules carry the game's name and nothing else: no quotes, no
   awards, no "Wishlist now" (Steam's own rules).
 - One picture can serve all of them if it is painted wide with room to
-  crop. The title art (1) can be that picture.
+  crop.
 
 ## 3. The logo
 
 A wordmark for "UniSchool", with or without a mark. It must:
-- read in white on the title art, and in navy on cream (the game's menus);
+- read in white over the campus on the title screen, and in navy on cream
+  (the game's menus);
 - work at the small capsule's size;
 - come as an SVG or a transparent PNG at 1280×720 or larger.
 
@@ -99,7 +102,6 @@ replace it.
 
 ## What happens when it lands
 
-- The title art replaces `unischool/src/assets/campus-quad.webp`.
 - The capsules go to `docs/store/steam/`, in place of F's fallback set.
-- `docs/store/ai-disclosure.md` names the artist and drops the line about
-  the generated title painting. The Credits name the artist too.
+- `docs/store/ai-disclosure.md` names the artist. The Credits name the
+  artist too.

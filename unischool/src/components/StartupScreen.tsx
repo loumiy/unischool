@@ -315,7 +315,7 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
   };
 
   return (
-    // Over the title art, as the title screen is: the mark in the sky, the
+    // Over the campus, as the title screen is: the mark at the top, the
     // founding on a frosted card.
     <div className="startup">
       <div className="startup-brand" aria-hidden="true">

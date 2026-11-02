@@ -395,12 +395,12 @@ button, input, select, textarea { font-size: inherit; }
   gap: var(--space-24); padding: 40px var(--space-16); background: color-mix(in srgb, var(--cream) 97%, transparent); }
 .title-card { width: min(640px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   box-shadow: var(--elevation-dialog); padding: var(--space-24); }
-/* The title art's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx):
-   the quad under a clear sky, and the mark and the name in white on it.
-   The menus over it are the game's own cards. */
-.title-screen, .startup, .front-art > .front-screen {
-  background: #4f9be0 url('./assets/campus-quad.webp') center 62% / cover no-repeat fixed; }
-/* A front screen opened from the title (App.tsx): its card over the art. */
+/* The title's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx): the
+   campus behind (TitleBackdrop.tsx), the mark and the name in white over
+   it, the menus on the game's own cards. Until the campus has drawn, and
+   in the ?title= layouts that have none, the grass it opens on. */
+.title-screen, .startup, .front-art > .front-screen { background: var(--grass-deep); }
+/* A front screen opened from the title (App.tsx): its card over the campus. */
 .front-art { display: contents; }
 .title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) 40px; }
 .title-head { text-align: center; color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
@@ -425,7 +425,8 @@ button, input, select, textarea { font-size: inherit; }
   .title-screen .title-tagline { margin-top: var(--space-6); font-size: var(--text-lg); }
   .title-screen .title-card { padding: var(--space-16) var(--space-24); }
 }
-/* MOCKUP (TitleScreen.tsx's ?title=): three titles without the painting. */
+/* The title's layouts (TitleScreen.tsx's ?title=): live, the default, and
+   two tried beside it. */
 /* 1 · The school's colours: flat primary, the mark and name in the
    secondary, a scarf's stripes under the tagline. */
 .title-screen.title-v-colours { background: var(--school-primary); }
@@ -472,7 +473,7 @@ body:has(.title-backdrop) :is(.pennant, .main-menu, .map-tools-toggle, .campus-m
 /* The campus behind the title and the screens reached from it
    (TitleBackdrop.tsx): a layer of its own over the game (the shell's
    panels, menus and map stay under it) and under the front screens (60),
-   which trade their painting for a wash while it is up. */
+   which trade their flat grass for a wash while it is up. */
 .title-backdrop { position: fixed; inset: 0; z-index: 55; }
 /* ?orbit: a square wide enough to cover the screen at any angle (the
    screen's diagonal is under 1.42 of its longer side), turning once in four
@@ -3464,7 +3465,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .demand-deadline.urgent { color: var(--danger-ink); }
 
 /* ---------- Startup screen ---------- */
-/* Over the title art (see the title screen's register above). */
+/* Over the campus, as the title is (see the title screen's register above). */
 .startup { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: var(--space-16); padding: 24px var(--space-16); box-sizing: border-box; }
 .startup-brand { display: flex; align-items: center; gap: var(--space-12); color: #fff;

@@ -21,25 +21,24 @@ import { STORE_LINK_LABEL, STORE_URL, openStorePage } from '../storeLink';
 // screen); and the hall of fame's newest portraits, because they are the
 // reason to play again.
 //
-// Over the title art (assets/campus-quad.webp): the mark and the name in the
-// sky, the menu on a frosted card below them, the quad showing round it.
+// Over the campus (TitleBackdrop.tsx): the mark and the name at the top,
+// the menu on a frosted card below them, the campus turning round it.
 
 const SHOWN = 3;
 
-// MOCKUP (not for release): the title layouts tried without the painting,
-// picked by ?title= in the address. colours: the school's colours, flat,
-// with a scarf's stripes; split: the mark on a panel, the menu beside it;
-// live: the campus itself behind the menu, the run's own or, with none
-// underway, a finished demo campus (TitleBackdrop.tsx). Anything else is
-// the painted title.
+// The title's layouts, picked by ?title= in the address. live, the default:
+// the campus itself behind the menu, the run's own or, with none underway,
+// a finished demo campus (TitleBackdrop.tsx). Two tried beside it and kept
+// for comparison: colours, the school's colours, flat, with a scarf's
+// stripes; split, the mark on a panel, the menu beside it.
 const VARIANTS = ['colours', 'split', 'live'] as const;
 type Variant = typeof VARIANTS[number];
-export function titleVariant(): Variant | null {
-  if (typeof window === 'undefined') return null;
-  // The default: no ?title= is live, the turning plan view (0.2.0's title);
-  // ?title=painted is the painted title it replaced.
+export function titleVariant(): Variant {
+  if (typeof window === 'undefined') return 'live';
+  // No ?title= (or one this build doesn't know) is live, the turning plan
+  // view (0.2.0's title).
   const v = new URLSearchParams(window.location.search).get('title') ?? 'live';
-  return (VARIANTS as readonly string[]).includes(v) ? v as Variant : null;
+  return (VARIANTS as readonly string[]).includes(v) ? v as Variant : 'live';
 }
 
 export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, onHall, onSettings, onCredits }: {
@@ -62,7 +61,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
   const [variant] = useState(titleVariant);
   const shown = variant;
   return (
-    <div className={`front-screen title-screen${shown ? ` title-v-${shown}` : ''}`} role="dialog" aria-modal="true" aria-label="UniSchool">
+    <div className={`front-screen title-screen title-v-${shown}`} role="dialog" aria-modal="true" aria-label="UniSchool">
       <header className="title-head">
         <Logo />
         <p className="title-tagline">Fifty years to build a university.</p>

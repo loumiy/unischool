@@ -1,4 +1,4 @@
-// The game's mark (the title art's): a temple front whose three columns read
+// The game's mark (the title screen's): a temple front whose three columns read
 // I-U-I, under a pediment pierced by an oculus, on two steps. Drawn in
 // currentColor so it sits on the sky in white and on a card in the ink; the
 // oculus and the gaps are holes, not paint, so whatever is behind shows

@@ -227,7 +227,7 @@ with the owner's decision noted:
 |---|---|---|
 | Text and dialogue | **Yes** | Every player-facing word was written with the assistant. |
 | Code | **Yes** | All of it. |
-| Graphics | **Yes, with the note** | The title-screen background and the itch.io cover are AI-generated stand-ins, to be replaced by commissioned art. Everything else is drawn by code written with the assistant. |
+| Graphics | **Yes, the page's cover only** | The game draws every picture with code written with the assistant; none is generated. The page's cover image is an AI-generated stand-in, to be replaced. Once it is, the answer is **No**. |
 | Sound and music | **No** | Synthesized live by code; the description's paragraph covers it. |
 
 The in-game credit is "Halifax Games", with the footnote "Made with the

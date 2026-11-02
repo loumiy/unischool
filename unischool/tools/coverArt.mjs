@@ -2,7 +2,7 @@
 // WHAT THE STORE PICTURES SHARE: the itch.io cover (itchCover.mjs) and the
 // Steam capsules (steamCapsules.mjs) both lay the title screen's mark and
 // name over a bare campus shot. This is the part they have in common: the
-// mark read from Logo.tsx, the name's face, the title art's sky, a
+// mark read from Logo.tsx, the name's face, a blue sky band, a
 // Chromium to draw them in, and a reader for the size of what it wrote.
 // ---------------------------------------------------------------------
 

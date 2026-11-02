@@ -15,8 +15,8 @@ The rules for the cut:
   [text review](../reviews/2026-10-text-review.md), like the
   [Steam copy](steam-page.md).
 - **Every shot is the game itself,** taken with the tools below. Nothing
-  is mocked up, and no shot shows the title screen's painting, which is
-  an AI-generated stand-in ([`ai-disclosure.md`](ai-disclosure.md)).
+  is mocked up. (The title screen's AI-generated painting kept it out of
+  the cut; since 0.2.0 the title shows the campus, so it may go in.)
 - **The music** is Alejandro Tóth's title theme
   (`unischool/src/assets/title-theme.mp3`, 1:45), or the game's own music.
 - **No player quotes on screen** for now. If one goes in later, it comes

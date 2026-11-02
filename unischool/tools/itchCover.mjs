@@ -16,7 +16,7 @@
 //
 // The mark is Logo.tsx's, and the name is set as the title screen sets it
 // (styles.css's .logo-name: Archivo 800, wide capitals, white, the soft
-// blue shadow). The title screen's art puts them on a blue sky; the campus
+// blue shadow). They read best on a blue sky; the campus
 // shot's sky is a pale haze, so a band of that blue fades in behind them.
 //
 // The mark, the face, the sky and the browser are coverArt.mjs's, which the
@@ -47,7 +47,7 @@ ${archivoFace()}
 html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
 .cover { position: relative; width: ${W}px; height: ${H}px; overflow: hidden; }
 .photo { position: absolute; inset: 0; background: url(data:image/jpeg;base64,${bg}) center / cover; ${photoFilter} }
-/* The title art's sky, fading into the haze above the campus. */
+/* A blue sky, fading into the haze above the campus. */
 .sky { position: absolute; inset: 0 0 auto 0; height: ${Math.round(H * 0.6)}px;
   background: linear-gradient(180deg, ${sky}); }
 .head { position: absolute; inset: 34px 0 auto 0; display: flex; flex-direction: column; align-items: center; gap: 12px;

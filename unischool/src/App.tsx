@@ -561,7 +561,7 @@ export default function App() {
       : front === 'credits' ? <Credits onClose={closeFront} />
         : null;
   // Reached from the title, the hall, the settings and the credits keep its
-  // painted quad behind their cards (styles.css's .front-art), so the title
+  // campus behind their cards (styles.css's .front-art), so the title
   // does not drop to a bare page; reached from the game, they cover the map
   // as before.
   const frontScreen = frontPage && front !== 'title' && frontBack === 'title'
