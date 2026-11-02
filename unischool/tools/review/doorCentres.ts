@@ -11,11 +11,12 @@
 // the one past the middle), so the path, the walkers and the Campus
 // grade's paths to doors (beauty.ts) agree.
 //
-//   npm run review:door-centres                  # every building
-//   npm run review:door-centres -- --all-doors   # side and service doors too
+//   npm run review:door-centres
 //
-// Exits non-zero when any door is off a tile's centre, or a front door off
-// the walkers' tile. Not part of the game: nothing in src/ imports this.
+// Exits non-zero when any door is off a tile's centre, or a side of a
+// building has doors and none of them on the walkers' tile (a second door
+// on a side, on a tile's centre, is the building's own). Not part of the
+// game: nothing in src/ imports this.
 // ---------------------------------------------------------------------
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -29,7 +30,6 @@ import { initialFacilities } from '../../src/data/facilitiesData';
 import { isPlaceableKind, orientedFootprint } from '../../src/state/campusMap';
 import type { Buildable, Facing, Vernacular } from '../../src/state/types';
 
-const ALL_DOORS = process.argv.includes('--all-doors');
 const VERNS: Vernacular[] = ['georgian', 'gothic', 'classical', 'mission', 'modern', 'tudor', 'italianate', 'secondEmpire', 'artDeco'];
 const CATALOGUE: Buildable[] = [...initialTech(), ...initialDorms(), ...initialFacilities()].filter(isPlaceableKind);
 // The map's inset (CampusMap.tsx's BUILDING_INSET): symmetric, so no door
@@ -70,7 +70,15 @@ for (const t of CATALOGUE) {
       }
       setDoorProbe(null);
       doors += heard.size;
-      for (const h of heard.values()) if (h && (ALL_DOORS || h.front || h.why === 'off-centre')) hits.push(h);
+      // A side passes when one of its doors is on the walkers' tile: a
+      // second door on it (the hospital wing's beside its slab's) is the
+      // building's own, as long as it is on a tile's centre.
+      const served = new Set([...heard.entries()].filter(([, h]) => h === null).map(([k]) => k.split(':')[0]));
+      for (const h of heard.values()) {
+        if (!h) continue;
+        if (h.why === 'not-the-walkers-tile' && served.has(h.side)) continue;
+        hits.push(h);
+      }
     }
   }
 }
@@ -89,12 +97,8 @@ for (const [k, hs] of [...groups.entries()].sort()) {
   const fs = [...new Set(hs.map((h) => h.facing))];
   console.log(`  ${id} (${hs[0].name}, ${hs[0].fp}) ${which} ${family} door ${why === 'off-centre' ? 'off a tile centre' : 'on a tile, not the walkers\' one'} at ${[...new Set(hs.map((h) => h.at.toFixed(2)))].slice(0, 4).join('/')} — ${vs.length === VERNS.length ? 'every vernacular' : vs.join(', ')}; facing ${fs.join(',')}`);
 }
-// A failure: any door off a tile's centre, or a front door off the
-// walkers' tile. A side door on another tile is reported (--all-doors), not
-// failed: the walkers use one door a side, and a side door's tile is a
-// matter for each building's own plan (Plan 122D's follow-ups).
-const failed = hits.filter((h) => h.why === 'off-centre' || h.front).length;
+const failed = hits.length;
 console.log(failed === 0
-  ? `  ✓ every door is on a tile centre, and every front door on the walkers' tile${ALL_DOORS ? ` (${hits.length} side doors on another tile, listed above)` : ''}`
-  : `  ✗ ${failed} doors off a tile centre or front doors off the walkers' tile`);
+  ? "  ✓ every door is on a tile centre, and every side with doors has one on the walkers' tile"
+  : `  ✗ ${failed} doors off a tile centre, or on a side with none on the walkers' tile`);
 process.exit(failed === 0 ? 0 : 1);

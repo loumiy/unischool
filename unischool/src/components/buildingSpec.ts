@@ -1880,6 +1880,9 @@ export interface DiningPlan {
   // and its buttery at the other end (Plan 122D), the kitchen's twin, so the
   // hall between them, and its door, stand on the front's middle tile.
   kitchen?: ChapelBox; back?: ChapelBox; buttery?: ChapelBox;
+  // The kitchen's square as it was drawn before it reached back to the
+  // side's middle tile: where a flat roof's flues stand.
+  flues?: ChapelBox;
 }
 
 // The plan, given the walls the camera sees (isoProjection's visibleWalls).
@@ -1911,13 +1914,17 @@ export function diningPlan(t: Buildable, p: Plot, v: Vernacular): DiningPlan {
   // (an odd front, as every refectory's is), where the walkers and a path
   // drawn straight out meet it, as the old college halls had their buttery
   // and pantry at the screens end.
-  const end = (x0: number, x1: number) => box(x0, x1, T + 0.2, T + 0.2 + Math.min(G + B - 0.2, K * 1.1));
+  // Deep enough that its end wall reaches the side's middle tile, where the
+  // walkers come and go and its door stands (Plan 122's follow-up).
+  const endDepth = Math.min(T + G + B, Math.max(T + 0.2 + Math.min(G + B - 0.2, K * 1.1), S / 2 + 1.1));
+  const end = (x0: number, x1: number) => box(x0, x1, T + 0.2, endDepth);
   return {
     band, alongW, front, service,
     terrace: box(0, L, 0, T),
     hall: box(K, L - K, T, T + G),
     kitchen: end(L - K, L),
     buttery: end(0, K),
+    flues: box(L - K, L, T + 0.2, T + 0.2 + Math.min(G + B - 0.2, K * 1.1)),
     back: box(0.35, L - 0.3, T + G, T + G + B),
   };
 }
@@ -1964,7 +1971,10 @@ export const BLOCK_SPLIT_MIN_TILES = 7;
 // The ward slab takes the far half at full width; the wing sits across the
 // near-left, leaving a forecourt near-right. Increasing row runs toward the
 // camera, so the wing takes the high rows.
-export const SLAB_ROW_FRACTION = 0.5;
+// 0.54 since Plan 122's follow-up (it was half): the slab's side walls
+// reach the footprint's middle row, so their doors stand on the tile the
+// walkers come and go by.
+export const SLAB_ROW_FRACTION = 0.54;
 export const WING_COL_FRACTION = 0.62;
 // The wing's share of the slab's height, rounded to whole stories.
 export const WING_STOREY_FRACTION = 0.6;

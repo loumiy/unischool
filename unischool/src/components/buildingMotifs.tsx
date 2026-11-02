@@ -1,4 +1,4 @@
-import { memo, useContext } from 'react';
+import { createContext, memo, useContext } from 'react';
 import type { Buildable, Facing, SchoolColors, Vernacular } from '../state/types';
 import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, unproject, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { frontDepth, frontWidth, localBox, localToGrid, sideSeen, sidesOf, type Plot } from './facing';
@@ -852,21 +852,27 @@ const LINTEL = 0.05;      // the lintel's depth above the head, in v
 // wall's) goes to the tile past it, toward the higher column or row, the
 // tile walkRoutes.ts's entrancesOf opens such a wall onto. Clamped so the
 // door stays on its wall.
-export function snapAlong(a0: number, a1: number, widthShare: number): number {
+export function snapAlong(a0: number, a1: number, widthShare: number, walkers: number | null = null): number {
   const len = a1 - a0;
   if (Math.abs(len) < 1e-6) return 0.5;
+  const half = widthShare / 2;
+  // The walkers' tile, when the wall reaches it with the door's width to
+  // spare.
+  if (walkers !== null) {
+    const w = (walkers - a0) / len;
+    if (w >= half - 1e-6 && w <= 1 - half + 1e-6) return w;
+  }
   const mid = (a0 + a1) / 2;
   const seam = Math.abs(mid - Math.round(mid)) < 1e-3;
   const centre = seam ? Math.round(mid) + 0.5 : Math.floor(mid) + 0.5;
   const u = (centre - a0) / len;
-  const half = widthShare / 2;
   return Math.min(1 - half, Math.max(half, u));
 }
-function snappedDoorCentre(origin: Pt, along: Pt, side: FaceDir, widthShare: number): number {
+function snappedDoorCentre(origin: Pt, along: Pt, side: FaceDir, widthShare: number, walkers: number | null): number {
   const g0 = unproject(origin.x, origin.y);
   const g1 = unproject(along.x, along.y);
   const byCol = side === 'posRow' || side === 'negRow';
-  return snapAlong(byCol ? g0.col : g0.row, byCol ? g1.col : g1.row, widthShare);
+  return snapAlong(byCol ? g0.col : g0.row, byCol ? g1.col : g1.row, widthShare, walkers);
 }
 // The same for a flight of steps, whose middle is on the grid already.
 function snapOnGrid(at: number): number {
@@ -880,14 +886,30 @@ export type DoorProbe = (door: { origin: Pt; along: Pt; side: FaceDir; family: D
 let doorProbe: DoorProbe | null = null;
 export function setDoorProbe(probe: DoorProbe | null): void { doorProbe = probe; }
 
-function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
+// The plot of the building being drawn (Plan 122's follow-up): set by
+// BuildingMotif round everything it draws, so a door on a part of the
+// building (a dining hall's terrace-side hall, a refectory's buttery, the
+// hospital's slab) knows the whole footprint, and stands on the tile the
+// walkers come and go by (walkRoutes.ts's entrancesOf) when its wall
+// reaches it. The canvas map reads it from the same provider
+// (canvasArt.ts). Null outside a building: the nearest tile's centre.
+export const DoorSiteContext = createContext<Plot | null>(null);
+export interface DoorProps {
   d: DoorDimensions;
   origin: Pt; along: Pt; wallHeight: number;
   span: number;   // this wall's length in tiles, so the door is the same real size on both
   side: FaceDir;  // the grid wall it is on
   // Round-headed where the vernacular's windows are.
   shape?: 'rect' | 'arched';
-}) {
+}
+function Door(props: DoorProps) {
+  return doorArt(props, useContext(DoorSiteContext));
+}
+// The tile the walkers use on a side of the plot, along that side.
+export function walkersTileAlong(site: Plot, side: FaceDir): number {
+  return snapOnGrid(side === 'posRow' || side === 'negRow' ? site.col + site.w / 2 : site.row + site.h / 2);
+}
+export function doorArt({ d, origin, along, wallHeight, span, side, shape = 'rect' }: DoorProps, site: Plot | null) {
   const dw = doorFraction(d, span);
   if (dw <= 0 || wallHeight <= 0) return null;
   // The opening in this wall's v: a real height, converted once.
@@ -899,7 +921,7 @@ function Door({ d, origin, along, wallHeight, span, side, shape = 'rect' }: {
   // it (the one walkRoutes.ts's entrancesOf opens an even wall onto). The
   // wall's foot is on the ground, so its ends go back to the grid; the
   // door stays inside the wall.
-  const uc = snappedDoorCentre(origin, along, side, dw);
+  const uc = snappedDoorCentre(origin, along, side, dw, site ? walkersTileAlong(site, side) : null);
   doorProbe?.({ origin: facePoint(origin, along, 0, uc - 0.5, 0), along: facePoint(origin, along, 0, uc + 0.5, 0), side, family: d.family, width: dw * span });
   const h = v1 - v0;
   const u0 = uc - dw / 2;
@@ -991,19 +1013,37 @@ export function treadBox(
 // higher and one tread-depth shallower, climbing toward the wall.
 // `outCol`/`outRow` point away from the building. Drawn top down so the
 // lowest tread paints over the rest.
-function EntranceSteps({ d, centreCol, centreRow, outCol, outRow, span, stone }: {
+export interface EntranceStepsProps {
   d: DoorDimensions;
   centreCol: number; centreRow: number;
   outCol: number; outRow: number;
+  span: number; stone: StonePalette;
+}
+function EntranceSteps(props: EntranceStepsProps) {
+  return entranceStepsArt(props, useContext(DoorSiteContext));
+}
+export function entranceStepsArt({ d, centreCol, centreRow, outCol, outRow, span, stone }: EntranceStepsProps, site: Plot | null) {
+  return entranceStepsBody({ d, centreCol, centreRow, outCol, outRow, span, stone, site });
+}
+function entranceStepsBody({ d, centreCol, centreRow, outCol, outRow, span, stone, site }: {
+  d: DoorDimensions;
+  centreCol: number; centreRow: number;
+  outCol: number; outRow: number; site: Plot | null;
   span: number; stone: StonePalette;
 }) {
   if (d.treads <= 0 || d.threshold <= 0) return null;
   const stepStone = stone.trim === 'none' ? stone.towerStone : stone.trim;
   const halfW = Math.min(d.widthTiles, span * 0.6) / 2 + STEP_OVERHANG;
   const rise = d.threshold / d.treads;
-  // Before the door, on the tile its middle was moved to (Plan 122D).
-  if (outRow !== 0) centreCol = snapOnGrid(centreCol);
-  else centreRow = snapOnGrid(centreRow);
+  // Before the door, on the tile its middle was moved to (Plan 122D): the
+  // walkers' tile when the wall reaches it, else the nearest tile's centre.
+  const reach = span / 2 - Math.min(d.widthTiles, span * 0.6) / 2;
+  const toward = (at: number, side: FaceDir) => {
+    const walkers = site ? walkersTileAlong(site, side) : null;
+    return walkers !== null && Math.abs(walkers - at) <= reach + 1e-6 ? walkers : snapOnGrid(at);
+  };
+  if (outRow !== 0) centreCol = toward(centreCol, outRow > 0 ? 'posRow' : 'negRow');
+  else centreRow = toward(centreRow, outCol > 0 ? 'posCol' : 'negCol');
   const out: React.JSX.Element[] = [];
   for (let i = d.treads - 1; i >= 0; i--) {
     const { col, row, w, h } = treadBox(d.treads, i, centreCol, centreRow, outCol, outRow, halfW);
@@ -8818,21 +8858,23 @@ function Refectory({ t, plan, vernacular, pal, stone }: {
   const kitchenArt = (kitchen: ChapelBox = plan.kitchen!, isKitchen = true) => {
     const f = boxFaces(kitchen.col, kitchen.row, kitchen.w, kitchen.h, 0, KH);
     const faces = chapelFaces(f);
-    const kAlongW = kitchen.w >= kitchen.h;
     const rise = pitched ? Math.min(ridge * 0.55, up(7)) : 0;
-    const along = (u: number) => (kAlongW
-      ? { cc: kitchen.col + kitchen.w * u, cr: kitchen.row + kitchen.h / 2 }
-      : { cc: kitchen.col + kitchen.w / 2, cr: kitchen.row + kitchen.h * u });
     // Four stacks round a pitched kitchen's hips (the Abbot's Kitchen at
     // Glastonbury, Christ Church's), each footed on its slope; three flues
     // in a row on a flat one.
     const inset = Math.min(kitchen.w, kitchen.h) / 2;
+    // A flat roof's flues stand over the kitchen's old square, at the front
+    // (Plan 122's follow-up deepened the block behind it).
+    const flues = plan.flues ?? kitchen;
+    const flueAt = (u: number) => (flues.w >= flues.h
+      ? { cc: flues.col + flues.w * u, cr: flues.row + flues.h / 2 }
+      : { cc: flues.col + flues.w / 2, cr: flues.row + flues.h * u });
     const stacks = pitched
       ? [[0.27, 0.27], [0.73, 0.27], [0.27, 0.73], [0.73, 0.73]].map(([u, v]) => {
         const du = Math.min(u, 1 - u) * kitchen.w; const dv = Math.min(v, 1 - v) * kitchen.h;
         return { cc: kitchen.col + kitchen.w * u, cr: kitchen.row + kitchen.h * v, foot: KH + rise * Math.min(1, du / inset, dv / inset) };
       })
-      : [0.3, 0.5, 0.7].map((u) => ({ ...along(u), foot: KH }));
+      : [0.3, 0.5, 0.7].map((u) => ({ ...flueAt(u), foot: KH }));
     if (!isKitchen) stacks.length = 0;
     const service = doorDimensions('service');
     return (
@@ -9343,7 +9385,11 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
   );
 }
 
-function BuildingMotif({ t, p, material, vernacular, developing, glyphs }: {
+// Round everything a building draws, its plot for its doors (DoorSiteContext).
+function BuildingMotif(props: Parameters<typeof BuildingMotifBody>[0]) {
+  return <DoorSiteContext.Provider value={props.p}><BuildingMotifBody {...props} /></DoorSiteContext.Provider>;
+}
+function BuildingMotifBody({ t, p, material, vernacular, developing, glyphs }: {
   t: Buildable;
   p: Plot;
   material: Material;
