@@ -133,8 +133,11 @@ six.
 
 ### The title screen
 
-The painting behind the title screen is still a stand-in. I'm looking
-for an artist to replace it.
+The painting behind the title screen is gone. In its place is a campus
+seen from above, turning slowly: your own college if you have one
+underway, or a finished one if you're new to the game. The same view
+stays behind you as you found a college, open the hall of fame, the
+settings or the credits.
 
 ### What's next
 

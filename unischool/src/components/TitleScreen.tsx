@@ -36,8 +36,8 @@ const VARIANTS = ['colours', 'split', 'live'] as const;
 type Variant = typeof VARIANTS[number];
 export function titleVariant(): Variant | null {
   if (typeof window === 'undefined') return null;
-  // On this branch, so its preview opens on it: no ?title= is live (and,
-  // with no run, the turning plan view); ?title=painted is the old title.
+  // The default: no ?title= is live, the turning plan view (0.2.0's title);
+  // ?title=painted is the painted title it replaced.
   const v = new URLSearchParams(window.location.search).get('title') ?? 'live';
   return (VARIANTS as readonly string[]).includes(v) ? v as Variant : null;
 }

@@ -17,8 +17,8 @@ import { PITCHES } from './isoProjection';
 // gap in the title: a panel or a menu left open in the game stays hidden
 // under it.
 //
-// The plan view, straight down, turning slowly: the default on this branch
-// (no ?title=), or ?orbit. Straight down nothing has height, so turning the
+// The plan view, straight down, turning slowly: the default (no ?title=),
+// or ?orbit. Straight down nothing has height, so turning the
 // camera is turning a flat picture: the map is drawn once and the
 // stylesheet spins it (.title-backdrop-orbit), at no cost a frame.
 const noop = () => {};
