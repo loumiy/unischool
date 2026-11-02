@@ -64,8 +64,7 @@ export function driveRoute(s: GameState): TileCoord[] {
 }
 
 // Paves the drive. A headless founding's only, since Plan 122J: a guided
-// founding's player draws the path to the road themselves (state/opening.ts's
-// 'path' step).
+// founding's player lays paths as they see fit.
 export function layDrive(s: GameState): void {
   for (const tile of driveRoute(s)) s.pathways[pathTileKey(tile)] = true;
 }

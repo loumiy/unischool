@@ -2,7 +2,7 @@
 
 *A draft for the itch.io devlog, for the owner to edit and post with the
 0.2.0 upload. It covers everything merged since the 0.1.4 build
-(`d085c5a`): Plans 118–121, the follow-ups from Ginger Brooke's playtest,
+(`d085c5a`): Plans 118–122, the follow-ups from Ginger Brooke's playtest,
 research prizes by field and the birdsong. The full list is in
 [`changelog.md`](changelog.md). Nothing here claims more than the build
 does.*
@@ -100,6 +100,44 @@ played thirty-seven years without founding one, and nothing told her
 why the late game never came. A new side chapter, *A school of its own*,
 now asks for it, says what it opens, and names the school closest to
 six.
+
+### Ginger's notes
+
+Ginger's video was full of small moments where the game got in her way,
+and most of them are fixed.
+
+- **Doors on tiles.** The Original Commons' door sat between two tiles,
+  so a path couldn't line up with it, and the Student Center's too. Now
+  every door
+  on every building, in every style and every way it can face, is on a
+  tile's centre, and each side's door is the one the students use. The
+  three biggest dining halls gained a low buttery at the far end so
+  their front doors could sit in the middle, and the Medical Center's
+  entrance moved to the middle of its front. No building changed size,
+  so your campus stays where it is.
+- **A walk along the road.** A new game starts with a paved walk the
+  length of the road. The game no longer lays a path from Founders Hall
+  for you, so the paths are yours to lay wherever you like.
+- **Walks through the tabs.** A chapter would send you to the Students
+  tab, the objective would tick the moment it opened, and you were left
+  with a screen full of information and nothing pointing at any of it.
+  Now the Treasury, Students,
+  History and Faculty tabs each open with a short walk, one section at a
+  time. Skip it if you like; the Guide button plays it again.
+- **The objectives open from the bottom right**, where their chip is, and
+  fold back there, so they get in the way less. The toasts moved to the
+  bottom left.
+- **A finished chapter waits for you.** When opening the Treasury
+  finished *Paying for it*, the chapter used to vanish while you were
+  still reading. Now it stays, marked done, until you leave the tab.
+- ***The first summer* arrives with the summer**, not six weeks early as
+  a warning that confused more than it helped.
+- **The Curriculum's "All # with X" button is gone**, and so is "+80
+  places" on each program row. Every course seats 80 more students; the
+  course's own panel still says so.
+- **"Welcome to Halifax College"**, not "Welcome to Halifax". And "The
+  builders are out of" a new building is now "*Name* is complete."
+- **No more stray highlighting** when you drag across the screen.
 
 ### Smaller things
 

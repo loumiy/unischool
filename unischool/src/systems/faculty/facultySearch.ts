@@ -39,14 +39,17 @@ export function postSearch(s: GameState, field: string): void {
   s.log.unshift({
     year: s.clock.year, week: s.clock.week,
     message: `A search is posted in ${field}: ${SEARCH_WEEKS} weeks of advertising, headhunting and conference visits.`,
+    subject: searchSubject(field),
     kind: 'info',
   });
 }
 
-// A search's find, read off the log (Plan 114G: it is a toast, Toasts.tsx).
-// It is the one market line written as good news: an ordinary listing
-// (facultySystem.ts) and a researcher drawn by a lab (researchSystem.ts)
-// are 'info'.
+// A search's first find, read off the log (Plan 114G: it is a toast,
+// Toasts.tsx). It is the one market line written as good news: an ordinary
+// listing (facultySystem.ts), a researcher drawn by a lab (researchSystem.ts)
+// and a search's later finds are 'info', a line in the log and a name on
+// the market (the owner, 2 November 2026: a toast for every find crowded the
+// screen).
 export function isSearchFind(l: LogEntry): boolean {
   return l.topic === 'candidate' && l.kind === 'good';
 }
@@ -55,18 +58,32 @@ export function isSearchFind(l: LogEntry): boolean {
 // closes by a week. Called from tickCandidatePool after the ordinary
 // arrivals. One global draw per running search per week, so the seeded
 // stream moves only while a search runs.
+// The log's mark on a posting, and the opening of a find's line.
+const searchSubject = (field: string) => `search:${field}`;
+const findPrefix = (field: string) => `The ${field} search has turned up `;
+// Whether this search has turned somebody up already: a find in the field
+// logged since it was posted.
+function foundBefore(s: GameState, field: string): boolean {
+  for (const l of s.log) {
+    if (l.subject === searchSubject(field)) return false;
+    if (l.topic === 'candidate' && l.message.startsWith(findPrefix(field))) return true;
+  }
+  return false;
+}
+
 export function tickSearches(s: GameState): void {
   for (const field of Object.keys(s.searches)) {
     if (random() < SEARCH_LISTING_CHANCE) {
       const existingNames = [...s.faculty, ...s.candidates].map((f) => f.name);
       const found = generateCandidate(field, existingNames, marketStandingOf(s));
+      const first = !foundBefore(s, field);
       s.candidates.push(found);
       s.log.unshift({
         year: s.clock.year, week: s.clock.week,
-        message: `The ${field} search has turned up ${found.name} — listed on the market now.`,
+        message: `${findPrefix(field)}${found.name} — listed on the market now.`,
         topic: 'candidate',
         subject: found.id,
-        kind: 'good',
+        kind: first ? 'good' : 'info',
       });
     }
     const left = s.searches[field] - 1;

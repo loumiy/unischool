@@ -21,7 +21,6 @@ import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { centredPlacement, footprintOf } from '../src/state/campusMap';
 import type { GameState } from '../src/state/types';
-import { SIDEWALK_ROW } from '../src/state/drive';
 
 console.log('old walkthrough saves tests');
 let checks = 0;
@@ -120,11 +119,6 @@ for (const stage of ['welcome', 'site-hall', 'found']) {
   const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   const spot = centredPlacement(footprintOf(hall));
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
-  // The path step (Plan 122J): straight down from the hall to the walk.
-  const p = s.placements[FOUNDERS_HALL_ID]!;
-  const add = [];
-  for (let row = p.row + p.h; row < SIDEWALK_ROW; row++) add.push({ row, col: p.col + Math.floor(p.w / 2) });
-  s = reducer(s, { type: 'PAINT_PATH_TILES', add, remove: [] });
   const html = card(s);
   assert(s.events.opening.stage === 'found', `a new founding reaches the program's step (${s.events.opening.stage})`);
   assert(html.includes('each already has a professor') && !html.includes('Then appoint its professor'), "and keeps today's words");

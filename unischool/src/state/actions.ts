@@ -505,8 +505,7 @@ function foundState(
 
   // The walk along the road, for every founding (Plan 122J). A headless
   // founding's hall stands from the start, and so does its drive to the road
-  // (Plan 115B); a guided founding's player draws theirs (the walkthrough's
-  // 'path' step).
+  // (Plan 115B); a guided founding's player lays paths as they see fit.
   laySidewalk(state);
   if (!guided) layDrive(state);
   appointFoundingFaculty(state);

@@ -34,8 +34,8 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
         if (awaitsSite(s, node)) {
           s.placements[node.id] = placement;
           fellTrees(s.trees, placement);
-          // No drive laid for it since Plan 122J: the walkthrough asks the
-          // player to draw the path to the road.
+          // No drive laid for it since Plan 122J: the player lays paths as
+          // they see fit.
         }
       } else if (canStartDevelopment(s, node, undefined, financingOf(action))) {
         s.placements[node.id] = placement;

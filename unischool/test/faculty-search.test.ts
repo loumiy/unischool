@@ -12,7 +12,7 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import {
-  canPostSearch, searchCost, searchWeeksLeft, SEARCH_LISTING_CHANCE, SEARCH_WEEKS,
+  canPostSearch, isSearchFind, searchCost, searchWeeksLeft, SEARCH_LISTING_CHANCE, SEARCH_WEEKS,
 } from '../src/systems/faculty/facultySearch';
 import { loadGame, saveGame, SAVE_KEY, SAVE_VERSION } from '../src/state/persistence';
 import type { GameState } from '../src/state/types';
@@ -117,6 +117,22 @@ console.log('faculty search tests');
   assert(searchWeeksLeft(s, FIELD) === 0, 'the search closes on time');
   assert(s.log.some((l) => l.message.includes('search has closed')), 'and the log says so');
   assert(canPostSearch(s, FIELD), 'another can be posted once it has closed');
+}
+
+// ---- one toast a search: its first find (the owner, 2 November 2026) ----
+{
+  seedRandom(11);
+  let s = createInitialState('Finder');
+  s = reducer(s, { type: 'POST_SEARCH', field: FIELD });
+  s = advance(s, SEARCH_WEEKS);
+  const finds = s.log.filter((l) => l.topic === 'candidate' && l.message.startsWith(`The ${FIELD} search has turned up`));
+  assert(finds.length >= 2, `a whole search turns up several (${finds.length})`);
+  assert(finds.filter(isSearchFind).length === 1, `and only its first is a toast (${finds.filter(isSearchFind).length})`);
+  assert(isSearchFind(finds[finds.length - 1]!), 'the first, the oldest in the log');
+  s = reducer(s, { type: 'POST_SEARCH', field: FIELD });
+  s = advance(s, SEARCH_WEEKS);
+  const all = s.log.filter((l) => l.topic === 'candidate' && l.message.startsWith(`The ${FIELD} search has turned up`));
+  assert(all.filter(isSearchFind).length === 2, `a second search has its own first find (${all.filter(isSearchFind).length})`);
 }
 
 // ---- a save keeps it honest ----

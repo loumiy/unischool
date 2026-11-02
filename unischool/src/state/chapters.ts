@@ -13,7 +13,7 @@ import { GRADE_B } from '../data/courseQuality';
 import { openChairs, venueForCategory } from '../data/studentLifeData';
 import { closestSchool, hallDisplayName } from '../systems/techtree/schools';
 import { schoolsFounded } from '../systems/guidance/establish';
-import { foundersHallUnsited, foundersReachRoad, laterCourseStarted } from './opening';
+import { foundersHallUnsited, laterCourseStarted } from './opening';
 import { DEMAND_SATISFACTION_THRESHOLD } from '../data/demandData';
 import { placesComing } from '../systems/guidance/seating';
 import { pathTileKey } from './campusMap';
@@ -112,9 +112,6 @@ export const CHAPTERS: readonly Chapter[] = [
     earliest: week(1, 1),
     objectives: [
       { id: 'site-founders-hall', progress: (s) => !foundersHallUnsited(s) },
-      // The path to the road (Plan 122J): the walkthrough's step, and the
-      // drawer's ask in a run that skipped it.
-      { id: 'path-to-road', progress: foundersReachRoad },
       { id: 'found-first-program', progress: (s) => housedPrograms(s).length > 0 },
     ],
   },
@@ -406,8 +403,7 @@ export function walkAsked(s: GameState, tab: WalkTab): boolean {
 export const MARKED_TABS: ReadonlySet<string> = new Set(['treasury', 'students', 'history', 'faculty']);
 
 // The paths joined to Founders Hall and the tiles round a footprint live
-// in state/drive.ts since Plan 122J (the walkthrough's path step reads
-// them too); re-exported here for the harness.
+// in state/drive.ts since Plan 122J; re-exported here for the harness.
 export { besideTiles, pathsFromFounders };
 
 // A sited residence hall has a path beside it that joins Founders Hall.
@@ -467,9 +463,6 @@ export function ringedBuilding(s: GameState): Buildable | null {
 // With nothing ringed the menu opens on Grounds (BuildPopup.tsx's
 // initialBuildTab), where the tile is.
 export function ringedTool(s: GameState): 'paths' | null {
-  // The walkthrough's path step (Plan 122J), and the founding's objective
-  // in a run that skipped it.
-  if (!foundersHallUnsited(s) && !foundersReachRoad(s) && (s.events.opening.stage === 'path' || currentChapter(s)?.id === 'founding')) return 'paths';
   if (currentChapter(s)?.id !== 'somewhere-to-sleep' || objectiveMet(s, PATH_OBJECTIVE)) return null;
   return sitedAny(s, isDorm) && ringedBuilding(s) === null ? 'paths' : null;
 }

@@ -89,6 +89,8 @@ places". The owner's answers to §2 the same day are folded in.*
 
 `npm run review:door-centres` is now strict about side doors: every side with doors must have one on the walkers' tile, and it passes. A tab's Guide button replays the tab's walk from its first step, and opens the chapter's page as before.
 
+**J, revised (the owner, 2 November 2026):** "Keep the sidewalk, but get rid of that step and let players draw paths however they see fit." The walkthrough's path step and the founding chapter's path objective are gone, and so is the Paths ring that went with them. The walk along the road stays. A guided founding still lays no drive, so the player lays every path. A save held on the old step goes on to the program's step (`settleOpening` and `persistence.ts`'s `sanitizeOpening`).
+
 **J, as implemented:** `state/drive.ts` gains `laySidewalk` and `SIDEWALK_ROW`, and `pathsFromFounders` and `besideTiles` move there from `chapters.ts`, which re-exports them. That way `opening.ts` can read them without an import cycle. A headless founding (the harness, the tests) keeps its drive. Path actions now settle the walkthrough. When Paths is picked on the path step, the build menu folds away and the tool stays in hand, so the ground down to the road can be seen. A path that touches the walk diagonally counts as joined, the same rule Somewhere to sleep uses.
 
 PRs A, C and H are small and independent. B goes before E and G, since
