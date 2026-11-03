@@ -143,11 +143,13 @@ const DISTRICT_LOOK_MS = 900;
 // enough to notice at a glance, short enough that a run of completions in a
 // fast-forwarded year does not leave the map permanently flashing.
 const COMPLETION_PULSE_MS = 1500;
-// Founders Hall rising into its footprint at the founding (Plan 124H), on
-// the completion ring's easing (ease-out). The walkthrough's panels after
-// the placement wait this long (App.tsx). Reduced motion shows the hall at
-// once.
-export const FOUNDING_RISE_MS = 400;
+// Founders Hall going up at the founding (Plan 124H, revised by the owner):
+// the same construction stages every other building shows over its build
+// weeks, the frame and then the scaffolded shell, played in under a second
+// before the hall stands. The walkthrough's panels after the placement wait
+// this long (App.tsx). Reduced motion shows the hall at once.
+const FOUNDING_STAGE_MS = 450;
+export const FOUNDING_RISE_MS = FOUNDING_STAGE_MS * 2;
 
 // --- pan & zoom ---
 // Kept out of React state: the world `<g>`'s transform is set imperatively
@@ -1398,9 +1400,10 @@ export default function CampusMap({
   // Ground broken (Plan 70H): a puff of dust at a footprint the week it is
   // placed. The first reading is where the run stands, not news.
   const [justPlaced, setJustPlaced] = useState<readonly string[]>([]);
-  // The building rising into its footprint (FOUNDING_RISE_MS): left out of
-  // the canvas and drawn over it, growing from the ground.
+  // The building going up (FOUNDING_RISE_MS): left out of the canvas while
+  // its construction stages play over its footprint.
   const [rising, setRising] = useState<string | null>(null);
+  const [riseStage, setRiseStage] = useState<1 | 2>(1);
   const wasPlacedRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     const now = new Set(Object.keys(s.placements));
@@ -1412,7 +1415,11 @@ export default function CampusMap({
     // audio director's, on the placement; `complete` ends the rise.
     if (now.has(FOUNDERS_HALL_ID) && !was.has(FOUNDERS_HALL_ID)) {
       const still = reducedMotion();
-      if (!still) setRising(FOUNDERS_HALL_ID);
+      if (!still) {
+        setRising(FOUNDERS_HALL_ID);
+        setRiseStage(1);
+        pulseTimersRef.current.push(window.setTimeout(() => setRiseStage(2), FOUNDING_STAGE_MS));
+      }
       pulseTimersRef.current.push(window.setTimeout(() => {
         setRising(null);
         audio.play('complete');
@@ -2517,34 +2524,30 @@ export default function CampusMap({
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [layout, camera, sceneList, risingEntries, groundGeo, s.self.name, s.developing, turning, snow, crowds, pennants, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
-  // The rising building, drawn as the SVG map draws it, scaled up from the
-  // centre of its footprint on the ground (styles.css's .founding-rise).
-  // Canvas map only: the SVG map, kept for comparison, shows it at once.
+  // The building going up, drawn over the canvas in its construction
+  // stages (siteProgressArt's own art): the frame to full height, then the
+  // closed shell in scaffolding. Canvas map only: the SVG map, kept for
+  // comparison, shows it at once.
   const risingArt = (() => {
     if (risingEntries.length === 0 || !rising) return null;
     const p = layout.placements[rising];
-    if (!p) return null;
-    const parts = sceneParts({ layout, inspectedId: null, justFinished: [], onInspect, labelLayerRef, camera, front: null }, risingEntries, groundGeo);
-    const c = project(p.col + p.w / 2, p.row + p.h / 2);
+    const t = s.tech.find((n) => n.id === rising);
+    if (!p || !t) return null;
+    const d = drawnFootprint(p);
+    const height = wallHeightOf(t);
+    const shell = boxFaces(d.col, d.row, d.w, d.h, 0, height);
     return (
-      <g transform={`translate(${c.x.toFixed(2)} ${c.y.toFixed(2)})`} aria-hidden="true" pointerEvents="none">
-        <g className="founding-rise" style={{ animationDuration: `${FOUNDING_RISE_MS}ms` }}>
-          <g transform={`translate(${(-c.x).toFixed(2)} ${(-c.y).toFixed(2)})`}>
-            <CrowdContext.Provider value={crowds}>
-            <BannerContext.Provider value={banners}>
-            <ColorsContext.Provider value={layout.colors}>
-            <CollegeNameContext.Provider value={s.self.name}>
-            <DevelopingContext.Provider value={s.developing}>
-            <SnowContext.Provider value={snow}>
-              {risingEntries.map((se) => parts.entry(se))}
-            </SnowContext.Provider>
-            </DevelopingContext.Provider>
-            </CollegeNameContext.Provider>
-            </ColorsContext.Provider>
-            </BannerContext.Provider>
-            </CrowdContext.Provider>
+      <g aria-hidden="true" pointerEvents="none" className="founding-site">
+        {riseStage === 1 && <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={height} floors={storeysOf(t)} />}
+        {riseStage === 2 && (
+          <g className="campus-site-shell">
+            <polygon className="campus-site-wall" points={polyPoints(shell.left)} />
+            <polygon className="campus-site-wall" points={polyPoints(shell.right)} />
+            <polygon className="campus-site-wall" points={polyPoints(shell.top)} />
+            <polygon className="campus-site-hatch" points={polyPoints(shell.left)} />
+            <polygon className="campus-site-hatch" points={polyPoints(shell.right)} />
           </g>
-        </g>
+        )}
       </g>
     );
   })();

@@ -386,6 +386,8 @@ placement in `CampusMap.tsx` and the walkthrough's step in `OpeningCoach.tsx`.
 
 **As implemented:** FOUNDING_RISE_MS 400: the hall's canvas entries are left out while an SVG overlay of the same art scales up from the footprint (.founding-rise, ease-out); slot marks wait; complete plays at the end (at once under reduced motion); App holds the hall panel and step-two card 400 ms. Canvas map only; the hall's shadow, label and flagpole show at full size during the rise. No test.
 
+**Revised after the owner's playtest (3 November 2026):** the scaling rise read as distorted and cartoonish, out of the game's style. Founders Hall now goes up in the construction stages every other building shows (`SiteFrame`, then the hatched shell in scaffolding), 450 ms each, before it stands; `FOUNDING_RISE_MS` is 900 and the panels wait that long. The `.founding-rise` keyframes are gone. Reduced motion still shows the hall at once.
+
 ### PR I — A click finishes the admissions animation (card 3)
 
 The rain, the admit line and the pour take about 4 s each summer
