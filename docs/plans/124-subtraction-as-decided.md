@@ -2,7 +2,8 @@
 
 *The owner's answers to the review by subtraction's cut list (Plan 123,
 `docs/reviews/2026-11-review-by-subtraction/`), given row by row on the review
-page on 3 November 2026, sequenced into PRs. The review's twelve cards were
+page on 3 November 2026 and revised there the same day after the rows were
+explained at more length, sequenced into PRs. The review's twelve cards were
 recommendations; this plan does only what the owner chose, reads each "trim"
 as §3 says, and holds the cards' additions that the cut list didn't ask about
 for the owner's word (§4).*
@@ -13,11 +14,12 @@ for the owner's word (§4).*
 
 ## 0. What the owner decided
 
-38 rows: **9 cut, 11 trim, 17 keep**, and one answered by a note.
+38 rows: **9 cut, 10 trim, 19 keep**. The revision changed two rows: S7 went
+from trim to keep, and X1 is now marked keep, with its note unchanged.
 
 | Row | Item | Recommended | Decided |
 |---|---|---|---|
-| X1 | The *Looking around* chapter | cut | **keep, with a skip button** (the owner's note) |
+| X1 | The *Looking around* chapter | cut | keep, **with a skip button** (the owner's note) |
 | X2 | The map tools' 280-word help | trim | **trim** |
 | X3 | Year-1 chapter *about* paragraphs | cut | **cut** |
 | X4 | The "why you can't yet" help variants | cut | **cut** |
@@ -53,7 +55,7 @@ for the owner's word (§4).*
 | S4 | "Guide" and "Distinguished" name clashes | trim | **trim** |
 | S5 | Unicode glyphs among the icons | trim | **trim** |
 | S6 | Seven entrance motions | merge | **trim** |
-| S7 | Three projections in the first minute | trim | **trim** |
+| S7 | Three projections in the first minute | trim | keep (was trim) |
 | F1 | The unreachable `RENOVATE_LIBRARY` | cut | **cut** |
 
 **What the answers say.** The owner cut the words that explain the first year and
@@ -117,7 +119,6 @@ review put up for cutting. So of the twelve cards:
   - The map tools' glyphs are at `CampusMap.tsx:2759-2762`, and the school
     motifs at `schoolPalette.ts:16-22`.
   - `styles.css` has 24 `@keyframes`, seven of them entrances.
-  - The title backdrop is `TitleBackdrop.tsx`, a turning plan view.
 - **Bugs from the review** (`bugs.md`):
   - R-3: the banner is invisible under reduced motion (`styles.css:4452-4467`).
   - R-4: the Curriculum list re-scrolls on commit.
@@ -133,7 +134,7 @@ review put up for cutting. So of the twelve cards:
 | A | X1, X2, S5 (map tools), R-1 | The camera: buttons on every device, a skip, a short help |
 | B | X3, X4, X7, X8, X9, X11 | Year 1 without the explaining: objectives that open when they can be done |
 | C | H1, H2, H5, S1 | The band: fewer badges, one place for a pending matter, one door for standing, gold with fewer meanings |
-| D | S3, S4, S6, S7, R-3 | Signals: cues, names, entrances, the title's backdrop, and the reduced-motion banner |
+| D | S3, S4, S6, R-3 | Signals: cues, names, entrances, and the reduced-motion banner |
 | E | M3 | Promises out, with old saves loading clean |
 | F | A5, M2 | One campus figure; shorter faculty and Students lines |
 | G | F1, R-4, R-5, T-1 | Loose ends: the dead action, the scroll, the panel, the clip tool |
@@ -226,7 +227,7 @@ counts fall.
    Gold for selected, primary, good on the band, Distinguished and lab progress
    stays.
 
-### PR D — Signals (S3, S4, S6, S7, R-3)
+### PR D — Signals (S3, S4, S6, R-3)
 
 1. **Cues (S3, trim).** Two fixes where a cue means the opposite of its event:
    - a professor's departure stops sharing the hire's `tick`, and plays nothing;
@@ -243,11 +244,7 @@ counts fall.
      panels);
    - one fade (overlays);
    - the banner.
-4. **The title's backdrop (S7, trim).** The title screen shows the isometric demo
-   campus, slowly panning, in place of the turning plan view. The founding
-   form's elevation stays: the review found it the best anticipation in the
-   game.
-5. **R-3.** Add `animation: none` to `.school-banner` under both reduced-motion
+4. **R-3.** Add `animation: none` to `.school-banner` under both reduced-motion
    selectors, as `.spec-panel` has.
 
 ### PR E — Promises out (M3)
@@ -303,7 +300,6 @@ catalogue hooks and its gate. Then:
 | S4 | "Show me" and "Chair" | Other names |
 | S5 | The map tools' three glyphs drawn; school motifs untouched | Motifs redrawn too, or cut |
 | S6 | Three entrances | Two (rise, fade), banner as a rise |
-| S7 | The title backdrop becomes isometric; the founding elevation stays | The reverse, or both isometric |
 
 ## 4. Not on the cut list: the cards' additions, held for the owner
 
