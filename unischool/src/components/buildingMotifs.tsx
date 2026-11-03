@@ -9061,9 +9061,9 @@ function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Elemen
   );
 }
 
-// Wraps BuildingMass. A building being extended (a library renovation,
-// RENOVATE_LIBRARY) is drawn at its standing height, windows and all, with
-// scaffolding on its roof rather than as a ground-level site.
+// Wraps BuildingMass. A building being extended (a library's added floor,
+// estate.ts's startLibraryFloor) is drawn at its standing height, windows
+// and all, with scaffolding on its roof rather than as a ground-level site.
 // --- The residence towers (Plan 87H) ----------------------------------
 // A residence tower is not an office tower: a shaft of punched windows in
 // the campus's own wall (brick, stone, stucco or panel), stacked balconies

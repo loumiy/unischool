@@ -373,12 +373,12 @@ export interface Buildable {
   // Set when naming rights are sold ('naming-rights'), alongside overwriting
   // `name`; its presence tells CurriculumTab.tsx that `name` is donor text.
   donorSurname?: string;
-  // In-place renovations (today only the tier-1 library: RENOVATE_LIBRARY).
+  // In-place floors (today only the tier-1 library: estate.ts's startLibraryFloor).
   // The node itself goes back to 'developing' and grows its
   // servesPopulation; this count prices the next one. Undefined means 0.
   floorsAdded?: number;
   // servesPopulation before the renovation in progress, which stays in use
-  // meanwhile. Set by RENOVATE_LIBRARY, cleared on completion.
+  // meanwhile. Set by startLibraryFloor, cleared on completion.
   renovatingFrom?: number;
   // Unpaid maintenance, compounding (systems/estate/estate.ts); what its
   // condition reads. Undefined means none.

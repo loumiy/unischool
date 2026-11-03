@@ -7,6 +7,7 @@ import { MultiChart } from '../components/MultiChart';
 import { sectionAvailable } from '../components/TabNav';
 import { useSectionTarget } from '../components/sectionTarget';
 import { count } from '../format';
+import PillarHead from '../components/PillarHead';
 
 // The Students tab (Plan 29, V1-33): what used to be Student Life and
 // Enrollment, on one screen. What students think comes first, since it
@@ -23,6 +24,8 @@ export default function StudentsTab({ s, act, target, onTargetConsumed }: {
   useSectionTarget(target, onTargetConsumed);
   return (
     <div className="students-tab">
+      {/* Student life's part of prestige (Plan 124K). */}
+      <div className="tab-content"><section className="panel pillar-head-panel"><PillarHead s={s} pillar="studentLife" /></section></div>
       {sectionAvailable(s, 'students.guidebook') && <div className="tab-content"><IdentityPanel s={s} /></div>}
       <StudentLifeTab s={s} act={act} clubs={sectionAvailable(s, 'students.clubs')} />
       <EnrollmentTab s={s} funnel={sectionAvailable(s, 'students.funnel')} />

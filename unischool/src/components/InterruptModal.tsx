@@ -21,7 +21,8 @@ import FinalReportView from './FinalReportView';
 import AdmissionsPage, { admissionsPageUp } from './AdmissionsPage';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
-import { computePrestigeTarget, pillarValue, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
+import { computePrestigeTarget, gradeYear, pillarValue, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
+import { PillarBar, pillarPartsLine } from './PillarHead';
 import { findDecisionEvent, findOpeningLetter, offeredChoices } from '../data/eventData';
 import { restaffPlan } from '../systems/faculty/restaffing';
 import { MASCOT_MAX_LENGTH, openChairs, rollMascotSuggestion, sportById } from '../data/studentLifeData';
@@ -145,6 +146,20 @@ function ReviewLineView({ line }: { line: ReviewLine }) {
 // its own storage and does not ask.
 export const backUpDue = (year: number) => PLATFORM !== 'desktop' && year % 5 === 0;
 
+// The summer's standing as the pillar bars (Plan 124K): the prestige the
+// summer steps to, stacked by pillar, filling in as the review opens, with
+// the target as its tick.
+function ReviewPillars({ s }: { s: GameState }) {
+  const after = gradeYear(s).after;
+  const line = pillarPartsLine(s, after);
+  return (
+    <div className="review-pillars">
+      <PillarBar s={s} of={after} label={`Prestige by pillar: ${line}`} />
+      <span className="review-pillars-line">{line}</span>
+    </div>
+  );
+}
+
 function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (promises: string[]) => void; onSave: () => void }) {
   const review = buildYearInReview(s);
   const era = currentEra(s);
@@ -166,6 +181,7 @@ function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (prom
                 {section.lines.map((line, i) => <ReviewLineView key={i} line={line} />)}
               </ul>
             )}
+            {section.key === 'standing' && <ReviewPillars s={s} />}
           </section>
         ))}
       </div>

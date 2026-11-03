@@ -1,6 +1,6 @@
 import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useCollapse } from '../components/useCollapse';
 import { useSettings, type ObjectivesMode } from '../settings';
 import { ringedProgram } from '../state/chapters';
@@ -12,6 +12,7 @@ import {
   discoverySchools, graduatePrograms, graduateSection, programById, GRADUATE_SCHOOL_SECTION, GRADUATE_SECTIONS, type ProgramInfo,
 } from '../data/techData';
 import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers';
+import { classPlacesShort, SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
@@ -41,6 +42,7 @@ import { count, countWord, durationWords, fraction, money, moneyShort, signed, s
 import {
   NO_FILTERS, cellState, filtersActive, matchesFilters, targetFilters, type Filters, type StatusFilter,
 } from './curriculumFilter';
+import PillarHead from '../components/PillarHead';
 
 // Progressive discovery: what the tab shows is derived from existing
 // unlock/milestone state, with no gating of its own.
@@ -885,10 +887,21 @@ export function RowAction({ s, act, program, progress, lookup, onSelect, compact
         <GradeChip score={projected.score} title={`${next.name} would be ${count(projected.score)} out of 100 with ${best.name}, who teaches at ${best.teaching}${qualityGap(projected) ? ` (${qualityGap(projected)})` : ''}`} />
       </button>
       <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
+      {!compact && showsPlaces(s, program.id) && (
+        <span className="row-action-places" title="Each course taught adds this many class places">{PLACES_CHIP}</span>
+      )}
       {!compact && <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">Choose…</button>}
       {worth}
     </p>
   );
+}
+
+// The growth lever on the button that presses it (Plan 124J): while class
+// places are short, a housed program's next Develop says the places its
+// course adds, on an open row (a folded one's course cannot start now).
+export const PLACES_CHIP = `+${SEATS_PER_COURSE} places`;
+export function showsPlaces(s: GameState, programId: string): boolean {
+  return isHoused(s, programId) && classPlacesShort(s);
 }
 
 // A program row starts open only if you can act on it: its next course can
@@ -1259,8 +1272,24 @@ function FreeSlotLine({ s, onGo }: { s: GameState; onGo?: (step: NextStep) => vo
   );
 }
 
+// The element a commit holds in place: the course's program row, or its
+// cell where there is no row (the filters' worklist).
+function anchorOf(courseId: string): HTMLElement | null {
+  const programId = programOfCourse(courseId);
+  const row = programId ? document.querySelector<HTMLElement>(`[data-program="${CSS.escape(programId)}"]`) : null;
+  return row ?? document.getElementById(`course-${courseId}`);
+}
+
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const overflow = getComputedStyle(p).overflowY;
+    if ((overflow === 'auto' || overflow === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+  }
+  return null;
+}
+
 export default function CurriculumTab(
-  { s, act, target, onTargetConsumed, onOpenFaculty, onGo }:
+  { s, act: actOuter, target, onTargetConsumed, onOpenFaculty, onGo }:
   {
     s: GameState; act: (a: Action) => void;
     // Where to go on arrival: a school's name, "program:<id>", "field:<name>",
@@ -1290,6 +1319,28 @@ export default function CurriculumTab(
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+
+  // Committing a course keeps the list where it was (Plan 124G, R-4). The
+  // commit can fold rows above it (programFoldedByDefault: a row whose next
+  // course the money no longer covers), which pulled the list up under the
+  // pointer. The committed course's row is held at the height it stood at
+  // when it was pressed, for the render that brings the new state.
+  const anchor = useRef<{ from: GameState; id: string; top: number } | null>(null);
+  const act = useCallback((a: Action) => {
+    if (a.type === 'START_DEVELOPMENT') {
+      const el = anchorOf(a.nodeId);
+      if (el) anchor.current = { from: s, id: a.nodeId, top: el.getBoundingClientRect().top };
+    }
+    actOuter(a);
+  }, [s, actOuter]);
+  useLayoutEffect(() => {
+    const held = anchor.current;
+    if (!held || held.from === s) return;
+    anchor.current = null;
+    const el = anchorOf(held.id);
+    const scroller = el ? scrollerOf(el) : null;
+    if (el && scroller) scroller.scrollTop += el.getBoundingClientRect().top - held.top;
+  });
 
   // Drag-and-drop state, shared so source and target draw the same preview.
   // A drop dispatches SWAP_COURSE_FACULTY; illegal targets refuse the drop.
@@ -1377,7 +1428,9 @@ export default function CurriculumTab(
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            {/* While filtering, the crumb shows the whole-catalogue search. */}
+            {/* Academics' part of prestige (Plan 124K); while filtering, the
+                crumb shows the whole-catalogue search. */}
+            {!filtering && <PillarHead s={s} pillar="academics" />}
             {filtering && (
               <h2 className="curriculum-crumbs">
                 <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>The curriculum</button>

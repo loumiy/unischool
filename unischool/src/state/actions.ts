@@ -255,8 +255,6 @@ export type Action =
   | { type: 'SWAP_COURSE_FACULTY'; courseA: string; courseB: string }
   // Pays to raise the weekly chance of a candidate in a field.
   | { type: 'POST_SEARCH'; field: string }
-  // Puts the one tier-1 library back into 'developing' in place.
-  | { type: 'RENOVATE_LIBRARY' }
   | { type: 'SAVE_GAME' }
   | { type: 'SAVE_FAILED'; manual: boolean }
   // useGame.ts erases the save.

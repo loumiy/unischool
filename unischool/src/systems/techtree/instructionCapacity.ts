@@ -83,6 +83,18 @@ export function intakeCeiling(s: GameState): IntakeCeiling {
   };
 }
 
+// Class places are short (Plan 124J): the students already outnumber the
+// places, or more applied last summer than next summer's room will hold, so
+// the room, not the pool, sets the class. While they are, the Curriculum's
+// next Develop says what a course adds (SEATS_PER_COURSE).
+export function classPlacesShort(s: GameState): boolean {
+  if (totalEnrolled(s.students) > instructionCapacity(s)) return true;
+  const pool = s.students.lastFunnel?.applicants;
+  if (pool === undefined) return false;
+  const ceiling = intakeCeiling(s);
+  return pool > Math.max(0, ceiling.nextSummer - ceiling.stayingOn);
+}
+
 // Share of the enrolled body the catalog can teach, 0..1 — the same shape
 // as satisfactionSystem.ts's attributeCoverage. Empty campus counts as covered.
 export function instructionCoverage(s: GameState): number {

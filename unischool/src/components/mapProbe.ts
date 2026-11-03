@@ -2,16 +2,27 @@
 // registers the reading; Toasts.tsx asks it, so a building finished where
 // the player can see it is not announced twice. With no map mounted,
 // nothing is on screen.
+//
+// Two maps can be mounted at once: the game's map under the title screen,
+// and the title's live backdrop over it. So each map's reading is kept in
+// mount order, the newest answers, and a map that unmounts takes only its
+// own away (Plan 124G, the review's T-1: the backdrop's unmount on Continue
+// cleared the game map's reading).
 
 type Probe = (buildableId: string) => boolean;
-let probe: Probe | null = null;
+const probes: Probe[] = [];
 
-export function setMapProbe(next: Probe | null): void {
-  probe = next;
+export function setMapProbe(next: Probe): void {
+  probes.push(next);
+}
+
+export function clearMapProbe(mine: Probe): void {
+  const i = probes.lastIndexOf(mine);
+  if (i >= 0) probes.splice(i, 1);
 }
 
 export function onMapScreen(buildableId: string): boolean {
-  return probe?.(buildableId) ?? false;
+  return probes[probes.length - 1]?.(buildableId) ?? false;
 }
 
 // What the review tools read of the map (Plan 83E), as `window.__campusMap`:
@@ -38,9 +49,23 @@ export interface MapReview {
   frame(): { ms: number; unsupported: Record<string, number> } | null;
 }
 
-export function setMapReview(review: MapReview | null): void {
+const reviews: MapReview[] = [];
+
+function showReview(): void {
   if (typeof window === 'undefined') return;
   const w = window as unknown as { __campusMap?: MapReview };
-  if (review) w.__campusMap = review;
+  const top = reviews[reviews.length - 1];
+  if (top) w.__campusMap = top;
   else delete w.__campusMap;
+}
+
+export function setMapReview(review: MapReview): void {
+  reviews.push(review);
+  showReview();
+}
+
+export function clearMapReview(mine: MapReview): void {
+  const i = reviews.lastIndexOf(mine);
+  if (i >= 0) reviews.splice(i, 1);
+  showReview();
 }

@@ -4,7 +4,7 @@ import { PROJECTS, projectOpens, projectOpensShort } from '../data/projectData';
 import { campusTerms, type CampusTerms } from '../systems/estate/beauty';
 import { specializationOf } from '../systems/prestige/prestigeSystem';
 import { specializationOfferRule } from '../data/prestigeWords';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
 import { NEED_WORD } from '../data/needWords';
@@ -850,6 +850,9 @@ function StylePicker({ s }: { s: GameState }) {
   );
 }
 
+// How long the menu stays folded after a placement (Plan 124G).
+const PLACED_FOLD_MS = 1000;
+
 export default function BuildPopup({
   s, act, placingId, onArmPlacement, pathTool, onSetPathTool, onClose, target = null,
 }: {
@@ -899,10 +902,37 @@ export default function BuildPopup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unseenKey]);
 
+  // A building just placed (Plan 124G, the review's R-5): the menu stays
+  // folded for a moment, or until the pointer comes back to it, so the
+  // dust and the plot are seen rather than covered in the same frame.
+  const [placed, setPlaced] = useState<string | null>(null);
+  const heldUnplaced = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const was = heldUnplaced.current;
+    heldUnplaced.current = placingId && s.placements[placingId] === undefined ? placingId : null;
+    if (was && placingId === null && s.placements[was] !== undefined) setPlaced(was);
+    else if (placingId !== null) setPlaced(null);
+  });
+  useEffect(() => {
+    if (!placed) return;
+    const timer = window.setTimeout(() => setPlaced(null), PLACED_FOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [placed]);
+
   // A building in hand (Plan 34, from v2's): the menu folds to a strip along
   // the toolbar, so the ghost and the ground it is going on are never under
   // it. Escape cancels it (App.tsx's ladder), before it closes the menu.
   const held = placingId ? s.tech.find((t) => t.id === placingId) : undefined;
+  const justPlaced = !held && placed ? s.tech.find((t) => t.id === placed) : undefined;
+  if (justPlaced) {
+    return (
+      <ToolbarPopup title="Build" onClose={onClose} className="build-popup holding" onPointerEnter={() => setPlaced(null)}>
+        <div className="build-holding">
+          <span className="build-holding-name">{BUILD_WORDS.placed.replace('{building}', justPlaced.name)}</span>
+        </div>
+      </ToolbarPopup>
+    );
+  }
   if (held) {
     const financing = buildFinancing(s, held);
     return (

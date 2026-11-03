@@ -179,7 +179,7 @@ const LIBRARY_TIER1_COST = 360_000;
 const LIBRARY_TIER1_WEEKS = 16;
 
 // Renovations add floors to the existing tier-1 building rather than a new
-// Buildable: engine/reducer.ts's RENOVATE_LIBRARY returns the placed node to
+// Buildable: estate.ts's startLibraryFloor returns the placed node to
 // 'developing' and on completion raises its servesPopulation/upkeepPerWeek
 // in place. Existing floors keep serving during the work (types.ts's
 // servingPopulation). The map shows a story per floor added

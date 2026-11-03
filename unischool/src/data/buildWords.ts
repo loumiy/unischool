@@ -4,6 +4,8 @@
 export const BUILD_WORDS = {
   holding: 'Placing: {building} · {cost} · {pay}',
   putDown: 'Cancel',
+  // The strip for a moment after a placement (Plan 124G).
+  placed: 'Placed: {building}',
   pay: {
     cash: 'paid in cash',
     loan: 'part borrowed',

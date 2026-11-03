@@ -1862,6 +1862,10 @@ button.build-tile { font-family: inherit; }
 .row-action-title { font-weight: 800; min-width: 0; max-width: 22em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 600px) { .row-action-title { max-width: 11em; } }
 .row-action-cost { font-weight: 700; color: var(--ink-muted); }
+
+/* What the next course adds while class places are short (Plan 124J). */
+.row-action-places { padding: 2px 10px; border: 2px solid var(--ok-on-light); border-radius: var(--radius-pill);
+  background: var(--grade-a-bg); color: var(--ok-on-light); font-weight: 700; white-space: nowrap; }
 .row-action-secondary { padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 .row-action-note { color: var(--ink); font-weight: 600; }
 .row-action-worth { margin-left: auto; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
@@ -2907,6 +2911,31 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .glance-adjustment .glance-figure { color: var(--ink); }
 .glance-adjustment.cost .glance-figure { color: var(--bad-on-light); }
 .glance-line { font-size: var(--text-sm); }
+/* Prestige by pillar at the head of the tabs that feed it (PillarHead.tsx,
+   Plan 124K): one bar on the prestige scale, stacked by pillar, the tab's
+   own lit and the others faded, the target a ghost tick. The parts are
+   parted by a cream rule as well as by hue, so they read on every palette. */
+.pillar-head { display: flex; align-items: center; gap: var(--space-8) var(--space-16); min-width: 0; }
+@media (max-width: 900px) { .pillar-head { flex-wrap: wrap; } }
+/* In a panel's head (the Curriculum's) the bar takes the room the figures leave. */
+.panel-head-title:has(> .pillar-head) { flex: 1 1 auto; min-width: 0; }
+.panel-head-title > .pillar-head { flex: 1 1 auto; }
+@media (min-width: 901px) { .pillar-head-line { white-space: nowrap; } }
+.pillar-head-label { font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
+.pillar-bar { position: relative; display: flex; flex: 0 1 400px; min-width: 160px; height: 12px;
+  background: var(--cream-lo); border: 1.5px solid var(--outline); border-radius: 3px; }
+.pillar-bar-fill { display: flex; width: 100%; height: 100%; overflow: hidden; border-radius: 1.5px; }
+.pillar-bar-part { display: block; flex: none; height: 100%; background: var(--pillar-hue); box-shadow: inset -1px 0 0 var(--cream-hi); }
+/* The summer review's bar fills from the left (reduced motion: at once). */
+.pillar-bar.filling .pillar-bar-fill { animation: pillar-fill 1.1s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes pillar-fill { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.review-pillars { margin: var(--space-8) 0 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.review-pillars .pillar-bar { flex: none; width: 100%; }
+.review-pillars-line { font-size: var(--text-xs); color: var(--ink-muted); }
+.pillar-bar-part.faded { opacity: 0.35; }
+.pillar-bar-target { position: absolute; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--ink); opacity: 0.55; }
+.pillar-head-line { font-size: var(--text-sm); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.pillar-head-panel { padding-top: var(--space-12); padding-bottom: var(--space-12); }
 /* A pillar whose door is shut says what opens it (Plan 114B). */
 .glance-shut { grid-column: 2 / -1; margin-top: calc(-1 * var(--space-8)); font-size: var(--text-xs); color: var(--ink-muted); }
 .pillar-academics { --pillar-hue: var(--pillar-academics); }
