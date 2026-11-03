@@ -74,10 +74,8 @@ export interface CatalogueChoice {
   id: string;
   label: string;
   effects: Partial<Record<EffectKey, number>>;
-  // What an answer does beyond the levers (Plan 76D): a promise made in
-  // the game's promise system, by id (data/promiseData.ts), and the mascot
-  // it adopts.
-  promise?: string;
+  // What an answer does beyond the levers (Plan 76D): the mascot it adopts.
+  // (Its promise went with the promises, Plan 124E.)
   mascot?: string;
   // A named fund (Plan 101F): the answer's gift to the endowment endows it,
   // for its purpose, under this name (it may name {faculty}). A chair goes

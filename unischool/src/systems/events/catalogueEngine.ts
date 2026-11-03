@@ -10,7 +10,6 @@ import { endowFund } from '../alumni/funds';
 import { facultyPay } from '../finance/financeSystem';
 import { money } from '../../format';
 import { hasTag } from '../identity/tags';
-import { makePromise } from '../promises/promises';
 import { handlerFor, seatTitle } from '../delegation/seats';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { ESCALATION_WEEKS_OF_OPEX, seatDef } from '../../data/seatData';
@@ -273,7 +272,6 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
     s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', topic: 'appointment', subject: person.id, message: `Appointed ${person.name} to the faculty in ${person.field}, at ${money(Math.round(facultyPay(s, person.salary)))}/yr.` });
   }
   // What an answer does beyond the levers (Plan 76D).
-  if (choice.promise) makePromise(s, choice.promise);
   // A named fund (Plan 101F): the answer's gift to the endowment endows it.
   if (choice.fund) endowFund(s, choice.fund.purpose, fill(choice.fund.name, p.vars), scaledEffects(choice.effects, p.scale).endowment ?? 0, p.vars.facultyId);
   if (choice.mascot && !s.self.mascot) s.self.mascot = choice.mascot;

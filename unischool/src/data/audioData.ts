@@ -608,7 +608,6 @@ const AUDIO: AudioFile = {
     "grant": "coin",
     "money": "coin",
     "prize": "cheer",
-    "ambition": "letter",
     "demand-raised": "letter",
     "demand-failed": "loss",
     "research-reported": "letter",

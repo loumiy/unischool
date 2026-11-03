@@ -6,8 +6,8 @@ import {
 } from '../systems/estate/estate';
 import { canPayForWorks } from '../systems/finance/treasury';
 import HelpHint from '../components/HelpHint';
-import { count, money, moneyShort, pct, weeksShort } from '../format';
-import { beautyTerms } from '../systems/estate/beauty';
+import { money, moneyShort, pct, weeksShort } from '../format';
+import CampusStanding from '../components/CampusStanding';
 import { boardHoldsBudget } from '../systems/finance/distress';
 
 // The estate (systems/estate): how much of the buildings' upkeep is paid,
@@ -26,7 +26,6 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
     .sort((a, b) => conditionOf(a) - conditionOf(b))
     .slice(0, WORST_SHOWN);
   const setFunding = (level: number) => act({ type: 'SET_MAINTENANCE_FUNDING', level });
-  const beauty = beautyTerms(s);
   // Under austerity and receivership the board sets it (finance/distress.ts).
   const held = boardHoldsBudget(s);
   return (
@@ -42,11 +41,8 @@ export default function EstatePanel({ s, act }: { s: GameState; act: (a: Action)
         <button type="button" className="panel-action small" aria-label="Fund more" disabled={held || funding >= 1} onClick={() => setFunding(funding + MAINTENANCE_FUNDING_STEP)}>+</button>
       </div>
       <dl>
-        <dt>Campus beauty</dt>
-        <dd>
-          {count(beauty.score)} of 100
-          <span className="stat"> — greenery {pct(beauty.greenery)}, landmarks {pct(beauty.landmarks)}, upkeep {pct(beauty.upkeep)}, quads {pct(beauty.enclosure)}</span>
-        </dd>
+        {/* One campus figure, with its parts (Plan 124F). */}
+        <CampusStanding s={s} />
         <dt>Mean condition</dt><dd>{pct(mean)}</dd>
         <dt>Backlog</dt><dd>{money(backlog)}</dd>
       </dl>

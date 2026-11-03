@@ -52,7 +52,6 @@ import { firstFreeSpot, footprintOf, isPlaceableKind } from '../../src/state/cam
 import { isAcademicHall, milestoneSchools, programById } from '../../src/data/techData';
 import { GRADUATE_HOSTS } from '../../src/data/projectData';
 import { initiativeOffers } from '../../src/data/researchData';
-import { promiseById } from '../../src/data/promiseData';
 import { findDecisionEvent, offeredChoices, type DecisionEventContext } from '../../src/data/eventData';
 import {
   TRAINER_FIELD, isFlagship, orderedTeams, scholarshipCostFor, teamQuality, venueForCategory,
@@ -206,8 +205,7 @@ export interface RunRecord {
   // The first year each of the goal's markers was reached.
   marks: Record<string, number>;
   switched?: number;
-  promisesTaken: string[];
-  final?: { title: string; mark: string; axes: Array<{ label: string; grade: string; mean: number }>; kept: number; missed: number };
+  final?: { title: string; mark: string; axes: Array<{ label: string; grade: string; mean: number }> };
   // The championships player's flagships (Plan 80G's target): the year each
   // was chosen and put on full scholarships, and its first final four.
   flagships?: Array<{ sport: string; chosen: number; finalFour?: number }>;
@@ -242,7 +240,7 @@ class Journal {
   constructor(goal: Goal, seed: number, name: string) {
     this.rec = {
       goal, seed, name, years: [], decisions: {}, reasons: {}, interrupts: {}, idleWeeks: {}, answerOnlyWeeks: {},
-      wants: [], marks: {}, promisesTaken: [], broken: [], seconds: 0, pauses: newTally(),
+      wants: [], marks: {}, broken: [], seconds: 0, pauses: newTally(),
     };
   }
 
@@ -646,8 +644,6 @@ const RATES = Array.from({ length: 20 }, (_, i) => 0.05 * (i + 1));
 interface Policy {
   act(g: Game, j: Journal): void;
   summer(g: Game, j: Journal): SummerPlan;
-  // Promise condition keys the goal cares about.
-  promises: readonly string[];
   // How a decision event is answered: 'thrifty' spends least, 'popular'
   // lands best, 'default' is the game's own (the first affordable).
   events: 'thrifty' | 'popular' | 'default' | 'athletics';
@@ -664,7 +660,6 @@ function revenuePolicy(): Policy {
   let direction = 1;
   let lastIncome: number | null = null;
   return {
-    promises: ['cashOver', 'endowmentOver', 'debtUnder', 'backlogUnder'],
     events: 'thrifty',
     petitions: true,
     act(g, j) {
@@ -761,7 +756,6 @@ function prestigePolicy(adaptive = true): Policy {
   const history: number[] = [];
   let fills = false;
   return {
-    promises: ['reputationOver', 'teachingOver', 'selectivityOver', 'rankAtLeast'],
     events: 'default',
     petitions: true,
     act(g, j) {
@@ -849,7 +843,6 @@ function prestigePolicy(adaptive = true): Policy {
 const NEVER_CROWDED = CROWDING_GRACE + 0.05;
 function satisfactionPolicy(): Policy {
   return {
-    promises: ['satisfactionOver', 'beautyOver', 'warmthOver', 'moodOver'],
     events: 'popular',
     petitions: true,
     act(g, j) {
@@ -916,7 +909,6 @@ function satisfactionPolicy(): Policy {
 // ---- Every campus asset ----
 function assetsPolicy(): Policy {
   return {
-    promises: ['buildingsOver', 'projectsOver', 'schoolsOver', 'programsOver', 'beautyOver'],
     events: 'default',
     petitions: true,
     act(g, j) {
@@ -975,7 +967,6 @@ function championshipsPolicy(): Policy {
   // The sports it chose as flagships, in the order it chose them, kept.
   const chosen: string[] = [];
   return {
-    promises: ['varsityAtLeast', 'titlesAtLeast', 'satisfactionOver'],
     events: 'athletics',
     petitions: true,
     act(g, j) {
@@ -1101,7 +1092,6 @@ function phasedPolicy(goodFirst: boolean): Policy {
   // Good first stays small whatever the standing does: that is its premise.
   const small = prestigePolicy(!goodFirst);
   const big: Policy = {
-    promises: ['enrolledOver', 'programsOver', 'schoolsOver', 'buildingsOver'],
     events: 'default',
     petitions: true,
     act(g, j) {
@@ -1175,7 +1165,6 @@ function phasedPolicy(goodFirst: boolean): Policy {
   const early = goodFirst ? smallCapped : big;
   const late = goodFirst ? big : bigThenFix;
   return {
-    promises: [...new Set([...early.promises, ...late.promises])],
     events: 'default',
     petitions: true,
     act(g, j) {
@@ -1216,15 +1205,8 @@ function answerFor(g: Game, j: Journal, policy: Policy, plan: { current: SummerP
     const payload = pending.payload as { beat?: number } | undefined;
     const beat = payload?.beat ?? 0;
     if (beat === 0) {
-      // The promises on offer, if the goal cares about every condition.
-      const offer = s.promises?.offer?.ids ?? [];
-      const take = offer.filter((id) => {
-        const def = promiseById(id);
-        return !!def && Object.keys(def.goal).every((k) => policy.promises.includes(k));
-      });
-      j.rec.promisesTaken.push(...take);
       plan.current = null;
-      return { type: 'RESOLVE_SUMMER_BEAT', promises: take };
+      return { type: 'RESOLVE_SUMMER_BEAT' };
     }
     if (beat < SUMMER_LAST_BEAT - 1) return { type: 'RESOLVE_SUMMER_BEAT' };
     plan.current ??= policy.summer(g, j);
@@ -1401,7 +1383,6 @@ export function playGoal(goal: Goal, seed: number, name: string, years = YEARS, 
     j.rec.final = {
       title: report.title, mark: report.mark,
       axes: report.axes.map((a) => ({ label: a.label, grade: a.grade, mean: Math.round(a.mean) })),
-      kept: report.kept.length, missed: report.missed.length,
     };
   }
   j.rec.seconds = (Date.now() - t0) / 1000;
@@ -1640,8 +1621,6 @@ export function writeReport(runs: RunRecord[], out: string): void {
       for (const w of rowsW) lines.push(`| ${w.lever} | ${w.n}/${rs.length} | ${fmt(w.first)} | ${fmt(w.weeks)} | ${w.why} |`);
       lines.push('');
     }
-    const taken = rs.flatMap((r) => r.promisesTaken);
-    if (taken.length > 0) lines.push(`Promises taken (all runs): ${[...new Set(taken)].map((id) => `${promiseById(id)?.title ?? id} ×${taken.filter((x) => x === id).length}`).join(', ')}.`, '');
   }
 
   // Do the goals diverge? Distance between the year-50 colleges.

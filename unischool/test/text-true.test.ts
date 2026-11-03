@@ -5,7 +5,6 @@
 //     shows it (the review's G7-4);
 //   - a Jock School's six points reach every team;
 //   - a renovation can be paid from the building fund a campaign raised;
-//   - a promise's title names the sum it is judged on;
 //   - "A hall of its own" quotes the hall's own price and weeks (G7-14).
 //
 // Not part of the game: nothing imports it. Run with `npm test`.
@@ -19,10 +18,8 @@ import { attritionRate } from '../src/systems/admissions/admissionsSystem';
 import { summerAttrition } from '../src/systems/admissions/consequences';
 import { teamQuality } from '../src/data/studentLifeData';
 import { renovationCost } from '../src/systems/estate/estate';
-import { goalMet, promiseTitle } from '../src/systems/promises/promises';
-import { promiseById } from '../src/data/promiseData';
 import { OPENING_LETTERS } from '../src/data/eventData';
-import { money, moneyShort } from '../src/format';
+import { money } from '../src/format';
 import type { GameState } from '../src/state/types';
 
 let checks = 0;
@@ -101,20 +98,6 @@ playYears(g, createGuidedPlayer(), 12);
   short.advancement = { running: null, closed: [], restrictedBuilding: cost / 2 };
   short.finance.cash = cost / 2 - 1;
   assert((reducer(short, { type: 'RENOVATE_BUILDING', id: b.id }).tech.find((t) => t.id === b.id)!.renovationWeeks ?? 0) === 0, 'the fund and the cash together must cover it');
-}
-
-// ---- A promise's title is its goal ----
-{
-  const s = clone(g.s);
-  const def = promiseById('endowment-centennial')!;
-  const title = promiseTitle(s, def, 2);
-  assert(title.includes(moneyShort(200_000_000)), `the title names the sum at its scale ("${title}")`);
-  s.finance.endowment = 190_000_000;
-  assert(!goalMet(s, def, 2), 'short of that sum, the promise is not kept');
-  s.finance.endowment = 210_000_000;
-  assert(goalMet(s, def, 2), 'past it, it is');
-  const reserve = promiseById('weather-the-storm')!;
-  assert(promiseTitle(s, reserve).includes('eight years') && reserve.years === 8, `a term in a title is the promise's own ("${promiseTitle(s, reserve)}")`);
 }
 
 // ---- The first hall's letter ----

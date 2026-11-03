@@ -7,14 +7,13 @@ import { RETIRED_STAFFING_POLICY, seatDef } from '../data/seatData';
 import { officeDef } from '../data/officeData';
 import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
 import { isBoardQuestion } from '../data/boardQuestionData';
-import { promiseById } from '../data/promiseData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
 import { BUILD_STAMP, PLATFORMS, EDITIONS, type BuildStamp } from '../build';
 import { benchItem, dressingBlocker, isDressingItem, legacyBenchFacing } from './dressing';
 import { isPavingValue } from './paving';
 import { LIVE_STAGES } from './opening';
-import type { Advancement, AlumniClass, BoardAnswer, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, PromiseState, Seat, Trees } from './types';
+import type { Advancement, AlumniClass, BoardAnswer, Buildable, CatalogueState, Dressing, Facing, Faculty, FacilityType, NamedFund, GameState, HallOffice, HallSlot, Loan, Pathways, PendingCatalogueEvent, Placement, Seat, Trees } from './types';
 import { clampDrawRate } from '../systems/finance/treasury';
 import { facilityUpkeepOf, isPriceUpkept } from '../systems/estate/estate';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
@@ -1391,35 +1390,15 @@ function sanitizeEnding(state: GameState): void {
     : [];
 }
 
-// Promises: a malformed record is dropped whole; entries naming a promise
-// the game no longer has are dropped.
-function sanitizePromises(state: GameState): void {
-  const raw = state.promises as unknown;
-  if (raw === undefined) return;
-  const p = raw as Partial<PromiseState>;
-  if (typeof raw !== 'object' || raw === null || !Array.isArray(p.active) || !Array.isArray(p.settled) || !Array.isArray(p.declined)) {
-    delete state.promises;
-    return;
-  }
-  const known = (id: unknown): id is string => typeof id === 'string' && promiseById(id) !== undefined;
-  const year = (n: unknown) => Number.isInteger(n);
-  const ok: PromiseState = {
-    active: p.active.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.madeYear) && year(a.dueYear)),
-    settled: p.settled.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.year) && typeof a.kept === 'boolean'),
-    declined: p.declined.filter((a) => typeof a === 'object' && a !== null && known(a.id) && year(a.year)),
-    offer: null,
-  };
-  // A promise's scale (Plan 76C) is optional; one that is not a positive
-  // number is dropped, and the promise reads the live scale.
-  for (const a of [...ok.active, ...ok.settled]) {
-    if (a.scale !== undefined && !(typeof a.scale === 'number' && Number.isFinite(a.scale) && a.scale > 0)) delete a.scale;
-  }
-  const offer = p.offer as { ids?: unknown; decade?: unknown } | null | undefined;
-  if (offer && Array.isArray(offer.ids) && typeof offer.decade === 'boolean') {
-    const ids = offer.ids.filter(known);
-    if (ids.length > 0) ok.offer = { ids, decade: offer.decade };
-  }
-  state.promises = ok;
+// Promises (Plan 33) went in Plan 124E. A save from before keeps none of
+// them: its record, an offer it had pending, the journal's lines about
+// them and the Final Report's tally of them are dropped. A report already
+// written keeps the grade it was given.
+function dropPromises(state: GameState): void {
+  delete (state as { promises?: unknown }).promises;
+  for (const entry of Array.isArray(state.log) ? state.log : []) if ((entry as { topic?: unknown } | null)?.topic === 'ambition') delete entry.topic;
+  const report = state.ending?.report as Record<string, unknown> | undefined;
+  if (report) for (const k of ['kept', 'missed', 'declined']) delete report[k];
 }
 
 // The alumni ledger: a malformed class is dropped, and a clause the game no
@@ -1795,8 +1774,8 @@ function sanitize(state: GameState): void {
   sanitizeAlumni(state);
   sanitizeAdvancement(state);
   sanitizeCatalogue(state);
-  sanitizePromises(state);
   sanitizeEnding(state);
+  dropPromises(state);
   refreshAuthoredText(state);
   sanitizeIdentity(state);
   // A rival's specialization (Plan 85C) is one of the four pillars; anything

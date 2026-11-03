@@ -12,7 +12,6 @@ import { SECTION_HEADINGS } from '../data/statChips';
 import { HistoryChart } from '../components/HistoryChart';
 import { MultiChart } from '../components/MultiChart';
 import { count, fraction, moneyShort, pct, prestigeFigure, satisfactionFigure } from '../format';
-import PromisesPanel from './PromisesPanel';
 import ChroniclePanel from './ChroniclePanel';
 import { finalReport } from '../state/finalReport';
 import { REPORT_DRAFT_FROM, REPORT_WORDS } from '../data/reportData';
@@ -207,7 +206,7 @@ function PrestigeView({ s, belowA }: { s: GameState; belowA?: BelowALink }) {
   );
 }
 
-// The record's view: the Final Report's draft, the promises, the chronicle,
+// The record's view: the Final Report's draft, the chronicle,
 // the year-by-year charts, the alumni and the table.
 function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const history = s.history;
@@ -218,7 +217,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <section className="panel" {...sectionAnchor('history.record')}>
         <h2>The record</h2>
         <p className="empty-note">
-          The record starts at your first commencement. From then on, it keeps the chronicle, the promises and the year-by-year charts here.
+          The record starts at your first commencement. From then on, it keeps the chronicle and the year-by-year charts here.
         </p>
       </section>
     );
@@ -228,8 +227,7 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
     return (
       <>
         <FinalReportPanel s={s} />
-        <PromisesPanel s={s} />
-        <ChroniclePanel s={s} />
+          <ChroniclePanel s={s} />
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-title">
@@ -255,7 +253,6 @@ function RecordView({ s, act }: { s: GameState; act: (a: Action) => void }) {
   return (
     <>
       <FinalReportPanel s={s} />
-      <PromisesPanel s={s} />
       <ChroniclePanel s={s} />
       <section className="panel">
         <div className="panel-head">

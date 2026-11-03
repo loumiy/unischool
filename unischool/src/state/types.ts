@@ -549,18 +549,6 @@ export interface Ending {
   addenda: { from: number; to: number; lines: string[] }[];
 }
 
-// Promises (Plan 33). `offer` is this summer's, answered on the Review
-// beat: one promise, or at a decade's close a list to take up to two from.
-// `scale` is the price scale of the summer a promise was made (Plan 76C):
-// its sums are judged, and printed, at that scale. A promise made before it
-// was kept reads the live one.
-export interface PromiseState {
-  active: { id: string; madeYear: number; dueYear: number; scale?: number }[];
-  settled: { id: string; year: number; kept: boolean; scale?: number }[];
-  declined: { id: string; year: number }[];
-  offer: { ids: string[]; decade: boolean } | null;
-}
-
 // An event from the catalog waiting for an answer. The price scale and
 // the names in its text are fixed when it fires, so what the panel shows is
 // what is applied.
@@ -607,8 +595,7 @@ export interface PendingInterrupt {
 
 // The summer: one interrupt with three beats (SUMMER_BEATS), so a save
 // between beats resumes with the clock halted and nothing slips in between.
-// Review is read-and-continue, bar the year's promises (Plan 33, which also
-// dropped the Standing beat: V1-1). RESOLVE_SUMMER_BEAT advances `beat`,
+// Review is read-and-continue (Plan 33 dropped the Standing beat: V1-1). RESOLVE_SUMMER_BEAT advances `beat`,
 // carrying the admissions decision into `decision` so the last beat commits
 // exactly what the player set; RESOLVE_ADMISSIONS, the last beat's action,
 // is the only one that moves the calendar.
@@ -1432,9 +1419,6 @@ export interface GameState {
   // (state/finalReport.ts), and the Epilogue's addenda, a decade each.
   // Undefined before the fiftieth summer closes.
   ending?: Ending;
-  // Promises (systems/promises/promises.ts): those open, those settled and
-  // declined, and what this summer offers. Undefined before the first offer.
-  promises?: PromiseState;
   // The college's rival (systems/rivals/collegeRival.ts) and whether the
   // college stood above it at the last summer. Undefined before one exists.
   rivalStanding?: { rivalId: string; above: boolean; since?: number }; // since: the year this rival was first named
@@ -1551,7 +1535,6 @@ export const LOG_TOPICS = [
   'building',            // a hall, dorm or facility finished
   'program',             // a program founded in a hall
   'milestone',           // a milestone awarded (established, distinguished, a school founded)
-  'ambition',            // a promise made, kept or missed (systems/promises)
   'appointment',         // somebody joined the faculty
   'departure',           // somebody left it
   'prize',               // a research prize

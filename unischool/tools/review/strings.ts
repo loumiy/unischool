@@ -85,7 +85,7 @@ const SCREENS: Array<[RegExp, string]> = [
   [/tabs\/ResearchTab\.tsx$/, 'Research tab'],
   [/tabs\/(StudentsTab|EnrollmentTab|StudentLifeTab|IdentityPanel)\.tsx$/, 'Students tab'],
   [/tabs\/AthleticsTab\.tsx$/, 'Athletics tab'],
-  [/tabs\/(HistoryTab|StandingsPanel|StandingBreakdown|RankingsPanel|ChroniclePanel|AlumniPanel|PromisesPanel)\.tsx$|components\/RankingsTable\.tsx$/, 'History tab'],
+  [/tabs\/(HistoryTab|StandingsPanel|StandingBreakdown|RankingsPanel|ChroniclePanel|AlumniPanel)\.tsx$|components\/RankingsTable\.tsx$/, 'History tab'],
   // Plan 85: the choice, the board's notice and the four programs it opens.
   [/components\/SpecializationChoice\.tsx$|data\/specializationData\.ts$/, 'Specialization (choice and notice)'],
   [/data\/(trainingData|researchParkData|athleticsComplexData|downtownData)\.ts$/, 'Specialization programs'],
@@ -93,7 +93,6 @@ const SCREENS: Array<[RegExp, string]> = [
   [/data\/courseDescriptions\.ts$/, 'Course descriptions'],
   [/data\/(eventCatalogue|eventVariants)\.ts$|systems\/events\/catalogue/, 'Events (catalogue)'],
   [/data\/eventData\.ts$|systems\/events\/(eventSystem|charter)\.ts$/, 'Events (decision) and letters'],
-  [/data\/promiseData\.ts$|systems\/promises\//, 'Promises'],
   [/data\/techData\.ts$/, 'Curriculum names and gates'],
   [/data\/(facilitiesData|campusData|projectData)\.ts$/, 'Building names and blurbs'],
   [/data\/(researchData|researchTopics)\.ts$|systems\/research\//, 'Research'],

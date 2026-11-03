@@ -74,7 +74,7 @@ export function cuesFor(lines: readonly LogEntry[]): string[] {
 
 // What changed between two weeks that no log line says (Plan 70H): ground
 // broken or a building pulled down, the rank moving, cash going into the
-// red, the board's letters, a title won, and the Final Report.
+// red, the board's letters and a title won.
 export function stateCues(before: GameState, after: GameState): string[] {
   const out: string[] = [];
   const placed = (s: GameState) => Object.keys(s.placements).length;
@@ -86,7 +86,8 @@ export function stateCues(before: GameState, after: GameState): string[] {
   if (before.finance.cash >= 0 && after.finance.cash < 0) out.push('alarm');
   else if (distressOf(after).rung > distressOf(before).rung) out.push('alarm');
   if (after.orgs.titles.length > before.orgs.titles.length) out.push('fanfare');
-  if (!before.ending && after.ending) out.push('fanfare');
+  // The Final Report's fanfare plays as its final grade lands
+  // (FinalReportView.tsx, Plan 124 M3), not when the summer seals it.
   return [...new Set(out)];
 }
 

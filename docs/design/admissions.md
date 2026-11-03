@@ -11,8 +11,8 @@ interrupt (`types.ts`'s `SummerPayload`) is one modal with a three-step header �
 payload, so a save written between beats resumes on the right beat with the
 clock still halted, and nothing can slip in between them. One action per beat
 moves on (`RESOLVE_SUMMER_BEAT`); only the last beat's `RESOLVE_ADMISSIONS`
-turns the calendar page. Review is read-and-continue (Enter continues it,
-unless a promise is on offer); the decision and the digest are not.
+turns the calendar page. Review is read-and-continue (Enter continues it);
+the decision and the digest are not.
 
 The stop stops the clock but does not take the screen (Plan 112C): a
 playtester at IGB was pulled out of whatever he was reading by it. The
@@ -36,11 +36,9 @@ standard every summer.
    prestige is about to take, and, in the defend era, who passed the school
    this year. Nothing is authored or stored; the two
    forward-looking lines are the same pure functions the last beat commits.
-   Review also settles the promises that came due and makes the year's offer
-   (see [progression.md](progression.md)'s "Promises").
    **On the fiftieth summer this beat is the final report** instead (see
    [progression.md](progression.md)'s "The fifty years"): the six standings
-   graded, the promises kept, the founder's numbers and the fifty-year curves,
+   graded, the founder's numbers and the fifty-year curves,
    sealed by the last beat and never written again.
 2. **Admissions** — the two levers, below.
 3. **Students** — the student-life digest (see

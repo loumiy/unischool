@@ -1182,7 +1182,6 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     choices: [
       { id: 'consultant', label: 'Hire the consultant', effects: { cash: -250000 } },
       { id: 'explain', label: 'Explain the methodology to the board', effects: {} },
-      { id: 'promise', label: 'Promise a rise within five years', effects: { mood: -1 }, promise: 'a-rise-in-the-guide' },
     ],
     default: 'explain',
   },

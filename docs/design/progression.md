@@ -739,7 +739,7 @@ game never says which era it is in.
 
 The fiftieth summer files the **final report** in place of the year in review
 (see [admissions.md](admissions.md)'s "The summer"): the six standings graded
-over the run, the promises kept and missed, the four numbers a founder would
+over the run, the four numbers a founder would
 want — students taught, faculty who served, prizes, titles — and the
 fifty-year curves. Then the record is **sealed**: `s.ending` is written once,
 at that summer's boundary, and never again. **The clock does not stop.** The fifty-first year
@@ -751,28 +751,11 @@ counts down as well as up ("Year 23 of 50"), its charts fixed at fifty so the
 curves have somewhere to go. Plan 17 is the record of the decision and its
 fitting: [`../plans/017-the-endpoint.md`](../plans/017-the-endpoint.md).
 
-### Promises
+### Promises (gone)
 
-The objectives are **promises**: public commitments with a deadline, a reward
-and a penalty (Plan 33, which retired the twenty ambitions). Twenty-seven are
-authored (`data/promiseData.ts`) — *Four schools*, *A thousand students on the
-lawn*, *Owing nothing to anybody*, *Into the guide's top twenty* and the rest —
-each with when it may be offered and what keeping it means, both in the event
-catalog's conditions. **Every promise states its target** (Plan 80C): the
-offer and the Promises panel say the measure, the figure, the summer it is
-judged and where the college stands now — *"Admit rate 25% or lower at the
-summer of Year 14. Now 36%."* — written from the goal's conditions
-(`systems/promises/promiseTargets.ts`), so the words cannot disagree with the
-test. A promise is judged at the start of the summer it falls due, so an
-admit-rate promise judges the rate set the summer before. Each summer's Review settles the promises that came
-due, kept or missed and paid, and, from Year 3 and with fewer than three
-open, may offer one; the player accepts or declines, and declining is free.
-A guided run offers them the same way: the chapter "Promises" it once
-waited for went in Plan 112A.
-At the summers of Years 10, 20, 30 and 40 the offer is a list of three
-instead, of which the player takes up to two. Offers are drawn from a hash of the college
-and the year, never the run's random stream (`systems/promises/promises.ts`).
-History lists them: open, kept and missed.
+The board's public promises (Plan 33) went in Plan 124E, cut by the owner
+from the review by subtraction: a save that held some loads without them,
+and the Final Report's mark no longer weighs them.
 
 ### The Final Report
 
@@ -784,8 +767,8 @@ standings — academics, research, campus life, athletics, campus (in
 place of access since Plan 119: decoration, quads, paths to doors and what
 stands) and financial strength — read from the history rows, graded A–F on its last
 decade's average, its average over the run and its climb from the first
-decade. Over them sits a mark, which also weighs where the guide left the
-college and how many promises it kept. The **title** names the college by
+decade. Over them sits a mark, seven parts the six grades and two where the
+guide left the college. The **title** names the college by
 the first of these that holds (Plan 116C, the third review's C4-6): its
 specialization; a tag the guidebooks hold and its record earns (Plan 95U's
 `EARNED_TAGS`); its campus life, *a college with a campus life to envy*,

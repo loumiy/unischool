@@ -1,7 +1,6 @@
 import type { GameState, OpeningStage, Pillar, Vernacular } from '../state/types';
 import type { TabId } from '../components/TabNav';
 import { TAGS } from '../data/tagData';
-import { PROMISES } from '../data/promiseData';
 import { REPORT_GRADES } from '../data/reportData';
 import { EDITIONS, PLATFORMS } from '../build';
 import { CHAPTER_COPY, OBJECTIVES_MODES } from '../data/chapterData';
@@ -78,7 +77,6 @@ export const EVENTS = {
   run_started: { vernacular: VERNACULARS, mode: ['normal', 'sandbox'] },
   run_resumed: { year: 'number' },
   year_reached: yearFields,
-  ambition_reached: { ambition: PROMISES.map((p) => p.id) },
   specialization_offered: { year: 'number' },
   specialization_chosen: { year: 'number', pillar: PILLARS },
   specialization_declined: { year: 'number' },
@@ -200,11 +198,6 @@ export function stateEvents(prev: GameState, next: GameState, walkSkipped = fals
     const year = prev.clock.year;
     const readings = yearReported(year) ? yearReadings(next, year) : null;
     if (readings) out.push({ name: 'year_reached', fields: readings });
-  }
-  // An ambition met (a promise kept).
-  const before = new Set((prev.promises?.settled ?? []).map((p) => `${p.id}@${p.year}`));
-  for (const p of next.promises?.settled ?? []) {
-    if (p.kept && !before.has(`${p.id}@${p.year}`) && PROMISES.some((d) => d.id === p.id)) out.push({ name: 'ambition_reached', fields: { ambition: p.id } });
   }
   // The board's offer of a specialization, and its answer.
   const offering = (s: GameState) => s.pendingInterrupt?.type === 'specialization';
