@@ -23,7 +23,7 @@ import { drawsGlobalOffers, schoolOffers } from '../systems/techtree/programOffe
 import { SHORTCUTS, isKey, isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import { isAcademicHall, programById } from '../data/techData';
+import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import { researchTopic } from '../data/researchTopics';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
@@ -53,8 +53,9 @@ import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
 import { labNewsIn, type LabNews } from './labNews';
 import { linesSince } from './audio/director';
+import { audio } from './audio/engine';
 import { clearMapProbe, clearMapReview, setMapProbe, setMapReview, type MapReview } from './mapProbe';
-import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
+import { CloseIcon, MapToolsIcon, StartingViewIcon, TiltViewIcon, TurnViewIcon } from './icons';
 import { registerArt, type ArtScope } from './canvasPaint';
 import { MapCanvas, type CanvasEntry, type CanvasScene } from './mapCanvas';
 import type { Crowd, CrowdSink } from './Walkers';
@@ -140,6 +141,11 @@ const DISTRICT_LOOK_MS = 900;
 // enough to notice at a glance, short enough that a run of completions in a
 // fast-forwarded year does not leave the map permanently flashing.
 const COMPLETION_PULSE_MS = 1500;
+// Founders Hall rising into its footprint at the founding (Plan 124H), on
+// the completion ring's easing (ease-out). The walkthrough's panels after
+// the placement wait this long (App.tsx). Reduced motion shows the hall at
+// once.
+export const FOUNDING_RISE_MS = 400;
 
 // --- pan & zoom ---
 // Kept out of React state: the world `<g>`'s transform is set imperatively
@@ -251,6 +257,17 @@ function coarsePointer(): boolean {
 // says so.
 const PLACING_HINT = { mouse: ['Click open ground to build', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
 const MOVING_HINT = { mouse: ['Click open ground to move it', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
+// The map help's keys (Plan 124A, X2): the camera's and the few a builder
+// needs. Settings lists every key.
+const MAP_HELP_KEYS: readonly (readonly [readonly string[], string])[] = [
+  [['W', 'A', 'S', 'D'], 'or the arrows pan'],
+  [['Q', 'E'], 'turn'],
+  [['Z', 'X'], 'tilt'],
+  [['Home'], 'starting view'],
+  [['R'], 'rotate'],
+  [['Space'], 'pause'],
+  [['Esc'], 'back'],
+];
 function ToolHint({ tool, touch }: { tool: CampusTool; touch: boolean }) {
   return <HintBar hint={TOOL_HINTS[tool]} touch={touch} />;
 }
@@ -1359,12 +1376,27 @@ export default function CampusMap({
   // Ground broken (Plan 70H): a puff of dust at a footprint the week it is
   // placed. The first reading is where the run stands, not news.
   const [justPlaced, setJustPlaced] = useState<readonly string[]>([]);
+  // The building rising into its footprint (FOUNDING_RISE_MS): left out of
+  // the canvas and drawn over it, growing from the ground.
+  const [rising, setRising] = useState<string | null>(null);
   const wasPlacedRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     const now = new Set(Object.keys(s.placements));
     const was = wasPlacedRef.current;
     wasPlacedRef.current = now;
-    if (!was || reducedMotion()) return;
+    if (!was) return;
+    // Founders Hall placed (only ever at the founding): it rises into its
+    // footprint, `place` then `complete` (Plan 124H). `place` is the
+    // audio director's, on the placement; `complete` ends the rise.
+    if (now.has(FOUNDERS_HALL_ID) && !was.has(FOUNDERS_HALL_ID)) {
+      const still = reducedMotion();
+      if (!still) setRising(FOUNDERS_HALL_ID);
+      pulseTimersRef.current.push(window.setTimeout(() => {
+        setRising(null);
+        audio.play('complete');
+      }, still ? 0 : FOUNDING_RISE_MS));
+    }
+    if (reducedMotion()) return;
     const fresh = [...now].filter((id) => !was.has(id));
     if (fresh.length === 0 || fresh.length > 3) return;
     setJustPlaced((cur) => [...cur, ...fresh]);
@@ -2446,17 +2478,54 @@ export default function CampusMap({
   const seasonKey = useMemo(() => JSON.stringify(season), [season]);
   const groundClass = `${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${highlightId ? 'inspecting' : ''}`;
   const prevLayoutRef = useRef<CampusLayout | null>(null);
+  // The rising building's own entries (Plan 124H): out of the canvas while
+  // it rises, drawn over it (risingArt, below).
+  const risingEntries = useMemo(
+    () => (rising ? sceneList.filter((se) => (se.kind === 'mass' && se.id === rising) || (se.kind === 'prop' && se.owner === rising)) : []),
+    [rising, sceneList],
+  );
   const canvasScene = useMemo(() => {
     if (!canvasOn()) return null;
     const scene = canvasSceneOf({
-      layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners, district, winterLit, festive,
+      layout, camera, scene: risingEntries.length > 0 ? sceneList.filter((se) => !risingEntries.includes(se)) : sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners, district, winterLit, festive,
       inspectedId: highlightId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, prevLayout: prevLayoutRef.current,
     });
     prevLayoutRef.current = layout;
     return scene;
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
+  [layout, camera, sceneList, risingEntries, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
+  // The rising building, drawn as the SVG map draws it, scaled up from the
+  // centre of its footprint on the ground (styles.css's .founding-rise).
+  // Canvas map only: the SVG map, kept for comparison, shows it at once.
+  const risingArt = (() => {
+    if (risingEntries.length === 0 || !rising) return null;
+    const p = layout.placements[rising];
+    if (!p) return null;
+    const parts = sceneParts({ layout, inspectedId: null, justFinished: [], onInspect, labelLayerRef, camera, front: null }, risingEntries, groundGeo);
+    const c = project(p.col + p.w / 2, p.row + p.h / 2);
+    return (
+      <g transform={`translate(${c.x.toFixed(2)} ${c.y.toFixed(2)})`} aria-hidden="true" pointerEvents="none">
+        <g className="founding-rise" style={{ animationDuration: `${FOUNDING_RISE_MS}ms` }}>
+          <g transform={`translate(${(-c.x).toFixed(2)} ${(-c.y).toFixed(2)})`}>
+            <CrowdContext.Provider value={crowds}>
+            <BannerContext.Provider value={banners}>
+            <ColorsContext.Provider value={layout.colors}>
+            <CollegeNameContext.Provider value={s.self.name}>
+            <DevelopingContext.Provider value={s.developing}>
+            <SnowContext.Provider value={snow}>
+              {risingEntries.map((se) => parts.entry(se))}
+            </SnowContext.Provider>
+            </DevelopingContext.Provider>
+            </CollegeNameContext.Provider>
+            </ColorsContext.Provider>
+            </BannerContext.Provider>
+            </CrowdContext.Provider>
+          </g>
+        </g>
+      </g>
+    );
+  })();
   // The compositor, once its canvas is mounted.
   useLayoutEffect(() => {
     const canvas = sceneCanvasRef.current;
@@ -2605,8 +2674,10 @@ export default function CampusMap({
             </BannerContext.Provider>
             </CrowdContext.Provider>
             </>)}
+            {risingArt}
             <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} />
-            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
+            {/* Founders Hall's slots wait for it to stand (Plan 124H). */}
+            {!rising && <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />}
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <FullMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             {justPlaced.map((id) => {
@@ -2749,24 +2820,27 @@ export default function CampusMap({
           </button>
           {toolsOpen && (
             <>
-              <HelpHint
-                align="end"
-                text="This is your campus. To add a building, click Build in the toolbar, pick a building, and click the map to place it. You pay when you place it, and it goes up right there. Press R to turn it 90 degrees. With the bench tool, R turns the bench. A building needs empty ground under its whole footprint. It also needs a walking route from the road on the south edge. If a spot won't work, the ghost tells you why. Paths are free. Press P, or click Paths in the build menu and pick Paving, Cobbles or Brick. Drag to pave, and right click to delete. Hold Shift for a straight line, or Ctrl (⌘ on a Mac) to fill a rectangle. Paths shape the quads and add to campus beauty. The Grounds tab in the build menu has trees of each kind, lamps, banner lamps, benches and flower beds. Place them anywhere on open ground. Its Eraser deletes any of them, paths and trees too. Every tab opens over the map. To come back, click Campus or the tab's Close, or press Escape. Keys: W, A, S, D or the arrows pan. Q and E turn the view. Z and X tilt it. Home goes back to the starting view. R rotates. P draws paths. Escape backs out one step at a time. C opens Curriculum, F opens Faculty, and L opens Students. Space pauses. 1 to 4 set the speed. M mutes. You can also pan by dragging the map or holding the scroll wheel. Scroll or pinch to zoom. On a touch screen, one finger pans and two fingers pinch to zoom. Tap a building to open it. To place a building, tap or drag to set it down, then tap Place. The curved-arrow buttons turn the view. ⤓ and ⤒ tilt it. ⌂ goes back to the starting view."
-              />
+              {/* The map's help (Plan 124A): under 80 words, the keys as a
+                  list, and the touch lines only once the map is touched. */}
+              <HelpHint align="end" label="Map help" text="Click Build, pick a building, then click the map.">
+                <p>Press P and drag to lay a path. Right click removes one.</p>
+                <ul className="map-help-keys">
+                  {MAP_HELP_KEYS.map(([keys, does]) => (
+                    <li key={does}><span>{keys.map((k) => <kbd key={k}>{k}</kbd>)}</span>{does}</li>
+                  ))}
+                </ul>
+                {touchUi && <p>One finger pans. Two fingers pinch to zoom. To build, tap the ground, then Place.</p>}
+              </HelpHint>
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-              {/* The camera's keys (Q/E, Z/X, Home) as buttons, once the map
-                  has been touched (Plans 70F and 70G); a keyboard player has
-                  the keys. */}
-              {touchUi && (
-                <>
-                  <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left"><TurnViewIcon direction="left" /></button>
-                  <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right"><TurnViewIcon direction="right" /></button>
-                  <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down">⤓</button>
-                  <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up">⤒</button>
-                  <button type="button" onClick={resetCamera} aria-label="Back to the starting view">⌂</button>
-                </>
-              )}
+              {/* The camera's keys (Q/E, Z/X, Home) as buttons on every
+                  device (Plan 124A, R-1: on desktop they were keys only,
+                  though the tooltip promised them). */}
+              <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left"><TurnViewIcon direction="left" /></button>
+              <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right"><TurnViewIcon direction="right" /></button>
+              <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down"><TiltViewIcon direction="down" /></button>
+              <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up"><TiltViewIcon direction="up" /></button>
+              <button type="button" onClick={resetCamera} aria-label="Back to the starting view"><StartingViewIcon /></button>
             </>
           )}
         </div>

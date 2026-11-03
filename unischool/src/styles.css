@@ -1011,6 +1011,10 @@ button.build-tile { font-family: inherit; }
 .build-tile.available:disabled .build-thumb { opacity: 0.45; filter: grayscale(0.6); }
 .build-tile.available:disabled .build-tile-sub, .build-tile.available:disabled .build-tile-foot { color: var(--ink-muted); }
 .build-tile.available:disabled .build-tile-stamp { color: var(--ink-muted); border-color: var(--parchment-line); }
+/* A greyed academic hall fills from the foot toward its price (Plan 124B):
+   --fill is the cash in hand against its cost. */
+.build-tile.available.filling:disabled { background: linear-gradient(to top,
+  color-mix(in srgb, var(--school-secondary) 28%, var(--cream)) var(--fill), var(--cream) var(--fill)); }
 .build-tile.placing { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--outline); box-shadow: var(--shadow-2); }
 .build-tile.placing .build-tile-foot, .build-tile.placing .build-tile-sub { color: var(--school-on-secondary); }
 /* Going up: the drawing in the school colour on a dashed sheet. */
@@ -1187,7 +1191,13 @@ button.build-tile { font-family: inherit; }
   background: transparent; border: 2px solid transparent; color: var(--ink); font-size: var(--text-md); }
 .campus-map-zoom-controls .help-hint-btn:hover { background: var(--outline); color: var(--cream); }
 .campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; width: 320px; }
-/* On touch the camera's buttons join the pill (Plan 70F), a little larger. */
+/* The map help's keys (Plan 124A): a short list, each key a cap. */
+.map-help-keys { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.map-help-keys li { display: grid; grid-template-columns: 5.5em 1fr; gap: 8px; align-items: baseline; }
+.map-help-keys span { display: flex; flex-wrap: wrap; gap: 3px; }
+.map-help-keys kbd { font: inherit; font-size: var(--text-xs); min-width: 1.7em; text-align: center; padding: 1px 5px; border: 1px solid var(--ink-muted); border-radius: 4px; }
+/* The camera's buttons are in the pill on every device (Plan 124A); on
+   touch (Plan 70F) they are a little larger. */
 .campus-map-zoom-controls.touch-ui button, .campus-map-zoom-controls.touch-ui .help-hint-btn { width: 40px; height: 40px; }
 .campus-map-zoom-controls button[aria-pressed="true"] { background: var(--outline); color: var(--cream); }
 /* Folded (Plan 70G): one round button, the tools under it when open. */
@@ -1488,6 +1498,15 @@ button.build-tile { font-family: inherit; }
   fill: none; stroke: var(--gold); stroke-width: 3; pointer-events: none;
   vector-effect: non-scaling-stroke;
   animation: campus-complete 1.5s ease-out forwards;
+}
+/* Founders Hall rising into its footprint at the founding (Plan 124H): on
+   the ring's easing, from the ground at the footprint's centre (the group's
+   origin, CampusMap.tsx). Reduced motion never mounts it. */
+.founding-rise { transform-origin: 0 0; animation: founding-rise 400ms ease-out both; }
+@keyframes founding-rise {
+  0% { transform: scaleY(0); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scaleY(1); opacity: 1; }
 }
 @keyframes campus-complete {
   0% { opacity: 0; stroke-width: 1; }
@@ -3769,7 +3788,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The welcome's skip (Plan 104C): a plain text link under the card's
    actions, not a button beside Next; armed, a pill like any confirmation. */
 .letter-skip-row { margin: var(--space-16) 0 0; }
-.modal .letter-length { margin: 0 0 var(--space-12); font-size: var(--text-sm); color: var(--ink-muted); }
 .letter-skip-link { background: none; border: none; padding: 0; font: inherit; font-size: var(--text-xs);
   color: var(--ink-muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .letter-skip-link:hover { color: var(--ink); }
@@ -3989,8 +4007,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .opening-coach p { margin: 0 0 12px; font-size: var(--text-md); line-height: 1.5; }
 .opening-coach-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .opening-coach-actions button { padding: var(--space-8) var(--space-16); font-size: var(--text-md); }
-.opening-coach-wait { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--school-primary); }
 /* The ring: an outline (so it never moves its target) in the school
    secondary. Only its offset pulses; the color holds, since the outline
    ink would be indistinguishable from a tile's border. */
@@ -4074,7 +4090,11 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives h4 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ink-muted); }
 .objectives .letter-eyebrow { display: flex; justify-content: space-between; gap: var(--space-8); margin: 0 0 var(--space-4); }
-.objectives-tally { font-variant-numeric: tabular-nums; }
+.objectives-tally { margin-left: auto; font-variant-numeric: tabular-nums; }
+/* Looking around's skip (Plan 124A): a quiet pill beside the tally. */
+.objectives-skip { padding: 0 var(--space-8); border: 2px solid var(--outline); border-radius: var(--radius-pill); background: transparent;
+  color: var(--ink); font: inherit; font-family: var(--display); font-weight: 800; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.objectives-skip:hover { background: var(--cream-lo); }
 .objectives-about { margin: 0 0 var(--space-8); }
 .objectives-list { list-style: none; margin: 0; padding: 0; }
 .objectives-list li { display: flex; align-items: baseline; gap: var(--space-8); padding: 4px 0; }

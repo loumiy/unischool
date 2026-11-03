@@ -1,7 +1,7 @@
 import type { GameState } from '../state/types';
 import { CHAPTER_COPY, DRAWER_WORDS as W, shutTabWords, type Door, type Lever } from '../data/chapterData';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
-import { absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import { SKIP_MARKS, absoluteWeek, chapterBeforeDone, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import HelpHint from './HelpHint';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
@@ -12,7 +12,8 @@ import { satisfactionDrag } from '../systems/satisfaction/satisfactionSystem';
 import { NEED_LABELS } from '../data/figureHints';
 
 // The objectives drawer (Plan 106 §2a): the NEXT bar expanded. The chapter
-// open now, a short paragraph about it, and its objectives, each with its
+// open now, a short paragraph about it where it has one (year 1's went in
+// Plan 124B), and its objectives, each with its
 // reading and a (?) whose help says how to meet it, with a Show me that
 // takes the player there (Plan 112A: a simple list, help when confused,
 // and the place itself when still confused); and the milestones, folded in from the ticker's old chip (§7.4): those reached
@@ -79,7 +80,7 @@ function showMe(s: GameState, help: Lever, onGo: (go: Door, hallId?: string, pro
   );
 }
 
-export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, finished = false, onView }: {
+export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, finished = false, onView, onMark }: {
   s: GameState;
   // `target`: the building a build door rings, or the view a tab opens on.
   onGo: (go: Door, hallId?: string, programId?: string, target?: string) => void;
@@ -92,6 +93,8 @@ export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, fi
   // close.
   finished?: boolean;
   onView?: (id: string | null) => void;
+  // A mark the drawer makes (MARK_GUIDANCE): a chapter's skip (Plan 124A).
+  onMark?: (mark: string) => void;
 }) {
   const current = currentChapter(s);
   // The page asked for, unless it is the current chapter's: that one reads
@@ -107,6 +110,9 @@ export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, fi
   // (Plan 114E: the ticker shows the main chapter only), then the rest.
   const alsoOpen = openSideChapters(s).filter((c) => hasPage(c.id));
   const guide = [...alsoOpen, ...guideChapters(s).filter((c) => !alsoOpen.includes(c))].filter((c) => c.id !== chapter?.id);
+
+  // The chapter's skip (Plan 124A): on the current chapter, while not done.
+  const skip = !reading && chapter && onMark && s.guidance?.done[chapter.id] === undefined ? SKIP_MARKS[chapter.id] : undefined;
 
   const since = chapter ? s.guidance!.opened[chapter.id] : absoluteWeek(s) - 52;
   const unlocked = MILESTONES
@@ -129,6 +135,7 @@ export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, fi
           <p className="letter-eyebrow">
             {W.chapter(chapterNumber(chapter))}
             <span className="objectives-tally">{W.of(required.filter((r) => r.met).length, required.length)}</span>
+            {skip && <button type="button" className="objectives-skip" aria-label={W.skipLabel(copy.title)} onClick={() => skip.forEach((mark) => onMark!(mark))}>{W.skip}</button>}
           </p>
           <h3>{copy.title}</h3>
           {copy.about && <p className="objectives-about">{copy.about}</p>}
@@ -160,7 +167,9 @@ export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, fi
           {coming
             ? coming.earliest > absoluteWeek(s)
               ? W.between(CHAPTER_COPY[coming.id].title, `in ${gameDateOfWeek(coming.earliest)}`)
-              : W.waitingOn(CHAPTER_COPY[coming.id].title)
+              : chapterBeforeDone(s, coming)
+                ? W.nextUp(CHAPTER_COPY[coming.id].title)
+                : W.waitingOn(CHAPTER_COPY[coming.id].title)
             : W.allDone}
         </p>
       )}

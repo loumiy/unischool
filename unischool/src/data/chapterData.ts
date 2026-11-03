@@ -16,8 +16,8 @@ import type { TabId } from '../components/TabNav';
 import type { NextStep } from '../systems/guidance/nextStep';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { COURSE_DEVELOPMENT_SLOTS, FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
-import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID, MAJOR_COURSE_COUNT, TIER_DURATION_WEEKS } from './techData';
-import { count, countWord, durationWords, weeksProse } from '../format';
+import { FIRST_HALL_COURSE_GATE, FOUNDERS_HALL_ID } from './techData';
+import { count, countWord, durationWords } from '../format';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { SPECIALIZATION_ASK_AGAIN_YEARS } from './specializationData';
 import { DEMAND_FIRST_YEAR, DEMAND_SATISFACTION_THRESHOLD } from './demandData';
@@ -93,19 +93,7 @@ const teachHelp = (more = ''): Lever => ({
   door: 'curriculum',
 });
 
-// Help that reads the college (state/chapters.ts's objectiveHelp): while
-// the first academic hall is still locked, its objective's help says what
-// opens it, and its Show me goes to the Curriculum.
-export const HALL_LOCKED_HELP: Lever = {
-  text: `The first academic hall appears in the build menu once ${count(FIRST_HALL_COURSE_GATE)} courses are taught. Develop more in the Curriculum.`,
-  door: 'curriculum',
-};
-
-// While the program's first course is still being written, the second can't
-// start (Plan 118E, I7): its help says to wait, and how long, before it
-// says where to click.
-// The first lab placed and still going up (Research's first objective):
-// the Research tab waits for it.
+// Help that reads the college (state/chapters.ts's objectiveHelp).
 // The school closest to six, named (A school of its own's second objective).
 export function foundSchoolHelp(school: string, housed: number, hall: string, hallId: string): Lever {
   const left = 6 - housed;
@@ -113,20 +101,6 @@ export function foundSchoolHelp(school: string, housed: number, hall: string, ha
     text: `${school} has ${count(housed)} of its six programs in ${hall}. Found or move ${countWord(left)} more ${school} ${left === 1 ? 'program' : 'programs'} there to found the School of ${school}, and open its labs and its Dean.`,
     door: 'hall',
     hallId,
-  };
-}
-
-export function labRisingHelp(weeksLeft: number): Lever {
-  return {
-    text: `Your laboratory is going up, with ${weeksProse(weeksLeft)} to go. The Research tab opens once it's built.`,
-    door: 'build',
-  };
-}
-
-export function secondCourseWaitHelp(code: string, weeksLeft: number): Lever {
-  return {
-    text: `${code} is still being written, with ${weeksProse(weeksLeft)} to go. Once it's taught, open the Curriculum and click Develop on the program's next course.`,
-    door: 'curriculum',
   };
 }
 
@@ -145,7 +119,6 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'next-course': {
     title: 'The next course',
-    about: `Each program has ${countWord(MAJOR_COURSE_COUNT)} courses, and the curriculum committee writes them ${COMMITTEE} at a time. An entry course takes about ${TIER_DURATION_WEEKS[1]} weeks to write, and a capstone about ${TIER_DURATION_WEEKS[4]}. A program's later courses open once its first course is taught.`,
     objectives: {
       'develop-second-course': "Start a program's second course",
       'run-at-double': 'Run the clock at double speed',
@@ -167,15 +140,14 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     },
     help: {
       'look-pan': { text: 'Pan with W, A, S and D, the arrow keys, or by dragging the map.' },
-      'look-turn': { text: 'Turn the view with Q and E to see behind buildings.' },
-      'look-tilt': { text: 'Tilt the view with Z and X.' },
-      'look-zoom': { text: 'Zoom with the scroll wheel.' },
-      'look-home': { text: 'Press Home to go back to the starting view.' },
+      'look-turn': { text: 'Turn the view with Q and E, or the turn buttons in the map tools, to see behind buildings.' },
+      'look-tilt': { text: 'Tilt the view with Z and X, or the tilt buttons in the map tools.' },
+      'look-zoom': { text: 'Zoom with the scroll wheel, or the + and − buttons in the map tools.' },
+      'look-home': { text: 'Press Home, or the house button in the map tools, to go back to the starting view.' },
     },
   },
   'somewhere-to-sleep': {
     title: 'Somewhere to sleep',
-    about: 'A residence hall gives beds, and a dining hall serves meals, each for a set number of students. Most students commute, but they still judge the college by its beds and meals. Students walk on paths where they can, so lay one between your buildings.',
     objectives: {
       'site-residence-hall': 'Place a residence hall',
       'site-dining-hall': 'Place a dining hall',
@@ -191,7 +163,6 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   seats: {
     title: 'Seats for everyone',
-    about: `Every student needs a place in class, and each course you teach adds ${SEATS} places. Students without a place are less happy, and the summer admits no more students than you have places for.`,
     objectives: {
       'seat-every-student': 'A place in class for every student',
     },
@@ -201,7 +172,6 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'paying-for-it': {
     title: 'Paying for it',
-    about: 'Tuition comes in every week, and salaries, upkeep and teaching costs go out. You pay for a building or a course in full when you start it. If you keep losing money, the board steps in, and in the end it can stop all building.',
     objectives: {
       'open-treasury': 'Walk through the Treasury',
       'weekly-surplus': 'Earn more each week than you spend',
@@ -213,7 +183,6 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   'first-summer': {
     title: 'The first summer',
-    about: `The clock has stopped for the summer, and it waits until you open the summer from the note at the bottom left. The summer has three pages: the year in review, admissions, and the students' petitions. In admissions you set tuition first, and the new class pays that price for all four years.`,
     objectives: {
       'set-first-class': "Set the first class's tuition and admit rate",
     },
@@ -223,7 +192,6 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
   },
   standing: {
     title: 'Standing',
-    about: "Prestige is your college's reputation, and satisfaction is how happy your students are. Neither one jumps. Each moves a little at a time.",
     objectives: {
       'open-students': 'Walk through the Students tab',
       'open-history': 'Walk through History to see what prestige is made of',
@@ -424,6 +392,8 @@ export const DRAWER_WORDS = {
   optional: 'optional',
   between: (title: string, when: string) => `${title} opens ${when}.`,
   waitingOn: (title: string) => `${title} opens when you finish the chapter before it.`,
+  // The chapter before it done, it waits on its own first step (Plan 124B).
+  nextUp: (title: string) => `${title} is next.`,
   allDone: 'Every chapter so far is done.',
   // The chapters met before, to read again (Plan 106 PR G's "Guide"; the
   // word went in Plan 124 D, so "the guide" is only the rankings).
@@ -434,6 +404,9 @@ export const DRAWER_WORDS = {
   // Seats for everyone's two counts while they differ (Plan 114E, C3-5).
   withComing: (taught: string, coming: string) => `${taught} now · ${coming} once new courses start`,
   back: 'Back to the objectives',
+  // Looking around's skip (Plan 124A): its moves marked as made.
+  skip: 'Skip',
+  skipLabel: (title: string) => `Skip ${title}`,
   // A chapter finished in the open tab, held until the tab closes (Plan 122E).
   chapterDone: (n: number) => `Chapter ${n} done.`,
   // A tab's Show me (Plan 124 D: once "Guide"), its walk and its page.

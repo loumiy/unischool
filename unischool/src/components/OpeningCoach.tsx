@@ -1,6 +1,6 @@
 import type { Action } from '../state/actions';
 import type { GameState } from '../state/types';
-import { isCoachStage, OPENING_STEPS, SKIP_WORDS, WALKTHROUGH_LENGTH } from '../data/openingData';
+import { isCoachStage, OPENING_STEPS, SKIP_WORDS } from '../data/openingData';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import ConfirmButton from './ConfirmButton';
 import { openingSkipped } from '../analytics/analytics';
@@ -49,7 +49,6 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, placing, onO
           <p className="letter-eyebrow">{step.eyebrow}</p>
           <h2>{step.title}</h2>
           <p className="letter-body">{step.body(s)}</p>
-          <p className="letter-length">{WALKTHROUGH_LENGTH}</p>
           <div className="modal-actions letter-actions">
             <button type="button" onClick={() => act({ type: 'ADVANCE_OPENING' })}>{step.next}</button>
           </div>
@@ -92,9 +91,6 @@ export default function OpeningCoach({ s, act, buildOpen, hallOpen, placing, onO
         )}
         {step.door && !doorOpen && (
           <button type="button" onClick={onDoor}>{doorLabel}</button>
-        )}
-        {step.door && doorOpen && (
-          <span className="opening-coach-wait">Time is paused until you do this</span>
         )}
       </div>
       <ConfirmButton

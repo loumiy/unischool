@@ -567,10 +567,15 @@ function BuildTile({
   // second review's B3-10): the shortfall, and which of loanFor's conditions
   // stopped a loan. A missing professor has its own "needs" line below.
   const greyedNote = startable ? undefined : greyedReason(s, t.cost);
+  // A greyed academic hall fills toward its price (Plan 124B), the cash in
+  // hand against its cost: the wait A hall of its own's objective no longer
+  // explains in words.
+  const filling = !startable && isAcademicHall(t) && shortfall > 0 && !constructionFrozen(s);
   return (
     <button
       type="button"
-      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedId && startable && !armed ? 'opening-target' : ''}`}
+      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedId && startable && !armed ? 'opening-target' : ''}${filling ? ' filling' : ''}`}
+      style={filling ? { '--fill': `${Math.round(Math.max(0, Math.min(1, s.finance.cash / t.cost)) * 100)}%` } as React.CSSProperties : undefined}
       disabled={!startable}
       title={armed ? 'Click an empty tile on the map to build it. Click this again to cancel.' : disabledReason}
       draggable={startable}

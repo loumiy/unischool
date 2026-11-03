@@ -13,7 +13,7 @@ import Toasts from './components/Toasts';
 import SummerCall from './components/SummerCall';
 import TitleScreen, { titleVariant } from './components/TitleScreen';
 const TitleBackdrop = lazy(() => import('./components/TitleBackdrop'));
-import { applySettings, getSettings, useSettings } from './settings';
+import { applySettings, getSettings, reducedMotion, useSettings } from './settings';
 import HallOfFame from './components/HallOfFame';
 import SettingsPanel from './components/SettingsPanel';
 import Credits from './components/Credits';
@@ -23,7 +23,7 @@ import { useAudioDirector } from './components/audio/useAudio';
 import { audio } from './components/audio/engine';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
-import CampusMap from './components/CampusMap';
+import CampusMap, { FOUNDING_RISE_MS } from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
@@ -484,8 +484,12 @@ export default function App() {
   // skipped. On mount, a save resumed mid-walk acts on the door-opening
   // stages but not on the clock. The ref holds the last stage acted on so
   // StrictMode's double effect can't act twice.
+  // The hall just placed rises first (Plan 124H, CampusMap.tsx's
+  // FOUNDING_RISE_MS): its panel and the walkthrough's card wait for the
+  // rise, and under reduced motion open at once.
   const stage: OpeningStage = s.events.opening.stage;
   const actedStage = useRef<OpeningStage | null>(null);
+  const [hallRising, setHallRising] = useState(false);
   useEffect(() => {
     if (!s.started) return;
     const prev = actedStage.current;
@@ -496,7 +500,13 @@ export default function App() {
     else if (stage === 'found') {
       closeBuild();
       setPlacingIdState(null);
-      inspectHall(FOUNDERS_HALL_ID);
+      if (prev === 'site-hall' && !reducedMotion()) {
+        setHallRising(true);
+        window.setTimeout(() => {
+          setHallRising(false);
+          inspectHall(FOUNDERS_HALL_ID);
+        }, FOUNDING_RISE_MS);
+      } else inspectHall(FOUNDERS_HALL_ID);
     }
     else if (prev !== null && stage === 'play') setSpeed('real');
   }, [s.started, stage]);
@@ -701,6 +711,7 @@ export default function App() {
             onGo={goTo}
             inboxOpen={overlay?.tab === 'inbox'}
             onOpenMarket={(field) => openTab('faculty', `${MARKET_TARGET}${field}`)}
+            onMark={(mark) => act({ type: 'MARK_GUIDANCE', mark })}
           />
           <Toolbar
             ref={toolbarRef}
@@ -824,7 +835,7 @@ export default function App() {
       {/* The walkthrough's card (OpeningCoach.tsx); renders nothing once
           the stage is 'play'. Opens doors through the same setters, so the
           one-slot rule holds. */}
-      {shellLive && <OpeningCoach
+      {shellLive && !hallRising && <OpeningCoach
         s={s}
         act={act}
         buildOpen={buildOpen}
