@@ -1174,7 +1174,13 @@ button.build-tile { font-family: inherit; }
   background: transparent; border: 2px solid transparent; color: var(--ink); font-size: var(--text-md); }
 .campus-map-zoom-controls .help-hint-btn:hover { background: var(--outline); color: var(--cream); }
 .campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; width: 320px; }
-/* On touch the camera's buttons join the pill (Plan 70F), a little larger. */
+/* The map help's keys (Plan 124A): a short list, each key a cap. */
+.map-help-keys { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.map-help-keys li { display: grid; grid-template-columns: 5.5em 1fr; gap: 8px; align-items: baseline; }
+.map-help-keys span { display: flex; flex-wrap: wrap; gap: 3px; }
+.map-help-keys kbd { font: inherit; font-size: var(--text-xs); min-width: 1.7em; text-align: center; padding: 1px 5px; border: 1px solid var(--ink-muted); border-radius: 4px; }
+/* The camera's buttons are in the pill on every device (Plan 124A); on
+   touch (Plan 70F) they are a little larger. */
 .campus-map-zoom-controls.touch-ui button, .campus-map-zoom-controls.touch-ui .help-hint-btn { width: 40px; height: 40px; }
 .campus-map-zoom-controls button[aria-pressed="true"] { background: var(--outline); color: var(--cream); }
 /* Folded (Plan 70G): one round button, the tools under it when open. */
@@ -4036,7 +4042,11 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives h4 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ink-muted); }
 .objectives .letter-eyebrow { display: flex; justify-content: space-between; gap: var(--space-8); margin: 0 0 var(--space-4); }
-.objectives-tally { font-variant-numeric: tabular-nums; }
+.objectives-tally { margin-left: auto; font-variant-numeric: tabular-nums; }
+/* Looking around's skip (Plan 124A): a quiet pill beside the tally. */
+.objectives-skip { padding: 0 var(--space-8); border: 2px solid var(--outline); border-radius: var(--radius-pill); background: transparent;
+  color: var(--ink); font: inherit; font-family: var(--display); font-weight: 800; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.objectives-skip:hover { background: var(--cream-lo); }
 .objectives-about { margin: 0 0 var(--space-8); }
 .objectives-list { list-style: none; margin: 0; padding: 0; }
 .objectives-list li { display: flex; align-items: baseline; gap: var(--space-8); padding: 4px 0; }

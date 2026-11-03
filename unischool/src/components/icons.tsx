@@ -455,6 +455,28 @@ export function TurnViewIcon({ direction }: { direction: 'left' | 'right' }) {
   );
 }
 
+// The map tools' tilt and home (Plan 124A, in place of the Unicode ⤓ ⤒ ⌂):
+// Lucide's "arrow-down-to-line" and "arrow-up-to-line", and "house" (see
+// LUCIDE_LICENSE.txt), at the turn buttons' weight.
+export function TiltViewIcon({ direction }: { direction: 'down' | 'up' }) {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
+      {direction === 'down'
+        ? <><path d="M12 17V3" /><path d="m6 11 6 6 6-6" /><path d="M19 21H5" /></>
+        : <><path d="M5 3h14" /><path d="m18 13-6-6-6 6" /><path d="M12 7v14" /></>}
+    </svg>
+  );
+}
+
+export function StartingViewIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE} strokeWidth={2} aria-hidden="true">
+      <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+      <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
+
 // One set of status marks: done, pending, failed.
 export type Status = 'done' | 'pending' | 'failed';
 export function StatusIcon({ status }: { status: Status }) {

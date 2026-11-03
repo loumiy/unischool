@@ -701,6 +701,7 @@ export default function App() {
             onGo={goTo}
             inboxOpen={overlay?.tab === 'inbox'}
             onOpenMarket={(field) => openTab('faculty', `${MARKET_TARGET}${field}`)}
+            onMark={(mark) => act({ type: 'MARK_GUIDANCE', mark })}
           />
           <Toolbar
             ref={toolbarRef}

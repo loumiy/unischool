@@ -45,7 +45,7 @@ function progressText(p: Progress): string {
   return `${figure(Math.min(p.value, p.target), p.unit)} of ${figure(p.target, p.unit)} ${p.unit}`;
 }
 
-export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, objectivesOpen, onSetObjectivesOpen, objectivesView = null, objectivesFinished = false, onSetObjectivesView, onGo, inboxOpen, onOpenMarket }: {
+export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderOpen, objectivesOpen, onSetObjectivesOpen, objectivesView = null, objectivesFinished = false, onSetObjectivesView, onGo, inboxOpen, onOpenMarket, onMark }: {
   s: GameState; open: boolean; onSetOpen: (open: boolean) => void;
   ladderOpen: boolean; onSetLadderOpen: (open: boolean) => void;
   objectivesOpen: boolean; onSetObjectivesOpen: (open: boolean) => void;
@@ -59,6 +59,8 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
   inboxOpen: boolean;
   // A retirement's notice opens the market in its field (Plan 84D).
   onOpenMarket?: (field: string) => void;
+  // A mark the drawer makes: Looking around's skip (Plan 124A).
+  onMark?: (mark: string) => void;
 }) {
   const latest = s.log[0];
   const leaving = latest && onOpenMarket ? retirementNotice(s, latest) : undefined;
@@ -155,6 +157,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
             view={objectivesView}
             finished={objectivesFinished}
             onView={onSetObjectivesView}
+            onMark={onMark}
           />
         </ToolbarPopup>
       )}

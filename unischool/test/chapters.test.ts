@@ -370,6 +370,23 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(done(before, 'looking-around') && currentChapter(before)?.id === 'somewhere-to-sleep', 'a save already past its place has it caught up, not held back');
 }
 
+// ---- Looking around's skip (Plan 124A): a run that never moves the camera ----
+{
+  let s = teaching();
+  settleChapters(s);
+  s.clock.week = 10;
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'looking-around' && s.guidance!.marked.length === 0, 'no move made, Looking around holds');
+  const drawer = (st: GameState, onMark?: (mark: string) => void) => createElement(ObjectivesPanel, { s: st, waiting: null, onGo: () => {}, onOpenLadder: () => {}, onMark });
+  assert(findButton(drawer(s), 'Skip') === undefined, 'no skip without a way to mark');
+  const skip = findButton(drawer(s, (mark) => { s = reducer(s, { type: 'MARK_GUIDANCE', mark }); }), 'Skip');
+  assert(skip !== undefined, 'the drawer offers a skip on Looking around');
+  skip?.();
+  assert(done(s, 'looking-around') && !objectiveMet(s, 'look-home'), 'the skip marks the four required moves, and it is done');
+  assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'and Somewhere to sleep opens');
+  assert(findButton(drawer(s, () => {}), 'Skip') === undefined, 'no other chapter offers a skip');
+}
+
 // ---- PR B: the ticker's chapter chip and the drawer ----
 {
   const s = teaching();

@@ -96,6 +96,13 @@ export const DOUBLE_SPEED_MARK = 'speed-2x';
 // (CampusMap.tsx), by key, mouse or touch alike.
 export const LOOK_MARKS = { pan: 'look:pan', turn: 'look:turn', tilt: 'look:tilt', zoom: 'look:zoom', home: 'look:home' } as const;
 export type LookMove = keyof typeof LOOK_MARKS;
+// The chapters the drawer offers to skip (Plan 124A, the owner's note on
+// X1): Looking around, whose skip marks its four required moves as if made,
+// so it closes and Somewhere to sleep can open. Recorded like any mark, so
+// chapter_done still fires.
+export const SKIP_MARKS: Partial<Record<ChapterId, readonly string[]>> = {
+  'looking-around': [LOOK_MARKS.pan, LOOK_MARKS.turn, LOOK_MARKS.tilt, LOOK_MARKS.zoom],
+};
 
 // Somewhere to sleep's path (Plan 115D).
 export const PATH_OBJECTIVE = 'path-to-founders';

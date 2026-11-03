@@ -167,10 +167,10 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     },
     help: {
       'look-pan': { text: 'Pan with W, A, S and D, the arrow keys, or by dragging the map.' },
-      'look-turn': { text: 'Turn the view with Q and E to see behind buildings.' },
-      'look-tilt': { text: 'Tilt the view with Z and X.' },
-      'look-zoom': { text: 'Zoom with the scroll wheel.' },
-      'look-home': { text: 'Press Home to go back to the starting view.' },
+      'look-turn': { text: 'Turn the view with Q and E, or the turn buttons in the map tools, to see behind buildings.' },
+      'look-tilt': { text: 'Tilt the view with Z and X, or the tilt buttons in the map tools.' },
+      'look-zoom': { text: 'Zoom with the scroll wheel, or the + and − buttons in the map tools.' },
+      'look-home': { text: 'Press Home, or the house button in the map tools, to go back to the starting view.' },
     },
   },
   'somewhere-to-sleep': {
@@ -435,6 +435,9 @@ export const DRAWER_WORDS = {
   // Seats for everyone's two counts while they differ (Plan 114E, C3-5).
   withComing: (taught: string, coming: string) => `${taught} now · ${coming} once new courses start`,
   back: 'Back to the objectives',
+  // Looking around's skip (Plan 124A): its moves marked as made.
+  skip: 'Skip',
+  skipLabel: (title: string) => `Skip ${title}`,
   // A chapter finished in the open tab, held until the tab closes (Plan 122E).
   chapterDone: (n: number) => `Chapter ${n} done.`,
   guideTab: (tab: string) => `The Guide on ${tab}`,

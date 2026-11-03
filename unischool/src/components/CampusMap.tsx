@@ -54,7 +54,7 @@ import { fullResidences } from './residenceFill';
 import { labNewsIn, type LabNews } from './labNews';
 import { linesSince } from './audio/director';
 import { setMapProbe, setMapReview } from './mapProbe';
-import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
+import { CloseIcon, MapToolsIcon, StartingViewIcon, TiltViewIcon, TurnViewIcon } from './icons';
 import { registerArt, type ArtScope } from './canvasPaint';
 import { MapCanvas, type CanvasEntry, type CanvasScene } from './mapCanvas';
 import type { Crowd, CrowdSink } from './Walkers';
@@ -251,6 +251,17 @@ function coarsePointer(): boolean {
 // says so.
 const PLACING_HINT = { mouse: ['Click open ground to build', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
 const MOVING_HINT = { mouse: ['Click open ground to move it', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
+// The map help's keys (Plan 124A, X2): the camera's and the few a builder
+// needs. Settings lists every key.
+const MAP_HELP_KEYS: readonly (readonly [readonly string[], string])[] = [
+  [['W', 'A', 'S', 'D'], 'or the arrows pan'],
+  [['Q', 'E'], 'turn'],
+  [['Z', 'X'], 'tilt'],
+  [['Home'], 'starting view'],
+  [['R'], 'rotate'],
+  [['Space'], 'pause'],
+  [['Esc'], 'back'],
+];
 function ToolHint({ tool, touch }: { tool: CampusTool; touch: boolean }) {
   return <HintBar hint={TOOL_HINTS[tool]} touch={touch} />;
 }
@@ -2744,24 +2755,27 @@ export default function CampusMap({
           </button>
           {toolsOpen && (
             <>
-              <HelpHint
-                align="end"
-                text="This is your campus. To add a building, click Build in the toolbar, pick a building, and click the map to place it. You pay when you place it, and it goes up right there. Press R to turn it 90 degrees. With the bench tool, R turns the bench. A building needs empty ground under its whole footprint. It also needs a walking route from the road on the south edge. If a spot won't work, the ghost tells you why. Paths are free. Press P, or click Paths in the build menu and pick Paving, Cobbles or Brick. Drag to pave, and right click to delete. Hold Shift for a straight line, or Ctrl (⌘ on a Mac) to fill a rectangle. Paths shape the quads and add to campus beauty. The Grounds tab in the build menu has trees of each kind, lamps, banner lamps, benches and flower beds. Place them anywhere on open ground. Its Eraser deletes any of them, paths and trees too. Every tab opens over the map. To come back, click Campus or the tab's Close, or press Escape. Keys: W, A, S, D or the arrows pan. Q and E turn the view. Z and X tilt it. Home goes back to the starting view. R rotates. P draws paths. Escape backs out one step at a time. C opens Curriculum, F opens Faculty, and L opens Students. Space pauses. 1 to 4 set the speed. M mutes. You can also pan by dragging the map or holding the scroll wheel. Scroll or pinch to zoom. On a touch screen, one finger pans and two fingers pinch to zoom. Tap a building to open it. To place a building, tap or drag to set it down, then tap Place. The curved-arrow buttons turn the view. ⤓ and ⤒ tilt it. ⌂ goes back to the starting view."
-              />
+              {/* The map's help (Plan 124A): under 80 words, the keys as a
+                  list, and the touch lines only once the map is touched. */}
+              <HelpHint align="end" label="Map help" text="Click Build, pick a building, then click the map.">
+                <p>Press P and drag to lay a path. Right click removes one.</p>
+                <ul className="map-help-keys">
+                  {MAP_HELP_KEYS.map(([keys, does]) => (
+                    <li key={does}><span>{keys.map((k) => <kbd key={k}>{k}</kbd>)}</span>{does}</li>
+                  ))}
+                </ul>
+                {touchUi && <p>One finger pans. Two fingers pinch to zoom. To build, tap the ground, then Place.</p>}
+              </HelpHint>
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-              {/* The camera's keys (Q/E, Z/X, Home) as buttons, once the map
-                  has been touched (Plans 70F and 70G); a keyboard player has
-                  the keys. */}
-              {touchUi && (
-                <>
-                  <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left"><TurnViewIcon direction="left" /></button>
-                  <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right"><TurnViewIcon direction="right" /></button>
-                  <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down">⤓</button>
-                  <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up">⤒</button>
-                  <button type="button" onClick={resetCamera} aria-label="Back to the starting view">⌂</button>
-                </>
-              )}
+              {/* The camera's keys (Q/E, Z/X, Home) as buttons on every
+                  device (Plan 124A, R-1: on desktop they were keys only,
+                  though the tooltip promised them). */}
+              <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left"><TurnViewIcon direction="left" /></button>
+              <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right"><TurnViewIcon direction="right" /></button>
+              <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down"><TiltViewIcon direction="down" /></button>
+              <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up"><TiltViewIcon direction="up" /></button>
+              <button type="button" onClick={resetCamera} aria-label="Back to the starting view"><StartingViewIcon /></button>
             </>
           )}
         </div>

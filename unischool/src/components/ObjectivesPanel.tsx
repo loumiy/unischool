@@ -3,7 +3,7 @@ import type { NextStep } from '../systems/guidance/nextStep';
 import { CHAPTER_COPY, DRAWER_WORDS as W, shutTabWords, type Door, type Lever } from '../data/chapterData';
 import { stepTarget } from '../systems/guidance/nextStep';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
-import { absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import { SKIP_MARKS, absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import HelpHint from './HelpHint';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
@@ -83,7 +83,7 @@ function showMe(s: GameState, help: Lever, onGo: (go: Door, hallId?: string, pro
   );
 }
 
-export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, finished = false, onView }: {
+export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, finished = false, onView, onMark }: {
   s: GameState;
   // The NEXT line (nextStep.ts): what waits besides the chapter.
   waiting: NextStep | null;
@@ -98,6 +98,8 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
   // close.
   finished?: boolean;
   onView?: (id: string | null) => void;
+  // A mark the drawer makes (MARK_GUIDANCE): a chapter's skip (Plan 124A).
+  onMark?: (mark: string) => void;
 }) {
   const current = currentChapter(s);
   // The page asked for, unless it is the current chapter's: that one reads
@@ -113,6 +115,9 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
   // (Plan 114E: the ticker shows the main chapter only), then the rest.
   const alsoOpen = openSideChapters(s).filter((c) => hasPage(c.id));
   const guide = [...alsoOpen, ...guideChapters(s).filter((c) => !alsoOpen.includes(c))].filter((c) => c.id !== chapter?.id);
+
+  // The chapter's skip (Plan 124A): on the current chapter, while not done.
+  const skip = !reading && chapter && onMark && s.guidance?.done[chapter.id] === undefined ? SKIP_MARKS[chapter.id] : undefined;
 
   const since = chapter ? s.guidance!.opened[chapter.id] : absoluteWeek(s) - 52;
   const unlocked = MILESTONES
@@ -135,6 +140,7 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
           <p className="letter-eyebrow">
             {W.chapter(chapterNumber(chapter))}
             <span className="objectives-tally">{W.of(required.filter((r) => r.met).length, required.length)}</span>
+            {skip && <button type="button" className="objectives-skip" aria-label={W.skipLabel(copy.title)} onClick={() => skip.forEach((mark) => onMark!(mark))}>{W.skip}</button>}
           </p>
           <h3>{copy.title}</h3>
           {copy.about && <p className="objectives-about">{copy.about}</p>}
