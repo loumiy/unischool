@@ -95,7 +95,7 @@ const HOMES: Record<HistoryView, string[]> = {
   const record = render(s, 'record');
   assert(record.includes('data-section="history.record"') && !record.includes('data-section="history.prestige"'), 'a held view is the one drawn');
   const landed = render(s, 'record', 'history.rankings');
-  assert(landed.includes('data-section="history.rankings"') && !landed.includes('data-section="history.record"'), 'the Rank chip\'s section opens the guide');
+  assert(landed.includes('data-section="history.rankings"') && !landed.includes('data-section="history.record"'), 'the guide\'s section opens the guide');
   const prestige = render(s, 'guide', 'history.prestige');
   assert(prestige.includes('data-section="history.prestige"'), 'the Prestige chip\'s opens Prestige');
 }

@@ -415,8 +415,6 @@ export const DRAWER_WORDS = {
   of: (met: number, all: number) => `${met} of ${all}`,
   help: (objective: string) => `How to: ${objective}`,
   showMe: 'Show me',
-  waiting: 'Also waiting',
-  go: 'Go',
   unlocked: 'Unlocked',
   milestones: 'Milestones',
   nextMilestone: 'Next milestone',

@@ -1,7 +1,5 @@
 import type { GameState } from '../state/types';
-import type { NextStep } from '../systems/guidance/nextStep';
 import { CHAPTER_COPY, DRAWER_WORDS as W, shutTabWords, type Door, type Lever } from '../data/chapterData';
-import { stepTarget } from '../systems/guidance/nextStep';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
 import { absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import HelpHint from './HelpHint';
@@ -17,9 +15,7 @@ import { NEED_LABELS } from '../data/figureHints';
 // open now, a short paragraph about it, and its objectives, each with its
 // reading and a (?) whose help says how to meet it, with a Show me that
 // takes the player there (Plan 112A: a simple list, help when confused,
-// and the place itself when still confused); what else waits (the NEXT
-// line); and the
-// milestones, folded in from the ticker's old chip (§7.4): those reached
+// and the place itself when still confused); and the milestones, folded in from the ticker's old chip (§7.4): those reached
 // this chapter as "Unlocked", the next with its count, and the whole ladder
 // a click away. state/chapters.ts owns the chapters, data/chapterData.ts
 // the words. It sits in a ToolbarPopup above the ticker (LogTicker.tsx).
@@ -83,10 +79,8 @@ function showMe(s: GameState, help: Lever, onGo: (go: Door, hallId?: string, pro
   );
 }
 
-export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view = null, finished = false, onView }: {
+export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, finished = false, onView }: {
   s: GameState;
-  // The NEXT line (nextStep.ts): what waits besides the chapter.
-  waiting: NextStep | null;
   // `target`: the building a build door rings, or the view a tab opens on.
   onGo: (go: Door, hallId?: string, programId?: string, target?: string) => void;
   onOpenLadder: () => void;
@@ -169,16 +163,6 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
               : W.waitingOn(CHAPTER_COPY[coming.id].title)
             : W.allDone}
         </p>
-      )}
-
-      {!reading && waiting && (
-        <section className="objectives-waiting">
-          <h4>{W.waiting}</h4>
-          <p className={waiting.urgent ? 'urgent' : undefined}>
-            <span>{waiting.text}</span>
-            {waiting.go && <button type="button" className="objectives-door" onClick={() => onGo(waiting.go!, waiting.hallId, waiting.programId, stepTarget(s, waiting))}>{W.go}</button>}
-          </p>
-        </section>
       )}
 
       {!reading && <section className="objectives-milestones">

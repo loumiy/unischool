@@ -889,15 +889,15 @@ export default function BuildPopup({
   // The downtown's beds (Plan 85H), beside the campus's.
   const offCampusBeds = offCampusPlaces(s, 'housing');
 
-  // The alert badge's other half: marks unseen tiles in the active tab only
-  // seen, since switching to a tab is what "seeing" it means. The tools tab
-  // counts too (its quads are tiles like any other).
-  const activeUnseenIds = active.groups.flatMap((g) => g.items.filter((t) => !s.seen.buildableIds[t.id]).map((t) => t.id));
-  const activeUnseenKey = activeUnseenIds.join('|');
+  // The Build button's "new" dot's other half: opening the menu marks every
+  // tile seen, in every category (Plan 124 C cut the per-category badges,
+  // so the menu itself is what "seeing" means).
+  const unseenIds = visibleBuildableIds(s).filter((id) => !s.seen.buildableIds[id]);
+  const unseenKey = unseenIds.join('|');
   useEffect(() => {
-    if (activeUnseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'buildable', ids: activeUnseenIds });
+    if (unseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'buildable', ids: unseenIds });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeUnseenKey]);
+  }, [unseenKey]);
 
   // A building in hand (Plan 34, from v2's): the menu folds to a strip along
   // the toolbar, so the ghost and the ground it is going on are never under
@@ -926,7 +926,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building you can build, sorted into categories along the top. Click a category to see its buildings. A red ! on a category means it has a building you haven't looked at yet. It clears when you open the category. Each tile shows what's built, what's under construction and what you can build next. Housing, dining and fitness fold their finished buildings into one tile marked '×N built'. Click it to see each one. Each building serves a set number of students, and every need grows with enrollment. So a bigger class needs more campus life, with or without more beds. Most students commute. Housing is a need of its own (see Housing in the Students tab), not a condition of admission. Still, every bed draws more applicants, up to 2,500 beds. Buildings you can't build yet aren't listed. To build, click a tile or drag it onto the map. Then click an empty tile on the map. You pay at that moment, and construction starts. The map stays visible behind this bar, so you can see where a building will go before you place it." />}
+      headExtra={<HelpHint text="Every building you can build, sorted into categories along the top. Click a category to see its buildings. Each tile shows what's built, what's under construction and what you can build next. Housing, dining and fitness fold their finished buildings into one tile marked '×N built'. Click it to see each one. Each building serves a set number of students, and every need grows with enrollment. So a bigger class needs more campus life, with or without more beds. Most students commute. Housing is a need of its own (see Housing in the Students tab), not a condition of admission. Still, every bed draws more applicants, up to 2,500 beds. Buildings you can't build yet aren't listed. To build, click a tile or drag it onto the map. Then click an empty tile on the map. You pay at that moment, and construction starts. The map stays visible behind this bar, so you can see where a building will go before you place it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">
@@ -949,25 +949,17 @@ export default function BuildPopup({
           {sections.map((sec) => {
             const Icon = SECTION_ICON[sec.id] ?? BuildIcon;
             const isActive = sec.id === active.id;
-            // The "!" has one meaning, "something new to build here" (Plan
-            // 78F): the category holds a tile the player has not seen,
-            // because the category has not been opened since it appeared.
-            // Opening it marks its tiles seen (the effect above).
-            const hasUnseen = sec.groups.some(
-              (g) => g.items.some((t) => !s.seen.buildableIds[t.id]),
-            );
             return (
               <button
                 key={sec.id}
                 type="button"
                 className={`build-cat-tab ${isActive ? 'active' : ''}`}
                 aria-pressed={isActive}
-                title={hasUnseen ? `${sec.label}: something new to build here` : sec.label}
+                title={sec.label}
                 onClick={() => setActiveId(sec.id)}
               >
                 <Icon />
                 <span className="build-cat-label">{sec.label}</span>
-                {hasUnseen && <span className="alert-badge" aria-hidden="true">!</span>}
               </button>
             );
           })}

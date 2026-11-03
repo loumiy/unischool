@@ -169,7 +169,7 @@ const looked = (s: GameState) => {
   course.status = 'developing';
   assert(row().coming === Math.min(placesComing(s), row().of) && row().coming! > row().n, `a course under way adds to the second count (${row().n}, ${row().coming})`);
   s.guidance = { opened: { seats: 1 }, done: {}, met: [], marked: [] };
-  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} })).replace(/<[^>]+>/g, '');
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {} })).replace(/<[^>]+>/g, '');
   assert(html.includes(`${count(row().n)}/${count(row().of)} now · ${count(row().coming!)} once new courses start`), 'the drawer shows both');
 }
 
@@ -404,12 +404,12 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   // The chapter's page (Plan 112A): its paragraph, and each objective with
   // a (?) whose help holds the Show me; no headings, no why.
   let went: string | undefined;
-  const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
+  const panel = createElement(ObjectivesPanel, { s, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
   assert(html.includes('Every student needs a place in class') && !html.includes('What it is') && !html.includes('Why it matters'), 'a page shows its paragraph, with no headings and no why');
   assert(html.includes('help-hint-btn') && html.includes('aria-label="How to: A place in class for every student"') && html.includes('aria-expanded="false"'), 'each objective has a (?), shut');
   assert(!html.includes('Develop more courses in the Curriculum'), 'its help waits behind it');
-  assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
+  assert(!html.includes('Also waiting'), 'the drawer holds no NEXT line (Plan 124 C)');
   const showMe = findButton(panel, 'Show me');
   showMe?.();
   assert(went === 'curriculum', 'Show me opens its view');
@@ -418,7 +418,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(early);
   early.guidance!.done = { founding: 1 };
   early.guidance!.met = early.guidance!.met.filter((id) => id !== 'develop-second-course');
-  const earlyHtml = renderToStaticMarkup(createElement(ObjectivesPanel, { s: early, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
+  const earlyHtml = renderToStaticMarkup(createElement(ObjectivesPanel, { s: early, onGo: () => {}, onOpenLadder: () => {} }));
   assert(earlyHtml.includes('The next course') && earlyHtml.includes('(optional)'), 'an optional objective says so');
 }
 
@@ -513,7 +513,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(s);
   s.guidance = { opened: { standing: 53 }, done: Object.fromEntries(['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'].map((id) => [id, 1])), met: [], marked: [] };
   s.guidance.opened = { ...s.guidance.done, standing: 53 };
-  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {} }));
   assert(html.includes('Standing') && /Prestige [\d.]+, (rising|falling|steady)</.test(html), 'Standing reads prestige and which way it is heading');
   assert(PILLARS.every((p) => html.includes(`glance-pillar pillar-${p}`)) && html.includes('Satisfaction '), 'with the glance\'s meter per pillar, and the satisfaction');
   const live = html.slice(html.indexOf('objectives-live')).replace(/<[^>]+>/g, ' ');
@@ -550,7 +550,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   // the Guide lists the side one first (Plan 114E, C3-2).
   assert(currentChapter(s)?.id === 'running-the-college', `the main chapter is current, not the side one (${currentChapter(s)?.id})`);
   assert(openSideChapters(s).some((c) => c.id === 'the-teams'), `and The teams is open beside it (${openSideChapters(s).map((c) => c.id).join(', ')})`);
-  const drawer = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, onView: () => {} }));
+  const drawer = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {}, onView: () => {} }));
   const guideAt = drawer.indexOf('objectives-guide');
   assert(guideAt > 0 && drawer.indexOf('The teams', guideAt) > guideAt && drawer.slice(guideAt).includes('open now'), 'the Guide names The teams, open now');
   assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
@@ -582,9 +582,9 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   s.guidance = { opened: { ...Object.fromEntries(met.map((id) => [id, 1])), standing: 53 }, done: Object.fromEntries(met.map((id) => [id, 1])), met: [], marked: [] };
   const guide = guideChapters(s).map((c) => c.id);
   assert(guide.join(',') === 'next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing', `the Guide lists every chapter met with a page, in order (${guide.join(',')})`);
-  const page = (view: string | null) => renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, view, onView: () => {} }));
+  const page = (view: string | null) => renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {}, view, onView: () => {} }));
   const back = page('paying-for-it');
-  assert(back.includes('Back to the objectives') && back.includes('Paying for it') && !back.includes('Also waiting'), 'a page of the Guide reads that chapter, with the way back');
+  assert(back.includes('Back to the objectives') && back.includes('Paying for it') && !back.includes('Milestones'), 'a page of the Guide reads that chapter, with the way back');
   assert(!page('standing').includes('Back to the objectives'), "the current chapter's page is the objectives themselves");
   assert(page(null).includes('Read again') && page(null).includes('The first summer'), 'the drawer lists the Guide to read again');
   const tab = renderToStaticMarkup(createElement(TabOverlay, { title: 'History', onClose: () => {}, onGuide: () => {}, children: null }));
@@ -708,7 +708,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(s);
   assert(currentChapter(s)?.id === 'running-the-college', `an old save with Promises and The long game open settles on Running the college (${currentChapter(s)?.id})`);
   assert(guideChapters(s).every((c) => hasPage(c.id)), 'and its Guide lists only chapters that exist');
-  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, view: 'promises', onView: () => {} }));
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {}, view: 'promises', onView: () => {} }));
   assert(html.includes('Running the college'), 'a Guide page asked for a gone chapter reads the current one');
   assert(saveGame(s) && loadGame()?.guidance?.opened['the-long-game'] === 200, 'and it saves and loads as it was');
 

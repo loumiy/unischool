@@ -20,9 +20,10 @@ export const NEED_LABELS: Record<keyof SatisfactionAttributes, string> = {
 export const FIGURE_HINTS = {
   // The status bar.
   funds: 'Your operating funds and this week\'s change at today\'s rates, which the board reviews every term (a deficit or an unanswered decision can push them below zero).',
-  rank: (field: number): Sentence => `Of ${field} colleges, by prestige.`,
   enrolled: 'Students across all four classes, which change each summer with the class you admit and the students who don\'t return.',
-  prestige: `Prestige, graded each summer from ${pillarWeightsWords()}, plus your endowment and minus run-down buildings.`,
+  // Rank and Prestige's one hint (Plan 124 C): the two chips share it, and
+  // one door, since the rank follows from prestige.
+  standing: (field: number): Sentence => `Prestige, graded each summer from ${pillarWeightsWords()}, plus your endowment and minus run-down buildings, sets your rank among ${field} colleges.`,
   // The lowest need and its figure (Plan 78B), so the chip says where to look.
   satisfaction: (need: string, figure: string): Sentence => `How happy your students are, out of 100 (lowest need: ${need}, at ${figure}).`,
   // The committee (Plan 80E): what it is writing, and whether there is room

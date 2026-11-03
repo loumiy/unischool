@@ -30,9 +30,10 @@ import { useSettings } from '../settings';
 // THE OBJECTIVES (Plan 106 PR B). Once the walkthrough is over, the
 // milestone chip gives way to the chapter's: "Chapter 2 · Places for every
 // student 280/350", the first objective not yet met. It opens the drawer
-// (ObjectivesPanel.tsx), where the chapter, its objectives and their help,
-// what else waits and the milestones are. NEXT stays on the strip only when it is urgent or
-// no chapter is open; otherwise it waits in the drawer. The Objectives
+// (ObjectivesPanel.tsx), where the chapter, its objectives and their help
+// and the milestones are. NEXT stays on the strip only when it is urgent or
+// no chapter is open (Plan 124 C cut the drawer's "Also waiting": a matter
+// is the Inbox badge's and NEXT's, not the drawer's). The Objectives
 // setting's Off keeps the strip as it was before them.
 // A milestone's progress as a count: "12/13 courses", "96.4/100.0 prestige".
 function figure(n: number, unit: string): string {
@@ -149,7 +150,6 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
         <ToolbarPopup title={DRAWER_WORDS.title} onClose={() => onSetObjectivesOpen(false)} className="objectives-popup">
           <ObjectivesPanel
             s={s}
-            waiting={step}
             onGo={(go, hallId, programId, target) => { onSetObjectivesOpen(false); onGo(go, hallId, programId, target); }}
             onOpenLadder={() => onSetLadderOpen(true)}
             view={objectivesView}

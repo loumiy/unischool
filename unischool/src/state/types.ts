@@ -1520,8 +1520,8 @@ export interface GameState {
 // (MARK_SEEN), bounded by the catalog:
 //   - courseIds: courses the Curriculum tab has rendered (revealed, whatever
 //     their status).
-//   - buildableIds: placeable Buildables the build popup rendered while
-//     their own category tab was active.
+//   - buildableIds: placeable Buildables listed in the build popup while it
+//     was open (any category: Plan 124 C cut the per-category badges).
 //   - tabIds: gated tabs (TabNav.tsx's TAB_GATES) seen open. Not a badge:
 //     keeps the "now available" log line one-off across saves and gates
 //     that close and reopen.

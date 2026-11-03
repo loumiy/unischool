@@ -18,17 +18,20 @@ import {
   ResearchIcon, HomeIcon, InboxIcon,
 } from './icons';
 
-// Tabs whose icon can carry the red alert badge, and how each decides it
-// wants a look: Curriculum for something unseen (see types.ts's SeenState),
-// Athletics while a varsity team has a staff post open (Plan 112B: the
-// owner, "if an athletics team is missing staff, there should be an alert
-// badge"), since nothing else says so off the tab. Faculty deliberately has
-// none, since hiring is prompted where the shortage is felt (a course that
-// will not start).
+// Tabs whose icon can carry a badge, and how each decides it wants a look.
+// Two marks, two meanings (Plan 124 C): Curriculum's cream dot is "something
+// new" (see types.ts's SeenState), as Build's is; Athletics' red "!" is
+// "this needs you", while a varsity team has a staff post open (Plan 112B:
+// the owner, "if an athletics team is missing staff, there should be an
+// alert badge"), since nothing else says so off the tab. Faculty
+// deliberately has none, since hiring is prompted where the shortage is felt
+// (a course that will not start).
 const TAB_ALERT: Partial<Record<TabId, (s: GameState) => boolean>> = {
   curriculum: (s) => visibleCourseIds(s).some((id) => !s.seen.courseIds[id]),
   athletics: teamsShortStaffed,
 };
+// Which of the two marks a tab's badge is.
+const TAB_ALERT_NEEDS: Partial<Record<TabId, true>> = { athletics: true };
 // What the badge means, for a screen reader (the badge itself is drawn only).
 const TAB_ALERT_WORDS: Partial<Record<TabId, string>> = {
   athletics: 'a staff post is open',
@@ -100,8 +103,9 @@ const Toolbar = forwardRef<HTMLDivElement, {
   // figures dimmed, Build open only for siting the hall. Campus stays: it
   // is the map, where all three steps are done.
   const quiet = openingQuietDoor(s);
-  // Lit while any build category holds an unseen tile, open or not: the
-  // build menu's "!", "something new to build here" (BuildPopup.tsx).
+  // Lit while the menu holds a tile not yet shown, "something new to
+  // build". Opening the menu clears it (BuildPopup.tsx marks every
+  // category's tiles seen).
   const buildNew = visibleBuildableIds(s).some((id) => !s.seen.buildableIds[id]);
   // The committee's seats, lit under the Curriculum button's word (Plan 91).
   const committee = committeeStatus(s);
@@ -169,7 +173,9 @@ const Toolbar = forwardRef<HTMLDivElement, {
                 <span className="toolbar-tab-label">{TAB_LABELS[id]}</span>
                 {hint && <CommitteeLamps s={s} ready={committee.ready} />}
                 {hint && <span id={committeeHint} hidden>{hint}</span>}
-                {hasAlert && <span className="alert-badge" aria-hidden="true">!</span>}
+                {hasAlert && (TAB_ALERT_NEEDS[id]
+                  ? <span className="alert-badge needs" aria-hidden="true">!</span>
+                  : <span className="alert-badge new" aria-hidden="true" />)}
                 {id === 'inbox' && (inbox.count > 0
                   ? <span className={`inbox-badge${inbox.urgent ? ' urgent' : ''}`} aria-hidden="true">{inbox.count}</span>
                   : inbox.unreadLetters > 0 && <span className="inbox-badge dot" aria-hidden="true" />)}
@@ -189,7 +195,7 @@ const Toolbar = forwardRef<HTMLDivElement, {
         >
           <BuildIcon />
           <span className="toolbar-build-label">Build</span>
-          {buildNew && <span className="alert-badge" aria-hidden="true">!</span>}
+          {buildNew && <span className="alert-badge new" aria-hidden="true" />}
         </button>
       </nav>
 
