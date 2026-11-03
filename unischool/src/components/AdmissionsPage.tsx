@@ -189,20 +189,36 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
   const poolRange = admissionsRange(s, outcome.applicants);
 
   // The animations: the pool raining in, and the class pouring into the
-  // hall. Under reduced motion both are a single step.
+  // hall. Under reduced motion both are a single step, and a click or a key
+  // anywhere on the page makes them one (Plan 124I): `finish` jumps the one
+  // playing, or the class's moment seated, to its end.
   const raf = useRef<number | null>(null);
+  const finish = useRef<(() => void) | null>(null);
   useEffect(() => () => { if (raf.current !== null) cancelAnimationFrame(raf.current); }, []);
-  const run = (next: Stage, ms: number, done: () => void) => {
+  const run = (next: Stage, ms: number, done: (skipped: boolean) => void) => {
     setStage(next);
-    if (reducedMotion()) { done(); return; }
+    if (reducedMotion()) { done(true); return; }
     const t0 = performance.now();
     const step = (now: number) => {
       const k = Math.min(1, (now - t0) / ms);
       setT(k);
-      if (k < 1) raf.current = requestAnimationFrame(step); else done();
+      if (k < 1) raf.current = requestAnimationFrame(step);
+      else { raf.current = null; finish.current = null; done(false); }
+    };
+    finish.current = () => {
+      if (raf.current !== null) cancelAnimationFrame(raf.current);
+      raf.current = null;
+      finish.current = null;
+      setT(1);
+      done(true);
     };
     raf.current = requestAnimationFrame(step);
   };
+  useEffect(() => {
+    const onKeyDown = () => finish.current?.();
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, []);
 
   const lock = () => {
     coachPast(['tuition', 'lock'], 'applicants');
@@ -214,9 +230,17 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
     const decision: SummerDecision = { tuition, admitRate };
     setCoach(null);
     setT(0);
-    run('flow', FLOW_MS, () => {
-      const commit = () => act({ type: 'RESOLVE_SUMMER_BEAT', decision });
-      if (reducedMotion()) commit(); else window.setTimeout(commit, SETTLE_MS);
+    run('flow', FLOW_MS, (skipped) => {
+      let sent = false;
+      const commit = () => {
+        if (sent) return;
+        sent = true;
+        finish.current = null;
+        act({ type: 'RESOLVE_SUMMER_BEAT', decision });
+      };
+      if (skipped) { commit(); return; }
+      const settle = window.setTimeout(commit, SETTLE_MS);
+      finish.current = () => { window.clearTimeout(settle); commit(); };
     });
   };
 
@@ -292,7 +316,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
   const atFull = fullCut !== null && shownCut <= fullCut + 0.005;
 
   return (
-    <div className="admissions-page" role="dialog" aria-modal="true" aria-label="Admissions">
+    <div className="admissions-page" role="dialog" aria-modal="true" aria-label="Admissions" onPointerDownCapture={() => finish.current?.()}>
       <header className="admissions-page-head">
         <div>
           <p className="admissions-page-eyebrow">Summer · Year {s.clock.year}</p>
