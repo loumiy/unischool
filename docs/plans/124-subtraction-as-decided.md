@@ -338,6 +338,10 @@ readably, so PR L darkens the hall's program dot instead.
   - the crowd stands around the field, not on it;
   - pennants go up the year after a title.
 
+  Then, on the third round: pack the stands evenly with no overflow and
+  slightly smaller figures; fill the corners; run the pennants all the way
+  round; re-work the stadium's exterior from real college stadiums.
+
 The review's cards also proposed things to *add* in place of what they cut,
 and the cut list didn't ask about them. The owner agreed to all seven. Several
 stand even where their cut was kept, so each PR below says how it fits with
@@ -407,10 +411,25 @@ in every vernacular. **M–L.**
    - On a full week, more walkers stand around the venue, around the track and
      not on it.
    - The dots go.
-2. **Titles.** The year after a national title, a pennant in the college's
-   colours goes up along its venue's rim, one per title, stacking, for good.
-   The title's page stays (A2).
-3. **The Final Report.** It opens over the campus as it stands. The six grades
+   Spectators are packed evenly, a little smaller than a walker, with every row
+   and corner filled and nothing spilling past the stands.
+2. **Titles.** The year after a national title, pennants in the college's
+   colours go up all the way round the venue's rim and stay. The title's page
+   stays (A2).
+3. **The football stadium's exterior.** The plain brick walls become a college
+   stadium's:
+   - a limestone cornice carrying the stadium's name;
+   - a tier of tall arches with stone voussoirs;
+   - banners on the piers;
+   - ground-level gates;
+   - a plinth;
+   - an entrance tower at a corner.
+
+   The references are Ohio Stadium's arches and rotunda, Notre Dame Stadium's
+   brick, and Bryant-Denny's facade and tower. It is drawn per vernacular in
+   `buildingMotifs.tsx`. Each expansion adds arches or an upper deck, not only
+   height.
+4. **The Final Report.** It opens over the campus as it stands. The six grades
    stamp in one by one (`GradeMark`, a `tick` each), "Students taught" counts up,
    and the fanfare plays on the final grade. The fanfare moves from the 50th
    admissions' resolve (`resolveAdmissions.ts:79`) to the reveal.
