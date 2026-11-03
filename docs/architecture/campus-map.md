@@ -499,6 +499,19 @@ pool, a hospital and a stadium stand in something like their real proportions
 to each other. Size is purely geometric: a bigger building grants nothing and
 costs nothing extra.
 
+**The football stadium's outside** (Plan 124 M2, `stadiumFacade.tsx`) is a
+college stadium's, after Ohio Stadium, Notre Dame Stadium and Bryant-Denny:
+a stone plinth, ground-level openings with a wide gate every sixth bay, a
+tier of tall arches ringed in stone voussoirs, the college's colours on
+every third pier, and a limestone cornice carrying the stadium's name (a
+plain "Football Stadium" carries the college's), with an entrance tower at
+the corner between its front and its left. The arches are round, pointed
+where the set's lights are lancets, square-headed where its openings are
+concrete slots; the walls are the set's own. It grows with the stadium:
+the opening stands get an arcade along their backs, the end stands a
+second, the closed bowl the full wall, the gates and the tower, and the
+upper deck a second tier of arches and a taller tower.
+
 **The residence halls take v2's residence types** (Plan 72D): each of the
 eight 500- and 1,000-bed rungs is a Residence Hall, a House, Suites, an
 Apartment Block or a Residential College (`buildingSpec.ts`'s

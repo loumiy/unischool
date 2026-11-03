@@ -9,6 +9,7 @@
 import type { SchoolColors, GameState } from '../state/types';
 import { registerArt, registerProvider, type ArtScope } from './canvasPaint';
 import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, PennantContext, VenueContext } from './mapOccasions';
+import { StadiumFacade, stadiumFacadeArt, type StadiumFacadeProps } from './stadiumFacade';
 import { Spectators, VenuePennants, spectatorsArt, venuePennantsArt, type PennantsProps, type SpectatorsProps } from './spectators';
 import { SnowContext } from './seasons';
 import BuildingMotif, { BuildingMass, BuildingMotifArt, Door, DoorSiteContext, EntranceSteps, InCollegeColors, RoofFlag, buildingMassArt, doorArt, entranceStepsArt, roofFlagArt, sameMotif, type BuildingMassProps, type DoorProps, type EntranceStepsProps } from './buildingMotifs';
@@ -72,6 +73,7 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
   registerArt(Lamp, (p: { at: Pt }, s) => lampArt(p, occasion(s, 'banner')));
   registerArt(RakedStand, (p: RakedStandProps) => rakedStandArt(p));
   registerArt(Spectators, (p: SpectatorsProps, s) => spectatorsArt(p, occasion(s, 'crowds').has(occasion(s, 'venue') ?? '')));
+  registerArt(StadiumFacade, (p: StadiumFacadeProps, s) => stadiumFacadeArt(p, occasion(s, 'colors'), occasion(s, 'collegeName')));
   registerArt(VenuePennants, (p: PennantsProps, s) => venuePennantsArt(p, occasion(s, 'pennants').has(occasion(s, 'venue') ?? ''), occasion(s, 'colors')));
 
   // A memo, kept from paint to paint.

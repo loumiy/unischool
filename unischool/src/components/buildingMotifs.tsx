@@ -9,6 +9,7 @@ import Landmark from './landmarks';
 import LibraryMass from './libraryMotif';
 import { ColorsContext } from './mapOccasions';
 import { Spectators, VenuePennants } from './spectators';
+import { StadiumFacade, type ArchHead, type FacadeWall, type StadiumFacadeProps } from './stadiumFacade';
 import {
   labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
@@ -28,7 +29,7 @@ import {
   TOWER_BELFRY_PLAN, TOWER_BELFRY_RISE, TOWER_SPIRE_RISE,
   TOWER_PINNACLE_PLAN, TOWER_PINNACLE_RISE,
   baysAcross, clerestorySill, type SignatureFeature, doorDimensions, doorOf, floorLinesOf, floorsUnderConstruction, hasClockTower, motifOf,
-  rankSills, ridgeOf, parapetOf, eavesOf, isMansard, stoneFor, paneShapeOf, windowOutline,
+  rankSills, ridgeOf, parapetOf, eavesOf, isMansard, stoneFor, paneShapeOf, windowShapeOf, windowOutline,
   entrancePartOf, rooflineEndPartOf, signatureOf, apexPartOf, partsFor, type ApexPart, massingOf,
   crestOf, surfaceRoofOf, type CrestPart, signifierOf, type Signifier, gothicCivicOf, roofFor,
   STACK_LOWER_TOP, STACK_UPPER_INSET, STACK_UPPER_OVERHANG,
@@ -9759,6 +9760,27 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     const concourse = shade(concrete, 0.9);
     const T = (c: number, r: number): TilePt => [c, r];
 
+    // The outside (Plan 124 M2, stadiumFacade.tsx): each outer wall the
+    // camera sees, in the stand's own brick, with its arches, banners and
+    // cornice. A wall by the box it bounds, its height and its outward
+    // grid direction; null when the camera does not see it.
+    const STAND_TONE: Record<FaceDir, number> = { negRow: 1.0, posRow: 0.8, posCol: 0.72, negCol: 1.0 };
+    // Round-headed, as Ohio Stadium's; pointed where the set's lights are
+    // lancets; square-headed piers where its openings are concrete slots.
+    const lights = windowShapeOf(vernacular);
+    const head: ArchHead = lights === 'lancet' ? 'pointed' : lights === 'slot' || lights === 'ribbon' ? 'flat' : 'round';
+    const limestone = trim ? stone.trim : shade(concrete, 1.12);
+    const outerWall = (bc: number, br: number, bw: number, bh: number, z: number, dir: FaceDir): FacadeWall | null => {
+      const fb = boxFaces(bc, br, bw, bh, 0, z);
+      if (dir !== fb.dir.CD && dir !== fb.dir.BC) return null;
+      const wall = wallOf(fb, dir);
+      const span = dir === fb.dir.CD ? fb.spanLeft : fb.spanRight;
+      return { origin: wall.origin, along: wall.along, height: z, span, brick: shade(tint, STAND_TONE[dir] * 0.82) };
+    };
+    const facade = (walls: Array<FacadeWall | null>, stage: number, key: string, tower?: StadiumFacadeProps['tower']) => (
+      <StadiumFacade key={key} walls={walls.filter((x): x is FacadeWall => x !== null)} stage={stage} head={head} stone={limestone} name={t.name} tower={tower ?? null} />
+    );
+
     // A site under construction is the bowl's earthworks, not a stadium.
     if (site) {
       return (
@@ -9787,13 +9809,20 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     if (stage < 2) {
       const ground = polyPoints(boxFaces(col, row, w, h, 0, 0).top);
       const sideDepth = d * 0.55;
+      // Each stand with its arcade along the back, where that shows.
       const touchline = (key: string, outerRow: number, innerRow: number, fill: number) => (
-        <RakedStand key={key} outer={[T(iCol, outerRow), T(iCol + iW, outerRow)]} inner={[T(iCol, innerRow), T(iCol + iW, innerRow)]}
-          bottomH={H * 0.06} topH={H * 0.34} rows={3} aisles={3} {...fills(fill)} />
+        <g key={key}>
+          <RakedStand outer={[T(iCol, outerRow), T(iCol + iW, outerRow)]} inner={[T(iCol, innerRow), T(iCol + iW, innerRow)]}
+            bottomH={H * 0.06} topH={H * 0.34} rows={3} aisles={3} {...fills(fill)} />
+          {facade([outerWall(iCol, Math.min(outerRow, innerRow), iW, sideDepth, H * 0.34, outerRow < innerRow ? 'negRow' : 'posRow')], stage, 'fa')}
+        </g>
       );
       const endStand = (key: string, outerCol: number, innerCol: number, fill: number) => (
-        <RakedStand key={key} outer={[T(outerCol, iRow), T(outerCol, iRow + iH)]} inner={[T(innerCol, iRow), T(innerCol, iRow + iH)]}
-          bottomH={H * 0.06} topH={H * 0.3} rows={3} aisles={2} {...fills(fill)} />
+        <g key={key}>
+          <RakedStand outer={[T(outerCol, iRow), T(outerCol, iRow + iH)]} inner={[T(innerCol, iRow), T(innerCol, iRow + iH)]}
+            bottomH={H * 0.06} topH={H * 0.3} rows={3} aisles={2} {...fills(fill)} />
+          {facade([outerWall(Math.min(outerCol, innerCol), iRow, sideDepth, iH, H * 0.3, outerCol < innerCol ? 'negCol' : 'posCol')], stage, 'fa')}
+        </g>
       );
       const northStand = touchline('n', iRow - sideDepth, iRow, 1.0);
       const southStand = touchline('s', iRow + iH + sideDepth, iRow + iH, 0.8);
@@ -10012,9 +10041,23 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     }));
     const cornersAt = (n: number) => corners.filter((c) => c.farCount === n).map((c) => c.node);
 
+    // The outside: both outer walls the camera sees, full height, and the
+    // entrance tower at the corner between the front and its left (the
+    // building's own frame), drawn first when it stands behind the bowl.
+    const rim = decked ? upperTop : STAND_TOP;
+    const outside = (['negRow', 'posRow', 'negCol', 'posCol'] as const).map((dir) => outerWall(col, row, w, h, rim, dir));
+    const sides = sidesOf(p.facing);
+    const cornerOf = (dir: FaceDir) => (dir === 'posRow' ? { r: row + h } : dir === 'negRow' ? { r: row } : dir === 'posCol' ? { c: col + w } : { c: col });
+    const cc = { ...cornerOf(sides.front), ...cornerOf(sides.left) } as { c: number; r: number };
+    const ts = Math.min(2.6, Math.min(w, h) * 0.13);
+    const tower = { col: cc.c - ts / 2, row: cc.r - ts / 2, size: ts, height: rim * (decked ? 1.22 : 1.32) };
+    const towerBehind = project(cc.c, cc.r).y < project(col + w / 2, row + h / 2).y - 1;
+    const towerNode = facade([], stage, 'tower', tower);
+
     return (
       <>
         {/* The concourse, under everything. */}
+        {towerBehind && towerNode}
         <polygon points={polyPoints(f.top)} fill={concourse} />
         {cornersAt(2)}
         {masts[0]}
@@ -10026,6 +10069,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {near}
         {cornersAt(0)}
         {masts[3]}
+        {facade(outside, stage, 'outside')}
+        {!towerBehind && towerNode}
         {/* A title's pennants all the way round the rim (Plan 124 M1). */}
         <VenuePennants z={decked ? upperTop : STAND_TOP} edges={[
           [[col, row], [col + w, row]], [[col + w, row], [col + w, row + h]],

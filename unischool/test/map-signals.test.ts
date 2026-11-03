@@ -7,6 +7,7 @@ import type { GameState, HallSlot, Placement } from '../src/state/types';
 import { CAMPUS_GRID_WIDTH } from '../src/state/types';
 import { FULL_SHARE, QUEUE_MAX, QUEUE_MIN, aroundVenue, darkPips, fullVenues, gatheredCount, pennantCount, pennantVenues, queueLength, queueSpots, queuesOf, venueFull, venueTitles } from '../src/components/mapSignals';
 import { walkGrid } from '../src/components/walkRoutes';
+import { stadiumTitle } from '../src/components/stadiumFacade';
 import { unstaffedPrograms } from '../src/systems/techtree/darkness';
 
 let checks = 0;
@@ -154,6 +155,13 @@ console.log('map signals tests');
   assert(pennantCount(0) === 0, 'no edge, no pennants');
   assert(pennantCount(1) === 2, 'a short edge has one at each end');
   assert(pennantCount(22) === 11 && pennantCount(44) > pennantCount(22), 'about one every 2.2 tiles, all the way along');
+}
+
+// ---- M2: the name on the stadium's cornice ----
+{
+  assert(stadiumTitle('Football Stadium', 'Halifax University') === 'HALIFAX UNIVERSITY STADIUM', 'a plain stadium carries the college\'s name');
+  assert(stadiumTitle('Hollis Field', 'Halifax University') === 'HOLLIS FIELD', 'a named one its own');
+  assert(stadiumTitle('Football Stadium', '') === 'FOOTBALL STADIUM', 'and with no college to hand, what it is');
 }
 
 console.log(`${checks} checks, ${failures} failures`);
