@@ -149,7 +149,15 @@ does change weekly reaches the scene through React contexts, which redraw
 only their consumers:
 
 - `DevelopingContext`: a site's countdown, progress bar and rising shell;
-- `CrowdContext`: the stands of a venue with a game this week;
+- `CrowdContext`: the stands of a venue full this week (about one week in
+  three each, off the map's own random numbers, not the fixtures; Plan 124
+  M1): packed row by row with seated figures drawn as the walkers are, a
+  little smaller (`spectators.tsx`), corners and all, as part of the
+  venue's own drawing, so thousands of them cost a recording a week and
+  not a frame; people stand about outside it too (`Walkers`' standers);
+- `PennantContext`: the venues whose teams have won a national title in a
+  year now over, which fly pennants in the college's colours all the way
+  round their rim, and keep them;
 - `BannerContext`: the lamps in commencement week.
 
 The hall pips and the walkers are drawn after the scene from the live

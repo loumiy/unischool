@@ -5,7 +5,7 @@
 import { createInitialState } from '../src/state/actions';
 import type { GameState, HallSlot, Placement } from '../src/state/types';
 import { CAMPUS_GRID_WIDTH } from '../src/state/types';
-import { QUEUE_MAX, QUEUE_MIN, darkPips, queueLength, queueSpots, queuesOf } from '../src/components/mapSignals';
+import { FULL_SHARE, QUEUE_MAX, QUEUE_MIN, aroundVenue, darkPips, fullVenues, gatheredCount, pennantCount, pennantVenues, queueLength, queueSpots, queuesOf, venueFull, venueTitles } from '../src/components/mapSignals';
 import { walkGrid } from '../src/components/walkRoutes';
 import { unstaffedPrograms } from '../src/systems/techtree/darkness';
 
@@ -89,6 +89,71 @@ console.log('map signals tests');
     if (d < 0.3 || d > 1) { assert(false, `evenly spaced (${i}: ${d.toFixed(2)})`); break; }
   }
   assert(queueSpots(p, grid, 0).length === 0, 'no one when there is no queue');
+}
+
+// ---- M1: which weeks a venue is full ----
+{
+  let full = 0;
+  const N = 52 * 40;
+  for (let y = 1; y <= 40; y++) for (let w = 1; w <= 52; w++) if (venueFull('Halifax', 'ATH-STADIUM', y, w)) full += 1;
+  const share = full / N;
+  assert(Math.abs(share - FULL_SHARE) < 0.04, `full about one week in three (${share.toFixed(3)})`);
+  assert(venueFull('Halifax', 'ATH-STADIUM', 7, 12) === venueFull('Halifax', 'ATH-STADIUM', 7, 12), 'the same all week');
+  let same = 0;
+  for (let w = 1; w <= 52; w++) if (venueFull('Halifax', 'ATH-STADIUM', 3, w) === venueFull('Halifax', 'ATH-FIELD', 3, w)) same += 1;
+  assert(same < 45, 'each venue has its own weeks');
+
+  const s: GameState = createInitialState('Venues');
+  const field = s.tech.find((t) => t.facilityType === 'athleticsField')!;
+  const lab = s.tech.find((t) => t.facilityType === 'library')!;
+  field.status = 'done';
+  lab.status = 'done';
+  s.placements[field.id] = { col: 10, row: 10, w: 22, h: 13 } as Placement;
+  s.placements[lab.id] = { col: 50, row: 10, w: 5, h: 5 } as Placement;
+  // No team, no fixtures: the field still fills on its weeks.
+  assert(s.orgs.teams.length === 0, 'a college with no team');
+  let weeks = 0;
+  for (let w = 1; w <= 52; w++) {
+    s.clock.week = w;
+    const f = fullVenues(s);
+    if (f.includes(lab.id)) assert(false, 'a building with no stands never fills');
+    if (f.includes(field.id) !== venueFull(s.self.name, field.id, s.clock.year, w)) assert(false, 'fullVenues follows venueFull');
+    if (f.includes(field.id)) weeks += 1;
+  }
+  assert(weeks > 6 && weeks < 30, `the field fills without fixtures (${weeks} weeks)`);
+
+  // People stand about outside it, never on it.
+  const grid = walkGrid({ placements: s.placements, tech: s.tech, pathways: s.pathways });
+  const p = s.placements[field.id]!;
+  const n = gatheredCount(p);
+  const spots = aroundVenue(p, grid, n, 7);
+  assert(spots.length === n && n >= 16 && n <= 140, `a crowd outside (${spots.length})`);
+  assert(spots.every((x) => !(x.col >= p.col && x.col < p.col + p.w && x.row >= p.row && x.row < p.row + p.h)), 'nobody on the field or its track');
+  assert(spots.every((x) => x.col >= p.col - 3 && x.col < p.col + p.w + 3 && x.row >= p.row - 3 && x.row < p.row + p.h + 3), 'all within three tiles of it');
+  assert(JSON.stringify(aroundVenue(p, grid, n, 7)) === JSON.stringify(spots), 'in the same places all week');
+}
+
+// ---- M1: title pennants ----
+{
+  const s: GameState = createInitialState('Pennants');
+  const field = s.tech.find((t) => t.facilityType === 'athleticsField')!;
+  const stadium = s.tech.find((t) => t.facilityType === 'footballStadium')!;
+  for (const t of [field, stadium]) t.status = 'done';
+  s.placements[field.id] = { col: 10, row: 10, w: 22, h: 13 } as Placement;
+  s.placements[stadium.id] = { col: 40, row: 10, w: 15, h: 12 } as Placement;
+  s.clock.year = 10;
+  assert(pennantVenues(s).length === 0, 'no titles, no pennants');
+  s.orgs.titles.push({ sport: 'soccer-m', year: 10 });
+  assert(venueTitles(s, field.id) === 0 && pennantVenues(s).length === 0, 'not in the year of the title');
+  s.clock.year = 11;
+  assert(venueTitles(s, field.id) === 1 && JSON.stringify(pennantVenues(s)) === JSON.stringify([field.id]), 'up the year after, at the venue its sport plays in');
+  s.orgs.titles.push({ sport: 'lacrosse-w', year: 10 }, { sport: 'football', year: 9 });
+  assert(venueTitles(s, field.id) === 2 && venueTitles(s, stadium.id) === 1, 'each venue counts its own sports\' titles');
+  s.clock.year = 30;
+  assert(pennantVenues(s).length === 2, 'and they stay');
+  assert(pennantCount(0) === 0, 'no edge, no pennants');
+  assert(pennantCount(1) === 2, 'a short edge has one at each end');
+  assert(pennantCount(22) === 11 && pennantCount(44) > pennantCount(22), 'about one every 2.2 tiles, all the way along');
 }
 
 console.log(`${checks} checks, ${failures} failures`);

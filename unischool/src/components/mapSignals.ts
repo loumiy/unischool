@@ -3,6 +3,7 @@ import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import { ROAD_FIRST_ROW } from '../state/campusMap';
 import { sidesOf } from './facing';
 import { entrancesOf, type Waypoint } from './walkRoutes';
+import { sportById } from '../data/studentLifeData';
 
 // What the tabs say, said on the map (Plan 124 L): the pure readings the
 // map's marks are drawn from. Drawing only; nothing here is read back.
@@ -90,3 +91,108 @@ export function queueSpots(p: Placement, grid: Float32Array, n: number): Waypoin
   return spots;
 }
 
+// ---- Full stands (M1) ----
+// The walkers' shirts (Walkers.tsx), which the spectators wear too.
+export const WALKER_SHIRTS = ['#c94b4b', '#3d6a9c', '#e0b64a', '#5b8a5b', '#8c5a9c', '#e88a4a', '#f2ede2'] as const;
+
+// The venues with stands: the football stadium's bowl and the open grounds
+// a team plays on (the field's grandstand, the diamond's). The arena and the
+// natatorium seat their crowds indoors, out of sight.
+export const STAND_VENUES: ReadonlySet<string> = new Set(['footballStadium', 'athleticsField', 'athleticsDiamond']);
+
+// The map's own random numbers (mulberry32, as the walkers' are), seeded by
+// a string: never the simulation's stream.
+export function hashOf(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  return h >>> 0;
+}
+export function mapRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// A venue is full about one week in three, picked off the map's random
+// numbers for that venue and that week, so it holds all week and does not
+// follow the fixtures: the point is that a player sees full stands often.
+export const FULL_SHARE = 1 / 3;
+export function venueFull(college: string, venueId: string, year: number, week: number): boolean {
+  return mapRandom(hashOf(`${college}|${venueId}|${year}|${week}`))() < FULL_SHARE;
+}
+
+// The finished venues with stands that are full this week, by Buildable id.
+export function fullVenues(s: GameState): string[] {
+  const out: string[] = [];
+  for (const t of s.tech) {
+    if (t.status !== 'done' || t.facilityType === undefined || !STAND_VENUES.has(t.facilityType) || !s.placements[t.id]) continue;
+    if (venueFull(s.self.name, t.id, s.clock.year, s.clock.week)) out.push(t.id);
+  }
+  return out;
+}
+
+// On a full week, people stand about outside the venue: on open tiles a
+// tile or three out from its footprint (round a track, never on it), at
+// spots off the map's random numbers, so they keep their places all week.
+export function aroundVenue(p: Placement, grid: Float32Array, n: number, seed: number): Waypoint[] {
+  const W = CAMPUS_GRID_WIDTH;
+  const open = (c: number, r: number) => c >= 0 && r >= 0 && c < W && r < CAMPUS_GRID_HEIGHT && r < ROAD_FIRST_ROW && grid[r * W + c]! > 0;
+  const tiles: [number, number][] = [];
+  for (let k = 1; k <= 3; k++) {
+    for (let c = p.col - k; c < p.col + p.w + k; c++) {
+      for (const r of [p.row - k, p.row + p.h + k - 1]) if (open(c, r)) tiles.push([c, r]);
+    }
+    for (let r = p.row - k + 1; r < p.row + p.h + k - 1; r++) {
+      for (const c of [p.col - k, p.col + p.w + k - 1]) if (open(c, r)) tiles.push([c, r]);
+    }
+  }
+  if (tiles.length === 0) return [];
+  const random = mapRandom(seed);
+  for (let i = tiles.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [tiles[i], tiles[j]] = [tiles[j]!, tiles[i]!];
+  }
+  // Two to a tile at most.
+  const out: Waypoint[] = [];
+  for (let k = 0; out.length < n && k < tiles.length * 2; k++) {
+    const [c, r] = tiles[k % tiles.length]!;
+    out.push({ col: c + 0.15 + random() * 0.7, row: r + 0.15 + random() * 0.7 });
+  }
+  return out;
+}
+// How many stand about a full venue: about three for every two tiles of its
+// edge.
+export function gatheredCount(p: Placement): number {
+  return Math.min(140, Math.max(16, Math.round((p.w + p.h) * 2 * 1.4)));
+}
+
+// ---- Title pennants (M1) ----
+// A venue's national titles that count on the map: won by a team that plays
+// there (its sport's venue category) in a year already over. The year after
+// a title, pennants in the college's colours go up round the venue's rim,
+// and stay.
+export function venueTitles(s: GameState, venueId: string): number {
+  const t = s.tech.find((x) => x.id === venueId);
+  if (!t || t.facilityType === undefined) return 0;
+  return s.orgs.titles.filter((title) => title.year < s.clock.year && sportById(title.sport)?.venueCategory === t.facilityType).length;
+}
+// The venues with stands that fly the pennants.
+export function pennantVenues(s: GameState): string[] {
+  if (s.orgs.titles.length === 0) return [];
+  return s.tech
+    .filter((t) => t.status === 'done' && t.facilityType !== undefined && STAND_VENUES.has(t.facilityType) && s.placements[t.id])
+    .filter((t) => venueTitles(s, t.id) > 0)
+    .map((t) => t.id);
+}
+// Pennants along an edge of `len` tiles: about one every PENNANT_GAP tiles,
+// the first and the last at its ends, so they run all the way round.
+export const PENNANT_GAP = 2.2;
+export function pennantCount(len: number): number {
+  if (!(len > 0)) return 0;
+  return Math.max(2, Math.round(len / PENNANT_GAP) + 1);
+}

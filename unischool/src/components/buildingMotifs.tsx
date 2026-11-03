@@ -8,6 +8,7 @@ import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import Landmark from './landmarks';
 import LibraryMass from './libraryMotif';
 import { ColorsContext } from './mapOccasions';
+import { Spectators, VenuePennants } from './spectators';
 import {
   labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
@@ -9838,7 +9839,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       if (!twoDecks(side)) {
         return (
           <RakedStand key={side} outer={[P(side, 0, a0), P(side, 0, a1)]} inner={[P(side, d, a0), P(side, d, a1)]}
-            bottomH={bottom} topH={STAND_TOP} rows={7} aisles={3} endFaces={false} {...fills(fill)} />
+            bottomH={bottom} topH={STAND_TOP} rows={7} aisles={3} endFaces={false} pennants={false} {...fills(fill)} />
         );
       }
       // The upper deck oversails the lower, so it has no front wall of its
@@ -9846,7 +9847,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       // field, the upper deck is behind the lower; seen from behind, in front.
       const upper = (
         <RakedStand key={`${side}u`} outer={[P(side, 0, a0), P(side, 0, a1)]} inner={[P(side, upperFrontX, a0), P(side, upperFrontX, a1)]}
-          bottomH={upperBase} topH={upperTop} rows={6} aisles={3} frontWall={false} endFaces={false} {...fills(fill * 1.04)} />
+          bottomH={upperBase} topH={upperTop} rows={6} aisles={3} frontWall={false} endFaces={false} pennants={false} {...fills(fill * 1.04)} />
       );
       const soffit = (
         <polygon key={`${side}s`} className="iso-undercroft" points={polyPoints([
@@ -9856,7 +9857,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       );
       const lower = (
         <RakedStand key={`${side}l`} outer={[P(side, lowerBackX, a0), P(side, lowerBackX, a1)]} inner={[P(side, d, a0), P(side, d, a1)]}
-          bottomH={bottom} topH={lowerTop} rows={6} aisles={3} wall={false} endFaces={false} {...fills(fill)} />
+          bottomH={bottom} topH={lowerTop} rows={6} aisles={3} wall={false} endFaces={false} pennants={false} {...fills(fill)} />
       );
       // The upper deck's front edge, a pale band that marks the tier.
       const fascia = (
@@ -9887,6 +9888,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         return faces.map((q, i) => {
           const pts = q.map(([c, r, z]) => at(c, r, z));
           const lerp = (p: Pt, q2: Pt, f: number) => ({ x: p.x + (q2.x - p.x) * f, y: p.y + (q2.y - p.y) * f });
+          const tp = (n: number): TilePt => [q[n][0], q[n][1]];
           return (
             <g key={`${k}${i}`}>
               <polygon points={polyPoints(pts)} fill={fill.rakeFill} />
@@ -9895,6 +9897,10 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
                 const u = lerp(pts[0], pts[1], f); const v = lerp(pts[3], pts[2], f);
                 return <line key={j} x1={u.x} y1={u.y} x2={v.x} y2={v.y} stroke={fill.seatStroke} strokeWidth={0.6} />;
               })}
+              {/* The corners fill on a full week too (Plan 124 M1). */}
+              <Spectators inner={[tp(0), tp(3)]} outer={[tp(1), tp(2)]} zIn={zi} zOut={zo}
+                innerNear={project(q[0][0], q[0][1]).y + project(q[3][0], q[3][1]).y > project(q[1][0], q[1][1]).y + project(q[2][0], q[2][1]).y}
+                seed={i * 97 + rows} />
             </g>
           );
         });
@@ -10020,6 +10026,11 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {near}
         {cornersAt(0)}
         {masts[3]}
+        {/* A title's pennants all the way round the rim (Plan 124 M1). */}
+        <VenuePennants z={decked ? upperTop : STAND_TOP} edges={[
+          [[col, row], [col + w, row]], [[col + w, row], [col + w, row + h]],
+          [[col + w, row + h], [col, row + h]], [[col, row + h], [col, row]],
+        ]} />
       </>
     );
   }
