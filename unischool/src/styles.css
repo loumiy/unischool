@@ -1696,6 +1696,8 @@ button.build-tile { font-family: inherit; }
 /* A program Established, then Distinguished (Plan 112D). */
 .campus-hall-pip.established { stroke: #e1e5e8; stroke-width: 2.6; }
 .campus-hall-pip.distinguished { stroke: #f0b929; stroke-width: 2.6; }
+/* A program gone dark: a course with no teacher (Plan 124 L). */
+.campus-hall-pip.dark { fill: #161b29; stroke: #e0443a; stroke-width: 1.8; stroke-dasharray: 2.4 1.7; }
 .campus-hall-flag circle { fill: var(--gold); }
 .campus-hall-flag path { stroke: #1a2035; stroke-width: 1.6; stroke-linecap: round; fill: none; }
 /* A lab at work (Plan 41): a ring filling as the project runs, an atom

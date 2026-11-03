@@ -61,6 +61,8 @@ import type { Crowd, CrowdSink } from './Walkers';
 import { occasion, registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
 import { slotFree } from '../systems/administration/offices';
+import { unstaffedPrograms } from '../systems/techtree/darkness';
+import { darkPips, queuesOf } from './mapSignals';
 import { LOOK_MARKS, marked, type LookMove } from '../state/chapters';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
@@ -552,9 +554,13 @@ const HALL_MARK_LIFT = 28;
 // the hall panel still say which department a course waits on.
 const STANDING_WORD: Record<ProgramStanding, string> = { established: 'Established', distinguished: 'Distinguished' };
 
-function HallMarks({ t, p, slots, offerWaiting, standing, vernacular, onInspect }: {
+function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onInspect }: {
   t: Buildable; p: Placement; slots: ReadonlyArray<HallSlot>;
-  offerWaiting: boolean; standing: ReadonlyArray<ProgramStanding | null>; vernacular: Vernacular; onInspect: () => void;
+  offerWaiting: boolean; standing: ReadonlyArray<ProgramStanding | null>;
+  // A program with a course nobody teaches (Plan 124 L): its pip goes dark,
+  // ringed in dashed red, until a teacher is appointed (mapSignals.ts).
+  dark: ReadonlyArray<boolean>;
+  vernacular: Vernacular; onInspect: () => void;
 }) {
   const { size, centre } = labelLayout(t.name, t, p, vernacular);
   const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
@@ -574,9 +580,11 @@ function HallMarks({ t, p, slots, offerWaiting, standing, vernacular, onInspect 
     .filter(({ n }) => n > 0)
     .map(({ k, n }) => `${n} ${STANDING_WORD[k]}`)
     .join(', ');
+  const darkCount = dark.filter(Boolean).length;
+  const darkWords = darkCount === 0 ? '' : darkCount === 1 ? '1 program dark, a course without a teacher' : `${darkCount} programs dark, courses without a teacher`;
   return (
-    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${tiers ? `, ${tiers}` : ''}${flag ? ', a program on offer' : ''}`}>
-      <title>{`${slots.length - free} of ${slots.length} program slots filled${tiers ? ` · ${tiers} (silver ring Established, gold Distinguished)` : ''}${flag ? ' · room for a program on offer' : ''}`}</title>
+    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${tiers ? `, ${tiers}` : ''}${darkWords ? `, ${darkWords}` : ''}${flag ? ', a program on offer' : ''}`}>
+      <title>{`${slots.length - free} of ${slots.length} program slots filled${tiers ? ` · ${tiers} (silver ring Established, gold Distinguished)` : ''}${darkWords ? ` · ${darkWords}` : ''}${flag ? ' · room for a program on offer' : ''}`}</title>
       <rect
         className="campus-hall-marks-plate"
         x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}
@@ -586,9 +594,9 @@ function HallMarks({ t, p, slots, offerWaiting, standing, vernacular, onInspect 
       {hues.map((hue, i) => (
         <circle
           key={i}
-          className={`campus-hall-pip${hue ? ' filled' : ''}${standing[i] ? ` ${standing[i]}` : ''}`}
+          className={`campus-hall-pip${hue ? ' filled' : ''}${dark[i] ? ' dark' : standing[i] ? ` ${standing[i]}` : ''}`}
           cx={x0 + i * HALL_PIP_GAP} cy={y} r={HALL_PIP_R}
-          style={hue ? { fill: hue } : undefined}
+          style={hue && !dark[i] ? { fill: hue } : undefined}
         />
       ))}
       {flag && (
@@ -1169,17 +1177,21 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
   camera: Camera;
 }) {
   void camera;
-  const halls = useMemo(() => layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => ({
+  const halls = useMemo(() => {
+    const unstaffed = unstaffedPrograms(s);
+    return layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => ({
     t, p,
     slots: s.halls[t.id],
     // A claimed hall founds its school's programs while it has any, else
     // (like an open hall) the global offers (Plan 100; drawsGlobalOffers).
     offerWaiting: drawsGlobalOffers(s, t.id) ? s.programOffers.length > 0 : schoolOffers(s, t.id).length > 0,
     standing: s.halls[t.id].map((slot) => (slot.programId ? programStanding(s, slot.programId) : null)),
-  })), [s, layout]);
+    dark: darkPips(s.halls[t.id], unstaffed),
+  }));
+  }, [s, layout]);
   return (
     <>
-      {halls.map(({ t, p, slots, offerWaiting, standing }) => (
+      {halls.map(({ t, p, slots, offerWaiting, standing, dark }) => (
         <HallMarks
           key={`marks-${t.id}`}
           t={t}
@@ -1187,6 +1199,7 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
           slots={slots}
           offerWaiting={offerWaiting}
           standing={standing}
+          dark={dark}
           vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
         />
@@ -1323,6 +1336,10 @@ export default function CampusMap({
   // This week's occasions (mapOccasions.ts), reference-stable between them.
   const crowdKey = useMemo(() => crowdedVenues(s).join(','), [s]);
   const crowds = useMemo(() => new Set(crowdKey ? crowdKey.split(',') : []), [crowdKey]);
+  // The lines at the doors of a dining hall or a clinic while that need is
+  // short (Plan 124 L), reference-stable while they stand.
+  const queueKey = useMemo(() => JSON.stringify(queuesOf(s)), [s]);
+  const queues = useMemo(() => JSON.parse(queueKey) as ReturnType<typeof queuesOf>, [queueKey]);
   const commencement = isCommencement(s);
   const banners = useMemo(() => (commencement ? { ...s.self.colors } : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2600,7 +2617,7 @@ export default function CampusMap({
             </BannerContext.Provider>
             </CrowdContext.Provider>
             </>)}
-            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} />
+            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} queues={queues} />
             <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <FullMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
