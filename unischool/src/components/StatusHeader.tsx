@@ -1,5 +1,5 @@
 import { speedLock } from '../systems/delegation/seats';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { GameState } from '../state/types';
 import { totalEnrolled, WEEKS_PER_YEAR } from '../state/types';
 import {
@@ -110,7 +110,16 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
   // still readable, and their doors shut with the tabs they open.
   quiet?: boolean;
 }) {
-  const netWeekly = weeklyNet(s);
+  // The figures read off the whole state (prestigeWeeklyChange walks every
+  // pillar of the prestige breakdown, tens of ms late in a run), once per
+  // state: the toolbar renders again on every tab, menu and hover change
+  // in App.tsx, and a tab's Close waited on these (INP).
+  const { netWeekly, prestigeChange, satisfactionChange, drag } = useMemo(() => ({
+    netWeekly: weeklyNet(s),
+    prestigeChange: prestigeWeeklyChange(s),
+    satisfactionChange: satisfactionWeeklyChange(s),
+    drag: satisfactionDrag(s),
+  }), [s]);
   // Shown from week one: the field is 100 schools, with many below a founding
   // school, so the rank is worth reading early. Being published in the top
   // 50 is still the event (rivalsSystem.ts's TOP_50_CUTOFF).
@@ -172,19 +181,19 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
           <span className="stat-value gold">
             <AnimatedNumber value={s.self.reputation} format={prestigeFigure} />
             {/* Which way it is moving (Plan 98B). */}
-            <TrendArrow change={prestigeWeeklyChange(s)} {...PRESTIGE_TREND} />
+            <TrendArrow change={prestigeChange} {...PRESTIGE_TREND} />
           </span>
         </FigureBox>
         {/* Satisfaction waits for the first summer, with the Students tab
             (Plan 104M): the review introduces it as the year's average. */}
-        {tabAvailable(s, 'students') && <FigureBox className="toolbar-stat" above hint={satisfactionHint(s, satisfactionDrag(s))} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
+        {tabAvailable(s, 'students') && <FigureBox className="toolbar-stat" above hint={satisfactionHint(s, drag)} door={door('satisfaction', satisfactionFigure(s.students.satisfaction))}>
           <SatisfactionIcon />
           {word('satisfaction')}
           {/* The warning is the paper red: the chip is cream, and the dock's
               own red is tuned for the dark band. */}
           <span className={`stat-value ${s.students.satisfaction < SATISFACTION_WARN ? 'stat-warn' : ''}`}>
             <AnimatedNumber value={s.students.satisfaction} format={satisfactionFigure} />
-            <TrendArrow change={satisfactionWeeklyChange(s)} {...SATISFACTION_TREND} />
+            <TrendArrow change={satisfactionChange} {...SATISFACTION_TREND} />
           </span>
         </FigureBox>}
       </div>
