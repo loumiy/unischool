@@ -28,6 +28,10 @@
 //   buttons               print every enabled button's name
 //   eval=<js>             print the value of a page expression
 //   size=<w>,<h>          the viewport (default 1440,900); phone for 390,844 touch
+//   silent                hide the explanations (Plan 123, pass B): letter and
+//                         coach bodies, chapter briefings, (?) help, figure
+//                         hints, tooltips and the guided walks' prose. Titles,
+//                         labels, numbers and buttons stay. Must come first.
 // Pauses the clock and closes the profile at the end, which flushes the save.
 // ---------------------------------------------------------------------
 import { existsSync, readFileSync, rmSync } from 'node:fs';
@@ -39,7 +43,7 @@ if (!profile) {
   process.exit(2);
 }
 const URL = process.env.CAMPUS_URL ?? 'http://localhost:5173/';
-const CHROME = [process.env.CHROME_PATH, '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/usr/bin/chromium'].filter(Boolean).find((p) => existsSync(p));
+const CHROME = [process.env.CHROME_PATH, '/opt/pw-browsers/chromium', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/usr/bin/chromium'].filter(Boolean).find((p) => existsSync(p));
 const sizeStep = steps.find((s) => s.startsWith('size='));
 const phone = sizeStep === 'size=phone';
 const [W, H] = phone ? [390, 844] : (sizeStep?.slice(5).split(',').map(Number) ?? [1440, 900]);
@@ -52,6 +56,26 @@ const context = await chromium.launchPersistentContext(profile, {
   ...(phone ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
 });
 const page = context.pages()[0] ?? await context.newPage();
+// The silent run (Plan 123, pass B): the game played by doing. A stylesheet
+// hides the prose that explains, and an observer strips title tooltips as
+// they appear. Nothing in the game changes; this lives only in the profile's
+// browser for this call.
+const SILENT_CSS = `
+  .letter-body, .letter-length, .objectives-about, .objectives-guide,
+  .help-hint, .help-hint-text, .figure-hint, .tooltip, .campus-map-why,
+  .cohort-card-tip, .speed-locked-note, .summer-call-text,
+  .tab-walk p:not(.letter-eyebrow) { display: none !important; }`;
+if (steps.includes('silent')) {
+  await context.addInitScript((css) => {
+    const add = () => {
+      const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+      const strip = (root) => root.querySelectorAll?.('[title]').forEach((el) => el.removeAttribute('title'));
+      strip(document);
+      new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) { n.removeAttribute?.('title'); strip(n); } }))).observe(document.body, { subtree: true, childList: true });
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
+  }, SILENT_CSS);
+}
 // A step that finds nothing fails after DRIVE_TIMEOUT ms (Playwright's 30 s
 // by default), so a session can afford a miss (review III, area 3).
 if (process.env.DRIVE_TIMEOUT) page.setDefaultTimeout(Number(process.env.DRIVE_TIMEOUT));
@@ -83,7 +107,7 @@ for (const step of steps) {
   const arg = rest.join('=');
   try {
     switch (cmd) {
-      case 'fresh': case 'size': break;
+      case 'fresh': case 'size': case 'silent': break;
       case 'load': {
         // Reloading fires pagehide, and a page with a game under way writes
         // it then (useGame.ts), over anything put in storage first. So the
