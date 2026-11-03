@@ -141,7 +141,7 @@ review put up for cutting. So of the twelve cards:
 | G | F1, R-4, R-5, T-1 | Loose ends: the dead action, the scroll, the panel, the clip tool |
 | H | §4.1 (card 4) | The hall rises at the founding |
 | I | §4.2 (card 3) | A click finishes the admissions animation |
-| J | §4.3 (card 5) | The growth lever in the picture: seats by course, "+80 places", the path network |
+| J | §4.3 (card 5) | "+80 places" beside the next Develop |
 | K | §4.4 (card 7) | Prestige as four pillar bars, with the target as a ghost tick |
 | L | §4.5 (card 8) | The map carries what the tabs say: dark windows, queues |
 | M | §4.6 (card 10) | The big moments on the map: title pennants, the specialization's plot, the Final Report staged |
@@ -320,9 +320,9 @@ them showed one thing to change: a single window is too small to darken
 readably, so PR L darkens the hall's program dot instead.
 
 **The owner's comments on the mock-ups (3 November 2026):**
-- J.1, the admissions hall in course blocks: "keep this as is". Read as no
-  change; awaiting the owner's confirmation.
-- J.2 and J.3: approved. J.3 gained a second mock-up on a large campus.
+- J.1, the admissions hall in course blocks: no change (confirmed).
+- J.2: approved. J.3, the path network's tint: scrapped after a second
+  mock-up on a large campus.
 - K: the prestige chip stays as it is. The tab heads are approved.
 - L: both approved, with the dot in place of windows. The queue uses the
   game's own walkers.
@@ -330,7 +330,13 @@ readably, so PR L darkens the hall's program dot instead.
   specialization's staked plot is not wanted. The staged Final Report is
   approved.
 - Added at the owner's request: a mock-up of the fully upgraded stadium and
-  multi-sport field with crowds.
+  multi-sport field with crowds. The owner's notes on it:
+  - today's coloured dots in the stands don't read as a crowd;
+  - spectators should be people;
+  - the stands should be full often enough to be seen, without following the
+    fixtures;
+  - the crowd stands around the field, not on it;
+  - pennants go up the year after a title.
 
 The review's cards also proposed things to *add* in place of what they cut,
 and the cut list didn't ask about them. The owner agreed to all seven. Several
@@ -354,18 +360,12 @@ The rain, the admit line and the pour take about 4 s each summer
 anywhere on the page jumps them to their end state, as reduced motion already
 does. The coach (kept, X6) is unaffected. **S.**
 
-### PR J — The growth lever in the picture (card 5, B-4, B-7, B-12)
+### PR J — "+80 places" (card 5, B-7, B-12)
 
-1. **Seats by course.** On the admissions page, the hall the class pours into is
-   drawn in rows, one row of 80 seats per course taught. A full hall shows its
-   rows full, so "the hall is full" has its cause in the picture.
-2. **"+80 places".** The next *Develop* button in the Curriculum shows "+80
-   places" while seats are short, the one place the lever is pressed.
-3. **The path network.** While the path tool is armed, the paths joined to
-   Founders Hall are tinted, and a building's doorstep lights when the network
-   reaches it, so a path one tile short shows itself.
-
-It needs a mock-up of the hall's rows before code. **M.**
+The next *Develop* button in the Curriculum shows a "+80 places" chip while
+class places are short, the one place the growth lever is pressed. The
+admissions hall stays as it is, and the path network's tint was scrapped (the
+owner, on the mock-ups). **S.**
 
 ### PR K — Prestige as four pillar bars (card 7, D-1, D-9b)
 
@@ -396,12 +396,21 @@ in every vernacular. **M–L.**
 
 ### PR M — The big moments on the map (card 10, C-1, C-2, C-9)
 
-1. **Titles.** Each national title hangs a pennant in the college's colours
-   along its venue's rim, stacking, for good. The title's page stays (A2). In
-   the week of the title, the venue's stands pack in the college's colours
-   (denser than a home game's crowd), and walkers gather outside the venue.
-   The crowd is the game's own walkers.
-2. **The Final Report.** It opens over the campus as it stands. The six grades
+1. **Full stands, drawn as people.** Today a venue's crowd is coloured dots
+   in the stands, and only in the three home-game weeks
+   (`mapOccasions.ts`). Instead:
+   - Spectators are drawn like the walkers (`Walkers.tsx`'s figure), seated
+     along the stands' rows.
+   - A venue is full on a share of weeks, about one in three, picked from the
+     map's own random numbers so it stays put for the week. It doesn't follow
+     the fixtures: the point is that a player sees full stands often.
+   - On a full week, more walkers stand around the venue, around the track and
+     not on it.
+   - The dots go.
+2. **Titles.** The year after a national title, a pennant in the college's
+   colours goes up along its venue's rim, one per title, stacking, for good.
+   The title's page stays (A2).
+3. **The Final Report.** It opens over the campus as it stands. The six grades
    stamp in one by one (`GradeMark`, a `tick` each), "Students taught" counts up,
    and the fanfare plays on the final grade. The fanfare moves from the 50th
    admissions' resolve (`resolveAdmissions.ts:79`) to the reveal.
