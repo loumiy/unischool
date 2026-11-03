@@ -23,6 +23,7 @@ import { PARK_WORDS, landmarkYears, landmarksCounted, landmarksRunning, parkRead
 import { PILLAR_WORDS } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/specialization';
 import { specializationOfferRule } from '../data/prestigeWords';
+import PillarHead from '../components/PillarHead';
 
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
@@ -399,6 +400,7 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
 
   return (
     <div className="tab-content">
+      <section className="panel pillar-head-panel"><PillarHead s={s} pillar="research" /></section>
       <section className="panel">
         <div className="panel-head">
           <span className="panel-head-title">

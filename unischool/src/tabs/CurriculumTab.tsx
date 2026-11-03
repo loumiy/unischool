@@ -42,6 +42,7 @@ import { count, countWord, durationWords, fraction, money, moneyShort, signed, s
 import {
   NO_FILTERS, cellState, filtersActive, matchesFilters, targetFilters, type Filters, type StatusFilter,
 } from './curriculumFilter';
+import PillarHead from '../components/PillarHead';
 
 // Progressive discovery: what the tab shows is derived from existing
 // unlock/milestone state, with no gating of its own.
@@ -1427,7 +1428,9 @@ export default function CurriculumTab(
       <section className="panel curriculum-panel">
         <div className="panel-head">
           <span className="panel-head-title">
-            {/* While filtering, the crumb shows the whole-catalogue search. */}
+            {/* Academics' part of prestige (Plan 124K); while filtering, the
+                crumb shows the whole-catalogue search. */}
+            {!filtering && <PillarHead s={s} pillar="academics" />}
             {filtering && (
               <h2 className="curriculum-crumbs">
                 <button type="button" className="crumb" onClick={() => setFilters(NO_FILTERS)}>The curriculum</button>
