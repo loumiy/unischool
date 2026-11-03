@@ -1,0 +1,341 @@
+# Plan 124 — Subtraction, as decided
+
+*The owner's answers to the review by subtraction's cut list (Plan 123,
+`docs/reviews/2026-11-review-by-subtraction/`), given row by row on the review
+page on 3 November 2026, sequenced into PRs. The review's twelve cards were
+recommendations; this plan does only what the owner chose, reads each "trim"
+as §3 says, and holds the cards' additions that the cut list didn't ask about
+for the owner's word (§4).*
+
+**Status: Proposed.** §3's readings and §4's list wait on the owner.
+
+---
+
+## 0. What the owner decided
+
+38 rows: **9 cut, 11 trim, 17 keep**, and one answered by a note.
+
+| Row | Item | Recommended | Decided |
+|---|---|---|---|
+| X1 | The *Looking around* chapter | cut | **keep, with a skip button** (the owner's note) |
+| X2 | The map tools' 280-word help | trim | **trim** |
+| X3 | Year-1 chapter *about* paragraphs | cut | **cut** |
+| X4 | The "why you can't yet" help variants | cut | **cut** |
+| X5 | The four tab walks | cut | keep |
+| X6 | The admissions coach and handle hint | cut | keep |
+| X7 | The first summer's chapter text and the summer call's note | cut | **cut** |
+| X8 | The summer review's satisfaction and pillar lines | cut | **cut** |
+| X9 | "The cost of being large" from year 1 | trim | **cut** |
+| X10 | The founding letter and the second panel | cut | keep |
+| X11 | Three redundant opening lines | cut | **cut** |
+| H1 | The "unseen" red ! badges | cut | **trim** |
+| H2 | *Also waiting* and the matter toast | cut | **cut** |
+| H3 | Athletics' six "Hire a …" links | cut | keep |
+| H4 | Four date readouts | merge | keep |
+| H5 | Separate Rank and Prestige chips | merge | **trim** |
+| M1 | "Now an established program" letters | cut | keep |
+| M2 | "N WAITING" and the satisfaction sub-lines | trim | **trim** |
+| M3 | Promises | cut | **cut** |
+| M4 | Student demands | cut | keep |
+| M5 | Identity tags' effects | cut | keep |
+| M6 | The twelve offices | cut | keep |
+| M7 | Events that never reach the map | trim | keep |
+| M8 | Negligible edges | cut | keep |
+| M9 | The board's question | trim | keep |
+| A1 | Coach management, team order, scholarships | cut | keep |
+| A2 | The title page that stops the clock | cut | keep |
+| A3 | Prestige dividend, draw rate, sweep | cut | keep |
+| A4 | Reunions and the Alumni panel | cut | keep |
+| A5 | Two scores for the campus's looks | merge | **trim** |
+| S1 | Gold's extra meanings | trim | **trim** |
+| S2 | Standing pulses | cut | keep |
+| S3 | Background sound cues | cut | **trim** |
+| S4 | "Guide" and "Distinguished" name clashes | trim | **trim** |
+| S5 | Unicode glyphs among the icons | trim | **trim** |
+| S6 | Seven entrance motions | merge | **trim** |
+| S7 | Three projections in the first minute | trim | **trim** |
+| F1 | The unreachable `RENOVATE_LIBRARY` | cut | **cut** |
+
+**What the answers say.** The owner cut the words that explain the first year and
+one whole mechanic (promises). The owner trimmed the signals and the band, and
+kept the guided walks, the coaches, the letters and every other mechanic the
+review put up for cutting. So of the twelve cards:
+- cards 2 and 12 go ahead much as written;
+- cards 1, 3, 6, 9 and 11 go ahead in part;
+- cards 4, 5, 7, 8 and 10 were mostly additions the cut list didn't cover (§4).
+
+## 1. What stands today
+
+- **The camera chapter.** `looking-around` (`state/chapters.ts:128-141`) requires
+  pan, turn, tilt and zoom before *Somewhere to sleep* opens. On desktop, turn,
+  tilt and home are keys only. The buttons are drawn under `touchUi`
+  (`components/CampusMap.tsx:2756`), and the tooltip at `:2740` promises them.
+  The help (?) at `:2748` is one paragraph of about 280 words. This is bug R-1,
+  live in 0.2.0.
+- **Chapter copy.** `data/chapterData.ts` holds each chapter's `about`. The year-1
+  ones are at `:148` (next course), `:178` (sleep), `:194` (seats), `:204`
+  (paying), `:216` (first summer) and `:226` (standing). The objective helps for
+  waiting are `secondCourseWaitHelp`, `HALL_LOCKED_HELP` (`:99`) and
+  `labRisingHelp` (`:119`), picked in `state/chapters.ts:525-533`. A chapter has
+  `earliest` and an optional `opensWhen`; its objectives have none.
+- **The summer review's lines.** `state/yearInReview.ts:183` (satisfaction
+  explained) and `:224-253` (each pillar "stands at N of 150, and counts for Y%").
+- **"The cost of being large".** `tabs/TreasuryTab.tsx:311`, shown at any size.
+- **Opening lines.** `data/openingData.ts:106` ("A run lasts 50 years…") and
+  `:142` ("The walkthrough has two steps."), and `components/OpeningCoach.tsx:97`
+  ("Time is paused until you do this").
+- **The band.**
+  - The "unseen" badges are in `components/Toolbar.tsx:28-35`, plus one per Build
+    category in `BuildPopup.tsx`.
+  - *Also waiting* is `chapterData.ts:418`, drawn by `ObjectivesPanel.tsx`.
+  - The matter toast is `Toasts.tsx:86` (`tone: 'matter'`).
+  - Rank and Prestige are two `FigureBox`es in `StatusHeader.tsx:159-169`, each
+    with its own hint and door.
+- **Promises.** `systems/promises/` (`promises.ts`, `promiseTargets.ts`) and
+  `data/promiseData.ts`, plus:
+  - the offer, in `InterruptModal.tsx` and `EventChoices.tsx`;
+  - `tabs/PromisesPanel.tsx`, in History;
+  - lines in `FinalReportView.tsx`, `state/finalReport.ts` and
+    `data/reportData.ts`;
+  - the chronicle (`chronicle.ts`, `chronicleData.ts`);
+  - the catalogue (`events/catalogue.ts`, `catalogueEngine.ts`);
+  - `guidance/gates.ts`, `AlumniPanel.tsx`, the `promises` chapter, and an
+    analytics chapter id;
+  - persistence's guard (`state/persistence.ts:1394-1404`).
+
+  The `promises` and `the-long-game` chapters were already removed from play by
+  Plan 112; the `promises` id is still in `ChapterId`.
+- **The campus's two scores.** Beauty (`systems/estate/beauty.ts`, 0–100) feeds
+  applicants, prestige and an alumni memory. The Campus standing (0–150) feeds
+  the Final Report and the rivals' campus axis. The Estate panel shows one, and
+  the build menu the other.
+- **Signals.**
+  - Gold is `--school-secondary`, with the meanings listed in
+    `cohesion.md` §1.
+  - Cues are in `data/audioData.ts` and `components/audio/director.ts:52-84`.
+  - The professor's rank tiers are in `data/facultyData.ts:753-755`.
+  - The map tools' glyphs are at `CampusMap.tsx:2759-2762`, and the school
+    motifs at `schoolPalette.ts:16-22`.
+  - `styles.css` has 24 `@keyframes`, seven of them entrances.
+  - The title backdrop is `TitleBackdrop.tsx`, a turning plan view.
+- **Bugs from the review** (`bugs.md`):
+  - R-3: the banner is invisible under reduced motion (`styles.css:4452-4467`).
+  - R-4: the Curriculum list re-scrolls on commit.
+  - R-5: the Build panel covers a building as it is placed.
+  - T-1: `__campusMap` is cleared after Continue.
+- **`RENOVATE_LIBRARY`** has a reducer case (`engine/reducer.ts:962`) that no
+  screen dispatches.
+
+## 2. The PRs
+
+| PR | Rows | Change |
+|---|---|---|
+| A | X1, X2, S5 (map tools), R-1 | The camera: buttons on every device, a skip, a short help |
+| B | X3, X4, X7, X8, X9, X11 | Year 1 without the explaining: objectives that open when they can be done |
+| C | H1, H2, H5, S1 | The band: fewer badges, one place for a pending matter, one door for standing, gold with fewer meanings |
+| D | S3, S4, S6, S7, R-3 | Signals: cues, names, entrances, the title's backdrop, and the reduced-motion banner |
+| E | M3 | Promises out, with old saves loading clean |
+| F | A5, M2 | One campus figure; shorter faculty and Students lines |
+| G | F1, R-4, R-5, T-1 | Loose ends: the dead action, the scroll, the panel, the clip tool |
+
+A comes first and alone, because it fixes a live bug (R-1). B–G are independent
+and can land in any order. Every PR follows the house rule for text: grep `src/`
+for the words of anything it cuts, and list in its **As implemented** note what
+it rewrote. Every PR also lowers `tools/review/plain-baseline.json` where its
+counts fall.
+
+### PR A — The camera (X1 kept with a skip, X2 trim, S5 in part, R-1)
+
+1. **Show the camera's buttons on every device.** Drop the `touchUi` condition
+   around turn left, turn right, tilt down, tilt up and home
+   (`CampusMap.tsx:2756`), so the tooltip's promise holds.
+2. **Draw the three Unicode buttons** (⤓ ⤒ ⌂) in `icons.tsx`'s convention
+   (S5, the map tools' part). The school motifs stay (§3).
+3. **A skip for *Looking around*.** Add a "Skip" control on the chapter's row in
+   the objectives drawer. It marks the four required looks done (the existing
+   `LOOK_MARKS`), so the chapter closes and *Somewhere to sleep* can open. A skip
+   is recorded like any other mark, so `chapter_done` still fires. The test: a
+   run that never moves the camera reaches *Somewhere to sleep* by the skip.
+4. **Trim the map tools' help (X2)** from about 280 words to under 80:
+   - the keys, as a short list;
+   - "Click Build, pick a building, click the map";
+   - one line for paths.
+
+   The touch sentences show only under `touchUi`, and the build-menu
+   explanation the Build menu already gives goes.
+
+### PR B — Year 1 without the explaining (X3, X4, X7, X8, X9, X11)
+
+1. **An objective opens when it can be done (X4).** Add an optional `ready`
+   predicate to `Objective` (`state/chapters.ts:55`).
+   - An objective that isn't ready yet is left out of the drawer and the ticker.
+     Its chapter still opens and still waits for it.
+   - A chapter whose *first* required objective isn't ready waits to open.
+
+   Three objectives get a `ready` predicate:
+   - `develop-second-course`: a later course can be started. Chapter 2 then
+     waits about four weeks to open.
+   - `site-academic-hall`: Elm Hall is affordable, or affordable with what can be
+     borrowed. `hall-of-its-own` then waits to open.
+   - `move-a-program`: the new hall stands. It appears once construction ends.
+
+   Then delete `secondCourseWaitHelp`, `HALL_LOCKED_HELP` and `labRisingHelp`, and
+   their branch in `chapters.ts:525-533`. Where the wait is the lesson, the
+   control shows it. The greyed hall card in the Build menu fills toward its
+   price; that fill is the one addition, a style on an existing card. The test:
+   no chapter opens with a required objective that cannot be acted on that week
+   (review III's I7-5a guard, extended).
+2. **Cut the year-1 *about* paragraphs (X3):** next course, sleep, seats, paying,
+   first summer, standing. `copy.about` becomes optional in the drawer, which
+   already guards it (`ObjectivesPanel.tsx:140`). The objective lines and the
+   helps that name a blocker stay. The looking-around *about* stays with its
+   chapter (X1 was kept).
+3. **The first summer (X7):** cut the chapter's *about* (above) and the summer
+   call's note.
+4. **The summer review (X8):** cut the satisfaction explanation
+   (`yearInReview.ts:183`) and the four "stands at N of 150" lines
+   (`:224-253`). The report card's bars stay.
+5. **"The cost of being large" (X9):** cut the note from the Treasury
+   (`TreasuryTab.tsx:311`). The cost itself stays in the statement's lines.
+6. **The opening's three lines (X11)** go.
+7. **Measure it.** Re-run pass B's non-silent count over year 1 and record the
+   words read before year 2 (it was about 1,050) in the PR's **As implemented**
+   note.
+
+### PR C — The band (H1, H2, H5, S1)
+
+1. **Fewer badges (H1, trim).** Cut the "unseen" badge from each Build category,
+   seven of eight at year 30. Keep the badge on the Curriculum and Build buttons
+   for "something new". Give the Athletics "needs staff" badge its own drawing
+   (cream on red with a dark border), so "new" and "needs you" no longer share
+   one mark. It must read on every palette.
+2. **A pending matter in fewer places (H2).** Cut the drawer's *Also waiting*
+   section (`chapterData.ts:418` and its rendering) and the `matter` toast
+   (`Toasts.tsx:86`). The Inbox badge, its row pill and NEXT carry it. Letters
+   keep their toast.
+3. **Rank and Prestige (H5, trim).** Both chips stay. They share one door, to
+   History's prestige view, and one hint, written once. The rank chip loses its
+   own hint text.
+4. **Gold (S1, trim).** Remove gold's three most misleading meanings:
+   - *retiring* on the Faculty plot becomes the red the tile already uses
+     (`styles.css:2520`);
+   - the unread letter dot becomes cream (`:3798`);
+   - the Build button loses its permanent gold outline (`:771-773`), so the
+     pulsing gold outline is the band's only "do this".
+
+   Gold for selected, primary, good on the band, Distinguished and lab progress
+   stays.
+
+### PR D — Signals (S3, S4, S6, S7, R-3)
+
+1. **Cues (S3, trim).** Two fixes where a cue means the opposite of its event:
+   - a professor's departure stops sharing the hire's `tick`, and plays nothing;
+   - a failed demand plays `loss`, not the neutral `letter`.
+
+   Silence `tick` for candidates, petitions and publications. Building,
+   program and milestone completions keep `complete`.
+2. **Names (S4, trim).** The walk button "Guide" becomes "Show me". The walks
+   themselves stay (X5). The professor's top rank "Distinguished" becomes
+   "Chair" (`facultyData.ts:753-755` and its strings), so "Distinguished" means
+   only a program's standing.
+3. **Entrances (S6, trim).** Seven entrance keyframes become three:
+   - one rise (10 px, for popups, modals, toasts and the specialization's
+     panels);
+   - one fade (overlays);
+   - the banner.
+4. **The title's backdrop (S7, trim).** The title screen shows the isometric demo
+   campus, slowly panning, in place of the turning plan view. The founding
+   form's elevation stays: the review found it the best anticipation in the
+   game.
+5. **R-3.** Add `animation: none` to `.school-banner` under both reduced-motion
+   selectors, as `.spec-panel` has.
+
+### PR E — Promises out (M3)
+
+Remove the system, its offer, its panel, its chronicle and report lines, its
+catalogue hooks and its gate. Then:
+- **The save's `promises` field.** Persistence drops it on load (the guard at
+  `persistence.ts:1394` becomes a delete). A save with an offer pending loads
+  without it.
+- **`ChapterId`** loses `promises` and `the-long-game`. Analytics' chapter list
+  follows, and old events keep their ids in PostHog.
+- **Tests and fixtures.** The tests drop promise cases. `test/fixtures/` saves
+  that hold promises still load (the sweep's `--fixtures` run is the check).
+- **Text.** Grep the strings for "promise" and rewrite what pointed at it: the
+  summer review, the Final Report and the help.
+- **The goal players' "promises" lines** go from `tools/review/goalPlayers.ts`.
+
+### PR F — One campus figure, shorter lines (A5, M2)
+
+1. **One campus figure (A5, trim).** Both scores stay in the model. The player
+   sees one: the Campus standing, in the Estate panel and the build menu alike,
+   with beauty's inputs (greenery, landmarks, upkeep, quads) listed under it as
+   its parts. Beauty's own figure and its separate hint go.
+2. **Shorter lines (M2, trim).** Faculty tiles keep the count of courses waiting,
+   as a number with an icon, and drop the word "WAITING". The Students tab drops
+   the need sub-lines that explain since when ("A need since the college passed
+   1,500 students"). Bed and place counts stay.
+
+### PR G — Loose ends (F1, R-4, R-5, T-1)
+
+1. **F1.** Delete the `RENOVATE_LIBRARY` action, its reducer case, and the
+   comments that name it (`buildingMotifs.tsx:9065`, `buildingSpec.ts:272`,
+   `estate.ts:144`, `facilitiesData.ts:182`, `demolition.ts:28`, `types.ts:376`).
+   An old action log that holds it replays as a no-op.
+2. **R-4.** Committing a course keeps the Curriculum list's scroll position.
+3. **R-5.** After a placement, the Build panel stays folded for about a second,
+   or until the pointer returns to it.
+4. **T-1.** The map sets `window.__campusMap` on every mount, so `npm run clip --
+   --focus` works after Continue.
+
+## 3. Readings of "trim" (decisions taken by default; the owner may change them)
+
+| Row | Read as | The alternative |
+|---|---|---|
+| X1 | Keep the chapter and add a skip. Also show the buttons on desktop, because R-1 is a bug either way | Skip only, buttons still touch-only |
+| X2 | Under 80 words: keys, building, paths | Keep the paragraph and only split desktop from touch |
+| H1 | Per-category badges go; the two top-level "new" badges stay; "needs staff" gets its own mark | All "unseen" badges go |
+| H5 | Two chips, one door and one hint | One chip, "#48 · 64.8" (the review's merge) |
+| M2 | "WAITING" becomes an icon with a count; "since when" lines go | Leave tiles, trim only Students |
+| A5 | One figure shown, two in the model | Merge the model too (the review's D-7) |
+| S1 | Retiring, unread and the Build outline lose gold | The review's full list (also good-on-band and lab progress) |
+| S3 | Departure silent, failed demand `loss`, three background ticks silent | Also a cue of its own for a finished building |
+| S4 | "Show me" and "Chair" | Other names |
+| S5 | The map tools' three glyphs drawn; school motifs untouched | Motifs redrawn too, or cut |
+| S6 | Three entrances | Two (rise, fade), banner as a rise |
+| S7 | The title backdrop becomes isometric; the founding elevation stays | The reverse, or both isometric |
+
+## 4. Not on the cut list: the cards' additions, held for the owner
+
+The review's cards also proposed things to *add* in place of what they cut, and
+the cut list didn't ask about them. None is in §2. Each is a small or medium
+change on its own, and several still stand even with their cut kept:
+
+1. **The hall rises at the founding** (card 4, C-3). It stands with the letter
+   kept: the hall rises into its footprint after the letter closes. **S–M.**
+2. **A click finishes the admissions animation** (card 3; about 3.5 minutes a
+   run). **S.**
+3. **The growth lever in the picture** (card 5): the admissions hall drawn in rows
+   by course, "+80 places" on the next Develop, and the path network tinted
+   while the path tool is armed. **M.**
+4. **Prestige as four pillar bars** (card 7) on the prestige chip and the
+   feeding tabs, with a ghost tick for the target. X8 has already cut the lines
+   the bars would replace, so the summer review would show its report card
+   bars only. **M.**
+5. **The map carries what the tabs say** (card 8): a dark window per course
+   with no teacher, and queues at a short-served building. **M–L.**
+6. **The big moments on the map** (card 10): a pennant on the venue for each
+   title (the title page stays, A2), the camera and a staked plot at the
+   specialization, and the Final Report staged grade by grade. **M.**
+7. **Alumni warmth into word of mouth, and late money into endowed chairs**
+   (card 11). Both connect existing systems; neither needs a cut. **L.**
+
+The owner's pick from this list becomes Plan 125, or PRs H onward here.
+
+## 5. What this plan does not do
+
+- Cut anything the owner kept.
+- Change the balance. Removing promises removes their small rewards and
+  penalties, so the sweep and the goal players run once after PR E, and the PR
+  notes any target that moved.
+- Write the third review's status table. It still awaits the owner.
