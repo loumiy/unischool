@@ -6,7 +6,6 @@ import { SPECIALIZATION_CARDS } from '../data/specializationData';
 import type { GameState } from './types';
 import { institutionName, totalEnrolled } from './types';
 import { STARTING_ENDOWMENT } from '../data/foundingData';
-import { settledTitle } from '../systems/promises/promises';
 import {
   AXIS_PHRASES, EARNED_PILLAR_TOP, REPORT_SHAPES, SATISFACTION_LEAD_SHARE, SPECIALIZATION_AXIS, TAG_AXIS, TAG_PHRASES, VERDICTS, WEAKNESSES, WEAKNESS_BELOW, reportGrade, type ReportAxis,
 } from '../data/reportData';
@@ -40,8 +39,7 @@ export function founderFigures(s: GameState): FounderFigures {
 // THE FINAL REPORT (Plan 33, from v2's ending.ts; V2 #54, V1-28): the
 // whole arc graded, not the last snapshot. Each standing's average over
 // the run, its first decade's and its last's, and the climb between; a
-// mark over them, where the guide left the college and whether it kept its
-// promises; a title built from what the guidebooks call it; the money's
+// mark over them and where the guide left the college; a title built from what the guidebooks call it; the money's
 // verdict; the eras. Written once, at the fiftieth summer
 // (resolveAdmissions.ts), onto `s.ending`; until then a draft.
 // ---------------------------------------------------------------------
@@ -63,9 +61,6 @@ export interface FinalReport {
   mark: string;
   markScore: number;
   axes: AxisGrade[];
-  kept: string[];
-  missed: string[];
-  declined: number;
   finances: string[];
   eras: string[];
   rank: number;
@@ -219,17 +214,13 @@ function financialVerdict(s: GameState): string[] {
 
 export function finalReport(s: GameState): FinalReport {
   const axes = gradeAxes(s);
-  const settled = s.promises?.settled ?? [];
-  const kept = settled.filter((p) => p.kept);
-  const missed = settled.filter((p) => !p.kept);
   const rank = playerRank(s);
   const total = s.rivals.length + 1;
-  // The mark: the standings over the arc, where the guide left the college,
-  // and whether it kept its word.
+  // The mark: the standings over the arc, seven parts in nine, and where the
+  // guide left the college, two (the 70:20 of Plan 33, whose last tenth, the
+  // promises kept, went with the promises in Plan 124E).
   const rankScore = 100 * (1 - (rank - 1) / Math.max(1, total - 1));
-  const promises = kept.length + missed.length;
-  const promiseScore = promises ? (100 * kept.length) / promises : 50;
-  const markScore = round1(0.7 * mean(axes.map((a) => a.score)) + 0.2 * rankScore + 0.1 * promiseScore);
+  const markScore = round1((7 * mean(axes.map((a) => a.score)) + 2 * rankScore) / 9);
   return {
     year: s.clock.year,
     college: institutionName(s.self),
@@ -237,9 +228,6 @@ export function finalReport(s: GameState): FinalReport {
     mark: reportGrade(markScore),
     markScore,
     axes,
-    kept: kept.map((p) => settledTitle(s, p)),
-    missed: missed.map((p) => settledTitle(s, p)),
-    declined: s.promises?.declined.length ?? 0,
     finances: financialVerdict(s),
     eras: chronicleOf(s).eras.map((e) => `${e.name} (${e.from}–${e.to})`),
     rank,

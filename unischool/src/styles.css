@@ -3136,13 +3136,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   padding: var(--space-12) var(--space-16); font-weight: 500; font-family: var(--sans); box-shadow: var(--shadow-1); cursor: pointer; }
 .event-choice:not(:disabled):hover { box-shadow: var(--shadow-1-hover); transform: translate(-1px, -1px); }
 .event-choice:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-/* A picked choice in a multi-pick (PromisesPanel.tsx's decade offer). */
-.event-choice.is-on { border-color: var(--school-primary); box-shadow: inset 0 0 0 1px var(--school-primary), var(--shadow-1); }
 .event-choice-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 .event-choice-cost { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--school-primary); white-space: nowrap; }
 .event-choice-detail { display: block; margin-top: 5px; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
-.event-choice-detail.promise-target { color: var(--ink); }
 
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: var(--text-base); color: var(--ink); margin-bottom: 6px; font-weight: 600; }
@@ -3623,21 +3620,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .review-more:hover { color: var(--ink); }
 .review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 !important; }
 @media (max-width: 560px) { .review-grid { grid-template-columns: 1fr; } }
-/* ---------- Ambitions (HistoryTab.tsx's AmbitionsPanel) ---------- */
-.ambitions { list-style: none; margin: 0; padding: 0; display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4px 22px; }
-.ambition { display: grid; grid-template-columns: auto 1fr auto; gap: 0 10px; align-items: baseline;
-  padding: 6px 0; border-top: 1px solid var(--parchment-line); }
-.ambition-mark { display: inline-flex; align-self: center; color: var(--school-primary); }
 /* The status marks (icons.tsx's StatusIcon), in a line of text. */
-.ambition-mark svg, .prereq-static svg, .prereq-link svg { width: 13px; height: 13px; display: block; flex: none; align-self: center; }
+.prereq-static svg, .prereq-link svg { width: 13px; height: 13px; display: block; flex: none; align-self: center; }
 .build-tile-foot svg { width: 10px; height: 10px; display: inline-block; vertical-align: 0; }
-.ambition-body { display: flex; flex-direction: column; min-width: 0; }
-.ambition-name { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--ink); }
-.ambition-line { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
-.ambition-year { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--school-primary); white-space: nowrap; }
-.ambition.unreached .ambition-mark, .ambition.unreached .ambition-name, .ambition.unreached .ambition-year { color: var(--ink-muted); }
-.ambition.unreached .ambition-name { font-weight: 600; }
 
 /* ---------- The Final Report (Plan 33, FinalReportView.tsx) ---------- */
 .final-report h4 { margin: var(--space-16) 0 var(--space-6); }

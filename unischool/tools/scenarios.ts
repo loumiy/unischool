@@ -296,7 +296,7 @@ export const SCENARIOS: Scenario[] = [
     // The summer's three beats (types.ts's SUMMER_BEATS). Plan 33 dropped the
     // Standing beat, so the U.S. News report is no longer in it.
     name: 'summer',
-    what: 'the summer sequence — Review (the year and its promises), Admissions (the blind price and the pool), Students (the digest)',
+    what: 'the summer sequence — Review (the year), Admissions (the blind price and the pool), Students (the digest)',
     player: 'Guided',
     year: 12,
     // Not the first summer: the screen is interesting with a prior year to

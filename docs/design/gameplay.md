@@ -6,7 +6,7 @@ university.
 
 There is **no score, and there is an ending**. The fiftieth summer files a
 **final report** — six graded axes and a name for what the school became, the
-promises it kept and missed, the numbers a founder would want — and seals it as the run's record. The clock does not stop: the game goes on as
+numbers a founder would want — and seals it as the run's record. The clock does not stop: the game goes on as
 a sandbox for anyone who wants to see the hospital finished, and nothing after
 year fifty changes the record. The core feeling is the **builder's long arc**:
 investing time, watching something grow, and seeing the scale of progress over
@@ -36,9 +36,6 @@ fifty years".
   and athletics, blended into prestige — and, at a rank milestone some time in
   years 25–40, specializes in one of them for good (Plan 85; see
   [progression.md](progression.md)).
-- **Makes promises** — the summer Review offers the board a promise (a rank,
-  a size, a school by a given year); each is kept or missed when it falls
-  due, and the Final Report lists both.
 
 ## The core loop
 

@@ -178,11 +178,7 @@ function testStateEvents(): void {
   const c = stateEvents(offered, chosen).find((e) => e.name === 'specialization_chosen');
   assert(c?.fields.pillar === 'research', 'a pillar chosen is specialization_chosen, with the pillar');
   assert(stateEvents(offered, { ...s, pendingInterrupt: null }).some((e) => e.name === 'specialization_declined'), 'put off, it is specialization_declined');
-  const promise = EVENTS.ambition_reached.ambition[0];
-  const kept: GameState = { ...s, promises: { active: [], settled: [{ id: promise, year: 3, kept: true }], declined: [], offer: null } };
-  const before: GameState = { ...s, promises: { active: [], settled: [], declined: [], offer: null } };
-  const a = stateEvents(before, kept).filter((e) => e.name === 'ambition_reached');
-  assert(a.length === 1 && a[0].fields.ambition === promise, 'a promise kept is ambition_reached, with its id');
+  assert(!('ambition_reached' in EVENTS), 'promises went in Plan 124E, and their event with them');
   assert(stateEvents({ ...s, started: false }, s).length === 0, 'founding is not read here: run_started is sent where the run is founded');
   assert(yearReported(10) && !yearReported(11) && yearReported(15), 'year_reached at each of the first ten summers, then every fifth');
   assert(prestigeBand(57.3) === 50 && enrollmentBand(3200) === 2500 && cashBand(-5) === -1 && cashBand(7e6) === 5e6, 'figures are sent as bands');

@@ -152,7 +152,7 @@ if (ending) {
   say(`|---|---|---|---|---|`);
   for (const a of ending.axes) say(`| ${a.label} | ${a.grade} | ${a.mean.toFixed(0)} | ${a.first.toFixed(0)} | ${a.last.toFixed(0)} |`);
   say();
-  say(`The mark is 70% the six standings' mean, 20% the final rank and 10% the promises (state/finalReport.ts); promises: ${ending.kept.length} kept, ${ending.missed.length} missed, ${ending.declined} declined.`);
+  say(`The mark is seven parts in nine the six standings' mean and two the final rank (state/finalReport.ts).`);
 } else {
   say(`The fiftieth summer did not write a Final Report.`);
 }

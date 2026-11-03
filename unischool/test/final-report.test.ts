@@ -184,11 +184,14 @@ function run(from: number, to: number, over: Partial<Record<string, [number, num
 // ---- The whole report ----
 {
   const s = run(90, 120);
-  s.promises = { active: [], settled: [{ id: 'debt-free', year: 20, kept: true }, { id: 'loyal-alumni', year: 30, kept: false }], declined: [{ id: 'sound-estate', year: 12 }], offer: null };
   s.finance.endowment = 50_000_000;
   const r = finalReport(s);
   assert(r.axes.length === 6 && ['A', 'B', 'C', 'D', 'F'].includes(r.mark), 'six grades and a mark');
-  assert(r.kept.length === 1 && r.missed.length === 1 && r.declined === 1, 'the promises, kept, missed and declined');
+  // Seven parts the standings, two the guide's rank (Plan 124E: the promises' tenth went with them).
+  const axesMean = r.axes.reduce((t, a) => t + a.score, 0) / r.axes.length;
+  const rankScore = 100 * (1 - (r.rank - 1) / Math.max(1, r.total - 1));
+  assert(Math.abs(r.markScore - (7 * axesMean + 2 * rankScore) / 9) < 0.06, `the mark is the standings and the rank, nothing else (${r.markScore})`);
+  assert(!('kept' in r) && !('declined' in r), 'and says nothing of promises');
   assert(r.finances[0].startsWith('Your college left its successors far richer'), `the money's verdict (${r.finances[0]})`);
   assert(r.finances[r.finances.length - 1] === 'It ends owing nothing.', 'and the debt');
   assert(r.rank >= 1 && r.total === s.rivals.length + 1, 'the guide\'s last word');

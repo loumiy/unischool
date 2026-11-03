@@ -11,7 +11,7 @@ import { count } from '../format';
 // The Final Report (Plan 33, state/finalReport.ts), as the fiftieth summer
 // shows it and the History tab keeps it: the title and the mark, the
 // guide's last word, six of the seven standings graded over the arc (all
-// but prestige, which the last word reads), the promises, the money, the
+// but prestige, which the last word reads), the money, the
 // eras, the founder's figures, and all seven charted.
 
 const fill = (t: string, vars: Record<string, string | number>) => t.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
@@ -47,15 +47,6 @@ export default function FinalReportView({ s, report }: { s: GameState; report: F
           </li>
         ))}
       </ul>
-
-      <h4>{REPORT_WORDS.promises}</h4>
-      <p>
-        {report.kept.length + report.missed.length + report.declined === 0
-          ? REPORT_WORDS.promisesNone
-          : fill(REPORT_WORDS.promisesLine, { kept: report.kept.length, missed: report.missed.length, declined: report.declined })}
-        {report.kept.length > 0 && ` Kept: ${report.kept.join('; ')}.`}
-        {report.missed.length > 0 && ` Missed: ${report.missed.join('; ')}.`}
-      </p>
 
       <h4>{REPORT_WORDS.finances}</h4>
       <p>{report.finances.join(' ')}</p>

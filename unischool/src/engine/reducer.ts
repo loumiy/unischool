@@ -1,4 +1,3 @@
-import { answerPromises, tickPromises } from '../systems/promises/promises';
 import { cutTeam } from '../systems/athletics/cut';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
 import { DEV_BUILD } from './devBuild';
@@ -110,10 +109,6 @@ const SYSTEMS: Array<(s: GameState) => void> = [
   tickDowntown,
   tickSatisfaction,
   tickAdmissions,
-  // The week the summer opens: promises due are read out and the year's
-  // offer made (Plan 33). Here rather than in tickAdmissions, which the
-  // promises' readings would import in a circle.
-  tickPromises,
   tickRivals,
   // After the field has moved: the board's notice near the milestone, and
   // the offer on the summer's week (Plan 85D).
@@ -627,7 +622,6 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       if (s.pendingInterrupt?.type !== 'summer') return state;
       const payload = s.pendingInterrupt.payload as SummerPayload;
       if (payload.beat >= SUMMER_LAST_BEAT) return state;
-      if (payload.beat === 0) answerPromises(s, action.promises ?? []);
       payload.beat = (payload.beat + 1) as SummerBeat;
       if (action.decision) {
         payload.decision = {

@@ -8,8 +8,6 @@ import { money, moneyShort, pct, signed, signedMoney } from '../format';
 import { clampDrawRate, debtOutstanding, drawRate } from '../systems/finance/treasury';
 import { constructionFrozen } from '../systems/finance/distress';
 import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
-import { promiseById } from '../data/promiseData';
-import { promiseTitle } from '../systems/promises/promises';
 import { festivalPhrases } from '../data/downtownData';
 import { honorsPhrase, tradePhrase } from '../data/boardQuestionData';
 import { annualGiving } from '../systems/alumni/giving';
@@ -142,7 +140,6 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
         const affordable = c.id === e.default || cost <= Math.max(0, s.finance.cash);
         const phrases = [
           ...effectPhrases(s, scaledEffects(c.effects, p.scale), p.vars),
-          ...(c.promise ? [`promises: ${(() => { const d = promiseById(c.promise); return d ? promiseTitle(s, d) : c.promise; })()}`] : []),
           // A named fund (Plan 101F).
           ...(c.fund ? [`endows ${fill(c.fund.name, p.vars).replace(/^The /, 'the ')}`] : []),
           ...(c.mascot && !s.self.mascot ? [`the ${c.mascot} it is`] : []),

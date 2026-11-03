@@ -16,7 +16,6 @@ import { PLATFORM } from '../build';
 import FeedbackPrompt from './FeedbackPrompt';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { REPORT_WORDS } from '../data/reportData';
-import { PromiseOffer } from '../tabs/PromisesPanel';
 import FinalReportView from './FinalReportView';
 import AdmissionsPage, { admissionsPageUp } from './AdmissionsPage';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
@@ -42,7 +41,6 @@ import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
 import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, signed, signedPct, weeksShort } from '../format';
-import { promisesOf } from '../systems/promises/promises';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -145,11 +143,9 @@ function ReviewLineView({ line }: { line: ReviewLine }) {
 // its own storage and does not ask.
 export const backUpDue = (year: number) => PLATFORM !== 'desktop' && year % 5 === 0;
 
-function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (promises: string[]) => void; onSave: () => void }) {
+function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: () => void; onSave: () => void }) {
   const review = buildYearInReview(s);
   const era = currentEra(s);
-  const [taken, setTaken] = useState<string[]>([]);
-  const toggle = (id: string) => setTaken((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   return (
     <>
       <h2>Year {review.year} in review</h2>
@@ -169,7 +165,6 @@ function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (prom
           </section>
         ))}
       </div>
-      <PromiseOffer s={s} taken={taken} onToggle={toggle} />
       {review.year === 5 && <FeedbackPrompt s={s} prompt="five-years" text="Five years in. Two minutes of feedback?" onSave={onSave} />}
       {backUpDue(review.year) && (
         <p className="review-backup">
@@ -178,7 +173,7 @@ function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: (prom
         </p>
       )}
       <div className="modal-actions">
-        <button onClick={() => onContinue(taken)}>{taken.length > 0 ? 'Make it public' : 'Continue'}</button>
+        <button onClick={onContinue}>Continue</button>
       </div>
     </>
   );
@@ -264,7 +259,7 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
       {payload.beat === 0 && payload.final ? (
         <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onSave={() => act({ type: 'SAVE_GAME' })} />
       ) : payload.beat === 0 ? (
-        <ReviewBeat s={s} onContinue={(promises) => act({ type: 'RESOLVE_SUMMER_BEAT', promises })} onSave={() => act({ type: 'SAVE_GAME' })} />
+        <ReviewBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onSave={() => act({ type: 'SAVE_GAME' })} />
       ) : payload.beat === 1 ? (
         // Answered on its own page (Plan 108, AdmissionsPage.tsx).
         <p>Admissions is open on its own page.</p>
@@ -961,10 +956,9 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
         // Only the read-and-continue beats: a key must not commit a price or
         // decline a year's petitions.
         // Not the fiftieth summer's report either (its button hangs the run
-        // in the hall of fame, state/hall.ts), nor a review with promises on
-        // offer (Enter sent none, declining whatever the player had ticked).
+        // in the hall of fame, state/hall.ts).
         const payload = interrupt.payload as SummerPayload;
-        if (payload.beat < 1 && !payload.final && !promisesOf(s).offer) act({ type: 'RESOLVE_SUMMER_BEAT' });
+        if (payload.beat < 1 && !payload.final) act({ type: 'RESOLVE_SUMMER_BEAT' });
         break;
       }
       case 'milestone':
