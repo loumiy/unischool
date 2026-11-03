@@ -42,6 +42,9 @@ figure img { width: 100%; height: auto; display: block; border: 1.5px solid var(
 figcaption { font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 figcaption b { color: var(--primary); font-weight: 500; }
 .say { margin: 0; max-width: 78ch; }
+.dec { justify-self: start; font: 600 12px var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 2px 9px; border-radius: 6px; border: 1.5px solid currentColor; }
+.dec.ok { color: #1f6b3a; } .dec.no { color: #a13a3a; } .dec.rev { color: #8a5a00; } .dec.ask { color: #3a4a8e; }
+.mock.dropped { opacity: .62; }
 .note { background: var(--note); border: 1.5px dashed var(--line); border-radius: 8px; padding: 10px 12px; max-width: 80ch; }
 .note strong { color: var(--primary); }
 footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch; }
@@ -52,7 +55,7 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch
   <header>
     <div class="eyebrow">Plan 124 · PRs J, K, L and M · before any code</div>
     <h1>What the additions will look like</h1>
-    <p class="lede">Each mock-up is the real game, from a saved run, shot as it is today and again with the proposed change drawn into the live page in the game's own fonts and colours. Map additions (paths, people, pennants, a staked plot) are painted over the screenshot. Numbers are the save's own except where a note says otherwise.</p>
+    <p class="lede"><b>Revised after your comments.</b> Each block says what you decided. The queue and the title crowd now use copies of the game's own walkers, there is a second path mock-up on a large campus, and a new one shows the fully upgraded stadium and multi-sport field on a game week. Each mock-up is the real game, from a saved run, shot as it is today and again with the proposed change drawn into the live page in the game's own fonts and colours. Map additions (paths, people, pennants, a staked plot) are painted over the screenshot. Numbers are the save's own except where a note says otherwise.</p>
     <nav aria-label="Jump to a PR"><a href="#pr-j">J · Growth lever</a><a href="#pr-k">K · Pillar bars</a><a href="#pr-l">L · Map carries the tabs</a><a href="#pr-m">M · Big moments</a></nav>
   </header>
 
@@ -62,6 +65,7 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch
 
     <div class="mock">
       <h3>1. The admissions hall in course blocks</h3>
+      <span class="dec ask">Your comment: keep as is · read as no change, to confirm</span>
       <div class="pair">
         <figure><img src="j1-hall-before.png" alt="The admissions hall today: a grid of 143 empty seats" loading="lazy"><figcaption>Today</figcaption></figure>
         <figure><img src="j1-hall-after.png" alt="The hall with seats grouped into 16 blocks of nine, and a dashed gold block marked +80" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
@@ -71,6 +75,7 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch
 
     <div class="mock">
       <h3>2. "+80 places" beside the next Develop</h3>
+      <span class="dec ok">Approved</span>
       <div class="pair stack">
         <figure><img src="j2-develop-before.png" alt="A Curriculum row today: Develop button, cost and Choose" loading="lazy"><figcaption>Today</figcaption></figure>
         <figure><img src="j2-develop-after.png" alt="The same row with a green +80 places chip after the cost" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
@@ -80,11 +85,23 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch
 
     <div class="mock">
       <h3>3. The path network lights up while the path tool is held</h3>
+      <span class="dec rev">Revised: a larger network below</span>
       <div class="pair">
         <figure><img src="j3-paths-before.png" alt="The campus with the path tool armed, today" loading="lazy"><figcaption>Today</figcaption></figure>
         <figure><img src="j3-paths-after.png" alt="The same view: the cross path tinted gold, the fountain plaza untinted and labelled not joined yet" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
       </div>
       <p class="say">Paths joined to Founders Hall turn gold; anything not joined stays plain, so a path that stops one tile short shows itself. In the real version a building's doorstep also lights when the network reaches it.</p>
+    </div>
+
+    <div class="mock">
+      <h3>3b. The same, on a year-30 campus</h3>
+      <span class="dec rev">New</span>
+      <div class="pair">
+        <figure><img src="j4-paths-before.png" alt="A large year-30 campus with a grid of paths, path tool armed" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="j4-paths-after.png" alt="The same campus: almost every path gold; one block at lower left plain, labelled not joined" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">A campus of about 1,500 path tiles. Every path joined to Founders Hall is gold. The block at the lower left is cut off by one-tile gaps at the six places its walks met the rest, so it stays plain. That is the case a player can't see today. The tint here was made by re-rendering the joined tiles in another material and colouring exactly the pixels that changed, so it follows the paths behind trees and buildings.</p>
+      <p class="note"><strong>Note:</strong> the gaps were cut into a copy of the save for this mock-up; the real campus is fully joined.</p>
     </div>
   </section>
 
@@ -92,23 +109,21 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch
     <div class="pr-head"><h2><span>K</span> · Prestige as four pillar bars</h2>
       <p>Today the links from curriculum, research, student life and athletics into prestige are only text in the summer review and History. One small figure carries them instead.</p></div>
 
-    <div class="mock">
+    <div class="mock dropped">
       <h3>1. The prestige chip</h3>
-      <div class="pair">
-        <figure><img src="k-chip-before.png" alt="The band today: Rank, Enrolled, Prestige 50.3, Satisfaction" loading="lazy"><figcaption>Today</figcaption></figure>
-        <figure><img src="k-chip-after.png" alt="The Prestige chip with a thin stacked bar and a tick under the number" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
-      </div>
+      <span class="dec no">Not doing: the chip stays as it is</span>
       <p class="say">The bar under the number is prestige split by pillar: academics (navy), research (green), student life (maroon) and athletics (gold). The thin tick is where prestige is heading. The gap between the fill and the tick is the lag the summer's cap creates, which today nothing shows.</p>
     </div>
 
     <div class="mock">
       <h3>2. The same bar at the top of the tab that feeds it</h3>
+      <span class="dec ok">Approved</span>
       <div class="pair stack">
         <figure><img src="k-head-before.png" alt="The top of the Curriculum tab today" loading="lazy"><figcaption>Today</figcaption></figure>
         <figure><img src="k-head-after.png" alt="The top of the Curriculum tab with the academics bar lit and a short line of figures" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
       </div>
       <p class="say">On Curriculum the academics part is lit and the others fade. Research, Students and Athletics do the same for theirs. At the summer the bars fill, in place of the "stands at N of 150" lines that PR B cuts.</p>
-      <p class="note"><strong>Note:</strong> the pillar split (25.6, 6.1, 13.3, 5.3) and the target (53.8) are illustrative; the save's total of 50.3 is real. The chip grew a few pixels taller here. The real one would fit the bar inside today's chip height, and needs checking at 1280×720.</p>
+      <p class="note"><strong>Note:</strong> the pillar split (25.6, 6.1, 13.3, 5.3) and the target (53.8) are illustrative; the save's total of 50.3 is real. With the chip left as it is, the tab's bar is the only place the split shows, and the target tick moves there.</p>
     </div>
   </section>
 
@@ -118,21 +133,23 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch
 
     <div class="mock">
       <h3>1. A course with no teacher, on its hall</h3>
+      <span class="dec ok">Approved: the program's dot, not windows</span>
       <div class="pair">
         <figure><img src="l1-hall-before.png" alt="Founders Hall up close with its row of program dots above the roof" loading="lazy"><figcaption>Today</figcaption></figure>
         <figure><img src="l1-hall-after.png" alt="The same hall with one program dot turned dark with a dashed red ring" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
       </div>
       <p class="say">The program's dot above the hall goes dark with a red ring while one of its courses has no teacher, and comes back when someone is appointed.</p>
-      <p class="note"><strong>A change from the plan, for you to confirm:</strong> the plan said "a dark window per course". At the closest zoom a window is three or four pixels wide, and darkening one barely shows; I tried it. The hall already has a dot per program, so darkening the dot reads at normal zoom and reuses a signal players know. I'd make PR L use the dot unless you'd rather keep windows.</p>
+      
     </div>
 
     <div class="mock">
       <h3>2. A queue at the door when a need is short</h3>
+      <span class="dec rev">Approved · revised: the game's own walkers</span>
       <div class="pair">
         <figure><img src="l2-commons-before.png" alt="The Original Commons with its terrace, today" loading="lazy"><figcaption>Today</figcaption></figure>
         <figure><img src="l2-commons-after.png" alt="The same view with a line of students queuing from the Commons' terrace" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
       </div>
-      <p class="say">While dining is under 100, students line up at the dining hall's door; the clinic does the same for health. The line grows with the shortfall and clears when a new hall opens. The figures here are stand-ins; the real queue would use the game's walkers.</p>
+      <p class="say">While dining is under 100, students line up at the dining hall's door; the clinic does the same for health. The line grows with the shortfall and clears when a new hall opens. The queue is made of copies of the game's own walkers, at their real size.</p>
     </div>
   </section>
 
@@ -142,24 +159,35 @@ footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch
 
     <div class="mock">
       <h3>1. A title hangs a pennant on its venue</h3>
+      <span class="dec rev">Approved · revised: the game's own walkers</span>
       <div class="pair">
         <figure><img src="m1-venue-before.png" alt="The sports field and track after a national title, today" loading="lazy"><figcaption>Today, the week of the title</figcaption></figure>
         <figure><img src="m1-venue-after.png" alt="The same field with a maroon and gold pennant on a pole and a crowd around the track" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
       </div>
-      <p class="say">A pennant in the college's colours goes up at the venue for good, one per title, stacking. The week of the title the venue fills with a crowd. The title's page in the Inbox stays, as you chose.</p>
+      <p class="say">A pennant in the college's colours goes up at the venue for good, one per title, stacking. The week of the title the venue fills with a crowd. The title's page in the Inbox stays, as you chose. The crowd is copies of the game's own walkers.</p>
     </div>
 
     <div class="mock">
-      <h3>2. The specialization stakes its plot</h3>
-      <div class="pair">
-        <figure><img src="m2-spec-before.png" alt="The map right after confirming the research specialization, today" loading="lazy"><figcaption>Today, just after Confirm</figcaption></figure>
-        <figure><img src="m2-spec-after.png" alt="The same map with a dashed teal plot staked out on open lawn, labelled The Research Park will stand here" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      <h3>1b. Fully upgraded venues, with crowds</h3>
+      <span class="dec rev">New</span>
+      <div class="pair four" style="grid-template-columns:1fr">
+        <figure><img src="venues-before.png" alt="The fully upgraded football stadium and multi-sport field in an ordinary week: empty stands" loading="lazy"><figcaption>Today, an ordinary week</figcaption></figure>
+        <figure><img src="venues-game.png" alt="The same venues in a home-game week: sparse coloured specks in the stands" loading="lazy"><figcaption>Today, a home-game week</figcaption></figure>
+        <figure><img src="venues-after.png" alt="Title week: the stands packed in maroon and gold, pennants along the stadium rim and the field's stand, walkers gathered outside and along the track" loading="lazy"><figcaption><b>Proposed</b>, the week of a title</figcaption></figure>
       </div>
+      <p class="say">The year-30 campus's Football Stadium at its full three upgrades and its Multi-Sport Field at two. In an ordinary week the stands are empty. In a home-game week the game already puts spectators in the stands, as small coloured specks. In a title week the stands pack in the college's colours, and walkers gather outside the stadium and along the track. One pennant per title hangs along the venue's rim and stays for good: six on the stadium and three on the field here, for illustration.</p>
+      <p class="note"><strong>To decide when building it:</strong> whether a regular home game should also show the stands fuller than today's specks. Here only the title week changes.</p>
+    </div>
+
+    <div class="mock dropped">
+      <h3>2. The specialization stakes its plot</h3>
+      <span class="dec no">Not doing</span>
       <p class="say">On Confirm the camera eases to where the pillar's capital project will stand, the plot is staked out in the pillar's colour, and the fanfare plays. The ticker line and the board's letter stay.</p>
     </div>
 
     <div class="mock">
       <h3>3. The Final Report, staged</h3>
+      <span class="dec ok">Approved</span>
       <div class="pair four">
         <figure><img src="m3-final-before.png" alt="The Final Report today, all at once" loading="lazy"><figcaption>Today: all at once</figcaption></figure>
         <figure><img src="m3-final-s1.png" alt="Staged report, first beat: grades not yet shown, students taught at zero" loading="lazy"><figcaption><b>Proposed</b> · it opens</figcaption></figure>

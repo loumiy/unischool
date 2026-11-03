@@ -317,8 +317,20 @@ catalogue hooks and its gate. Then:
 [`124-subtraction-as-decided/`](124-subtraction-as-decided/) and on a page,
 [Plan 124 Mock-ups](https://claude.ai/artifact/VZgQxXTB7Wxyvbp5Tas2aj). Making
 them showed one thing to change: a single window is too small to darken
-readably, so PR L's mock-up darkens the hall's program dot instead (awaiting
-the owner's word).
+readably, so PR L darkens the hall's program dot instead.
+
+**The owner's comments on the mock-ups (3 November 2026):**
+- J.1, the admissions hall in course blocks: "keep this as is". Read as no
+  change; awaiting the owner's confirmation.
+- J.2 and J.3: approved. J.3 gained a second mock-up on a large campus.
+- K: the prestige chip stays as it is. The tab heads are approved.
+- L: both approved, with the dot in place of windows. The queue uses the
+  game's own walkers.
+- M: the titles are approved, with crowds drawn as walkers. The
+  specialization's staked plot is not wanted. The staged Final Report is
+  approved.
+- Added at the owner's request: a mock-up of the fully upgraded stadium and
+  multi-sport field with crowds.
 
 The review's cards also proposed things to *add* in place of what they cut,
 and the cut list didn't ask about them. The owner agreed to all seven. Several
@@ -357,24 +369,25 @@ It needs a mock-up of the hall's rows before code. **M.**
 
 ### PR K — Prestige as four pillar bars (card 7, D-1, D-9b)
 
-1. **One figure.** Four short bars (academics, research, student life,
-   athletics) on the prestige chip, each to the pillar's weight. A ghost tick on
-   the chip shows where prestige is heading, the target, so the lag the
-   summer's rise cap creates is seen, not hidden. The two chips stay (H5).
-2. **At the head of the feeding tabs.** The same bar, alone, at the top of
-   Curriculum (academics), Research, Students (student life) and Athletics, so
-   the tab where the player works shows the pillar it feeds.
-3. **The summer.** The bars fill at the review, in place of the lines X8 cut.
+1. **At the head of the feeding tabs.** One stacked bar of prestige by
+   pillar (academics, research, student life, athletics) at the top of
+   Curriculum, Research, Students and Athletics. The tab's own pillar is lit and
+   the others are faded, with a line such as "25.6 of your 50.3 prestige ·
+   heading for 53.8". A ghost tick on the bar marks the target, so the lag the
+   summer's rise cap creates is seen. The prestige chip on the band stays as
+   it is (the owner, on the mock-ups).
+2. **The summer.** The bars fill at the review, in place of the lines X8 cut.
 
-It needs a design pass on the chip's size at 1280×720, and the colour-vision
-palette checked. **M.**
+The colour-vision palette needs checking. **M.**
 
 ### PR L — The map carries what the tabs say (card 8, E-4)
 
-1. **Dark windows.** A hall shows one dark window for each course taught there
-   that has no teacher, and the window lights when one is appointed.
-2. **Queues.** A short line of walkers waits at the door of a dining hall or a
-   clinic while that need is under 100.
+1. **Dark dots.** A program's dot above its hall goes dark, with a dashed red
+   ring, while one of its courses has no teacher, and comes back when one is
+   appointed. (Windows were mocked and are too small to read.)
+2. **Queues.** A short line of the game's own walkers waits at the door of a
+   dining hall or a clinic while that need is under 100, longer with the
+   shortfall.
 
 The words stay as PR F leaves them (M2): a count with an icon on faculty tiles,
 the bed and place counts on Students. The new marks are drawn in the map's art
@@ -383,13 +396,12 @@ in every vernacular. **M–L.**
 
 ### PR M — The big moments on the map (card 10, C-1, C-2, C-9)
 
-1. **Titles.** Each national title hangs a pennant in the college's colours on
-   its sport's venue, stacking, for good. The title's page stays (A2); the
-   venue fills with a crowd that week.
-2. **The specialization.** On Confirm, the camera eases to where the pillar's
-   capital project will stand, the plot is staked in the pillar's colour, and the
-   fanfare plays. The ticker line and the letter stay.
-3. **The Final Report.** It opens over the campus as it stands. The six grades
+1. **Titles.** Each national title hangs a pennant in the college's colours
+   along its venue's rim, stacking, for good. The title's page stays (A2). In
+   the week of the title, the venue's stands pack in the college's colours
+   (denser than a home game's crowd), and walkers gather outside the venue.
+   The crowd is the game's own walkers.
+2. **The Final Report.** It opens over the campus as it stands. The six grades
    stamp in one by one (`GradeMark`, a `tick` each), "Students taught" counts up,
    and the fanfare plays on the final grade. The fanfare moves from the 50th
    admissions' resolve (`resolveAdmissions.ts:79`) to the reveal.
