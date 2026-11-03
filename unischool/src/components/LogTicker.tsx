@@ -145,7 +145,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
         </ToolbarPopup>
       )}
       {/* The Guide reads whatever the setting: Off hides the chapters, not
-          what a tab's Guide button asks for. */}
+          what a tab's Show me button asks for. */}
       {objectivesOpen && (chaptersOn || objectivesView !== null) && (
         <ToolbarPopup title={DRAWER_WORDS.title} onClose={() => onSetObjectivesOpen(false)} className="objectives-popup">
           <ObjectivesPanel

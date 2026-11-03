@@ -248,7 +248,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'appoint-a-b': `Hire a professor with teaching ${GRADE_B} or more`,
     },
     help: {
-      'open-faculty': { text: 'A short walk through the Faculty tab: your professors and the market. The rank beside a name, from Adjunct to Distinguished, is the average of the two scores.', door: 'faculty' },
+      'open-faculty': { text: 'A short walk through the Faculty tab: your professors and the market. The rank beside a name, from Adjunct to Chair, is the average of the two scores.', door: 'faculty' },
       'every-program-staffed': { text: 'Every course needs a professor in its field. Hire one from the market in the Faculty tab.', door: 'faculty' },
       [teachObjective(COURSE_MILESTONES['a-faculty'])]: teachHelp(' The eighth opens your first academic hall.'),
       'post-a-search': { text: `If nobody in a field is on the market, post a search in the Faculty tab. It costs as much as ${countWord(SEARCH_COST_WEEKS)} weeks of running the college. For ${durationWords(SEARCH_WEEKS)}, a candidate in that field is much more likely to turn up.`, door: 'faculty' },
@@ -425,7 +425,8 @@ export const DRAWER_WORDS = {
   between: (title: string, when: string) => `${title} opens ${when}.`,
   waitingOn: (title: string) => `${title} opens when you finish the chapter before it.`,
   allDone: 'Every chapter so far is done.',
-  guide: 'Guide',
+  // The chapters met before, to read again (Plan 106 PR G's "Guide"; the
+  // word went in Plan 124 D, so "the guide" is only the rankings).
   guideList: 'Read again',
   // A side chapter open beside the one shown (Plan 114E): the Guide names it
   // first.
@@ -435,7 +436,8 @@ export const DRAWER_WORDS = {
   back: 'Back to the objectives',
   // A chapter finished in the open tab, held until the tab closes (Plan 122E).
   chapterDone: (n: number) => `Chapter ${n} done.`,
-  guideTab: (tab: string) => `The Guide on ${tab}`,
+  // A tab's Show me (Plan 124 D: once "Guide"), its walk and its page.
+  guideTab: (tab: string) => `Show me around ${tab}`,
   live: 'Now',
   // Which way it is heading, in the glance's arrow's word, and no target
   // figure (Plan 114B).
@@ -459,7 +461,8 @@ export function shutTabWords(tab: TabId, label: string): string {
   return (rung && SHUT_TAB_WORDS[rung]) || `The ${label} tab isn't open yet.`;
 }
 
-// THE GUIDE (Plan 106 PR G): each tab's "Guide" button opens the page of
+// THE GUIDE (Plan 106 PR G): each tab's "Show me" button (Plan 124 D: once
+// "Guide") replays its walk, where it has one, and opens the page of
 // the chapter that introduced its system, once that chapter has opened.
 export const TAB_GUIDE: Partial<Record<TabId, ChapterId>> = {
   curriculum: 'next-course',

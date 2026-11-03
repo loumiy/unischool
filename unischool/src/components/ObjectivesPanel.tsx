@@ -181,7 +181,7 @@ export default function ObjectivesPanel({ s, onGo, onOpenLadder, view = null, fi
 
       {guide.length > 0 && onView && (
         <section className="objectives-guide">
-          <h4>{W.guide} · {W.guideList}</h4>
+          <h4>{W.guideList}</h4>
           <p>
             {guide.map((c) => (
               <button key={c.id} type="button" className="objectives-guide-link" onClick={() => onView(c.id)}>

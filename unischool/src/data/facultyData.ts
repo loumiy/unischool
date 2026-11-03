@@ -749,10 +749,12 @@ function rollBaseCourseSlots(): number {
 }
 
 // A display-only academic-rank ladder over (teaching+research)/2, so "hire
-// better" reads as a separate lever from "hire more".
-export type FacultyQualityTier = 'Adjunct' | 'Assistant' | 'Associate' | 'Full' | 'Distinguished';
+// better" reads as a separate lever from "hire more". Computed, never saved.
+// The top rank is "Chair" (Plan 124 D): "Distinguished" is a program's
+// standing only.
+export type FacultyQualityTier = 'Adjunct' | 'Assistant' | 'Associate' | 'Full' | 'Chair';
 const QUALITY_TIER_THRESHOLDS: Array<[number, FacultyQualityTier]> = [
-  [85, 'Distinguished'],
+  [85, 'Chair'],
   [70, 'Full'],
   [55, 'Associate'],
   [35, 'Assistant'],

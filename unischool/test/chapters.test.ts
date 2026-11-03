@@ -588,7 +588,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(!page('standing').includes('Back to the objectives'), "the current chapter's page is the objectives themselves");
   assert(page(null).includes('Read again') && page(null).includes('The first summer'), 'the drawer lists the Guide to read again');
   const tab = renderToStaticMarkup(createElement(TabOverlay, { title: 'History', onClose: () => {}, onGuide: () => {}, children: null }));
-  assert(tab.includes('tab-overlay-guide') && tab.includes('The Guide on History'), "a tab carries its Guide button");
+  assert(tab.includes('tab-overlay-guide') && tab.includes('Show me around History') && tab.includes('>Show me<'), "a tab carries its Show me button");
   assert(!renderToStaticMarkup(createElement(TabOverlay, { title: 'Research', onClose: () => {}, children: null })).includes('tab-overlay-guide'), 'and a tab with no chapter has none');
 }
 

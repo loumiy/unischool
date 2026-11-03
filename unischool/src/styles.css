@@ -817,11 +817,16 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
 .toolbar-popup { position: fixed; z-index: 20; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
   display: flex; flex-direction: column; background: var(--cream); border: 3px solid var(--outline);
   border-radius: var(--radius-xl); box-shadow: var(--elevation-popup); color: var(--ink);
-  animation: popup-rise 150ms cubic-bezier(0.2, 0.8, 0.3, 1); }
-@keyframes popup-rise {
+  animation: enter-rise 150ms cubic-bezier(0.2, 0.8, 0.3, 1); }
+/* The game's three entrances (Plan 124 D, from seven): enter-rise, a 10 px
+   rise, for popups, modals, toasts and the specialization's panels;
+   enter-fade for a view over the whole screen; and the school's banner
+   (banner-in). */
+@keyframes enter-rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes enter-fade { from { opacity: 0; } to { opacity: 1; } }
 .toolbar-popup-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-12);
   border-bottom: 1px solid var(--parchment-line); padding: var(--space-8) var(--space-16); flex: none; }
 .toolbar-popup-head h2 { margin: 0; }
@@ -1730,9 +1735,7 @@ button.build-tile { font-family: inherit; }
    (.log-ticker 5, .toolbar 10) while staying inside .app, above the map. */
 .tab-overlay { position: fixed; inset: 0; z-index: 3; display: flex; flex-direction: column;
   background: var(--cream); color: var(--ink);
-  animation: overlay-fade 140ms ease-out; }
-
-@keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+  animation: enter-fade 140ms ease-out; }
 .tab-overlay-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-12);
   padding: var(--space-12) var(--space-16); border-bottom: 3px solid var(--outline); flex: none;
   /* Clear the main-menu hamburger (z-index 11, over this panel): 40px button
@@ -3925,7 +3928,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .opening-coach { position: fixed; z-index: 30; top: 16px; right: calc(var(--corner-menu-height) + 32px);
   width: min(400px, calc(100vw - var(--corner-menu-height) - 64px)); box-sizing: border-box; padding: var(--space-16) var(--space-24);
   background: var(--cream); color: var(--ink); border: 3px solid var(--outline); border-radius: var(--radius-xl);
-  box-shadow: var(--elevation-note); animation: popup-rise 0.25s ease-out; }
+  box-shadow: var(--elevation-note); animation: enter-rise 0.25s ease-out; }
 /* Raising Founders Hall (Plan 107A): on the left edge, under the pennant and
    over the build menu, where the eye already is; top-right drew it away. On
    a screen too short for the gap it stays top-right. */
@@ -3968,7 +3971,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .tab-walk { position: fixed; z-index: 30; left: 16px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
   width: min(400px, calc(100vw - 32px)); box-sizing: border-box; padding: var(--space-16) var(--space-24);
   background: var(--cream); color: var(--ink); border: 3px solid var(--outline); border-radius: var(--radius-xl);
-  box-shadow: var(--elevation-popup); animation: popup-rise 0.2s ease-out; }
+  box-shadow: var(--elevation-popup); animation: enter-rise 0.2s ease-out; }
 .tab-walk h2 { margin: 0 0 var(--space-6); font-family: var(--display); font-size: var(--text-xl); }
 .tab-walk p:not(.letter-eyebrow) { margin: 0; line-height: 1.45; }
 .tab-walk-actions { display: flex; justify-content: space-between; align-items: center; gap: var(--space-8); margin-top: var(--space-12); }
@@ -4029,17 +4032,14 @@ button.inbox-row:hover { background: var(--cream-hi); }
   .log-ticker-objective .log-ticker-next-label { padding: 2px 5px; }
 }
 .objectives-popup { right: 16px; width: min(440px, calc(100vw - 32px)); max-height: 52vh;
-  transform-origin: bottom right; animation: popup-from-corner 170ms cubic-bezier(0.2, 0.8, 0.3, 1); }
-/* The drawer opens from the bottom right, where its chip is, and grows out
+  animation: enter-rise 170ms cubic-bezier(0.2, 0.8, 0.3, 1); }
+/* The drawer opens from the bottom right, where its chip is, and rises out
    of that corner (Plan 122B, from Ginger's playtest: "it should pop up from
-   the bottom right, so that it is also intuitive that it collapses there").
+   the bottom right, so that it is also intuitive that it collapses there";
+   the popups' rise since Plan 124 D, not a scale of its own).
    The chip stands at the strip's right end. The toasts and the summer's
    note moved to the bottom left to leave it the corner. */
 .log-ticker .log-ticker-objective { order: 99; margin-left: auto; }
-@keyframes popup-from-corner {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: none; }
-}
 @media (prefers-reduced-motion: reduce) { .objectives-popup { animation: none; } }
 .objectives h3 { margin: 0 0 var(--space-6); }
 .objectives h4 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-2xs); text-transform: uppercase;
@@ -4429,14 +4429,13 @@ body:has(.building-info-panel) .pennant { display: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: var(--space-8); padding: var(--space-8) var(--space-8) var(--space-8) var(--space-12);
   background: var(--cream); color: var(--ink); border: 2px solid var(--outline); border-left-width: 6px;
   border-radius: var(--radius-md); box-shadow: var(--elevation-note); font-size: var(--text-sm); font-weight: 700;
-  animation: toast-in 220ms ease-out; }
+  animation: enter-rise 220ms ease-out; }
 .toast.good { border-left-color: var(--green); }
 .toast.bad { border-left-color: var(--danger-ink); }
 .toast.letter { border-left-color: var(--school-secondary); }
 /* An arrival's way in (Plan 77): opens the inbox at it. */
 .toast-open { flex: none; padding: var(--space-2) var(--space-8); font-size: var(--text-xs); }
 .toast-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 /* The summer's call (Plan 112C, SummerCall.tsx): where the toasts stand,
    at the bottom left since Plan 122B, for as long as the summer waits; the
@@ -4446,7 +4445,7 @@ body:has(.building-info-panel) .pennant { display: none; }
   width: min(360px, calc(100vw - 32px)); box-sizing: border-box; display: grid; grid-template-columns: auto 1fr; gap: var(--space-4) var(--space-12);
   align-items: start; padding: var(--space-12) var(--space-16); background: var(--cream); color: var(--ink);
   border: 3px solid var(--outline); border-left: 8px solid var(--school-secondary); border-radius: var(--radius-lg);
-  box-shadow: var(--elevation-popup); animation: toast-in 220ms ease-out; }
+  box-shadow: var(--elevation-popup); animation: enter-rise 220ms ease-out; }
 .summer-call-sun { font-size: 28px; line-height: 1; color: var(--warn-on-light); }
 .summer-call-eyebrow { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs);
   text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); }
@@ -4466,6 +4465,11 @@ body:has(.building-info-panel) .pennant { display: none; }
   font-family: var(--display); font-weight: 800; font-size: var(--text-xl); text-align: center;
   animation: banner-in 4.5s ease-in-out both; pointer-events: none; }
 .school-banner-motif { font-size: var(--text-2xl); }
+/* Under reduced motion the banner simply stands, for as long as Toasts.tsx
+   keeps it: its keyframes end transparent, so the blanket rule's 0.01 ms
+   left it invisible (the review's R-3). */
+@media (prefers-reduced-motion: reduce) { .school-banner { animation: none; } }
+:root[data-motion='reduce'] .school-banner { animation: none; }
 @keyframes banner-in {
   0% { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
   8%, 85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
@@ -4499,8 +4503,7 @@ body:has(.building-info-panel) .pennant { display: none; }
   100% { opacity: 0; transform: translateY(-34px) scale(1); } }
 
 /* Modals rise into place. */
-.modal { animation: modal-in 150ms ease-out; }
-@keyframes modal-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.modal { animation: enter-rise 150ms ease-out; }
 
 /* The rank's pill flashes the way it moved. */
 .toolbar-stat.rank-up { animation: rank-up 1.6s ease-out; }
@@ -4538,7 +4541,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 
 .spec-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; box-sizing: border-box; outline: none;
   background: radial-gradient(ellipse 70% 40% at 50% 0%, color-mix(in srgb, var(--school-secondary) 14%, transparent), transparent 70%), var(--board-room);
-  color: var(--board-room-ink); animation: spec-fade 260ms ease-out both; }
+  color: var(--board-room-ink); animation: enter-fade 260ms ease-out both; }
 .spec-page-inner { display: flex; flex-direction: column; gap: var(--space-16); max-width: 1480px; min-height: 100%; margin: 0 auto;
   padding: var(--space-24); box-sizing: border-box; }
 .spec-page-head { display: flex; align-items: flex-start; gap: var(--space-24); }
@@ -4566,9 +4569,9 @@ body:has(.building-info-panel) .pennant { display: none; }
 .spec-panel { display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--cream-hi); color: var(--ink);
   border: 2px solid var(--board-room-edge); border-radius: var(--radius-xl); box-shadow: 6px 6px 0 var(--board-room-shadow);
   transition: transform 180ms ease, opacity 180ms ease, filter 180ms ease, box-shadow 180ms ease;
-  /* They drop in one at a time as the page opens. Backwards only: once
+  /* They rise in one at a time as the page opens. Backwards only: once
      landed, the armed lift and the dimming are the rules'. */
-  animation: spec-drop 560ms cubic-bezier(0.3, 0, 0.3, 1) backwards; animation-delay: calc(var(--i, 0) * 240ms + 260ms); }
+  animation: enter-rise 260ms ease-out backwards; animation-delay: calc(var(--i, 0) * 200ms + 260ms); }
 .spec-panel.is-armed { transform: translateY(-10px); box-shadow: 10px 12px 0 var(--board-room-shadow);
   outline: 4px solid var(--school-secondary); outline-offset: 4px; }
 .spec-panel.is-dimmed { opacity: 0.34; filter: saturate(0.45); }
@@ -4635,7 +4638,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .spec-armed { position: sticky; bottom: var(--space-16); z-index: 1; margin-top: auto; display: flex; align-items: center; gap: var(--space-16);
   padding: var(--space-16) var(--space-24); background: var(--spec-hue); color: var(--cream-hi);
   border: 2px solid var(--board-room-edge); border-radius: var(--radius-xl); box-shadow: 6px 6px 0 var(--board-room-shadow);
-  animation: spec-rise 220ms ease-out backwards; }
+  animation: enter-rise 220ms ease-out backwards; }
 .spec-armed .spec-panel-medallion { width: 52px; height: 52px; }
 .spec-armed .spec-panel-medallion svg { width: 28px; height: 28px; }
 .spec-armed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
@@ -4647,16 +4650,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .spec-armed-confirm { padding: var(--space-8) var(--space-24); font-size: var(--text-xl); }
 /* Under reduced motion the panels are there at once, delay and all. */
 :root[data-motion='reduce'] :is(.spec-page, .spec-panel, .spec-armed) { animation: none; }
-@keyframes spec-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes spec-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-/* A panel falls into place, lands a little past it and settles. */
-@keyframes spec-drop {
-  0% { opacity: 0; transform: translateY(-80px); }
-  45% { opacity: 1; }
-  62% { transform: translateY(8px); }
-  80% { transform: translateY(-3px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
+@media (prefers-reduced-motion: reduce) { :is(.spec-page, .spec-panel, .spec-armed) { animation: none; } }
 @media (max-width: 1100px) { .spec-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) {
   .spec-page-inner { padding: var(--space-16); }
