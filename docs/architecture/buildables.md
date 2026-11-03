@@ -103,7 +103,7 @@ a course: a placed-but-`developing` building contributes nothing until it's
 There is **one exception**, and it is about a building being EXTENDED rather
 than built. The tier-1 library is renovated by adding a floor to the building
 already standing — the same node goes back to `'developing'` at its existing
-spot (see `RENOVATE_LIBRARY`) — and the floors that already exist keep
+spot (see `estate.ts`'s `startLibraryFloor`) — and the floors that already exist keep
 working: the node records what it was serving before the work started
 (`Buildable.renovatingFrom`) and the satisfaction sums read that, through
 `types.ts`'s `servingPopulation`. Otherwise adding a fourth floor first took

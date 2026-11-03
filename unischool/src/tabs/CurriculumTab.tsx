@@ -1,6 +1,6 @@
 import { restaffPlan, unstaffedIn } from '../systems/faculty/restaffing';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useCollapse } from '../components/useCollapse';
 import { useSettings, type ObjectivesMode } from '../settings';
 import { ringedProgram } from '../state/chapters';
@@ -1259,8 +1259,24 @@ function FreeSlotLine({ s, onGo }: { s: GameState; onGo?: (step: NextStep) => vo
   );
 }
 
+// The element a commit holds in place: the course's program row, or its
+// cell where there is no row (the filters' worklist).
+function anchorOf(courseId: string): HTMLElement | null {
+  const programId = programOfCourse(courseId);
+  const row = programId ? document.querySelector<HTMLElement>(`[data-program="${CSS.escape(programId)}"]`) : null;
+  return row ?? document.getElementById(`course-${courseId}`);
+}
+
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const overflow = getComputedStyle(p).overflowY;
+    if ((overflow === 'auto' || overflow === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+  }
+  return null;
+}
+
 export default function CurriculumTab(
-  { s, act, target, onTargetConsumed, onOpenFaculty, onGo }:
+  { s, act: actOuter, target, onTargetConsumed, onOpenFaculty, onGo }:
   {
     s: GameState; act: (a: Action) => void;
     // Where to go on arrival: a school's name, "program:<id>", "field:<name>",
@@ -1290,6 +1306,28 @@ export default function CurriculumTab(
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+
+  // Committing a course keeps the list where it was (Plan 124G, R-4). The
+  // commit can fold rows above it (programFoldedByDefault: a row whose next
+  // course the money no longer covers), which pulled the list up under the
+  // pointer. The committed course's row is held at the height it stood at
+  // when it was pressed, for the render that brings the new state.
+  const anchor = useRef<{ from: GameState; id: string; top: number } | null>(null);
+  const act = useCallback((a: Action) => {
+    if (a.type === 'START_DEVELOPMENT') {
+      const el = anchorOf(a.nodeId);
+      if (el) anchor.current = { from: s, id: a.nodeId, top: el.getBoundingClientRect().top };
+    }
+    actOuter(a);
+  }, [s, actOuter]);
+  useLayoutEffect(() => {
+    const held = anchor.current;
+    if (!held || held.from === s) return;
+    anchor.current = null;
+    const el = anchorOf(held.id);
+    const scroller = el ? scrollerOf(el) : null;
+    if (el && scroller) scroller.scrollTop += el.getBoundingClientRect().top - held.top;
+  });
 
   // Drag-and-drop state, shared so source and target draw the same preview.
   // A drop dispatches SWAP_COURSE_FACULTY; illegal targets refuse the drop.

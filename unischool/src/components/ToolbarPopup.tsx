@@ -6,15 +6,16 @@ import { CloseIcon } from './icons';
 // map stays visible and clickable outside the card while choosing a building.
 // Position is the caller's job via `className` (styles.css's .build-popup /
 // .log-popup). It binds no keys: App.tsx owns the one Escape ladder.
-export default function ToolbarPopup({ title, headExtra, onClose, className, children }: {
+export default function ToolbarPopup({ title, headExtra, onClose, className, onPointerEnter, children }: {
   title: string;
   headExtra?: ReactNode;
   onClose: () => void;
   className?: string;
+  onPointerEnter?: () => void;
   children: ReactNode;
 }) {
   return (
-    <div className={`toolbar-popup ${className ?? ''}`} role="dialog" aria-label={title}>
+    <div className={`toolbar-popup ${className ?? ''}`} role="dialog" aria-label={title} onPointerEnter={onPointerEnter}>
       <div className="toolbar-popup-head">
         <span className="panel-head-title">
           <h2>{title}</h2>

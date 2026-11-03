@@ -146,7 +146,7 @@ console.log('campus scale and building spec');
   }
 
   // A renovation raises what the building serves along with its floors
-  // (RENOVATE_LIBRARY, an extension's finishExtension). Crossing a size rung
+  // (estate.ts's startLibraryFloor, an extension's finishExtension). Crossing a size rung
   // must not count the floor a second time: stories come from the building
   // as built, plus the floors added.
   const lib1 = byId('LIB-T1');

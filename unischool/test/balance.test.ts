@@ -24,7 +24,6 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState, FOUNDING_ADMIT_PRESTIGE } from '../src/state/actions';
-import { reducer } from '../src/engine/reducer';
 import type { GameState } from '../src/state/types';
 import { WEEKS_PER_YEAR, totalEnrolled } from '../src/state/types';
 import { admitRate, priceTier, priceTolerance } from '../src/systems/admissions/admissionsSystem';
@@ -34,7 +33,7 @@ import {
   initialFacilities, nextLibraryFloor, nextVenueExpansion, priceUpkeep,
 } from '../src/data/facilitiesData';
 import { TOWER_RETAIL_UPKEEP_PER_WEEK, initialDorms } from '../src/data/campusData';
-import { EXTENSION_COST_SHARE, facilityUpkeepOf, isPriceUpkept } from '../src/systems/estate/estate';
+import { EXTENSION_COST_SHARE, facilityUpkeepOf, isPriceUpkept, startLibraryFloor } from '../src/systems/estate/estate';
 import { attributeCoverage, computeSatisfactionBreakdown, servedPopulationFor } from '../src/systems/satisfaction/satisfactionSystem';
 import { facultyPay, financeBreakdown } from '../src/systems/finance/financeSystem';
 import { readSave, SAVE_VERSION } from '../src/state/persistence';
@@ -109,16 +108,16 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   const arena = initialFacilities().find((t) => t.id === 'ATH-ARENA')!;
   assert(facilityUpkeepOf({ ...arena, expansions: 1 }) === priceUpkeep(arena.cost + nextVenueExpansion(arena)!.cost), 'a venue\'s expansion is priced in');
 
-  // Through the reducer: a library floor raises the upkeep by the floor's share.
-  let s = createInitialState('Upkeep');
+  // A library floor going up raises the upkeep by the floor's share.
+  const s = createInitialState('Upkeep');
   const built = node(s, LIBRARY_TIER1_ID);
   built.status = 'done';
   delete s.developing[built.id];
   s.finance.cash = 50_000_000;
   const floor = nextLibraryFloor(built)!;
   const before = built.effects!.upkeepPerWeek!;
-  s = reducer(s, { type: 'RENOVATE_LIBRARY' });
-  assert(node(s, LIBRARY_TIER1_ID).effects!.upkeepPerWeek === priceUpkeep(built.cost + floor.cost) && priceUpkeep(built.cost + floor.cost) > before, 'renovating the library prices its new floor');
+  startLibraryFloor(s);
+  assert(node(s, LIBRARY_TIER1_ID).effects!.upkeepPerWeek === priceUpkeep(built.cost + floor.cost) && priceUpkeep(built.cost + floor.cost) > before, 'a library floor prices its new floor');
 
   // Paid in full however few it serves: a hall feeding far more than the
   // campus holds costs the same as one that is full.

@@ -10,7 +10,7 @@ import { appointSeat, markStaffedByHand, setSeatPolicy, tickStaffing } from '../
 import { clampDrawRate, moveToEndowment, payForWorks } from '../systems/finance/treasury';
 import { boardHoldsBudget, constructionFrozen, dropBoardLetters, shiftBoardLetter, tickDistress, tuitionFloor } from '../systems/finance/distress';
 import {
-  RENOVATION_WEEKS, canDeclareHistoric, facilityUpkeepOf, isPriceUpkept, startLibraryFloor, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
+  RENOVATION_WEEKS, canDeclareHistoric, facilityUpkeepOf, isPriceUpkept, canExtend, canRenovate, clampFunding, extensionCost, extensionWeeks, renovationCost, tickEstate,
 } from '../systems/estate/estate';
 import type { GameState, SummerBeat, SummerPayload } from '../state/types';
 import { CAMPUS_GRID_WIDTH, COLLEGE_NAME_MAX, LOG_CAP, SUMMER_LAST_BEAT, bareSchoolName, institutionName } from '../state/types';
@@ -51,7 +51,7 @@ import { tickDowntown } from '../systems/studentlife/downtown';
 import { tickAthletics } from '../systems/athletics/athleticsSystem';
 import { raiseDemand, shortfallDemandFor, tickDemands } from '../systems/demands/demandSystem';
 import { absoluteWeek, findDecisionEvent, offeredChoices } from '../data/eventData';
-import { LIBRARY_TIER1_ID, nextLibraryFloor, nextVenueExpansion } from '../data/facilitiesData';
+import { nextVenueExpansion } from '../data/facilitiesData';
 import { TREE_SEED_RANGE, seedForSpecies } from '../data/treeData';
 import { advanceOpening, openingHoldsClock, settleOpening, skipOpening } from '../state/opening';
 import { markGuidance, settleChapters } from '../state/chapters';
@@ -957,16 +957,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       return s;
     }
 
-    // Renovates the tier-1 library in place (see nextLibraryFloor), once
-    // paid for (estate.ts's startLibraryFloor).
-    case 'RENOVATE_LIBRARY': {
-      const node = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
-      const plan = node && !constructionFrozen(s) ? nextLibraryFloor(node) : null;
-      if (node && plan && node.status === 'done' && payForWorks(s, plan.cost)) startLibraryFloor(s);
-      return s;
-    }
-
-    // Expands a venue in place, on the library's renovation pattern; the gate
+    // Expands a venue in place, on the library's floors' pattern; the gate
     // reads seats off its expansions count (facilitiesData.ts's venueSeatsOf).
     case 'EXPAND_VENUE': {
       const node = s.tech.find((t) => t.id === action.venueId);

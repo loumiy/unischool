@@ -24,8 +24,8 @@ import { money } from '../format';
 // included); what it opened stays open, since nothing available ever
 // re-locks (techSystem.ts).
 
-// A building whose first construction is under way. A library renovation
-// (RENOVATE_LIBRARY) also reads 'developing', over a standing building, and
+// A building whose first construction is under way. A library's added floor
+// (estate.ts's startLibraryFloor) also reads 'developing', over a standing building, and
 // is not a construction to call off.
 export function canCancelConstruction(s: GameState, t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'developing' && t.renovatingFrom === undefined

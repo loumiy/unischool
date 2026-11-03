@@ -53,7 +53,7 @@ import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
 import { labNewsIn, type LabNews } from './labNews';
 import { linesSince } from './audio/director';
-import { setMapProbe, setMapReview } from './mapProbe';
+import { clearMapProbe, clearMapReview, setMapProbe, setMapReview, type MapReview } from './mapProbe';
 import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
 import { registerArt, type ArtScope } from './canvasPaint';
 import { MapCanvas, type CanvasEntry, type CanvasScene } from './mapCanvas';
@@ -1401,18 +1401,21 @@ export default function CampusMap({
   // Whether a placed building is on the screen now (Plan 70H: a toast
   // speaks for one finished out of sight). Read by Toasts.tsx through
   // mapProbe.ts, so the map need not know about toasts.
-  useEffect(() => setMapProbe((id) => {
-    const p = s.placements[id];
-    const svg = svgRef.current;
-    if (!p || !svg) return false;
-    const rect = svg.getBoundingClientRect();
-    const v = viewRef.current;
-    const w = project(p.col + p.w / 2, p.row + p.h / 2);
-    const x = w.x * v.zoom + v.x;
-    const y = w.y * v.zoom + v.y;
-    return rect.width > 0 && x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
-  }), [s.placements]);
-  useEffect(() => () => setMapProbe(null), []);
+  useEffect(() => {
+    const probe = (id: string) => {
+      const p = s.placements[id];
+      const svg = svgRef.current;
+      if (!p || !svg) return false;
+      const rect = svg.getBoundingClientRect();
+      const v = viewRef.current;
+      const w = project(p.col + p.w / 2, p.row + p.h / 2);
+      const x = w.x * v.zoom + v.x;
+      const y = w.y * v.zoom + v.y;
+      return rect.width > 0 && x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+    };
+    setMapProbe(probe);
+    return () => clearMapProbe(probe);
+  }, [s.placements]);
 
   // `selectedId` can change from outside (BuildPopup.tsx), so a fresh pickup
   // resets the facing here: its front toward the player.
@@ -2473,7 +2476,8 @@ export default function CampusMap({
   }, [canvasBroke]);
   // What the review tools read of the map (mapProbe.ts's MapReview).
   useEffect(() => {
-    setMapReview({
+    // Set on every mount, and cleared only if still this map's (mapProbe.ts).
+    const review: MapReview = {
       renderer: () => (canvasOn() ? 'canvas' : 'svg'),
       view: () => ({ ...viewRef.current }),
       settled: () => (canvasOn() ? mapCanvasRef.current?.settled() ?? false : true),
@@ -2497,8 +2501,9 @@ export default function CampusMap({
           return { id: t.id, name: label, x: (rect?.left ?? 0) + c.x * v.zoom + v.x, y: (rect?.top ?? 0) + c.y * v.zoom + v.y };
         });
       },
-    });
-    return () => setMapReview(null);
+    };
+    setMapReview(review);
+    return () => clearMapReview(review);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Fallen back to the SVG map: its land and scene take the view.

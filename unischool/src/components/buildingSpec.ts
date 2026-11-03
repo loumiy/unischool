@@ -269,7 +269,7 @@ export function motifOf(t: Buildable): Motif {
 // as campusMap.ts's ladders pick the footprint.
 
 // Stories added after the fact (the library renovation, see facilitiesData's
-// nextLibraryFloor and the reducer's RENOVATE_LIBRARY). Read generically off
+// nextLibraryFloor and estate.ts's startLibraryFloor). Read generically off
 // floorsAdded so anything that gains floors gets the same treatment. The
 // motifs that draw their own stories (a village's houses, a tower's shaft,
 // a refectory's floor over the hall) read it too (Plan 112D).
