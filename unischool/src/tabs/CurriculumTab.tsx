@@ -12,6 +12,7 @@ import {
   discoverySchools, graduatePrograms, graduateSection, programById, GRADUATE_SCHOOL_SECTION, GRADUATE_SECTIONS, type ProgramInfo,
 } from '../data/techData';
 import { hallOf, isHoused, isInTransit } from '../systems/techtree/programOffers';
+import { classPlacesShort, SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { programOfCourse } from '../data/techData';
 import { isSchoolFounded } from '../systems/techtree/schools';
 import { schoolMark } from '../data/schoolPalette';
@@ -885,10 +886,21 @@ export function RowAction({ s, act, program, progress, lookup, onSelect, compact
         <GradeChip score={projected.score} title={`${next.name} would be ${count(projected.score)} out of 100 with ${best.name}, who teaches at ${best.teaching}${qualityGap(projected) ? ` (${qualityGap(projected)})` : ''}`} />
       </button>
       <span className="row-action-cost">{moneyShort(next.cost)} · {weeksShort(next.duration)}{shortfall > 0 ? ` · ${moneyShort(shortfall)} short` : ''}</span>
+      {!compact && showsPlaces(s, program.id) && (
+        <span className="row-action-places" title="Each course taught adds this many class places">{PLACES_CHIP}</span>
+      )}
       {!compact && <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)} title="Choose a different instructor, or read the course">Choose…</button>}
       {worth}
     </p>
   );
+}
+
+// The growth lever on the button that presses it (Plan 124J): while class
+// places are short, a housed program's next Develop says the places its
+// course adds, on an open row (a folded one's course cannot start now).
+export const PLACES_CHIP = `+${SEATS_PER_COURSE} places`;
+export function showsPlaces(s: GameState, programId: string): boolean {
+  return isHoused(s, programId) && classPlacesShort(s);
 }
 
 // A program row starts open only if you can act on it: its next course can

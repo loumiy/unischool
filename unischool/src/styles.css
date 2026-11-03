@@ -1851,6 +1851,10 @@ button.build-tile { font-family: inherit; }
 .row-action-title { font-weight: 800; min-width: 0; max-width: 22em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 600px) { .row-action-title { max-width: 11em; } }
 .row-action-cost { font-weight: 700; color: var(--ink-muted); }
+
+/* What the next course adds while class places are short (Plan 124J). */
+.row-action-places { padding: 2px 10px; border: 2px solid var(--ok-on-light); border-radius: var(--radius-pill);
+  background: var(--grade-a-bg); color: var(--ok-on-light); font-weight: 700; white-space: nowrap; }
 .row-action-secondary { padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 .row-action-note { color: var(--ink); font-weight: 600; }
 .row-action-worth { margin-left: auto; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
