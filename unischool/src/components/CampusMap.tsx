@@ -909,13 +909,15 @@ function sceneParts(
   };
 }
 
-function LabelLayer({ placed, inspectedId, vernacular, labelLayerRef }: {
+// `hidden`: a building still going up at the founding (Plan 124H), whose
+// label waits until it stands.
+function LabelLayer({ placed, inspectedId, vernacular, labelLayerRef, hidden = null }: {
   placed: CampusLayout['placed']; inspectedId: string | null; vernacular: Vernacular;
-  labelLayerRef: React.RefObject<SVGGElement | null>;
+  labelLayerRef: React.RefObject<SVGGElement | null>; hidden?: string | null;
 }) {
   return (
     <g ref={labelLayerRef}>
-      {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p, label }) => (
+      {placed.filter(({ t }) => t.facilityType !== 'quad' && t.id !== hidden).map(({ t, p, label }) => (
         <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={label} pinned={t.id === inspectedId} vernacular={vernacular} />
       ))}
     </g>
@@ -2675,7 +2677,7 @@ export default function CampusMap({
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
             {canvasOn() ? (<>
-              <CanvasLabels placed={layout.placed} inspectedId={highlightId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} />
+              <CanvasLabels placed={layout.placed} inspectedId={highlightId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} hidden={rising} />
             </>) : (<>
             <CrowdContext.Provider value={crowds}>
             <PennantContext.Provider value={pennants}>
