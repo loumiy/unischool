@@ -41,7 +41,7 @@ console.log('stat chip tests');
 // --- where each chip leads --------------------------------------------
 {
   const expected = {
-    rank: { tab: 'history', section: 'history.rankings' },
+    rank: { tab: 'history', section: 'history.prestige' },
     enrolled: null,
     prestige: { tab: 'history', section: 'history.prestige' },
     satisfaction: { tab: 'students', section: 'students.breakdown' },
@@ -58,7 +58,7 @@ console.log('stat chip tests');
     assert(door?.section === want.section, `${chip} lands on ${want.section} (${door?.section})`);
   }
   assert(chipDoor('prestige', '51.5')?.name === 'Prestige 51.5 — open History, Prestige', `the button is named with its figure (${chipDoor('prestige', '51.5')?.name})`);
-  assert(chipDoor('rank', '#55')?.name === 'Rank #55 — open History, The guide', 'rank too');
+  assert(chipDoor('rank', '#55')?.name === 'Rank #55 — open History, Prestige', 'rank too, through the same door (Plan 124 C)');
   assert(chipDoor('satisfaction', '70')?.name === 'Satisfaction 70 — open Students, Satisfaction breakdown', 'and satisfaction');
   for (const chip of STAT_CHIPS) {
     assert(/^[A-Z][a-z]+$/.test(STAT_CHIP_WORDS[chip]), `${chip}'s word is one word (${STAT_CHIP_WORDS[chip]})`);
@@ -108,10 +108,10 @@ console.log('stat chip tests');
   assert(FIGURE_HINTS.committee(3, 4, true).includes('of the 4 it can write at once'), 'and it names the most at once');
 }
 
-// --- the rank chip says the rank is by prestige ----------------------------
+// --- rank and prestige share one sentence, which says the rank follows it --
 {
-  const hint = FIGURE_HINTS.rank(100);
-  assert(hint.includes('by prestige'), `the rank's sentence says it follows prestige (${hint})`);
+  const hint = FIGURE_HINTS.standing(100);
+  assert(hint.startsWith('Prestige') && hint.includes('sets your rank among 100 colleges'), `the standing sentence says the rank follows prestige (${hint})`);
 }
 
 if (failures === 0) {

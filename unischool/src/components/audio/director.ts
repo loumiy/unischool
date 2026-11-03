@@ -44,8 +44,13 @@ export function ambienceFor(s: GameState | null): AmbienceLevels {
 
 // Topics that play nothing, on purpose, each with its reason (Plan 70H: a
 // test holds every topic to a cue or a line here, so a new one cannot be
-// silent by accident). Empty for now: every topic has a sound.
-export const SILENT_TOPICS: Partial<Record<LogTopic, string>> = {};
+// silent by accident). Plan 124 D silenced the background ticks.
+export const SILENT_TOPICS: Partial<Record<LogTopic, string>> = {
+  departure: "a professor leaving is not the hire's tick, and has no cue of its own: the log and the Faculty tab say it",
+  candidate: 'the market turns over every week; a tick for each listing was background noise',
+  petition: "a club's petition for recognition is background news, and the log's line says it",
+  publication: 'papers come every few weeks from every lab; a tick for each was background noise',
+};
 
 // Where bad news on a topic sounds different from good (Plan 70H): a game
 // lost, and money going the wrong way.

@@ -7,7 +7,6 @@ import { schoolFoundedKey } from '../systems/techtree/schools';
 import { isSearchFind } from '../systems/faculty/facultySearch';
 import { schoolMark } from '../data/schoolPalette';
 import { inboxItems } from '../systems/inbox/inbox';
-import { weeksProse } from '../format';
 import { CloseIcon } from './icons';
 import { getSettings } from '../settings';
 
@@ -20,16 +19,16 @@ import { getSettings } from '../settings';
 // Read off successive snapshots, like the sound: a load or a new run is not
 // news.
 //
-// And what arrives in the inbox (Plan 77): a matter to decide or a letter,
-// as a slip with an Open button that takes the player to it, held a little
-// longer than the news. Not while the inbox is open, where it arrives in
-// the list itself. In year one a founding note or a milestone is held until
-// it is opened or dismissed (Plan 78B): the first year's guidance is in
-// those letters, and eight seconds is easy to miss. With Settings' "Pause
-// for an urgent matter" on (Plan 78E), a matter's slip is held too: an
-// urgent one's clock waits with it, and since Plan 116B one with more weeks
-// stays while the clock runs. It goes by itself once the matter is opened
-// in the inbox or leaves it. Opening the inbox puts every arrival away.
+// And a letter that arrives in the inbox (Plan 77), as a slip with an Open
+// button that takes the player to it, held a little longer than the news.
+// Not while the inbox is open, where it arrives in the list itself. In year
+// one a founding note or a milestone is held until it is opened or
+// dismissed (Plan 78B): the first year's guidance is in those letters, and
+// eight seconds is easy to miss. A slip whose arrival paused the clock
+// (Settings' "Pause for news") is held too, and goes by itself once it is
+// opened in the inbox or leaves it. Opening the inbox puts every arrival
+// away. A matter to decide has no slip (Plan 124 C): the Inbox badge, its
+// row's pill and NEXT carry it.
 // ---------------------------------------------------------------------
 
 const SHOW_MS = 6_000;
@@ -44,7 +43,7 @@ const CATCH_UP = 60;
 export interface Toast {
   id: number;
   text: string;
-  tone: 'good' | 'bad' | 'info' | 'matter' | 'letter';
+  tone: 'good' | 'bad' | 'info' | 'letter';
   // An inbox item to open (Plan 77).
   open?: string;
   // Stays until opened or dismissed (Plans 78B and 78E).
@@ -69,21 +68,18 @@ export function toastsFor(before: GameState, after: GameState, fresh: readonly L
   return out;
 }
 
-// What arrived in the inbox between two snapshots: a matter to decide or an
-// unread letter it did not hold before. Pure, for the test. A seat's answer
-// settles its event within the week, so it never arrives.
+// What arrived in the inbox between two snapshots: an unread letter it did
+// not hold before. Pure, for the test. A matter to decide is the badge's,
+// not a slip's (Plan 124 C).
 export function arrivalsIn(before: GameState, after: GameState): Said[] {
   const had = new Set(inboxItems(before).map((i) => i.id));
   const out: Said[] = [];
   for (const i of inboxItems(after)) {
     // A stop opens the inbox on itself (App.tsx), and the summer has its
     // own call over the map (SummerCall.tsx, Plan 112C): neither needs a slip.
-    if (had.has(i.id) || i.tier === 'bulletin' || i.tier === 'hold' || !i.unread) continue;
-    const text = i.tier === 'decide' && i.weeksLeft !== undefined && i.kind === 'event'
-      ? `${i.from} · ${weeksProse(i.weeksLeft)} to answer: ${i.subject}`
-      : `${i.from}: ${i.subject}`;
+    if (had.has(i.id) || i.tier !== 'letter' || !i.unread) continue;
     const held = after.clock.year === 1 && (i.kind === 'founding' || i.kind === 'milestone');
-    out.push({ text, tone: i.tier === 'decide' ? 'matter' : 'letter', open: i.id, ...(held ? { held: true as const } : {}) });
+    out.push({ text: `${i.from}: ${i.subject}`, tone: 'letter', open: i.id, ...(held ? { held: true as const } : {}) });
   }
   return out;
 }
@@ -123,7 +119,7 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
   s: GameState | null;
   inboxOpen?: boolean;
   onOpenInbox?: (id: string) => void;
-  // The matters the player has opened (App.tsx), whose slips can go.
+  // The items the player has opened (App.tsx), whose slips can go.
   opened?: ReadonlySet<string>;
 }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -143,7 +139,7 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
     const before = last.current;
     last.current = s;
     if (!s) return;
-    // A held slip goes once its matter is answered or lapses.
+    // A held slip goes once its item leaves the inbox.
     setToasts((cur) => {
       if (!cur.some((t) => t.held)) return cur;
       const waiting = new Set(inboxItems(s).map((i) => i.id));
@@ -161,10 +157,9 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
     }
     const said = [...toastsFor(before, s, fresh, onMapScreen), ...(inboxOpenRef.current ? [] : arrivalsIn(before, s))];
     if (said.length === 0) return;
-    const { pauseOnArrival, pauseForNews } = getSettings();
-    // A matter's slip waits to be opened, and a slip whose arrival paused the
-    // clock waits with it (Plans 78E, 95T and 116B).
-    const waits = (t: Said) => (pauseOnArrival && t.tone === 'matter') || (pauseForNews && t.open?.startsWith('news:') === true);
+    const { pauseForNews } = getSettings();
+    // A slip whose arrival paused the clock waits with it (Plan 95T).
+    const waits = (t: Said) => pauseForNews && t.open?.startsWith('news:') === true;
     const made = said.map((t) => ({ ...t, id: next.current++, held: t.held || waits(t) }));
     setToasts((cur) => stacked(cur, made));
     for (const t of made) {
@@ -173,7 +168,7 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
     }
   }, [s]);
 
-  // Opening a matter in the inbox is what its held slip waited for.
+  // Opening an item in the inbox is what its held slip waited for.
   useEffect(() => {
     if (!opened) return;
     setToasts((cur) => (cur.some((t) => t.held && opened.has(t.open!)) ? cur.filter((t) => !(t.held && opened.has(t.open!))) : cur));

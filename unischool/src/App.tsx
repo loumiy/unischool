@@ -279,7 +279,7 @@ export default function App() {
   // A tab an objective asks to be walked through (Plan 122G): the Treasury,
   // Students, History and Faculty. The walk shows while its chapter is open
   // and the objective unmet; finishing or skipping it marks the tab.
-  // A tab's Guide button replays its walk (Plan 122's follow-up): `replay`
+  // A tab's Show me button replays its walk (Plan 122's follow-up): `replay`
   // names the tab and counts the presses, so a second press starts over.
   const openTabId = overlay?.tab;
   const [replay, setReplay] = useState<{ tab: TabId; n: number } | null>(null);
@@ -295,7 +295,7 @@ export default function App() {
     if (replay && replay.tab !== openTabId) setReplay(null);
   }, [openTabId, replay]);
 
-  // A tab's Guide button: the page of the chapter that introduced it,
+  // A tab's Show me button (once "Guide"): the page of the chapter that introduced it,
   // once that chapter has opened, read in the drawer over the tab, and on
   // a tab with a walk (Plan 122G) the walk again, from its first step.
   function guideFor(tab: TabId): (() => void) | undefined {

@@ -146,7 +146,7 @@ function showMes(s: GameState): { shut: string[]; lines: number } {
   for (const c of CHAPTERS) {
     if (!isOpen(s, c.id) || !hasPage(c.id)) continue;
     let went: string | undefined;
-    const panel = createElement(ObjectivesPanel, { s, waiting: null, onGo: (go: string) => { went = go; }, onOpenLadder: () => {}, view: c.id, onView: () => {} });
+    const panel = createElement(ObjectivesPanel, { s, onGo: (go: string) => { went = go; }, onOpenLadder: () => {}, view: c.id, onView: () => {} });
     const found = walkPanel(panel, 'Show me', 'objectives-shut');
     lines += found.lines;
     for (const click of found.clicks) {

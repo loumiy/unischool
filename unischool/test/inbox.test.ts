@@ -225,8 +225,9 @@ function fresh(): GameState {
   after.ladder.reachedWeek[m.id] = weekOf(after);
   after.ladder.unread = [m.id];
   const got = arrivalsIn(before, after);
-  assert(got.length === 2, `an event and a milestone arrive (${got.length})`);
-  assert(got.some((t) => t.tone === 'matter' && t.open === 'event:a' && t.text.includes('to answer')), 'the event as a matter to open');
+  // A matter to decide has no slip (Plan 124 C): the badge and NEXT carry it.
+  assert(got.length === 1, `a milestone arrives, the event does not (${got.length})`);
+  assert(!got.some((t) => t.open === 'event:a'), 'no slip for a matter to decide');
   assert(got.some((t) => t.tone === 'letter' && t.open === `milestone:${m.id}`), 'the milestone as a letter to open');
   assert(arrivalsIn(after, after).length === 0, 'nothing arrives twice');
 }

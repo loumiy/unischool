@@ -46,9 +46,9 @@ console.log('pillar rule tests');
 
 // ---- The hints say what the guide ranks by (B2-2) ----
 {
-  const rank = FIGURE_HINTS.rank(100);
-  assert(rank.startsWith('Of 100 colleges, by prestige') && !rank.includes('academic ranking'), `the Rank hint ranks by prestige ("${rank}")`);
-  assert(FIGURE_HINTS.prestige.includes(pillarWeightsWords()), `the Prestige hint names the four pillars at their weights ("${FIGURE_HINTS.prestige}")`);
+  const standing = FIGURE_HINTS.standing(100);
+  assert(standing.includes('sets your rank among 100 colleges') && !standing.includes('academic ranking'), `the Rank and Prestige hint ranks by prestige ("${standing}")`);
+  assert(standing.includes(pillarWeightsWords()), `and names the four pillars at their weights ("${standing}")`);
 }
 
 // ---- The status line says "share" ----

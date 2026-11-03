@@ -119,6 +119,14 @@ for (const theme of THEMES) {
   assert(cues.join() === 'complete,tick,coin,cheer,loss', `each effect once, in order, a win cheered and a loss lamented (${cues.join()})`);
   assert(cuesFor([line('the red', { topic: 'money', kind: 'bad' })]).join() === 'alarm', 'money going the wrong way is an alarm, not a coin');
   assert(cuesFor([line('a venue', { topic: 'team', kind: 'info' })]).length === 0, 'a venue finishing is its building\'s line, not the team\'s');
+  // Plan 124 D: a cue never means the opposite of its event, and the
+  // background is quiet.
+  assert(cuesFor([line('a departure', { topic: 'departure' })]).length === 0, 'a professor leaving plays nothing, not the hire\'s tick');
+  assert(cuesFor([line('a failed demand', { topic: 'demand-failed', kind: 'bad' })]).join() === 'loss', 'a failed demand is a loss, not a letter');
+  for (const topic of ['candidate', 'petition', 'publication'] as const) {
+    assert(cuesFor([line(topic, { topic })]).length === 0 && SILENT_TOPICS[topic] !== undefined, `${topic} is silent, with its reason`);
+  }
+  assert(['building', 'program', 'milestone'].every((t) => CUES[t as keyof typeof CUES] === 'complete'), 'completions keep complete');
   // Plan 70H: no topic is silent by accident.
   const unheard = LOG_TOPICS.filter((t) => CUES[t] === undefined && SILENT_TOPICS[t] === undefined);
   assert(unheard.length === 0, `every log topic cues an effect or is listed as silent, with its reason (${unheard.join(', ')})`);
