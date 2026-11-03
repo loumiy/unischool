@@ -4,7 +4,27 @@
 new **format** for reviewing the whole game, in place of the seven-area format
 of Plans 73, 86 and 109. The next full review would be the first to use it.*
 
-**Status: In progress.** The owner answered §8 on 3 November 2026 (below); the review is being run.
+**Status: Landed (3 November 2026), on `claude/quirky-tesla-1tkmw0`.** The review is in
+`docs/reviews/2026-11-review-by-subtraction/`, and its cut list is on a review page,
+[UniSchool Cut List](https://claude.ai/artifact/CxrPoFCdYUqZwNCQogxfDy), where the owner records
+keep, trim or cut for each row.
+
+**As implemented:**
+- The five passes ran against the production build of `5d06ae4`, one reviewer each.
+  Passes B–E ran side by side; the lead wrote pass A and the synthesis.
+- **Tools.** `review:census`, `review:web` and `review:juice` are new. The silent run
+  is a `silent` step in `drive.mjs`, not a `?silent` flag in the game, so nothing in
+  `src/` changed. It first missed the walkthrough's prose, and was fixed.
+- **The silent sessions reached year 3, not year 5.** The later chapters are judged
+  from code and the goal players.
+- **Pass D blocked systems one at a time** (33 runs through a scratch copy of the goal
+  players), so "ignorable" is measured, not guessed. Three runs a system is a small sample.
+- **One live bug was raised the day it was found** (R-1: the camera chapter holds the
+  run on desktop, where turn and tilt are keys only).
+- **Not done:** the status table of the third review (§6 E). Its findings still
+  await the owner's triage.
+- **Results:** 12 cards, a cut list of 38 rows (9 of them whole mechanics), 5 bugs
+  and 2 tooling faults.
 
 ---
 

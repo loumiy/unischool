@@ -164,7 +164,7 @@ Ranked by players affected × how early × the simplicity gained ÷ effort. Effo
 
 ## The cut list
 
-Every *cut*, *trim* and *merge* from the passes, one line each, is in [`data/cut-list.json`](data/cut-list.json) (38 rows), each tied to its card. The owner decides each row on the review page, with *keep*, *trim* or *cut*. The decisions are read back from the page into the plans that follow.
+Every *cut*, *trim* and *merge* from the passes, one line each, is in [`data/cut-list.json`](data/cut-list.json) (38 rows), each tied to its card. The owner decides each row on the review page, [**UniSchool Cut List**](https://claude.ai/artifact/CxrPoFCdYUqZwNCQogxfDy) (its source is [`cut-list.html`](cut-list.html)), with *keep*, *trim* or *cut*. The decisions are read back from the page into the plans that follow.
 
 ## Keep
 

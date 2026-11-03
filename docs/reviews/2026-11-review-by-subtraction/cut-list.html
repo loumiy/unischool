@@ -1,0 +1,266 @@
+<title>UniSchool Cut List</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Azeret+Mono:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: the game's own register (cream panels, navy rules, hard offset shadows,
+   the college's maroon and gold). A sticky tally band over one column of rows,
+   grouped as the review groups them; each row carries its card, its evidence and
+   a keep / trim / cut choice. */
+:root {
+  --bg: #efe8da;
+  --panel: #fffdf8;
+  --panel-lo: #f7f2e8;
+  --ink: #1b2a4a;
+  --muted: #5a5f6b;
+  --line: #1b2a4a;
+  --primary: #7b1e2b;
+  --on-primary: #f7f2e8;
+  --gold: #f2c14e;
+  --shadow: rgba(27, 42, 74, 0.9);
+  --keep: #1f6b3a;
+  --trim: #8a5a00;
+  --cut: #b0302a;
+  --chip: #e4ddd0;
+  --band: #7b1e2b;
+  --display: "Bricolage Grotesque", "Archivo", system-ui, sans-serif;
+  --body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111a2e; --panel: #1a2540; --panel-lo: #15203a; --ink: #ece6d8; --muted: #a9adb8;
+    --line: #3a4a6e; --primary: #c4506a; --on-primary: #fff8ee; --gold: #f2c14e; --shadow: rgba(0,0,0,0.55);
+    --keep: #5fbf83; --trim: #e0b04a; --cut: #ef6a5e; --chip: #24304d; --band: #5c1a29; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111a2e; --panel: #1a2540; --panel-lo: #15203a; --ink: #ece6d8; --muted: #a9adb8;
+  --line: #3a4a6e; --primary: #c4506a; --on-primary: #fff8ee; --gold: #f2c14e; --shadow: rgba(0,0,0,0.55);
+  --keep: #5fbf83; --trim: #e0b04a; --cut: #ef6a5e; --chip: #24304d; --band: #5c1a29; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--band); }
+.wrap { max-width: 920px; margin: 0 auto; }
+header.top { padding-block: 32px 20px; display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.lede { max-width: 64ch; margin: 0; color: var(--ink); }
+.lede b { font-weight: 600; }
+.alert { border: 2px solid var(--cut); background: var(--panel); border-radius: 10px; padding: 10px 14px; max-width: 72ch; }
+.alert strong { color: var(--cut); }
+.band { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--band); color: var(--on-primary);
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 2px solid var(--line); }
+.band-inner { max-width: 920px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.tally { display: flex; gap: 14px; flex-wrap: wrap; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.tally span b { font-weight: 500; }
+.meter { flex: 1 1 160px; height: 10px; border: 1.5px solid var(--on-primary); border-radius: 4px; display: flex; overflow: hidden; min-width: 120px; }
+.meter i { display: block; height: 100%; }
+.status { font-size: 12px; opacity: 0.9; font-family: var(--mono); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 18px 6px; }
+.filters button { font: 500 13px var(--body); color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--gold); color: #1b2a4a; border-color: #1b2a4a; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-block: 12px 4px; }
+.card-pill { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline; background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; text-align: left; color: var(--ink); font: inherit; }
+.card-pill .n { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--primary); grid-row: span 2; }
+.card-pill .t { font-weight: 600; font-size: 14px; line-height: 1.3; }
+.card-pill .m { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.card-pill[aria-pressed="true"] { outline: 3px solid var(--gold); outline-offset: 1px; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 28px 0 10px; text-wrap: balance; }
+.rows { display: grid; gap: 12px; }
+.row { background: var(--panel); border: 2px solid var(--line); border-radius: 10px; box-shadow: 3px 3px 0 var(--shadow); padding: 14px 16px; display: grid; gap: 8px; }
+.row[data-choice="keep"] { border-left: 8px solid var(--keep); }
+.row[data-choice="trim"] { border-left: 8px solid var(--trim); }
+.row[data-choice="cut"] { border-left: 8px solid var(--cut); }
+.row-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.rid { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.item { font-weight: 600; font-size: 16px; line-height: 1.35; flex: 1 1 260px; min-width: 0; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; }
+.chip { background: var(--chip); border-radius: 6px; padding: 2px 7px; }
+.chip.rec { border: 1.5px solid currentColor; background: transparent; }
+.chip.rec.cut { color: var(--cut); } .chip.rec.trim { color: var(--trim); } .chip.rec.merge { color: var(--trim); } .chip.rec.keep { color: var(--keep); }
+.why { margin: 0; color: var(--ink); max-width: 72ch; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 13px; color: var(--muted); }
+.meta dt { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
+.meta dd { margin: 0; min-width: 0; }
+.decide { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: 600 14px var(--body); padding: 6px 14px; background: var(--panel-lo); color: var(--ink); border: 0; border-right: 1.5px solid var(--line); cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button:focus-visible, .filters button:focus-visible, .card-pill:focus-visible, .note:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.seg button[aria-pressed="true"][data-v="keep"] { background: var(--keep); color: #fff; }
+.seg button[aria-pressed="true"][data-v="trim"] { background: var(--trim); color: #fff; }
+.seg button[aria-pressed="true"][data-v="cut"] { background: var(--cut); color: #fff; }
+.seg button:disabled { cursor: default; opacity: 0.6; }
+.note { flex: 1 1 220px; min-width: 0; font: 14px var(--body); color: var(--ink); background: var(--panel-lo); border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.saved { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.empty { color: var(--muted); font-style: italic; }
+footer { margin-top: 32px; font-size: 13px; color: var(--muted); max-width: 72ch; }
+@media (max-width: 520px) { .meta { grid-template-columns: 1fr; } .meta dt { padding-top: 6px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Plan 123 · review by subtraction · commit 5d06ae4</div>
+    <h1>What the game should stop doing</h1>
+    <p class="lede">Every cut, trim and merge the five passes found, one row each, tied to its card in the review. <b>Choose keep, trim or cut on each row</b>, and add a note where the answer needs one. Your choices are saved here and read back into the plans that follow.</p>
+    <p class="alert"><strong>Raised today (R-1):</strong> on desktop the <em>Looking around</em> chapter asks for turn and tilt, which exist only as keys. It holds back housing, seats and money; real players kept it open 150 weeks on average. Row X1.</p>
+  </header>
+</div>
+
+<div class="band" role="region" aria-label="Your decisions so far">
+  <div class="band-inner">
+    <div class="tally" id="tally"></div>
+    <div class="meter" id="meter" aria-hidden="true"></div>
+    <div class="status" id="status">Loading saved decisions…</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="cards" id="cards" aria-label="The twelve cards"></div>
+  <div class="filters" id="filters" aria-label="Show"></div>
+  <main id="list"></main>
+  <footer>The review's full text, with the evidence behind every row, is in <code>docs/reviews/2026-11-review-by-subtraction/</code> on the branch <code>claude/quirky-tesla-1tkmw0</code>. Rows are recommendations from model reviewers; the choice is yours.</footer>
+</div>
+
+<script type="application/json" id="rows-data">[{"id": "X1", "group": "Teaching text", "item": "The Looking around chapter (pan, turn, tilt, zoom, home)", "kind": "chapter", "rec": "cut", "saves": "−1 chapter, −5 objectives, ≈130 words", "who": "every desktop player, minute 1", "why": "Turn and tilt are keyboard-only on desktop, and the chapter holds back the housing, seats and money chapters. Players kept it open 150 weeks on average.", "src": "B-2, B-3, B-8 · data/play-statistics.md", "card": 1}, {"id": "X2", "group": "Teaching text", "item": "The map tools' help (?): one 280-word paragraph of keys and touch tips", "kind": "text", "rec": "trim", "saves": "≈ −230 words", "who": "anyone who opens the map tools", "why": "Once turn, tilt and home are buttons on desktop too, the keys can be a short list on the buttons' own hovers.", "src": "B-3 · CampusMap.tsx:2748", "card": 1}, {"id": "X3", "group": "Teaching text", "item": "Year-1 chapter 'about' paragraphs (next course, sleep, seats, paying, first summer, standing)", "kind": "text", "rec": "cut", "saves": "≈ −275 words", "who": "every guided player, year 1", "why": "In the silent run the objective line beside each carried the run. From the fifth chapter, half the briefings are never opened and the chapters still get done.", "src": "B C6 · data/play-statistics.md", "card": 2}, {"id": "X4", "group": "Teaching text", "item": "The 'why you can't yet' help variants (second course waiting, hall unaffordable, lab rising)", "kind": "text", "rec": "cut", "saves": "−3 help variants, ≈ −90 words", "who": "every guided player, year 1–3", "why": "They exist because objectives open before their control is lit. Gate the objective instead.", "src": "B-1, B-9, B-10", "card": 2}, {"id": "X5", "group": "Teaching text", "item": "The four tab walks (Treasury, Students, History, Faculty) and their 'Walk through…' objectives", "kind": "surface", "rec": "cut", "saves": "−4 walks, −4 objectives, ≈ −340 words", "who": "every guided player, years 1–2", "why": "Silent, each is a title and Next three times. The Treasury walk is 258 words for one click, the worst ratio of year 1.", "src": "B-6 · E-7", "card": 3}, {"id": "X6", "group": "Teaching text", "item": "The admissions coach (six tips) and the handle hint", "kind": "surface", "rec": "cut", "saves": "−1 coach, −1 hint, ≈ −220 words", "who": "every player, first summer", "why": "The admissions screen played perfectly with no text. It is the game's best teaching surface.", "src": "B C4", "card": 3}, {"id": "X7", "group": "Teaching text", "item": "The first summer's chapter text and the summer call's 53-word note", "kind": "text", "rec": "cut", "saves": "≈ −100 words", "who": "every player, first summer", "why": "The note is already on screen with a sun and one button.", "src": "B 'no weight' table", "card": 3}, {"id": "X8", "group": "Teaching text", "item": "Summer review lines explaining satisfaction and the four 'X stands at N of 150' pillar lines", "kind": "text", "rec": "cut", "saves": "≈ −80 words a summer", "who": "every player, every summer", "why": "The header shows satisfaction the next moment; the pillars become one figure (card 7).", "src": "B · D-1", "card": 7}, {"id": "X9", "group": "Teaching text", "item": "'The cost of being large' note shown from year 1", "kind": "text", "rec": "trim", "saves": "−36 words until it applies", "who": "every Treasury visit", "why": "It is about colleges past about 1,500 students. Show it only then.", "src": "B · TreasuryTab.tsx:311", "card": 3}, {"id": "X10", "group": "Teaching text", "item": "The founding letter 'The doors open' (70 words) and the second panel at the first placement", "kind": "surface", "rec": "cut", "saves": "−1 letter, −1 panel, ≈ −70 words", "who": "every player, minute 1", "why": "It covers the payoff of the founding: the hall the player just designed.", "src": "C-3", "card": 4}, {"id": "X11", "group": "Teaching text", "item": "Small redundant lines: 'A run lasts 50 years…', 'The walkthrough has two steps.', 'Time is paused until you do this'", "kind": "text", "rec": "cut", "saves": "≈ −37 words", "who": "every player, minute 1", "why": "The screen already says each one.", "src": "B 'no weight' table", "card": 4}, {"id": "H1", "group": "The band (HUD)", "item": "The 'unseen' red ! badges on Curriculum, Build and each Build category", "kind": "signal", "rec": "cut", "saves": "≈ −9 badges on a year-30 screen", "who": "every player, all game", "why": "Seven of eight Build categories carry one at year 30, and the same red marks Athletics' real problem.", "src": "E-2", "card": 6}, {"id": "H2", "group": "The band (HUD)", "item": "The drawer's 'Also waiting' section and the toast for a pending matter", "kind": "surface", "rec": "cut", "saves": "−1 drawer section, −1 toast type", "who": "every player, all game", "why": "One pending decision shows in five places. Keep the Inbox badge and NEXT.", "src": "E-3", "card": 6}, {"id": "H3", "group": "The band (HUD)", "item": "Athletics' six 'Hire a … →' links that repeat the chapter step", "kind": "surface", "rec": "cut", "saves": "−6 links", "who": "every player with teams", "why": "The chapter chip and the lit target already say it.", "src": "E-3, E-9", "card": 6}, {"id": "H4", "group": "The band (HUD)", "item": "Four date readouts (calendar card, 'Year 16', weekday pips, ticker stamp)", "kind": "surface", "rec": "merge", "saves": "−2 readouts", "who": "every player, all game", "why": "One calendar card: YEAR 16 · FALL · 2.", "src": "E-8", "card": 6}, {"id": "H5", "group": "The band (HUD)", "item": "Separate Rank and Prestige chips", "kind": "surface", "rec": "merge", "saves": "−1 chip, −1 control", "who": "every player, all game", "why": "Rank follows from prestige, and both open History. One chip: #48 · 64.8, with the pillar bars of card 7.", "src": "E-8 · D-1", "card": 7}, {"id": "M1", "group": "Letters and mechanics", "item": "'X is now an established program' letters", "kind": "surface", "rec": "cut", "saves": "≈ −5 letters a year mid-game, ≈ −120 words a year", "who": "every player, years 5–30", "why": "The hall's silver ring and the chime are the event. Five of six year-15 Inbox items were these.", "src": "E-5", "card": 8}, {"id": "M2", "group": "Letters and mechanics", "item": "Faculty tiles' 'N WAITING' and the satisfaction sub-lines ('A need since…', beds wanted)", "kind": "text", "rec": "trim", "saves": "≈ −12 words a tile row, ≈ −30 on Students", "who": "every Faculty and Students visit", "why": "Once the map shows unlit windows and queues (card 8), the words repeat it.", "src": "E-4", "card": 8}, {"id": "M3", "group": "Letters and mechanics", "item": "Promises (the summer offer, the Promises panel, 2,300 words)", "kind": "mechanic", "rec": "cut", "saves": "−1 system, −1 panel, ≈ −2,300 words", "who": "players years 5–50", "why": "Weak one-off effects; the championships player takes none and finishes 14th; 11 players opened its chapter.", "src": "D-3", "card": 9}, {"id": "M4", "group": "Letters and mechanics", "item": "Student demands (fold the deadline into satisfaction's drag, which the header already names)", "kind": "mechanic", "rec": "cut", "saves": "−1 system, −1 card", "who": "players years 3–50", "why": "A weak bump to a stock that halves in 14 weeks; the header chip already names the need.", "src": "D-3", "card": 9}, {"id": "M5", "group": "Letters and mechanics", "item": "Identity tags' teeth (keep the tags as words in the guidebook and Final Report)", "kind": "mechanic", "rec": "cut", "saves": "−7 tag levers", "who": "every player", "why": "±2–12% on an applicant pool that seat-bound colleges do not need.", "src": "D-3, D-8", "card": 9}, {"id": "M6", "group": "Letters and mechanics", "item": "The twelve offices in Founders Hall", "kind": "mechanic", "rec": "cut", "saves": "−1 system, −1 surface, −2 actions, ≈ −600 words", "who": "players years 5–50", "why": "No goal player opened one in 47 runs; blocking them changed nothing. Seats stay.", "src": "D-2", "card": 9}, {"id": "M7", "group": "Letters and mechanics", "item": "Events whose effect never reaches the map or a seen figure", "kind": "mechanic", "rec": "trim", "saves": "a share of 16,400 words", "who": "every player", "why": "Keep events that land on the map (trees, ivy, a sinkhole, a building) or move a seen number.", "src": "D-3", "card": 9}, {"id": "M8", "group": "Letters and mechanics", "item": "Negligible edges: faculty quirks' morale, building pairing, a title year's campaign lift, alumni's beauty memory", "kind": "mechanic", "rec": "cut", "saves": "−5 edges and their explaining lines", "who": "every player", "why": "Each is under a point or two on its need.", "src": "D-10", "card": 9}, {"id": "M9", "group": "Letters and mechanics", "item": "The board's question (trades 1–2 points between pillars)", "kind": "mechanic", "rec": "trim", "saves": "−1 recurring letter", "who": "players years 10–50", "why": "A weak edge; keep only if it becomes a choice the map shows.", "src": "D-3", "card": 9}, {"id": "A1", "group": "Athletics and money", "item": "Coach management, team order and athletic scholarships (keep the budget tier)", "kind": "mechanic", "rec": "cut", "saves": "−4 actions, Athletics tab roughly halved", "who": "players with teams", "why": "Running no department costs 0–6.5 target points; the championships player spent 176 coach actions on it.", "src": "D-5", "card": 11}, {"id": "A2", "group": "Athletics and money", "item": "The title page that stops the clock", "kind": "surface", "rec": "cut", "saves": "−1 stopping surface, ≈ −40 words", "who": "players who win titles", "why": "Replace with a banner over the map and a pennant on the venue.", "src": "C-2", "card": 10}, {"id": "A3", "group": "Athletics and money", "item": "The 'prestige dividend' line, the draw-rate slider and the sweep", "kind": "mechanic", "rec": "cut", "saves": "−2 controls, −1 Treasury line", "who": "players years 10–50", "why": "Blocking every Treasury lever cost 0–5 target points; cash piles to $1.7–2.2B.", "src": "D-6", "card": 11}, {"id": "A4", "group": "Athletics and money", "item": "Reunions (and the Alumni panel down to one line)", "kind": "mechanic", "rec": "cut", "saves": "−1 action, −1 panel", "who": "players years 5–50", "why": "No goal player held one. Alumni warmth instead feeds word of mouth (card 11).", "src": "D-4", "card": 11}, {"id": "A5", "group": "Athletics and money", "item": "Two scores for the campus's looks (beauty and the Campus standing)", "kind": "mechanic", "rec": "merge", "saves": "−1 score, −1 figure, −1 applicant factor", "who": "every player", "why": "One score, carried by the map.", "src": "D-7, D-8", "card": 11}, {"id": "S1", "group": "Signals", "item": "Gold as unread, retiring, good-on-the-band, full residence, lab progress and the Build button's permanent outline", "kind": "signal", "rec": "trim", "saves": "−5 meanings of gold", "who": "every player, all game", "why": "Gold means only 'selected / do this'.", "src": "E-1", "card": 12}, {"id": "S2", "group": "Signals", "item": "Pulses on developing courses and the ready committee seat; urgent as a pulse", "kind": "signal", "rec": "cut", "saves": "−3 standing loops", "who": "every Curriculum visit", "why": "The pulse means 'do this' only; the lamps' fill already shows progress.", "src": "E-6, B-11", "card": 12}, {"id": "S3", "group": "Signals", "item": "Background sound cues (tick for departures, candidates, petitions, publications, training)", "kind": "signal", "rec": "cut", "saves": "−5 cue mappings", "who": "every player with sound", "why": "One chime for everything means nothing; give the finished building its own cue.", "src": "C-5", "card": 12}, {"id": "S4", "group": "Signals", "item": "The 'Guide' button name (clashes with the rankings guide) and 'Distinguished' as a professor's rank", "kind": "text", "rec": "trim", "saves": "−2 name clashes", "who": "every player", "why": "Rename the button 'Show me' (or cut it with the walks) and the rank 'Chair'.", "src": "E-7", "card": 12}, {"id": "S5", "group": "Signals", "item": "Unicode glyphs among the Lucide icons (map tools ⤓ ⤒ ⌂, school motifs ◆ ⚙ ✦ ❧ ⚗ ✚ ▣)", "kind": "signal", "rec": "trim", "saves": "−1 icon style", "who": "every player", "why": "Draw them in the icon set's stroke, or drop the motifs: the school's colour already marks it.", "src": "E-9", "card": 12}, {"id": "S6", "group": "Signals", "item": "Seven entrance motions with rises of 10, 12 and 18 px", "kind": "signal", "rec": "merge", "saves": "−5 motions", "who": "every player", "why": "One rise and one fade.", "src": "E-9", "card": 12}, {"id": "S7", "group": "Signals", "item": "The title backdrop's top-down plan and the founding form's flat elevation", "kind": "surface", "rec": "trim", "saves": "−2 art projections", "who": "every player, minute 1", "why": "Three projections in the first minute; prefer the isometric map and hall.", "src": "E-9", "card": 4}, {"id": "F1", "group": "Dead code", "item": "The RENOVATE_LIBRARY action (no screen dispatches it)", "kind": "mechanic", "rec": "cut", "saves": "−1 action", "who": "nobody", "why": "Its reducer case is unreachable from the interface.", "src": "census · engine/reducer.ts:962", "card": 0}]</script>
+<script type="application/json" id="cards-data">[{"n": 1, "title": "The camera stops blocking the game", "meta": "S · −1 chapter, ≈ −360 words"}, {"n": 2, "title": "An objective opens when its control lights", "meta": "S · −3 helps, ≈ −365 words"}, {"n": 3, "title": "The walks and coaches go; admissions stays", "meta": "S · −4 walks, −1 coach, ≈ −700 words"}, {"n": 4, "title": "The founding lands", "meta": "S–M · −1 letter, −1 panel, +1 motion"}, {"n": 5, "title": "The growth lever is in the picture", "meta": "M · seats drawn per course"}, {"n": 6, "title": "One fact, one place on the band", "meta": "S–M · band 273 → under 100 words"}, {"n": 7, "title": "Prestige is a figure, not a paragraph", "meta": "M · ≈ −400 words, +1 figure"}, {"n": 8, "title": "The map carries what the tabs say", "meta": "M–L · −5 letters a year, +3 map signals"}, {"n": 9, "title": "The letters layer becomes events that land", "meta": "L · −3 systems, ≈ −3,000 words"}, {"n": 10, "title": "The big moments land on the map", "meta": "M · −1 stopping page, +1 map mark"}, {"n": 11, "title": "Athletics, money and alumni do one visible thing", "meta": "L · −7 controls and actions"}, {"n": 12, "title": "One signal, one meaning", "meta": "M · ≈ −15 meanings, −5 cues"}]</script>
+<script>
+(function () {
+  const ROWS = JSON.parse(document.getElementById('rows-data').textContent);
+  const CARDS = JSON.parse(document.getElementById('cards-data').textContent);
+  const decisions = {};           // id -> {choice, note}
+  let db = null, canWrite = false, filter = 'all', cardFilter = null;
+  const COLORS = { keep: 'var(--keep)', trim: 'var(--trim)', cut: 'var(--cut)' };
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); for (const k of kids) if (k != null) e.append(k); return e; };
+
+  function renderCards() {
+    const box = $('cards'); box.textContent = '';
+    for (const c of CARDS) {
+      const b = el('button', { className: 'card-pill', type: 'button' },
+        el('span', { className: 'n', textContent: c.n }),
+        el('span', { className: 't', textContent: c.title }),
+        el('span', { className: 'm', textContent: c.meta }));
+      b.setAttribute('aria-pressed', String(cardFilter === c.n));
+      b.addEventListener('click', () => { cardFilter = cardFilter === c.n ? null : c.n; renderAll(); });
+      box.append(b);
+    }
+  }
+  function renderFilters() {
+    const box = $('filters'); box.textContent = '';
+    const opts = [['all', 'All rows'], ['open', 'Not decided'], ['keep', 'Keep'], ['trim', 'Trim'], ['cut', 'Cut'], ['mechanic', 'Mechanics only']];
+    for (const [v, label] of opts) {
+      const b = el('button', { type: 'button', textContent: label });
+      b.setAttribute('aria-pressed', String(filter === v));
+      b.addEventListener('click', () => { filter = v; renderAll(); });
+      box.append(b);
+    }
+  }
+  function renderTally() {
+    const n = { keep: 0, trim: 0, cut: 0 };
+    for (const r of ROWS) { const c = decisions[r.id]?.choice; if (c) n[c]++; }
+    const done = n.keep + n.trim + n.cut;
+    const t = $('tally'); t.textContent = '';
+    t.append(el('span', {}, el('b', { textContent: `${done} of ${ROWS.length}` }), ' decided'),
+      el('span', { textContent: `keep ${n.keep}` }), el('span', { textContent: `trim ${n.trim}` }), el('span', { textContent: `cut ${n.cut}` }));
+    const m = $('meter'); m.textContent = '';
+    for (const k of ['keep', 'trim', 'cut']) { const i = el('i'); i.style.width = `${(n[k] / ROWS.length) * 100}%`; i.style.background = COLORS[k]; m.append(i); }
+  }
+  function visible(r) {
+    if (cardFilter != null && r.card !== cardFilter) return false;
+    const c = decisions[r.id]?.choice;
+    if (filter === 'open') return !c;
+    if (filter === 'mechanic') return r.kind === 'mechanic';
+    if (filter === 'keep' || filter === 'trim' || filter === 'cut') return c === filter;
+    return true;
+  }
+  function renderList() {
+    const main = $('list'); main.textContent = '';
+    const groups = [...new Set(ROWS.map((r) => r.group))];
+    let shown = 0;
+    for (const g of groups) {
+      const rows = ROWS.filter((r) => r.group === g && visible(r));
+      if (!rows.length) continue;
+      main.append(el('h2', { textContent: g }));
+      const box = el('div', { className: 'rows' });
+      for (const r of rows) { box.append(renderRow(r)); shown++; }
+      main.append(box);
+    }
+    if (!shown) main.append(el('p', { className: 'empty', textContent: 'No rows match this view.' }));
+  }
+  function renderRow(r) {
+    const d = decisions[r.id] || {};
+    const row = el('article', { className: 'row' });
+    if (d.choice) row.dataset.choice = d.choice;
+    const recWord = r.rec === 'merge' ? 'merge' : r.rec;
+    row.append(
+      el('div', { className: 'row-head' },
+        el('span', { className: 'rid', textContent: r.id }),
+        el('span', { className: 'item', textContent: r.item })),
+      el('div', { className: 'chips' },
+        el('span', { className: `chip rec ${recWord}`, textContent: `recommended: ${recWord}` }),
+        el('span', { className: 'chip', textContent: r.kind }),
+        r.card ? el('span', { className: 'chip', textContent: `card ${r.card}` }) : null),
+      el('p', { className: 'why', textContent: r.why }),
+      (() => { const dl = el('dl', { className: 'meta' });
+        dl.append(el('dt', { textContent: 'Saves' }), el('dd', { textContent: r.saves }),
+          el('dt', { textContent: 'Who meets it' }), el('dd', { textContent: r.who }),
+          el('dt', { textContent: 'Evidence' }), el('dd', { textContent: r.src }));
+        return dl; })());
+    const seg = el('div', { className: 'seg', role: 'group' });
+    seg.setAttribute('aria-label', `Decision for ${r.id}`);
+    for (const v of ['keep', 'trim', 'cut']) {
+      const b = el('button', { type: 'button', textContent: v[0].toUpperCase() + v.slice(1), disabled: !canWrite });
+      b.dataset.v = v;
+      b.setAttribute('aria-pressed', String(d.choice === v));
+      b.addEventListener('click', () => save(r.id, { choice: d.choice === v ? null : v, note: decisions[r.id]?.note || '' }));
+      seg.append(b);
+    }
+    const note = el('input', { className: 'note', type: 'text', id: `note-${r.id}`, placeholder: canWrite ? 'Note (optional)' : 'Notes appear here', value: d.note || '', disabled: !canWrite });
+    note.setAttribute('aria-label', `Note for ${r.id}`);
+    note.addEventListener('change', () => save(r.id, { choice: decisions[r.id]?.choice || null, note: note.value.trim() }));
+    const saved = el('span', { className: 'saved', textContent: d.at ? `saved ${new Date(d.at).toLocaleDateString()}` : '' });
+    row.append(el('div', { className: 'decide' }, seg, note, saved));
+    return row;
+  }
+  function renderAll() { renderCards(); renderFilters(); renderTally(); renderList(); }
+
+  async function save(id, next) {
+    if (!db) return;
+    const prev = decisions[id];
+    decisions[id] = { ...next, at: Date.now() };
+    renderTally(); renderList();
+    try {
+      if (!next.choice && !next.note) await db.collection('decisions').doc(id).delete();
+      else await db.collection('decisions').doc(id).set({ choice: next.choice, note: next.note, at: decisions[id].at });
+      $('status').textContent = 'Saved';
+    } catch (e) {
+      decisions[id] = prev; renderTally(); renderList();
+      $('status').textContent = e && e.code === 'permission_denied' ? 'You can view these decisions but not change them.' : 'Could not save. Your last choice was not kept; try again.';
+    }
+  }
+
+  renderAll();
+  const timer = setTimeout(() => { $('status').textContent = 'Saved decisions are not available in this view. Rows are read-only.'; }, 10000);
+  (async () => {
+    if (!window.claude || !window.claude.use) { clearTimeout(timer); $('status').textContent = 'Open this page on claude.ai to record decisions.'; return; }
+    const [store, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!store) { clearTimeout(timer); $('status').textContent = 'Sign in to record decisions.'; return; }
+    db = store;
+    let can = null; try { can = user ? await user.can('data.write') : null; } catch (_) {}
+    canWrite = can !== false;
+    db.collection('decisions').onSnapshot((snap) => {
+      clearTimeout(timer);
+      for (const k of Object.keys(decisions)) delete decisions[k];
+      for (const d of snap.docs) { const v = d.data(); if (v) decisions[d.id] = { choice: v.choice || null, note: v.note || '', at: v.at || null }; }
+      $('status').textContent = canWrite ? 'Choices save as you make them.' : 'Read-only: you can see the decisions but not change them.';
+      renderAll();
+    }, () => { clearTimeout(timer); $('status').textContent = 'Could not load saved decisions.'; });
+  })();
+})();
+</script>
