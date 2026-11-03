@@ -313,7 +313,8 @@ catalogue hooks and its gate. Then:
 
 ## 4. The cards' additions (agreed by the owner)
 
-**Mock-ups** of PRs J–M, drawn into the real game from saved runs, are in
+**Mock-ups** of PRs J–M, drawn into the real game from saved runs, sit
+under each PR below. The images are in
 [`124-subtraction-as-decided/`](124-subtraction-as-decided/) and on a page,
 [Plan 124 Mock-ups](https://claude.ai/artifact/VZgQxXTB7Wxyvbp5Tas2aj). Making
 them showed one thing to change: a single window is too small to darken
@@ -329,6 +330,8 @@ readably, so PR L darkens the hall's program dot instead.
 - M: the titles are approved, with crowds drawn as walkers. The
   specialization's staked plot is not wanted. The staged Final Report is
   approved.
+- Crowd animations and on-field game animations were raised on the
+  mock-ups and left for later (`BACKLOG.md`, *Later*).
 - Added at the owner's request: a mock-up of the fully upgraded stadium and
   multi-sport field with crowds. The owner's notes on it:
   - today's coloured dots in the stands don't read as a crowd;
@@ -371,6 +374,13 @@ class places are short, the one place the growth lever is pressed. The
 admissions hall stays as it is, and the path network's tint was scrapped (the
 owner, on the mock-ups). **S.**
 
+*Mock-up: the chip beside the next Develop, on a year-7 save.*
+
+| Today | Proposed |
+|---|---|
+| ![Today](124-subtraction-as-decided/j2-develop-before.png) | ![Proposed](124-subtraction-as-decided/j2-develop-after.png) |
+
+
 ### PR K — Prestige as four pillar bars (card 7, D-1, D-9b)
 
 1. **At the head of the feeding tabs.** One stacked bar of prestige by
@@ -383,6 +393,13 @@ owner, on the mock-ups). **S.**
 2. **The summer.** The bars fill at the review, in place of the lines X8 cut.
 
 The colour-vision palette needs checking. **M.**
+
+*Mock-up: the bar at the head of the Curriculum tab (the pillar split is illustrative; the total is the save's).*
+
+| Today | Proposed |
+|---|---|
+| ![Today](124-subtraction-as-decided/k-head-before.png) | ![Proposed](124-subtraction-as-decided/k-head-after.png) |
+
 
 ### PR L — The map carries what the tabs say (card 8, E-4)
 
@@ -398,6 +415,19 @@ the bed and place counts on Students. The new marks are drawn in the map's art
 (`buildingMotifs.tsx`, `Walkers.tsx`) and need a contact sheet (`npm run sheet`)
 in every vernacular. **M–L.**
 
+*Mock-up: a program's dot on Founders Hall gone dark.*
+
+| Today | Proposed |
+|---|---|
+| ![Today](124-subtraction-as-decided/l1-hall-before.png) | ![Proposed](124-subtraction-as-decided/l1-hall-after.png) |
+
+*Mock-up: a queue of the game's own walkers at the Original Commons.*
+
+| Today | Proposed |
+|---|---|
+| ![Today](124-subtraction-as-decided/l2-commons-before.png) | ![Proposed](124-subtraction-as-decided/l2-commons-after.png) |
+
+
 ### PR M — The big moments on the map (card 10, C-1, C-2, C-9)
 
 1. **Full stands, drawn as people.** Today a venue's crowd is coloured dots
@@ -411,8 +441,8 @@ in every vernacular. **M–L.**
    - On a full week, more walkers stand around the venue, around the track and
      not on it.
    - The dots go.
-   Spectators are packed evenly, a little smaller than a walker, with every row
-   and corner filled and nothing spilling past the stands.
+   - Spectators are packed evenly, a little smaller than a walker, with every
+     row and corner filled and nothing spilling past the stands.
 2. **Titles.** The year after a national title, pennants in the college's
    colours go up all the way round the venue's rim and stay. The title's page
    stays (A2).
@@ -434,7 +464,38 @@ in every vernacular. **M–L.**
    and the fanfare plays on the final grade. The fanfare moves from the 50th
    admissions' resolve (`resolveAdmissions.ts:79`) to the reveal.
 
-Reduced motion shows each at its end state. **M.**
+Reduced motion shows each at its end state. With the stadium's exterior and
+the crowds this is now **L**. It could split into M1 (crowds and pennants),
+M2 (the stadium's exterior) and M3 (the Final Report).
+
+*Mock-up: the fully upgraded Football Stadium (three expansions) and
+Multi-Sport Field (two) on a year-30 campus.*
+
+| Today, an ordinary week | Today, a home-game week (the dots go) |
+|---|---|
+| ![Today, an ordinary week](124-subtraction-as-decided/venues-before.png) | ![Today, a home-game week](124-subtraction-as-decided/venues-game.png) |
+
+| Proposed: a full week, the year after a title |
+|---|
+| ![Proposed: a full week](124-subtraction-as-decided/venues-after.png) |
+
+*Mock-up: the stadium's exterior, re-faced.*
+
+| Today: plain brick | Proposed: arches, cornice, banners, gates, entrance tower |
+|---|---|
+| ![Today: plain brick](124-subtraction-as-decided/stadium-ext-before.png) | ![Proposed: arches, cornice, banners, gates, entrance tower](124-subtraction-as-decided/stadium-ext-after.png) |
+
+*Mock-up: a title's pennant on a smaller campus's field, with a crowd of walkers that week.*
+
+| Today | Proposed |
+|---|---|
+| ![Today](124-subtraction-as-decided/m1-venue-before.png) | ![Proposed](124-subtraction-as-decided/m1-venue-after.png) |
+
+*Mock-up: the Final Report, staged.*
+
+| Today: all at once | It opens | Grades stamp in | The final grade |
+|---|---|---|---|
+| ![Today](124-subtraction-as-decided/m3-final-before.png) | ![It opens](124-subtraction-as-decided/m3-final-s1.png) | ![Grades stamp in](124-subtraction-as-decided/m3-final-s2.png) | ![The final grade](124-subtraction-as-decided/m3-final-after.png) |
 
 ### PR N — Alumni warmth and late money, connected (card 11, D-4, D-6)
 
