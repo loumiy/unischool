@@ -4,6 +4,7 @@ import type { CampusLayout } from './campusLayout';
 import { motifOf } from './buildingSpec';
 import { groundSquash, heightScale, projectorFor, type Camera, type Pt } from './isoProjection';
 import { RouteTable, doors, forecourt, pickStop as pickNextStop, pointStop, roadsides, walkGrid, type Entrance, type Stop, type Waypoint } from './walkRoutes';
+import { WALKER_SHIRTS, aroundVenue, gatheredCount, hashOf, queueSpots, type QueueAt } from './mapSignals';
 
 // Students walking real routes between the buildings they use (ported from
 // v2's ambient layer). Drawing only: derived from the campus, never
@@ -49,7 +50,7 @@ const LINGER_MS = [600, 2600] as const;
 // At a spot on the lawn or the drive, with no door to go in by (the
 // forecourt, Plan 118C): long enough to read as standing about, not pacing.
 const STAND_MS = [4000, 11000] as const;
-const SHIRTS = ['#c94b4b', '#3d6a9c', '#e0b64a', '#5b8a5b', '#8c5a9c', '#e88a4a', '#f2ede2'];
+const SHIRTS = WALKER_SHIRTS;
 const TROUSERS = ['#34363f', '#4a4f5c', '#5b4a3a', '#2f3b4f', '#6b6a64'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -201,7 +202,7 @@ function poseOf(w: Walker, proj: (col: number, row: number) => Pt, s: number): {
 export interface Crowd {
   readonly size: number;
   // Where walker i stands on the grid, and whether it shows at all.
-  at(i: number): { col: number; row: number; shown: boolean };
+  at(i: number): { col: number; row: number; shown: boolean; still?: boolean };
   // Draws walker i onto `ctx`, whose transform is the world's.
   paint(ctx: CanvasRenderingContext2D, i: number, colors: WalkerColors): void;
   readonly held: ReadonlySet<string>;
@@ -308,9 +309,52 @@ function recordKey(r: Record<string, unknown>): string {
   return out;
 }
 
-export default function Walkers({ layout, students, gait, camera, turning, sink, resting = false }: {
+// Figures that stand still where something draws them (Plan 124 L, M1): a
+// queue at a dining hall's or a clinic's door while that need is short, and
+// people standing about outside a venue full this week.
+// Drawn exactly as a walker at rest, in the same crowd, so the canvas map
+// puts each in the depth order as it does a walker; never moved by the
+// frame loop. The colors come off the map's random numbers, seeded by the
+// spot, so a queue keeps its people while it stands.
+export function standerKey(queues: ReadonlyArray<QueueAt>, gathered: ReadonlyArray<string> = []): string {
+  return `${queues.map((q) => `${q.id}:${q.length}`).join('|')}#${gathered.join('|')}`;
+}
+function standersFor(layout: CampusLayout, queues: ReadonlyArray<QueueAt>, gathered: ReadonlyArray<string>): Walker[] {
+  if (queues.length === 0 && gathered.length === 0) return [];
+  const input = { placements: layout.placements, tech: layout.placed.map((e) => e.t), pathways: layout.pathways };
+  const grid = walkGrid(input);
+  const out: Walker[] = [];
+  for (const q of queues) {
+    const p = layout.placements[q.id];
+    if (!p) continue;
+    for (const spot of queueSpots(p, grid, q.length)) out.push(stander(spot));
+  }
+  for (const id of gathered) {
+    const p = layout.placements[id];
+    if (!p) continue;
+    for (const spot of aroundVenue(p, grid, gatheredCount(p), hashOf(id))) out.push(stander(spot));
+  }
+  return out;
+}
+function stander(spot: Waypoint): Walker {
+  const random = rng(Math.floor(spot.col * 1009 + spot.row * 7919));
+  const shirt = SHIRTS[Math.floor(random() * SHIRTS.length)]!;
+  const trousers = TROUSERS[Math.floor(random() * TROUSERS.length)]!;
+  const at = pointStop(Math.floor(spot.col), Math.floor(spot.row));
+  return {
+    mover: null, legs: null, shirt, trousers, moving: false, route: [spot], lengths: [0], u: 0,
+    at, exit: null, entry: null, exitId: null, entryId: null, inside: false, pace: 1, phase: 0, opacity: 1, waitUntil: Infinity,
+  };
+}
+
+export default function Walkers({ layout, students, gait, camera, turning, sink, resting = false, queues = [], gathered = [] }: {
   layout: CampusLayout;
   students: number;
+  // Lines at the doors (mapSignals.ts's queuesOf), reference-stable while
+  // they stand.
+  queues?: ReadonlyArray<QueueAt>;
+  // The venues full this week, by id, which people stand about outside.
+  gathered?: ReadonlyArray<string>;
   // The clock's pace as a multiple of Play; 0 while paused.
   gait: number;
   camera: Camera;
@@ -328,6 +372,8 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
   useEffect(() => { if (!resting) wakeRef.current?.(); }, [resting]);
   const layerRef = useRef<SVGGElement>(null);
   const walkersRef = useRef<Walker[]>([]);
+  // The figures that stand still (standersFor), after the walkers in the crowd.
+  const standersRef = useRef<Walker[]>([]);
   // The layout the routes are planned on. A building moves them
   // at once; a path waits until the drawing stops (Plan 62: every tile of a
   // stroke replanned the whole crowd, and it stood still while it waited).
@@ -547,15 +593,17 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
       stepLegs(w.legs, pose.swing * s, pose.hx, pose.hy, s);
       w.mover.setAttribute('transform', `translate(${pose.x.toFixed(1)},${pose.y.toFixed(1)})`);
     };
+    const anyone = (i: number): Walker => (i < walkers.length ? walkers[i]! : standersRef.current[i - walkers.length]!);
     const crowd: Crowd = {
-      get size() { return walkers.length; },
+      get size() { return walkers.length + standersRef.current.length; },
       at(i) {
-        const w = walkers[i]!;
+        const w = anyone(i);
         const pos = along(w.route, w.lengths, w.u);
-        return { col: pos.col, row: pos.row, shown: w.opacity > 0 };
+        // A stander never moves or steps: the map need not draw it again.
+        return { col: pos.col, row: pos.row, shown: w.opacity > 0, still: w.waitUntil === Infinity };
       },
       paint(ctx, i, colors) {
-        const w = walkers[i]!;
+        const w = anyone(i);
         const s = figureRef.current;
         paintFigure(ctx, w, poseOf(w, projRef.current, s), s, colors);
       },
@@ -566,6 +614,7 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
     placeRef.current = () => {
       if (canvas) { sinkRef.current?.moved(); return; }
       for (const w of walkers) draw(w, true);
+      for (const w of standersRef.current) draw(w, true);
     };
     const step = (now: number) => {
       // Under a tab the loop stops; wakeRef starts it again.
@@ -654,11 +703,35 @@ export default function Walkers({ layout, students, gait, camera, turning, sink,
     placeRef.current?.();
   }, [camera]);
 
+  // The figures standing still: made again when what they stand for
+  // changes, and placed at once.
+  const standKey = standerKey(queues, gathered);
+  useEffect(() => {
+    const layer = layerRef.current;
+    const canvas = !!sinkRef.current;
+    for (const w of standersRef.current) w.mover?.remove();
+    const made = standersFor(routeLayout, queues, gathered);
+    if (layer && !canvas) {
+      for (const w of made) {
+        const fig = makeWalker(w.shirt, w.trousers);
+        w.mover = fig.mover;
+        w.legs = fig.legs;
+        layer.append(fig.mover);
+      }
+    }
+    standersRef.current = made;
+    placeRef.current?.();
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeLayout, standKey]);
+  useEffect(() => () => { for (const w of standersRef.current) w.mover?.remove(); }, []);
+
   // The camera's part: each walker's figure answers the tilt.
   useEffect(() => {
     if (turning) return;
     figureRef.current = figureScale();
     for (const w of walkersRef.current) if (w.mover) shapeWalker(w.mover);
+    for (const w of standersRef.current) if (w.mover) shapeWalker(w.mover);
     doorsStaleRef.current = true;
     placeRef.current?.();
   }, [layout, camera, want, turning]);

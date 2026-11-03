@@ -1,5 +1,5 @@
 import type { Faculty } from '../state/types';
-import { facultyQualityTier } from '../data/facultyData';
+import { facultyQualityTier, type FacultyQualityTier } from '../data/facultyData';
 
 // The four fields a portrait reads, so professors and varsity coaches
 // (tabs/AthleticsTab.tsx) share one drawing. The caller resolves `seniority`
@@ -71,8 +71,8 @@ const GRAY_HAIR = '#c8c2b8';
 
 // Chance of gray hair by tier. Keyed off facultyQualityTier rather than
 // tenure so a senior-caliber candidate reads the same as a hire.
-const GRAY_CHANCE_BY_TIER: Record<string, number> = {
-  Distinguished: 0.65,
+const GRAY_CHANCE_BY_TIER: Record<FacultyQualityTier, number> = {
+  Chair: 0.65,
   Full: 0.4,
   Associate: 0.2,
   Assistant: 0.1,

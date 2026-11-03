@@ -721,6 +721,28 @@ export function prestigeBreakdown(s: GameState): StandingBreakdown {
   }, teachingCeiling(s));
 }
 
+// Prestige by pillar (Plan 124K, the head of the tabs that feed it): each
+// pillar's part of the prestige the college stands at, in proportion to
+// what it brings to the blend (its weight times its value on the prestige
+// scale, the floor included), so the four parts sum to prestige; and the
+// target the summer pulls it toward. What sits outside every pillar (the
+// endowment, the buildings' condition, the summer's lag) is shared in the
+// same proportions. `of` is the prestige split: today's, or the summer
+// review's, the figure the summer steps it to.
+export interface PillarSplit {
+  parts: Record<Pillar, number>;
+  current: number;
+  target: number;
+}
+export function prestigeByPillar(s: GameState, of: number = s.self.reputation): PillarSplit {
+  const made = prestigeBreakdown(s);
+  const blend = (p: Pillar) => PILLAR_WEIGHTS[p] * PILLAR_FLOOR + (made.inputs.find((i) => i.key === p)?.contribution ?? 0);
+  const total = PILLARS.reduce((sum, p) => sum + blend(p), 0);
+  const parts = {} as Record<Pillar, number>;
+  for (const p of PILLARS) parts[p] = total > 0 ? of * (blend(p) / total) : of * PILLAR_WEIGHTS[p];
+  return { parts, current: of, target: made.target };
+}
+
 // Welfare: trailing-year average satisfaction; 40 earns nothing, 80 pays in full.
 const WELFARE_FLOOR_SATISFACTION = 40;
 const WELFARE_FULL_SATISFACTION = 80;

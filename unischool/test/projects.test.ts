@@ -150,7 +150,7 @@ function stand(s: GameState, id: string): void {
   assert(projectLiftMax('athletics') === 0, 'and nothing lifts athletics since the championship stadium went');
 }
 
-// ---- The catalog and the promises read them ----
+// ---- The catalog reads them ----
 {
   const s = fresh(20);
   assert(!whenMet(s, { projectsOver: 1 }), 'no project, no "a great project"');

@@ -32,11 +32,12 @@ export const SECTION_HEADINGS = {
 } as const satisfies Partial<Record<TabSection, string>>;
 type ChipSection = keyof typeof SECTION_HEADINGS;
 
-// Prestige opens its own breakdown and nothing else; rank opens the guide's
-// table it is a place in (Plan 80C); satisfaction opens the five needs it is
-// made of. Enrolled has no door yet.
+// Prestige and rank share one door, prestige's breakdown, since the rank
+// follows from it (Plan 124 C; the guide's table is a view away in
+// History); satisfaction opens the five needs it is made of. Enrolled has no
+// door yet.
 const STAT_CHIP_SECTIONS: Partial<Record<StatChip, ChipSection>> = {
-  rank: 'history.rankings',
+  rank: 'history.prestige',
   prestige: 'history.prestige',
   satisfaction: 'students.breakdown',
 };

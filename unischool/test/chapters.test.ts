@@ -28,7 +28,7 @@ import { isHoused } from '../src/systems/techtree/programOffers';
 import { CHAPTERS, currentChapter, openSideChapters, PATH_OBJECTIVE, pathJoinsResidence, ringedTool, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged, walkAsked } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
-import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
+import { CHAPTER_COPY, COURSE_MILESTONES, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
 import TabOverlay from '../src/components/TabOverlay';
 import { isDiningHall, isDorm } from '../src/data/openingData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -169,7 +169,7 @@ const looked = (s: GameState) => {
   course.status = 'developing';
   assert(row().coming === Math.min(placesComing(s), row().of) && row().coming! > row().n, `a course under way adds to the second count (${row().n}, ${row().coming})`);
   s.guidance = { opened: { seats: 1 }, done: {}, met: [], marked: [] };
-  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} })).replace(/<[^>]+>/g, '');
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {} })).replace(/<[^>]+>/g, '');
   assert(html.includes(`${count(row().n)}/${count(row().of)} now · ${count(row().coming!)} once new courses start`), 'the drawer shows both');
 }
 
@@ -325,14 +325,17 @@ for (const c of CHAPTERS) {
 }
 assert(new Set(CHAPTERS.flatMap((c) => c.objectives.map((o) => o.id))).size === CHAPTERS.flatMap((c) => c.objectives).length, 'objective ids are unique');
 // The pages (Plan 106 §5, Plan 112A): every chapter the drawer shows has
-// its paragraph, kept short by rule, and every objective its help; no
-// sentence ends on a passive and a pronoun.
+// a page, its paragraph kept short by rule, and every objective its help;
+// no sentence ends on a passive and a pronoun. Year 1's paragraphs went in
+// Plan 124B (X3), all but Looking around's.
+const YEAR_ONE_UNSAID = new Set(['next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing']);
 for (const c of CHAPTERS) {
   const copy = CHAPTER_COPY[c.id];
   for (const o of c.objectives) assert((copy.help?.[o.id]?.text ?? '').length > 0, `${c.id}'s ${o.id} has help`);
   assert(Object.keys(copy.help ?? {}).every((id) => c.objectives.some((o) => o.id === id)), `${c.id}: no help for an objective it does not set`);
   if (c.id === 'founding') continue;
-  assert(hasPage(c.id) && copy.about !== undefined, `${c.id} has a page`);
+  assert(hasPage(c.id), `${c.id} has a page`);
+  assert(YEAR_ONE_UNSAID.has(c.id) ? copy.about === undefined : copy.about !== undefined, `${c.id}: ${YEAR_ONE_UNSAID.has(c.id) ? 'no paragraph' : 'its paragraph'}`);
   const sentences = (copy.about ?? '').split(/(?<=\.)\s+/).length;
   assert(sentences <= 3, `${c.id}: about in three sentences at most (${sentences})`);
   const all = [copy.about, ...Object.values(copy.help ?? {}).map((h) => h.text)].join(' ');
@@ -370,6 +373,23 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   assert(done(before, 'looking-around') && currentChapter(before)?.id === 'somewhere-to-sleep', 'a save already past its place has it caught up, not held back');
 }
 
+// ---- Looking around's skip (Plan 124A): a run that never moves the camera ----
+{
+  let s = teaching();
+  settleChapters(s);
+  s.clock.week = 10;
+  settleChapters(s);
+  assert(currentChapter(s)?.id === 'looking-around' && s.guidance!.marked.length === 0, 'no move made, Looking around holds');
+  const drawer = (st: GameState, onMark?: (mark: string) => void) => createElement(ObjectivesPanel, { s: st, onGo: () => {}, onOpenLadder: () => {}, onMark });
+  assert(findButton(drawer(s), 'Skip') === undefined, 'no skip without a way to mark');
+  const skip = findButton(drawer(s, (mark) => { s = reducer(s, { type: 'MARK_GUIDANCE', mark }); }), 'Skip');
+  assert(skip !== undefined, 'the drawer offers a skip on Looking around');
+  skip?.();
+  assert(done(s, 'looking-around') && !objectiveMet(s, 'look-home'), 'the skip marks the four required moves, and it is done');
+  assert(currentChapter(s)?.id === 'somewhere-to-sleep', 'and Somewhere to sleep opens');
+  assert(findButton(drawer(s, () => {}), 'Skip') === undefined, 'no other chapter offers a skip');
+}
+
 // ---- PR B: the ticker's chapter chip and the drawer ----
 {
   const s = teaching();
@@ -404,12 +424,12 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   // The chapter's page (Plan 112A): its paragraph, and each objective with
   // a (?) whose help holds the Show me; no headings, no why.
   let went: string | undefined;
-  const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
+  const panel = createElement(ObjectivesPanel, { s, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
-  assert(html.includes('Every student needs a place in class') && !html.includes('What it is') && !html.includes('Why it matters'), 'a page shows its paragraph, with no headings and no why');
+  assert(!html.includes('Every student needs a place in class') && !html.includes('objectives-about') && !html.includes('What it is') && !html.includes('Why it matters'), 'a year-1 page has no paragraph (Plan 124B), no headings and no why');
   assert(html.includes('help-hint-btn') && html.includes('aria-label="How to: A place in class for every student"') && html.includes('aria-expanded="false"'), 'each objective has a (?), shut');
   assert(!html.includes('Develop more courses in the Curriculum'), 'its help waits behind it');
-  assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
+  assert(!html.includes('Also waiting'), 'the drawer holds no NEXT line (Plan 124 C)');
   const showMe = findButton(panel, 'Show me');
   showMe?.();
   assert(went === 'curriculum', 'Show me opens its view');
@@ -418,7 +438,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(early);
   early.guidance!.done = { founding: 1 };
   early.guidance!.met = early.guidance!.met.filter((id) => id !== 'develop-second-course');
-  const earlyHtml = renderToStaticMarkup(createElement(ObjectivesPanel, { s: early, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
+  const earlyHtml = renderToStaticMarkup(createElement(ObjectivesPanel, { s: early, onGo: () => {}, onOpenLadder: () => {} }));
   assert(earlyHtml.includes('The next course') && earlyHtml.includes('(optional)'), 'an optional objective says so');
 }
 
@@ -513,7 +533,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(s);
   s.guidance = { opened: { standing: 53 }, done: Object.fromEntries(['founding', 'next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer'].map((id) => [id, 1])), met: [], marked: [] };
   s.guidance.opened = { ...s.guidance.done, standing: 53 };
-  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {} }));
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {} }));
   assert(html.includes('Standing') && /Prestige [\d.]+, (rising|falling|steady)</.test(html), 'Standing reads prestige and which way it is heading');
   assert(PILLARS.every((p) => html.includes(`glance-pillar pillar-${p}`)) && html.includes('Satisfaction '), 'with the glance\'s meter per pillar, and the satisfaction');
   const live = html.slice(html.indexOf('objectives-live')).replace(/<[^>]+>/g, ' ');
@@ -550,7 +570,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   // the Guide lists the side one first (Plan 114E, C3-2).
   assert(currentChapter(s)?.id === 'running-the-college', `the main chapter is current, not the side one (${currentChapter(s)?.id})`);
   assert(openSideChapters(s).some((c) => c.id === 'the-teams'), `and The teams is open beside it (${openSideChapters(s).map((c) => c.id).join(', ')})`);
-  const drawer = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, onView: () => {} }));
+  const drawer = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {}, onView: () => {} }));
   const guideAt = drawer.indexOf('objectives-guide');
   assert(guideAt > 0 && drawer.indexOf('The teams', guideAt) > guideAt && drawer.slice(guideAt).includes('open now'), 'the Guide names The teams, open now');
   assert(nextChapter(s)?.id !== 'the-teams', 'and never names a side chapter as coming next');
@@ -582,13 +602,13 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   s.guidance = { opened: { ...Object.fromEntries(met.map((id) => [id, 1])), standing: 53 }, done: Object.fromEntries(met.map((id) => [id, 1])), met: [], marked: [] };
   const guide = guideChapters(s).map((c) => c.id);
   assert(guide.join(',') === 'next-course,somewhere-to-sleep,seats,paying-for-it,first-summer,standing', `the Guide lists every chapter met with a page, in order (${guide.join(',')})`);
-  const page = (view: string | null) => renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, view, onView: () => {} }));
+  const page = (view: string | null) => renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {}, view, onView: () => {} }));
   const back = page('paying-for-it');
-  assert(back.includes('Back to the objectives') && back.includes('Paying for it') && !back.includes('Also waiting'), 'a page of the Guide reads that chapter, with the way back');
+  assert(back.includes('Back to the objectives') && back.includes('Paying for it') && !back.includes('Milestones'), 'a page of the Guide reads that chapter, with the way back');
   assert(!page('standing').includes('Back to the objectives'), "the current chapter's page is the objectives themselves");
   assert(page(null).includes('Read again') && page(null).includes('The first summer'), 'the drawer lists the Guide to read again');
   const tab = renderToStaticMarkup(createElement(TabOverlay, { title: 'History', onClose: () => {}, onGuide: () => {}, children: null }));
-  assert(tab.includes('tab-overlay-guide') && tab.includes('The Guide on History'), "a tab carries its Guide button");
+  assert(tab.includes('tab-overlay-guide') && tab.includes('Show me around History') && tab.includes('>Show me<'), "a tab carries its Show me button");
   assert(!renderToStaticMarkup(createElement(TabOverlay, { title: 'Research', onClose: () => {}, children: null })).includes('tab-overlay-guide'), 'and a tab with no chapter has none');
 }
 
@@ -686,9 +706,6 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(s);
   assert(currentChapter(s)?.id === 'hall-of-its-own' && ringedBuilding(s)?.id === elm.id, `the build menu rings the first academic hall (${ringedBuilding(s)?.id})`);
   assert(objectiveHelp(s, 'hall-of-its-own', 'site-academic-hall')?.door === 'build', 'and its help opens the build menu');
-  elm.status = 'locked';
-  assert(objectiveHelp(s, 'hall-of-its-own', 'site-academic-hall') === HALL_LOCKED_HELP && HALL_LOCKED_HELP.door === 'curriculum', 'locked, its help says what opens it and shows the Curriculum');
-  elm.status = 'available';
   site(s, (t) => t.id === elm.id);
   settleChapters(s);
   assert(ringedBuilding(s) === null, 'placed, the ring goes');
@@ -708,7 +725,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(s);
   assert(currentChapter(s)?.id === 'running-the-college', `an old save with Promises and The long game open settles on Running the college (${currentChapter(s)?.id})`);
   assert(guideChapters(s).every((c) => hasPage(c.id)), 'and its Guide lists only chapters that exist');
-  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, waiting: null, onGo: () => {}, onOpenLadder: () => {}, view: 'promises', onView: () => {} }));
+  const html = renderToStaticMarkup(createElement(ObjectivesPanel, { s, onGo: () => {}, onOpenLadder: () => {}, view: 'promises', onView: () => {} }));
   assert(html.includes('Running the college'), 'a Guide page asked for a gone chapter reads the current one');
   assert(saveGame(s) && loadGame()?.guidance?.opened['the-long-game'] === 200, 'and it saves and loads as it was');
 
@@ -788,8 +805,9 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   lab.status = 'developing';
   s.developing[lab.id] = 9;
   assert(!met(), 'placed and going up, the lab is not yet built');
-  const help = objectiveHelp(s, 'research', 'site-a-lab')?.text ?? '';
-  assert(/going up/.test(help) && /9 weeks/.test(help) && /Research tab opens once it's built/.test(help), `and the help says it is going up, and for how long ("${help}")`);
+  // The help that said it was going up, and for how long, went in Plan
+  // 124B (X4): the build menu's tile shows the weeks left.
+  assert(objectiveHelp(s, 'research', 'site-a-lab') === CHAPTER_COPY.research.help!['site-a-lab'], 'and its help is the chapter\'s own');
   lab.status = 'done';
   delete s.developing[lab.id];
   assert(met(), 'built, it is met');

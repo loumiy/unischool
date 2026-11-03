@@ -8,7 +8,9 @@
 
 import type { SchoolColors, GameState } from '../state/types';
 import { registerArt, registerProvider, type ArtScope } from './canvasPaint';
-import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext } from './mapOccasions';
+import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, PennantContext, VenueContext } from './mapOccasions';
+import { StadiumFacade, stadiumFacadeArt, type StadiumFacadeProps } from './stadiumFacade';
+import { Spectators, VenuePennants, spectatorsArt, venuePennantsArt, type PennantsProps, type SpectatorsProps } from './spectators';
 import { SnowContext } from './seasons';
 import BuildingMotif, { BuildingMass, BuildingMotifArt, Door, DoorSiteContext, EntranceSteps, InCollegeColors, RoofFlag, buildingMassArt, doorArt, entranceStepsArt, roofFlagArt, sameMotif, type BuildingMassProps, type DoorProps, type EntranceStepsProps } from './buildingMotifs';
 import type { Plot } from './facing';
@@ -28,14 +30,15 @@ export interface Occasions {
   banner: SchoolColors | null;
   collegeName: string;
   developing: GameState['developing'];
-  crowds: ReadonlySet<string>;
+  crowds: ReadonlyMap<string, number>;
+  pennants: ReadonlySet<string>;
   venue: string | null;
   // The building being drawn, for its doors (Plan 122's follow-up).
   doorSite: Plot | null;
 }
 // The values a scene without its providers reads (a test's); the map always
 // wraps its scene in every provider.
-const FALLBACK: Partial<Occasions> = { doorSite: null };
+const FALLBACK: Partial<Occasions> = { doorSite: null, pennants: new Set() };
 export function occasion<K extends keyof Occasions>(scope: ArtScope, name: K): Occasions[K] {
   if (name in scope.values) return scope.values[name] as Occasions[K];
   if (!(name in FALLBACK)) throw new Error(`canvasArt: no ${name} in the scene (wrap it in its provider)`);
@@ -55,6 +58,7 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
   registerProvider(CollegeNameContext, 'collegeName');
   registerProvider(DevelopingContext, 'developing');
   registerProvider(CrowdContext, 'crowds');
+  registerProvider(PennantContext, 'pennants');
   registerProvider(VenueContext, 'venue');
   registerProvider(DoorSiteContext, 'doorSite');
 
@@ -67,10 +71,10 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
   registerArt(Landmark, (p: LandmarkProps, s) => landmarkArt(p, occasion(s, 'developing'), occasion(s, 'collegeName'), occasion(s, 'snow')));
   registerArt(Gazebo, (p: GazeboProps, s) => gazeboArt(p, occasion(s, 'snow')));
   registerArt(Lamp, (p: { at: Pt }, s) => lampArt(p, occasion(s, 'banner')));
-  registerArt(RakedStand, (p: RakedStandProps, s) => {
-    const venue = occasion(s, 'venue');
-    return rakedStandArt(p, occasion(s, 'crowds').has(venue ?? ''));
-  });
+  registerArt(RakedStand, (p: RakedStandProps) => rakedStandArt(p));
+  registerArt(Spectators, (p: SpectatorsProps, s) => spectatorsArt(p, occasion(s, 'crowds').get(occasion(s, 'venue') ?? '') ?? 0));
+  registerArt(StadiumFacade, (p: StadiumFacadeProps, s) => stadiumFacadeArt(p, occasion(s, 'colors'), occasion(s, 'collegeName')));
+  registerArt(VenuePennants, (p: PennantsProps, s) => venuePennantsArt(p, occasion(s, 'pennants').has(occasion(s, 'venue') ?? ''), occasion(s, 'colors')));
 
   // A memo, kept from paint to paint.
   registerArt(PathwayLayer, (p: { pathways: Pathways; camera: Camera }, s) => (

@@ -767,19 +767,27 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
 }
 :root[data-motion='reduce'] .committee-lamp.ready { animation: none; background: color-mix(in srgb, var(--school-on-primary) 45%, transparent); }
 
-/* Build: the band's one cream control, since it starts an action. */
+/* Build: the band's one cream control, since it starts an action. No gold
+   outline of its own (Plan 124 C): the pulsing gold ring (.opening-target)
+   is the band's only "do this". */
 .toolbar-build-btn { flex: none; flex-direction: row; width: auto; height: 44px; margin-left: 6px; padding: 0 16px; gap: 8px;
-  background: var(--cream); color: var(--school-primary); border: 2px solid var(--school-secondary); border-radius: var(--radius-pill); font-weight: 800;
-  box-shadow: 0 0 0 1px var(--school-secondary); }
-.toolbar-build-btn:hover { border-color: var(--cream); }
+  background: var(--cream); color: var(--school-primary); border: 2px solid var(--cream); border-radius: var(--radius-pill); font-weight: 800; }
+.toolbar-build-btn:hover { background: var(--cream-hi); border-color: var(--cream-hi); }
 .toolbar-build-btn.active { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--school-secondary); }
 .toolbar-build-label { font-family: var(--display); font-size: var(--text-md); }
 
-/* Alert badge (types.ts's SeenState); every host is position: relative. */
-.alert-badge { position: absolute; top: -3px; right: -3px; width: 15px; height: 15px; border-radius: 50%;
-  background: var(--danger-ink); color: var(--cream-hi); border: 2px solid var(--cream);
+/* Badges on the band (Toolbar.tsx); every host is position: relative. Two
+   marks, two meanings (Plan 124 C): .new, a cream dot, is "something new"
+   (types.ts's SeenState), as an unread letter's dot is; .needs, a cream "!"
+   on red inside a dark border and a cream halo, is "this needs you", and
+   reads on every school's band. */
+.alert-badge { position: absolute; border-radius: 50%; pointer-events: none; }
+.alert-badge.new { top: 3px; right: 6px; width: 11px; height: 11px;
+  background: var(--cream); border: 2px solid var(--school-primary); }
+.alert-badge.needs { top: -3px; right: -3px; width: 16px; height: 16px;
+  background: var(--danger-ink); color: var(--cream-hi); border: 2px solid var(--outline); box-shadow: 0 0 0 1.5px var(--cream);
   font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; line-height: 1;
-  display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  display: flex; align-items: center; justify-content: center; }
 
 /* ---------- Tab content ---------- */
 /* The overlay owns scrolling, so no bottom margin. */
@@ -809,11 +817,16 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
 .toolbar-popup { position: fixed; z-index: 20; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
   display: flex; flex-direction: column; background: var(--cream); border: 3px solid var(--outline);
   border-radius: var(--radius-xl); box-shadow: var(--elevation-popup); color: var(--ink);
-  animation: popup-rise 150ms cubic-bezier(0.2, 0.8, 0.3, 1); }
-@keyframes popup-rise {
+  animation: enter-rise 150ms cubic-bezier(0.2, 0.8, 0.3, 1); }
+/* The game's three entrances (Plan 124 D, from seven): enter-rise, a 10 px
+   rise, for popups, modals, toasts and the specialization's panels;
+   enter-fade for a view over the whole screen; and the school's banner
+   (banner-in). */
+@keyframes enter-rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes enter-fade { from { opacity: 0; } to { opacity: 1; } }
 .toolbar-popup-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-12);
   border-bottom: 1px solid var(--parchment-line); padding: var(--space-8) var(--space-16); flex: none; }
 .toolbar-popup-head h2 { margin: 0; }
@@ -998,6 +1011,10 @@ button.build-tile { font-family: inherit; }
 .build-tile.available:disabled .build-thumb { opacity: 0.45; filter: grayscale(0.6); }
 .build-tile.available:disabled .build-tile-sub, .build-tile.available:disabled .build-tile-foot { color: var(--ink-muted); }
 .build-tile.available:disabled .build-tile-stamp { color: var(--ink-muted); border-color: var(--parchment-line); }
+/* A greyed academic hall fills from the foot toward its price (Plan 124B):
+   --fill is the cash in hand against its cost. */
+.build-tile.available.filling:disabled { background: linear-gradient(to top,
+  color-mix(in srgb, var(--school-secondary) 28%, var(--cream)) var(--fill), var(--cream) var(--fill)); }
 .build-tile.placing { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--outline); box-shadow: var(--shadow-2); }
 .build-tile.placing .build-tile-foot, .build-tile.placing .build-tile-sub { color: var(--school-on-secondary); }
 /* Going up: the drawing in the school colour on a dashed sheet. */
@@ -1174,7 +1191,13 @@ button.build-tile { font-family: inherit; }
   background: transparent; border: 2px solid transparent; color: var(--ink); font-size: var(--text-md); }
 .campus-map-zoom-controls .help-hint-btn:hover { background: var(--outline); color: var(--cream); }
 .campus-map-zoom-controls .help-hint-text { top: 0; right: 34px; left: auto; width: 320px; }
-/* On touch the camera's buttons join the pill (Plan 70F), a little larger. */
+/* The map help's keys (Plan 124A): a short list, each key a cap. */
+.map-help-keys { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.map-help-keys li { display: grid; grid-template-columns: 5.5em 1fr; gap: 8px; align-items: baseline; }
+.map-help-keys span { display: flex; flex-wrap: wrap; gap: 3px; }
+.map-help-keys kbd { font: inherit; font-size: var(--text-xs); min-width: 1.7em; text-align: center; padding: 1px 5px; border: 1px solid var(--ink-muted); border-radius: 4px; }
+/* The camera's buttons are in the pill on every device (Plan 124A); on
+   touch (Plan 70F) they are a little larger. */
 .campus-map-zoom-controls.touch-ui button, .campus-map-zoom-controls.touch-ui .help-hint-btn { width: 40px; height: 40px; }
 .campus-map-zoom-controls button[aria-pressed="true"] { background: var(--outline); color: var(--cream); }
 /* Folded (Plan 70G): one round button, the tools under it when open. */
@@ -1333,6 +1356,7 @@ button.build-tile { font-family: inherit; }
 .glass-roof { fill: rgba(214, 238, 242, 0.8); stroke: rgba(80, 104, 110, 0.6); stroke-width: 0.8; }
 .glass-ridge { stroke: rgba(70, 90, 96, 0.8); stroke-width: 1.2; }
 .landmark-inscription { fill: #5a4e3a; font-family: var(--display); font-weight: 800; letter-spacing: 0.08em; text-anchor: middle; dominant-baseline: middle; }
+.stadium-inscription { fill: #4a3f30; font-family: var(--display); font-weight: 800; letter-spacing: 0.1em; text-anchor: middle; dominant-baseline: middle; }
 /* Weathering (ageMarks.tsx). */
 .campus-age { pointer-events: none; }
 .campus-age-streak { stroke: rgba(40, 36, 30, 0.22); stroke-width: 1.6; stroke-linecap: round; fill: none; }
@@ -1476,6 +1500,9 @@ button.build-tile { font-family: inherit; }
   vector-effect: non-scaling-stroke;
   animation: campus-complete 1.5s ease-out forwards;
 }
+/* Founders Hall rising into its footprint at the founding (Plan 124H): on
+   the ring's easing, from the ground at the footprint's centre (the group's
+   origin, CampusMap.tsx). Reduced motion never mounts it. */
 @keyframes campus-complete {
   0% { opacity: 0; stroke-width: 1; }
   22% { opacity: 1; stroke-width: 4; }
@@ -1526,6 +1553,7 @@ button.build-tile { font-family: inherit; }
 .ground-fence-post { stroke: rgba(58, 56, 48, 0.55); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .ground-post { stroke: rgba(70, 66, 58, 0.8); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
 .ground-mast { stroke: rgba(70, 72, 74, 0.9); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.venue-pennant-staff { stroke: #3b3d40; stroke-width: 1.1; }
 .ground-mast-head { fill: #4a4d50; }
 .ground-foul-pole { stroke: #e6c84a; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
 .ground-goal { stroke: rgba(255, 253, 246, 0.9); stroke-width: 1.3; vector-effect: non-scaling-stroke; }
@@ -1696,6 +1724,8 @@ button.build-tile { font-family: inherit; }
 /* A program Established, then Distinguished (Plan 112D). */
 .campus-hall-pip.established { stroke: #e1e5e8; stroke-width: 2.6; }
 .campus-hall-pip.distinguished { stroke: #f0b929; stroke-width: 2.6; }
+/* A program gone dark: a course with no teacher (Plan 124 L). */
+.campus-hall-pip.dark { fill: #161b29; stroke: #e0443a; stroke-width: 1.8; stroke-dasharray: 2.4 1.7; }
 .campus-hall-flag circle { fill: var(--gold); }
 .campus-hall-flag path { stroke: #1a2035; stroke-width: 1.6; stroke-linecap: round; fill: none; }
 /* A lab at work (Plan 41): a ring filling as the project runs, an atom
@@ -1722,9 +1752,7 @@ button.build-tile { font-family: inherit; }
    (.log-ticker 5, .toolbar 10) while staying inside .app, above the map. */
 .tab-overlay { position: fixed; inset: 0; z-index: 3; display: flex; flex-direction: column;
   background: var(--cream); color: var(--ink);
-  animation: overlay-fade 140ms ease-out; }
-
-@keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+  animation: enter-fade 140ms ease-out; }
 .tab-overlay-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-12);
   padding: var(--space-12) var(--space-16); border-bottom: 3px solid var(--outline); flex: none;
   /* Clear the main-menu hamburger (z-index 11, over this panel): 40px button
@@ -1851,6 +1879,10 @@ button.build-tile { font-family: inherit; }
 .row-action-title { font-weight: 800; min-width: 0; max-width: 22em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 600px) { .row-action-title { max-width: 11em; } }
 .row-action-cost { font-weight: 700; color: var(--ink-muted); }
+
+/* What the next course adds while class places are short (Plan 124J). */
+.row-action-places { padding: 2px 10px; border: 2px solid var(--ok-on-light); border-radius: var(--radius-pill);
+  background: var(--grade-a-bg); color: var(--ok-on-light); font-weight: 700; white-space: nowrap; }
 .row-action-secondary { padding: var(--space-4) var(--space-12); font-size: var(--text-xs); }
 .row-action-note { color: var(--ink); font-weight: 600; }
 .row-action-worth { margin-left: auto; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
@@ -2354,7 +2386,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   padding: var(--space-4) var(--space-12); background: var(--school-primary); color: var(--school-on-primary);
   font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); line-height: 1.3; letter-spacing: 0.12em; text-transform: uppercase; }
 .faculty-tile-field { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.faculty-tile-waiting { flex: none; white-space: nowrap; color: var(--school-secondary); }
+.faculty-tile-waiting { flex: none; display: inline-flex; align-items: center; gap: 3px; align-self: center; white-space: nowrap; color: var(--school-secondary); }
+.faculty-tile-waiting svg { width: 13px; height: 13px; display: block; }
 .faculty-tile-body { display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-8) var(--space-12); }
 .faculty-tile-top { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
 /* The portrait upright in a mounted frame: a cream mat, an ink edge. */
@@ -2512,12 +2545,12 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-plot-heading line.prof { stroke: color-mix(in srgb, var(--school-primary) 30%, transparent); }
 .faculty-plot-heading line.cand { stroke: color-mix(in srgb, var(--warm-ink) 25%, transparent); }
 .faculty-plot-heading line.picked { stroke: var(--outline); stroke-width: 2.5px; stroke-dasharray: 4 3; }
-/* A dot: a professor filled, a retirement in the school's second colour, a candidate
-   a ring; picked, larger and ringed. */
+/* A dot: a professor filled, a retirement in the red its tile's badge uses
+   (.faculty-badge.retiring), a candidate a ring; picked, larger and ringed. */
 .faculty-dot { position: absolute; width: 13px; height: 13px; padding: 0; margin: 0; min-height: 0; border-radius: 50%;
   transform: translate(-50%, -50%); box-sizing: border-box; cursor: pointer; box-shadow: none; }
 .faculty-dot.prof { background: var(--school-primary); border: 2px solid var(--cream-hi); }
-.faculty-dot.retiring { background: var(--school-secondary); border: 2px solid var(--outline); }
+.faculty-dot.retiring { background: var(--bad-on-light); border: 2px solid var(--outline); }
 .faculty-dot.cand { background: var(--cream-hi); border: 3px solid var(--warm-ink); }
 .faculty-dot.faded { opacity: 0.3; }
 .faculty-dot:hover { z-index: 2; transform: translate(-50%, -50%) scale(1.35); }
@@ -2896,6 +2929,31 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .glance-adjustment .glance-figure { color: var(--ink); }
 .glance-adjustment.cost .glance-figure { color: var(--bad-on-light); }
 .glance-line { font-size: var(--text-sm); }
+/* Prestige by pillar at the head of the tabs that feed it (PillarHead.tsx,
+   Plan 124K): one bar on the prestige scale, stacked by pillar, the tab's
+   own lit and the others faded, the target a ghost tick. The parts are
+   parted by a cream rule as well as by hue, so they read on every palette. */
+.pillar-head { display: flex; align-items: center; gap: var(--space-8) var(--space-16); min-width: 0; }
+@media (max-width: 900px) { .pillar-head { flex-wrap: wrap; } }
+/* In a panel's head (the Curriculum's) the bar takes the room the figures leave. */
+.panel-head-title:has(> .pillar-head) { flex: 1 1 auto; min-width: 0; }
+.panel-head-title > .pillar-head { flex: 1 1 auto; }
+@media (min-width: 901px) { .pillar-head-line { white-space: nowrap; } }
+.pillar-head-label { font-family: var(--display); font-weight: 800; font-size: var(--text-md); color: var(--ink); }
+.pillar-bar { position: relative; display: flex; flex: 0 1 400px; min-width: 160px; height: 12px;
+  background: var(--cream-lo); border: 1.5px solid var(--outline); border-radius: 3px; }
+.pillar-bar-fill { display: flex; width: 100%; height: 100%; overflow: hidden; border-radius: 1.5px; }
+.pillar-bar-part { display: block; flex: none; height: 100%; background: var(--pillar-hue); box-shadow: inset -1px 0 0 var(--cream-hi); }
+/* The summer review's bar fills from the left (reduced motion: at once). */
+.pillar-bar.filling .pillar-bar-fill { animation: pillar-fill 1.1s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes pillar-fill { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.review-pillars { margin: var(--space-8) 0 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.review-pillars .pillar-bar { flex: none; width: 100%; }
+.review-pillars-line { font-size: var(--text-xs); color: var(--ink-muted); }
+.pillar-bar-part.faded { opacity: 0.35; }
+.pillar-bar-target { position: absolute; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--ink); opacity: 0.55; }
+.pillar-head-line { font-size: var(--text-sm); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.pillar-head-panel { padding-top: var(--space-12); padding-bottom: var(--space-12); }
 /* A pillar whose door is shut says what opens it (Plan 114B). */
 .glance-shut { grid-column: 2 / -1; margin-top: calc(-1 * var(--space-8)); font-size: var(--text-xs); color: var(--ink-muted); }
 .pillar-academics { --pillar-hue: var(--pillar-academics); }
@@ -3136,13 +3194,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   padding: var(--space-12) var(--space-16); font-weight: 500; font-family: var(--sans); box-shadow: var(--shadow-1); cursor: pointer; }
 .event-choice:not(:disabled):hover { box-shadow: var(--shadow-1-hover); transform: translate(-1px, -1px); }
 .event-choice:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-/* A picked choice in a multi-pick (PromisesPanel.tsx's decade offer). */
-.event-choice.is-on { border-color: var(--school-primary); box-shadow: inset 0 0 0 1px var(--school-primary), var(--shadow-1); }
 .event-choice-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
   font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 .event-choice-cost { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--school-primary); white-space: nowrap; }
 .event-choice-detail { display: block; margin-top: 5px; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
-.event-choice-detail.promise-target { color: var(--ink); }
 
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: var(--text-base); color: var(--ink); margin-bottom: 6px; font-weight: 600; }
@@ -3623,21 +3678,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .review-more:hover { color: var(--ink); }
 .review-empty { font-size: var(--text-sm); font-style: italic; color: var(--ink-muted); margin: 0 !important; }
 @media (max-width: 560px) { .review-grid { grid-template-columns: 1fr; } }
-/* ---------- Ambitions (HistoryTab.tsx's AmbitionsPanel) ---------- */
-.ambitions { list-style: none; margin: 0; padding: 0; display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4px 22px; }
-.ambition { display: grid; grid-template-columns: auto 1fr auto; gap: 0 10px; align-items: baseline;
-  padding: 6px 0; border-top: 1px solid var(--parchment-line); }
-.ambition-mark { display: inline-flex; align-self: center; color: var(--school-primary); }
 /* The status marks (icons.tsx's StatusIcon), in a line of text. */
-.ambition-mark svg, .prereq-static svg, .prereq-link svg { width: 13px; height: 13px; display: block; flex: none; align-self: center; }
+.prereq-static svg, .prereq-link svg { width: 13px; height: 13px; display: block; flex: none; align-self: center; }
 .build-tile-foot svg { width: 10px; height: 10px; display: inline-block; vertical-align: 0; }
-.ambition-body { display: flex; flex-direction: column; min-width: 0; }
-.ambition-name { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--ink); }
-.ambition-line { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
-.ambition-year { font-family: var(--display); font-weight: 800; font-size: var(--text-xs); color: var(--school-primary); white-space: nowrap; }
-.ambition.unreached .ambition-mark, .ambition.unreached .ambition-name, .ambition.unreached .ambition-year { color: var(--ink-muted); }
-.ambition.unreached .ambition-name { font-weight: 600; }
 
 /* ---------- The Final Report (Plan 33, FinalReportView.tsx) ---------- */
 .final-report h4 { margin: var(--space-16) 0 var(--space-6); }
@@ -3649,7 +3692,23 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .final-report-axes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
 .final-report-axes li { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center;
   padding: var(--inset-card); background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
-.final-report-axes .grade-mark { grid-row: 1 / span 2; }
+.final-report-axes .final-report-stamp { grid-row: 1 / span 2; }
+/* A grade's place (Plan 124 M3): kept while it waits to be stamped, so
+   nothing moves when it lands. */
+.final-report-stamp { display: inline-grid; place-items: center; width: calc(1.75em + 4px); height: calc(1.75em + 4px); font-size: var(--text-2xl); }
+.final-report-stamp .grade-mark { font-size: 1em; }
+.final-report-stamp.staged.down .grade-mark { animation: grade-stamp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.final-report-stamp.staged.final .grade-mark { animation: grade-stamp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, grade-halo 1.6s ease-out 0.3s both; }
+@keyframes grade-stamp {
+  from { opacity: 0; transform: rotate(var(--mark-tilt, -4deg)) scale(1.9); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: rotate(var(--mark-tilt, -4deg)) scale(1); }
+}
+@keyframes grade-halo {
+  from { filter: drop-shadow(0 0 0 transparent); }
+  35% { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--school-secondary) 85%, transparent)); }
+  to { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--school-secondary) 45%, transparent)); }
+}
 .final-report-axis-label { font-family: var(--display); font-weight: 800; color: var(--ink); }
 .final-report-axis-line { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
 .final-report-addendum { margin-top: 14px; padding-top: 10px; border-top: 2px dashed var(--parchment-line); }
@@ -3729,7 +3788,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The welcome's skip (Plan 104C): a plain text link under the card's
    actions, not a button beside Next; armed, a pill like any confirmation. */
 .letter-skip-row { margin: var(--space-16) 0 0; }
-.modal .letter-length { margin: 0 0 var(--space-12); font-size: var(--text-sm); color: var(--ink-muted); }
 .letter-skip-link { background: none; border: none; padding: 0; font: inherit; font-size: var(--text-xs);
   color: var(--ink-muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .letter-skip-link:hover { color: var(--ink); }
@@ -3795,7 +3853,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .inbox-row.decide.urgent::before { background: var(--danger-ink); }
 .inbox-row.selected { z-index: 1; background: var(--cream-hi); box-shadow: inset 0 0 0 2px var(--outline); }
 .inbox-dot { width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; }
-.inbox-row.unread.letter .inbox-dot { background: var(--school-secondary); border: 1.5px solid var(--outline); }
+.inbox-row.unread.letter .inbox-dot { background: var(--cream-hi); border: 1.5px solid var(--outline); }
 .inbox-from { grid-column: 2; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--school-primary);
   font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; }
 .inbox-when { grid-column: 3; align-self: start; white-space: nowrap; color: var(--ink-muted); font-size: var(--text-2xs); font-weight: 700; }
@@ -3901,7 +3959,8 @@ button.inbox-row:hover { background: var(--cream-hi); }
   font-family: var(--display); font-size: var(--text-2xs); font-weight: 800; line-height: 1;
   display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .inbox-badge.urgent { background: var(--danger-ink); color: var(--cream-hi); border-color: var(--cream); animation: inbox-pulse 1.1s ease-in-out infinite; }
-.inbox-badge.dot { top: 3px; right: 6px; min-width: 11px; width: 11px; height: 11px; padding: 0; }
+/* Unread letters are cream, not gold (Plan 124 C): gold is "do this". */
+.inbox-badge.dot { top: 3px; right: 6px; min-width: 11px; width: 11px; height: 11px; padding: 0; background: var(--cream); }
 .toolbar-icon-btn.active .inbox-badge:not(.urgent) { border-color: var(--school-secondary); background: var(--cream); }
 @keyframes inbox-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--danger-ink); } 50% { box-shadow: 0 0 0 4px transparent; } }
 
@@ -3916,7 +3975,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .opening-coach { position: fixed; z-index: 30; top: 16px; right: calc(var(--corner-menu-height) + 32px);
   width: min(400px, calc(100vw - var(--corner-menu-height) - 64px)); box-sizing: border-box; padding: var(--space-16) var(--space-24);
   background: var(--cream); color: var(--ink); border: 3px solid var(--outline); border-radius: var(--radius-xl);
-  box-shadow: var(--elevation-note); animation: popup-rise 0.25s ease-out; }
+  box-shadow: var(--elevation-note); animation: enter-rise 0.25s ease-out; }
 /* Raising Founders Hall (Plan 107A): on the left edge, under the pennant and
    over the build menu, where the eye already is; top-right drew it away. On
    a screen too short for the gap it stays top-right. */
@@ -3948,8 +4007,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .opening-coach p { margin: 0 0 12px; font-size: var(--text-md); line-height: 1.5; }
 .opening-coach-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .opening-coach-actions button { padding: var(--space-8) var(--space-16); font-size: var(--text-md); }
-.opening-coach-wait { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--school-primary); }
 /* The ring: an outline (so it never moves its target) in the school
    secondary. Only its offset pulses; the color holds, since the outline
    ink would be indistinguishable from a tile's border. */
@@ -3959,7 +4016,7 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .tab-walk { position: fixed; z-index: 30; left: 16px; bottom: calc(var(--toolbar-height) + var(--log-ticker-height) + 8px);
   width: min(400px, calc(100vw - 32px)); box-sizing: border-box; padding: var(--space-16) var(--space-24);
   background: var(--cream); color: var(--ink); border: 3px solid var(--outline); border-radius: var(--radius-xl);
-  box-shadow: var(--elevation-popup); animation: popup-rise 0.2s ease-out; }
+  box-shadow: var(--elevation-popup); animation: enter-rise 0.2s ease-out; }
 .tab-walk h2 { margin: 0 0 var(--space-6); font-family: var(--display); font-size: var(--text-xl); }
 .tab-walk p:not(.letter-eyebrow) { margin: 0; line-height: 1.45; }
 .tab-walk-actions { display: flex; justify-content: space-between; align-items: center; gap: var(--space-8); margin-top: var(--space-12); }
@@ -4020,23 +4077,24 @@ button.inbox-row:hover { background: var(--cream-hi); }
   .log-ticker-objective .log-ticker-next-label { padding: 2px 5px; }
 }
 .objectives-popup { right: 16px; width: min(440px, calc(100vw - 32px)); max-height: 52vh;
-  transform-origin: bottom right; animation: popup-from-corner 170ms cubic-bezier(0.2, 0.8, 0.3, 1); }
-/* The drawer opens from the bottom right, where its chip is, and grows out
+  animation: enter-rise 170ms cubic-bezier(0.2, 0.8, 0.3, 1); }
+/* The drawer opens from the bottom right, where its chip is, and rises out
    of that corner (Plan 122B, from Ginger's playtest: "it should pop up from
-   the bottom right, so that it is also intuitive that it collapses there").
+   the bottom right, so that it is also intuitive that it collapses there";
+   the popups' rise since Plan 124 D, not a scale of its own).
    The chip stands at the strip's right end. The toasts and the summer's
    note moved to the bottom left to leave it the corner. */
 .log-ticker .log-ticker-objective { order: 99; margin-left: auto; }
-@keyframes popup-from-corner {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: none; }
-}
 @media (prefers-reduced-motion: reduce) { .objectives-popup { animation: none; } }
 .objectives h3 { margin: 0 0 var(--space-6); }
 .objectives h4 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-2xs); text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ink-muted); }
 .objectives .letter-eyebrow { display: flex; justify-content: space-between; gap: var(--space-8); margin: 0 0 var(--space-4); }
-.objectives-tally { font-variant-numeric: tabular-nums; }
+.objectives-tally { margin-left: auto; font-variant-numeric: tabular-nums; }
+/* Looking around's skip (Plan 124A): a quiet pill beside the tally. */
+.objectives-skip { padding: 0 var(--space-8); border: 2px solid var(--outline); border-radius: var(--radius-pill); background: transparent;
+  color: var(--ink); font: inherit; font-family: var(--display); font-weight: 800; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.objectives-skip:hover { background: var(--cream-lo); }
 .objectives-about { margin: 0 0 var(--space-8); }
 .objectives-list { list-style: none; margin: 0; padding: 0; }
 .objectives-list li { display: flex; align-items: baseline; gap: var(--space-8); padding: 4px 0; }
@@ -4046,7 +4104,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives-text { flex: 1 1 auto; min-width: 0; }
 .objectives-optional { color: var(--ink-muted); }
 .objectives-count { flex: none; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.objectives-waiting p { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8); margin: 0; padding: 3px 0; }
 /* An objective's (?) and its help (Plan 112A): the panels' help hint, a
    little larger beside a line of text, and a card that holds a Show me. */
 .objectives-list .help-hint { flex: none; align-self: center; }
@@ -4059,7 +4116,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .objectives-shut { color: var(--ink-muted); font-size: var(--text-xs); }
 /* The Curriculum's free slot, NEXT's line with its Go (Plan 114F). */
 .curriculum-free-slot { display: flex; align-items: center; gap: var(--space-8); margin: 0 0 var(--space-8); font-size: var(--text-sm); }
-.objectives-waiting p.urgent span { font-weight: 700; }
 .objectives-finished { display: flex; align-items: baseline; gap: var(--space-8); margin: 0 0 var(--space-8); font-weight: 700; color: var(--ok-on-light); }
 .objectives-between, .objectives-done { color: var(--ink-muted); margin: var(--space-12) 0 0; }
 .objectives-milestones p { margin: 0 0 var(--space-6); }
@@ -4314,8 +4370,13 @@ body:has(.building-info-panel) .pennant { display: none; }
 
 /* The Final Report as a page (Plan 60): the whole screen, the school's own
    colors, a title that cannot be mistaken for another summer. */
-.final-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; background: var(--school-primary);
+.final-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto;
+  /* Over the campus as it stands (Plan 124 M3): the school's colour as a
+     veil, the map showing through, the card rising onto it. */
+  background: color-mix(in srgb, var(--school-primary) 72%, transparent);
+  animation: enter-fade 0.6s ease-out both;
   display: flex; justify-content: center; align-items: flex-start; padding: 48px 16px 64px; }
+.final-page > .final-page-inner { animation: enter-rise 0.5s ease-out 0.2s both; }
 .final-page-inner { width: min(1080px, 100%); background: var(--cream); border-radius: var(--radius-xl); padding: 40px 48px 48px;
   box-shadow: var(--elevation-popup); border-top: 10px solid var(--school-secondary); }
 .final-page-inner h2 { font-size: var(--text-5xl); line-height: 1.05; margin: var(--space-6) 0 var(--space-16); }
@@ -4422,15 +4483,13 @@ body:has(.building-info-panel) .pennant { display: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: var(--space-8); padding: var(--space-8) var(--space-8) var(--space-8) var(--space-12);
   background: var(--cream); color: var(--ink); border: 2px solid var(--outline); border-left-width: 6px;
   border-radius: var(--radius-md); box-shadow: var(--elevation-note); font-size: var(--text-sm); font-weight: 700;
-  animation: toast-in 220ms ease-out; }
+  animation: enter-rise 220ms ease-out; }
 .toast.good { border-left-color: var(--green); }
 .toast.bad { border-left-color: var(--danger-ink); }
-.toast.matter { border-left-color: var(--school-primary); }
 .toast.letter { border-left-color: var(--school-secondary); }
 /* An arrival's way in (Plan 77): opens the inbox at it. */
 .toast-open { flex: none; padding: var(--space-2) var(--space-8); font-size: var(--text-xs); }
 .toast-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 /* The summer's call (Plan 112C, SummerCall.tsx): where the toasts stand,
    at the bottom left since Plan 122B, for as long as the summer waits; the
@@ -4440,7 +4499,7 @@ body:has(.building-info-panel) .pennant { display: none; }
   width: min(360px, calc(100vw - 32px)); box-sizing: border-box; display: grid; grid-template-columns: auto 1fr; gap: var(--space-4) var(--space-12);
   align-items: start; padding: var(--space-12) var(--space-16); background: var(--cream); color: var(--ink);
   border: 3px solid var(--outline); border-left: 8px solid var(--school-secondary); border-radius: var(--radius-lg);
-  box-shadow: var(--elevation-popup); animation: toast-in 220ms ease-out; }
+  box-shadow: var(--elevation-popup); animation: enter-rise 220ms ease-out; }
 .summer-call-sun { font-size: 28px; line-height: 1; color: var(--warn-on-light); }
 .summer-call-eyebrow { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs);
   text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); }
@@ -4460,6 +4519,11 @@ body:has(.building-info-panel) .pennant { display: none; }
   font-family: var(--display); font-weight: 800; font-size: var(--text-xl); text-align: center;
   animation: banner-in 4.5s ease-in-out both; pointer-events: none; }
 .school-banner-motif { font-size: var(--text-2xl); }
+/* Under reduced motion the banner simply stands, for as long as Toasts.tsx
+   keeps it: its keyframes end transparent, so the blanket rule's 0.01 ms
+   left it invisible (the review's R-3). */
+@media (prefers-reduced-motion: reduce) { .school-banner { animation: none; } }
+:root[data-motion='reduce'] .school-banner { animation: none; }
 @keyframes banner-in {
   0% { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
   8%, 85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
@@ -4493,8 +4557,7 @@ body:has(.building-info-panel) .pennant { display: none; }
   100% { opacity: 0; transform: translateY(-34px) scale(1); } }
 
 /* Modals rise into place. */
-.modal { animation: modal-in 150ms ease-out; }
-@keyframes modal-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.modal { animation: enter-rise 150ms ease-out; }
 
 /* The rank's pill flashes the way it moved. */
 .toolbar-stat.rank-up { animation: rank-up 1.6s ease-out; }
@@ -4532,7 +4595,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 
 .spec-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; box-sizing: border-box; outline: none;
   background: radial-gradient(ellipse 70% 40% at 50% 0%, color-mix(in srgb, var(--school-secondary) 14%, transparent), transparent 70%), var(--board-room);
-  color: var(--board-room-ink); animation: spec-fade 260ms ease-out both; }
+  color: var(--board-room-ink); animation: enter-fade 260ms ease-out both; }
 .spec-page-inner { display: flex; flex-direction: column; gap: var(--space-16); max-width: 1480px; min-height: 100%; margin: 0 auto;
   padding: var(--space-24); box-sizing: border-box; }
 .spec-page-head { display: flex; align-items: flex-start; gap: var(--space-24); }
@@ -4560,9 +4623,9 @@ body:has(.building-info-panel) .pennant { display: none; }
 .spec-panel { display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--cream-hi); color: var(--ink);
   border: 2px solid var(--board-room-edge); border-radius: var(--radius-xl); box-shadow: 6px 6px 0 var(--board-room-shadow);
   transition: transform 180ms ease, opacity 180ms ease, filter 180ms ease, box-shadow 180ms ease;
-  /* They drop in one at a time as the page opens. Backwards only: once
+  /* They rise in one at a time as the page opens. Backwards only: once
      landed, the armed lift and the dimming are the rules'. */
-  animation: spec-drop 560ms cubic-bezier(0.3, 0, 0.3, 1) backwards; animation-delay: calc(var(--i, 0) * 240ms + 260ms); }
+  animation: enter-rise 260ms ease-out backwards; animation-delay: calc(var(--i, 0) * 200ms + 260ms); }
 .spec-panel.is-armed { transform: translateY(-10px); box-shadow: 10px 12px 0 var(--board-room-shadow);
   outline: 4px solid var(--school-secondary); outline-offset: 4px; }
 .spec-panel.is-dimmed { opacity: 0.34; filter: saturate(0.45); }
@@ -4629,7 +4692,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .spec-armed { position: sticky; bottom: var(--space-16); z-index: 1; margin-top: auto; display: flex; align-items: center; gap: var(--space-16);
   padding: var(--space-16) var(--space-24); background: var(--spec-hue); color: var(--cream-hi);
   border: 2px solid var(--board-room-edge); border-radius: var(--radius-xl); box-shadow: 6px 6px 0 var(--board-room-shadow);
-  animation: spec-rise 220ms ease-out backwards; }
+  animation: enter-rise 220ms ease-out backwards; }
 .spec-armed .spec-panel-medallion { width: 52px; height: 52px; }
 .spec-armed .spec-panel-medallion svg { width: 28px; height: 28px; }
 .spec-armed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
@@ -4641,16 +4704,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .spec-armed-confirm { padding: var(--space-8) var(--space-24); font-size: var(--text-xl); }
 /* Under reduced motion the panels are there at once, delay and all. */
 :root[data-motion='reduce'] :is(.spec-page, .spec-panel, .spec-armed) { animation: none; }
-@keyframes spec-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes spec-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-/* A panel falls into place, lands a little past it and settles. */
-@keyframes spec-drop {
-  0% { opacity: 0; transform: translateY(-80px); }
-  45% { opacity: 1; }
-  62% { transform: translateY(8px); }
-  80% { transform: translateY(-3px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
+@media (prefers-reduced-motion: reduce) { :is(.spec-page, .spec-panel, .spec-armed) { animation: none; } }
 @media (max-width: 1100px) { .spec-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) {
   .spec-page-inner { padding: var(--space-16); }

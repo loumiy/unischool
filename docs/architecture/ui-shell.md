@@ -25,7 +25,7 @@ that is already open (its `sections`, read by `sectionAvailable`). Students
 week with the satisfaction breakdown, the demands and the student body; its
 guidebook, its clubs and chapters and last summer's funnel wait for the
 first commencement (Plan 78B). History is open from the first week with
-Prestige and the guide (Plans 78C and 80C); its record of the years (the Final Report's draft, the promises,
+Prestige and the guide (Plans 78C and 80C); its record of the years (the Final Report's draft,
 the chronicle, the charts and the table) waits for the first commencement,
 and one note says so until then (Plan 78C). A section no milestone names is
 somewhere a link can land: the tab scrolls to its `data-section`
@@ -385,7 +385,7 @@ icon package at runtime. They cover the dock and the build menu's icons, and the
 controls — close, disclosure (a chevron), rename, release, remove, the
 camera's turn (Lucide's rotate arrow, close to the building's ⟳), the
 map tools, and one set of status marks (done, pending, failed) for the
-ladder, the promises and a course's prerequisites. The Students tab and the
+ladder and a course's prerequisites. The Students tab and the
 dock's enrolled figure share the three-head icon.
 
 ### What this replaces

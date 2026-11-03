@@ -1,13 +1,13 @@
 import { createContext } from 'react';
 import type { GameState, SchoolColors } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
-import { OCCASIONS } from '../systems/athletics/season';
 import { FOUNDING_COLORS, schoolColorsOf } from '../data/schoolColors';
 
 // What the calendar puts on the map for a week: crowds in the stands of a
-// venue whose team plays that week, and the college's colors on the lamps in
-// commencement week. Read through contexts, so a game week redraws the stands
-// and a commencement the lamps, never the rest of the scene.
+// venue full that week, a venue's title pennants, and the college's colors
+// on the lamps in commencement week. Read through contexts, so a full week
+// redraws the stands and a commencement the lamps, never the rest of the
+// scene.
 
 // Weeks left on each site, by Buildable id: a site's progress bar and a
 // landmark's stage read it, so a week's countdown redraws them alone.
@@ -17,26 +17,18 @@ export const CollegeNameContext = createContext('');
 // The college's colors, for the flags on its civic buildings.
 export const ColorsContext = createContext<SchoolColors>(schoolColorsOf(FOUNDING_COLORS));
 
-// The venues with a crowd this week, by Buildable id. Empty most weeks.
-export const CrowdContext = createContext<ReadonlySet<string>>(new Set());
+// The venues full this week, by Buildable id (mapSignals.ts's fullVenues:
+// about one week in three each, off the map's own random numbers, Plan 124
+// M1). Their stands fill with people and people stand about outside.
+// How full each venue's stands are this week (mapSignals.ts's venueLevels):
+// absent is empty, CROWD_LEVELS is packed.
+export const CrowdContext = createContext<ReadonlyMap<string, number>>(new Map());
+// The venues flying their titles' pennants (mapSignals.ts's pennantVenues).
+export const PennantContext = createContext<ReadonlySet<string>>(new Set());
 // The venue a stand belongs to, set round each building and its props.
 export const VenueContext = createContext<string | null>(null);
 // The college's colors in commencement week, else null.
 export const BannerContext = createContext<SchoolColors | null>(null);
-
-// The season's dated home occasions (athletics/season.ts's OCCASIONS).
-const GAME_WEEKS = new Set(OCCASIONS.map((o) => o.week));
-
-// A venue fills when a team plays at home in its category this week.
-export function crowdedVenues(s: GameState): string[] {
-  if (!GAME_WEEKS.has(s.clock.week)) return [];
-  const playing = new Set(s.orgs.teams.filter((t) => t.status === 'active').map((t) => t.venueCategory));
-  if (playing.size === 0) return [];
-  return Object.keys(s.placements).filter((id) => {
-    const t = s.tech.find((x) => x.id === id);
-    return t !== undefined && t.status === 'done' && t.facilityType !== undefined && playing.has(t.facilityType);
-  });
-}
 
 // Commencement: the last fortnight of the year, before the summer.
 export function isCommencement(s: GameState): boolean {

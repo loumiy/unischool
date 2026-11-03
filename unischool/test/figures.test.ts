@@ -37,7 +37,7 @@ assert(typeRule.length === 4, 'the type rule is in the typecheck');
 {
   const hints: Sentence[] = Object.entries(FIGURE_HINTS).flatMap(([key, h]) => (
     key === 'satisfaction' ? [FIGURE_HINTS.satisfaction('basic needs', '38')]
-      : key === 'rank' ? [FIGURE_HINTS.rank(100)]
+      : key === 'standing' ? [FIGURE_HINTS.standing(100)]
         : key === 'committee' ? [FIGURE_HINTS.committee(8, 8, false), FIGURE_HINTS.committee(3, 8, true), FIGURE_HINTS.committee(3, 8, false)]
           : [h as Sentence]));
   assert(hints.length >= 25, `the headline figures have their sentences (${hints.length})`);
@@ -49,7 +49,7 @@ assert(typeRule.length === 4, 'the type rule is in the typecheck');
 
 // ---- The tabs' bare figures can only fall ----
 // Raise nothing here: when a tab's <dd> becomes a Figure, lower the ceiling.
-const BARE_CEILING = 27;
+const BARE_CEILING = 26;
 {
   // process.cwd(), not import.meta: this file runs bundled (invariants.test.ts).
   const dir = join(process.cwd(), 'src', 'tabs');

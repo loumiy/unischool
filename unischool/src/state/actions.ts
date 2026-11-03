@@ -158,9 +158,7 @@ export type Action =
   | { type: 'RESOLVE_INTERRUPT' }
   // Advances the summer one beat without moving the clock; leaving the
   // Admissions beat carries the levers as `decision`.
-  // `promises`: leaving the Review beat, the offered promises taken (Plan 33);
-  // the rest are declined.
-  | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision; promises?: string[] }
+  | { type: 'RESOLVE_SUMMER_BEAT'; decision?: SummerDecision }
   // Locks the blind tuition on the admissions beat (SummerPayload.lockedTuition).
   | { type: 'LOCK_TUITION'; tuition: number }
   // Resolves the summer: sets tuition (the only place it changes) and the
@@ -255,8 +253,6 @@ export type Action =
   | { type: 'SWAP_COURSE_FACULTY'; courseA: string; courseB: string }
   // Pays to raise the weekly chance of a candidate in a field.
   | { type: 'POST_SEARCH'; field: string }
-  // Puts the one tier-1 library back into 'developing' in place.
-  | { type: 'RENOVATE_LIBRARY' }
   | { type: 'SAVE_GAME' }
   | { type: 'SAVE_FAILED'; manual: boolean }
   // useGame.ts erases the save.

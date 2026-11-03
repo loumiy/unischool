@@ -76,7 +76,7 @@ const afterSummer = (s: GameState) => {
   const per = Math.ceil(HEALTH_CENTER_TIER1_POPULATION_GATE / 4) + 10;
   big.students.classes = { freshman: per, sophomore: per, junior: per, senior: per };
   const bigTab = renderToStaticMarkup(createElement(StudentLifeTab, { s: big }));
-  assert(bigTab.includes('>Health<') && bigTab.includes('A need since the college passed'), 'past the gate, the card shows, said to be a need');
+  assert(bigTab.includes('>Health<') && !bigTab.includes('A need since'), 'past the gate, the card shows, without saying since when (Plan 124F)');
 }
 
 // Every need met, below the gate: full marks. The weights sum to 100, and

@@ -232,6 +232,21 @@ of work with a known shape; none is sequenced.*
   2. walls and gates along the road, so the campus has a front;
   3. sculpture of several kinds, picked by a hash of the tile;
   4. parking beside the road, a grounds lot with stall markings.
+- **Crowd and game animations at the venues** (the owner, on Plan 124's
+  mock-ups, 3 November 2026; left for another time). Plan 124 PR M draws a
+  full venue's spectators as still figures. Two pieces to try after it:
+  - **Crowd animation:** the spectators stir (a wave around the stands, arms
+    up when the home side scores, a shuffle between plays), on the map's
+    frame clock and within the walkers' frame budget.
+  - **On-field game animation:** figures in the two sides' colours playing
+    on the pitch during a full week (football at the stadium, soccer or
+    lacrosse on the multi-sport field), with a ball in play and the crowd
+    answering.
+
+  Both are drawing only, like the walkers. Under reduced motion the crowd
+  stays still. The mock-ups are in
+  `docs/plans/124-subtraction-as-decided/venues-after.png` and
+  `stadium-ext-after.png`.
 - **Half-step camera views (45°)** (the owner, Plan 80). A turn of 45°
   lands on straight-on angles, where every building shows a single wall;
   the art assumes two (doors, steps, corner towers, window bays), so each

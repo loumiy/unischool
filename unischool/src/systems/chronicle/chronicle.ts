@@ -6,7 +6,6 @@ import {
   type EraKind,
 } from '../../data/chronicleData';
 import { milestoneById } from '../../data/ladderData';
-import { settledTitle } from '../promises/promises';
 import { tagById } from '../../data/tagData';
 import { eventById } from '../events/catalogue';
 import { mainSport } from '../rivals/collegeRival';
@@ -39,8 +38,6 @@ export interface YearRecord {
   titles: number;
   rivalNamed: string | null;
   tags: string[];       // names earned
-  kept: string[];       // promise titles
-  missed: string[];
   net: number | null;
   endowment: number | null;
   graduated: number;    // graduates
@@ -108,8 +105,6 @@ export function yearRecords(s: GameState): YearRecord[] {
       titles: titles.length,
       rivalNamed: s.rivalStanding?.since === y ? rivalName : null,
       tags: (s.identity?.log ?? []).filter((e) => e.earned && e.year === y).map((e) => TAG_PHRASES[e.id] ?? tagById(e.id)?.name ?? e.id),
-      kept: (s.promises?.settled ?? []).filter((p) => p.kept && p.year === y).map((p) => settledTitle(s, p)),
-      missed: (s.promises?.settled ?? []).filter((p) => !p.kept && p.year === y).map((p) => settledTitle(s, p)),
       net: h.net,
       endowment: h.endowment ?? null,
       graduated: h.graduated,
@@ -397,10 +392,6 @@ function summarise(span: Span, recs: YearRecord[]): string[] {
   if (tags.length) lines.push(fill(L.tags, { tags: listOf(tags) }));
   const rival = years.find((r) => r.rivalNamed)?.rivalNamed;
   if (rival) lines.push(fill(L.rival, { rival }));
-  const kept = years.flatMap((r) => r.kept).map((t) => t.toLowerCase());
-  const missed = years.flatMap((r) => r.missed).map((t) => t.toLowerCase());
-  if (kept.length) lines.push(fill(kept.length === 1 ? L.kept : L.keptMany, { list: listOf(kept) }));
-  if (missed.length) lines.push(fill(missed.length === 1 ? L.missed : L.missedMany, { list: listOf(missed) }));
   return lines;
 }
 

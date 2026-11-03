@@ -213,12 +213,12 @@ const tab = (s: GameState) => renderToStaticMarkup(createElement(AthleticsTab, {
 {
   const s = answer(petition(college()), 'establish');
   assert(openChairs(s).length === 3 && teamsShortStaffed(s), 'a new team has three open posts, its venue unbuilt or not');
-  assert(bar(s).includes('aria-label="Athletics, a staff post is open"') && /Athletics<\/span><span class="alert-badge"/.test(bar(s)), 'the Athletics button carries the alert badge');
+  assert(bar(s).includes('aria-label="Athletics, a staff post is open"') && /Athletics<\/span><span class="alert-badge needs"/.test(bar(s)), 'the Athletics button carries the alert badge');
   const staffed = structuredClone(s);
   staffed.orgs.teams[0].headCoach = coach('football');
   staffed.orgs.teams[0].assistantCoach = coach('football');
   staffed.orgs.teams[0].trainer = coach(TRAINER_FIELD);
-  assert(!teamsShortStaffed(staffed) && bar(staffed).includes('aria-label="Athletics"') && !/Athletics<\/span><span class="alert-badge"/.test(bar(staffed)), 'every post filled, no badge');
+  assert(!teamsShortStaffed(staffed) && bar(staffed).includes('aria-label="Athletics"') && !/Athletics<\/span><span class="alert-badge/.test(bar(staffed)), 'every post filled, no badge');
 }
 
 if (failures === 0) {

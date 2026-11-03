@@ -141,8 +141,8 @@ export function facilityUpkeepOf(t: Buildable): number {
   return priceUpkeep(facilityPrice(t));
 }
 
-// The library's next floor goes up (RENOVATE_LIBRARY, and Plan 101C's
-// library acquisition, which pays its own price): the node goes back to
+// The library's next floor goes up (Plan 101C's library acquisition, which
+// pays its own price): the node goes back to
 // 'developing' at its placed spot, with its effects raised at the start.
 // renovatingFrom records what it served before, and the satisfaction sums
 // read that while developing (types.ts's servingPopulation), so existing

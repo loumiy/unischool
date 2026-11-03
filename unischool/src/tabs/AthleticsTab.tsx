@@ -28,6 +28,7 @@ import { ReleaseIcon } from '../components/icons';
 import { switchStyle } from '../components/segmentedSwitch';
 import { useCollapse } from '../components/useCollapse';
 import { teamsRing, type TeamsRing } from '../state/chapters';
+import PillarHead from '../components/PillarHead';
 
 // Last season, in a few words. Short on purpose: it sits in a table row
 // beside a rank, not in a report.
@@ -778,19 +779,23 @@ export default function AthleticsTab({ s, act, onOpenBuild }: { s: GameState; ac
   const teams = s.orgs.teams;
 
   return (
-    <div className="tab-content athletics-layout">
-      {/* The department and its trophies in a side column; the programs, each
-          with its standing, and then the market fill the main one. */}
-      <div className="athletics-side">
-        <Department s={s} act={act} />
-        <TrophyCase s={s} />
-      </div>
+    <div className="tab-content">
+      {/* Athletics' part of prestige (Plan 124K). */}
+      <section className="panel pillar-head-panel"><PillarHead s={s} pillar="athletics" /></section>
+      <div className="athletics-layout">
+        {/* The department and its trophies in a side column; the programs, each
+            with its standing, and then the market fill the main one. */}
+        <div className="athletics-side">
+          <Department s={s} act={act} />
+          <TrophyCase s={s} />
+        </div>
 
-      <div className="athletics-main">
-        <PriorityList s={s} act={act} onOpenBuild={onOpenBuild} />
+        <div className="athletics-main">
+          <PriorityList s={s} act={act} onOpenBuild={onOpenBuild} />
 
-        {/* The market last: you notice an empty chair, then look for someone. */}
-        {teams.length > 0 && <TheMarket s={s} act={act} />}
+          {/* The market last: you notice an empty chair, then look for someone. */}
+          {teams.length > 0 && <TheMarket s={s} act={act} />}
+        </div>
       </div>
     </div>
   );

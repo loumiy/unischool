@@ -44,8 +44,13 @@ export function ambienceFor(s: GameState | null): AmbienceLevels {
 
 // Topics that play nothing, on purpose, each with its reason (Plan 70H: a
 // test holds every topic to a cue or a line here, so a new one cannot be
-// silent by accident). Empty for now: every topic has a sound.
-export const SILENT_TOPICS: Partial<Record<LogTopic, string>> = {};
+// silent by accident). Plan 124 D silenced the background ticks.
+export const SILENT_TOPICS: Partial<Record<LogTopic, string>> = {
+  departure: "a professor leaving is not the hire's tick, and has no cue of its own: the log and the Faculty tab say it",
+  candidate: 'the market turns over every week; a tick for each listing was background noise',
+  petition: "a club's petition for recognition is background news, and the log's line says it",
+  publication: 'papers come every few weeks from every lab; a tick for each was background noise',
+};
 
 // Where bad news on a topic sounds different from good (Plan 70H): a game
 // lost, and money going the wrong way.
@@ -69,7 +74,7 @@ export function cuesFor(lines: readonly LogEntry[]): string[] {
 
 // What changed between two weeks that no log line says (Plan 70H): ground
 // broken or a building pulled down, the rank moving, cash going into the
-// red, the board's letters, a title won, and the Final Report.
+// red, the board's letters and a title won.
 export function stateCues(before: GameState, after: GameState): string[] {
   const out: string[] = [];
   const placed = (s: GameState) => Object.keys(s.placements).length;
@@ -81,7 +86,8 @@ export function stateCues(before: GameState, after: GameState): string[] {
   if (before.finance.cash >= 0 && after.finance.cash < 0) out.push('alarm');
   else if (distressOf(after).rung > distressOf(before).rung) out.push('alarm');
   if (after.orgs.titles.length > before.orgs.titles.length) out.push('fanfare');
-  if (!before.ending && after.ending) out.push('fanfare');
+  // The Final Report's fanfare plays as its final grade lands
+  // (FinalReportView.tsx, Plan 124 M3), not when the summer seals it.
   return [...new Set(out)];
 }
 

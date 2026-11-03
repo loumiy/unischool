@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------
-// A library that keeps the floors it has (engine/reducer.ts's
-// RENOVATE_LIBRARY, state/types.ts's servingPopulation, and
+// A library that keeps the floors it has (systems/estate/estate.ts's
+// startLibraryFloor, state/types.ts's servingPopulation, and
 // buildingMotifs.tsx's drawnHeightOf).
 //
 // The library is the one upgrade in the game that makes the SAME building
@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------
 
 import { createInitialState } from '../src/state/actions';
-import { reducer } from '../src/engine/reducer';
+import { startLibraryFloor } from '../src/systems/estate/estate';
 import { tickTech } from '../src/systems/techtree/techSystem';
 import { servedPopulationFor } from '../src/systems/satisfaction/satisfactionSystem';
 import { drawnHeightOf } from '../src/components/buildingMotifs';
@@ -62,6 +62,13 @@ function withLibrary(): { s: GameState; lib: Buildable } {
 
 const libraryIn = (s: GameState) => s.tech.find((t) => t.id === LIBRARY_TIER1_ID)!;
 
+// The next floor goes up on a copy (the library acquisition's path, Plan 101C).
+function addFloor(s: GameState): GameState {
+  const next = structuredClone(s);
+  startLibraryFloor(next);
+  return next;
+}
+
 console.log('library renovation tests');
 
 // --- the seats that exist stay open -----------------------------------
@@ -72,7 +79,7 @@ console.log('library renovation tests');
   assert(open > 0, `an open library serves somebody (${open.toLocaleString()})`);
 
   const plan = nextLibraryFloor(lib)!;
-  const during = reducer(s, { type: 'RENOVATE_LIBRARY' });
+  const during = addFloor(s);
   const node = libraryIn(during);
   assert(node.status === 'developing', 'the renovation puts the same node back into development');
   assert(during.developing[node.id] === plan.weeks, `for the planned ${plan.weeks} weeks`);
@@ -96,7 +103,7 @@ console.log('library renovation tests');
   const open = lib.effects!.servesPopulation!;
   const plan = nextLibraryFloor(lib)!;
 
-  const during = reducer(s, { type: 'RENOVATE_LIBRARY' });
+  const during = addFloor(s);
   for (let week = 0; week < plan.weeks; week += 1) tickTech(during);
 
   const node = libraryIn(during);
@@ -116,7 +123,7 @@ console.log('library renovation tests');
   // student body experiences only ever goes UP. A single mid-point check
   // could be passed by a system that dipped in week 3 and recovered.
   const { s } = withLibrary();
-  const during = reducer(s, { type: 'RENOVATE_LIBRARY' });
+  const during = addFloor(s);
   const readings: number[] = [servedPopulationFor(during, 'academic')];
   for (let week = 0; week < 40; week += 1) {
     tickTech(during);
@@ -152,7 +159,7 @@ console.log('library renovation tests');
   const { s } = withLibrary();
   const finished = drawnHeightOf(libraryIn(s), false, FOUNDING_VERNACULAR);
 
-  const during = reducer(s, { type: 'RENOVATE_LIBRARY' });
+  const during = addFloor(s);
   const node = libraryIn(during);
   const standing = drawnHeightOf(node, true, FOUNDING_VERNACULAR);
 

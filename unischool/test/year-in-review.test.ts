@@ -101,7 +101,9 @@ console.log('year in review tests');
   assert(section(s, 'research').empty.length > 0, 'which still says something');
 
   const students = text(s, 'students');
-  assert(/Satisfaction averaged \d+ this year\. Satisfaction is how happy your students are, out of 100\. From now on it shows at the bottom of the screen/.test(students), `the students section leads with the year's average (${students})`);
+  assert(/Satisfaction averaged \d+ this year/.test(students), `the students section leads with the year's average (${students})`);
+  // Its explanation went in Plan 124B (X8).
+  assert(!students.includes('how happy your students are'), 'and no longer explains satisfaction');
 
   const moneyLines = text(s, 'money');
   const net = s.finance.cash - FOUNDING_PRESET.startingCash;
@@ -112,21 +114,26 @@ console.log('year in review tests');
   assert(['Academics', 'Research', 'Student life', 'Athletics'].every((p) => standing.includes(p)), 'and lists the four pillars by name');
   assert(!buildYearInReview(s).truncated, 'a quiet founding year fits inside the log');
 
-  // Every term carries its "what moves it" (Plan 78C), and it is the line
-  // History › Prestige shows for that term, from the one function.
+  // Every term but the pillars carries its "what moves it" (Plan 78C), and
+  // it is the line History › Prestige shows for that term, from the one
+  // function. The pillars' "stands at N of 150" lines went in Plan 124B (X8).
   const inputs = prestigeBreakdown(s).inputs;
   const termLines = section(s, 'standing').lines.filter((l) => inputs.some((i) => l.text.startsWith(`${i.label}: `)));
   assert(termLines.length >= 5, `the review lists the grade's terms: the pillars and the endowment at least (${termLines.length})`);
   for (const line of termLines) {
     const input = inputs.find((i) => line.text.startsWith(`${i.label}: `))!;
+    if (input.pillar) {
+      assert(line.detail === undefined, `${input.label} has no detail line`);
+      continue;
+    }
     assert(!!line.detail && line.detail.trim().length > 0, `${input.label} has a detail line`);
     assert(line.detail === standingDetailLine(input), `${input.label}'s detail is History's line`);
   }
   // What each term added, as the glance says it, never "of" its most (Plan 114B).
   for (const line of termLines) assert(/^[^:]+: [+−]\d+\.\d$/.test(line.text), `a term's line reads what it added, no "of" (${line.text})`);
-  const academics = termLines.find((l) => l.text.startsWith('Academics: '));
-  assert(!!academics?.detail?.includes('35%'), 'a pillar says what share of prestige it is');
-  assert(section(s, 'standing').lines.filter((l) => l.detail).length === termLines.length, 'and only the terms carry a detail');
+  assert(!text(s, 'standing').includes(' of 150'), 'no pillar says where it stands of 150');
+  const detailed = termLines.filter((l) => !inputs.find((i) => l.text.startsWith(`${i.label}: `))!.pillar);
+  assert(section(s, 'standing').lines.filter((l) => l.detail).length === detailed.length, 'and only the other terms carry a detail');
 }
 
 // --- the review reads topics, not sentences -------------------------------

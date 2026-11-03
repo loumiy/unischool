@@ -16,14 +16,14 @@ import AgeMarks, { Sinkhole, type AgeBand } from './ageMarks';
 import { Bench, dressingProps } from './dressing';
 import { facingToCamera, frontWidth, localToGrid } from './facing';
 import { defaultBenchFacing, turnFacing } from '../state/dressing';
-import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, VenueContext, crowdedVenues, isCommencement } from './mapOccasions';
+import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, PennantContext, VenueContext, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
 import { programStanding, type ProgramStanding } from '../systems/techtree/programProgress';
 import { drawsGlobalOffers, schoolOffers } from '../systems/techtree/programOffers';
 import { SHORTCUTS, isKey, isTypingTarget, useHotkeys } from './hotkeys';
 import HelpHint from './HelpHint';
 import BuildingInfoPanel from './BuildingInfoPanel';
-import { isAcademicHall, programById } from '../data/techData';
+import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import { researchTopic } from '../data/researchTopics';
 import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
@@ -53,14 +53,17 @@ import { reducedMotion, useSettings } from '../settings';
 import { fullResidences } from './residenceFill';
 import { labNewsIn, type LabNews } from './labNews';
 import { linesSince } from './audio/director';
-import { setMapProbe, setMapReview } from './mapProbe';
-import { CloseIcon, MapToolsIcon, TurnViewIcon } from './icons';
+import { audio } from './audio/engine';
+import { clearMapProbe, clearMapReview, setMapProbe, setMapReview, type MapReview } from './mapProbe';
+import { CloseIcon, MapToolsIcon, StartingViewIcon, TiltViewIcon, TurnViewIcon } from './icons';
 import { registerArt, type ArtScope } from './canvasPaint';
 import { MapCanvas, type CanvasEntry, type CanvasScene } from './mapCanvas';
 import type { Crowd, CrowdSink } from './Walkers';
 import { occasion, registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
 import { slotFree } from '../systems/administration/offices';
+import { unstaffedPrograms } from '../systems/techtree/darkness';
+import { CROWD_LEVELS, darkPips, pennantVenues, queuesOf, venueLevels } from './mapSignals';
 import { LOOK_MARKS, marked, type LookMove } from '../state/chapters';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
@@ -140,6 +143,13 @@ const DISTRICT_LOOK_MS = 900;
 // enough to notice at a glance, short enough that a run of completions in a
 // fast-forwarded year does not leave the map permanently flashing.
 const COMPLETION_PULSE_MS = 1500;
+// Founders Hall going up at the founding (Plan 124H, revised by the owner):
+// the same construction stages every other building shows over its build
+// weeks, the frame and then the scaffolded shell, played in under a second
+// before the hall stands. The walkthrough's panels after the placement wait
+// this long (App.tsx). Reduced motion shows the hall at once.
+const FOUNDING_STAGE_MS = 450;
+export const FOUNDING_RISE_MS = FOUNDING_STAGE_MS * 2;
 
 // --- pan & zoom ---
 // Kept out of React state: the world `<g>`'s transform is set imperatively
@@ -251,6 +261,17 @@ function coarsePointer(): boolean {
 // says so.
 const PLACING_HINT = { mouse: ['Click open ground to build', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
 const MOVING_HINT = { mouse: ['Click open ground to move it', '[R] to rotate'], touch: 'Tap or drag to set it down, then tap Place' };
+// The map help's keys (Plan 124A, X2): the camera's and the few a builder
+// needs. Settings lists every key.
+const MAP_HELP_KEYS: readonly (readonly [readonly string[], string])[] = [
+  [['W', 'A', 'S', 'D'], 'or the arrows pan'],
+  [['Q', 'E'], 'turn'],
+  [['Z', 'X'], 'tilt'],
+  [['Home'], 'starting view'],
+  [['R'], 'rotate'],
+  [['Space'], 'pause'],
+  [['Esc'], 'back'],
+];
 function ToolHint({ tool, touch }: { tool: CampusTool; touch: boolean }) {
   return <HintBar hint={TOOL_HINTS[tool]} touch={touch} />;
 }
@@ -552,9 +573,13 @@ const HALL_MARK_LIFT = 28;
 // the hall panel still say which department a course waits on.
 const STANDING_WORD: Record<ProgramStanding, string> = { established: 'Established', distinguished: 'Distinguished' };
 
-function HallMarks({ t, p, slots, offerWaiting, standing, vernacular, onInspect }: {
+function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onInspect }: {
   t: Buildable; p: Placement; slots: ReadonlyArray<HallSlot>;
-  offerWaiting: boolean; standing: ReadonlyArray<ProgramStanding | null>; vernacular: Vernacular; onInspect: () => void;
+  offerWaiting: boolean; standing: ReadonlyArray<ProgramStanding | null>;
+  // A program with a course nobody teaches (Plan 124 L): its pip goes dark,
+  // ringed in dashed red, until a teacher is appointed (mapSignals.ts).
+  dark: ReadonlyArray<boolean>;
+  vernacular: Vernacular; onInspect: () => void;
 }) {
   const { size, centre } = labelLayout(t.name, t, p, vernacular);
   const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
@@ -574,9 +599,11 @@ function HallMarks({ t, p, slots, offerWaiting, standing, vernacular, onInspect 
     .filter(({ n }) => n > 0)
     .map(({ k, n }) => `${n} ${STANDING_WORD[k]}`)
     .join(', ');
+  const darkCount = dark.filter(Boolean).length;
+  const darkWords = darkCount === 0 ? '' : darkCount === 1 ? '1 program dark, a course without a teacher' : `${darkCount} programs dark, courses without a teacher`;
   return (
-    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${tiers ? `, ${tiers}` : ''}${flag ? ', a program on offer' : ''}`}>
-      <title>{`${slots.length - free} of ${slots.length} program slots filled${tiers ? ` · ${tiers} (silver ring Established, gold Distinguished)` : ''}${flag ? ' · room for a program on offer' : ''}`}</title>
+    <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${tiers ? `, ${tiers}` : ''}${darkWords ? `, ${darkWords}` : ''}${flag ? ', a program on offer' : ''}`}>
+      <title>{`${slots.length - free} of ${slots.length} program slots filled${tiers ? ` · ${tiers} (silver ring Established, gold Distinguished)` : ''}${darkWords ? ` · ${darkWords}` : ''}${flag ? ' · room for a program on offer' : ''}`}</title>
       <rect
         className="campus-hall-marks-plate"
         x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}
@@ -586,9 +613,9 @@ function HallMarks({ t, p, slots, offerWaiting, standing, vernacular, onInspect 
       {hues.map((hue, i) => (
         <circle
           key={i}
-          className={`campus-hall-pip${hue ? ' filled' : ''}${standing[i] ? ` ${standing[i]}` : ''}`}
+          className={`campus-hall-pip${hue ? ' filled' : ''}${dark[i] ? ' dark' : standing[i] ? ` ${standing[i]}` : ''}`}
           cx={x0 + i * HALL_PIP_GAP} cy={y} r={HALL_PIP_R}
-          style={hue ? { fill: hue } : undefined}
+          style={hue && !dark[i] ? { fill: hue } : undefined}
         />
       ))}
       {flag && (
@@ -882,13 +909,15 @@ function sceneParts(
   };
 }
 
-function LabelLayer({ placed, inspectedId, vernacular, labelLayerRef }: {
+// `hidden`: a building still going up at the founding (Plan 124H), whose
+// label waits until it stands.
+function LabelLayer({ placed, inspectedId, vernacular, labelLayerRef, hidden = null }: {
   placed: CampusLayout['placed']; inspectedId: string | null; vernacular: Vernacular;
-  labelLayerRef: React.RefObject<SVGGElement | null>;
+  labelLayerRef: React.RefObject<SVGGElement | null>; hidden?: string | null;
 }) {
   return (
     <g ref={labelLayerRef}>
-      {placed.filter(({ t }) => t.facilityType !== 'quad').map(({ t, p, label }) => (
+      {placed.filter(({ t }) => t.facilityType !== 'quad' && t.id !== hidden).map(({ t, p, label }) => (
         <BuildingLabel key={`label-${t.id}`} t={t} p={p} label={label} pinned={t.id === inspectedId} vernacular={vernacular} />
       ))}
     </g>
@@ -925,7 +954,7 @@ const SCENE_DEFS = <ScaffoldPattern />;
 export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
   scene: readonly SceneEntry[]; groundGeo: ReturnType<typeof groundGeometry>;
   name: string; developing: GameState['developing']; turning: boolean; snow: number;
-  crowds: ReadonlySet<string>; banners: GameState['self']['colors'] | null;
+  crowds: ReadonlyMap<string, number>; pennants: ReadonlySet<string>; banners: GameState['self']['colors'] | null;
   // The downtown's step (Plan 85H), whether its windows are warm and how
   // large a festival it is dressed for (Plan 95C): 0, false and 0 at a
   // college not specialized in student life.
@@ -953,21 +982,21 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
       const owner = se.owner ?? null;
       entries.push({
         key: se.key, kind: 'prop', box, node, owner,
-        sig: `${cam}|${elementSig(se.node)}|${owner && a.crowds.has(owner) ? 'crowd' : ''}|${banner}|${colors}`,
+        sig: `${cam}|${elementSig(se.node)}|${owner ? `crowd${a.crowds.get(owner) ?? 0}` : ''}${owner && a.pennants.has(owner) ? 'pen' : ''}|${banner}|${colors}`,
       });
     } else {
       const e = layout.byId.get(se.id)!;
       const id = e.t.id;
       entries.push({
         key: se.key, kind: 'mass', box, node, owner: id,
-        sig: `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|${a.crowds.has(id) ? 'crowd' : ''}|${colors}|${a.name}|${layout.vernacular}`,
+        sig: `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|crowd${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'pen' : ''}|${colors}|${a.name}|${layout.vernacular}`,
       });
     }
   }
   return {
     camera,
     defs: SCENE_DEFS,
-    values: { colors: layout.colors, snow: a.snow, banner: a.banners, collegeName: a.name, developing: a.developing, crowds: a.crowds },
+    values: { colors: layout.colors, snow: a.snow, banner: a.banners, collegeName: a.name, developing: a.developing, crowds: a.crowds, pennants: a.pennants },
     soft: `${a.season}|${a.snow}`,
     ring: {
       node: <RingBack name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} winterLit={a.winterLit ?? false} festive={a.festive ?? 0} colors={layout.colors} />,
@@ -980,7 +1009,7 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
           {parts.ground}
         </>
       ),
-      sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}${a.crowds.has(id) ? 'c' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
+      sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}c${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'p' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
     },
     front: {
       node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} winterLit={a.winterLit ?? false} festive={a.festive ?? 0} colors={layout.colors} />,
@@ -1169,17 +1198,21 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
   camera: Camera;
 }) {
   void camera;
-  const halls = useMemo(() => layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => ({
+  const halls = useMemo(() => {
+    const unstaffed = unstaffedPrograms(s);
+    return layout.placed.filter(({ t }) => isAcademicHall(t) && s.halls[t.id]).map(({ t, p }) => ({
     t, p,
     slots: s.halls[t.id],
     // A claimed hall founds its school's programs while it has any, else
     // (like an open hall) the global offers (Plan 100; drawsGlobalOffers).
     offerWaiting: drawsGlobalOffers(s, t.id) ? s.programOffers.length > 0 : schoolOffers(s, t.id).length > 0,
     standing: s.halls[t.id].map((slot) => (slot.programId ? programStanding(s, slot.programId) : null)),
-  })), [s, layout]);
+    dark: darkPips(s.halls[t.id], unstaffed),
+  }));
+  }, [s, layout]);
   return (
     <>
-      {halls.map(({ t, p, slots, offerWaiting, standing }) => (
+      {halls.map(({ t, p, slots, offerWaiting, standing, dark }) => (
         <HallMarks
           key={`marks-${t.id}`}
           t={t}
@@ -1187,6 +1220,7 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
           slots={slots}
           offerWaiting={offerWaiting}
           standing={standing}
+          dark={dark}
           vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
         />
@@ -1336,8 +1370,18 @@ export default function CampusMap({
   const [turning, setTurning] = useState(false);
   const layout = useCampusLayout(s);
   // This week's occasions (mapOccasions.ts), reference-stable between them.
-  const crowdKey = useMemo(() => crowdedVenues(s).join(','), [s]);
-  const crowds = useMemo(() => new Set(crowdKey ? crowdKey.split(',') : []), [crowdKey]);
+  const crowdKey = useMemo(() => [...venueLevels(s)].map(([id, level]) => `${id}:${level}`).join(','), [s]);
+  const crowds = useMemo(() => new Map(crowdKey ? crowdKey.split(',').map((e) => { const [id, level] = e.split(':'); return [id!, Number(level)] as const; }) : []), [crowdKey]);
+  // A title's pennants round its venue, the year after it is won (Plan 124 M1).
+  const pennantKey = useMemo(() => pennantVenues(s).join(','), [s]);
+  const pennants = useMemo(() => new Set(pennantKey ? pennantKey.split(',') : []), [pennantKey]);
+  // On a full week, people stand about outside the venue.
+  // Only when the stands are packed.
+  const gathered = useMemo(() => [...crowds].filter(([, level]) => level >= CROWD_LEVELS).map(([id]) => id), [crowds]);
+  // The lines at the doors of a dining hall or a clinic while that need is
+  // short (Plan 124 L), reference-stable while they stand.
+  const queueKey = useMemo(() => JSON.stringify(queuesOf(s)), [s]);
+  const queues = useMemo(() => JSON.parse(queueKey) as ReturnType<typeof queuesOf>, [queueKey]);
   const commencement = isCommencement(s);
   const banners = useMemo(() => (commencement ? { ...s.self.colors } : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1374,12 +1418,32 @@ export default function CampusMap({
   // Ground broken (Plan 70H): a puff of dust at a footprint the week it is
   // placed. The first reading is where the run stands, not news.
   const [justPlaced, setJustPlaced] = useState<readonly string[]>([]);
+  // The building going up (FOUNDING_RISE_MS): left out of the canvas while
+  // its construction stages play over its footprint.
+  const [rising, setRising] = useState<string | null>(null);
+  const [riseStage, setRiseStage] = useState<1 | 2>(1);
   const wasPlacedRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     const now = new Set(Object.keys(s.placements));
     const was = wasPlacedRef.current;
     wasPlacedRef.current = now;
-    if (!was || reducedMotion()) return;
+    if (!was) return;
+    // Founders Hall placed (only ever at the founding): it rises into its
+    // footprint, `place` then `complete` (Plan 124H). `place` is the
+    // audio director's, on the placement; `complete` ends the rise.
+    if (now.has(FOUNDERS_HALL_ID) && !was.has(FOUNDERS_HALL_ID)) {
+      const still = reducedMotion();
+      if (!still) {
+        setRising(FOUNDERS_HALL_ID);
+        setRiseStage(1);
+        pulseTimersRef.current.push(window.setTimeout(() => setRiseStage(2), FOUNDING_STAGE_MS));
+      }
+      pulseTimersRef.current.push(window.setTimeout(() => {
+        setRising(null);
+        audio.play('complete');
+      }, still ? 0 : FOUNDING_RISE_MS));
+    }
+    if (reducedMotion()) return;
     const fresh = [...now].filter((id) => !was.has(id));
     if (fresh.length === 0 || fresh.length > 3) return;
     setJustPlaced((cur) => [...cur, ...fresh]);
@@ -1416,18 +1480,21 @@ export default function CampusMap({
   // Whether a placed building is on the screen now (Plan 70H: a toast
   // speaks for one finished out of sight). Read by Toasts.tsx through
   // mapProbe.ts, so the map need not know about toasts.
-  useEffect(() => setMapProbe((id) => {
-    const p = s.placements[id];
-    const svg = svgRef.current;
-    if (!p || !svg) return false;
-    const rect = svg.getBoundingClientRect();
-    const v = viewRef.current;
-    const w = project(p.col + p.w / 2, p.row + p.h / 2);
-    const x = w.x * v.zoom + v.x;
-    const y = w.y * v.zoom + v.y;
-    return rect.width > 0 && x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
-  }), [s.placements]);
-  useEffect(() => () => setMapProbe(null), []);
+  useEffect(() => {
+    const probe = (id: string) => {
+      const p = s.placements[id];
+      const svg = svgRef.current;
+      if (!p || !svg) return false;
+      const rect = svg.getBoundingClientRect();
+      const v = viewRef.current;
+      const w = project(p.col + p.w / 2, p.row + p.h / 2);
+      const x = w.x * v.zoom + v.x;
+      const y = w.y * v.zoom + v.y;
+      return rect.width > 0 && x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+    };
+    setMapProbe(probe);
+    return () => clearMapProbe(probe);
+  }, [s.placements]);
 
   // `selectedId` can change from outside (BuildPopup.tsx), so a fresh pickup
   // resets the facing here: its front toward the player.
@@ -2458,17 +2525,50 @@ export default function CampusMap({
   const seasonKey = useMemo(() => JSON.stringify(season), [season]);
   const groundClass = `${selected ? 'placing' : ''} ${pathTool ? `path-${pathTool}` : ''} ${highlightId ? 'inspecting' : ''}`;
   const prevLayoutRef = useRef<CampusLayout | null>(null);
+  // The rising building's own entries (Plan 124H): out of the canvas while
+  // it rises, drawn over it (risingArt, below).
+  const risingEntries = useMemo(
+    () => (rising ? sceneList.filter((se) => (se.kind === 'mass' && se.id === rising) || (se.kind === 'prop' && se.owner === rising)) : []),
+    [rising, sceneList],
+  );
   const canvasScene = useMemo(() => {
     if (!canvasOn()) return null;
     const scene = canvasSceneOf({
-      layout, camera, scene: sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, banners, district, winterLit, festive,
+      layout, camera, scene: risingEntries.length > 0 ? sceneList.filter((se) => !risingEntries.includes(se)) : sceneList, groundGeo, name: s.self.name, developing: s.developing, turning, snow, crowds, pennants, banners, district, winterLit, festive,
       inspectedId: highlightId, justFinished, onInspect, labelLayerRef, season: seasonKey, groundClass, prevLayout: prevLayoutRef.current,
     });
     prevLayoutRef.current = layout;
     return scene;
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [layout, camera, sceneList, groundGeo, s.self.name, s.developing, turning, snow, crowds, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
+  [layout, camera, sceneList, risingEntries, groundGeo, s.self.name, s.developing, turning, snow, crowds, pennants, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
+  // The building going up, drawn over the canvas in its construction
+  // stages (siteProgressArt's own art): the frame to full height, then the
+  // closed shell in scaffolding. Canvas map only: the SVG map, kept for
+  // comparison, shows it at once.
+  const risingArt = (() => {
+    if (risingEntries.length === 0 || !rising) return null;
+    const p = layout.placements[rising];
+    const t = s.tech.find((n) => n.id === rising);
+    if (!p || !t) return null;
+    const d = drawnFootprint(p);
+    const height = wallHeightOf(t);
+    const shell = boxFaces(d.col, d.row, d.w, d.h, 0, height);
+    return (
+      <g aria-hidden="true" pointerEvents="none" className="founding-site">
+        {riseStage === 1 && <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={height} floors={storeysOf(t)} />}
+        {riseStage === 2 && (
+          <g className="campus-site-shell">
+            <polygon className="campus-site-wall" points={polyPoints(shell.left)} />
+            <polygon className="campus-site-wall" points={polyPoints(shell.right)} />
+            <polygon className="campus-site-wall" points={polyPoints(shell.top)} />
+            <polygon className="campus-site-hatch" points={polyPoints(shell.left)} />
+            <polygon className="campus-site-hatch" points={polyPoints(shell.right)} />
+          </g>
+        )}
+      </g>
+    );
+  })();
   // The compositor, once its canvas is mounted.
   useLayoutEffect(() => {
     const canvas = sceneCanvasRef.current;
@@ -2488,7 +2588,8 @@ export default function CampusMap({
   }, [canvasBroke]);
   // What the review tools read of the map (mapProbe.ts's MapReview).
   useEffect(() => {
-    setMapReview({
+    // Set on every mount, and cleared only if still this map's (mapProbe.ts).
+    const review: MapReview = {
       renderer: () => (canvasOn() ? 'canvas' : 'svg'),
       view: () => ({ ...viewRef.current }),
       settled: () => (canvasOn() ? mapCanvasRef.current?.settled() ?? false : true),
@@ -2512,8 +2613,9 @@ export default function CampusMap({
           return { id: t.id, name: label, x: (rect?.left ?? 0) + c.x * v.zoom + v.x, y: (rect?.top ?? 0) + c.y * v.zoom + v.y };
         });
       },
-    });
-    return () => setMapReview(null);
+    };
+    setMapReview(review);
+    return () => clearMapReview(review);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Fallen back to the SVG map: its land and scene take the view.
@@ -2591,9 +2693,10 @@ export default function CampusMap({
           <defs><ScaffoldPattern /></defs>
           <g ref={worldRef}>
             {canvasOn() ? (<>
-              <CanvasLabels placed={layout.placed} inspectedId={highlightId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} />
+              <CanvasLabels placed={layout.placed} inspectedId={highlightId} vernacular={layout.vernacular} labelLayerRef={labelLayerRef} camera={camera} hidden={rising} />
             </>) : (<>
             <CrowdContext.Provider value={crowds}>
+            <PennantContext.Provider value={pennants}>
             <BannerContext.Provider value={banners}>
             <ColorsContext.Provider value={layout.colors}>
             <CollegeNameContext.Provider value={s.self.name}>
@@ -2613,10 +2716,13 @@ export default function CampusMap({
             </CollegeNameContext.Provider>
             </ColorsContext.Provider>
             </BannerContext.Provider>
+            </PennantContext.Provider>
             </CrowdContext.Provider>
             </>)}
-            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} />
-            <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
+            {risingArt}
+            <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} queues={queues} gathered={gathered} />
+            {/* Founders Hall's slots wait for it to stand (Plan 124H). */}
+            {!rising && <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />}
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <FullMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             {justPlaced.map((id) => {
@@ -2759,24 +2865,27 @@ export default function CampusMap({
           </button>
           {toolsOpen && (
             <>
-              <HelpHint
-                align="end"
-                text="This is your campus. To add a building, click Build in the toolbar, pick a building, and click the map to place it. You pay when you place it, and it goes up right there. Press R to turn it 90 degrees. With the bench tool, R turns the bench. A building needs empty ground under its whole footprint. It also needs a walking route from the road on the south edge. If a spot won't work, the ghost tells you why. Paths are free. Press P, or click Paths in the build menu and pick Paving, Cobbles or Brick. Drag to pave, and right click to delete. Hold Shift for a straight line, or Ctrl (⌘ on a Mac) to fill a rectangle. Paths shape the quads and add to campus beauty. The Grounds tab in the build menu has trees of each kind, lamps, banner lamps, benches and flower beds. Place them anywhere on open ground. Its Eraser deletes any of them, paths and trees too. Every tab opens over the map. To come back, click Campus or the tab's Close, or press Escape. Keys: W, A, S, D or the arrows pan. Q and E turn the view. Z and X tilt it. Home goes back to the starting view. R rotates. P draws paths. Escape backs out one step at a time. C opens Curriculum, F opens Faculty, and L opens Students. Space pauses. 1 to 4 set the speed. M mutes. You can also pan by dragging the map or holding the scroll wheel. Scroll or pinch to zoom. On a touch screen, one finger pans and two fingers pinch to zoom. Tap a building to open it. To place a building, tap or drag to set it down, then tap Place. The curved-arrow buttons turn the view. ⤓ and ⤒ tilt it. ⌂ goes back to the starting view."
-              />
+              {/* The map's help (Plan 124A): under 80 words, the keys as a
+                  list, and the touch lines only once the map is touched. */}
+              <HelpHint align="end" label="Map help" text="Click Build, pick a building, then click the map.">
+                <p>Press P and drag to lay a path. Right click removes one.</p>
+                <ul className="map-help-keys">
+                  {MAP_HELP_KEYS.map(([keys, does]) => (
+                    <li key={does}><span>{keys.map((k) => <kbd key={k}>{k}</kbd>)}</span>{does}</li>
+                  ))}
+                </ul>
+                {touchUi && <p>One finger pans. Two fingers pinch to zoom. To build, tap the ground, then Place.</p>}
+              </HelpHint>
               <button type="button" onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
               <button type="button" onClick={() => zoomBy(0.8)} aria-label="Zoom out">−</button>
-              {/* The camera's keys (Q/E, Z/X, Home) as buttons, once the map
-                  has been touched (Plans 70F and 70G); a keyboard player has
-                  the keys. */}
-              {touchUi && (
-                <>
-                  <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left"><TurnViewIcon direction="left" /></button>
-                  <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right"><TurnViewIcon direction="right" /></button>
-                  <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down">⤓</button>
-                  <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up">⤒</button>
-                  <button type="button" onClick={resetCamera} aria-label="Back to the starting view">⌂</button>
-                </>
-              )}
+              {/* The camera's keys (Q/E, Z/X, Home) as buttons on every
+                  device (Plan 124A, R-1: on desktop they were keys only,
+                  though the tooltip promised them). */}
+              <button type="button" onClick={() => turnBy(1)} aria-label="Turn the view left"><TurnViewIcon direction="left" /></button>
+              <button type="button" onClick={() => turnBy(-1)} aria-label="Turn the view right"><TurnViewIcon direction="right" /></button>
+              <button type="button" onClick={() => tiltBy(-1)} aria-label="Tilt the view down"><TiltViewIcon direction="down" /></button>
+              <button type="button" onClick={() => tiltBy(1)} aria-label="Tilt the view up"><TiltViewIcon direction="up" /></button>
+              <button type="button" onClick={resetCamera} aria-label="Back to the starting view"><StartingViewIcon /></button>
             </>
           )}
         </div>

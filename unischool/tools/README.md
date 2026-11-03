@@ -491,6 +491,10 @@ npm run review:sweep -- --seeds 1-10 --years 50   # invariants every week, a sav
 npm run review:sweep -- --fixtures --years 5      # every committed save fixture, loaded and played on
 node tools/review/twoTabs.mjs save.json    # four ways two tabs meet one save, each with the week it expects
 npm run sheet -- --every                   # every placeable, each school's hall, each venue expansion
+npm run review:census                      # Plan 123 A: surfaces, actions, state fields, words (after review:strings)
+npm run review:web                         # Plan 123 D: a first draft of which systems feed which
+npm run review:juice -- hire save.json resume -- "click=Hire"   # Plan 123 C: what the game does back
+node tools/review/drive.mjs <profile> fresh silent …            # Plan 123 B: play with the explanations hidden
 ```
 
 - **`goalPlayers.ts`** plays the game toward one goal at a time (the most
@@ -529,4 +533,19 @@ npm run sheet -- --every                   # every placeable, each school's hall
   sessions were played with it. `load=<save.json>` starts from a scenario
   save, and `move=x,y` moves the pointer without clicking, which is how a
   building is carried to its site. It fires `pagehide` before closing,
-  since that is when the game saves.
+  since that is when the game saves. `silent` (first among the steps) hides
+  the prose that explains, letter bodies, briefings, help, hints and
+  tooltips, for Plan 123's silent run; titles, labels, numbers and buttons
+  stay.
+- **`census.mjs`** (Plan 123) lists every surface file with its words, the
+  player actions it dispatches and the state it reads; every action with
+  the surfaces that dispatch it; and every state field no surface reads.
+  `--tabs <json>` joins tab opens read from the play statistics.
+- **`web.mjs`** (Plan 123) drafts the systems' graph from the imports
+  between `src/systems/` folders, with the surfaces that import each. Imports
+  are not causes: the reviewer corrects it.
+- **`juice.mjs`** (Plan 123) plays one verb from a save and, for five
+  seconds after it, records how much of the screen changed at nine moments
+  (with a filmstrip), the page's mutations, and every sound voice started.
+  Times include Playwright's own input latency, so compare verbs with each
+  other rather than against a frame budget.

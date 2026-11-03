@@ -19,7 +19,10 @@ program holds it (`schoolPalette.ts`) — a pure hall reads as one colour, a
 mixed one as several, a free slot as an empty ring — and a gold `+` beside
 them when a slot is free and a program is on offer for it: the draw, or a
 claimed hall's own school's programs (Plan 78D; `HallMarks` in
-`CampusMap.tsx`). Unlike the labels, the marks are always on. The Curriculum
+`CampusMap.tsx`). A program's pip goes dark, ringed in dashed red, while
+one of its courses has no teacher (`darkness.ts`'s unstaffed reading), and
+takes its colour back when one is appointed (Plan 124 L). Unlike the
+labels, the marks are always on. The Curriculum
 tab's "Found in <hall>" door comes back the other way: `App.tsx` closes the
 tab and hands the hall's id to the map (`inspectTarget`), which pans to the
 building and opens its panel — the same one-way, consumed-on-arrival channel
@@ -146,7 +149,15 @@ does change weekly reaches the scene through React contexts, which redraw
 only their consumers:
 
 - `DevelopingContext`: a site's countdown, progress bar and rising shell;
-- `CrowdContext`: the stands of a venue with a game this week;
+- `CrowdContext`: the stands of a venue full this week (about one week in
+  three each, off the map's own random numbers, not the fixtures; Plan 124
+  M1): packed row by row with seated figures drawn as the walkers are, a
+  little smaller (`spectators.tsx`), corners and all, as part of the
+  venue's own drawing, so thousands of them cost a recording a week and
+  not a frame; people stand about outside it too (`Walkers`' standers);
+- `PennantContext`: the venues whose teams have won a national title in a
+  year now over, which fly pennants in the college's colours all the way
+  round their rim, and keep them;
 - `BannerContext`: the lamps in commencement week.
 
 The hall pips and the walkers are drawn after the scene from the live
@@ -353,6 +364,12 @@ walkable (`state/quadGeometry.ts`): on the Grand Quad they keep to its
 perimeter walk, cross walks and the round plaza they meet at, going round
 the fountain; its hedged lawn panels are kept off (Plan 87K). A path drawn tile by tile replans their routes once it has
 stood still for a moment, not at every tile.
+While dining or health is short of 100 on the Students tab, a line of
+figures drawn as the walkers are waits at each dining hall's or clinic's
+front door, out of it and along the wall, a figure longer for every five
+points short up to fourteen (Plan 124 L; `mapSignals.ts`'s `queuesOf` and
+`queueSpots`). They stand in the crowd the map draws (`Walkers`' standers),
+so they take their place in the depth order, and go when the need is met.
 Desire lines wear the lawn where the busiest routes cross it. The player's
 lamps, banner lamps, benches and flower beds (`GameState.dressing`), bike
 racks by the doors of a big college, and the flag at Founders Hall are props
@@ -481,6 +498,19 @@ stadium (a real one is about 220m by 180m — 15x12) pins down, so a library, a
 pool, a hospital and a stadium stand in something like their real proportions
 to each other. Size is purely geometric: a bigger building grants nothing and
 costs nothing extra.
+
+**The football stadium's outside** (Plan 124 M2, `stadiumFacade.tsx`) is a
+college stadium's, after Ohio Stadium, Notre Dame Stadium and Bryant-Denny:
+a stone plinth, ground-level openings with a wide gate every sixth bay, a
+tier of tall arches ringed in stone voussoirs, the college's colours on
+every third pier, and a limestone cornice carrying the stadium's name (a
+plain "Football Stadium" carries the college's), with an entrance tower at
+the corner between its front and its left. The arches are round, pointed
+where the set's lights are lancets, square-headed where its openings are
+concrete slots; the walls are the set's own. It grows with the stadium:
+the opening stands get an arcade along their backs, the end stands a
+second, the closed bowl the full wall, the gates and the tower, and the
+upper deck a second tier of arches and a taller tower.
 
 **The residence halls take v2's residence types** (Plan 72D): each of the
 eight 500- and 1,000-bed rungs is a Residence Hall, a House, Suites, an

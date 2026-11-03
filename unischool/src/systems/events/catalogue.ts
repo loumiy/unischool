@@ -87,9 +87,8 @@ function meanWarmth(s: GameState): number {
   // Each class's warmth as giving reads it, capped (giving.ts's warmthOf).
   return a.length === 0 ? 50 : a.reduce((t, c) => t + warmthOf(c), 0) / a.length;
 }
-// v2's reputation runs to 100, this game's prestige to 150 (a promise's
-// target line shows it as prestige).
-export const REPUTATION_SCALE = 150 / 100;
+// v2's reputation runs to 100, this game's prestige to 150.
+const REPUTATION_SCALE = 150 / 100;
 
 // Each condition as a reading and whether the event's number is a floor or
 // a ceiling on it.
@@ -161,12 +160,6 @@ const READINGS: Record<ConditionKey, [(s: GameState) => number, 'min' | 'max']> 
   downtownAtLeast: [districtGrowth, 'min'],
 };
 
-// One condition's reading now, unscaled: what a promise's target line says
-// the college stands at (systems/promises/promiseTargets.ts).
-export function conditionReading(s: GameState, key: ConditionKey): number {
-  return READINGS[key][0](s);
-}
-
 // Money thresholds were written for v2's founding college and scale as its
 // prices do.
 export const MONEY_CONDITIONS: ReadonlySet<ConditionKey> = new Set(['endowmentOver', 'endowmentUnder', 'cashOver', 'cashUnder', 'debtOver', 'debtUnder', 'deficitOver', 'backlogOver', 'backlogUnder']);
@@ -175,8 +168,7 @@ export function conditionsMet(s: GameState, e: CatalogueEvent): boolean {
   return whenMet(s, e.when);
 }
 
-// Any set of conditions in the catalog's vocabulary (promises read theirs
-// here too).
+// Any set of conditions in the catalog's vocabulary.
 export function whenMet(s: GameState, when: Partial<Record<ConditionKey, number>>, scale = priceScale(s)): boolean {
   for (const [key, raw] of Object.entries(when) as [ConditionKey, number][]) {
     const [read, bound] = READINGS[key];

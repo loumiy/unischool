@@ -14,7 +14,8 @@ import { DRAWER_WORDS } from '../data/chapterData';
 // scrolls its own panes (the inbox's list and reading pane, Plan 77).
 // No `onClose`: the view cannot be left (the inbox while a stop waits on
 // an answer, Plan 77).
-// `onGuide`: the tab's Guide button (Plan 106 PR G), which opens the
+// `onGuide`: the tab's Show me button (Plan 106 PR G's Guide, renamed by
+// Plan 124 D), which opens the
 // drawer on the page of the chapter that introduced it (its about and its
 // objectives' help, Plan 112A); absent until that chapter has opened.
 export default function TabOverlay({ title, onClose, split = false, onGuide, children }: {
@@ -30,7 +31,7 @@ export default function TabOverlay({ title, onClose, split = false, onGuide, chi
         <h2>{title}</h2>
         {onGuide && (
           <button type="button" className="tab-overlay-guide" onClick={onGuide} aria-label={DRAWER_WORDS.guideTab(title)}>
-            {DRAWER_WORDS.guide}
+            {DRAWER_WORDS.showMe}
           </button>
         )}
         {onClose ? (

@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------
 // The events made true (Plan 76D): what an answer says it does, it does.
 //   - The lever test: a choice whose label names a lever (hire, pay,
-//     repair, plant, fell, list, promise, draw, close, salary, campaign)
+//     repair, plant, fell, list, draw, close, salary, campaign)
 //     touches that lever in its effects, or says what it does instead.
 //   - Every event can fire: its conditions can all hold in one week the
 //     catalog ticks (no winter that only week 52 reaches, no v2 mood scale,
@@ -21,7 +21,6 @@ import { BOARD_QUESTIONS, EXPANSION_SHARE } from '../src/data/boardQuestionData'
 import { applyEffects, eligible, eventById, namedDamage, rollVars, TENURE_CASE_MAX_YEARS, TENURE_CASE_MIN_YEARS } from '../src/systems/events/catalogue';
 import { resolveCatalogueEvent } from '../src/systems/events/catalogueEngine';
 import { springTermWeek, winterDepth } from '../src/state/winter';
-import { promisesOf } from '../src/systems/promises/promises';
 import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
 import type { CatalogueChoice } from '../src/data/eventCatalogueTypes';
 
@@ -58,7 +57,6 @@ const LEVERS: Lever[] = [
   { word: /\b(plant|replant)\b(?! and)/i, ok: (c) => (e(c).trees ?? 0) > 0 || (e(c).replant ?? 0) > 0, why: 'planting plants' },
   { word: /\bfell\b/i, ok: (c) => (e(c).trees ?? 0) < 0, why: 'felling fells' },
   { word: /\b(designation|historic)\b/i, ok: (c) => (e(c).historic ?? 0) > 0 || /object/i.test(c.label), why: 'supporting a designation declares the building historic' },
-  { word: /^promise\b/i, ok: (c) => !!c.promise, why: 'a promise is made in the promise system' },
   { word: /\b(cut|stop|lower) (the )?(draw|rate)\b/i, ok: (c) => (e(c).drawRate ?? 0) < 0, why: 'lowering the draw lowers the draw rate (Plan 101C)' },
   { word: /\bclose (it|the (east end|laborator|labs?\b)|down)/i, ok: () => false, why: 'no event can close a building or a lab' },
   { word: /\bclose \{program\}/i, ok: (c) => (e(c).closeProgram ?? 0) > 0, why: 'closing a program closes it (Plan 101H)' },
@@ -221,13 +219,6 @@ function college(): GameState {
   s.finance.loans = [{ buildingId: 'x', balance: 300_000, payment: 1000, weeksLeft: 100 }];
   applyEffects(s, { debt: -1_000_000 });
   assert(!s.finance.loans?.length && s.finance.cash === cash + 700_000, 'clearing more debt than is owed returns the rest as cash');
-}
-{
-  const s = college();
-  const ev = eventById('the-rankings-slip')!;
-  s.catalogue = { pending: [{ instanceId: 'i1', eventId: ev.id, firedWeek: 1, vars: rollVars(s, ev), scale: 1 }], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
-  resolveCatalogueEvent(s, 'i1', 'promise');
-  assert(promisesOf(s).active.some((a) => a.id === 'a-rise-in-the-guide' && a.dueYear === 35), 'promising a rise makes the promise, due in five years');
 }
 {
   const s = college();

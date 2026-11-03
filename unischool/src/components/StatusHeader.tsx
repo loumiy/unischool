@@ -126,6 +126,8 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
   const rank = playerRank(s);
   const fundsHint = useId();
   const rankFlash = useRankFlash(rank);
+  // Rank and Prestige: one hint and one door, History's Prestige (Plan 124 C).
+  const standingHint = FIGURE_HINTS.standing(s.rivals.length + 1);
   // A chip that has a door is a button named with its figure (Plan 78C).
   const door = (chip: StatChip, figure: string) => {
     const d = quiet ? null : chipDoor(chip, figure);
@@ -165,7 +167,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
         <span className="figure-hint above" role="tooltip" id={fundsHint}>{FIGURE_HINTS.funds}</span>
       </button>
       <div className={`toolbar-stats${quiet ? ' quiet' : ''}`}>
-        <FigureBox className={`toolbar-stat ${rankFlash}`} above hint={FIGURE_HINTS.rank(s.rivals.length + 1)} door={door('rank', `#${rank}`)}>
+        <FigureBox className={`toolbar-stat ${rankFlash}`} above hint={standingHint} door={door('rank', `#${rank}`)}>
           <RankIcon />
           {word('rank')}
           <span className="stat-value">#{rank}</span>
@@ -175,7 +177,7 @@ export function FundsAndStats({ s, onOpenTreasury, treasuryOpen, onOpenSection, 
           {word('enrolled')}
           <span className="stat-value"><AnimatedNumber value={totalEnrolled(s.students)} /></span>
         </FigureBox>
-        <FigureBox className="toolbar-stat" above hint={FIGURE_HINTS.prestige} door={door('prestige', prestigeFigure(s.self.reputation))}>
+        <FigureBox className="toolbar-stat" above hint={standingHint} door={door('prestige', prestigeFigure(s.self.reputation))}>
           <PrestigeIcon />
           {word('prestige')}
           <span className="stat-value gold">

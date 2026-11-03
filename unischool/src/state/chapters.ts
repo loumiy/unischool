@@ -1,12 +1,14 @@
 import type { Buildable, GameState, GuidanceState, VarsityTeam } from './types';
 import { coursesDone, totalEnrolled, WEEKS_PER_YEAR } from './types';
-import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, foundSchoolHelp, labRisingHelp, secondCourseWaitHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
+import { CHAPTER_COPY, COURSE_MILESTONES, foundSchoolHelp, teachObjective, type ChapterId, type Lever } from '../data/chapterData';
 import { housedPrograms, isDiningHall, isDorm, sitedAny, walkProgram } from '../data/openingData';
 import { instructionCapacity } from '../systems/techtree/instructionCapacity';
 import { weeklyNet } from '../systems/finance/financeSystem';
+import { financingFor } from '../systems/finance/treasury';
+import { canStartDevelopment } from '../systems/techtree/techSystem';
 import { computePrestigeTarget } from '../systems/prestige/prestigeSystem';
 import { darkPrograms } from '../systems/techtree/darkness';
-import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall, programById } from '../data/techData';
+import { academicHallId, FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import { MEDICAL_CENTER_ID } from '../data/projectData';
 import { RESEARCH_PARK_ID } from '../data/researchParkData';
 import { GRADE_B } from '../data/courseQuality';
@@ -26,7 +28,8 @@ import { besideTiles, pathsFromFounders } from './drive';
 // instruction. An objective is met the moment its reading holds, in any
 // order and by any route, and it stays met however the college changes
 // after. A chapter is done when every objective it requires is met, and the
-// next opens once that is so and its earliest week has come. No date ever
+// next opens once that is so, its earliest week has come and its first
+// objective can be acted on (Plan 124B, `ready`). No date ever
 // forces a chapter open (Plan 106 §7.3): a slow player meets each system
 // when they finish the chapter before it. Finishing earns nothing but what
 // the next chapter opens (§7.2).
@@ -58,6 +61,13 @@ export interface Objective {
   // Shown and counted, but the chapter can be done without it: a habit
   // worth teaching that the college's state cannot always tell.
   optional?: boolean;
+  // Whether it can be acted on yet (Plan 124B, X4): until it can, it is
+  // left out of the drawer and the ticker, and its chapter still waits for
+  // it. A chapter whose first required objective isn't ready waits to open
+  // (settleChapters). Met counts as ready. In place of the help that said
+  // why it couldn't be done yet: where the wait is the lesson, the control
+  // shows it.
+  ready?: (s: GameState) => boolean;
 }
 
 export interface Chapter {
@@ -96,6 +106,13 @@ export const DOUBLE_SPEED_MARK = 'speed-2x';
 // (CampusMap.tsx), by key, mouse or touch alike.
 export const LOOK_MARKS = { pan: 'look:pan', turn: 'look:turn', tilt: 'look:tilt', zoom: 'look:zoom', home: 'look:home' } as const;
 export type LookMove = keyof typeof LOOK_MARKS;
+// The chapters the drawer offers to skip (Plan 124A, the owner's note on
+// X1): Looking around, whose skip marks its four required moves as if made,
+// so it closes and Somewhere to sleep can open. Recorded like any mark, so
+// chapter_done still fires.
+export const SKIP_MARKS: Partial<Record<ChapterId, readonly string[]>> = {
+  'looking-around': [LOOK_MARKS.pan, LOOK_MARKS.turn, LOOK_MARKS.tilt, LOOK_MARKS.zoom],
+};
 
 // Somewhere to sleep's path (Plan 115D).
 export const PATH_OBJECTIVE = 'path-to-founders';
@@ -121,7 +138,9 @@ export const CHAPTERS: readonly Chapter[] = [
     id: 'next-course',
     earliest: week(1, 1),
     objectives: [
-      { id: 'develop-second-course', progress: laterCourseStarted },
+      // Ready once a program's first course is taught, so a later one can
+      // be started: the chapter waits the first course's weeks to open.
+      { id: 'develop-second-course', progress: laterCourseStarted, ready: (s) => walkProgram(s) !== null },
       { id: 'run-at-double', progress: (s) => marked(s, DOUBLE_SPEED_MARK), optional: true },
     ],
   },
@@ -231,13 +250,18 @@ export const CHAPTERS: readonly Chapter[] = [
   },
   {
     // Academic halls and schools, once Elm Hall can be built (eight
-    // courses taught, techData.ts's FIRST_HALL_COURSE_GATE).
+    // courses taught, techData.ts's FIRST_HALL_COURSE_GATE) and paid for
+    // (Plan 124B: its first objective's `ready`).
     id: 'hall-of-its-own',
     earliest: week(2, 27),
     opensWhen: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.status !== 'locked'),
     objectives: [
-      { id: 'site-academic-hall', progress: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.id in s.placements) },
-      { id: 'move-a-program', progress: (s) => Object.entries(s.halls).some(([id, slots]) => id !== FOUNDERS_HALL_ID && slots.some((slot) => slot.programId !== null)) },
+      // Ready once Elm Hall can be paid for, in cash or with a loan: the
+      // chapter waits for it, and the build menu's greyed card fills toward
+      // its price meanwhile (BuildPopup.tsx).
+      { id: 'site-academic-hall', progress: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.id in s.placements), ready: firstHallAffordable },
+      // Ready once the new hall stands.
+      { id: 'move-a-program', progress: (s) => Object.entries(s.halls).some(([id, slots]) => id !== FOUNDERS_HALL_ID && slots.some((slot) => slot.programId !== null)), ready: (s) => s.tech.some((t) => isAcademicHall(t) && t.id !== FOUNDERS_HALL_ID && t.status === 'done' && t.id in s.placements) },
     ],
   },
   {
@@ -507,10 +531,17 @@ export function treasuryRinged(s: GameState): boolean {
   return currentChapter(s)?.id === 'paying-for-it' && !objectiveMet(s, 'open-treasury');
 }
 
+// The first academic hall can be started now, paid in cash or with a loan
+// (the build menu's own test, BuildPopup.tsx).
+function firstHallAffordable(s: GameState): boolean {
+  const hall = s.tech.find((t) => t.id === FIRST_HALL_ID);
+  return hall?.status === 'available' && financingFor((f) => canStartDevelopment(s, hall, undefined, f)) !== null;
+}
+
 // An objective's help, behind its (?) in the drawer: the chapter's words,
-// except where they would point at something not there yet. The first
-// academic hall still locked, its help says what opens it and its Show me
-// goes to the Curriculum (Plan 112A).
+// except where the college names something (the school closest to six).
+// The helps that said why an objective couldn't be done yet went in Plan
+// 124B: such an objective waits out of sight until it can (`ready`).
 const isLab = (t: Buildable) => t.facilityType === 'lab';
 
 // The first lab built, not just placed: the Research tab opens with it.
@@ -524,20 +555,6 @@ export function objectiveHelp(s: GameState, chapter: ChapterId, objective: strin
     const p = closestSchool(s);
     const hall = p ? s.tech.find((t) => t.id === p.hallId) : undefined;
     if (p && hall) return foundSchoolHelp(p.school, p.housed, hallDisplayName(s, hall), p.hallId);
-  }
-  // A lab placed and going up: say so, and how long (the owner's note).
-  if (objective === 'site-a-lab' && !labBuilt(s)) {
-    const rising = s.tech.find((t) => isLab(t) && t.status === 'developing' && t.id in s.placements);
-    if (rising) return labRisingHelp(s.developing[rising.id] ?? rising.duration);
-  }
-  if (objective === 'site-academic-hall' && s.tech.find((t) => t.id === FIRST_HALL_ID)?.status === 'locked') return HALL_LOCKED_HELP;
-  // No program's first course taught yet, and one still being written: wait
-  // for it before the second (Plan 118E, I7).
-  if (objective === 'develop-second-course' && walkProgram(s) === null) {
-    const writing = housedPrograms(s)
-      .map((id) => s.tech.find((t) => t.id === programById(id)?.entryCourseId))
-      .find((t) => t?.status === 'developing');
-    if (writing) return secondCourseWaitHelp(writing.name.split(' · ')[0], s.developing[writing.id] ?? writing.duration);
   }
   return CHAPTER_COPY[chapter].help?.[objective];
 }
@@ -572,11 +589,18 @@ export function objectiveMet(s: GameState, id: string): boolean {
   return s.guidance?.met.includes(id) ?? false;
 }
 
+// Whether an objective can be acted on now (Plan 124B): met, or ready, or
+// with no `ready` to ask.
+export function objectiveReady(s: GameState, o: Objective): boolean {
+  return !o.ready || objectiveMet(s, o.id) || isMet(o.progress(s)) || o.ready(s);
+}
+
 // What the drawer lists for a chapter: each objective's words, its reading
-// now, and whether it is met for good.
+// now, and whether it is met for good. One not ready yet is left out
+// (Plan 124B).
 export function objectiveRows(s: GameState, c: Chapter): { id: string; text: string; progress: ObjectiveProgress; met: boolean; optional: boolean }[] {
   const words = CHAPTER_COPY[c.id].objectives;
-  return c.objectives.map((o) => ({
+  return c.objectives.filter((o) => objectiveReady(s, o)).map((o) => ({
     id: o.id,
     text: words[o.id],
     progress: o.progress(s),
@@ -613,6 +637,10 @@ export function settleChapters(s: GameState): void {
     if (g.done[c.id] !== undefined) return true;
     if (g.opened[c.id] === undefined) {
       if (c.earliest > now || (c.opensWhen && !c.opensWhen(s))) return false;
+      // Its first required objective must be one the player can act on
+      // (Plan 124B): no chapter opens on a wait.
+      const first = c.objectives.find((o) => !o.optional);
+      if (first && !objectiveReady(s, first)) return false;
       g.opened[c.id] = now;
     }
     for (const o of c.objectives) {
@@ -661,6 +689,14 @@ export function nextChapter(s: GameState): Chapter | null {
   return CHAPTERS.find((c) => !c.side && g.opened[c.id] === undefined) ?? null;
 }
 
+// The chapter before it in the chain is done: what it waits for is its own
+// (opensWhen, or its first objective not ready, Plan 124B).
+export function chapterBeforeDone(s: GameState, c: Chapter): boolean {
+  const chain = CHAPTERS.filter((x) => !x.side);
+  const before = chain[chain.indexOf(c) - 1];
+  return !before || s.guidance?.done[before.id] !== undefined;
+}
+
 // The objective the ticker's one line names: the first not met, required
 // before optional. Null when every one is met.
 export function leadObjective(s: GameState, c: Chapter): ReturnType<typeof objectiveRows>[number] | null {
@@ -673,9 +709,10 @@ export function leadObjective(s: GameState, c: Chapter): ReturnType<typeof objec
 export const readMark = (id: string) => `read:${id}`;
 
 // Whether the drawer has a page for the chapter: every one but the
-// founding, which the walkthrough's card teaches.
+// founding, which the walkthrough's card teaches. A page's `about` is
+// optional: year 1's went in Plan 124B (X3).
 export function hasPage(id: ChapterId): boolean {
-  return CHAPTER_COPY[id].about !== undefined;
+  return id !== 'founding';
 }
 
 // The Guide (Plan 106 PR G): every chapter with a page that the run has

@@ -1,10 +1,10 @@
 import { closedBySpecialization, endowmentHalf } from '../systems/estate/projects';
 import { CLOSED_BUILD_WORDS } from '../data/specializationData';
 import { PROJECTS, projectOpens, projectOpensShort } from '../data/projectData';
-import { campusTerms, type CampusTerms } from '../systems/estate/beauty';
+import CampusStanding from './CampusStanding';
 import { specializationOf } from '../systems/prestige/prestigeSystem';
 import { specializationOfferRule } from '../data/prestigeWords';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
 import { NEED_WORD } from '../data/needWords';
@@ -567,10 +567,15 @@ function BuildTile({
   // second review's B3-10): the shortfall, and which of loanFor's conditions
   // stopped a loan. A missing professor has its own "needs" line below.
   const greyedNote = startable ? undefined : greyedReason(s, t.cost);
+  // A greyed academic hall fills toward its price (Plan 124B), the cash in
+  // hand against its cost: the wait A hall of its own's objective no longer
+  // explains in words.
+  const filling = !startable && isAcademicHall(t) && shortfall > 0 && !constructionFrozen(s);
   return (
     <button
       type="button"
-      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedId && startable && !armed ? 'opening-target' : ''}`}
+      className={`build-tile available ${armed ? 'placing' : ''} ${t.id === ringedId && startable && !armed ? 'opening-target' : ''}${filling ? ' filling' : ''}`}
+      style={filling ? { '--fill': `${Math.round(Math.max(0, Math.min(1, s.finance.cash / t.cost)) * 100)}%` } as React.CSSProperties : undefined}
       disabled={!startable}
       title={armed ? 'Click an empty tile on the map to build it. Click this again to cancel.' : disabledReason}
       draggable={startable}
@@ -664,21 +669,6 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
       ))}
       {group.closed.map((t) => <ClosedTile key={t.id} s={s} t={t} />)}
     </>
-  );
-}
-
-// The Campus standing where the player builds (Plan 119, the owner: no
-// surprise at Year 50), with its weakest part.
-const CAMPUS_PARTS: Record<keyof Omit<CampusTerms, 'score'>, string> = {
-  decoration: 'decoration', quads: 'quads', paths: 'paths to doors', assets: 'buildings standing',
-};
-function CampusFigure({ s }: { s: GameState }) {
-  const terms = campusTerms(s);
-  const weakest = (Object.keys(CAMPUS_PARTS) as Array<keyof typeof CAMPUS_PARTS>).reduce((a, b) => (terms[b] < terms[a] ? b : a));
-  return (
-    <span className="stat" title={`Your Campus standing, out of 150, which the Final Report grades. It counts decorations for each building, quads, paths at the doors, and how much of what you can build stands in good repair. Weakest now: ${CAMPUS_PARTS[weakest]}.`}>
-      campus {count(terms.score)} · weakest: {CAMPUS_PARTS[weakest]}
-    </span>
   );
 }
 
@@ -850,6 +840,9 @@ function StylePicker({ s }: { s: GameState }) {
   );
 }
 
+// How long the menu stays folded after a placement (Plan 124G).
+const PLACED_FOLD_MS = 1000;
+
 export default function BuildPopup({
   s, act, placingId, onArmPlacement, pathTool, onSetPathTool, onClose, target = null,
 }: {
@@ -889,20 +882,47 @@ export default function BuildPopup({
   // The downtown's beds (Plan 85H), beside the campus's.
   const offCampusBeds = offCampusPlaces(s, 'housing');
 
-  // The alert badge's other half: marks unseen tiles in the active tab only
-  // seen, since switching to a tab is what "seeing" it means. The tools tab
-  // counts too (its quads are tiles like any other).
-  const activeUnseenIds = active.groups.flatMap((g) => g.items.filter((t) => !s.seen.buildableIds[t.id]).map((t) => t.id));
-  const activeUnseenKey = activeUnseenIds.join('|');
+  // The Build button's "new" dot's other half: opening the menu marks every
+  // tile seen, in every category (Plan 124 C cut the per-category badges,
+  // so the menu itself is what "seeing" means).
+  const unseenIds = visibleBuildableIds(s).filter((id) => !s.seen.buildableIds[id]);
+  const unseenKey = unseenIds.join('|');
   useEffect(() => {
-    if (activeUnseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'buildable', ids: activeUnseenIds });
+    if (unseenIds.length > 0) act({ type: 'MARK_SEEN', kind: 'buildable', ids: unseenIds });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeUnseenKey]);
+  }, [unseenKey]);
+
+  // A building just placed (Plan 124G, the review's R-5): the menu stays
+  // folded for a moment, or until the pointer comes back to it, so the
+  // dust and the plot are seen rather than covered in the same frame.
+  const [placed, setPlaced] = useState<string | null>(null);
+  const heldUnplaced = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const was = heldUnplaced.current;
+    heldUnplaced.current = placingId && s.placements[placingId] === undefined ? placingId : null;
+    if (was && placingId === null && s.placements[was] !== undefined) setPlaced(was);
+    else if (placingId !== null) setPlaced(null);
+  });
+  useEffect(() => {
+    if (!placed) return;
+    const timer = window.setTimeout(() => setPlaced(null), PLACED_FOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [placed]);
 
   // A building in hand (Plan 34, from v2's): the menu folds to a strip along
   // the toolbar, so the ghost and the ground it is going on are never under
   // it. Escape cancels it (App.tsx's ladder), before it closes the menu.
   const held = placingId ? s.tech.find((t) => t.id === placingId) : undefined;
+  const justPlaced = !held && placed ? s.tech.find((t) => t.id === placed) : undefined;
+  if (justPlaced) {
+    return (
+      <ToolbarPopup title="Build" onClose={onClose} className="build-popup holding" onPointerEnter={() => setPlaced(null)}>
+        <div className="build-holding">
+          <span className="build-holding-name">{BUILD_WORDS.placed.replace('{building}', justPlaced.name)}</span>
+        </div>
+      </ToolbarPopup>
+    );
+  }
   if (held) {
     const financing = buildFinancing(s, held);
     return (
@@ -926,7 +946,7 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building you can build, sorted into categories along the top. Click a category to see its buildings. A red ! on a category means it has a building you haven't looked at yet. It clears when you open the category. Each tile shows what's built, what's under construction and what you can build next. Housing, dining and fitness fold their finished buildings into one tile marked '×N built'. Click it to see each one. Each building serves a set number of students, and every need grows with enrollment. So a bigger class needs more campus life, with or without more beds. Most students commute. Housing is a need of its own (see Housing in the Students tab), not a condition of admission. Still, every bed draws more applicants, up to 2,500 beds. Buildings you can't build yet aren't listed. To build, click a tile or drag it onto the map. Then click an empty tile on the map. You pay at that moment, and construction starts. The map stays visible behind this bar, so you can see where a building will go before you place it." />}
+      headExtra={<HelpHint text="Every building you can build, sorted into categories along the top. Click a category to see its buildings. Each tile shows what's built, what's under construction and what you can build next. Housing, dining and fitness fold their finished buildings into one tile marked '×N built'. Click it to see each one. Each building serves a set number of students, and every need grows with enrollment. So a bigger class needs more campus life, with or without more beds. Most students commute. Housing is a need of its own (see Housing in the Students tab), not a condition of admission. Still, every bed draws more applicants, up to 2,500 beds. Buildings you can't build yet aren't listed. To build, click a tile or drag it onto the map. Then click an empty tile on the map. You pay at that moment, and construction starts. The map stays visible behind this bar, so you can see where a building will go before you place it." />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">
@@ -934,7 +954,9 @@ export default function BuildPopup({
             {count(s.students.capacity)} beds{offCampusBeds > 0 && <span title={DOWNTOWN_WORDS.offCampusHint}> · {DOWNTOWN_WORDS.offCampusBeds(count(offCampusBeds))}</span>} · {count(totalEnrolled(s.students))} enrolled
           </span>
           {tabAvailable(s, 'students') && <span className="stat">satisfaction {satisfactionFigure(s.students.satisfaction)}</span>}
-          {s.events.opening.stage === 'play' && <CampusFigure s={s} />}
+          {/* The Campus standing where the player builds (Plan 119, the owner: no
+              surprise at Year 50), the Estate panel's figure (Plan 124F). */}
+          {s.events.opening.stage === 'play' && <CampusStanding s={s} compact />}
           <StylePicker s={s} />
         </div>
 
@@ -949,25 +971,17 @@ export default function BuildPopup({
           {sections.map((sec) => {
             const Icon = SECTION_ICON[sec.id] ?? BuildIcon;
             const isActive = sec.id === active.id;
-            // The "!" has one meaning, "something new to build here" (Plan
-            // 78F): the category holds a tile the player has not seen,
-            // because the category has not been opened since it appeared.
-            // Opening it marks its tiles seen (the effect above).
-            const hasUnseen = sec.groups.some(
-              (g) => g.items.some((t) => !s.seen.buildableIds[t.id]),
-            );
             return (
               <button
                 key={sec.id}
                 type="button"
                 className={`build-cat-tab ${isActive ? 'active' : ''}`}
                 aria-pressed={isActive}
-                title={hasUnseen ? `${sec.label}: something new to build here` : sec.label}
+                title={sec.label}
                 onClick={() => setActiveId(sec.id)}
               >
                 <Icon />
                 <span className="build-cat-label">{sec.label}</span>
-                {hasUnseen && <span className="alert-badge" aria-hidden="true">!</span>}
               </button>
             );
           })}

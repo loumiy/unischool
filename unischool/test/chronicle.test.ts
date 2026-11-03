@@ -129,12 +129,10 @@ function run(years: number, over: (y: number) => Partial<YearSnapshot> = () => (
   const letter = EVENT_CATALOGUE.find((e) => e.kind === 'seismic' && e.title)!;
   s.catalogue = { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0, letters: [{ eventId: letter.id, choiceId: letter.default, year: 6 }] };
   s.identity = { tags: ['old-money'], earning: {}, shedding: {}, log: [{ id: 'old-money', year: 7, earned: true }] };
-  s.promises = { active: [], settled: [{ id: 'debt-free', year: 8, kept: true }], declined: [], offer: null };
   s.orgs.titles = [{ sport: 'football', year: 9 } as never];
   const lines = chronicleOf(s).eras.flatMap((e) => e.lines).join(' ');
   assert(lines.includes(`It weathered ${letter.title!.charAt(0).toLowerCase()}${letter.title!.slice(1)}`), 'a letter answered is weathered');
   assert(lines.includes('an old-money college'), 'a tag earned is what the guidebooks started calling it');
-  assert(lines.includes('It kept its promise: owing nothing to anybody'), 'a promise kept is kept');
   assert(lines.includes('The teams won a title'), 'a title is won');
   const quiet = chronicleOf(s).eras.find((e) => e.from <= 6 && e.to >= 6)!;
   assert(quiet.kind !== 'quiet' || quiet.name.toLowerCase().includes(letter.title!.toLowerCase().replace(/^the /, '')), `a quiet stretch with a letter is named for it (${quiet.name})`);

@@ -1,5 +1,5 @@
 import type { Buildable, GameState, OpeningStage } from '../state/types';
-import { SEMICENTENNIAL_YEAR, institutionName, servingPopulation, totalEnrolled } from '../state/types';
+import { institutionName, servingPopulation, totalEnrolled } from '../state/types';
 import { programById } from './techData';
 import { count, countWord } from '../format';
 
@@ -100,10 +100,10 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     // It introduces the college and the one building it begins with (Plan
     // 104L): S1 read the old list of three tasks, in an order the walk then
     // didn't play, twice. Each step introduces its own thing when it comes.
-    // How long a run is, said up front (Plan 118F, I6: "when we reach
-    // year 50 is it the game ends?"). The college by its full name, "Halifax
-    // College" (Plan 122A, from Ginger's playtest).
-    body: (s) => `Welcome to ${institutionName(s.self)}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there. A run lasts ${countWord(SEMICENTENNIAL_YEAR)} years. At the end of Year ${SEMICENTENNIAL_YEAR} the board writes your Final Report, and you can keep playing after it.`,
+    // The college by its full name, "Halifax College" (Plan 122A, from
+    // Ginger's playtest). How long a run is went in Plan 124B (X11): the
+    // title screen says "Fifty years to build a university".
+    body: (s) => `Welcome to ${institutionName(s.self)}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
     next: 'Next',
   },
   'site-hall': {
@@ -136,7 +136,3 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     door: 'hall',
   },
 };
-
-// The welcome's line on what the skip would cost: the steps after it,
-// counted (Plan 114A; "about five minutes" was never measured).
-export const WALKTHROUGH_LENGTH = `The walkthrough has ${countWord(Object.keys(OPENING_STEPS).filter((stage) => stage !== 'welcome').length)} steps.`;

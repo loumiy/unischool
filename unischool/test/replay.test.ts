@@ -90,6 +90,13 @@ assert(JSON.stringify(replayed) === JSON.stringify(first.end), 'replaying the lo
 const again = play(777, YEARS);
 assert(JSON.stringify(again.end) === JSON.stringify(first.end), 'the same seed played the same way gives the same state');
 
+// An action the game no longer has replays as nothing (Plan 124G): an old
+// log holding RENOVATE_LIBRARY, which no screen ever dispatched, folds to
+// the same state as the log without it.
+const retired = { type: 'RENOVATE_LIBRARY' } as unknown as Action;
+const withRetired = { start: first.log.start, actions: [...first.log.actions.slice(0, 40), retired, ...first.log.actions.slice(40), retired] };
+assert(JSON.stringify(replay(withRetired)) === JSON.stringify(first.end), 'a retired action in an old log replays as a no-op');
+
 const other = play(778, YEARS);
 assert(JSON.stringify(other.end) !== JSON.stringify(first.end), 'a different seed gives a different run');
 

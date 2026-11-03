@@ -23,8 +23,8 @@ Everything that needs to stop time rides on this one mechanism:
   advanced one beat per `RESOLVE_SUMMER_BEAT` with the clock still halted and
   the admissions decision carried along in the payload, and closed by the last
   beat's `RESOLVE_ADMISSIONS`, the only action that turns the page. A save
-  written between beats resumes on the same beat. Review settles the promises
-  due and makes the year's offer; the student-life digest is the last beat.
+  written between beats resumes on the same beat. The student-life digest
+  is the last beat.
   **The summer waits to be opened** (Plan 112C): week 52 raises it and the
   clock stops, but the shell opens nothing over what the player has open.
   It stands first in the inbox under "The clock waits" (its pane a door,

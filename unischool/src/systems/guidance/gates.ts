@@ -7,8 +7,7 @@ import type { GameState } from '../../state/types';
 // varsity team (Plan 114E), where the ladder opens the tab at the petition
 // (Plan 112B): a petition turned down keeps both shut until a team exists;
 // the first sport club's mascot stop waits for it too, and
-// the petition itself, a decision event, for "Campus life" (Plan 113C). The board's promises waited for "Promises" until that
-// chapter went (Plan 112A); they come from the third summer, guided or not.
+// the petition itself, a decision event, for "Campus life" (Plan 113C).
 // A pure reading of the record state/chapters.ts keeps, so the
 // systems can ask without importing the chapters themselves.
 //

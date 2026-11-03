@@ -41,6 +41,9 @@
     "review:door-centres": "rolldown tools/review/doorCentres.ts -o node_modules/.tmp/doorCentres.mjs -f esm -p node && node node_modules/.tmp/doorCentres.mjs",
     "review:probe": "rolldown tools/review/probes.ts -o node_modules/.tmp/probes.mjs -f esm -p node && node node_modules/.tmp/probes.mjs",
     "review:gallery": "node tools/review/gallery.mjs",
+    "review:census": "node tools/review/census.mjs",
+    "review:web": "node tools/review/web.mjs",
+    "review:juice": "node tools/review/juice.mjs",
     "review:sweep": "rolldown tools/review/sweep.ts -o node_modules/.tmp/sweep.mjs -f esm -p node && node node_modules/.tmp/sweep.mjs"
   },
   "dependencies": {

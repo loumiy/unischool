@@ -23,6 +23,12 @@
 // so Founding, The next course and Looking around are caught up as done in
 // week 1 (chapters.ts's caughtUp) and judged by nothing here.
 //
+// Each week it also holds the guard (Plan 124B, review III's I7-5a
+// extended): no chapter opens with a required objective the player can't
+// act on that week. A chapter opened this week has its first required
+// objective met or ready (chapters.ts's `ready`), and shows no required
+// objective that isn't.
+//
 // Every fourth week it also reads each open chapter's page as the drawer
 // draws it (ObjectivesPanel) and clicks every Show me: none may open a tab
 // that is shut (Plan 114F, the third review's C3-9: Research's did nothing
@@ -39,7 +45,7 @@ import { openChairs, TRAINER_FIELD } from '../src/data/studentLifeData';
 import { canAppoint } from '../src/systems/delegation/seats';
 import { seatDef } from '../src/data/seatData';
 import { weeklyNet } from '../src/systems/finance/financeSystem';
-import { absoluteWeek, CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, marked, tabMark } from '../src/state/chapters';
+import { absoluteWeek, CHAPTERS, currentChapter, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, marked, objectiveReady, objectiveRows, tabMark } from '../src/state/chapters';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import { COURSE_MILESTONES, teachObjective } from '../src/data/chapterData';
 import type { GameState } from '../src/state/types';
@@ -146,7 +152,7 @@ function showMes(s: GameState): { shut: string[]; lines: number } {
   for (const c of CHAPTERS) {
     if (!isOpen(s, c.id) || !hasPage(c.id)) continue;
     let went: string | undefined;
-    const panel = createElement(ObjectivesPanel, { s, waiting: null, onGo: (go: string) => { went = go; }, onOpenLadder: () => {}, view: c.id, onView: () => {} });
+    const panel = createElement(ObjectivesPanel, { s, onGo: (go: string) => { went = go; }, onOpenLadder: () => {}, view: c.id, onView: () => {} });
     const found = walkPanel(panel, 'Show me', 'objectives-shut');
     lines += found.lines;
     for (const click of found.clicks) {
@@ -173,6 +179,8 @@ for (const seed of SEEDS) {
   const player = createGuidedPlayer();
   const sideOverMain: string[] = [];
   const shutDoors = new Set<string>();
+  const openedOnAWait: string[] = [];
+  let openings = 0;
   // Each required objective's wait, in weeks from its chapter's opening,
   // and the week each objective was latched met (the record keeps only
   // that it is).
@@ -186,6 +194,15 @@ for (const seed of SEEDS) {
     readChapters(g);
     const now = g.s;
     for (const id of now.guidance!.met) if (!metWeek.has(id)) metWeek.set(id, absoluteWeek(now));
+    // The guard: what opened this week can be acted on this week.
+    for (const c of CHAPTERS) {
+      if (now.guidance!.opened[c.id] !== absoluteWeek(now) || now.guidance!.done[c.id] !== undefined) continue;
+      openings += 1;
+      const first = c.objectives.find((o) => !o.optional);
+      const shownIds = new Set(objectiveRows(now, c).map((r) => r.id));
+      const stuck = c.objectives.filter((o) => !o.optional && (o === first || shownIds.has(o.id)) && !objectiveReady(now, o));
+      if (stuck.length > 0 && openedOnAWait.length < 3) openedOnAWait.push(`${c.id} on ${stuck.map((o) => o.id).join(', ')} (year ${now.clock.year}, week ${now.clock.week})`);
+    }
     const current = currentChapter(now);
     if (current?.side && CHAPTERS.some((c) => !c.side && isOpen(now, c.id)) && sideOverMain.length < 3) {
       sideOverMain.push(`${current.id} in year ${now.clock.year}, week ${now.clock.week}`);
@@ -222,6 +239,8 @@ for (const seed of SEEDS) {
         `seed ${seed}: ${c.id}'s "${o.id}" ${at === undefined ? 'is still unmet' : 'was met'} ${wait} weeks after the chapter opened (year ${Math.floor((from - 1) / WEEKS_PER_YEAR) + 1})`);
     }
   }
+  assert(openedOnAWait.length === 0, `seed ${seed}: no chapter opens on an objective that can't be done that week (${openedOnAWait.join('; ')})`);
+  assert(openings > 0, `seed ${seed}: chapters opened while the guard watched (${openings})`);
   assert(sideOverMain.length === 0, `seed ${seed}: the ticker never shows a side chapter over a main one (${sideOverMain.join('; ')})`);
   assert(shutDoors.size === 0, `seed ${seed}: no Show me opens a shut tab (${[...shutDoors].slice(0, 3).join('; ')})`);
   const longest = [...waits.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, w]) => `${k} ${w}w`).join(', ');

@@ -87,7 +87,7 @@ export const PLAIN_RULES: readonly PlainRule[] = [
 ];
 
 // The screens that tell the player what to do (strings.ts's screen names).
-// Flavour (events, promises, names, course descriptions) is measured
+// Flavour (events, names, course descriptions) is measured
 // apart: its rules are looser.
 export const INSTRUCTION_SCREENS: ReadonlySet<string> = new Set([
   'Opening walkthrough', 'Objectives (chapters, their help, the Guide)', 'Next-step line', 'Board letters',
