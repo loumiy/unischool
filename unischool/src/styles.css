@@ -3635,7 +3635,23 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .final-report-axes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
 .final-report-axes li { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center;
   padding: var(--inset-card); background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); }
-.final-report-axes .grade-mark { grid-row: 1 / span 2; }
+.final-report-axes .final-report-stamp { grid-row: 1 / span 2; }
+/* A grade's place (Plan 124 M3): kept while it waits to be stamped, so
+   nothing moves when it lands. */
+.final-report-stamp { display: inline-grid; place-items: center; width: calc(1.75em + 4px); height: calc(1.75em + 4px); font-size: var(--text-2xl); }
+.final-report-stamp .grade-mark { font-size: 1em; }
+.final-report-stamp.staged.down .grade-mark { animation: grade-stamp 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.final-report-stamp.staged.final .grade-mark { animation: grade-stamp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, grade-halo 1.6s ease-out 0.3s both; }
+@keyframes grade-stamp {
+  from { opacity: 0; transform: rotate(var(--mark-tilt, -4deg)) scale(1.9); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: rotate(var(--mark-tilt, -4deg)) scale(1); }
+}
+@keyframes grade-halo {
+  from { filter: drop-shadow(0 0 0 transparent); }
+  35% { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--school-secondary) 85%, transparent)); }
+  to { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--school-secondary) 45%, transparent)); }
+}
 .final-report-axis-label { font-family: var(--display); font-weight: 800; color: var(--ink); }
 .final-report-axis-line { font-size: var(--text-xs); color: var(--ink-muted); line-height: 1.4; }
 .final-report-addendum { margin-top: 14px; padding-top: 10px; border-top: 2px dashed var(--parchment-line); }
@@ -4300,8 +4316,13 @@ body:has(.building-info-panel) .pennant { display: none; }
 
 /* The Final Report as a page (Plan 60): the whole screen, the school's own
    colors, a title that cannot be mistaken for another summer. */
-.final-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; background: var(--school-primary);
+.final-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto;
+  /* Over the campus as it stands (Plan 124 M3): the school's colour as a
+     veil, the map showing through, the card rising onto it. */
+  background: color-mix(in srgb, var(--school-primary) 72%, transparent);
+  animation: overlay-fade 0.6s ease-out both;
   display: flex; justify-content: center; align-items: flex-start; padding: 48px 16px 64px; }
+.final-page > .final-page-inner { animation: modal-in 0.5s ease-out 0.2s both; }
 .final-page-inner { width: min(1080px, 100%); background: var(--cream); border-radius: var(--radius-xl); padding: 40px 48px 48px;
   box-shadow: var(--elevation-popup); border-top: 10px solid var(--school-secondary); }
 .final-page-inner h2 { font-size: var(--text-5xl); line-height: 1.05; margin: var(--space-6) 0 var(--space-16); }

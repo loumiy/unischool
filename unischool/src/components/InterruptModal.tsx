@@ -191,7 +191,7 @@ function FinalReportBeat({ s, onContinue, onNewCollege, onSave }: { s: GameState
     <>
       <div className="final-report-eyebrow">{REPORT_WORDS.eyebrow}</div>
       <h2>{REPORT_WORDS.title}</h2>
-      <FinalReportView s={s} report={report} />
+      <FinalReportView s={s} report={report} staged />
       {/* What this run earned for the next college (Plan 98C). */}
       {(s.events.unlocksEarned?.length ?? 0) > 0 && (
         <p className="final-report-unlocks">
