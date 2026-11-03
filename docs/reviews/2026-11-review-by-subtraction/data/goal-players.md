@@ -77,3 +77,22 @@ The median year a marker was first reached, and in how many runs.
 | championships | 12 (2/2) | — | 12 (2/2) | 8 (2/2) | — | 4 (2/2) | 12 (2/2) | — | 8 (2/2) | 3 (2/2) | — | 33 (2/2) | 30 (2/2) | 17 (2/2) |
 | good-then-big | 24 (2/2) | — | 25 (2/2) | 21 (2/2) | — | 5 (2/2) | 22 (2/2) | — | 21 (2/2) | 6 (2/2) | — | 38 (1/2) | 36 (2/2) | 25 (2/2) |
 | big-then-good | 13 (2/2) | — | 14 (2/2) | 11 (2/2) | 39 (1/2) | 4 (2/2) | 22 (2/2) | — | 11 (2/2) | 4 (2/2) | 34 (2/2) | 29 (2/2) | 26 (2/2) | 17 (2/2) |
+
+## Ablations: can a strategy ignore a system?
+
+A scratch copy of `goalPlayers.ts` (`unischool/node_modules/.tmp/ablate/goalAblate.ts`, not in the repo; game code untouched) wraps the harness's `act` to drop the named actions, to answer varsity petitions *decline*, or to refuse every club and chapter petition. 33 runs: two goals, three goal-seeds, 40 years, name Halifax. Year 41's prestige **target** (what the summers climb toward; the stock lags it by 3–14 points) and rank. One changed decision can move a single run by ~8 target points and ~6 places (the alumni row on seed 12345 blocked one campaign), so read only effects that repeat across the three columns. Raw: `unischool/node_modules/.tmp/ablate/runs/`.
+
+| Ablation (blocked from Year 1) | big-then-good-12345: Δ target, rank | big-then-good-4242: Δ target, rank | prestige-12345: Δ target, rank |
+|---|---|---|---|
+| *Base (no block)* | target 121.3, #4 | target 120.7, #1 | target 108.5, #8 |
+| Research: no initiatives, no landmarks | −17.6, #4→#17 | −25.7, #1→#28 | −18.6, #8→#27 |
+| Varsity teams: none ever (petitions declined), department unmanaged | −15.7, #4→#12 | −9.9, #1→#9 | −3.9, #8→#13 |
+| Student organizations: no clubs, chapters or teams (every petition refused), no downtown | −15.8, #4→#12 | −19.3, #1→#13 | −3.5, #8→#13 |
+| Athletics department unmanaged (no coaches, venues, budget, scholarships); teams still form | −6.5, #4→#5 | −6.2, #1→#3 | −0.2, #8→#10 |
+| Alumni levers: no campaign, no reunion | −8.1, #4→#10 | −0.0, #1→#1 | −4.0, #8→#11 |
+| Offices: none opened | +0.0, #4→#4 | +0.0, #1→#1 | +0.0, #8→#8 |
+| Seats: no Provost, no VP of Advancement | −0.3, #4→#1 | −5.1, #1→#5 | −1.5, #8→#9 |
+| Treasury levers: no endowment moves, draw rate or sweep | +0.0, #4→#4 | −1.5, #1→#1 | −5.1, #8→#9 |
+| Faculty training: none | −0.4, #4→#4 | −1.7, #1→#1 | −13.6, #8→#19 |
+
+Not ablated, read from the baseline: no goal player ever plants a tree, paints a path, places a dressing or holds a reunion, and big-then-good still finishes #1. The championships player takes no promise and finishes #14.

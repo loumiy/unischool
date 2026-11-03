@@ -64,7 +64,7 @@ const SILENT_CSS = `
   .letter-body, .letter-length, .objectives-about, .objectives-guide,
   .help-hint, .help-hint-text, .figure-hint, .tooltip, .campus-map-why,
   .cohort-card-tip, .speed-locked-note, .summer-call-text,
-  .tab-walk p:not(.letter-eyebrow) { display: none !important; }`;
+  .opening-coach p, .tab-walk p:not(.letter-eyebrow) { display: none !important; }`;
 if (steps.includes('silent')) {
   await context.addInitScript((css) => {
     const add = () => {
