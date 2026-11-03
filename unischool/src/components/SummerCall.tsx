@@ -7,7 +7,9 @@ import { SUMMER_CALL, summerOpenLabel } from '../systems/inbox/inbox';
 // inbox, whose first row is the same door), and can't be put away, since
 // the clock runs again only through the summer. The play
 // button is rung with it (StatusHeader.tsx), and the summer's row in the
-// inbox opens it too. App.tsx keeps whether it is open.
+// inbox opens it too. App.tsx keeps whether it is open. Its sentence went
+// in Plan 124B (X7): the sun, the title and the button say it; the inbox
+// row keeps it.
 export default function SummerCall({ s, onOpen }: { s: GameState; onOpen: () => void }) {
   return (
     <aside className="summer-call" role="status" aria-live="polite" aria-label={SUMMER_CALL.title}>
@@ -15,7 +17,6 @@ export default function SummerCall({ s, onOpen }: { s: GameState; onOpen: () => 
       <div className="summer-call-text">
         <p className="summer-call-eyebrow">Week 52 · Year {s.clock.year}</p>
         <h2>{SUMMER_CALL.title}</h2>
-        <p>{SUMMER_CALL.body}</p>
       </div>
       <button type="button" className="btn-primary summer-call-open" onClick={onOpen}>{summerOpenLabel(s)}</button>
     </aside>

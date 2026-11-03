@@ -3,7 +3,7 @@ import type { NextStep } from '../systems/guidance/nextStep';
 import { CHAPTER_COPY, DRAWER_WORDS as W, shutTabWords, type Door, type Lever } from '../data/chapterData';
 import { stepTarget } from '../systems/guidance/nextStep';
 import { TAB_LABELS, tabAvailable, type TabId } from './TabNav';
-import { SKIP_MARKS, absoluteWeek, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
+import { SKIP_MARKS, absoluteWeek, chapterBeforeDone, chapterById, hasPage, chapterNumber, currentChapter, guideChapters, nextChapter, objectiveHelp, objectiveRows, openSideChapters, ringedProgram, type ObjectiveProgress } from '../state/chapters';
 import HelpHint from './HelpHint';
 import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
@@ -14,7 +14,8 @@ import { satisfactionDrag } from '../systems/satisfaction/satisfactionSystem';
 import { NEED_LABELS } from '../data/figureHints';
 
 // The objectives drawer (Plan 106 §2a): the NEXT bar expanded. The chapter
-// open now, a short paragraph about it, and its objectives, each with its
+// open now, a short paragraph about it where it has one (year 1's went in
+// Plan 124B), and its objectives, each with its
 // reading and a (?) whose help says how to meet it, with a Show me that
 // takes the player there (Plan 112A: a simple list, help when confused,
 // and the place itself when still confused); what else waits (the NEXT
@@ -172,7 +173,9 @@ export default function ObjectivesPanel({ s, waiting, onGo, onOpenLadder, view =
           {coming
             ? coming.earliest > absoluteWeek(s)
               ? W.between(CHAPTER_COPY[coming.id].title, `in ${gameDateOfWeek(coming.earliest)}`)
-              : W.waitingOn(CHAPTER_COPY[coming.id].title)
+              : chapterBeforeDone(s, coming)
+                ? W.nextUp(CHAPTER_COPY[coming.id].title)
+                : W.waitingOn(CHAPTER_COPY[coming.id].title)
             : W.allDone}
         </p>
       )}

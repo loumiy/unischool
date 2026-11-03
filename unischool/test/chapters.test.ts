@@ -28,7 +28,7 @@ import { isHoused } from '../src/systems/techtree/programOffers';
 import { CHAPTERS, currentChapter, openSideChapters, PATH_OBJECTIVE, pathJoinsResidence, ringedTool, DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, guideChapters, hasPage, nextChapter, objectiveHelp, objectiveMet, objectiveRows, ringedBuilding, settleChapters, tabMark, treasuryRinged, walkAsked } from '../src/state/chapters';
 import { tabAvailable } from '../src/components/TabNav';
 import { ladderOpensTab } from '../src/systems/ladder/ladderSystem';
-import { CHAPTER_COPY, COURSE_MILESTONES, HALL_LOCKED_HELP, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
+import { CHAPTER_COPY, COURSE_MILESTONES, TAB_GUIDE, teachObjective } from '../src/data/chapterData';
 import TabOverlay from '../src/components/TabOverlay';
 import { isDiningHall, isDorm } from '../src/data/openingData';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
@@ -325,14 +325,17 @@ for (const c of CHAPTERS) {
 }
 assert(new Set(CHAPTERS.flatMap((c) => c.objectives.map((o) => o.id))).size === CHAPTERS.flatMap((c) => c.objectives).length, 'objective ids are unique');
 // The pages (Plan 106 §5, Plan 112A): every chapter the drawer shows has
-// its paragraph, kept short by rule, and every objective its help; no
-// sentence ends on a passive and a pronoun.
+// a page, its paragraph kept short by rule, and every objective its help;
+// no sentence ends on a passive and a pronoun. Year 1's paragraphs went in
+// Plan 124B (X3), all but Looking around's.
+const YEAR_ONE_UNSAID = new Set(['next-course', 'somewhere-to-sleep', 'seats', 'paying-for-it', 'first-summer', 'standing']);
 for (const c of CHAPTERS) {
   const copy = CHAPTER_COPY[c.id];
   for (const o of c.objectives) assert((copy.help?.[o.id]?.text ?? '').length > 0, `${c.id}'s ${o.id} has help`);
   assert(Object.keys(copy.help ?? {}).every((id) => c.objectives.some((o) => o.id === id)), `${c.id}: no help for an objective it does not set`);
   if (c.id === 'founding') continue;
-  assert(hasPage(c.id) && copy.about !== undefined, `${c.id} has a page`);
+  assert(hasPage(c.id), `${c.id} has a page`);
+  assert(YEAR_ONE_UNSAID.has(c.id) ? copy.about === undefined : copy.about !== undefined, `${c.id}: ${YEAR_ONE_UNSAID.has(c.id) ? 'no paragraph' : 'its paragraph'}`);
   const sentences = (copy.about ?? '').split(/(?<=\.)\s+/).length;
   assert(sentences <= 3, `${c.id}: about in three sentences at most (${sentences})`);
   const all = [copy.about, ...Object.values(copy.help ?? {}).map((h) => h.text)].join(' ');
@@ -423,7 +426,7 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   let went: string | undefined;
   const panel = createElement(ObjectivesPanel, { s, waiting: { text: 'History is dark: staff it', go: 'faculty', urgent: true }, onGo: (go: string) => { went = go; }, onOpenLadder: () => {} });
   const html = renderToStaticMarkup(panel);
-  assert(html.includes('Every student needs a place in class') && !html.includes('What it is') && !html.includes('Why it matters'), 'a page shows its paragraph, with no headings and no why');
+  assert(!html.includes('Every student needs a place in class') && !html.includes('objectives-about') && !html.includes('What it is') && !html.includes('Why it matters'), 'a year-1 page has no paragraph (Plan 124B), no headings and no why');
   assert(html.includes('help-hint-btn') && html.includes('aria-label="How to: A place in class for every student"') && html.includes('aria-expanded="false"'), 'each objective has a (?), shut');
   assert(!html.includes('Develop more courses in the Curriculum'), 'its help waits behind it');
   assert(html.includes('Also waiting') && html.includes('History is dark'), 'the NEXT line waits in the drawer');
@@ -703,9 +706,6 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   settleChapters(s);
   assert(currentChapter(s)?.id === 'hall-of-its-own' && ringedBuilding(s)?.id === elm.id, `the build menu rings the first academic hall (${ringedBuilding(s)?.id})`);
   assert(objectiveHelp(s, 'hall-of-its-own', 'site-academic-hall')?.door === 'build', 'and its help opens the build menu');
-  elm.status = 'locked';
-  assert(objectiveHelp(s, 'hall-of-its-own', 'site-academic-hall') === HALL_LOCKED_HELP && HALL_LOCKED_HELP.door === 'curriculum', 'locked, its help says what opens it and shows the Curriculum');
-  elm.status = 'available';
   site(s, (t) => t.id === elm.id);
   settleChapters(s);
   assert(ringedBuilding(s) === null, 'placed, the ring goes');
@@ -805,8 +805,9 @@ assert(!hasPage('founding'), 'the founding has no page: the walkthrough teaches 
   lab.status = 'developing';
   s.developing[lab.id] = 9;
   assert(!met(), 'placed and going up, the lab is not yet built');
-  const help = objectiveHelp(s, 'research', 'site-a-lab')?.text ?? '';
-  assert(/going up/.test(help) && /9 weeks/.test(help) && /Research tab opens once it's built/.test(help), `and the help says it is going up, and for how long ("${help}")`);
+  // The help that said it was going up, and for how long, went in Plan
+  // 124B (X4): the build menu's tile shows the weeks left.
+  assert(objectiveHelp(s, 'research', 'site-a-lab') === CHAPTER_COPY.research.help!['site-a-lab'], 'and its help is the chapter\'s own');
   lab.status = 'done';
   delete s.developing[lab.id];
   assert(met(), 'built, it is met');

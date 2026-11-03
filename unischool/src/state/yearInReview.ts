@@ -178,9 +178,7 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
   lines.push({
     text: s.history.length > 0
       ? `Satisfaction averaged ${satisfactionFigure(average)} this year, compared with ${satisfactionFigure(lastAverage)} last year (${signed(delta)})`
-      // The first summer introduces it (Plan 104M): until now neither the
-      // header nor the Students tab showed it.
-      : `Satisfaction averaged ${satisfactionFigure(average)} this year. Satisfaction is how happy your students are, out of 100. From now on it shows at the bottom of the screen, and the Students tab shows the needs behind it`,
+      : `Satisfaction averaged ${satisfactionFigure(average)} this year`,
     tone: delta >= 2 ? 'good' : delta <= -2 ? 'bad' : undefined,
   });
   const raised = byTopic(entries, 'demand-raised').length;
@@ -246,7 +244,9 @@ function standing(s: GameState): ReviewSection {
       // What it added, as the glance says it: no "of" its most (Plan 114B).
       text: `${input.label}: ${input.penalty ? '−' : '+'}${Math.abs(grade).toFixed(1)}`,
       tone: input.penalty ? 'bad' : undefined,
-      detail: standingDetailLine(input),
+      // The four pillars' "stands at N of 150" lines went in Plan 124B
+      // (X8): the report card's bars show them. The other terms keep theirs.
+      detail: input.pillar ? undefined : standingDetailLine(input),
     });
   }
   return { key: 'standing', title: 'Standing', lines, empty: '' };

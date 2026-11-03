@@ -57,7 +57,7 @@ import { createElement, isValidElement, type ReactElement, type ReactNode } from
 import { renderToStaticMarkup } from 'react-dom/server';
 import OpeningCoach from '../src/components/OpeningCoach';
 import ConfirmButton from '../src/components/ConfirmButton';
-import { SKIP_WORDS, WALKTHROUGH_LENGTH } from '../src/data/openingData';
+import { SKIP_WORDS } from '../src/data/openingData';
 
 // In-memory localStorage, for the save round trip below.
 const store = new Map<string, string>();
@@ -255,7 +255,7 @@ const walkToCourse = (name: string) => reducer(
   // 122A), and the building it begins with; no list of tasks, no order to
   // remember.
   const welcome = OPENING_STEPS.welcome.body(s);
-  assert(welcome === 'Welcome to Walk College. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there. A run lasts 50 years. At the end of Year 50 the board writes your Final Report, and you can keep playing after it.', `the welcome's words (${welcome})`);
+  assert(welcome === 'Welcome to Walk College. 350 students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.', `the welcome's words (${welcome})`);
   assert(nextStep(s) === null, 'the next-step line is silent while the walk holds the clock');
   const week = s.clock.week;
   s = reducer(s, { type: 'TICK' });
@@ -293,14 +293,17 @@ const walkToCourse = (name: string) => reducer(
   assert(s.tech.find((t) => t.id === entry)?.status === 'developing' && s.courseFaculty[entry] === WALKTHROUGH_PROFESSOR, 'its entry course is with the committee, Bennett to teach it');
   assert(s.events.opening.stage === 'play' && !openingHoldsClock(s), 'the walk ends on the program founded, and the clock runs');
   assert(s.events.opening.read.includes(NEEDS_LETTER_ID), 'the needs letter is counted read: its chapter asks the same');
-  assert(done(s, 'founding') && currentChapter(s)?.id === 'next-course', 'Founding is done, and The next course is the chapter');
+  // The next course waits until a later course can be started (Plan 124B,
+  // X4): no chapter opens on a wait.
+  assert(done(s, 'founding') && s.guidance?.opened['next-course'] === undefined && currentChapter(s) === null, 'Founding is done, and The next course waits while the first course is written');
   const line = nextStep(s);
   assert(line !== null && line.text.startsWith('Places for 80 of 350 students') && line.text === OPENING_LETTERS[0].ask(s).text, `the line is the first letter's ask: seat the students (${line?.text})`);
 
   // The entry course taught, the Curriculum rings English's next course.
   assert(ringedProgram(s) === null, 'nothing is ringed while the first course is written');
   s = untilWeek(s, (x) => x.tech.find((t) => t.id === entry)?.status === 'done');
-  assert(ringedProgram(s) === WALKTHROUGH_PROGRAM, `once it is taught, English's next course is ringed (week ${s.clock.week})`);
+  assert(currentChapter(s)?.id === 'next-course', `once it is taught, The next course opens (week ${s.clock.week})`);
+  assert(ringedProgram(s) === WALKTHROUGH_PROGRAM, `and English's next course is ringed (week ${s.clock.week})`);
   const second = programById(WALKTHROUGH_PROGRAM)!.courseIds.find((id) => s.tech.find((t) => t.id === id)?.status === 'available')!;
   s = reducer(s, { type: 'START_DEVELOPMENT', nodeId: second, facultyId: WALKTHROUGH_PROFESSOR });
   assert(done(s, 'next-course') && ringedProgram(s) === null, 'a second course under way ends the chapter and the ring');
@@ -509,10 +512,10 @@ const walkToCourse = (name: string) => reducer(
     assert(skip.label === (keep ? SKIP_WORDS.rest : SKIP_WORDS.welcomeGuided), `${stage}: labelled "${String(skip.label)}"`);
   }
 
-  // The welcome: the skip is a link under the actions, and the card says
-  // how long the walk is.
+  // The welcome: the skip is a link under the actions. How long the walk
+  // is went in Plan 124B (X11): the cards say Step one and Step two.
   const w = coach(welcome).html;
-  assert(w.includes(WALKTHROUGH_LENGTH), 'the welcome says how long the walkthrough takes');
+  assert(!w.includes('The walkthrough has'), 'the welcome no longer counts the steps');
   const actionsRow = w.slice(w.indexOf('letter-actions'), w.indexOf('</div>', w.indexOf('letter-actions')));
   assert(w.indexOf('letter-skip-row') > w.indexOf('letter-actions') && !actionsRow.includes('skip'),
     'and its skip sits below the actions, not beside Next');

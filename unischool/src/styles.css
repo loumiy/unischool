@@ -998,6 +998,10 @@ button.build-tile { font-family: inherit; }
 .build-tile.available:disabled .build-thumb { opacity: 0.45; filter: grayscale(0.6); }
 .build-tile.available:disabled .build-tile-sub, .build-tile.available:disabled .build-tile-foot { color: var(--ink-muted); }
 .build-tile.available:disabled .build-tile-stamp { color: var(--ink-muted); border-color: var(--parchment-line); }
+/* A greyed academic hall fills from the foot toward its price (Plan 124B):
+   --fill is the cash in hand against its cost. */
+.build-tile.available.filling:disabled { background: linear-gradient(to top,
+  color-mix(in srgb, var(--school-secondary) 28%, var(--cream)) var(--fill), var(--cream) var(--fill)); }
 .build-tile.placing { background: var(--school-secondary); color: var(--school-on-secondary); border-color: var(--outline); box-shadow: var(--shadow-2); }
 .build-tile.placing .build-tile-foot, .build-tile.placing .build-tile-sub { color: var(--school-on-secondary); }
 /* Going up: the drawing in the school colour on a dashed sheet. */
@@ -3735,7 +3739,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 /* The welcome's skip (Plan 104C): a plain text link under the card's
    actions, not a button beside Next; armed, a pill like any confirmation. */
 .letter-skip-row { margin: var(--space-16) 0 0; }
-.modal .letter-length { margin: 0 0 var(--space-12); font-size: var(--text-sm); color: var(--ink-muted); }
 .letter-skip-link { background: none; border: none; padding: 0; font: inherit; font-size: var(--text-xs);
   color: var(--ink-muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .letter-skip-link:hover { color: var(--ink); }
@@ -3954,8 +3957,6 @@ button.inbox-row:hover { background: var(--cream-hi); }
 .opening-coach p { margin: 0 0 12px; font-size: var(--text-md); line-height: 1.5; }
 .opening-coach-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .opening-coach-actions button { padding: var(--space-8) var(--space-16); font-size: var(--text-md); }
-.opening-coach-wait { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--school-primary); }
 /* The ring: an outline (so it never moves its target) in the school
    secondary. Only its offset pulses; the color holds, since the outline
    ink would be indistinguishable from a tile's border. */
