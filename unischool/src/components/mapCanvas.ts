@@ -388,7 +388,8 @@ export class MapCanvas implements CrowdSink {
   // its view and the rest it stood on, the things shown, the walkers.
   private composed: { x: number; y: number; zoom: number; W: number; H: number; inspected: string | null; soft: string; front: Op[]; land: Drawing | null; ground: Drawing | null } | null = null;
   private shown = new Set<Rec>();
-  private figs: Box[] = [];
+  // Each shown figure's box on the device last frame, by its index in the crowd.
+  private figs = new Map<number, Box>();
   private forceFull = true;
   // The transform the map's context has in a frame: none, or the world's
   // (set once for a run of walkers, not for each).
@@ -402,7 +403,7 @@ export class MapCanvas implements CrowdSink {
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
   private walkerColors: WalkerColors | null = null;
   // Where each walker shown in the last frame was drawn.
-  private lastWalkers: readonly { i: number; slot: number; fig: Box }[] = [];
+  private lastWalkers: readonly { i: number; slot: number; fig: Box; still: boolean }[] = [];
   private gold = '#c9a227';
   private defsSeen: React.ReactNode = undefined;
   // Everything in the scene it could not draw since it started, by name
@@ -757,7 +758,8 @@ export class MapCanvas implements CrowdSink {
     const world: Affine = [sNow, 0, 0, sNow, tx, ty];
     const toDevice = (b: Box): Box => [b[0] * sNow + tx, b[1] * sNow + ty, b[2] * sNow + tx, b[3] * sNow + ty];
     const slots = this.walkerSlots(scene, view);
-    const figs = this.lastWalkers.map((k) => toDevice(k.fig));
+    const figs = new Map(this.lastWalkers.map((k) => [k.i, toDevice(k.fig)] as const));
+    const still = new Set(this.lastWalkers.filter((k) => k.still).map((k) => k.i));
     const c = this.composed;
     const reduced = scene.rings.length > 0 && (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
       || document.documentElement.dataset.motion === 'reduce');
@@ -794,8 +796,16 @@ export class MapCanvas implements CrowdSink {
     }
     if (partial) {
       for (const r of this.shown) if (!shown.has(r) && r.laidBox) mark(r.laidBox);
-      for (const f of this.figs) mark(f);
-      for (const f of figs) mark(f);
+      // Each figure is drawn again where it was and where it is, but for one
+      // that never moves (a queue, a crowd outside a venue; Plan 124 M1)
+      // standing where it stood: that one is left on the map.
+      for (const [i, f] of figs) {
+        const was = this.figs.get(i);
+        if (was && still.has(i) && was[0] === f[0] && was[1] === f[1] && was[2] === f[2] && was[3] === f[3]) continue;
+        mark(f);
+        if (was) mark(was);
+      }
+      for (const [i, was] of this.figs) if (!figs.has(i)) mark(was);
       for (const [layer, d] of [[this.land, this.land.drawing], [this.ground, this.ground.drawing]] as const) {
         for (const t of layer.touched) mark([t[0] + d!.ox + tx, t[1] + d!.oy + ty, t[2] + d!.ox + tx, t[3] + d!.oy + ty]);
       }
@@ -980,7 +990,7 @@ export class MapCanvas implements CrowdSink {
     const ax = { cosA: Math.cos(scene.camera.azimuth), sinA: Math.sin(scene.camera.azimuth) };
     const boxes = this.order.map((r) => r.entry.box);
     const C = MapCanvas.CELL;
-    const keyed: { i: number; y: number; slot: number; fig: Box }[] = [];
+    const keyed: { i: number; y: number; slot: number; fig: Box; still: boolean }[] = [];
     for (let i = 0; i < crowd.size; i++) {
       const at = crowd.at(i);
       if (!at.shown) continue;
@@ -994,7 +1004,7 @@ export class MapCanvas implements CrowdSink {
         }
       }
       const candidates = [...found].sort((a, b) => a - b);
-      keyed.push({ i, y: p.y, slot: walkerSlot(boxes, candidates, at.col, at.row, ax), fig });
+      keyed.push({ i, y: p.y, slot: walkerSlot(boxes, candidates, at.col, at.row, ax), fig, still: at.still === true });
     }
     keyed.sort((a, b) => a.slot - b.slot || a.y - b.y);
     this.lastWalkers = keyed;
