@@ -4,7 +4,7 @@
 new **format** for reviewing the whole game, in place of the seven-area format
 of Plans 73, 86 and 109. The next full review would be the first to use it.*
 
-**Status: Proposed.** Waiting on the owner's answers to §8.
+**Status: In progress.** The owner answered §8 on 3 November 2026 (below); the review is being run.
 
 ---
 
@@ -371,20 +371,15 @@ The review lands in `docs/reviews/2026-11-review-by-subtraction/`:
   with their checkers. This review judges the art only where it carries a
   signal (cohesion) or a consequence (juice).
 
-## 8. Questions for the owner
+## 8. The owner's answers (3 November 2026)
 
-1. **The cap.** Twelve cards, or fewer? Fewer would force harder choices.
-2. **Cuts that touch features.** May the review recommend cutting a whole
-   mechanic (for example, a system Pass D finds can be ignored), or only
-   surfaces and text?
-3. **Sound.** Is audio in scope for the juice pass? It needs a different
-   capture setup, and the game's sound may not be where you want to spend
-   effort yet.
-4. **Budgets in CI.** Should the census totals become test budgets after the
-   review, or stay as review numbers only?
-5. **A review page.** Should the cut list go out as an interactive page with
-   a keep / trim / cut choice per row (as the over-explaining log was
-   decided), or stay in markdown?
+1. **The cap:** twelve cards.
+2. **Cutting mechanics:** allowed. The review may recommend removing a whole
+   mechanic, not only text and surfaces.
+3. **Sound:** in scope for the juice pass.
+4. **Budgets in CI:** no. The census totals stay review numbers.
+5. **A review page:** yes. The cut list goes out as an interactive page with
+   a keep / trim / cut choice per row.
 
 ## 9. What this plan does not do
 
