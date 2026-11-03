@@ -1269,8 +1269,23 @@ export default function CampusMap({
 }) {
   // The state the map draws: today's, or while resting the last it showed.
   // Every memo keyed on the state then holds under a tab.
+  // The map wakes a frame after the tab closes, not in the close itself:
+  // catching up weeks of change (the layout, the canvas scene re-recorded
+  // and flushed in a layout effect) took the Close click past 200 ms
+  // before the browser could paint the tab gone (INP). The commit that
+  // removes the tab paints first, the map as it last showed; the catch-up
+  // follows as its own task.
+  const [dozing, setDozing] = useState(resting);
+  if (resting && !dozing) setDozing(true);
+  useEffect(() => {
+    if (resting || !dozing) return undefined;
+    let timer = 0;
+    const frame = requestAnimationFrame(() => { timer = window.setTimeout(() => setDozing(false), 0); });
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
+  }, [resting, dozing]);
+  const asleep = resting || dozing;
   const shownRef = useRef(live);
-  if (!resting) shownRef.current = live;
+  if (!asleep) shownRef.current = live;
   const s = shownRef.current;
   // The picked-up building's facing (R turns it a quarter at a time).
   const [facing, setFacing] = useState<Facing>(0);
