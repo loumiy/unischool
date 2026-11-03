@@ -8,9 +8,11 @@ recommendations; this plan does only what the owner chose, reads each "trim"
 as §3 says (the owner agreed), and adds the cards' additions the cut list
 didn't ask about, which the owner also agreed to (§4, PRs H–N).*
 
-**Status: Proposed, with the owner's answers in.** The owner agreed to §3's
-readings and to every addition in §4 (3 November 2026). Work can start with PR A.
-
+**Status: Landed (3 November 2026), on `claude/quirky-tesla-1tkmw0`.** PRs A–M
+were built in parallel by five agents, one branch each (A, B, H · C, D · E, F,
+M3 · G, I, J, K · L, M1, M2), and merged in turn. `npm run check` passed on
+every merge, 214 suites at the end. PR N (alumni warmth and endowed chairs)
+is not started. Each PR's **As implemented** note follows its section.
 ---
 
 ## 0. What the owner decided
@@ -175,6 +177,9 @@ counts fall.
    The touch sentences show only under `touchUi`, and the build-menu
    explanation the Build menu already gives goes.
 
+
+**As implemented:** buttons on every device (touchUi gate gone; still 40px on touch); TiltViewIcon/StartingViewIcon (Lucide arrow-down-to-line, arrow-up-to-line, house). SKIP_MARKS in state/chapters.ts: the drawer's Skip on Looking around's eyebrow row dispatches MARK_GUIDANCE for each required look (App → LogTicker → ObjectivesPanel), so chapter_done still fires. Map help ~45 words + ~15 for touch: one line on building, one on paths, seven keys as a kbd list. The four Looking around helps now name the buttons. Test: a run that never moves the camera reaches Somewhere to sleep by the Skip.
+
 ### PR B — Year 1 without the explaining (X3, X4, X7, X8, X9, X11)
 
 1. **An objective opens when it can be done (X4).** Add an optional `ready`
@@ -213,6 +218,9 @@ counts fall.
    words read before year 2 (it was about 1,050) in the PR's **As implemented**
    note.
 
+
+**As implemented:** objectiveReady (met counts as ready); objectiveRows hides not-ready objectives from the drawer and ticker; settleChapters waits on the first required objective. Predicates: develop-second-course when a program's first course is taught; site-academic-hall when Elm Hall can be started in cash or with a loan (the build menu's financingFor/canStartDevelopment); move-a-program when a second academic hall is done and placed. The three wait helps and their branch deleted. A greyed hall card short of cash gets .filling (gold rising to cash ÷ cost). Year-1 abouts cut (Looking around keeps its own); those chapters keep their Guide pages. Cut: the summer call's sentence, the review's satisfaction explanation, the four pillar lines (endowment and condition keep theirs), the opening's run-length sentences and "Time is paused until you do this". X9: the whole "cost of being large" Treasury panel (chart and note) removed, the cost staying in the figures. The between-chapters line reads "X is next." once the chapter before is done (DRAWER_WORDS.nextUp). Tests: chapter-ready.test.ts (new); chapter-pace checks every week of three 10-year runs; chapter-help.test.ts deleted. Words before year 2 estimated ~1,050 → ~640 from the removed strings (no new manual count). Left: nextStep.ts:452 still says "Time is paused until you do" when the walkthrough is skipped.
+
 ### PR C — The band (H1, H2, H5, S1)
 
 1. **Fewer badges (H1, trim).** Cut the "unseen" badge from each Build category,
@@ -237,6 +245,9 @@ counts fall.
    Gold for selected, primary, good on the band, Distinguished and lab progress
    stays.
 
+
+**As implemented:** H1 per-category ! cut (+ its help sentence); opening Build marks every category's tiles seen so the top badge clears (SeenState comment updated). "New" mark is a cream dot (.alert-badge.new) on Curriculum and Build; Athletics' needs-staff is .alert-badge.needs, cream "!" on red with a dark border and a cream halo (reads on maroon/crimson). H2: drawer's Also waiting cut (prop, words, CSS, LogTicker waiting); with a chapter open a non-urgent NEXT shows nowhere (it only appeared there); urgent NEXT unchanged. arrivalsIn gives letters only; 'matter' tone and .toast.matter gone; "pause for an urgent matter" still pauses. H5: both chips open History's Prestige view (statChips.ts); one hint FIGURE_HINTS.standing(field). S1: retiring dot --bad-on-light; unread dot cream (inbox row and band); Build button loses gold outline, lightens on hover. plain-baseline: long sentence 12→10, possessive chain 16→14, passive 47→46.
+
 ### PR D — Signals (S3, S4, S6, R-3)
 
 1. **Cues (S3, trim).** Two fixes where a cue means the opposite of its event:
@@ -257,6 +268,9 @@ counts fall.
 4. **R-3.** Add `animation: none` to `.school-banner` under both reduced-motion
    selectors, as `.spec-panel` has.
 
+
+**As implemented:** departure/candidate/petition/publication silent (SILENT_TOPICS with reasons), demand failed → loss; audio.test.ts covers it. "Guide" button → "Show me" (aria "Show me around {tab}"); drawer heading "Guide · Read again" → "Read again". Professor top rank → "Chair" (type, thresholds, portrait table, Faculty walk); rank computed, never saved, so no migration. Entrances: enter-rise (10 px), enter-fade, banner-in replace popup-rise, popup-from-corner, modal-in, toast-in, spec-rise, spec-drop, overlay-fade, spec-fade (24→18 keyframes); objectives drawer rises instead of scaling from its corner. R-3: .school-banner animation:none under both selectors; prefers-reduced-motion rule added for .spec-page/.spec-panel/.spec-armed. Not checked visually: banner under reduced motion, badges on other palettes, the specialization page's rise.
+
 ### PR E — Promises out (M3)
 
 Remove the system, its offer, its panel, its chronicle and report lines, its
@@ -272,6 +286,9 @@ catalogue hooks and its gate. Then:
   summer review, the Final Report and the help.
 - **The goal players' "promises" lines** go from `tools/review/goalPlayers.ts`.
 
+
+**As implemented:** removed systems/promises/, data/promiseData.ts, tabs/PromisesPanel.tsx and its two History mounts, PromiseOffer from the Review beat (always "Continue"), tickPromises/answerPromises, promises on RESOLVE_SUMMER_BEAT and GameState; the chronicle's kept/missed lines; the Final Report's promises section and fields; the ambition_reached analytics event, the 'ambition' log topic and its cue; the dead CSS; the catalogue's promise hook (the rankings slip keeps two choices). Not in the plan: the Final Report's mark was 70% standings, 20% rank, 10% promises; now (7 × standings + 2 × rank) / 9; a written report keeps its grade. ChapterId already lacked the two ids. Persistence: dropPromises deletes promises (a pending offer too), the 'ambition' topic from log lines, and a written report's kept/missed/declined. test/promises-gone.test.ts loads all 32 fixtures (29 with promises) and a save at the Review with an offer pending. Fixture sweep: 198 runs, 0 problems. Goal players: rank and prestige moved 0–3; final grades rose a band in 4 of 14 runs (the reweighted mark); revenue's students 4480→4160, assets' titles 5→12; the rules-broken list unchanged. Docs rewritten: design/admissions, gameplay, progression; architecture/interrupts, ui-shell, game-state. Left: demo-campus.json and tudor-year-1 still hold promises (dropped on load).
+
 ### PR F — One campus figure, shorter lines (A5, M2)
 
 1. **One campus figure (A5, trim).** Both scores stay in the model. The player
@@ -282,6 +299,9 @@ catalogue hooks and its gate. Then:
    as a number with an icon, and drop the word "WAITING". The Students tab drops
    the need sub-lines that explain since when ("A need since the college passed
    1,500 students"). Bed and place counts stay.
+
+
+**As implemented:** components/CampusStanding.tsx shared by the Estate panel and the build menu: "Campus N of 150" (campusTerms) with its parts (decoration, quads, paths to doors, buildings standing) and beauty's (greenery, landmarks, upkeep); "Campus beauty N of 100" gone; the build menu's compact line picks the weakest of all seven. Faculty tile: the book icon and a count (aria "N courses waiting"). Students: the Health card drops "A need since the college passed N students". Left: the prestige breakdown's "Campus beauty" row. Tests: campus-figure.test.ts; figures BARE_CEILING 27→26.
 
 ### PR G — Loose ends (F1, R-4, R-5, T-1)
 
@@ -294,6 +314,9 @@ catalogue hooks and its gate. Then:
    or until the pointer returns to it.
 4. **T-1.** The map sets `window.__campusMap` on every mount, so `npm run clip --
    --focus` works after Continue.
+
+
+**As implemented:** F1 action, reducer case, its only imports and the naming comments gone (also docs/architecture/buildables.md); a library floor goes up only through estate.ts's startLibraryFloor; an old log replays it as a no-op via the reducer's default (replay.test.ts); library-renovation and balance tests call startLibraryFloor. R-4: the cause was Plan 114H's folding rows above the committed course; the tab holds that program row at its pre-click height for the render that brings the new state (row stays at 363 px; it jumped to 253). R-5: after a placement the Build menu stays a strip "Placed: {building}" (BUILD_WORDS.placed) for 1 s or until the pointer enters (ToolbarPopup onPointerEnter). T-1: map review handle and on-screen probe kept as a stack per mounted map in mapProbe.ts; a map removes only its own (the title backdrop's unmount cleared the game map's); waitForMap after Continue finds the canvas and 21 buildings; Toasts' on-screen probe had the same fault, now fixed.
 
 ## 3. Readings of "trim" (agreed by the owner)
 
@@ -360,12 +383,18 @@ motion, the hall appears at once, as it does now. Where: the founding's
 placement in `CampusMap.tsx` and the walkthrough's step in `OpeningCoach.tsx`.
 **S–M.**
 
+
+**As implemented:** FOUNDING_RISE_MS 400: the hall's canvas entries are left out while an SVG overlay of the same art scales up from the footprint (.founding-rise, ease-out); slot marks wait; complete plays at the end (at once under reduced motion); App holds the hall panel and step-two card 400 ms. Canvas map only; the hall's shadow, label and flagpole show at full size during the rise. No test.
+
 ### PR I — A click finishes the admissions animation (card 3)
 
 The rain, the admit line and the pour take about 4 s each summer
 (`AdmissionsPage.tsx:51-54`), about 3.5 minutes over a run. A click or a key
 anywhere on the page jumps them to their end state, as reduced motion already
 does. The coach (kept, X6) is unaffected. **S.**
+
+
+**As implemented:** a pointer press on .admissions-page (capture, never stopped) or any keydown jumps the rain or pour to its end and cuts the 700 ms seated pause; a skipped pour sends the offers at once, guarded against a double send.
 
 ### PR J — "+80 places" (card 5, B-7, B-12)
 
@@ -380,6 +409,9 @@ owner, on the mock-ups). **S.**
 |---|---|
 | ![Today](124-subtraction-as-decided/j2-develop-before.png) | ![Proposed](124-subtraction-as-decided/j2-develop-after.png) |
 
+
+
+**As implemented:** classPlacesShort(s) in instructionCapacity.ts: enrolled > capacity, or last summer's applicants > next summer's room; chip PLACES_CHIP after the cost on open rows of housed programs (not folded rows); --ok-on-light/--grade-a-bg so it turns blue under the colour-vision palette; test/places-chip.test.ts. In the year-7 save all 17 open rows carry it (worth the owner's look).
 
 ### PR K — Prestige as four pillar bars (card 7, D-1, D-9b)
 
@@ -400,6 +432,9 @@ The colour-vision palette needs checking. **M.**
 |---|---|
 | ![Today](124-subtraction-as-decided/k-head-before.png) | ![Proposed](124-subtraction-as-decided/k-head-after.png) |
 
+
+
+**As implemented:** prestigeByPillar(s) in prestigeSystem.ts: each pillar's weight × value scaled so the four sum to prestige exactly; tick = the breakdown's target; test/pillar-split.test.ts. components/PillarHead.tsx: one stacked bar on the 0–150 scale, own pillar lit, others at 35%, cream separators, ghost tick, "18.1 of your 51.8 prestige · heading for 54.6". Inside Curriculum's panel head; a slim panel atop Research, Students and Athletics. Departs from Plan 98B (target only as a direction), as approved on the mock-ups. The summer review's Standing card ends in the same bar, all four lit, filling from the left (@keyframes pillar-fill, at once under reduced motion), with "Academics 16.4 · Research 7.8 · …".
 
 ### PR L — The map carries what the tabs say (card 8, E-4)
 
@@ -427,6 +462,9 @@ in every vernacular. **M–L.**
 |---|---|
 | ![Today](124-subtraction-as-decided/l2-commons-before.png) | ![Proposed](124-subtraction-as-decided/l2-commons-after.png) |
 
+
+
+**As implemented:** a program's pip turns dark navy with a dashed red ring while a course has no teacher (unstaffedPrograms; not in transit); the pip's tooltip gains "1 program dark, a course without a teacher". Queues: while dining (basicNeeds) or health is under 100 (99.5 counts as served), each dining hall or health centre gets a line at its front door, two out then along the wall, 3 + 1 per 5 points short, capped at 14; "standers" in the walkers' crowd, depth-sorted, on canvas and ?map=svg. Pure parts in components/mapSignals.ts (test/map-signals.test.ts). docs/architecture/campus-map.md updated.
 
 ### PR M — The big moments on the map (card 10, C-1, C-2, C-9)
 
@@ -496,6 +534,12 @@ Multi-Sport Field (two) on a year-30 campus.*
 | Today: all at once | It opens | Grades stamp in | The final grade |
 |---|---|---|---|
 | ![Today](124-subtraction-as-decided/m3-final-before.png) | ![It opens](124-subtraction-as-decided/m3-final-s1.png) | ![Grades stamp in](124-subtraction-as-decided/m3-final-s2.png) | ![The final grade](124-subtraction-as-decided/m3-final-after.png) |
+
+
+**As implemented:**
+- **M1:** a venue with stands (stadium, field, diamond) is full when mulberry32 over a hash of college, venue, year and week falls under 1/3, independent of fixtures. crowdedVenues and the dot Crowd deleted. spectators.tsx: the walker's shirt and head at 0.76 scale, seated, packed evenly along each row with alternate rows offset, aisles clear, inset so nothing spills; the bowl's corners too; one path per shirt colour per row (~2,700 elements for ~14,600 figures) recorded into the venue's bitmap. On a full week 16–140 standers 1–3 tiles outside, never on the field or track. Pennants for titles won in earlier years by a sport on that venue: all round the bowl's rim, along the field's and diamond's back rails, on a covered grandstand's roof; about one every 2.2 tiles of rim, not one per title. PennantContext added. Arena and natatorium (no visible stands) get neither. Performance on a laid-out year-31 save (noisy machine): Paused 59.8 fps, Play 51.7, 2× 53.5 (p95 16.8 ms), 4× 42.5; building every crowd path ~22–36 ms, paid when a venue's flag changes, a zoom settles, or each frame of a turn.
+- **M2:** stadiumFacade.tsx drawn over the bowl's visible outer walls: plinth, ground openings with a wide gate every sixth bay, tall arches with voussoirs, banners on every third pier, a cornice carrying "<College> Stadium", an entrance tower at the front-left corner. Round arches by default; lancets for Gothic and Tudor; square-headed slots for Modern and Art Deco; a concrete cornice where a set has no trim. Expansions: 0 an arcade on the touchline stands' backs; 1 a second arcade on the end stands; 2 the full wall with gates and tower; 3 an upper tier of arches and a taller tower.
+- **M3:** FinalReportView takes `staged` (only the fiftieth summer's page): after 800 ms the six grades stamp in every 450 ms (tick, grade-stamp), "Students taught" counts up, the final grade lands last with a gold halo (grade-halo) and the fanfare; places are held so nothing shifts. The fanfare came from director.ts's stateCues on `ending`, now removed; it plays only on the reveal. Opens over the campus: .final-page is a 72% veil of the school colour over the live map (enter-fade; the card enter-rise, renamed at the merge from overlay-fade/modal-in). Reduced motion: the end state at once, with the fanfare. test/final-report-staged.test.ts.
 
 ### PR N — Alumni warmth and late money, connected (card 11, D-4, D-6)
 
