@@ -11,7 +11,7 @@ import { careerWeeks } from '../systems/faculty/facultySystem';
 import { facultyPay } from '../systems/finance/financeSystem';
 import { coursesTaughtBy, projectedQuality } from '../systems/faculty/facultyAssignment';
 import ConfirmButton from '../components/ConfirmButton';
-import { DisclosureIcon } from '../components/icons';
+import { CurriculumIcon, DisclosureIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import { GradeChip } from './CurriculumTab';
 import { bandOf, facultyMedian, retiringSoon } from './facultySort';
@@ -264,12 +264,14 @@ export default function FacultyTile(
         {waits > 0 && (
           <span
             className="faculty-tile-waiting"
+            aria-label={`${waits} ${waits === 1 ? 'course' : 'courses'} waiting`}
             title={[
               waiting!.unstaffed > 0 ? `${waiting!.unstaffed} ${f.field} ${waiting!.unstaffed === 1 ? 'course has' : 'courses have'} no instructor` : '',
               waiting!.open.length > 0 ? `${waiting!.open.length} ${waiting!.open.length === 1 ? 'is' : 'are'} open to develop` : '',
             ].filter(Boolean).join('; ')}
           >
-            {waits} waiting
+            {/* A count with the courses' icon (Plan 124F: the word went). */}
+            <CurriculumIcon />{waits}
           </span>
         )}
       </div>

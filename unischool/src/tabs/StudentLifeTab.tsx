@@ -8,7 +8,6 @@ import { WEEKS_PER_YEAR } from '../state/types';
 import HelpHint from '../components/HelpHint';
 import Figure from '../components/Figure';
 import { FIGURE_HINTS, NEED_LABELS, dragLine } from '../data/figureHints';
-import { HEALTH_CENTER_TIER1_POPULATION_GATE } from '../data/facilitiesData';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { sectionAnchor } from '../components/sectionTarget';
 import {
@@ -199,10 +198,8 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
           </span>
           {/* Housing says beds against the beds wanted; the other needs say
               nothing here (Plan 96E: "1,200/113 served" beside a score of 40
-              read as a contradiction, the score being mostly teaching). */}
-          {attribute === 'health' && !detail.dormant && (
-            <span className="satisfaction-card-coverage">A need since the college passed {count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students</span>
-          )}
+              read as a contradiction, the score being mostly teaching), nor
+              since when they were needs (Plan 124F). */}
           {(detail.dormant || attribute === 'housing') && (
             <span className="satisfaction-card-coverage">
               {detail.dormant
