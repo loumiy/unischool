@@ -1486,6 +1486,15 @@ button.build-tile { font-family: inherit; }
   vector-effect: non-scaling-stroke;
   animation: campus-complete 1.5s ease-out forwards;
 }
+/* Founders Hall rising into its footprint at the founding (Plan 124H): on
+   the ring's easing, from the ground at the footprint's centre (the group's
+   origin, CampusMap.tsx). Reduced motion never mounts it. */
+.founding-rise { transform-origin: 0 0; animation: founding-rise 400ms ease-out both; }
+@keyframes founding-rise {
+  0% { transform: scaleY(0); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
 @keyframes campus-complete {
   0% { opacity: 0; stroke-width: 1; }
   22% { opacity: 1; stroke-width: 4; }
