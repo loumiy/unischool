@@ -680,9 +680,14 @@ export function canSwapInstructors(s: GameState, courseA: string, courseB: strin
     if (programId !== undefined && isInTransit(s, programId)) return false;
   }
   // A swap changes nobody's load, so each is judged with their own course
-  // excepted.
-  return eligibleInstructors(s, b, courseA).some((f) => f.id === fa)
-    && eligibleInstructors(s, a, courseB).some((f) => f.id === fb);
+  // excepted: eligibleInstructors(s, b, courseA) holds fa exactly when fa is
+  // on the roster in b's field (fa teaches courseA, so the slot test always
+  // passes for them). Checked directly: staffSchool asks this for every pair
+  // of a school's courses each week, and the full eligibility scan (every
+  // professor's load across the whole tree) was the late game's costliest
+  // part of a week.
+  const inField = (id: string, field: string) => s.faculty.some((f) => f.id === id && f.field === field);
+  return inField(fa, b.requiresFaculty) && inField(fb, a.requiresFaculty);
 }
 
 export function swapInstructors(s: GameState, courseA: string, courseB: string): void {

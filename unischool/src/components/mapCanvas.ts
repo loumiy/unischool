@@ -607,7 +607,15 @@ export class MapCanvas implements CrowdSink {
         } else if (r && r.sig === e.sig && r.soft === scene.soft && r.doors !== doors) {
           // Other doors: a variant kept, else a new one.
           r.entry = e;
-          r.variants.set(r.doors, { ops: r.ops, box: r.box, drawing: r.drawing });
+          // Its drawing goes with the doors it shows only if it shows what
+          // they draw now: one waiting to be made again (a stand-in from
+          // before a change, as from the camera before a turn) is dropped,
+          // or a later return to these doors would lay it as theirs, where
+          // the old view had the building (it vanished from where it is).
+          const was = r.drawing;
+          const current = r.redraw ? null : was;
+          if (was && !current && ![...r.variants.values()].some((x) => x.drawing === was)) was.bitmap?.close();
+          r.variants.set(r.doors, { ops: r.ops, box: r.box, drawing: current });
           const v = r.variants.get(doors);
           r.doors = doors;
           if (v && v.drawing && v.drawing.scale === this.scale) {
