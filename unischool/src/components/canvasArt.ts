@@ -30,7 +30,7 @@ export interface Occasions {
   banner: SchoolColors | null;
   collegeName: string;
   developing: GameState['developing'];
-  crowds: ReadonlySet<string>;
+  crowds: ReadonlyMap<string, number>;
   pennants: ReadonlySet<string>;
   venue: string | null;
   // The building being drawn, for its doors (Plan 122's follow-up).
@@ -72,7 +72,7 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
   registerArt(Gazebo, (p: GazeboProps, s) => gazeboArt(p, occasion(s, 'snow')));
   registerArt(Lamp, (p: { at: Pt }, s) => lampArt(p, occasion(s, 'banner')));
   registerArt(RakedStand, (p: RakedStandProps) => rakedStandArt(p));
-  registerArt(Spectators, (p: SpectatorsProps, s) => spectatorsArt(p, occasion(s, 'crowds').has(occasion(s, 'venue') ?? '')));
+  registerArt(Spectators, (p: SpectatorsProps, s) => spectatorsArt(p, occasion(s, 'crowds').get(occasion(s, 'venue') ?? '') ?? 0));
   registerArt(StadiumFacade, (p: StadiumFacadeProps, s) => stadiumFacadeArt(p, occasion(s, 'colors'), occasion(s, 'collegeName')));
   registerArt(VenuePennants, (p: PennantsProps, s) => venuePennantsArt(p, occasion(s, 'pennants').has(occasion(s, 'venue') ?? ''), occasion(s, 'colors')));
 

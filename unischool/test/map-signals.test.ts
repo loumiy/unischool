@@ -5,7 +5,7 @@
 import { createInitialState } from '../src/state/actions';
 import type { GameState, HallSlot, Placement } from '../src/state/types';
 import { CAMPUS_GRID_WIDTH } from '../src/state/types';
-import { FULL_SHARE, QUEUE_MAX, QUEUE_MIN, aroundVenue, darkPips, fullVenues, gatheredCount, pennantCount, pennantVenues, queueLength, queueSpots, queuesOf, venueFull, venueTitles } from '../src/components/mapSignals';
+import { CROWD_LEVELS, QUEUE_MAX, QUEUE_MIN, aroundVenue, darkPips, gatheredCount, pennantCount, pennantVenues, queueLength, queueSpots, queuesOf, venueLevel, venueLevels, venueTitles } from '../src/components/mapSignals';
 import { walkGrid } from '../src/components/walkRoutes';
 import { stadiumTitle } from '../src/components/stadiumFacade';
 import { unstaffedPrograms } from '../src/systems/techtree/darkness';
@@ -92,17 +92,26 @@ console.log('map signals tests');
   assert(queueSpots(p, grid, 0).length === 0, 'no one when there is no queue');
 }
 
-// ---- M1: which weeks a venue is full ----
+// ---- M1: when a venue fills, and how fast ----
 {
-  let full = 0;
+  const lv = (y: number, w: number, id = 'ATH-STADIUM') => venueLevel('Halifax', id, y, w);
+  let any = 0; let packed = 0; let jumps = 0; let starts = 0;
+  for (let y = 1; y <= 40; y++) for (let w = 1; w <= 52; w++) {
+    const now = lv(y, w);
+    const prev = w > 1 ? lv(y, w - 1) : y > 1 ? lv(y - 1, 52) : 0;
+    if (now > 0) any += 1;
+    if (now === CROWD_LEVELS) packed += 1;
+    if (Math.abs(now - prev) > 1) jumps += 1;
+    if (now > 0 && prev === 0) starts += 1;
+  }
   const N = 52 * 40;
-  for (let y = 1; y <= 40; y++) for (let w = 1; w <= 52; w++) if (venueFull('Halifax', 'ATH-STADIUM', y, w)) full += 1;
-  const share = full / N;
-  assert(Math.abs(share - FULL_SHARE) < 0.04, `full about one week in three (${share.toFixed(3)})`);
-  assert(venueFull('Halifax', 'ATH-STADIUM', 7, 12) === venueFull('Halifax', 'ATH-STADIUM', 7, 12), 'the same all week');
+  assert(jumps === 0, 'the stands fill and empty a step at a time, never all at once');
+  assert(any / N > 0.12 && any / N < 0.35, `a crowd on a minority of weeks (${(any / N).toFixed(2)})`);
+  assert(packed / N > 0.04 && packed / N < 0.14, `packed a few weeks a year (${(packed / N).toFixed(2)})`);
+  assert(starts / 40 >= 1 && starts / 40 <= 3, `a venue fills about twice a year (${(starts / 40).toFixed(1)})`);
   let same = 0;
-  for (let w = 1; w <= 52; w++) if (venueFull('Halifax', 'ATH-STADIUM', 3, w) === venueFull('Halifax', 'ATH-FIELD', 3, w)) same += 1;
-  assert(same < 45, 'each venue has its own weeks');
+  for (let w = 1; w <= 52; w++) if (lv(3, w) === lv(3, w, 'ATH-FIELD')) same += 1;
+  assert(same < 52, 'each venue has its own occasions');
 
   const s: GameState = createInitialState('Venues');
   const field = s.tech.find((t) => t.facilityType === 'athleticsField')!;
@@ -114,14 +123,14 @@ console.log('map signals tests');
   // No team, no fixtures: the field still fills on its weeks.
   assert(s.orgs.teams.length === 0, 'a college with no team');
   let weeks = 0;
-  for (let w = 1; w <= 52; w++) {
-    s.clock.week = w;
-    const f = fullVenues(s);
-    if (f.includes(lab.id)) assert(false, 'a building with no stands never fills');
-    if (f.includes(field.id) !== venueFull(s.self.name, field.id, s.clock.year, w)) assert(false, 'fullVenues follows venueFull');
-    if (f.includes(field.id)) weeks += 1;
+  for (let y = 1; y <= 4; y++) for (let w = 1; w <= 52; w++) {
+    s.clock.year = y; s.clock.week = w;
+    const f = venueLevels(s);
+    if (f.has(lab.id)) assert(false, 'a building with no stands never fills');
+    if ((f.get(field.id) ?? 0) !== venueLevel(s.self.name, field.id, y, w)) assert(false, 'venueLevels follows venueLevel');
+    if (f.has(field.id)) weeks += 1;
   }
-  assert(weeks > 6 && weeks < 30, `the field fills without fixtures (${weeks} weeks)`);
+  assert(weeks > 12 && weeks < 70, `the field fills without fixtures (${weeks} of 208 weeks)`);
 
   // People stand about outside it, never on it.
   const grid = walkGrid({ placements: s.placements, tech: s.tech, pathways: s.pathways });

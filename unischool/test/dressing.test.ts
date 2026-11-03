@@ -21,7 +21,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { DEFAULT_PITCH, setCamera } from '../src/components/isoProjection';
 import { bindScriptStream } from '../src/engine/random';
 import { isCommencement } from '../src/components/mapOccasions';
-import { fullVenues } from '../src/components/mapSignals';
+import { venueLevels } from '../src/components/mapSignals';
 import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { WEEKS_PER_YEAR } from '../src/state/types';
 import type { GameState } from '../src/state/types';
@@ -248,16 +248,17 @@ function lampsKept(s: GameState): boolean {
   const field = s.tech.find((t) => t.facilityType === 'athleticsField')!;
   field.status = 'done';
   s.placements[field.id] = { row: 5, col: 5, w: 22, h: 13 };
-  // Full about one week in three, off the map's own random numbers and not
-  // the fixtures (Plan 124 M1; mapSignals.ts's tests count the share).
+  // A crowd on some weeks and not others, off the map's own random numbers
+  // and not the fixtures (Plan 124 M1; mapSignals.ts's tests count it).
   let full = 0;
-  for (let w = 1; w <= WEEKS_PER_YEAR; w++) {
-    s.clock.week = w;
-    const f = fullVenues(s);
+  for (let y = 1; y <= 4; y++) for (let w = 1; w <= WEEKS_PER_YEAR; w++) {
+    s.clock.year = y; s.clock.week = w;
+    const f = [...venueLevels(s).keys()];
     if (f.length) full += 1;
     if (f.length && f[0] !== field.id) assert(false, 'only the field can fill');
   }
-  assert(full > 6 && full < 30, `the field fills on some weeks and not others (${full} of ${WEEKS_PER_YEAR})`);
+  assert(full > 12 && full < 70, `the field fills on some weeks and not others (${full} of ${4 * WEEKS_PER_YEAR})`);
+  s.clock.year = 1;
   s.clock.week = WEEKS_PER_YEAR;
   assert(isCommencement(s), 'the last week of the year is commencement');
   s.clock.week = 10;

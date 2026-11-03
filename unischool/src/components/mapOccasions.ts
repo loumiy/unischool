@@ -20,7 +20,9 @@ export const ColorsContext = createContext<SchoolColors>(schoolColorsOf(FOUNDING
 // The venues full this week, by Buildable id (mapSignals.ts's fullVenues:
 // about one week in three each, off the map's own random numbers, Plan 124
 // M1). Their stands fill with people and people stand about outside.
-export const CrowdContext = createContext<ReadonlySet<string>>(new Set());
+// How full each venue's stands are this week (mapSignals.ts's venueLevels):
+// absent is empty, CROWD_LEVELS is packed.
+export const CrowdContext = createContext<ReadonlyMap<string, number>>(new Map());
 // The venues flying their titles' pennants (mapSignals.ts's pennantVenues).
 export const PennantContext = createContext<ReadonlySet<string>>(new Set());
 // The venue a stand belongs to, set round each building and its props.

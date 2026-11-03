@@ -73,7 +73,7 @@ for (const [i, c] of cameras.entries()) {
   const camera = setCamera(c);
   const scene = canvasSceneOf({
     layout, camera, scene: sceneEntries(layout), groundGeo: groundGeometry(), name: s.self.name, developing: s.developing,
-    turning: false, snow: 0.6, crowds: new Set(ids.slice(0, 3)), pennants: new Set(ids.slice(0, 3)), banners: { ...s.self.colors },
+    turning: false, snow: 0.6, crowds: new Map(ids.slice(0, 3).map((id) => [id, 3] as const)), pennants: new Set(ids.slice(0, 3)), banners: { ...s.self.colors },
     inspectedId: ids[0]!, justFinished: [ids[1]!], onInspect: () => {}, labelLayerRef: { current: null },
     season: 'test', groundClass: '',
   });
@@ -115,7 +115,7 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
   const camera = setCamera(cameras[0]!);
   const scene = canvasSceneOf({
     layout: layout2, camera, scene: sceneEntries(layout2), groundGeo: groundGeometry(), name: s2.self.name, developing: s2.developing,
-    turning: false, snow: 0, crowds: new Set<string>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
+    turning: false, snow: 0, crowds: new Map<string, number>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
     labelLayerRef: { current: null }, season: 'works', groundClass: '',
   });
   let threw = '';
@@ -159,7 +159,7 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
     const camera = setCamera(c);
     const scene = canvasSceneOf({
       layout: layout4, camera, scene: sceneEntries(layout4), groundGeo: groundGeometry(), name: s4.self.name, developing: s4.developing,
-      turning: false, snow: 0, crowds: new Set<string>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
+      turning: false, snow: 0, crowds: new Map<string, number>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
       labelLayerRef: { current: null }, season: 'sinkhole', groundClass: '',
     });
     things.resetStats();
@@ -207,7 +207,7 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
   const camera = setCamera(cameras[0]!);
   const scene = canvasSceneOf({
     layout: layout3, camera, scene: sceneEntries(layout3), groundGeo: groundGeometry(), name: s3.self.name, developing: s3.developing,
-    turning: false, snow: 0, crowds: new Set<string>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
+    turning: false, snow: 0, crowds: new Map<string, number>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {},
     labelLayerRef: { current: null }, season: 'sheet', groundClass: '',
   });
   const rec = new Recorder({ rules: sheet, skipClass: 'campus-building-complete' });
@@ -230,7 +230,7 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
 // A thing's signature changes with what it draws, and only then.
 {
   const camera = setCamera(cameras[0]!);
-  const base = { layout, camera, scene: sceneEntries(layout), groundGeo: groundGeometry(), name: s.self.name, developing: s.developing, turning: false, snow: 0, crowds: new Set<string>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {}, labelLayerRef: { current: null }, season: 'x', groundClass: '' };
+  const base = { layout, camera, scene: sceneEntries(layout), groundGeo: groundGeometry(), name: s.self.name, developing: s.developing, turning: false, snow: 0, crowds: new Map<string, number>(), pennants: new Set<string>(), banners: null, inspectedId: null, justFinished: [], onInspect: () => {}, labelLayerRef: { current: null }, season: 'x', groundClass: '' };
   const a = canvasSceneOf(base);
   const b = canvasSceneOf({ ...base, inspectedId: ids[0]! });
   const changed = a.entries.filter((e, i) => e.sig !== b.entries[i]!.sig).map((e) => e.key);

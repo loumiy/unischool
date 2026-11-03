@@ -118,20 +118,36 @@ export function mapRandom(seed: number): () => number {
   };
 }
 
-// A venue is full about one week in three, picked off the map's random
-// numbers for that venue and that week, so it holds all week and does not
-// follow the fixtures: the point is that a player sees full stands often.
-export const FULL_SHARE = 1 / 3;
-export function venueFull(college: string, venueId: string, year: number, week: number): boolean {
-  return mapRandom(hashOf(`${college}|${venueId}|${year}|${week}`))() < FULL_SHARE;
+// How full a venue's stands are this week, 0 (empty) to CROWD_LEVELS (packed).
+// Not every week, and never all at once (the owner, on 124 M1: "fills and
+// empties very abruptly, and too often"): the year is cut into blocks of
+// CROWD_BLOCK weeks, and in about half of them, off the map's random numbers
+// for that venue, one occasion builds over a few weeks, holds, and thins out
+// (CROWD_RAMP). So stands are empty most weeks, fill in steps when they do,
+// and a player still sees them packed a few times a year. It does not follow
+// the fixtures.
+export const CROWD_LEVELS = 3;
+export const CROWD_BLOCK = 13;
+export const CROWD_RAMP: readonly number[] = [1, 2, 3, 3, 2, 1];
+export const CROWD_CHANCE = 0.5;
+export function venueLevel(college: string, venueId: string, year: number, week: number): number {
+  const abs = (year - 1) * 52 + (week - 1);
+  const block = Math.floor(abs / CROWD_BLOCK);
+  const rand = mapRandom(hashOf(`${college}|${venueId}|${block}`));
+  if (rand() >= CROWD_CHANCE) return 0;
+  const start = Math.floor(rand() * (CROWD_BLOCK - CROWD_RAMP.length + 1));
+  const i = abs - block * CROWD_BLOCK - start;
+  return i >= 0 && i < CROWD_RAMP.length ? CROWD_RAMP[i]! : 0;
 }
 
-// The finished venues with stands that are full this week, by Buildable id.
-export function fullVenues(s: GameState): string[] {
-  const out: string[] = [];
+// The finished venues with stands that have a crowd this week, by Buildable
+// id, with how full (1 to CROWD_LEVELS).
+export function venueLevels(s: GameState): Map<string, number> {
+  const out = new Map<string, number>();
   for (const t of s.tech) {
     if (t.status !== 'done' || t.facilityType === undefined || !STAND_VENUES.has(t.facilityType) || !s.placements[t.id]) continue;
-    if (venueFull(s.self.name, t.id, s.clock.year, s.clock.week)) out.push(t.id);
+    const level = venueLevel(s.self.name, t.id, s.clock.year, s.clock.week);
+    if (level > 0) out.set(t.id, level);
   }
   return out;
 }

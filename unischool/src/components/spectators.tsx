@@ -3,7 +3,7 @@ import type { SchoolColors } from '../state/types';
 import { ColorsContext, CrowdContext, PennantContext, VenueContext } from './mapOccasions';
 import { currentCamera, heightScale, lift, polyPoints, project, type Pt } from './isoProjection';
 import { up } from './campusScale';
-import { WALKER_SHIRTS, pennantCount } from './mapSignals';
+import { CROWD_LEVELS, WALKER_SHIRTS, pennantCount } from './mapSignals';
 import { shade } from './tint';
 
 // A venue's big days on the map (Plan 124 M1): the stands full of people,
@@ -49,7 +49,7 @@ export interface SpectatorsProps {
 // The crowd on a stand of a venue full this week.
 export function Spectators(props: SpectatorsProps) {
   const venue = useContext(VenueContext);
-  return spectatorsArt(props, useContext(CrowdContext).has(venue ?? ''));
+  return spectatorsArt(props, useContext(CrowdContext).get(venue ?? '') ?? 0);
 }
 
 const f1 = (v: number) => v.toFixed(1);
@@ -59,20 +59,26 @@ const f1 = (v: number) => v.toFixed(1);
 // elements, not tens of thousands.
 // Kept by stand and camera: a venue that empties and fills again, week on
 // week, draws the same crowd without laying it out again.
+// The share of seats taken at each level: a few at first, then most, then
+// every seat (index 0 is empty).
+const SEATED_SHARE: readonly number[] = [0, 0.2, 0.55, 1];
 const KEPT = new Map<string, React.JSX.Element>();
 const KEPT_MAX = 400;
-export function spectatorsArt(props: SpectatorsProps, crowded: boolean): React.JSX.Element | null {
-  if (!crowded) return null;
+// `level`: how full, 0 (none) to CROWD_LEVELS. A partly full stand seats a
+// share of its people, always the same ones, so a filling stand gains people
+// and keeps those already sitting.
+export function spectatorsArt(props: SpectatorsProps, level: number): React.JSX.Element | null {
+  if (level <= 0) return null;
   const cam = currentCamera();
-  const key = `${cam.azimuth},${cam.pitch}|${props.inner.flat().join(',')}|${props.outer.flat().join(',')}|${props.zIn}|${props.zOut}|${props.steps ?? 0}|${props.aisles ?? 0}|${props.innerNear}|${props.seed ?? 0}`;
+  const key = `${cam.azimuth},${cam.pitch}|${props.inner.flat().join(',')}|${props.outer.flat().join(',')}|${props.zIn}|${props.zOut}|${props.steps ?? 0}|${props.aisles ?? 0}|${props.innerNear}|${props.seed ?? 0}|${level}`;
   const kept = KEPT.get(key);
   if (kept) return kept;
   if (KEPT.size >= KEPT_MAX) KEPT.clear();
-  const made = layOut(props);
+  const made = layOut(props, SEATED_SHARE[Math.min(CROWD_LEVELS, level)] ?? 1);
   KEPT.set(key, made);
   return made;
 }
-function layOut({ inner, outer, zIn, zOut, steps = 0, aisles = 0, innerNear, seed = 0 }: SpectatorsProps): React.JSX.Element {
+function layOut({ inner, outer, zIn, zOut, steps = 0, aisles = 0, innerNear, seed = 0 }: SpectatorsProps, share: number): React.JSX.Element {
   const s = figureScale();
   const k = SPECTATOR_SCALE;
   const half = 3.1 * (1 + (1 - s) * 0.55) * k;
@@ -123,6 +129,7 @@ function layOut({ inner, outer, zIn, zOut, steps = 0, aisles = 0, innerNear, see
       const x = a.x + (b.x - a.x) * u;
       const y = a.y + (b.y - a.y) * u;
       const h = ((n++ * 2654435761) ^ (seed + j * 40503)) >>> 0;
+      if (share < 1 && (((h >>> 7) % 997) / 997) >= share) continue;
       torsos[h % WALKER_SHIRTS.length]!.push(
         `M${f1(x - half)} ${f1(y)}V${f1(y - shoulder)}Q${f1(x)} ${f1(y - crown)} ${f1(x + half)} ${f1(y - shoulder)}V${f1(y)}Z`,
       );

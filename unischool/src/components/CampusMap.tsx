@@ -63,7 +63,7 @@ import { occasion, registerMapArt } from './canvasArt';
 import { pct, weeksShort } from '../format';
 import { slotFree } from '../systems/administration/offices';
 import { unstaffedPrograms } from '../systems/techtree/darkness';
-import { darkPips, fullVenues, pennantVenues, queuesOf } from './mapSignals';
+import { CROWD_LEVELS, darkPips, pennantVenues, queuesOf, venueLevels } from './mapSignals';
 import { LOOK_MARKS, marked, type LookMove } from '../state/chapters';
 
 // How long a dust puff hangs over a footprint just placed (Plan 70H).
@@ -954,7 +954,7 @@ const SCENE_DEFS = <ScaffoldPattern />;
 export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
   scene: readonly SceneEntry[]; groundGeo: ReturnType<typeof groundGeometry>;
   name: string; developing: GameState['developing']; turning: boolean; snow: number;
-  crowds: ReadonlySet<string>; pennants: ReadonlySet<string>; banners: GameState['self']['colors'] | null;
+  crowds: ReadonlyMap<string, number>; pennants: ReadonlySet<string>; banners: GameState['self']['colors'] | null;
   // The downtown's step (Plan 85H), whether its windows are warm and how
   // large a festival it is dressed for (Plan 95C): 0, false and 0 at a
   // college not specialized in student life.
@@ -982,14 +982,14 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
       const owner = se.owner ?? null;
       entries.push({
         key: se.key, kind: 'prop', box, node, owner,
-        sig: `${cam}|${elementSig(se.node)}|${owner && a.crowds.has(owner) ? 'crowd' : ''}${owner && a.pennants.has(owner) ? 'pen' : ''}|${banner}|${colors}`,
+        sig: `${cam}|${elementSig(se.node)}|${owner ? `crowd${a.crowds.get(owner) ?? 0}` : ''}${owner && a.pennants.has(owner) ? 'pen' : ''}|${banner}|${colors}`,
       });
     } else {
       const e = layout.byId.get(se.id)!;
       const id = e.t.id;
       entries.push({
         key: se.key, kind: 'mass', box, node, owner: id,
-        sig: `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|${a.crowds.has(id) ? 'crowd' : ''}${a.pennants.has(id) ? 'pen' : ''}|${colors}|${a.name}|${layout.vernacular}`,
+        sig: `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|crowd${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'pen' : ''}|${colors}|${a.name}|${layout.vernacular}`,
       });
     }
   }
@@ -1009,7 +1009,7 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
           {parts.ground}
         </>
       ),
-      sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}${a.crowds.has(id) ? 'c' : ''}${a.pennants.has(id) ? 'p' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
+      sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}c${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'p' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
     },
     front: {
       node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} winterLit={a.winterLit ?? false} festive={a.festive ?? 0} colors={layout.colors} />,
@@ -1355,13 +1355,14 @@ export default function CampusMap({
   const [turning, setTurning] = useState(false);
   const layout = useCampusLayout(s);
   // This week's occasions (mapOccasions.ts), reference-stable between them.
-  const crowdKey = useMemo(() => fullVenues(s).join(','), [s]);
-  const crowds = useMemo(() => new Set(crowdKey ? crowdKey.split(',') : []), [crowdKey]);
+  const crowdKey = useMemo(() => [...venueLevels(s)].map(([id, level]) => `${id}:${level}`).join(','), [s]);
+  const crowds = useMemo(() => new Map(crowdKey ? crowdKey.split(',').map((e) => { const [id, level] = e.split(':'); return [id!, Number(level)] as const; }) : []), [crowdKey]);
   // A title's pennants round its venue, the year after it is won (Plan 124 M1).
   const pennantKey = useMemo(() => pennantVenues(s).join(','), [s]);
   const pennants = useMemo(() => new Set(pennantKey ? pennantKey.split(',') : []), [pennantKey]);
   // On a full week, people stand about outside the venue.
-  const gathered = useMemo(() => (crowdKey ? crowdKey.split(',') : []), [crowdKey]);
+  // Only when the stands are packed.
+  const gathered = useMemo(() => [...crowds].filter(([, level]) => level >= CROWD_LEVELS).map(([id]) => id), [crowds]);
   // The lines at the doors of a dining hall or a clinic while that need is
   // short (Plan 124 L), reference-stable while they stand.
   const queueKey = useMemo(() => JSON.stringify(queuesOf(s)), [s]);
