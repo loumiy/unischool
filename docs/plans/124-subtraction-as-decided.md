@@ -5,10 +5,11 @@
 page on 3 November 2026 and revised there the same day after the rows were
 explained at more length, sequenced into PRs. The review's twelve cards were
 recommendations; this plan does only what the owner chose, reads each "trim"
-as §3 says, and holds the cards' additions that the cut list didn't ask about
-for the owner's word (§4).*
+as §3 says (the owner agreed), and adds the cards' additions the cut list
+didn't ask about, which the owner also agreed to (§4, PRs H–N).*
 
-**Status: Proposed.** §3's readings and §4's list wait on the owner.
+**Status: Proposed, with the owner's answers in.** The owner agreed to §3's
+readings and to every addition in §4 (3 November 2026). Work can start with PR A.
 
 ---
 
@@ -138,9 +139,18 @@ review put up for cutting. So of the twelve cards:
 | E | M3 | Promises out, with old saves loading clean |
 | F | A5, M2 | One campus figure; shorter faculty and Students lines |
 | G | F1, R-4, R-5, T-1 | Loose ends: the dead action, the scroll, the panel, the clip tool |
+| H | §4.1 (card 4) | The hall rises at the founding |
+| I | §4.2 (card 3) | A click finishes the admissions animation |
+| J | §4.3 (card 5) | The growth lever in the picture: seats by course, "+80 places", the path network |
+| K | §4.4 (card 7) | Prestige as four pillar bars, with the target as a ghost tick |
+| L | §4.5 (card 8) | The map carries what the tabs say: dark windows, queues |
+| M | §4.6 (card 10) | The big moments on the map: title pennants, the specialization's plot, the Final Report staged |
+| N | §4.7 (card 11) | Alumni warmth into word of mouth; late money into endowed chairs |
 
 A comes first and alone, because it fixes a live bug (R-1). B–G are independent
-and can land in any order. Every PR follows the house rule for text: grep `src/`
+and can land in any order. H–N come after the cuts, so they build on the
+quieter screens. K depends on C (the chips), L should land after F (the shorter
+lines), and N is last because it is the only one that changes the balance. Every PR follows the house rule for text: grep `src/`
 for the words of anything it cuts, and list in its **As implemented** note what
 it rewrote. Every PR also lowers `tools/review/plain-baseline.json` where its
 counts fall.
@@ -285,7 +295,7 @@ catalogue hooks and its gate. Then:
 4. **T-1.** The map sets `window.__campusMap` on every mount, so `npm run clip --
    --focus` works after Continue.
 
-## 3. Readings of "trim" (decisions taken by default; the owner may change them)
+## 3. Readings of "trim" (agreed by the owner)
 
 | Row | Read as | The alternative |
 |---|---|---|
@@ -301,37 +311,106 @@ catalogue hooks and its gate. Then:
 | S5 | The map tools' three glyphs drawn; school motifs untouched | Motifs redrawn too, or cut |
 | S6 | Three entrances | Two (rise, fade), banner as a rise |
 
-## 4. Not on the cut list: the cards' additions, held for the owner
+## 4. The cards' additions (agreed by the owner)
 
-The review's cards also proposed things to *add* in place of what they cut, and
-the cut list didn't ask about them. None is in §2. Each is a small or medium
-change on its own, and several still stand even with their cut kept:
+The review's cards also proposed things to *add* in place of what they cut,
+and the cut list didn't ask about them. The owner agreed to all seven. Several
+stand even where their cut was kept, so each PR below says how it fits with
+what stayed.
 
-1. **The hall rises at the founding** (card 4, C-3). It stands with the letter
-   kept: the hall rises into its footprint after the letter closes. **S–M.**
-2. **A click finishes the admissions animation** (card 3; about 3.5 minutes a
-   run). **S.**
-3. **The growth lever in the picture** (card 5): the admissions hall drawn in rows
-   by course, "+80 places" on the next Develop, and the path network tinted
-   while the path tool is armed. **M.**
-4. **Prestige as four pillar bars** (card 7) on the prestige chip and the
-   feeding tabs, with a ghost tick for the target. X8 has already cut the lines
-   the bars would replace, so the summer review would show its report card
-   bars only. **M.**
-5. **The map carries what the tabs say** (card 8): a dark window per course
-   with no teacher, and queues at a short-served building. **M–L.**
-6. **The big moments on the map** (card 10): a pennant on the venue for each
-   title (the title page stays, A2), the camera and a staked plot at the
-   specialization, and the Final Report staged grade by grade. **M.**
-7. **Alumni warmth into word of mouth, and late money into endowed chairs**
-   (card 11). Both connect existing systems; neither needs a cut. **L.**
+### PR H — The hall rises at the founding (card 4, C-3)
 
-The owner's pick from this list becomes Plan 125, or PRs H onward here.
+The *doors open* letter stays (X10). When the player places Founders Hall, the
+hall rises into its footprint: about 400 ms, with the completion ring's
+easing. It plays `place` and then `complete`. The two panels that open after
+the placement wait until the rise has played; both stay (X10). Under reduced
+motion, the hall appears at once, as it does now. Where: the founding's
+placement in `CampusMap.tsx` and the walkthrough's step in `OpeningCoach.tsx`.
+**S–M.**
+
+### PR I — A click finishes the admissions animation (card 3)
+
+The rain, the admit line and the pour take about 4 s each summer
+(`AdmissionsPage.tsx:51-54`), about 3.5 minutes over a run. A click or a key
+anywhere on the page jumps them to their end state, as reduced motion already
+does. The coach (kept, X6) is unaffected. **S.**
+
+### PR J — The growth lever in the picture (card 5, B-4, B-7, B-12)
+
+1. **Seats by course.** On the admissions page, the hall the class pours into is
+   drawn in rows, one row of 80 seats per course taught. A full hall shows its
+   rows full, so "the hall is full" has its cause in the picture.
+2. **"+80 places".** The next *Develop* button in the Curriculum shows "+80
+   places" while seats are short, the one place the lever is pressed.
+3. **The path network.** While the path tool is armed, the paths joined to
+   Founders Hall are tinted, and a building's doorstep lights when the network
+   reaches it, so a path one tile short shows itself.
+
+It needs a mock-up of the hall's rows before code. **M.**
+
+### PR K — Prestige as four pillar bars (card 7, D-1, D-9b)
+
+1. **One figure.** Four short bars (academics, research, student life,
+   athletics) on the prestige chip, each to the pillar's weight. A ghost tick on
+   the chip shows where prestige is heading, the target, so the lag the
+   summer's rise cap creates is seen, not hidden. The two chips stay (H5).
+2. **At the head of the feeding tabs.** The same bar, alone, at the top of
+   Curriculum (academics), Research, Students (student life) and Athletics, so
+   the tab where the player works shows the pillar it feeds.
+3. **The summer.** The bars fill at the review, in place of the lines X8 cut.
+
+It needs a design pass on the chip's size at 1280×720, and the colour-vision
+palette checked. **M.**
+
+### PR L — The map carries what the tabs say (card 8, E-4)
+
+1. **Dark windows.** A hall shows one dark window for each course taught there
+   that has no teacher, and the window lights when one is appointed.
+2. **Queues.** A short line of walkers waits at the door of a dining hall or a
+   clinic while that need is under 100.
+
+The words stay as PR F leaves them (M2): a count with an icon on faculty tiles,
+the bed and place counts on Students. The new marks are drawn in the map's art
+(`buildingMotifs.tsx`, `Walkers.tsx`) and need a contact sheet (`npm run sheet`)
+in every vernacular. **M–L.**
+
+### PR M — The big moments on the map (card 10, C-1, C-2, C-9)
+
+1. **Titles.** Each national title hangs a pennant in the college's colours on
+   its sport's venue, stacking, for good. The title's page stays (A2); the
+   venue fills with a crowd that week.
+2. **The specialization.** On Confirm, the camera eases to where the pillar's
+   capital project will stand, the plot is staked in the pillar's colour, and the
+   fanfare plays. The ticker line and the letter stay.
+3. **The Final Report.** It opens over the campus as it stands. The six grades
+   stamp in one by one (`GradeMark`, a `tick` each), "Students taught" counts up,
+   and the fanfare plays on the final grade. The fanfare moves from the 50th
+   admissions' resolve (`resolveAdmissions.ts:79`) to the reveal.
+
+Reduced motion shows each at its end state. **M.**
+
+### PR N — Alumni warmth and late money, connected (card 11, D-4, D-6)
+
+1. **Alumni warmth into word of mouth.** Word of mouth
+   (`admissionsSystem.ts:115-116`) reads the alumni's average warmth beside this
+   year's satisfaction. The admissions reveal's existing "word of mouth" line
+   shows both, so a happy decade pays again, visibly, every summer. Reunions and
+   the Alumni panel stay (A4).
+2. **Late money into endowed chairs.** Named funds (`alumni/funds.ts`) can
+   endow a chair. Each chair moves the hiring market's centre up a step for
+   its field (`data/facultyData.ts:609-617`), shown on the Faculty market's
+   line. The Treasury's levers stay (A3).
+3. **Balance.** This is the plan's one balance change. Run the sweep and the
+   goal players before and after, and record the target and rank changes in the
+   PR. The warmth term is weighted so that a college with average alumni sees
+   no change.
+
+**L.**
 
 ## 5. What this plan does not do
 
 - Cut anything the owner kept.
-- Change the balance. Removing promises removes their small rewards and
-  penalties, so the sweep and the goal players run once after PR E, and the PR
-  notes any target that moved.
+- Change the balance, except in PR N. Removing promises removes their small
+  rewards and penalties, so the sweep and the goal players run once after PR E,
+  and the PR notes any target that moved.
 - Write the third review's status table. It still awaits the owner.
