@@ -313,6 +313,13 @@ catalogue hooks and its gate. Then:
 
 ## 4. The cards' additions (agreed by the owner)
 
+**Mock-ups** of PRs J–M, drawn into the real game from saved runs, are in
+[`124-subtraction-as-decided/`](124-subtraction-as-decided/) and on a page,
+[Plan 124 Mock-ups](https://claude.ai/artifact/VZgQxXTB7Wxyvbp5Tas2aj). Making
+them showed one thing to change: a single window is too small to darken
+readably, so PR L's mock-up darkens the hall's program dot instead (awaiting
+the owner's word).
+
 The review's cards also proposed things to *add* in place of what they cut,
 and the cut list didn't ask about them. The owner agreed to all seven. Several
 stand even where their cut was kept, so each PR below says how it fits with

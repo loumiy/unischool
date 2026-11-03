@@ -1,0 +1,175 @@
+<title>Plan 124 Mock-ups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Azeret+Mono:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: the game's register again (cream, navy rules, maroon and gold).
+   One column per PR; each mock-up is a today / proposed pair, side by side
+   when there's room, stacked on a phone. */
+:root {
+  --bg: #efe8da; --panel: #fffdf8; --ink: #1b2a4a; --muted: #5a5f6b; --line: #1b2a4a;
+  --primary: #7b1e2b; --gold: #f2c14e; --shadow: rgba(27,42,74,.9); --chip: #e4ddd0; --note: #fbf3dc;
+  --display: "Bricolage Grotesque", "Archivo", system-ui, sans-serif;
+  --body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Azeret Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111a2e; --panel: #1a2540; --ink: #ece6d8; --muted: #a9adb8; --line: #3a4a6e; --primary: #e07a8e; --shadow: rgba(0,0,0,.55); --chip: #24304d; --note: #2a2a20; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #111a2e; --panel: #1a2540; --ink: #ece6d8; --muted: #a9adb8; --line: #3a4a6e; --primary: #e07a8e; --shadow: rgba(0,0,0,.55); --chip: #24304d; --note: #2a2a20; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 56px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+header { padding-block: 32px 8px; display: grid; gap: 10px; }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+h1 { font: 800 clamp(30px, 5vw, 44px)/1.05 var(--display); margin: 0; text-wrap: balance; }
+.lede { margin: 0; max-width: 70ch; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 14px 4px; }
+nav a { font: 600 14px var(--body); color: var(--ink); text-decoration: none; background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; padding: 5px 12px; }
+nav a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+section.pr { margin-top: 36px; display: grid; gap: 16px; }
+.pr-head { display: grid; gap: 4px; }
+.pr-head h2 { font: 800 28px/1.15 var(--display); margin: 0; text-wrap: balance; }
+.pr-head h2 span { color: var(--primary); }
+.pr-head p { margin: 0; max-width: 72ch; }
+.mock { background: var(--panel); border: 2px solid var(--line); border-radius: 10px; box-shadow: 3px 3px 0 var(--shadow); padding: 16px; display: grid; gap: 12px; }
+.mock h3 { font: 700 18px var(--display); margin: 0; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.pair.stack { grid-template-columns: 1fr; }
+.pair.four { grid-template-columns: repeat(4, 1fr); }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figure img { width: 100%; height: auto; display: block; border: 1.5px solid var(--line); border-radius: 6px; background: #fff; }
+figcaption { font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+figcaption b { color: var(--primary); font-weight: 500; }
+.say { margin: 0; max-width: 78ch; }
+.note { background: var(--note); border: 1.5px dashed var(--line); border-radius: 8px; padding: 10px 12px; max-width: 80ch; }
+.note strong { color: var(--primary); }
+footer { margin-top: 40px; font-size: 13px; color: var(--muted); max-width: 72ch; }
+@media (max-width: 760px) { .pair, .pair.four { grid-template-columns: 1fr; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Plan 124 · PRs J, K, L and M · before any code</div>
+    <h1>What the additions will look like</h1>
+    <p class="lede">Each mock-up is the real game, from a saved run, shot as it is today and again with the proposed change drawn into the live page in the game's own fonts and colours. Map additions (paths, people, pennants, a staked plot) are painted over the screenshot. Numbers are the save's own except where a note says otherwise.</p>
+    <nav aria-label="Jump to a PR"><a href="#pr-j">J · Growth lever</a><a href="#pr-k">K · Pillar bars</a><a href="#pr-l">L · Map carries the tabs</a><a href="#pr-m">M · Big moments</a></nav>
+  </header>
+
+  <section class="pr" id="pr-j">
+    <div class="pr-head"><h2><span>J</span> · The growth lever in the picture</h2>
+      <p>Class places come from courses, 80 a course. Today only a chapter paragraph says so. These three changes put it on the screens where the limit bites and where the player can act on it.</p></div>
+
+    <div class="mock">
+      <h3>1. The admissions hall in course blocks</h3>
+      <div class="pair">
+        <figure><img src="j1-hall-before.png" alt="The admissions hall today: a grid of 143 empty seats" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="j1-hall-after.png" alt="The hall with seats grouped into 16 blocks of nine, and a dashed gold block marked +80" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">The same seats, grouped. Each block of nine seats is one course's 80 places, since a seat here stands for nine students. The dashed gold block is the course you haven't developed yet. When the hall is full, its cause is in the picture: not enough blocks.</p>
+    </div>
+
+    <div class="mock">
+      <h3>2. "+80 places" beside the next Develop</h3>
+      <div class="pair stack">
+        <figure><img src="j2-develop-before.png" alt="A Curriculum row today: Develop button, cost and Choose" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="j2-develop-after.png" alt="The same row with a green +80 places chip after the cost" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">The one place the lever is pressed says what it gives. The chip only shows while class places are short, so it means something when it appears.</p>
+    </div>
+
+    <div class="mock">
+      <h3>3. The path network lights up while the path tool is held</h3>
+      <div class="pair">
+        <figure><img src="j3-paths-before.png" alt="The campus with the path tool armed, today" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="j3-paths-after.png" alt="The same view: the cross path tinted gold, the fountain plaza untinted and labelled not joined yet" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">Paths joined to Founders Hall turn gold; anything not joined stays plain, so a path that stops one tile short shows itself. In the real version a building's doorstep also lights when the network reaches it.</p>
+    </div>
+  </section>
+
+  <section class="pr" id="pr-k">
+    <div class="pr-head"><h2><span>K</span> · Prestige as four pillar bars</h2>
+      <p>Today the links from curriculum, research, student life and athletics into prestige are only text in the summer review and History. One small figure carries them instead.</p></div>
+
+    <div class="mock">
+      <h3>1. The prestige chip</h3>
+      <div class="pair">
+        <figure><img src="k-chip-before.png" alt="The band today: Rank, Enrolled, Prestige 50.3, Satisfaction" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="k-chip-after.png" alt="The Prestige chip with a thin stacked bar and a tick under the number" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">The bar under the number is prestige split by pillar: academics (navy), research (green), student life (maroon) and athletics (gold). The thin tick is where prestige is heading. The gap between the fill and the tick is the lag the summer's cap creates, which today nothing shows.</p>
+    </div>
+
+    <div class="mock">
+      <h3>2. The same bar at the top of the tab that feeds it</h3>
+      <div class="pair stack">
+        <figure><img src="k-head-before.png" alt="The top of the Curriculum tab today" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="k-head-after.png" alt="The top of the Curriculum tab with the academics bar lit and a short line of figures" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">On Curriculum the academics part is lit and the others fade. Research, Students and Athletics do the same for theirs. At the summer the bars fill, in place of the "stands at N of 150" lines that PR B cuts.</p>
+      <p class="note"><strong>Note:</strong> the pillar split (25.6, 6.1, 13.3, 5.3) and the target (53.8) are illustrative; the save's total of 50.3 is real. The chip grew a few pixels taller here. The real one would fit the bar inside today's chip height, and needs checking at 1280×720.</p>
+    </div>
+  </section>
+
+  <section class="pr" id="pr-l">
+    <div class="pr-head"><h2><span>L</span> · The map carries what the tabs say</h2>
+      <p>Two facts that live only in words today: a course with no teacher, and a need the campus is short of.</p></div>
+
+    <div class="mock">
+      <h3>1. A course with no teacher, on its hall</h3>
+      <div class="pair">
+        <figure><img src="l1-hall-before.png" alt="Founders Hall up close with its row of program dots above the roof" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="l1-hall-after.png" alt="The same hall with one program dot turned dark with a dashed red ring" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">The program's dot above the hall goes dark with a red ring while one of its courses has no teacher, and comes back when someone is appointed.</p>
+      <p class="note"><strong>A change from the plan, for you to confirm:</strong> the plan said "a dark window per course". At the closest zoom a window is three or four pixels wide, and darkening one barely shows; I tried it. The hall already has a dot per program, so darkening the dot reads at normal zoom and reuses a signal players know. I'd make PR L use the dot unless you'd rather keep windows.</p>
+    </div>
+
+    <div class="mock">
+      <h3>2. A queue at the door when a need is short</h3>
+      <div class="pair">
+        <figure><img src="l2-commons-before.png" alt="The Original Commons with its terrace, today" loading="lazy"><figcaption>Today</figcaption></figure>
+        <figure><img src="l2-commons-after.png" alt="The same view with a line of students queuing from the Commons' terrace" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">While dining is under 100, students line up at the dining hall's door; the clinic does the same for health. The line grows with the shortfall and clears when a new hall opens. The figures here are stand-ins; the real queue would use the game's walkers.</p>
+    </div>
+  </section>
+
+  <section class="pr" id="pr-m">
+    <div class="pr-head"><h2><span>M</span> · The big moments land on the map</h2>
+      <p>The three largest moments of a run get less feedback today than placing a gazebo. Each of these leaves something behind or plays out in steps.</p></div>
+
+    <div class="mock">
+      <h3>1. A title hangs a pennant on its venue</h3>
+      <div class="pair">
+        <figure><img src="m1-venue-before.png" alt="The sports field and track after a national title, today" loading="lazy"><figcaption>Today, the week of the title</figcaption></figure>
+        <figure><img src="m1-venue-after.png" alt="The same field with a maroon and gold pennant on a pole and a crowd around the track" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">A pennant in the college's colours goes up at the venue for good, one per title, stacking. The week of the title the venue fills with a crowd. The title's page in the Inbox stays, as you chose.</p>
+    </div>
+
+    <div class="mock">
+      <h3>2. The specialization stakes its plot</h3>
+      <div class="pair">
+        <figure><img src="m2-spec-before.png" alt="The map right after confirming the research specialization, today" loading="lazy"><figcaption>Today, just after Confirm</figcaption></figure>
+        <figure><img src="m2-spec-after.png" alt="The same map with a dashed teal plot staked out on open lawn, labelled The Research Park will stand here" loading="lazy"><figcaption><b>Proposed</b></figcaption></figure>
+      </div>
+      <p class="say">On Confirm the camera eases to where the pillar's capital project will stand, the plot is staked out in the pillar's colour, and the fanfare plays. The ticker line and the board's letter stay.</p>
+    </div>
+
+    <div class="mock">
+      <h3>3. The Final Report, staged</h3>
+      <div class="pair four">
+        <figure><img src="m3-final-before.png" alt="The Final Report today, all at once" loading="lazy"><figcaption>Today: all at once</figcaption></figure>
+        <figure><img src="m3-final-s1.png" alt="Staged report, first beat: grades not yet shown, students taught at zero" loading="lazy"><figcaption><b>Proposed</b> · it opens</figcaption></figure>
+        <figure><img src="m3-final-s2.png" alt="Staged report, middle: three grades stamped, the fourth landing, students taught counting" loading="lazy"><figcaption><b>Proposed</b> · grades stamp in</figcaption></figure>
+        <figure><img src="m3-final-after.png" alt="Staged report, end: all six grades and the final grade stamped, with a glow" loading="lazy"><figcaption><b>Proposed</b> · the final grade</figcaption></figure>
+      </div>
+      <p class="say">The six grades stamp in one at a time with a tick each, "Students taught" counts up, and the fanfare plays as the final grade lands, instead of after the report has been read. The promises line is gone because PR E removes promises.</p>
+      <p class="note"><strong>Not shown:</strong> the report opening over the campus. In these stills it still opens on the maroon backdrop; the real version would show the finished campus behind the first beat.</p>
+    </div>
+  </section>
+
+  <footer>Made from saves in a production build of the game at commit 5d06ae4 and later. The images are kept with Plan 124 in <code>docs/plans/124-subtraction-as-decided/</code>.</footer>
+</div>
