@@ -108,8 +108,8 @@ export function normaliseCamera(c: Camera): Camera {
 // [NW, NE, SE, SW] order.
 const EDGE_DIR: readonly FaceDir[] = ['negRow', 'posCol', 'posRow', 'negCol'];
 
-function frameFor(c: Camera): Frame {
-  const camera = normaliseCamera(c);
+function frameFor(c: Camera, free = false): Frame {
+  const camera = free ? { ...normaliseCamera(c), pitch: Math.max(0.001, Math.min(MAX_PITCH, c.pitch)) } : normaliseCamera(c);
   const cosA = Math.cos(camera.azimuth);
   const sinA = Math.sin(camera.azimuth);
   const sinP = Math.sin(camera.pitch);
@@ -142,6 +142,13 @@ let frame: Frame = frameFor(DEFAULT_CAMERA);
 export function setCamera(c: Camera): Camera {
   if (c.azimuth !== frame.camera.azimuth || c.pitch !== frame.camera.pitch) frame = frameFor(c);
   return frame.camera;
+}
+
+// For the drawing tools only (tools/coverScene.tsx): a camera below the
+// map's lowest pitch, for a picture of a building seen at eye level. The
+// map never calls it.
+export function setArtCamera(c: Camera): void {
+  frame = frameFor(c, true);
 }
 
 // The camera the projection is at now: Walkers.tsx draws only while its

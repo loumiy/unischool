@@ -3,8 +3,9 @@
 // front and low, as a cover is drawn rather than as the map shows it.
 // Every piece that stands is the game's own art (BuildingMotif, TreeAt,
 // BannerLamp, Bench, Flowerbed, the walkers' figure), drawn at a camera
-// the map never uses: straight at the hall's front (azimuth 0), twelve
-// degrees up. The map's camera is parallel, which squeezes a lawn seen
+// the map never uses: nearly straight at the hall's front, a degree and a
+// half up, at eye level (isoProjection's setArtCamera, below the map's
+// lowest pitch). The map's camera is parallel, which squeezes a lawn seen
 // this low into a strip, so each piece is then placed by a perspective
 // camera standing on the lawn: moved to where its foot falls in
 // perspective and scaled by its distance. The lawn and its walks are flat
@@ -12,7 +13,7 @@
 //
 //   npm run cover:scene -- node_modules/.tmp/scene.svg
 //   node tools/itchScene.mjs node_modules/.tmp/scene.svg ../docs/store/itch/cover.jpg
-//   npm run cover:scene -- scene-wide.svg --ratio=1.7778     # a 16:9 frame
+//   npm run cover:scene -- scene-wide.svg --ratio=1.7778 --hall=0.32 --cam=20   # 16:9
 //
 // itchScene.mjs sets the scene under the title art's sky with the mark and
 // the name.
@@ -25,7 +26,7 @@ import BuildingMotif, { drawnHeightOf, materialOf } from '../src/components/buil
 import { TreeAt } from '../src/components/trees';
 import { BannerLamp, Bench, Flowerbed } from '../src/components/dressing';
 import { castShadow } from '../src/components/light';
-import { polyPoints, project, setCamera, type Pt } from '../src/components/isoProjection';
+import { polyPoints, project, setArtCamera, type Pt } from '../src/components/isoProjection';
 import { ColorsContext, CollegeNameContext } from '../src/components/mapOccasions';
 import { initialTech, FOUNDERS_HALL_ID } from '../src/data/techData';
 import { orientedFootprint } from '../src/state/campusMap';
@@ -35,7 +36,7 @@ import type { Species } from '../src/data/treeData';
 const args = process.argv.slice(2);
 const out = args.find((a) => !a.startsWith('--')) ?? 'node_modules/.tmp/scene.svg';
 const flag = (name: string, dflt: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? dflt;
-setCamera({ azimuth: 0, pitch: (Number(flag('pitch', '12')) * Math.PI) / 180 });
+setArtCamera({ azimuth: (Number(flag('azimuth', '7')) * Math.PI) / 180, pitch: (Number(flag('pitch', '1.5')) * Math.PI) / 180 });
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = HERE.includes('node_modules') ? join(HERE, '..', '..') : join(HERE, '..');
@@ -57,18 +58,22 @@ const H = { col: -fp.w / 2 + INSET, row: -fp.h + INSET, w: fp.w - INSET * 2, h: 
 const A = project(0, 0);
 const UX = project(1, 0).x - A.x;
 const CAM = Number(flag('cam', '26'));
-const hallW = Math.abs(UX) * fp.w;
+const hallW = Math.abs(project(H.col + H.w, 0).x - project(H.col, 0).x);
 // The hall a little over a third of the picture's width, its steps three
 // quarters of the way down, so the name has the sky above its cupola.
-const sceneW = hallW / Number(flag('hall', '0.34'));
+const sceneW = hallW / Number(flag('hall', '0.44'));
 const sceneH = sceneW / RATIO;
-const BASE = Number(flag('base', '0.77'));
-// The eye is set so the lawn reaches row NEAR at the picture's foot.
-const NEAR = Number(flag('near', '19'));
+const BASE = Number(flag('base', '0.82'));
+// The eye stands EYE of the picture's height above the hall's steps: the
+// horizon, which the hall and the near trees hide.
 const kOf = (r: number) => CAM / (CAM - r);
-const EYE = (sceneH * (1 - BASE)) / (kOf(NEAR) - 1);
+const EYE = sceneH * Number(flag('eye', '0.16'));
 const horizon = A.y - EYE;
-const at = (c: number, r: number): Pt => ({ x: A.x + c * UX * kOf(r), y: horizon + EYE * kOf(r) });
+// The camera stands OFF tiles to the side of the walk and turns back onto
+// the hall, so the hall keeps the middle and the walk runs off toward a
+// corner (a pan, standing in for the turn).
+const OFF = Number(flag('off', '2.2'));
+const at = (c: number, r: number): Pt => ({ x: A.x + UX * ((c - OFF) * kOf(r) + OFF), y: horizon + EYE * kOf(r) });
 // A piece of the game's art, drawn about its own map point `from`, set at
 // (c, r) in perspective, `extra` times its distance's size.
 const place = (c: number, r: number, from: Pt, node: React.JSX.Element, key: string, extra = 1) => {
@@ -89,26 +94,20 @@ const walks: Quad[] = [
 const quadPts = (q: Quad) => polyPoints(q.map(([c, r]) => at(c, Math.min(r, CAM - 0.4))));
 
 // --- the grounds -----------------------------------------------------
-// A wood behind the hall, dense enough that the lawn's far edge never
-// shows: canopies and a few conifers, overlapping, the sky over them.
+// Few trees: the near ones that frame the picture and, with the hall, hide
+// the horizon, and one further back. Each is set by where it stands across
+// the picture (-1 the left edge, 1 the right) and how far out on the lawn,
+// so a wider frame moves them out with its edges.
 interface TreeSpot { c: number; r: number; s: Species; k: number; g?: number }
-const rnd = (x: number) => Math.abs(Math.sin(x * 12.9898) * 43758.5453) % 1;
-const trees: TreeSpot[] = [];
-for (const [r0, step] of [[-12, 2.2], [-8, 2.6]] as const) {
-  for (let c = -30; c <= 30; c += step) {
-    const j = rnd(c + r0);
-    if (Math.abs(c) < 4.5 && r0 === -8) continue;
-    trees.push({ c: c + j, r: r0 - j * 2, s: j > 0.82 ? 'conifer' : 'canopy', k: 2.8 + j * 0.9 });
-  }
-}
-// Beside the hall and on the lawn, either side of the walk.
-trees.push(
-  { c: -7.5, r: -1.5, s: 'canopy', k: 2.2 }, { c: 7.5, r: -2, s: 'canopy', k: 2.2 },
-  { c: -13, r: 4, s: 'canopy', k: 2.2 }, { c: 13.5, r: 5, s: 'canopy', k: 2.2 },
-  { c: -6.5, r: 9, s: 'canopy', k: 2.2 }, { c: 7, r: 9.5, s: 'conifer', k: 2.2 },
-  // The near pair framing the picture, a painter's foreground.
-  { c: -4.1, r: 14.5, s: 'canopy', k: 2.6, g: 1.12 }, { c: 4.2, r: 14, s: 'canopy', k: 2.6, g: 1.02 },
-);
+const across = (x: number, r: number) => ((x * sceneW) / 2 / UX - OFF) / kOf(r) + OFF;
+// `--trees=N` grows them all. A 16:9 frame has too much horizon for three
+// to hide at a size that leaves the name clear, so it has two a side.
+const TG = Number(flag('trees', '1'));
+const WIDE = RATIO > 1.5;
+const spots: [number, number, number][] = WIDE
+  ? [[-0.45, 2.5, 1], [-0.8, 10, 1.05], [0.5, 3, 1], [0.84, 9, 1.05]]
+  : [[-0.63, 2.5, 1.1], [-1.05, 11, 1.2], [0.87, 9, 1.25]];
+const trees: TreeSpot[] = spots.map(([x, r, g]) => ({ c: across(x, r), r, s: 'canopy', k: 2.85, g: g * TG }));
 const lamps = [3, 8, 13].flatMap((r) => [[-1.5, r], [1.5, r]] as const);
 const beds: [number, number][] = [];
 for (let c = -7; c <= 6; c++) if (c < -2 || c > 1) beds.push([2, c]);

@@ -49,10 +49,10 @@ html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
 .clouds { position: absolute; inset: 0; width: 100%; height: 100%; }
 .scene { position: absolute; inset: 0; }
 .scene svg { width: 100%; height: 100%; display: block; }
-.head { position: absolute; inset: ${Math.round(H * 0.07)}px 0 auto 0; display: flex; flex-direction: column; align-items: center; gap: ${Math.round(H * 0.024)}px;
+.head { position: absolute; inset: ${Math.round(H * 0.06)}px 0 auto 0; display: flex; flex-direction: column; align-items: center; gap: ${Math.round(H * 0.024)}px;
   color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
-.mark { width: ${Math.round(H * 0.2)}px; height: auto; display: block; filter: drop-shadow(0 2px 10px rgba(10, 50, 110, 0.25)); }
-.name { margin: 0; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: ${Math.round(H * 0.13)}px; line-height: 1;
+.mark { width: ${Math.round(H * 0.16)}px; height: auto; display: block; filter: drop-shadow(0 2px 10px rgba(10, 50, 110, 0.25)); }
+.name { margin: 0; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: ${Math.round(H * 0.115)}px; line-height: 1;
   letter-spacing: 0.04em; text-transform: uppercase; }
 </style></head><body><div class="cover">${clouds}<div class="scene">${scene}</div><div class="head">
 ${logoMark('mark')}

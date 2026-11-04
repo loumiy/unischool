@@ -299,8 +299,9 @@ for sites that want a wide cover (foundplay.io, 11 October).
 [`itch/cover-scene.jpg`](itch/cover-scene.jpg) and
 [`itch/cover-scene-wide.jpg`](itch/cover-scene-wide.jpg) (4 November 2026)
 are the same mark and name over a scene rather than a screenshot: Founders
-Hall at the head of its lawn, seen from in front and low, the way a painted
-cover is drawn. Every piece that stands is the game's own art, drawn by the
+Hall at the head of its lawn, seen at eye level from a little to one side
+of its walk, the way a painted cover is drawn; the hall and a few near
+trees hide the horizon. Every piece that stands is the game's own art, drawn by the
 game's code (the hall, the trees, the banner lamps, the benches, the
 flowerbeds, the walkers' figure); `tools/coverScene.tsx` draws them at a
 camera the map never uses and places them in perspective, and
@@ -309,7 +310,7 @@ camera the map never uses and places them in perspective, and
 ```sh
 npm run cover:scene -- scene.svg
 node tools/itchScene.mjs scene.svg ../docs/store/itch/cover-scene.jpg
-npm run cover:scene -- scene-wide.svg --ratio=1.7778 --hall=0.25
+npm run cover:scene -- scene-wide.svg --ratio=1.7778 --hall=0.32 --cam=20
 node tools/itchScene.mjs scene-wide.svg ../docs/store/itch/cover-scene-wide.jpg --size=960,540
 ```
 
