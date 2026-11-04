@@ -31,7 +31,10 @@ marked **0.1.x** and fixed in a patch.*
   concept." S5, wrapping up a 2-hour paid playtest: "Generally, it's a
   very fun game"; "the whole setting-up of it kind of reminds me of Zoo
   Tycoon, RollerCoaster Tycoon, which I like a lot"; "I like being able to
-  make my own layout"; "I like seeing the seasons change". *23 players · reddit (R1,
+  make my own layout"; "I like seeing the seasons change". F1's player,
+  on 0.2.0 past year 50: "Ty for the big update! I really like being
+  able to be specialised in two things :D" (F15); F7's, from the
+  Epilogue: "I quite like the flowerbeds you added" (F14). *23 players · reddit (R1,
   R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8), live (T1), form (F1, F2, F3, F4, F6,
   F7, F8, F10, F11), discord (D1), service (S1, S2, S5).*
   F8, after a finished run at rank 1: "If I didn't know this was a
@@ -664,6 +667,12 @@ marked **0.1.x** and fixed in a patch.*
   español algún día" ("I hope it's in Spanish someday"). *2 players ·
   form (F4), comment (I4).*
 
+- **Seats that answer as you did last time.** "Instead of using those
+  badly customisable buttons such as "do what students want", or "do
+  whatever costs more", could you add "do what has been done last time"
+  … the game remembers what I chose when the situation came up and then
+  applies that?" (`seats.ts`'s policies today: thrifty, thorough,
+  popular.) *1 player · form (F14).*
 - **Automated athletics hiring.** "A way to automate athletics hiring.
   Ex: Auto hire people with xx grade and/or xx potential with a minimum
   threshold of xx." *1 player · form (F5).*
@@ -821,6 +830,23 @@ marked **0.1.x** and fixed in a patch.*
   known whether a rule refused it (the hall still going up, a program in
   transit) or a fault. *1 player · service (S5).* A frame from 1:00:25
   asked for.
+- **0.2.0 lags late in a run, worst at speed.** "The lag is noticeably
+  more especially when faster", at year 51 with every lab maxed; the
+  player suspected the labs' news on the map. The cause was 0.2.0's own:
+  every Dean staffs its school each week (Plan 120A), and its swap search
+  ran the full eligibility scan for every pair of a school's courses. On
+  the year-25 launch save with seven Deans, 166 ms a game week. *1
+  player · form (F16).* **Fixed** after the 0.2.0 build (PR #445, 3
+  November: `canSwapInstructors` checks the roster's field directly),
+  17 ms a week on the same save; it reaches players with the next
+  upload.
+- **Athletics' red ! with nothing to see.** Past year 50 the badge stays
+  on, goes while the tab is open and returns when it closes, and the tab
+  "does not appear to [show] anything of interest". The badge means a
+  varsity team has a staff post open (`studentLifeData.ts`'s
+  `openChairs`), and that team's card does say "Hire …", so the logic
+  agrees with the tab; with twenty teams the one card is easy to miss.
+  Open: the screenshots would show which. *1 player · form (F15).*
 - **A club asks for money, is refused, and the money arrives the next
   tick.** "When a greek life or sports approaches for money. I don't have
   enough so I reject them and then in the next tick I instantly have
@@ -1476,6 +1502,34 @@ that in mind.*
     teaching staff with better ones I have? Else it is very tedious to
     change them, and hurts my grade"; (3) "Maybe if you have a second, a
     non AI bg to the start screen would be great, in my opinion."
+- **F14** · 29 October, 18:39 UTC · no hidden fields (no version, no
+  install id). "I wanted to thank you for quickly fixing the 50+ bug, and
+  for considering my ideas! (autostaffing etc.)": F13's player, and so
+  very likely F7.
+  - *How long:* 1–2 hours. *Would pay:* under $5.
+  - *Anything else:* "when I hire the people to answer automatically,
+    instead of using those badly customisable buttons such as "do what
+    students want", or " do whatever costs more", could you add "do what
+    has been done last time", that is, the game remembers what I chose
+    when the situation came up and then applies that? … P.S. I quite like
+    the flowerbeds you added."
+- **F15** · 3 November, 17:22 UTC · 0.2.0 (build `d956917`, itch.io),
+  from year 51 week 16, rank 1. Install id `de05c5f2…`: F1's player (and
+  F3's and F12's), past the Final Report on 0.2.0. Two screenshots
+  (Tally's file store isn't reachable from this repo's tools).
+  - *How long:* under 30 minutes (this visit). *Would pay:* nothing.
+  - *Anything broken?* "I am beyond year 50. The atlethics tab has a red
+    exclamation mark on the icon; which is annoying. When I open it,
+    there does not appear to be anything of interest... While it is open
+    there is no excmamation mark but it reappears as soon as I close it.
+    Ty for the big update! I really like being able to be specialised in
+    two things :D"
+- **F16** · 3 November, 17:27 UTC · 0.2.0 (build `d956917`), from year
+  51 week 48, rank 1, the same install as F15, four minutes later.
+  - *Anything broken?* "It is again me: the lag is noticeably more
+    especially when faster. Maybe it is the new writings on labs? I get a
+    lot of them since they all are maxxed out. It makes the game quite
+    worse...."
 
 ### We Playtest Games — a service's unsolicited playtest (16 October)
 
