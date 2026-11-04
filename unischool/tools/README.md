@@ -39,7 +39,9 @@ clearing all hardcoded; see "Standing the game up somewhere" below.
 the map's own zoom and pan buttons, and writes a PNG. Flags: `--zoom=N` (positive
 in, negative out), `--pan=DX,DY` (a drag, in screen pixels), `--clip=x,y,w,h`,
 `--size=W,H` (the viewport, default 1600 by 1000) and `--scale=N` (device pixels
-per CSS pixel — 2 for a print-sharp image at the same framing).
+per CSS pixel — 2 for a print-sharp image at the same framing). `--turn=N` turns
+the view a quarter N times, as Q does, to see a building from its other
+sides.
 
 The game opens framed on what stands (Plan 115A): close on a lone Founders
 Hall, wider as the college grows. The shooting tools (`shot`, `review:views`,

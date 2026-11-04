@@ -9905,9 +9905,13 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       const sx = cx === 'w' ? 1 : -1; const sy = cy === 'n' ? 1 : -1;
       const oc = cx === 'w' ? col : col + w; const orr = cy === 'n' ? row : row + h;
       const ic = oc + sx * d; const ir = orr + sy * d;
-      const fill = fills(cy === 'n' ? 1.0 : 0.8);
+      // Each half wears the tone of the stand it continues, as a stand of
+      // its own: the same treads, risers and rows, and an aisle down it.
+      const rowTone = cy === 'n' ? 1.0 : 0.8;
+      const colTone = cx === 'w' ? 1.0 : 0.72;
+      const fill = fills(rowTone);
       // One band: inner and outer offsets from the edges, and their heights.
-      const band = (xi: number, xo: number, zi: number, zo: number, k: string, rows: number) => {
+      const band = (xi: number, xo: number, zi: number, zo: number, k: string, rows: number, lift = 1) => {
         const faces = [
           // Continuing the stand along the row edge.
           [[ic, orr + sy * xi, zi], [ic, orr + sy * xo, zo], [oc + sx * xo, orr + sy * xo, zo], [oc + sx * xi, orr + sy * xi, zi]],
@@ -9915,17 +9919,11 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           [[oc + sx * xi, ir, zi], [oc + sx * xo, ir, zo], [oc + sx * xo, orr + sy * xo, zo], [oc + sx * xi, orr + sy * xi, zi]],
         ] as const;
         return faces.map((q, i) => {
-          const pts = q.map(([c, r, z]) => at(c, r, z));
-          const lerp = (p: Pt, q2: Pt, f: number) => ({ x: p.x + (q2.x - p.x) * f, y: p.y + (q2.y - p.y) * f });
           const tp = (n: number): TilePt => [q[n][0], q[n][1]];
           return (
             <g key={`${k}${i}`}>
-              <polygon points={polyPoints(pts)} fill={fill.rakeFill} />
-              {Array.from({ length: rows - 1 }, (_, j) => {
-                const f = (j + 1) / rows;
-                const u = lerp(pts[0], pts[1], f); const v = lerp(pts[3], pts[2], f);
-                return <line key={j} x1={u.x} y1={u.y} x2={v.x} y2={v.y} stroke={fill.seatStroke} strokeWidth={0.6} />;
-              })}
+              <RakedStand outer={[tp(1), tp(2)]} inner={[tp(0), tp(3)]} bottomH={zi} topH={zo} rows={rows} aisles={1}
+                wall={false} frontWall={false} endFaces={false} pennants={false} {...fills((i === 0 ? rowTone : colTone) * lift)} />
               {/* The corners fill on a full week too (Plan 124 M1). */}
               <Spectators inner={[tp(0), tp(3)]} outer={[tp(1), tp(2)]} zIn={zi} zOut={zo}
                 innerNear={project(q[0][0], q[0][1]).y + project(q[3][0], q[3][1]).y > project(q[1][0], q[1][1]).y + project(q[2][0], q[2][1]).y}
@@ -9942,7 +9940,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           {decked ? (
             <>
               {band(d, lowerBackX, bottom, lowerTop, 'l', 6)}
-              {band(upperFrontX, 0, upperBase, upperTop, 'u', 6)}
+              {band(upperFrontX, 0, upperBase, upperTop, 'u', 6, 1.04)}
             </>
           ) : band(d, 0, bottom, STAND_TOP, 'l', 7)}
           {rowWallSeen && <polygon fill={fill.wallFill} points={polyPoints([at(oc, orr, 0), at(ic, orr, 0), at(ic, orr, top), at(oc, orr, top)])} />}
@@ -9973,12 +9971,15 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       </>
     );
 
-    // Floodlight masts at the concourse corners, in screen space. The head
-    // is a lamp bank standing up, so its height foreshortens with the tilt.
+    // Floodlight masts at the bowl's four outer corners, each standing on
+    // the rim (on the entrance tower's roof at its corner), in screen space,
+    // so all four rise from the same place on their corner. The head is a
+    // lamp bank standing up, so its height foreshortens with the tilt.
     const hs = heightScale();
-    const mast = (c: number, r: number, key: string) => {
-      const foot = project(c, r);
-      const top = lift(foot, H * 2.3);
+    const mast = (c: number, r: number, z: number, key: string) => {
+      const ground = project(c, r);
+      const foot = lift(ground, z);
+      const top = lift(ground, H * 2.3);
       return (
         <g key={key}>
           <line className="ground-mast" x1={foot.x} y1={foot.y} x2={top.x} y2={top.y} />
@@ -9988,14 +9989,6 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         </g>
       );
     };
-    const m = d * 0.45;
-    // Back corner first, the two side corners between the far and near
-    // stands (each is behind the near stand beside it and in front of the
-    // far one), the front corner last.
-    const masts = ([[col + m, row + m], [col + w - m, row + m], [col + m, row + h - m], [col + w - m, row + h - m]] as const)
-      .map(([c, r], i) => ({ y: project(c, r).y, node: mast(c, r, `m${i}`) }))
-      .sort((a, b) => a.y - b.y)
-      .map((x) => x.node);
 
     // The scoreboard, on posts behind the north end, facing the field (+row).
     const board = (() => {
@@ -10035,42 +10028,77 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
 
     // Corners by how many of their two stands are far: the back corner
     // before the far stands, the side corners between, the front one last.
-    const corners = ([['w', 'n'], ['e', 'n'], ['w', 's'], ['e', 's']] as const).map(([cx, cy]) => ({
+    // The entrance tower fills the bowl's corner between the front and its
+    // left (the building's own frame): a d by d box in place of that
+    // corner's seating, its two outer faces flush with the outer walls and
+    // its inner faces meeting the stands' ends, so it joins the bowl and
+    // stands on the same ground.
+    const rim = decked ? upperTop : STAND_TOP;
+    const sides = sidesOf(p.facing);
+    const cornerOf = (dir: FaceDir) => (dir === 'posRow' ? { r: row + h } : dir === 'negRow' ? { r: row } : dir === 'posCol' ? { c: col + w } : { c: col });
+    const cc = { ...cornerOf(sides.front), ...cornerOf(sides.left) } as { c: number; r: number };
+    const tower = { col: cc.c === col ? col : col + w - d, row: cc.r === row ? row : row + h - d, size: d, height: rim * (decked ? 1.22 : 1.32) };
+    const towerOuter: FaceDir[] = [cc.c === col ? 'negCol' : 'posCol', cc.r === row ? 'negRow' : 'posRow'];
+    const towerInner: FaceDir[] = [cc.c === col ? 'posCol' : 'negCol', cc.r === row ? 'posRow' : 'negRow'];
+    // At the back corner (the highest of the four on screen) a solid tower
+    // would hide that corner's seating behind a blank box: there it is only
+    // its two outer walls, an L rising behind the rim, the seating in front.
+    const cornerYs = [[col, row], [col + w, row], [col, row + h], [col + w, row + h]].map(([c, r]) => project(c!, r!).y);
+    const towerBack = project(cc.c, cc.r).y <= Math.min(...cornerYs) + 0.5;
+    const corners = ([['w', 'n'], ['e', 'n'], ['w', 's'], ['e', 's']] as const)
+      .filter(([cx, cy]) => towerBack || (cx === 'w' ? col : col + w) !== cc.c || (cy === 'n' ? row : row + h) !== cc.r)
+      .map(([cx, cy]) => ({
       node: corner(cx, cy, `c${cx}${cy}`),
       farCount: (cy === 'n' ? (northFar ? 1 : 0) : (southFar ? 1 : 0)) + (cx === 'w' ? (westFar ? 1 : 0) : (eastFar ? 1 : 0)),
     }));
     const cornersAt = (n: number) => corners.filter((c) => c.farCount === n).map((c) => c.node);
 
-    // The outside: both outer walls the camera sees, full height, and the
-    // entrance tower at the corner between the front and its left (the
-    // building's own frame), drawn first when it stands behind the bowl.
-    const rim = decked ? upperTop : STAND_TOP;
+    // The outside: both outer walls the camera sees, full height. The
+    // tower's faces go in two places in the paint order: its inner faces
+    // (which the camera sees over the seating at a side or back corner)
+    // before the near stands, which stand in front of them, and its outer
+    // faces and roof after the walls, over the length of wall they share.
     const outside = (['negRow', 'posRow', 'negCol', 'posCol'] as const).map((dir) => outerWall(col, row, w, h, rim, dir));
-    const sides = sidesOf(p.facing);
-    const cornerOf = (dir: FaceDir) => (dir === 'posRow' ? { r: row + h } : dir === 'negRow' ? { r: row } : dir === 'posCol' ? { c: col + w } : { c: col });
-    const cc = { ...cornerOf(sides.front), ...cornerOf(sides.left) } as { c: number; r: number };
-    const ts = Math.min(2.6, Math.min(w, h) * 0.13);
-    const tower = { col: cc.c - ts / 2, row: cc.r - ts / 2, size: ts, height: rim * (decked ? 1.22 : 1.32) };
-    const towerBehind = project(cc.c, cc.r).y < project(col + w / 2, row + h / 2).y - 1;
-    const towerNode = facade([], stage, 'tower', tower);
+    const towerInnerNode = towerBack ? null : facade([], stage, 'tower-in', { ...tower, faces: towerInner, outer: towerOuter, roof: false });
+    const towerOuterNode = towerBack ? null : facade([], stage, 'tower-out', { ...tower, faces: towerOuter, outer: towerOuter, roof: true });
+    // The back corner's L: each outer wall of the tower as a slab a stone's
+    // depth thick, drawn before everything so the seating stands in front.
+    const SLAB = 0.3;
+    const towerBackNode = towerBack ? (
+      <g key="tower-back">
+        {facade([], stage, 'tower-r', { ...tower, row: cc.r === row ? row : row + h - SLAB, size: d, depth: SLAB, outer: towerOuter })}
+        {facade([], stage, 'tower-c', { ...tower, col: cc.c === col ? col : col + w - SLAB, size: d, width: SLAB, outer: towerOuter })}
+      </g>
+    ) : null;
+    // The masts stand on the rim a little in from each corner, on top of
+    // everything the bowl draws; the one at the tower's corner on its roof,
+    // in the same place on its corner as the rest.
+    const m = 0.3;
+    const masts = ([[col, row], [col + w, row], [col, row + h], [col + w, row + h]] as const)
+      .map(([c, r], i) => {
+        const atTower = c === cc.c && r === cc.r;
+        const mc = c + (c === col ? m : -m);
+        const mr = r + (r === row ? m : -m);
+        return { y: project(mc, mr).y, node: mast(mc, mr, atTower ? tower.height : rim, `m${i}`) };
+      })
+      .sort((a, b) => a.y - b.y)
+      .map((x) => x.node);
 
     return (
       <>
+        {towerBackNode}
         {/* The concourse, under everything. */}
-        {towerBehind && towerNode}
         <polygon points={polyPoints(f.top)} fill={concourse} />
         {cornersAt(2)}
-        {masts[0]}
         {far}
         <StadiumField col={iCol} row={iRow} w={iW} h={iH} />
         {cornersAt(1)}
-        {masts[1]}
-        {masts[2]}
+        {towerInnerNode}
         {near}
         {cornersAt(0)}
-        {masts[3]}
         {facade(outside, stage, 'outside')}
-        {!towerBehind && towerNode}
+        {towerOuterNode}
+        {masts}
         {/* A title's pennants all the way round the rim (Plan 124 M1). */}
         <VenuePennants z={decked ? upperTop : STAND_TOP} edges={[
           [[col, row], [col + w, row]], [[col + w, row], [col + w, row + h]],

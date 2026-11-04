@@ -44,7 +44,12 @@ export interface StadiumFacadeProps {
   // The entrance tower, when the bowl is closed: a box at a corner. The
   // bowl draws the walls and the tower as two of these, each in its place
   // in the paint order.
-  tower?: { col: number; row: number; size: number; height: number } | null;
+  // `faces` names the faces to draw (both the camera sees when omitted)
+  // and `roof` whether to draw the roof (yes when omitted): the bowl draws
+  // the inner faces and the outer ones at different places in its order.
+  // Only an outer face carries the entrance. `width` and `depth` (both
+  // `size` when omitted) make it a slab: one wall of the tower alone.
+  tower?: { col: number; row: number; size: number; height: number; width?: number; depth?: number; faces?: ReadonlyArray<FaceDir>; outer?: ReadonlyArray<FaceDir>; roof?: boolean } | null;
 }
 
 export function StadiumFacade(props: StadiumFacadeProps) {
@@ -185,23 +190,33 @@ function wallArt(w: FacadeWall, key: string, p: StadiumFacadeProps, colors: Scho
 function towerArt(p: StadiumFacadeProps, colors: SchoolColors, title: string): React.JSX.Element | null {
   const t = p.tower;
   if (!t) return null;
-  const f = boxFaces(t.col, t.row, t.size, t.size, 0, t.height);
+  const f = boxFaces(t.col, t.row, t.width ?? t.size, t.depth ?? t.size, 0, t.height);
   const tones: Record<'CD' | 'BC', number> = { CD: 0.96, BC: 0.84 };
   const parts: React.JSX.Element[] = [];
+  let named = false;
   (['CD', 'BC'] as const).forEach((edge) => {
     const dir = f.dir[edge] as FaceDir;
+    if (t.faces && !t.faces.includes(dir)) return;
     const wall = wallOf(f, dir);
-    const w: FacadeWall = { origin: wall.origin, along: wall.along, height: t.height, span: t.size, brick: shade(p.stone, tones[edge]) };
+    const span = edge === 'CD' ? f.spanLeft : f.spanRight;
+    // A slab's end, its thickness: the stone alone.
+    if (span < 0.5) { parts.push(<polygon key={`${edge}w`} points={polyPoints(wall.poly)} fill={shade(p.stone, tones[edge])} />); return; }
+    const w: FacadeWall = { origin: wall.origin, along: wall.along, height: t.height, span, brick: shade(p.stone, tones[edge]) };
     const at = (u: number, v: number) => facePoint(w.origin, w.along, w.height, u, v);
     parts.push(<polygon key={`${edge}w`} points={polyPoints(wall.poly)} fill={w.brick} />);
-    // A tall entrance arch, a window over it, a band and a cornice.
-    parts.push(<polygon key={`${edge}r`} points={polyPoints(opening(w, p.head, 0.5, 0.3, 0, 0.6))} fill={shade(p.stone, 0.74)} />);
-    parts.push(<polygon key={`${edge}a`} points={polyPoints(opening(w, p.head, 0.5, 0.24, 0, 0.57))} fill={DARK} />);
-    parts.push(<polygon key={`${edge}h`} points={polyPoints(opening(w, p.head, 0.5, 0.1, 0.66, 0.8))} fill={DARK} />);
+    // On an outer face, a tall entrance arch and a window over it; on every
+    // face a band and a cornice, so a face that looks into the bowl over
+    // the seating is the same tower.
+    if (!t.outer || t.outer.includes(dir)) {
+      parts.push(<polygon key={`${edge}r`} points={polyPoints(opening(w, p.head, 0.5, 0.3, 0, 0.6))} fill={shade(p.stone, 0.74)} />);
+      parts.push(<polygon key={`${edge}a`} points={polyPoints(opening(w, p.head, 0.5, 0.24, 0, 0.57))} fill={DARK} />);
+      parts.push(<polygon key={`${edge}h`} points={polyPoints(opening(w, p.head, 0.5, 0.1, 0.66, 0.8))} fill={DARK} />);
+    }
     parts.push(<polygon key={`${edge}c`} points={polyPoints([at(0, 0.86), at(1, 0.86), at(1, 0.9), at(0, 0.9)])} fill={shade(p.stone, 0.7)} />);
     // The college's colours in a band under the cornice, and its name.
     parts.push(<polygon key={`${edge}k`} points={polyPoints([at(0.04, 0.9), at(0.96, 0.9), at(0.96, 0.97), at(0.04, 0.97)])} fill={colors.primary} />);
-    if (edge === 'CD' && title) {
+    if (!named && title) {
+      named = true;
       const mid = at(0.5, 0.935);
       const len = Math.hypot(w.along.x - w.origin.x, w.along.y - w.origin.y);
       const size = Math.min(w.height * 0.06 * heightScale(), (len * 0.86) / (Math.max(6, title.length) * CHAR_W));
@@ -215,7 +230,7 @@ function towerArt(p: StadiumFacadeProps, colors: SchoolColors, title: string): R
       }
     }
   });
-  parts.push(<polygon key="top" points={polyPoints(f.top)} fill={shade(p.stone, 1.06)} />);
+  if (t.roof !== false) parts.push(<polygon key="top" points={polyPoints(f.top)} fill={shade(p.stone, 1.06)} />);
   return <g key="tower">{parts}</g>;
 }
 

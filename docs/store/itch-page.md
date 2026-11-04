@@ -257,7 +257,14 @@ PR B, `main` after Plan 112: the admissions page with its hall, teaching
 and research as numbers, the objectives drawer). `6-chapters.jpg` is
 numbered for the Steam page's six; here it goes up seventh. It is laid out
 at 1440 × 810 and written at 1920 × 1080 (`--scale`), so the drawer's
-words read at the size of a store thumbnail.
+words read at the size of a store thumbnail. All nine were retaken on 4
+November 2026 (`main` after Plan 124, with the stadium's corner tower
+joined to its walls, its corners stepped like its stands and its masts on
+the rim). The game had moved under three of the commands: the
+specialization's letter now asks you to *Convene the board*, the Final
+Report waits behind *Open the Final Report* and reveals its grades over a
+few seconds, and chapter 10 is down to one objective, met by week 14 of
+year 3, so the chapters shot is taken at week 38 of year 2.
 
 | # | File | Caption (for the alt text) |
 |---|---|---|
@@ -300,16 +307,18 @@ node tools/itchCover.mjs cover-wide-bg.jpg ../docs/store/itch/cover-wide.jpg --s
 npm run scenario -- summer summer.json
 npm run shot -- summer.json ../docs/store/itch/2-admissions.jpg --size=1920,1080 --click="Open the summer" --click=Continue \
   --click="Lock the price" --press=".admissions-page-eyebrow" --press=".admissions-page-eyebrow" --press=".admissions-page-eyebrow"
-npm run scenario -- specialization spec.json
-npm run shot -- spec.json ../docs/store/itch/3-specialization.jpg --size=1920,1080
+npm run scenario -- specialization --name Halifax --colors navy-gold spec.json
+npm run shot -- spec.json ../docs/store/itch/3-specialization.jpg --size=1920,1080 --click="Convene the board →" \
+  $(for i in 1 2 3 4 5 6 7 8; do printf -- '--press=#spec-page-title '; done)
 npm run scenario -- --player Completionist --year 45 --clear-modal --name Halifax --colors navy-gold late.json
 npm run shot -- late.json ../docs/store/itch/4-faculty.jpg --size=1920,1080 --tab=faculty
 npm run scenario -- final-report --name Halifax --colors navy-gold final.json
-npm run shot -- final.json ../docs/store/itch/5-final-report.jpg --size=1920,1080
+npm run shot -- final.json ../docs/store/itch/5-final-report.jpg --size=1920,1080 --click="Open the Final Report" \
+  $(for i in 1 2 3 4 5 6 7 8 9 10; do printf -- '--press=.final-report-title '; done)
 npm run scenario -- --player Guided --year 5 --week 14 --clear-modal --name Halifax --colors navy-gold young.json
 npm run layout -- young.json young-laid.json
 npm run shot -- young-laid.json ../docs/store/itch/6-young-campus.jpg --size=1920,1080 --framed --zoom=3 --tilt=-2
-npm run scenario -- --player Guided --year 3 --week 14 --clear-modal --name Halifax --colors navy-gold founding.json
-npm run shot -- founding.json ../docs/store/itch/6-chapters.jpg --size=1440,810 --scale=1.3334 --framed --zoom=2 --tilt=-2 --pan=200,-20 \
-  --press=".map-tools-toggle" --press=".log-ticker-objective" --press=".objectives-list li:not(.met) .help-hint-btn >> nth=1"
+npm run scenario -- --player Guided --year 2 --week 38 --clear-modal --name Halifax --colors navy-gold founding.json
+npm run shot -- founding.json ../docs/store/itch/6-chapters.jpg --size=1440,810 --scale=1.3334 --framed --zoom=2 --tilt=-2 \
+  --press=".map-tools-toggle" --press=".log-ticker-objective" --press=".objectives-list li:not(.met) .help-hint-btn"
 ```

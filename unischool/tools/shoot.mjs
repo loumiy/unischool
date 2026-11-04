@@ -13,7 +13,7 @@
 //     --clear-modal /tmp/gothic.json
 //   npm run shot -- /tmp/gothic.json /tmp/gothic.png --zoom=-2 --pan=-430,320
 //
-// Flags: --zoom=N (+ in, - out), --tilt=N (- flatter), --pan=DX,DY (screen px, drag), --clip=x,y,w,h,
+// Flags: --zoom=N (+ in, - out), --tilt=N (- flatter), --turn=N (quarter turns, as Q), --pan=DX,DY (screen px, drag), --clip=x,y,w,h,
 //        --size=W,H (viewport, default 1600,1000), --scale=N (device pixels per
 //        CSS pixel: 2 for a print-sharp PNG at the same framing)
 //
@@ -123,6 +123,14 @@ const tilt = Number(flag('tilt', 0));
 for (let i = 0; i < Math.abs(tilt); i++) {
   await page.keyboard.press(tilt < 0 ? 'z' : 'x');
   await page.waitForTimeout(300);
+}
+
+// --turn=N: turn the view a quarter N times, as Q does, to see the campus
+// from another corner.
+const turn = Number(flag('turn', 0));
+for (let i = 0; i < turn; i++) {
+  await page.keyboard.press('q');
+  await page.waitForTimeout(400);
 }
 
 const zoom = Number(flag('zoom', 0));
