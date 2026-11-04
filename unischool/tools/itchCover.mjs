@@ -4,7 +4,7 @@
 // twice that so it stays sharp on a high-density screen.
 //
 //   npm run shot -- campus-laid.json bg.jpg --bare --size=1260,1000 \
-//     --tilt=-2 --zoom=-1 --pan=0,220          # the campus, low in the frame
+//     --turn=3 --tilt=1 --zoom=-2 --pan=0,300   # the campus, low in the frame
 //   node tools/itchCover.mjs bg.jpg ../docs/store/itch/cover.jpg
 //
 // --size=W,H draws another shape at twice W by H: --size=960,540 is a
