@@ -294,6 +294,25 @@ owner tasks); upload it under **Cover image**.
 [`itch/cover-wide.jpg`](itch/cover-wide.jpg) is the same at 1920 × 1080,
 for sites that want a wide cover (foundplay.io, 11 October).
 
+### The cover drawn from the game's pieces
+
+[`itch/cover-scene.jpg`](itch/cover-scene.jpg) and
+[`itch/cover-scene-wide.jpg`](itch/cover-scene-wide.jpg) (4 November 2026)
+are the same mark and name over a scene rather than a screenshot: Founders
+Hall at the head of its lawn, seen from in front and low, the way a painted
+cover is drawn. Every piece that stands is the game's own art, drawn by the
+game's code (the hall, the trees, the banner lamps, the benches, the
+flowerbeds, the walkers' figure); `tools/coverScene.tsx` draws them at a
+camera the map never uses and places them in perspective, and
+`tools/itchScene.mjs` sets the scene under the sky:
+
+```sh
+npm run cover:scene -- scene.svg
+node tools/itchScene.mjs scene.svg ../docs/store/itch/cover-scene.jpg
+npm run cover:scene -- scene-wide.svg --ratio=1.7778 --hall=0.25
+node tools/itchScene.mjs scene-wide.svg ../docs/store/itch/cover-scene-wide.jpg --size=960,540
+```
+
 ## Retaking them
 
 From `unischool/`, with the production build served

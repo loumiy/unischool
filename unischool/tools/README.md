@@ -392,6 +392,11 @@ npm run itch:frame -- --check
 shot for the page's cover image (`docs/store/itch-page.md` has the
 commands).
 
+`coverScene.tsx` (`npm run cover:scene`) and `itchScene.mjs` draw the
+other cover, a scene built from the game's own pieces (Founders Hall, the
+trees, lamps, benches, beds and figures) at a low camera straight at the
+hall, placed in perspective; `docs/store/itch-page.md` has the commands.
+
 `steamCapsules.mjs` (`npm run steam:capsules`) does the same for Steam's
 capsule set (Plan 117F): the header, small, main, vertical and library
 capsules, the library hero and the library logo, each drawn at exactly
