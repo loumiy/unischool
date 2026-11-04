@@ -5,7 +5,8 @@ the third review's C6-8). The trailer on the itch.io page today is a cut
 on Vimeo ("UniSchool - Free Playtest on Itch.io"). It has no source in
 the repository, and the owner found its copy "too cryptic" for people
 seeing the game for the first time. This file is the source for the next
-cut, so that cut is an edit of this list, not a redo.
+cut, so that cut is an edit of this list, not a redo. Its sister cut,
+with no words added at all, is [`trailer-gameplay.md`](trailer-gameplay.md).
 
 The rules for the cut:
 - **The opening says the plain promise.** Most people watch the first
