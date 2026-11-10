@@ -22,6 +22,8 @@ import { modalWidth } from './modalLayout';
 import { UNLOCKS, unlockLabel } from '../state/unlocks';
 import { VERNACULARS } from './buildingSpec';
 import BuildThumb from './BuildThumb';
+import EffectChips from './EffectChip';
+import { buildableEffects } from '../data/buildableEffects';
 import { FOUNDERS_HALL_ID, initialTech } from '../data/techData';
 import { initialDorms } from '../data/campusData';
 import { initialFacilities } from '../data/facilitiesData';
@@ -463,7 +465,7 @@ function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization, summerWait
           {m.opens.length > 0 && (
             <>
               <p className="inbox-section-label section-head">What this opens</p>
-              <ul className="milestone-opens">{m.opens.map((line) => <li key={line}>{line}</li>)}</ul>
+              <MilestoneOpens s={s} buildables={m.buildables} opens={m.opens} />
             </>
           )}
           {(m.buildables.length > 0 || tab) && (
@@ -558,6 +560,34 @@ function unlockSampleBuildings(): Buildable[] {
     });
   }
   return unlockSamples;
+}
+
+// What a milestone opens (Plan 125 A): each building as the map draws it,
+// with what it gives as chips, and the tabs and offices as lines. A line of
+// the milestone's `opens` that names a building ("Student Center: …") is
+// that building's gloss.
+function MilestoneOpens({ s, buildables, opens }: { s: GameState; buildables: readonly string[]; opens: readonly string[] }) {
+  const bare = (name: string) => name.replace(/^The /, '');
+  const built = buildables.map((id) => s.tech.find((t) => t.id === id)).filter((t): t is Buildable => Boolean(t));
+  const lineOf = (t: Buildable) => opens.find((line) => bare(line).startsWith(`${bare(t.name)}:`));
+  const gloss = (line: string) => { const g = line.slice(line.indexOf(':') + 2); return `${g.charAt(0).toUpperCase()}${g.slice(1)}`; };
+  const claimed = new Set(built.map(lineOf).filter(Boolean));
+  const rest = opens.filter((line) => !claimed.has(line));
+  return (
+    <ul className="milestone-opens">
+      {built.filter((t) => lineOf(t)).map((t) => (
+        <li key={t.id} className="milestone-opens-building">
+          <span className="milestone-opens-thumb" aria-hidden="true"><BuildThumb t={t} vernacular={s.self.vernacular} /></span>
+          <span className="milestone-opens-words">
+            <strong>{t.name}</strong>
+            <span className="milestone-opens-gloss">{gloss(lineOf(t)!)}</span>
+            <EffectChips effects={buildableEffects(t)} />
+          </span>
+        </li>
+      ))}
+      {rest.map((line) => <li key={line}>{line}</li>)}
+    </ul>
+  );
 }
 
 export function UnlockBuildings({ vernacular }: { vernacular: string }) {
