@@ -873,8 +873,6 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
   transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.3s ease; }
 .progress-ring-center { font-family: var(--display); font-weight: 800; fill: var(--ink);
   text-anchor: middle; dominant-baseline: central; }
-.progress-figure { display: inline-flex; align-items: center; gap: 8px; }
-.progress-figure .stat { line-height: 1.25; }
 
 /* ---------- Curriculum ---------- */
 /* No inner scroll box: the overlay scrolls, so tooltips have one edge to avoid. */
@@ -901,7 +899,8 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
   overflow: hidden; }
 .cell-stamp { position: absolute; top: 5px; right: 6px; font-size: var(--text-xs);
   line-height: 1; opacity: 0.75; }
-/* Cost and best free teacher, shown only while the course is still ahead. */
+/* A course still ahead: "needs faculty" under a program's row, whose Develop
+   line says the price and the teacher (Plan 125H); both, in the worklist. */
 .cell-next { margin-top: auto; padding-top: 2px; font-size: var(--text-2xs); font-weight: 600;
   color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
@@ -1784,6 +1783,16 @@ button.build-tile { font-family: inherit; }
 .curriculum-chip { height: 36px; padding: 0 var(--space-12); font-size: var(--text-sm); }
 .curriculum-chip:hover:not(:disabled) { background: var(--cream-lo); color: var(--ink); }
 .curriculum-chip.on, .curriculum-chip.on:hover:not(:disabled) { background: var(--school-secondary); color: var(--school-on-secondary); }
+/* The button in the tab's head that folds the row (Plan 125H): pressed like a
+   chip while the row is open. */
+.curriculum-filter-toggle.on { background: var(--school-secondary); color: var(--school-on-secondary); }
+/* The head's count stays one line; on a phone the count, the grade, the
+   button and the help take a line of their own under the pillar's bar. */
+.curriculum-panel .panel-head-figure .stat { white-space: nowrap; }
+@media (max-width: 760px) {
+  .curriculum-panel > .panel-head { flex-wrap: wrap; }
+  .curriculum-panel > .panel-head > .panel-head-figure { margin-left: auto; }
+}
 .curriculum-chip.clear { background: transparent; }
 /* The top band's colour on Below top band (Plan 107H): the line the course
    figures are coloured by. */
@@ -1833,15 +1842,29 @@ button.build-tile { font-family: inherit; }
 .committee-seat.locked { border-style: dotted; border-color: var(--parchment-line); background: transparent; }
 .committee-seat.locked .committee-seat-name { color: var(--ink-muted); font-weight: 700; }
 .committee-seat.locked .committee-seat-left { color: var(--ink-muted); }
-.committee-note { margin: 6px 0 0; font-size: var(--text-xs); color: var(--ink-muted); font-style: italic; }
 @media (max-width: 760px) {
   .next-up.with-committee { grid-template-columns: minmax(0, 1fr); }
   .committee { border-left: none; border-top: 2px dashed var(--parchment-line); padding: 10px 0 0; }
 }
-/* The Curriculum's head since Plan 80B: the committee alone, its seats in
-   one row where there is room, and the line of departments under it. */
-.committee-box .committee { border: none; padding: 0; }
-@media (min-width: 761px) { .committee-box .committee-seats { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+/* The Curriculum's head since Plan 80B: the committee alone, and the line
+   of departments under it. The seats are one row that never wraps (Plan
+   125H: the earned seats and one stub for the next, nine at most), each an
+   eighth of the row until a ninth narrows them all; on a wide screen the
+   label and the count stand at the row's left and the help at its right.
+   A phone keeps the grid of four. */
+.committee-box { padding: var(--space-6) var(--space-12); margin-bottom: 10px; }
+.committee-box .committee { border: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6) var(--space-12); }
+.committee-box .committee-head { flex: 1 1 auto; margin: 0; }
+.committee-box .committee-seats { order: 1; flex: 1 0 100%; }
+@media (min-width: 761px) {
+  .committee-box .committee-seats { display: flex; flex-wrap: nowrap; }
+  .committee-box .committee-seat { flex: 0 1 calc((100% - 35px) / 8); }
+}
+@media (min-width: 1000px) {
+  .committee-box .committee { flex-wrap: nowrap; }
+  .committee-box .committee-head { flex: none; }
+  .committee-box .committee-seats { order: 0; flex: 1 1 0; min-width: 0; }
+}
 .committee-faculty { margin: 0; padding-top: 8px; border-top: 2px dashed var(--parchment-line);
   font-size: var(--text-sm); font-weight: 600; color: var(--ink); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
 .committee-faculty-label { color: var(--bad-on-light); font-weight: 800; }
@@ -1867,8 +1890,8 @@ button.build-tile { font-family: inherit; }
    filters stay pinned while the programs scroll, where the screen is tall
    enough to spare them. */
 @media (min-width: 900px) and (min-height: 700px) {
-  .curriculum-pinned { position: sticky; top: -14px; z-index: 2; background: var(--cream-hi);
-    margin: 0 -4px; padding: 14px 4px 2px; }
+  .curriculum-pinned { position: sticky; top: -6px; z-index: 2; background: var(--cream-hi);
+    margin: 0 -4px; padding: 6px 4px 2px; }
 }
 
 /* The row's action (CurriculumTab.tsx's RowAction). */
