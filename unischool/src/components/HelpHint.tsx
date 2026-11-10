@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import Keyed from './Keyed';
 
 // A small, dismissible '?' toggle for panel explainer copy that's useful
 // once but busy if it's always on screen (see
@@ -11,11 +12,18 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } f
 // one too: `label` names what it explains, and `children` (its Show me)
 // sit under the words. Opening one closes any other, since the click that
 // opens it lands outside the one already open.
-export default function HelpHint({ text, align = 'start', label, children }: {
+// A legend row (Plan 125 B): a mark as the panel draws it, and what it
+// means in a few words. A panel whose help explained its marks in prose
+// shows them instead, with the rules that are not about marks as short
+// lines under them (`text`, split on a blank line).
+export interface LegendRow { mark: ReactNode; says: string }
+
+export default function HelpHint({ text, align = 'start', label, children, legend }: {
   text: string;
   align?: 'start' | 'end';
   label?: string;
   children?: ReactNode;
+  legend?: readonly LegendRow[];
 }) {
   const [open, setOpen] = useState(false);
   const [nudge, setNudge] = useState(0);
@@ -65,14 +73,31 @@ export default function HelpHint({ text, align = 'start', label, children }: {
       >
         ?
       </button>
-      {open && (children === undefined ? (
+      {open && (legend !== undefined ? (
+        <div
+          ref={popup}
+          id={id}
+          role="group"
+          aria-label={label ?? 'What the marks mean'}
+          className={`help-hint-text help-hint-card help-hint-legend ${align === 'end' ? 'align-end' : ''}`}
+          style={nudge ? { transform: `translateX(${nudge}px)` } : undefined}
+        >
+          <dl>
+            {legend.map((row) => (
+              <div key={row.says} className="help-legend-row"><dt>{row.mark}</dt><dd>{row.says}</dd></div>
+            ))}
+          </dl>
+          {text.split(/\n\s*\n/).filter(Boolean).map((line) => <p key={line}><Keyed text={line} /></p>)}
+          {children}
+        </div>
+      ) : children === undefined ? (
         <p
           ref={popup}
           id={id}
           className={`help-hint-text ${align === 'end' ? 'align-end' : ''}`}
           style={nudge ? { transform: `translateX(${nudge}px)` } : undefined}
         >
-          {text}
+          <Keyed text={text} />
         </p>
       ) : (
         <div
@@ -83,7 +108,7 @@ export default function HelpHint({ text, align = 'start', label, children }: {
           className={`help-hint-text help-hint-card ${align === 'end' ? 'align-end' : ''}`}
           style={nudge ? { transform: `translateX(${nudge}px)` } : undefined}
         >
-          <p>{text}</p>
+          <p><Keyed text={text} /></p>
           {children}
         </div>
       ))}

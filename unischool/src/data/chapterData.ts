@@ -125,7 +125,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
     },
     help: {
       'develop-second-course': { text: 'In the Curriculum, find the program and click Develop on its next course. Then pick a professor to teach it. Each lit lamp under the Curriculum button is a course being written.', door: 'curriculum', ringed: true },
-      'run-at-double': { text: 'Press 2, or click the double-arrow button, to run at double speed. Space pauses.' },
+      'run-at-double': { text: 'Press [2] or [icon:double] to run at double speed. [Space] pauses.' },
     },
   },
   'looking-around': {
@@ -139,11 +139,11 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'look-home': 'Go back to the starting view',
     },
     help: {
-      'look-pan': { text: 'Pan with W, A, S and D, the arrow keys, or by dragging the map.' },
-      'look-turn': { text: 'Turn the view with Q and E, or the turn buttons in the map tools, to see behind buildings.' },
-      'look-tilt': { text: 'Tilt the view with Z and X, or the tilt buttons in the map tools.' },
-      'look-zoom': { text: 'Zoom with the scroll wheel, or the + and − buttons in the map tools.' },
-      'look-home': { text: 'Press Home, or the house button in the map tools, to go back to the starting view.' },
+      'look-pan': { text: 'Pan with [W] [A] [S] [D], the arrow keys, or by dragging the map.' },
+      'look-turn': { text: 'Turn the view with [Q] and [E], or [icon:turn] in the map tools, to see behind buildings.' },
+      'look-tilt': { text: 'Tilt the view with [Z] and [X], or [icon:tilt] in the map tools.' },
+      'look-zoom': { text: 'Zoom with the scroll wheel, or [+] and [−] in the map tools.' },
+      'look-home': { text: 'Press [Home] or [icon:home] in the map tools to go back to the starting view.' },
     },
   },
   'somewhere-to-sleep': {
@@ -245,7 +245,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'found-a-school': 'Found a school with six of its programs in one hall',
     },
     help: {
-      'claim-a-hall': { text: "Three programs from one school in one hall make it that school's hall. Six found the school, and each school after it grows the same way in a hall of its own. The Curriculum groups your programs by school.", door: 'curriculum' },
+      'claim-a-hall': { text: "Three programs from one school in one hall make it that school's hall. Six found the school, and each school after it grows the same way in a hall of its own. The pips on a hall's panel count them.", door: 'curriculum' },
       'found-a-school': { text: 'Put six programs from one school in one hall, with nothing from another school. Found them there, or move them in from other halls. The Curriculum groups your programs by school.', door: 'curriculum' },
     },
   },
@@ -372,8 +372,8 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
 export const OBJECTIVES_WORDS: Record<ObjectivesMode, string> = { guided: 'Guided', brief: 'Brief', off: 'Off' };
 export const OBJECTIVES_MODES: readonly ObjectivesMode[] = ['guided', 'brief', 'off'];
 export const OBJECTIVES_NOTES: Record<ObjectivesMode, string> = {
-  guided: 'Each new chapter opens the objectives on its own, once. Press J to open them at any time.',
-  brief: 'The objectives stay as one line at the bottom of the screen. Press J or click it to open them.',
+  guided: 'Each new chapter opens the objectives on its own, once. Press [J] to open them at any time.',
+  brief: 'The objectives stay as one line at the bottom of the screen. Press [J] or click it to open them.',
   off: "No chapters, and nothing waits for one. The board's chair writes to you instead. For this college, that stays true even if you turn chapters back on.",
 };
 

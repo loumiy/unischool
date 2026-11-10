@@ -1324,7 +1324,7 @@ export const OPENING_LETTERS: readonly OpeningLetter[] = [
     title: 'Moving in',
     body: (s) => {
       const elm = hallName(s, FIRST_HALL_ID);
-      return `${elm} is open, with six program slots. Your schools will grow in halls like this one. When three programs from one school share a hall, it becomes that school's hall. After that, its free slots offer only that school's programs, until none are left to found. Six programs in one hall found the school, and the hall takes its name.${closestLine(s)} Found new programs in the hall, or move them in from Founders Hall. A move from Founders Hall takes ${count(FOUNDERS_MOVE_WEEKS)} weeks, and a move between other halls takes ${count(RELOCATION_WEEKS)}. Every program that leaves Founders Hall frees a slot there for another program, or later for an office.`;
+      return `${elm} is open, with six program slots. Your schools will grow in halls like this one. Three programs from one school claim a hall, and its free slots then offer only that school's programs. Six found the school. The pips on the hall's panel count them.${closestLine(s)} Found new programs in the hall, or move them in from Founders Hall. A move from Founders Hall takes ${count(FOUNDERS_MOVE_WEEKS)} weeks, and a move between other halls takes ${count(RELOCATION_WEEKS)}. Every program that leaves Founders Hall frees a slot there for another program, or later for an office.`;
     },
     ask: (s) => schoolAsk(s),
     done: (s) => foundedSchools(s).length > 0,

@@ -513,7 +513,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       )}
       {claim && (
         <p className="building-info-line building-info-dedication" style={{ color: schoolMark(claim.school).hue }}>
-          {schoolMark(claim.school).motif} {claim.school} · {claim.housed} of {claim.slots}
+          {schoolMark(claim.school).motif} {claim.school} <HallPips housed={claim.housed} of={claim.slots} />
         </p>
       )}
       {claim && own.length === 0 && free > 0 && (
@@ -523,7 +523,8 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       )}
       {!host && !founders && !claimed && !school && (
         <p className="building-info-line hall-claim-note">
-          Put three programs from one school here to make it that school&apos;s hall{lead ? ` · ${lead.school} ${lead.housed} of ${CLAIM_AT}` : ''}.
+          Put three programs from one school here to make it that school&apos;s hall.
+          {lead && <> {lead.school} <HallPips housed={lead.housed} of={6} /></>}
         </p>
       )}
       {founders && (
@@ -864,5 +865,19 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       <SandboxLine t={t} s={s} act={act} onMove={onMove} />
       {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}
     </div>
+  );
+}
+
+// A hall's programs from one school as six pips (Plan 125 B), with marks
+// after the third (the hall is claimed) and the sixth (the school is
+// founded), so the rule the letters spell out can be seen filling.
+export function HallPips({ housed, of }: { housed: number; of: number }) {
+  return (
+    <span className="hall-pips" role="img" aria-label={`${housed} of ${of} programs. Three claim the hall, and six found the school`}>
+      {Array.from({ length: of }, (_, i) => (
+        <span key={i} className={`hall-pip${i < housed ? ' on' : ''}${i + 1 === CLAIM_AT ? ' claim' : ''}`} />
+      ))}
+      <span className="hall-pips-count">{housed}/{of}</span>
+    </span>
   );
 }

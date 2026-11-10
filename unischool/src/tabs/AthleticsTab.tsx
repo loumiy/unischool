@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react';
 import SpeedUpOffers from '../components/SpeedUpOffers';
 import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
+import type { AthleticsBudgetTier } from '../state/types';
 import type { Coach, GameState, VarsityTeam } from '../state/types';
 import { WEEKS_PER_YEAR, institutionName } from '../state/types';
 import { PILLAR_WORDS, teamLimitHelp, teamSlowed } from '../data/specializationData';
@@ -40,6 +41,25 @@ function seasonLabel(r: SeasonResult): string {
     case 'quarterfinal': return 'lost the quarterfinal';
     default: return r.banned ? 'postseason ban' : 'did not qualify';
   }
+}
+
+// A coach's quality and ceiling as a meter (Plan 125 B), drawn as a
+// professor's scores are: the quality filled, the scouted range of the
+// ceiling a lighter band beyond it, all out of 100.
+function CoachMeter({ c }: { c: Coach }) {
+  const p = coachProfile(c);
+  const [lo, hi] = ceilingResolved(c) ? [c.qualityPotential, c.qualityPotential] : p.scouted;
+  const at = (n: number) => `${Math.max(0, Math.min(100, n))}%`;
+  const label = `Quality ${c.quality}, ${ceilingLabel(c)}`;
+  return (
+    <span className="coach-meter" role="img" aria-label={label} title={label}>
+      <span className="coach-meter-track">
+        <span className="coach-meter-range" style={{ left: at(Math.min(lo, hi)), width: at(Math.max(1, Math.abs(hi - lo))) }} />
+        <span className="coach-meter-fill" style={{ width: at(c.quality) }} />
+      </span>
+      <span className="coach-meter-figure">{c.quality}<span className="coach-meter-ceiling"> → {lo === hi ? lo : `${lo}–${hi}`}</span></span>
+    </span>
+  );
 }
 
 // A coach's ceiling: a scouted range for a candidate or a hire whose tenure
@@ -185,7 +205,14 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
       <div className="panel-head">
         <h2 tabIndex={-1}>On the market</h2>
         <HelpHint
-          text="One market serves the whole department. A head or assistant coach knows exactly one sport, so they can only fill a post on that sport's team. A trainer works in strength and conditioning, so one trainer can fill any team's post. Coaches for teams with an open post are listed first, tagged with the team that wants them. Click Show the rest of the market to see everyone else. Every open post always has somebody listed, but good candidates are rare. A card shows a coach's potential as a range. A prospect is cheap and weak now, with a potential nobody can quite see. A veteran is good now and expensive, with little room to grow and retirement coming. A better Athletic Director narrows the range. Listings leave the market after a few months, whether or not you hire."
+          legend={[
+            { mark: <span className="coach-meter"><span className="coach-meter-track"><span className="coach-meter-range" style={{ left: '55%', width: '20%' }} /><span className="coach-meter-fill" style={{ width: '45%' }} /></span></span>, says: 'Quality now, and the range their ceiling may lie in. A better Athletic Director narrows it' },
+            { mark: <span className="legend-chip">Hire as head coach</span>, says: 'The team and post that want them. Click to hire' },
+            { mark: <span className="legend-mono">5w left</span>, says: 'Until they leave the market, hired or not' },
+          ]}
+          text={'A head or assistant coach knows one sport. A trainer can fill any team\'s post.\n\n'
+            + 'A prospect is cheap and weak now, with a ceiling nobody can quite see. A veteran is good now, expensive, and retiring before long.\n\n'
+            + 'Every open post always has somebody listed, but good candidates are rare.'}
         />
       </div>
 
@@ -212,8 +239,9 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                     {weeksShort(Math.max(0, COACH_CANDIDATE_LISTING_WEEKS - c.weeksListed))} left
                   </span>
                 </div>
+                <CoachMeter c={c} />
                 <span className="stat" title={coachProfile(c).veteran ? 'A veteran: good now, little room to grow, retiring before long' : 'A prospect: weak now, with a potential nobody can quite see'}>
-                  quality {c.quality} · {ceilingLabel(c)} · age {coachProfile(c).age} · {moneyShort(c.salary)}/yr
+                  age {coachProfile(c).age} · {moneyShort(c.salary)}/yr
                 </span>
                 <span className="coach-candidate-hire">
                   {openings.length === 0
@@ -277,7 +305,7 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
         <h2>{s.self.mascot ? `${institutionName(s.self)} ${s.self.mascot}` : 'Varsity athletics'}</h2>
         <HelpHint
           text={`A sport club (see the Students tab) can petition to go varsity. A varsity program gets a budget and a shared venue for its sport's category. You hire its coaches separately, from the market below. Every team wants a head coach, an assistant and a trainer. An empty post weakens a team, but the team still plays. The department runs on its own fund: your subsidy plus what the programs earn at the gate. `
-            + `Pick the subsidy level here. It sets the subsidy, the staff's pay (×0.75, ×1 or ×1.4) and what the teams add to student life (×0.6, ×1 or ×1.5). It also sets how many programs can be flagships: 2, 4 or 6, from the top of the list. The Athletic Performance Complex adds two more at a college specialized in athletics. `
+            + `Pick the subsidy level here. The table under it shows what each level sets. Flagships are the programs at the top of the list. The Athletic Performance Complex adds two more at a college specialized in athletics. `
             + `A flagship takes its sport's whole cost to compete from the fund, and can have a scholarship budget to recruit. Every other program takes at most ${pct(NON_FLAGSHIP_FUNDED_SHARE)} of its cost, in card order, until the money runs out. Anything left over goes back to your college. The Athletic Director gives every team a smaller lift. `
             + `Athletics is one of the four pillars of prestige (see the History tab). Your programs' strength, your flagships and your titles make it up. It counts for less than the other three.`}
         />
@@ -337,6 +365,27 @@ function Department({ s, act }: { s: GameState; act: (a: Action) => void }) {
           ))}
         </div>
       </div>
+      {/* What each level sets (Plan 125 B), the chosen column lit: the help
+          used to list these as "(×0.75, ×1 or ×1.4)". */}
+      <table className="subsidy-table">
+        <thead>
+          <tr><td aria-hidden="true" />{ATHLETICS_BUDGET_ORDER.map((t) => (
+            <th key={t} scope="col" className={t === s.orgs.athleticsBudget ? 'on' : undefined}>{t.charAt(0).toUpperCase() + t.slice(1)}</th>
+          ))}</tr>
+        </thead>
+        <tbody>
+          {([
+            ['Subsidy', (t: AthleticsBudgetTier) => moneyShort(ATHLETICS_BUDGET_TIERS[t].subsidyPerYear)],
+            ['Flagships', (t: AthleticsBudgetTier) => String(ATHLETICS_BUDGET_TIERS[t].flagships)],
+            ['Staff pay', (t: AthleticsBudgetTier) => `×${ATHLETICS_BUDGET_TIERS[t].upkeepMultiplier}`],
+            ['Student life', (t: AthleticsBudgetTier) => `×${ATHLETICS_BUDGET_TIERS[t].socialMultiplier}`],
+          ] as const).map(([row, cell]) => (
+            <tr key={row}><th scope="row">{row}</th>{ATHLETICS_BUDGET_ORDER.map((t) => (
+              <td key={t} className={t === s.orgs.athleticsBudget ? 'on' : undefined}>{cell(t)}</td>
+            ))}</tr>
+          ))}
+        </tbody>
+      </table>
       <dl className="athletics-pot">
         <Figure label="Subsidy" value={`${money(pot.subsidy)}/yr`} hint="What your college puts into the department's fund each year. The subsidy level above sets it." />
         <Figure
