@@ -24,7 +24,7 @@ each one.
 | [A second full review](2026-10-game-review-ii/README.md) (Plan 86), and [its status after 0.1.3](2026-10-game-review-ii/STATUS.md) | `4062bfb`, after Plan 85 | Plan 95, the third review |
 | [A third full review](2026-10-game-review-iii/README.md) (Plan 109) | `b1f2114` (0.1.3), after Plan 108 | — (awaiting the owner's triage) |
 | [A review by subtraction](2026-11-review-by-subtraction/README.md) (Plan 123), and [its cut list](https://claude.ai/artifact/CxrPoFCdYUqZwNCQogxfDy) | `5d06ae4` (0.2.0), after Plan 122 | Plan 124 (the owner's decisions on the cut list) |
-| [A review of the interface](2026-11-ui-review/README.md): one fact in several forms, screens that can say less, and where the systems meet on screen | `cb6fc22` (0.2.0), after Plan 124 | — (awaiting the owner's decisions) |
+| [A review of the interface](2026-11-ui-review/README.md): one fact in several forms, screens that can say less, and where the systems meet on screen | `cb6fc22` (0.2.0), after Plan 124 | Plan 125 (its first ten) |
 | [The owner's second playthrough](2026-10-owners-playthrough-ii.md) | `60bac7e`, after Plan 95 | — (awaiting the owner's decisions) |
 
 ## Harness reports
