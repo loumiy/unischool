@@ -90,6 +90,16 @@ export default function HelpHint({ text, align = 'start', label, children, legen
           {text.split(/\n\s*\n/).filter(Boolean).map((line) => <p key={line}><Keyed text={line} /></p>)}
           {children}
         </div>
+      ) : children === undefined && /\n\s*\n/.test(text) ? (
+        // Short paragraphs, split on a blank line (Plan 125 F).
+        <div
+          ref={popup}
+          id={id}
+          className={`help-hint-text help-hint-paras ${align === 'end' ? 'align-end' : ''}`}
+          style={nudge ? { transform: `translateX(${nudge}px)` } : undefined}
+        >
+          {text.split(/\n\s*\n/).filter(Boolean).map((line) => <p key={line}><Keyed text={line} /></p>)}
+        </div>
       ) : children === undefined ? (
         <p
           ref={popup}

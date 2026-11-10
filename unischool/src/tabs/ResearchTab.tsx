@@ -307,7 +307,7 @@ function VacantPanel(
                 ? `Needs ${picked.depth.participants} scholars`
                 : s.finance.cash < picked.fundingCost
                   ? `${moneyShort(picked.fundingCost - s.finance.cash)} short`
-                  : `Commission — ${moneyShort(picked.fundingCost)}`}
+                  : `Commission · ${moneyShort(picked.fundingCost)}`}
           </button>
         </div>
       )}

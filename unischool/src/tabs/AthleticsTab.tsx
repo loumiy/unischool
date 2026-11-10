@@ -223,7 +223,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
           {wanted.length === 0 && !showAll && (
             <p className="empty-note">
               Nobody on the market coaches a sport with an open post on your teams.
-              {rest.length > 0 && ' There are others listed — see below.'}
+              {rest.length > 0 && ' Others are listed below.'}
             </p>
           )}
           <ul className="coach-market">
@@ -251,7 +251,7 @@ function TheMarket({ s, act }: { s: GameState; act: (a: Action) => void }) {
                         key={`${team.id}:${role}`}
                         type="button"
                         className={`panel-action${team.id === ringedTeam?.id && role === ringed ? RING : ''}`}
-                        title={`${team.name} — ${CHAIR_LABEL[role]}`}
+                        title={`${team.name} · ${CHAIR_LABEL[role]}`}
                         onClick={() => act({ type: 'HIRE_COACH', candidateId: c.id, teamId: team.id, role })}
                       >
                         {/* The tag is the button: clicking the team that wants them hires. */}
@@ -476,7 +476,7 @@ function SportLine({ s, team }: { s: GameState; team: VarsityTeam }) {
         {rival && (
           <>
             <span className="scoreboard-label">Rival series</span>
-            <span className="scoreboard-game team-card-rival" title={`${trophyFor(s, team.sport)} — the all-time series against ${rival.name}`}>
+            <span className="scoreboard-game team-card-rival" title={`${trophyFor(s, team.sport)} · the all-time series against ${rival.name}`}>
               {rivalry
                 ? <><span className={`scoreboard-score ${lead > 0 ? 'up' : lead < 0 ? 'down' : 'level'}`}>{lead > 0 ? 'Lead' : lead < 0 ? 'Trail' : 'Level'} {rivalry.wins}–{rivalry.losses}</span> {rival.name}</>
                 : <>vs {rival.name}</>}

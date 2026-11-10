@@ -419,7 +419,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
         <span className="next-up-label">Payroll</span>
         <span className="next-up-body">
           <span className="next-up-meta">{moneyShort(pay.weekly)}/wk · {pct(pay.share)} of expenses</span>
-          {pay.wouldAdd > 0 && <span className="next-up-note"> — the appointments above would add {money(pay.wouldAdd)}/wk</span>}
+          {pay.wouldAdd > 0 && <span className="next-up-note"> · the appointments above would add {money(pay.wouldAdd)}/wk</span>}
         </span>
       </div>
     </div>

@@ -232,7 +232,7 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
         className="program-tile"
         onClick={onToggle}
         aria-expanded={open}
-        title={`${program.name} (${program.school}) — ${progress.done} of ${progress.total} courses developed`}
+        title={`${program.name} (${program.school}): ${progress.done} of ${progress.total} courses developed`}
       >
         <span className="hall-slot-motif" style={{ color: mark.hue }} aria-hidden="true">{mark.motif}</span>
         <span className="hall-slot-name">{program.name}</span>
@@ -538,7 +538,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         {free === 0
           ? 'Every slot is taken.'
           : `${free} of ${slots.length} ${founders ? 'slot' : 'program slot'}${free === 1 && slots.length === 1 ? '' : 's'} free${offers.length > 0 || officesOffered > 0
-            ? ` — ${[
+            ? `. ${[
               offers.length > 0 ? `${offers.length} program${offers.length === 1 ? '' : 's'}` : '',
               officesOffered > 0 ? `${officesOffered} office${officesOffered === 1 ? '' : 's'}` : '',
             ].filter(Boolean).join(' and ')} on offer.`
@@ -851,7 +851,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       {t.status === 'done' && act && <EstateLine t={t} s={s} act={act} />}
       {t.status === 'developing' && weeksLeft !== undefined && (
         <p className="building-info-line building-info-construction">
-          Under construction — {weeksLeft} of {t.duration} week{t.duration === 1 ? '' : 's'} left.
+          Under construction · {weeksLeft} of {t.duration} week{t.duration === 1 ? '' : 's'} left.
         </p>
       )}
       {/* A dorm with no bed count (an entry the loader could not size) shows no line. */}

@@ -513,7 +513,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
   if (left > 0) {
     return (
       <p className="course-drawer-note search-running">
-        A {field} search is running — {left} week{left === 1 ? '' : 's'} left.
+        A {field} search is running, {left} week{left === 1 ? '' : 's'} left.
       </p>
     );
   }
@@ -855,7 +855,7 @@ export function RowAction({ s, act, program, progress, lookup, onSelect, compact
     return (
       <p className="row-action">
         <span className="row-action-note">
-          Next <span className="cell-code">{code}</span> {titleFromName ?? code} — needs {next.requiresFaculty} faculty
+          Next <span className="cell-code">{code}</span> {titleFromName ?? code} needs {next.requiresFaculty} faculty
           {gate === 'hireable' ? ', and a candidate is listed.' : ', and nobody is on the market.'}
         </span>
         <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)}>

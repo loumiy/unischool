@@ -21,7 +21,7 @@ export default function AlumniPanel({ s, act }: { s: GameState; act: (a: Action)
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The alumni</h2>
-          <HelpHint text="Each class is stamped at commencement with what its four years held: how happy it was, how well taught, whether it lived through a building boom, a new school, or a freeze. That sets its warmth, and warmth is what the college is given back. A reunion, every fifth year after they leave, nudges one class a little; campaigns and events move every class's." />
+          <HelpHint text={'Each class leaves with a warmth toward your college, set by its four years: how happy it was, how well it was taught, and whether it lived through a building boom, a new school or a freeze.\n\nThe warmer a class, the more it gives. A reunion every fifth year nudges one class a little. Campaigns and events move them all.'} />
         </span>
         <span className="stat">{count(graduates)} graduates in {classes.length} {classes.length === 1 ? 'class' : 'classes'} · {moneyShort(annualGiving(s))} a year{dip > 0 && <>, {pct(dip)} less since a program was cut</>}</span>
       </div>

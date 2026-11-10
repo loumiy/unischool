@@ -296,7 +296,7 @@ function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload;
 // still. Rank numbers run the wrong way round (smaller is better), so
 // `delta` is pre-normalized by the report builder to "places gained".
 function RankMovement({ delta }: { delta: number }) {
-  if (delta === 0) return <span className="rank-move flat">— held</span>;
+  if (delta === 0) return <span className="rank-move flat">= held</span>;
   return (
     <span className={`rank-move ${delta > 0 ? 'up' : 'down'}`}>
       {delta > 0 ? '▲' : '▼'}{Math.abs(delta)}
@@ -322,7 +322,7 @@ function RankingsReportView({ payload, isFirstReveal, published = true, onDismis
 
   return (
     <>
-      <h2>{isFirstReveal ? 'The college enters the guide' : published ? 'Standing — the guide' : 'Standing'}</h2>
+      <h2>{isFirstReveal ? 'The college enters the guide' : published ? 'Standing in the guide' : 'Standing'}</h2>
       <p>
         {isFirstReveal
           ? `${standings.find((r) => r.isPlayer)?.name ?? 'The college'} has entered the guide's top fifty, at #${rank}.`
@@ -494,7 +494,7 @@ export function ResearchReportView({ s, report, onDismiss }: {
 
   return (
     <>
-      <h2>{report.award ? `${report.topicName} concludes — and wins ${report.award.prizeName}` : `${report.topicName} concludes`}</h2>
+      <h2>{report.award ? `${report.topicName} concludes, and wins ${report.award.prizeName}` : `${report.topicName} concludes`}</h2>
       <p>
         {depth.name} · {report.labName} · {weeksShort(Math.round(report.years * WEEKS_PER_YEAR))} ·{' '}
         {report.facultyNames.join(', ')}
@@ -587,7 +587,7 @@ function ChampionshipView({ s, result, onDismiss }: {
       <p>
         {ad ? `${ad.name} has been on the telephone since the final whistle. ` : ''}
         The {sport} finished the season as champions
-        {result.seed !== null && result.seed > 2 ? ` — from the ${ordinal(result.seed)} seed` : ''}.
+        {result.seed !== null && result.seed > 2 ? `, from the ${ordinal(result.seed)} seed` : ''}.
       </p>
 
       {result.beaten.length > 0 && (

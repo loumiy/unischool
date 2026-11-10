@@ -5,7 +5,7 @@
 // on one lever. v2's "yield" teeth are pool size here: everyone admitted
 // enrolls in this game.
 
-import { signed, signedPct } from '../format';
+import { money, signed, signedPct } from '../format';
 import type { Effect } from './effectTypes';
 
 export type TagLever = 'giving' | 'attrition' | 'studentCost' | 'athletics' | 'beauty' | 'satisfaction' | 'pool';
@@ -47,7 +47,7 @@ export function tagEffects(t: TagDef): Effect[] {
   switch (lever) {
     case 'giving': out.push({ kind: 'alumni', figure: signedPct(amount), words: 'alumni giving', tone: amount > 0 ? 'gain' : 'loss' }); break;
     case 'attrition': out.push({ kind: 'students', figure: signed(amount * 100, 1).replace(/\.0$/, ''), words: `${Math.abs(amount * 100) === 1 ? 'point' : 'points'} of attrition a year`, tone: amount < 0 ? 'gain' : 'loss' }); break;
-    case 'studentCost': out.push({ kind: 'money', figure: `${amount > 0 ? '−' : '+'}$${Math.abs(amount)}`, words: 'a student each year', tone: amount > 0 ? 'loss' : 'gain' }); break;
+    case 'studentCost': out.push({ kind: 'money', figure: `${amount > 0 ? '−' : '+'}${money(Math.abs(amount))}`, words: 'a student each year', tone: amount > 0 ? 'loss' : 'gain' }); break;
     case 'athletics': out.push({ kind: 'athletics', figure: signed(amount), words: 'every team\'s strength', tone: amount > 0 ? 'gain' : 'loss' }); break;
     case 'beauty': out.push({ kind: 'beauty', figure: signed(amount), words: 'campus beauty', tone: amount > 0 ? 'gain' : 'loss' }); break;
     case 'satisfaction': out.push({ kind: 'satisfaction', figure: signed(amount), words: 'satisfaction', tone: amount > 0 ? 'gain' : 'loss' }); break;

@@ -151,10 +151,10 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const services = servicesMultiplier(s);
   // Says how the sections are running, so the cost model is readable.
   const sectionsNote = teaching.courses === 0
-    ? 'no course is offered yet'
+    ? 'No course is offered yet'
     : teaching.overflow > 0
-      ? `every section is full and ${count(teaching.overflow)} students are in overflow`
-      : `sections are running ${pct(teaching.fill)} full`;
+      ? `Every section is full and ${count(teaching.overflow)} students are in overflow`
+      : `Sections are running ${pct(teaching.fill)} full`;
 
   // What drives each line's figure. Which lines show is treasuryStatement.ts's.
   const notes: Record<StatementLineSpec['key'], string> = {
@@ -165,8 +165,8 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
     athleticsSurplus: `${money(flow.gateRevenue)}/wk at the gate`,
     weeklySalaries: `${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}, and salaries rise with tenure`,
     seatUpkeep: `${count(s.students.capacity)} beds`,
-    instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section a week — ${sectionsNote}`,
-    servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} with the classrooms full` : ''}`,
+    instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section a week. ${sectionsNote}`,
+    servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk: advising, registrar, IT and grounds${services > 1 ? `, ${multiplier(services)} with the classrooms full` : ''}`,
     scaleCost: `the extra administration ${count(totalEnrolled(s.students))} students need (${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)})`,
     academicUpkeep: `running ${coursesDone} courses and the teaching buildings they sit in`,
     facilityUpkeep: 'libraries, dining, rec and labs',

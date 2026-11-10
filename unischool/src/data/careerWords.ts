@@ -38,7 +38,7 @@ export const CAREER_WORDS = {
   slotsLabel: 'Course slots',
   outputLabel: 'Scholarly output',
   output: (perWeek: string, paper: number) => `${perWeek} a week (a paper takes ${paper})`,
-  noOutput: (field: string) => `none — no research facility in ${field}'s school`,
+  noOutput: (field: string) => `none, with no research facility in ${field}'s school`,
 
   // The courses.
   noCourses: 'Has not taught a course here yet.',

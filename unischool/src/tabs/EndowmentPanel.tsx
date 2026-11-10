@@ -33,7 +33,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
     <section className="panel endowment-panel">
       <div className="panel-head">
         <h2>The endowment</h2>
-        <HelpHint align="end" text={`The endowment earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into your income every week. Draw less and it grows faster. Draw more and you get more income now, but less later. Above ${rate(DRAW_RATE_PRUDENT)}, the draw takes most of the return. Then the fund grows little or shrinks, and next year's draw shrinks with it. Cash you move in stays in. It pays out only at the draw rate, or to cover half a capital project. If you can't pay for a building in cash, you can borrow for it. You can borrow up to ${pct(BORROWING_SHARE)} of the endowment, repaid weekly over ${LOAN_YEARS} years at ${rate(LOAN_RATE)}.`} />
+        <HelpHint align="end" text={`The fund earns about ${rate(ENDOWMENT_RETURN)} a year and pays its draw into your income every week. Draw less and it grows. Draw more and you have more now and less later.\n\nAbove ${rate(DRAW_RATE_PRUDENT)}, the draw takes most of the return, so the fund stops growing and next year's draw shrinks with it.\n\nCash you move in stays in. It pays out only at the draw rate, or for half a capital project.\n\nYou can borrow up to ${pct(BORROWING_SHARE)} of the endowment for a building, repaid weekly over ${LOAN_YEARS} years at ${rate(LOAN_RATE)}.`} />
       </div>
       {/* What the fund is, in a sentence (Plan 118G, F10: "parts of
           endowment could be confusing"). */}
@@ -50,7 +50,7 @@ export default function EndowmentPanel({ s, act }: { s: GameState; act: (a: Acti
         <dt>Borrowed</dt>
         <dd>
           {debtOutstanding(s) > 0 ? `${money(debtOutstanding(s))}, ${money(debtService(s))}/wk` : 'nothing'}
-          <span className="stat"> — room for {money(borrowingRoom(s))} more</span>
+          <span className="stat"> · room for {money(borrowingRoom(s))} more</span>
         </dd>
         <dt>Grows</dt>
         <dd>
