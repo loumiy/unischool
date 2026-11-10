@@ -4330,8 +4330,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 /* Paths and Trees, a row each, then the rest in columns of two. */
 .build-mini-body { flex: 1; display: flex; gap: 6px; min-height: 0; }
 .build-mini-rows { display: grid; grid-template-rows: 1fr 1fr; gap: 6px; }
-.build-mini-row { display: flex; min-height: 0; }
-.build-mini-row > .build-mini-tile { flex: none; width: 64px; }
+.build-mini-rows > .build-mini-tile { width: 64px; }
 .build-mini-grid { display: grid; grid-auto-flow: column; grid-template-rows: 1fr 1fr; grid-auto-columns: 64px; gap: 6px; }
 .build-mini-tile { font-family: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   padding: 3px 2px 4px; min-height: 0; border: 1.5px solid var(--outline); border-radius: var(--radius-md, 8px);
@@ -4341,16 +4340,6 @@ body:has(.building-info-panel) .pennant { display: none; }
 /* The thing itself (decorThumbs.tsx), or the eraser's icon. */
 .build-mini-art { flex: 1 1 auto; width: 56px; min-height: 24px; max-height: 40px; display: flex; align-items: center; justify-content: center; }
 .build-mini-art > svg { width: 26px; height: 26px; display: block; }
-/* An armed tool's styles extend from its tile as one tray; the chosen one
-   is ringed, the tool itself filled. */
-.build-mini-row.open > .build-mini-tile { border-top-right-radius: 0; border-bottom-right-radius: 0; border-color: var(--school-secondary); box-shadow: none; }
-.build-mini-styles { display: flex; gap: 4px; padding: 3px; border: 1.5px solid var(--school-secondary); border-left: 0;
-  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
-  background: color-mix(in srgb, var(--school-secondary) 18%, var(--cream-hi)); }
-.build-mini-styles .build-mini-tile { flex: none; width: 64px; }
-.build-mini-styles .build-mini-tile.placing { background: var(--cream-hi); color: var(--ink); border-color: var(--school-secondary);
-  box-shadow: inset 0 0 0 1.5px var(--school-secondary); }
-.build-mini-styles .build-mini-tile:hover { background: var(--school-secondary); color: var(--school-on-secondary); }
 .build-mini-name { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); line-height: 1.05; text-align: center; }
 /* A sandbox's style for the next building (BuildPopup.tsx's StylePicker). */
 .build-style-picker { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); margin-left: auto; }

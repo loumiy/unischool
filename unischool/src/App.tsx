@@ -585,6 +585,9 @@ export default function App() {
     else if (logOpen) setLogOpen(false);
     // A building in hand is put down before the menu closes (Plan 34).
     else if (buildOpen && placingId) setPlacingIdState(null);
+    // An armed grounds tool is put away the same way, which unfolds the
+    // menu (Plan 125 B).
+    else if (buildOpen && pathTool) setPathToolState(null);
     else if (buildOpen) closeBuild();
     else if (overlay) openTab(null);
   }, shellLive);

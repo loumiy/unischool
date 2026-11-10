@@ -702,11 +702,11 @@ function ClosedTile({ s, t }: { s: GameState; t: Buildable }) {
 
 // The grounds' tools: quarter tiles, four to the space of one building's
 // tile, each showing the thing itself (decorThumbs.tsx). `pathTool` is lifted
-// to App.tsx. Paths and Trees are one tile each: armed, its styles extend
-// from it in its row (the surface the draw tool paves with, the tree the
-// plant tool plants: the session's choices, pathChoice.ts and
-// plantingChoice.ts), and the tile shows the one chosen. One eraser deletes
-// whatever decoration is on a tile.
+// to App.tsx. Paths and Trees are one tile each, showing the style chosen
+// (the surface the draw tool paves with, the tree the plant tool plants:
+// the session's choices, pathChoice.ts and plantingChoice.ts); armed, the
+// menu folds to ToolStrip, which carries the styles (Plan 125 B). One
+// eraser deletes whatever decoration is on a tile.
 // `ringed`: the tool a chapter rings (state/chapters.ts's ringedTool,
 // Plan 115D), until it is armed.
 interface MiniTool {
@@ -730,21 +730,6 @@ function MiniTile({ tool }: { tool: MiniTool }) {
   );
 }
 
-// A tool's row: its tile, and while it is armed its styles beside it.
-function MiniToolRow({ tool, styles, label }: { tool: MiniTool; styles: MiniTool[]; label: string }) {
-  const open = tool.armed;
-  return (
-    <div className={`build-mini-row ${open ? 'open' : ''}`}>
-      <MiniTile tool={tool} />
-      {open && (
-        <div className="build-mini-styles" role="group" aria-label={label}>
-          {styles.map((t) => <MiniTile key={t.key} tool={t} />)}
-        </div>
-      )}
-    </div>
-  );
-}
-
 const SURFACE_LABELS: Record<PathSurface, string> = { paving: 'Paving', cobble: 'Cobbles', brick: 'Brick' };
 
 // The worn tracks the map draws (CampusMap.tsx's DesireLines), and why a
@@ -765,6 +750,45 @@ const SPECIES_CHOICES: readonly { id: Species | null; label: string }[] = [
   { id: 'palm', label: 'Palm' },
 ];
 
+// A grounds tool's name on the folded strip (Plan 125 B).
+const TOOL_LABELS: Record<CampusTool, string> = {
+  draw: 'Paths', plant: 'Trees', lamp: 'Lamp', bannerLamp: 'Banner lamp', bench: 'Bench', flowerbed: 'Flower bed', erase: 'Eraser',
+};
+
+// The menu folded under an armed grounds tool (Plan 125 B, the interface
+// review's I-1): the tool's name, its styles as pills (what Paths paves
+// with, which tree Trees plants: the tray the tile opens in the full menu),
+// and the way back. The ground being drawn on is never under the menu, as
+// it is not under a building in hand.
+function ToolStrip({ tool, onDone }: { tool: CampusTool; onDone: () => void }) {
+  const surface = usePathSurface();
+  const species = usePlantingSpecies();
+  return (
+    <div className="build-holding">
+      <span className="build-holding-name">{BUILD_WORDS.tool.replace('{tool}', TOOL_LABELS[tool])}</span>
+      {tool === 'draw' && (
+        <div className="segmented" role="group" aria-label="What to pave with">
+          {PATH_SURFACES.map((id) => (
+            <button key={id} type="button" className={surface === id ? 'on' : ''} aria-pressed={surface === id} onClick={() => setPathSurface(id)}>
+              {SURFACE_LABELS[id]}
+            </button>
+          ))}
+        </div>
+      )}
+      {tool === 'plant' && (
+        <div className="segmented" role="group" aria-label="Which tree to plant">
+          {SPECIES_CHOICES.map((c) => (
+            <button key={c.id ?? 'any'} type="button" className={species === c.id ? 'on' : ''} aria-pressed={species === c.id} onClick={() => setPlantingSpecies(c.id)}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <button type="button" className="menu-btn btn-quiet" onClick={onDone}>{BUILD_WORDS.toolDone}</button>
+    </div>
+  );
+}
+
 function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArmPlacement, act }: {
   s: GameState;
   pathTool: CampusTool | null;
@@ -784,16 +808,8 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
       <DecorThumb d={{ kind: 'path', surface }} />),
     ringed: ringedTool(s) === 'paths',
   };
-  const surfaces: MiniTool[] = PATH_SURFACES.map((id) => ({
-    key: `path-${id}`, label: SURFACE_LABELS[id], title: `Pave with ${SURFACE_LABELS[id].toLowerCase()}`,
-    art: <DecorThumb d={{ kind: 'path', surface: id }} />, armed: surface === id, onClick: () => setPathSurface(id),
-  }));
   const trees = tool('plant', 'Trees', 'Plant trees for free. Drag to plant, right click to delete.',
     <DecorThumb d={{ kind: 'tree', species }} />);
-  const kinds: MiniTool[] = SPECIES_CHOICES.map((c) => ({
-    key: `tree-${c.id ?? 'any'}`, label: c.label, title: c.id ? `Plant ${c.label.toLowerCase()} trees` : 'Plant whatever grows',
-    art: <DecorThumb d={{ kind: 'tree', species: c.id }} />, armed: species === c.id, onClick: () => setPlantingSpecies(c.id),
-  }));
   const decor: MiniTool[] = [
     tool('lamp', 'Lamp', 'Place lamps, one per click. Right click to delete.', <DecorThumb d={{ kind: 'lamp' }} />),
     tool('bannerLamp', 'Banner lamp', 'Place lamp posts hung with banners in your college colors. Right click to delete.',
@@ -808,8 +824,8 @@ function CampusToolsTiles({ s, pathTool, onSetPathTool, groups, placingId, onArm
         <span className="build-mini-label">Grounds · free</span>
         <div className="build-mini-body">
           <div className="build-mini-rows">
-            <MiniToolRow tool={paths} styles={surfaces} label="What to pave with" />
-            <MiniToolRow tool={trees} styles={kinds} label="Which tree to plant" />
+            <MiniTile tool={paths} />
+            <MiniTile tool={trees} />
           </div>
           <div className="build-mini-grid">
             {decor.map((t) => <MiniTile key={t.key} tool={t} />)}
@@ -937,6 +953,16 @@ export default function BuildPopup({
           <StylePicker s={s} />
           <button type="button" className="menu-btn btn-quiet" onClick={() => onArmPlacement(null)}>{BUILD_WORDS.putDown}</button>
         </div>
+      </ToolbarPopup>
+    );
+  }
+
+  // A grounds tool armed: folded the same way (Plan 125 B). The tool's own
+  // toggle puts it away, which opens the menu again where it was.
+  if (pathTool) {
+    return (
+      <ToolbarPopup title="Build" onClose={onClose} className="build-popup holding">
+        <ToolStrip tool={pathTool} onDone={() => onSetPathTool(pathTool)} />
       </ToolbarPopup>
     );
   }

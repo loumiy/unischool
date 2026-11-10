@@ -163,19 +163,23 @@ function roundTrip(s: GameState): GameState | null {
   assert(shut.includes('Grounds · free'), 'the build menu opens on the Grounds tools');
   // Paths, Trees, Lamp, Banner lamp, Bench, Flower bed, Eraser.
   assert(tiles(shut) === 7, `seven tools with nothing armed (${tiles(shut)})`);
-  assert(!shut.includes('build-mini-styles'), 'and no styles until one is armed');
+  assert(!shut.includes('What to pave with'), 'and no styles until one is armed');
   for (const gone of ['>Erase<', '>Fell<', '>Remove<', '>Cobbles<', '>Broadleaf<']) {
     assert(!shut.includes(gone), `no tile of its own for ${gone.slice(1, -1)}`);
   }
   assert((shut.match(/>Eraser</g) ?? []).length === 1, 'one eraser');
+  // Armed, the menu folds to a strip with the tool's styles (Plan 125 B),
+  // as it folds for a building in hand: no tiles, and the ground is clear.
   const paths = tab('draw');
-  assert(tiles(paths) === 7 + PATH_SURFACES.length && paths.includes('aria-label="What to pave with"'),
-    `the Paths tool armed, its three surfaces extend from it (${tiles(paths)} tiles)`);
-  assert(paths.includes('>Paving<') && paths.includes('>Cobbles<') && paths.includes('>Brick<'), 'Paving, Cobbles and Brick');
+  assert(paths.includes('build-popup holding') && tiles(paths) === 0 && paths.includes('Grounds: Paths'), 'the Paths tool armed, the menu folds to its strip');
+  assert(paths.includes('aria-label="What to pave with"') && paths.includes('>Paving<') && paths.includes('>Cobbles<') && paths.includes('>Brick<'),
+    'which carries Paving, Cobbles and Brick');
   const trees = tab('plant');
-  assert(tiles(trees) === 7 + 8 && trees.includes('aria-label="Which tree to plant"') && !trees.includes('What to pave with'),
-    `the Trees tool armed, its eight choices extend from it and not the surfaces (${tiles(trees)} tiles)`);
-  assert(!tab('erase').includes('build-mini-styles'), 'the eraser has no styles');
+  assert(trees.includes('aria-label="Which tree to plant"') && (trees.match(/aria-pressed=/g) ?? []).length === 8 && !trees.includes('What to pave with'),
+    'the Trees tool armed, its eight choices and not the surfaces');
+  const eraser = tab('erase');
+  assert(eraser.includes('Grounds: Eraser') && !eraser.includes('aria-pressed='), 'the eraser folds too, with no styles');
+  assert(paths.includes('>All tools<'), 'and one button brings the menu back');
 }
 
 // ---- Each decoration's tile is drawn by the map's own art ----

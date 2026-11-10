@@ -140,6 +140,16 @@ No test was added: the layout is measured in a browser, not in the suite.
   has `.holding` and the tray's buttons. `ui-shell.md`'s build-menu
   paragraph gains the sentence.
 
+**As implemented:** as planned, with the styles as pills on the strip rather
+than the tray of picture tiles, which would have made the strip as tall as a
+row of the menu. "Put it down" is *All tools*, since nothing is in hand. The
+tray (`MiniToolRow`) and its rules are gone: an armed tool never shows the
+full menu now. `Esc` puts the tool away before it closes the menu (a new
+rung on `App.tsx`'s ladder, after a building in hand). The `P` key with the
+menu open folds it the same way. `test/campus-decoration.test.ts`'s Grounds
+block was rewritten for the strip; `ui-shell.md`'s build-menu paragraph says
+it.
+
 ### PR C — Short money where prices are compared (U-5)
 
 - `EventChoices.tsx`: every `money(` in an answer's effect line becomes

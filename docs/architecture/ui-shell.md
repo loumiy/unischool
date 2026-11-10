@@ -525,10 +525,13 @@ points. A door that names a building, or a chapter that rings one, opens
 it on that building's tab instead (Plan 114F). The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
 `CampusToolsTiles`): four to the space of one building's tile, under one
 "Grounds · free" label, so the row of small, repeatable things stays short.
-**Paths** and **Trees** are one tile each, a row each; armed, its styles
-extend from it in its row as a tray (`MiniToolRow`: Paving, Cobbles and
-Brick; Any tree and the seven species), the chosen one ringed, and the tool's
-own tile shows the one chosen. Both choices are the session's, not the run's
+**Paths** and **Trees** are one tile each, and the tool's own tile shows the
+style chosen. Armed, any grounds tool folds the menu to a strip along the
+toolbar (Plan 125B, `ToolStrip`), as a building in hand does, so the ground
+being drawn on is never under it: the tool's name, its styles as pills
+(Paving, Cobbles and Brick; Any tree and the seven species), and *All tools*,
+which puts the tool away and opens the menu again. `Esc` does the same
+before it closes the menu. Both choices are the session's, not the run's
 (`pathChoice.ts`, `plantingChoice.ts`). Lamp, Banner lamp, Bench and Flower
 bed follow in columns of two, then one **Eraser** that deletes whatever
 decoration is on a tile. While a grounds tool is armed, a strip at the top of
