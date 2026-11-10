@@ -260,6 +260,78 @@ files. A to E are an hour each; F to J are a PR's work each.
   collide on a dense campus. If they do, the per-building mark's threshold
   rises; say so in the note.
 
+**As implemented:**
+
+- **The scale rule** (`components/markScale.ts`). Each mark is drawn about
+  its own anchor (`CampusMap.tsx`'s `markAnchor`, the spot above the label
+  where the marks always sat) and scaled there by `heldScale(zoom, band) =
+  clamp(zoom, band) / zoom`, the plan's `clamp(k / zoom)` written as a band
+  of zooms: the mark is drawn as at the nearest zoom inside its band, so
+  inside it the mark grows with the map and outside it stops. The bands:
+  pips 0.75 to 1.25 (a pip 9.75 to 16 px, the row's plate 14 to 24 px
+  high), the lab's and the full residence's discs 0.6 to 0.85 (19 to 28 px
+  and 19 to 26 px), labels 0.55 to 0.75 (a face of 10 to 26 px). Hit
+  targets: the row's plate (at least 14 px high), the discs (at least 19
+  px), and the one mark a 36-unit circle (at least 26 px).
+- **No memo key, and no render on a zoom.** The plan put the scale in the
+  layers' memo key; that would have re-rendered every mark on every frame
+  of a wheel zoom. Instead `applyView` writes three CSS variables
+  (`--k-pip`, `--k-disc`, `--k-label`) on the world group when the zoom
+  changes, and `.campus-k-*` in `styles.css` read them, so a zoom touches
+  only those and a pan nothing. The one thing a zoom changes in React is
+  whether a hall shows its row or one mark: each hall reads the map's
+  `ZoomStore` with `useSyncExternalStore` as a boolean, so a hall is drawn
+  again only when it changes over. The layers' memo keys are unchanged
+  (`camera`, plus the store, which is one object for the map's life).
+  This is the layer the production build draws: the marks and labels are
+  SVG over the canvas on both renderers; every picture was taken with
+  `window.__campusMap.renderer()` reading `canvas`. The electron's
+  animation is untouched, so reduced motion is as before.
+- **The threshold for one mark is three quarters of the roof, not the
+  whole roof** (`HALL_ROW_FIT = 0.75`; the roof's width is the
+  footprint's short side in tiles × 64). At 1, a 7x5 hall's row ran 80 px
+  on an 82 px roof at the widest zoom a laptop reaches, edge to edge
+  against its neighbours' marks, and the one mark was never drawn. At
+  0.75 a hall is one mark below a zoom of about 0.33 (0.38 with the
+  offer's flag in the row): one step wider than the opening view of a
+  built-out campus (0.4), which keeps its rows. The one mark is the dark
+  pip, larger, while any program is dark (`darkPips`, Plan 124 L), else
+  the count of its programs in a ring, ringed gold while a free slot has a
+  program on offer (the flag's meaning, kept); the row's `<title>` and
+  `aria-label` are kept on it. Offices are not programs, so Founders Hall
+  holding only offices reads "0".
+- **Measured on screen** (1440×900, the framed view panned to the
+  built-up strip, `y15` and `y30` saves, both the same):
+
+  | Step | Zoom | Pip before → after | Lab disc | Full disc | Label plate |
+  |---|---|---|---|---|---|
+  | −2 | 0.256 | (3.3) → one mark 20 px | (8.4) → 19.8 | (7.9) → 18.6 | → 16 to 26 |
+  | −1 | 0.32 | 4.2 → one mark 20 px | 10.6 → 19.8 | 9.9 → 18.6 | 9 to 15 → 16 to 26 |
+  | 0 (opening) | 0.4 | 5.2 → 9.8 | 13.2 → 19.8 | 12.4 → 18.6 | 12 to 19 → 16 to 26 |
+  | +2 | 0.625 | 8.1 → 9.8 | 20.6 → 20.6 | 19.4 → 19.4 | 18 to 29 → 18 to 29 |
+  | +4 | 0.98 | 12.7 → 12.7 | 32.2 → 28.0 | 30.3 → 26.3 | 28 to 46 → 22 to 35 |
+  | +6 | 1.53 | 19.8 → 16.2 | 50.4 → 28.1 | 47.3 → 26.4 | 44 to 72 → 22 to 35 |
+
+  (Bracketed figures are worked out, not measured.) A label's plate
+  includes its padding, so the largest plate is 35 px while its face is
+  25.5 px. No two marks' boxes overlap at any step on either save (the
+  script counts them), and none collide by eye: `j-marks-opening-*.png`
+  and `j-marks-close-*.png` (step +6) beside this plan.
+- **Profile** (`npm run profile` on the year-30 save, 8 s a speed,
+  headless software drawing): before Paused 59.5 fps / Play 52.9 (p95
+  33.3 ms, 14 long tasks) / 2× 54.9 / 4× 51.9; after 60.0 / 56.8 (p95
+  16.8 ms, 4) / 55.9 / 55.1. The difference is within the tool's noise.
+  It does not pan, so a scratch script dragged the map for 240 steps and
+  wheeled 30 notches in and out, counting DOM changes inside the marks
+  and labels: a pan 0 changes before and after (58 to 60 fps both); a
+  zoom 0 before and 88 after, which are the eight halls changing over to
+  one mark and back at the threshold, once each way.
+- **Departures besides the threshold:** the check used `npm run shot
+  --framed` and a scratch script over the same saves rather than `npm run
+  review:views`; a lab's news rises from over its mark at the size the
+  mark has; `ui-shell.md` says nothing of the marks' size, so only
+  `campus-map.md` is updated.
+
 ## 3. The owner's choices
 
 Each has a default the PRs above are written to.

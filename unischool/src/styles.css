@@ -1715,6 +1715,12 @@ button.build-tile { font-family: inherit; }
   dominant-baseline: middle; user-select: none; pointer-events: none;
 }
 
+/* The marks and the labels hold a size on screen (Plan 125 J): each is
+   scaled about its own anchor by what the map writes on its world group as
+   the zoom changes (markScale.ts; CampusMap.tsx's applyView). */
+.campus-k-pip { transform: scale(var(--k-pip, 1)); }
+.campus-k-disc { transform: scale(var(--k-disc, 1)); }
+.campus-k-label { transform: scale(var(--k-label, 1)); }
 /* Slot pips over a standing hall (CampusMap.tsx's HallMarks). */
 .campus-hall-marks { cursor: pointer; }
 .campus-hall-marks-plate { fill: rgba(20, 26, 16, 0.55); }
@@ -1726,6 +1732,13 @@ button.build-tile { font-family: inherit; }
 .campus-hall-pip.distinguished { stroke: #f0b929; stroke-width: 2.6; }
 /* A program gone dark: a course with no teacher (Plan 124 L). */
 .campus-hall-pip.dark { fill: #161b29; stroke: #e0443a; stroke-width: 1.8; stroke-dasharray: 2.4 1.7; }
+/* One mark for the hall where the row would not fit its roof (Plan 125 J):
+   the count of its programs in a ring, gold while one is on offer for a
+   free slot; the dark pip, larger, while a program is dark. */
+.campus-hall-one { fill: none; stroke: #f6f1e2; stroke-width: 1.4; }
+.campus-hall-one.offer { stroke: var(--gold); stroke-width: 2.2; }
+.campus-hall-one-hit { fill: transparent; stroke: none; pointer-events: all; }
+.campus-hall-count { fill: #f6f1e2; font-family: var(--display); font-weight: 700; text-anchor: middle; dominant-baseline: central; user-select: none; pointer-events: none; }
 .campus-hall-flag circle { fill: var(--gold); }
 .campus-hall-flag path { stroke: #1a2035; stroke-width: 1.6; stroke-linecap: round; fill: none; }
 /* A lab at work (Plan 41): a ring filling as the project runs, an atom
