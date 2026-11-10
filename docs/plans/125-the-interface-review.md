@@ -255,6 +255,47 @@ sender; a held slip is never merged. `test/toasts.test.ts` covers it;
 - **Check.** A test that every catalogue event's filled title is under 50
   characters and holds no unfilled `{`.
 
+**As implemented:**
+
+- **The count was 133, not 132.** `EVENT_CATALOGUE` held 26 titles of its
+  159; the 27th the plan counted is `CHARTER_EVENT`'s, which sits outside
+  the array. All 133 are written, in `data/eventCatalogue.ts`. They are the
+  first draft the owner edits (§3, choice 4).
+- **A title is filled by one function.** `catalogue.ts`'s `eventTitle(e,
+  vars)` fills the names and raises the first letter, because `rollVars`
+  keeps a building's name for mid-sentence ("the Chapel"). Every reader of
+  a firing's title goes through it: the inbox's row and its held letter
+  (`inbox.ts`), the log's line on an answer (`catalogueEngine.ts`), NEXT
+  (`nextStep.ts`) and the letter's dialog (`InterruptModal.tsx`). Before
+  this, the inbox and the log printed a title unfilled; no title had a name
+  in it, so nothing showed.
+- **Which names a title may hold.** `{building}`, `{faculty}`, `{class}` and
+  `{sport}` only, and only where every telling of the text names the same.
+  `{rival}` runs to 36 characters and `{program}` to 40, so neither fits
+  under 50; `{school}` is the player's own. A seismic letter's title names
+  nothing, since the chronicle and the year in review read it years later
+  without the firing's names. The test holds all three rules.
+- **`title` is required** on `CatalogueEvent` (`eventCatalogueTypes.ts`,
+  where the type lives, not `catalogue.ts`). `eventSubject` is gone, with
+  both fallbacks. `firstSentence` stays, now uncut, for `afterSubject`.
+- **G1.** `afterSubject` reads the first sentence whole, so a subject cut
+  with an ellipsis still opens it. With every event titled, no catalogue
+  row takes that path today; the function and its test stay for a subject
+  that is a text's first sentence.
+- **NEXT did build its own text**, from the body's first clause cut at 70
+  (`nextStep.ts`'s `firstClause`). It now prints the title, and
+  `firstClause` is gone.
+- **The toast needed no change.** `Toasts.tsx`'s `arrivalsIn` already
+  prints the inbox item's `from: subject`. It raises a slip for a letter
+  only: a matter to decide has had none since Plan 124 C, so an inline
+  event's title reaches the inbox's row, NEXT and the log, not a toast.
+- **The check** is in `test/inbox.test.ts`: every event titled (the charter,
+  the festival and the board's questions included), under 50 characters as
+  written and with the longest building, team and class the data holds,
+  nothing unfilled against a real roll, three to six words, a capital
+  first, no final stop, no dash.
+- `npm run review:plain` passes with its baseline unchanged.
+
 ### PR H — Curriculum: one locked seat, lighter cells, a folded filter (S-1)
 
 - **The committee.** The panel draws the earned seats and one stub for the

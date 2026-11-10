@@ -38,7 +38,7 @@ import { modalWidth } from './modalLayout';
 import { currentEra, listOf } from '../systems/chronicle/chronicle';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
-import { eventById, eventText, fill } from '../systems/events/catalogue';
+import { eventById, eventText, eventTitle, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
 import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, signed, signedPct, weeksShort } from '../format';
@@ -865,7 +865,7 @@ function CatalogueLetterView({ s, instanceId, act }: { s: GameState; instanceId:
   return (
     <>
       <p className="letter-eyebrow">A letter to the President · {gameDate(s.clock.year, s.clock.week)}</p>
-      <h2>{e.title ? fill(e.title, p.vars) : 'A letter to the President'}</h2>
+      <h2>{eventTitle(e, p.vars)}</h2>
       <CatalogueText text={text} className="letter-body" />
       <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId, choiceId })} />
     </>
