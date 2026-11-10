@@ -25,6 +25,7 @@ each one.
 | [A third full review](2026-10-game-review-iii/README.md) (Plan 109) | `b1f2114` (0.1.3), after Plan 108 | — (awaiting the owner's triage) |
 | [A review by subtraction](2026-11-review-by-subtraction/README.md) (Plan 123), and [its cut list](https://claude.ai/artifact/CxrPoFCdYUqZwNCQogxfDy) | `5d06ae4` (0.2.0), after Plan 122 | Plan 124 (the owner's decisions on the cut list) |
 | [The owner's second playthrough](2026-10-owners-playthrough-ii.md) | `60bac7e`, after Plan 95 | — (awaiting the owner's decisions) |
+| [The written content review](2026-11-written-content-review.md) | `cb6fc22` (0.2.0), after Plan 124 | — (awaiting the owner's decisions) |
 
 ## Harness reports
 
