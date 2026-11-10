@@ -184,6 +184,20 @@ endowment line keeps `signedMoney`, which has no short form.
 - **Check.** `test/toasts.test.ts`: three unlock lines in a week give one
   toast. By hand at 2× with Curriculum open, as the review did.
 
+**As implemented:** the place over a tab changed. The top right under the
+header is where Treasury keeps its view switch and Curriculum and Faculty
+their summary figures, so a toast there would cover what this PR set out to
+uncover. Over a tab the newest toast alone sits in the tab's own header,
+between the title and *Show me*, on one line up to 520 px wide; the others
+wait and show in turn or when the tab closes (`.toasts.over-tab`, from 900 px
+up; a phone keeps the stack at the foot). On the map the stack is where it
+was, each toast now up to two lines. Like toasts merge in `mergeLike`: the
+first of a kind stands for the rest ("…Tudor architecture, unlocked, and 2
+more") and keeps its Open, rather than a count worded per kind, which would
+have needed a sentence for every topic. A kind is a log topic or a letter's
+sender; a held slip is never merged. `test/toasts.test.ts` covers it;
+`ui-shell.md`'s dock section says it.
+
 ### PR E — Faculty's head is one line (S-2)
 
 - The head keeps "61 on payroll · 30 on the market · 17 on projects" and its

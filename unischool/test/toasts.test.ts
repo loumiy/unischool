@@ -10,7 +10,7 @@
 
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
-import { distinguishedIn, toastsFor } from '../src/components/Toasts';
+import { distinguishedIn, mergeLike, toastsFor } from '../src/components/Toasts';
 import { tickSearches } from '../src/systems/faculty/facultySearch';
 import type { LogEntry } from '../src/state/types';
 
@@ -52,6 +52,23 @@ assert(toastsFor(before, same, [hall], () => true).length === 0, 'one finished i
 }
 const up = structuredClone(before);
 up.self.reputation += 40;
+// Like toasts in one week are one (Plan 125 D): the first stands for the
+// rest and keeps its Open; a different kind or a held slip stays its own.
+{
+  const letter = (subject: string, id: string, held = false) => ({ text: `For your next college: ${subject}`, tone: 'letter' as const, open: id, kind: 'from:For your next college', ...(held ? { held: true as const } : {}) });
+  const three = mergeLike([letter('Tudor architecture', 'a'), letter('Italianate architecture', 'b'), letter('Second Empire architecture', 'c')]);
+  assert(three.length === 1 && three[0].text === 'For your next college: Tudor architecture, and 2 more' && three[0].open === 'a',
+    `three unlocks in a week are one toast (${three.map((x) => x.text).join(' | ')})`);
+  const mixed = mergeLike([
+    { text: 'Founded Economics.', tone: 'good', kind: 'program' }, { text: 'Built: Arena.', tone: 'info', kind: 'building' },
+    { text: 'Founded History.', tone: 'good', kind: 'program' }, { text: 'Up to #40 in the guide.', tone: 'good' },
+  ]);
+  assert(mixed.length === 3 && mixed[0].text === 'Founded Economics, and 1 more' && mixed[1].text === 'Built: Arena.', 'kinds merge with their own, and a toast of no kind stands alone');
+  assert(mergeLike([letter('A', 'a', true), letter('B', 'b', true)]).length === 2, 'a held slip is never merged');
+  const week = toastsFor(before, same, [line('Founded Economics.', { topic: 'program', kind: 'good' }), line('Founded History.', { topic: 'program', kind: 'good' })], nowhere);
+  assert(mergeLike(week).length === 1, 'two programs founded in a week are one toast');
+}
+
 const moved = toastsFor(before, up, [], nowhere);
 assert(moved.length === 1 && moved[0].tone === 'good' && moved[0].text.startsWith('Up to #'), 'the rank moving up is a good toast');
 assert(toastsFor(up, before, [], nowhere)[0]?.tone === 'bad', 'and down a bad one');

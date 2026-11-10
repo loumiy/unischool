@@ -56,8 +56,9 @@ The **log ticker** is one line, the newest log entry, directly above the
 toolbar. Above it a **toast stack** shows the things that never stop the clock
 — a course or building finished, a program founded, a petition, a paper, a
 candidate in a short field, a project concluded without a report — six
-seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
-it is about; an **arrival** (a matter or a letter reaching the inbox) carries
+seconds each, four at most (`Toasts.tsx`), up to two lines each, like ones
+of a week merged into the first ("…, and 2 more", Plan 125D); over an open
+tab the newest alone sits in the tab's header, so none covers the tab; an **arrival** (a matter or a letter reaching the inbox) carries
 an Open button and stays eight seconds (in year one a founding note or a
 milestone stays until opened or dismissed, Plan 78B), and none arrives while
 the inbox is open. With Settings' "Pause for an urgent matter" on (the

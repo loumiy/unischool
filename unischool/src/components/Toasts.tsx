@@ -48,6 +48,9 @@ export interface Toast {
   open?: string;
   // Stays until opened or dismissed (Plans 78B and 78E).
   held?: boolean;
+  // What it is news of, for merging like toasts (Plan 125 D): a log topic,
+  // or a letter's sender. Never drawn.
+  kind?: string;
 }
 
 type Said = Omit<Toast, 'id'>;
@@ -56,11 +59,11 @@ type Said = Omit<Toast, 'id'>;
 export function toastsFor(before: GameState, after: GameState, fresh: readonly LogEntry[], onScreen: (id: string) => boolean): Said[] {
   const out: Said[] = [];
   for (const l of [...fresh].reverse()) {
-    if (l.topic === 'program') out.push({ text: l.message, tone: 'good' });
-    else if (l.topic === 'milestone' && l.subject?.startsWith(schoolFoundedKey(''))) out.push({ text: l.message, tone: 'good' });
-    else if (l.topic === 'building' && l.subject && !onScreen(l.subject)) out.push({ text: l.message, tone: 'info' });
+    if (l.topic === 'program') out.push({ text: l.message, tone: 'good', kind: 'program' });
+    else if (l.topic === 'milestone' && l.subject?.startsWith(schoolFoundedKey(''))) out.push({ text: l.message, tone: 'good', kind: 'school' });
+    else if (l.topic === 'building' && l.subject && !onScreen(l.subject)) out.push({ text: l.message, tone: 'info', kind: 'building' });
     // What a search was paid for (Plan 114G); an ordinary listing stays a line.
-    else if (isSearchFind(l)) out.push({ text: l.message, tone: 'good' });
+    else if (isSearchFind(l)) out.push({ text: l.message, tone: 'good', kind: 'search' });
   }
   const [was, now] = [playerRank(before), playerRank(after)];
   if (now !== was) out.push({ text: now < was ? `Up to #${now} in the guide.` : `Down to #${now} in the guide.`, tone: now < was ? 'good' : 'bad' });
@@ -79,9 +82,25 @@ export function arrivalsIn(before: GameState, after: GameState): Said[] {
     // own call over the map (SummerCall.tsx, Plan 112C): neither needs a slip.
     if (had.has(i.id) || i.tier !== 'letter' || !i.unread) continue;
     const held = after.clock.year === 1 && (i.kind === 'founding' || i.kind === 'milestone');
-    out.push({ text: `${i.from}: ${i.subject}`, tone: 'letter', open: i.id, ...(held ? { held: true as const } : {}) });
+    out.push({ text: `${i.from}: ${i.subject}`, tone: 'letter', open: i.id, kind: `from:${i.from}`, ...(held ? { held: true as const } : {}) });
   }
   return out;
+}
+
+// Like toasts in one week are one toast (Plan 125 D, the interface review's
+// I-2: three unlocks arrived as three slips cut at the word that differed).
+// The first of a kind stands for the rest, "and 2 more"; its Open goes
+// where the first's would. A held slip is never merged: each waits for its
+// own letter. Pure, for the test.
+export function mergeLike(said: readonly Said[]): Said[] {
+  const out: Said[] = [];
+  const more = new Map<Said, number>();
+  for (const t of said) {
+    const first = t.kind && !t.held ? out.find((o) => o.kind === t.kind && o.tone === t.tone && !o.held) : undefined;
+    if (first) more.set(first, (more.get(first) ?? 0) + 1);
+    else out.push(t);
+  }
+  return out.map((t) => (more.has(t) ? { ...t, text: `${t.text.replace(/\.$/, '')}, and ${more.get(t)} more` } : t));
 }
 
 // The stack after new toasts: at most MOST, the oldest going first, but a
@@ -115,9 +134,12 @@ export function distinguishedIn(fresh: readonly LogEntry[]): string | null {
   return line ? line.subject!.slice(DISTINGUISHED.length) : null;
 }
 
-export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
+export default function Toasts({ s, inboxOpen = false, overTab = false, onOpenInbox, opened }: {
   s: GameState | null;
   inboxOpen?: boolean;
+  // A tab is open (Plan 125 D): the newest toast alone, in the tab's own
+  // header, where no tab keeps anything, and not over its content.
+  overTab?: boolean;
   onOpenInbox?: (id: string) => void;
   // The items the player has opened (App.tsx), whose slips can go.
   opened?: ReadonlySet<string>;
@@ -155,7 +177,7 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
       setBanner(school);
       window.setTimeout(() => setBanner((cur) => (cur === school ? null : cur)), BANNER_MS);
     }
-    const said = [...toastsFor(before, s, fresh, onMapScreen), ...(inboxOpenRef.current ? [] : arrivalsIn(before, s))];
+    const said = mergeLike([...toastsFor(before, s, fresh, onMapScreen), ...(inboxOpenRef.current ? [] : arrivalsIn(before, s))]);
     if (said.length === 0) return;
     const { pauseForNews } = getSettings();
     // A slip whose arrival paused the clock waits with it (Plan 95T).
@@ -187,6 +209,7 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
       {toasts.length > 0 && (
         <Stack
           toasts={toasts}
+          overTab={overTab}
           dismiss={(id) => setToasts((cur) => cur.filter((x) => x.id !== id))}
           open={(t) => { setToasts((cur) => cur.filter((x) => x.id !== t.id)); if (t.open) onOpenInbox?.(t.open); }}
         />
@@ -195,9 +218,9 @@ export default function Toasts({ s, inboxOpen = false, onOpenInbox, opened }: {
   );
 }
 
-function Stack({ toasts, dismiss, open }: { toasts: Toast[]; dismiss: (id: number) => void; open: (t: Toast) => void }) {
+function Stack({ toasts, overTab, dismiss, open }: { toasts: Toast[]; overTab: boolean; dismiss: (id: number) => void; open: (t: Toast) => void }) {
   return (
-    <ol className="toasts" aria-live="polite">
+    <ol className={`toasts${overTab ? ' over-tab' : ''}`} aria-live="polite">
       {toasts.map((t) => (
         <li key={t.id} className={`toast ${t.tone}`}>
           <span className="toast-text">{t.text}</span>
