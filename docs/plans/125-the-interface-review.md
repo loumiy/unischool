@@ -213,6 +213,20 @@ sender; a held slip is never merged. `test/toasts.test.ts` covers it;
   figures; reread its words against the new head and list what was rewritten
   in the **As implemented** note.
 
+**As implemented:** as planned, with one correction to the plan's reading of
+the code. The "payroll meter" was the last line of the *what next* strip
+(`FacultyNextUp`), there so the strip was never empty. The strip now shows
+only when it has something to do (a listing worth taking, a search, a
+retirement, a short-staffed field), and its payroll line only when those
+listings would add to it; on a quiet week the head is its three counts, and
+the payroll total is the first count's tooltip. `FacultyFigures` sits at the
+top of Departments and the typical candidate's line at the top of Market.
+The view switch is beside the panel's title on all three views, and the
+Cards / Table / Plot switch, or Departments' own buttons, at the right.
+Rewritten words: the tab's help ("On Departments, the figures above the bars
+count course slots"). The Faculty walk's first step still rings the head and
+its words still hold.
+
 ### PR F — One number for a pillar's part of prestige (U-1)
 
 - `PillarMeter` reads `prestigeByPillar`'s part where it reads `contribution`

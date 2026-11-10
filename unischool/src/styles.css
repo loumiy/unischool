@@ -2839,6 +2839,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .dept-tool-empty { color: var(--ink-muted); font-weight: 600; }
 
 /* The course-slot sums as one row of figures (Plan 95G). */
+.faculty-what { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12); }
+/* A quiet week: the head alone, with no rule under it (Plan 125 E). */
+.faculty-summary > .panel-head:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
 .faculty-figures { margin: 8px 0 0; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.5; }
 .faculty-figures strong { font-family: var(--display); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 .faculty-figures > span { white-space: nowrap; }

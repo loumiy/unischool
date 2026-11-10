@@ -335,8 +335,11 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
   const searches = searchable(s, fields);
   const over = fields.filter((c) => c.state === 'over');
   const unstaffed = over.length > 0 ? fields.reduce((n, c) => n + (c.state === 'over' ? Math.max(0, c.offered - c.supply) : 0), 0) : 0;
-  // Payroll is never empty, so the strip always shows at least that line.
+  // Payroll is said only when the listings above would move it (Plan 125 E:
+  // alone it was a meter at 4%, and the Treasury's statement has the line),
+  // so a quiet week has no strip at all.
   const pay = payroll(s, listings);
+  if (listings.length === 0 && searches.length === 0 && retiring.length === 0 && over.length === 0) return null;
 
   const appoint = (l: Listing) => act({ type: 'HIRE_FACULTY', facultyId: l.candidate.id });
 
@@ -415,13 +418,15 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
           </span>
         </div>
       )}
-      <div className="next-up-item">
-        <span className="next-up-label">Payroll</span>
-        <span className="next-up-body">
-          <span className="next-up-meta">{moneyShort(pay.weekly)}/wk · {pct(pay.share)} of expenses</span>
-          {pay.wouldAdd > 0 && <span className="next-up-note"> — the appointments above would add {money(pay.wouldAdd)}/wk</span>}
-        </span>
-      </div>
+      {pay.wouldAdd > 0 && (
+        <div className="next-up-item">
+          <span className="next-up-label">Payroll</span>
+          <span className="next-up-body">
+            <span className="next-up-meta">{moneyShort(pay.weekly)}/wk · {pct(pay.share)} of expenses</span>
+            <span className="next-up-note"> — the appointments above would add {money(pay.wouldAdd)}/wk</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -497,7 +502,7 @@ export const FACULTY_VIEW_START: FacultyViewMemory = {
 // '?', with the figures in a row under it.
 const FACULTY_HELP = "Each card is a professor or a candidate. Teaching and research are scores out of 100, the same scale courses are graded on. The arrow shows where a score is heading. A candidate's teaching is shown against your faculty's median, and lights up when they'd raise it. Click More to open a person: their career, and Train and Dismiss. "
   + "Use Sort and filter to narrow the cards. Table shows one row per person. Plot shows teaching against research, with your faculty's medians and the market beside them. Departments shows each department's course slots against what its courses need. "
-  + "The figures under the heading count course slots. Course slots: what your faculty supplies. On offer: the slots your courses use. A course keeps its slot as long as it's offered, even with nobody teaching it. Open: courses ready to develop. Short of the catalog: how many more slots you'd need to teach every course. "
+  + "On Departments, the figures above the bars count course slots. Course slots: what your faculty supplies. On offer: the slots your courses use. A course keeps its slot as long as it's offered, even with nobody teaching it. Open: courses ready to develop. Short of the catalog: how many more slots you'd need to teach every course. "
   + 'A professor on a research project supplies two slots fewer. A professor at the Faculty Training Institute supplies one fewer for a term. '
   + 'Better standing brings better candidates. Their teaching potential rises with your prestige. Their research potential rises with your research standing, and a little with prestige. Candidates vary a lot, and now and then a standout appears. Everyone starts below their potential and grows toward it while they stay. '
   + "Appointing someone is instant and costs nothing up front. You pay their salary.";
@@ -743,19 +748,28 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
             <h2>Faculty</h2>
             <HelpHint text={FACULTY_HELP} />
           </span>
-          <span className="stat">{s.faculty.length} on payroll</span>
+          <span className="stat" title={`${moneyShort(payroll(s, []).weekly)}/wk, ${pct(payroll(s, []).share)} of expenses`}>{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
           {committedCount > 0 && <span className="stat">{committedCount} on projects</span>}
         </div>
         {/* The one school-wide figure, in people rather than slots. */}
         <FacultyNextUp s={s} act={act} fields={cap.fields} onOpenCurriculum={onOpenCurriculum} onOpenMarket={openMarket} />
-        <FacultyFigures cap={cap} />
-        <FacultyMarketNote s={s} />
       </section>
 
       <section className="panel faculty-people">
         <div className="panel-head">
-          <span className="panel-head-title"><h3>{VIEWS.find((v) => v.id === view)!.title}</h3></span>
+          {/* What to look at, beside the title on every view; how to look
+              at it, or the departments' own buttons, at the right (Plan 125 E). */}
+          <span className="panel-head-title faculty-what">
+            <h3>{VIEWS.find((v) => v.id === view)!.title}</h3>
+            <span className="dept-views segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
+              {VIEWS.map((v) => (
+                <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
+                  {v.label}
+                </button>
+              ))}
+            </span>
+          </span>
           {view === 'departments' && (
             <span className="dept-bulk">
               <button type="button" onClick={() => setAll(true)}>Expand all</button>
@@ -776,13 +790,6 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
               ))}
             </span>
           )}
-          <span className="dept-views segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
-            {VIEWS.map((v) => (
-              <button key={v.id} type="button" className={view === v.id ? 'on' : undefined} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
-                {v.label}
-              </button>
-            ))}
-          </span>
         </div>
 
         {view !== 'departments' && (
@@ -792,6 +799,9 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
               fields={cap.fields} market={market} training={training} shown={shownPeople.length} total={people.length}
             />
             {!market && <TrainingBar s={s} act={act} />}
+            {/* What the market offers at this standing, where the market is
+                (Plan 125 E). */}
+            {market && <FacultyMarketNote s={s} />}
             {market && (
               <p className="faculty-market-note">
                 {s.candidates.length} listed · each stays on the market {candidateListingWeeks(s)} weeks. The market changes every week.
@@ -838,6 +848,8 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
 
         {view === 'departments' && (
           <>
+            {/* The course-slot sums, above the bars that draw them (Plan 125 E). */}
+            <FacultyFigures cap={cap} />
             {/* Sort and filter (Plan 72F). */}
             <div className="dept-tools">
               <label className="dept-tool">
