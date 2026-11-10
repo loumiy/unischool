@@ -158,8 +158,13 @@ anything.") is contempt where the rest is affection. The label at
 `eventCatalogue.ts:2569` ("Decline, since the walk does them good") aims at
 students, not at the institution.
 
-**Real names**, against the house rule: `courseDescriptions.ts:445` (the
-American College of Sports Medicine) and `:162` (the FAA).
+**Real names in courses.** The courses name real institutions
+(`courseDescriptions.ts:445`, the American College of Sports Medicine;
+`:162`, the FAA), real statutes (`:372`, `:398`) and canonical authors
+throughout. Plan 47's rule against real names covers what the game invents
+things about (trophies, rivals, mascots, funders). It does not cover
+subject matter a course refers to, so these are not breaks of it. The owner
+has ruled that they all stay (see the decisions below).
 
 **Labels.** The 389 event labels are consistent: 388 are imperatives with no
 period. A few don't say what happens (`:1004` "Do something generous and
@@ -204,7 +209,7 @@ labels. Sample rewrites:
 **D. The courses, out of the mold.** Recast about a third so that length and
 shape vary: some as two short sentences, some with the student as the
 subject, some without a list. Bring Health, MD, Law, MBA and MFA up to the
-rate Computing has. Remove "real", the real institutions and the em dashes.
+rate Computing has. Remove "real" as an intensifier and the em dashes.
 Samples:
 
 - `:333` "Grows, stains, and identifies bacteria in the lab, and covers
@@ -253,9 +258,11 @@ is the institution, never a student or a named person.
    This review assumes the second.
 2. **The events' closing line.** One in three is this review's guess. The
    number is a matter of taste.
-3. **Real names in courses.** The two institutions are clear breaks of the
-   rule. Canonical authors (Marx, Rawls) and real statutes appear throughout
-   and need a ruling.
+3. **Real names in courses.** Decided, 10 November 2026: keep them all. A
+   course refers to real institutions, statutes and authors without making
+   anything up about them, and they make the catalogue read as a real one.
+   The line stays where Plan 47 drew it: no real names on anything the game
+   invents a story about (rivals, funders, trophies, events, quirks).
 4. **Order.** A and B change what players see most. C and D are the largest
    rewrites. This review would do A, B, F, then C, D, E.
 
