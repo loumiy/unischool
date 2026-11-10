@@ -628,7 +628,9 @@ function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onIn
   // again only when it changes over.
   const fits = () => hallRowFits(hallRowWidth(total), roofWidth(p), zoom.get());
   const one = !useSyncExternalStore(zoom.subscribe, fits, fits);
-  const programs = slots.filter((slot) => slot.programId !== null).length;
+  // What the one mark counts: the slots held, programs and offices alike, so
+  // Founders Hall holding only offices does not read "0".
+  const held = slots.filter((slot) => slot.programId !== null || slot.office).length;
   // An office's pip wears the college's own colour (Plan 89F).
   const hues = slots.map((slot) => {
     if (slot.office) return 'var(--school-primary)';
@@ -653,14 +655,14 @@ function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onIn
               {/* A little more to click than the disc. */}
               <circle className="campus-hall-one-hit" r={HALL_ONE_R + 8} />
               <circle className="campus-hall-marks-plate" r={HALL_ONE_R + 3.5} />
-              {/* Dark while any program is; else how many programs it holds,
+              {/* Dark while any program is; else how many slots it holds,
                   ringed gold while there is room for one on offer. */}
               {darkCount > 0 ? (
                 <circle className="campus-hall-pip dark" r={HALL_ONE_R} />
               ) : (
                 <>
                   <circle className={`campus-hall-one${flag ? ' offer' : ''}`} r={HALL_ONE_R} />
-                  <text className="campus-hall-count" fontSize={HALL_ONE_R * 1.5}>{programs}</text>
+                  <text className="campus-hall-count" fontSize={HALL_ONE_R * 1.5}>{held}</text>
                 </>
               )}
             </>
