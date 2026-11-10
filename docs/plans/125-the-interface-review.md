@@ -342,6 +342,80 @@ adjusts on the face) and `pillar-split` (the head's line).
   and `curriculum-sections.test.ts` still pass. The gallery's year-15 word
   count for the tab falls; record the before and after in the note.
 
+**As implemented:** in `CurriculumTab.tsx` and the tab's own rules in
+`styles.css`; nothing outside the tab moved (`PillarHead.tsx` is untouched).
+
+- **The committee.** `committeeSeatRow` (exported, pure) lists the earned
+  seats, busy then free, and one `next` stub, "next at prestige 70", which
+  is left off once every step is passed. The sentence under the seats and
+  its rule (`.committee-note`) are gone. On a screen 1000 px wide or more,
+  the label and the count stand at the row's left, the seats in the
+  middle, and the (?) at the right, so the panel is one line (61 px tall at
+  year 15, 156 before). The seats are a flex row that never wraps. Each is
+  an eighth of the row until a ninth narrows them all, so a college at
+  prestige 95 with the Office's seat (eight earned and the stub for 100)
+  still fits on one line at 1280 and at 900. A phone keeps its grid of
+  four. The help's words were already right, since it never described
+  the boxes, and it stays as it was. The dock's lamps are unchanged.
+- **The cells.** The plan said "a cell keeps a foot only when it differs
+  from its row: no teacher, blocked by a prerequisite, a capstone waiting
+  for a facility". Reading the code showed that only a course still ahead
+  (`available` or `blocked`) ever had a foot. A locked cell (a
+  prerequisite, a cross-listing, a capstone's facility) never had one. It
+  said why in its title, and still does. A course in development shows
+  its bar and teacher chip, not a foot. So the cases that keep a foot,
+  exactly, are:
+  1. nobody can teach it: "needs faculty";
+  2. its price or teacher is not what the row's Develop line says for the
+     next course (`aheadFoot`, compared as words). At year 35 the MFA's two
+     open courses had different best teachers (Toure 64, Hwang 74). In the
+     year-2 and year-15 saves, no row's open courses differed;
+  3. the row has no Develop line to say it (every course ahead waits on
+     something);
+  4. the filters' worklist, where a cell has no row.
+
+  A cell's `title` now reads "FINA 210 · Financial Modeling: $4.0M, 18
+  weeks. Dr. Frank Berg would teach it at 82.", with the reason it is held
+  after it. The drawer and Choose… are unchanged. At year 15, 163 feet
+  went from the rows.
+- **The filter.** A cream `panel-action` button, "Filter", stands at the
+  right of the head beside the grade, before the (?). It is pressed (the
+  secondary fill, as a chip that is on) while the row is open. The row is
+  open once the button is pressed, which puts the cursor in the search,
+  or whenever a filter is set. A target that brings a filter
+  (`targetFilters`: History's "Show the 38 courses below the top band", a
+  department, No instructor) opens it with the filter applied, checked in
+  the browser. Departure: pressing the button while the row is open folds
+  it and clears the filters, so no filter is ever set out of sight. Clear
+  inside the row leaves it open. The tab's help gained "Filter opens a
+  search and the lists".
+- **The head.** The ring went. "200/420 developed" is one line now, with
+  the grade, the button and the (?) beside it. On a phone the head wraps so
+  they stay on a line of their own under the pillar's bar.
+- Two spacing changes, both in the tab's own rules: the committee box's
+  padding (6 by 12 px, was 10 by 12) and the pinned head's top padding
+  (6 px, was 14).
+- **Measured** (1280×720, year 15, `npm run scenario -- --player Guided
+  --year 15`). The first course row's cells start at 332 px, the first
+  program row at 255 (528 and 451 before), in a window whose overlay runs
+  from 59 to 637. At year 2 the cells start at 421 (572 before). The
+  gallery at desktop size gives 3,103 words and 536 controls for the tab
+  at year 15 (3,626 and 540 before). The controls fall by only four
+  because the row's five folded into one button. At year 2 the figures
+  are 297 words and 50 controls.
+  [`h-curriculum-before.png`](125-the-interface-review/h-curriculum-before.png),
+  [`h-curriculum-after.png`](125-the-interface-review/h-curriculum-after.png).
+- **Tests.** The new `test/curriculum-head.test.ts` covers the seat row
+  through every step (one stub, none at 100), the head without a ring, the
+  folded filters, and the cells' feet (none under a matching row; "needs
+  faculty"; a foot the row does not say; the worklist's).
+  `curriculum-filter`, `curriculum-sections` and `teaching-numbers` pass
+  unchanged. The ringed Develop button (`ringedProgram`,
+  `.row-action-develop.opening-target`) is untouched. `tabWalkData.ts` has
+  no Curriculum walk. No test or tool named a class that was removed
+  (`progress-figure`, `committee-note`). `docs/architecture/ui-shell.md`
+  describes none of this, so it is unchanged.
+
 ### PR I — Research: a lab is one line until opened (S-3)
 
 - A running lab's row: the lab, its topic, the lead scholar and their
