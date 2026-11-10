@@ -1,4 +1,5 @@
 import type { QuirkEffects } from './quirkData';
+import type { Effect } from './effectTypes';
 
 // ---------------------------------------------------------------------
 // The words of a professor's page (Plan 84E): the tile on the Faculty tab,
@@ -101,4 +102,21 @@ export function quirkEffectWords(effects: QuirkEffects): string[] {
 export function quirkExplained(effects: QuirkEffects): string {
   const words = quirkEffectWords(effects);
   return words.join(', ');
+}
+
+// The same numbers as chips (components/EffectChip.tsx, Plan 125 A), always
+// in this order, so two cards read the same way. Higher pay is the
+// college's loss.
+export function quirkEffects(effects: QuirkEffects): Effect[] {
+  const out: Effect[] = [];
+  const points = (n: number) => `${n > 0 ? '+' : '−'}${Math.abs(n)}`;
+  const tone = (n: number): Effect['tone'] => (n > 0 ? 'gain' : 'loss');
+  if (effects.teaching) out.push({ kind: 'teaching', figure: points(effects.teaching), words: 'teaching potential', tone: tone(effects.teaching) });
+  if (effects.research) out.push({ kind: 'research', figure: points(effects.research), words: 'research potential', tone: tone(effects.research) });
+  if (effects.salary && effects.salary !== 1) {
+    const pct = Math.round(Math.abs(effects.salary - 1) * 100);
+    out.push({ kind: 'money', figure: `${effects.salary > 1 ? '+' : '−'}${pct}%`, words: 'pay', tone: effects.salary > 1 ? 'loss' : 'gain' });
+  }
+  if (effects.morale) out.push({ kind: 'satisfaction', figure: points(effects.morale), words: 'morale', tone: tone(effects.morale) });
+  return out;
 }

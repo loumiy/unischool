@@ -3218,6 +3218,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .effect-chip.gain .effect-chip-figure, .effect-chip.gain .effect-chip-icon { color: var(--ok-on-light); }
 .effect-chip.loss { background: color-mix(in srgb, var(--bad-on-light) 13%, transparent); }
 .effect-chip.loss .effect-chip-figure, .effect-chip.loss .effect-chip-icon { color: var(--bad-on-light); }
+.identity-effects { grid-column: 2; }
+.faculty-person-effects { margin-top: var(--space-4); }
+.office-quip { font-style: italic; color: var(--school-primary); }
 
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: var(--text-base); color: var(--ink); margin-bottom: 6px; font-weight: 600; }
