@@ -4791,6 +4791,12 @@ body:has(.building-info-panel) .pennant { display: none; }
 .admissions-card { background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-xl);
   padding: var(--space-16) var(--space-16); display: flex; flex-direction: column; gap: var(--space-8); }
 .admissions-card.waiting { opacity: 0.55; }
+/* A locked price steps back (Plan 125 A): the figure a size down, so the
+   standard and what the class does are in view at 1280×720. */
+.admissions-card.locked { gap: var(--space-4); padding-block: var(--space-12); }
+.admissions-card.locked .admissions-price strong { font-size: var(--text-2xl); }
+.admissions-card.locked { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-12); }
+.admissions-card.locked .admissions-card-eyebrow { flex-basis: 100%; }
 .admissions-card .stat { font-size: var(--text-sm); color: var(--ink-muted); margin: 0; line-height: 1.45; }
 .admissions-card-eyebrow { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-xs);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--school-primary); }

@@ -469,9 +469,9 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
         </section>
 
         <aside className="admissions-panel">
-          <div className="admissions-card">
-            <p className="admissions-card-eyebrow">1 · The price</p>
-            <div className="admissions-price">
+          <div className={`admissions-card${tuitionLocked ? ' locked' : ''}`}>
+            <p className="admissions-card-eyebrow">1 · The price{tuitionLocked ? ' · locked' : ''}</p>
+            <div className="admissions-price" title={tuitionLocked ? 'Locked. This class pays it for all four years.' : undefined}>
               <strong className={PRICE_TIER_COPY[tier].className}>{money(tuition)}/yr</strong>
             </div>
             <span className={`price-tier-tag ${PRICE_TIER_COPY[tier].className}`}>{PRICE_TIER_COPY[tier].label}{tier === 'fair' ? fairPosition(tolerance > 0 ? tuition / tolerance : 1) : ''}</span>
@@ -491,9 +491,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
                 {poolRange && <span className="stat">The Admissions Office expects {count(poolRange.low)}–{count(poolRange.high)} applicants at this price.</span>}
                 <button type="button" className={`admissions-lock${ring('lock')}`} data-coach="lock" onClick={lock}>Lock the price</button>
               </>
-            ) : (
-              <span className="stat">Locked. This class pays it for all four years.</span>
-            )}
+            ) : null}
           </div>
 
           <div className={`admissions-card${showCloud ? '' : ' waiting'}${ring('rate')}`} data-coach="rate">
@@ -504,15 +502,6 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
               <div><dt>Median SAT · GPA</dt><dd>{showCloud && classDots.length > 0 ? `${count(medianSat)} · ${medianGpa.toFixed(1)}` : '—'}</dd></div>
               <div><dt title={FIGURE_HINTS.incomingQuality}>Incoming quality</dt><dd>{showCloud ? `${count(shownOutcome.avgIncomingQuality)}/100` : '—'}</dd><dd className="sub">Part of your academics score</dd></div>
             </dl>
-            {showCloud && change && (
-              <p className="stat admissions-change">
-                {count(outcome.applicants)} applicants, <span className={change.change >= 0 ? 'good' : 'bad'}>{signedPct(change.change)}</span> from last summer
-                {change.parts.length > 0 && <>: {change.parts.map((p, i) => <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{i > 0 ? ', ' : ''}{p.label}{takesColon(p.key) ? ':' : ''} {signedPct(p.change)}</span>)}</>}
-              </p>
-            )}
-            {showCloud && <p className="stat">{admitRateOpening(!s.students.lastFunnel, payload.admitRate, maxAdmitRate)}</p>}
-            {/* The board's honors college (Plan 116D): the class it cut. */}
-            {showCloud && shownOutcome.honorsTurnedAway > 0 && <p className="stat">Your honors college turns away your {count(shownOutcome.honorsTurnedAway)} weakest admits.</p>}
           </div>
 
           <div className={`admissions-card${showCloud ? '' : ' waiting'}`}>
@@ -550,11 +539,28 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             )}
           </div>
 
+          {/* How the standard came out (Plan 125 A): under what the class
+              does, so the consequence is read before the method. */}
+          {showCloud && (
+            <div className="admissions-card admissions-how">
+              {showCloud && change && (
+                <p className="stat admissions-change">
+                  {count(outcome.applicants)} applicants, <span className={change.change >= 0 ? 'good' : 'bad'}>{signedPct(change.change)}</span> from last summer
+                  {change.parts.length > 0 && <>: {change.parts.map((p, i) => <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{i > 0 ? ', ' : ''}{p.label}{takesColon(p.key) ? ':' : ''} {signedPct(p.change)}</span>)}</>}
+                </p>
+              )}
+              {showCloud && <p className="stat">{admitRateOpening(!s.students.lastFunnel, payload.admitRate, maxAdmitRate)}</p>}
+              {/* The board's honors college (Plan 116D): the class it cut. */}
+              {showCloud && shownOutcome.honorsTurnedAway > 0 && <p className="stat">Your honors college turns away your {count(shownOutcome.honorsTurnedAway)} weakest admits.</p>}
+            </div>
+          )}
+
           {stage === 'cut' && (
             <>
               <span className="stat">Drag the handle up to raise the bar or down to lower it, or click anywhere on the plot. The arrow keys move it too.</span>
               {/* Stuck to the foot of the panel, so it is in view at
-                  1280×720 however long the cards run (Plan 114G). */}
+                  1280×720 however long the cards run (Plan 114G), on a
+                  ground of its own, so no card shows through it (Plan 125 A). */}
               <div className="admissions-send-foot">
                 <button type="button" className={`admissions-send${ring('send')}`} data-coach="send" onClick={send}>Send the offers</button>
               </div>

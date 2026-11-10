@@ -114,6 +114,19 @@ files. A to E are an hour each; F to J are a PR's work each.
   button's box overlaps no card's box. `npm run review:gallery` on the summer
   scenario at `--sizes desktop,laptop`.
 
+**As implemented:** departed from the default. The button stays stuck to the
+foot of the column: Plan 114G put it there so it is in view at 1280×720, and
+this plan was written without that in hand. What the finding asked for is met
+another way. *What this class does* now sits directly under *The standard*'s
+four figures; the standard's prose (the applicants' change, the admit rate's
+opening, the honors cut) is a card of its own below it; and a locked price
+folds to one line ("1 · The price · locked", the figure a size down, its
+sentence as the figure's title). At 1280×720 and 1440×900 the price, the four
+figures and the whole of *What this class does* are above the button
+(`a-admissions-before.png`, `a-admissions-after.png` beside this file). The
+handle's line and the prose card are reached by scrolling the page, as before.
+No test was added: the layout is measured in a browser, not in the suite.
+
 ### PR B — A grounds tool folds the build menu (I-1)
 
 - While `pathTool` is set, `BuildPopup` renders the folded form it already
