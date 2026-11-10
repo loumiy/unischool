@@ -10,7 +10,7 @@ import type { TabId } from '../../components/TabNav';
 import { openingHoldsClock } from '../../state/opening';
 import type { StepIntent } from './intent';
 import { absoluteWeek } from '../../data/eventData';
-import { eventById, eventText, fill } from '../events/catalogue';
+import { eventById, eventTitle } from '../events/catalogue';
 import { unstaffedPrograms } from '../techtree/darkness';
 import { restaffPlan } from '../faculty/restaffing';
 import { idleCashAsk, SWEEP_DEFAULT_WEEKS } from '../finance/sweep';
@@ -64,15 +64,8 @@ export function inboxPointer(s: GameState): NextStep | null {
     .filter((x) => x.e?.kind === 'inline' && x.e.timeoutWeeks - (week - x.p.firedWeek) <= 1);
   if (last.length === 0) return null;
   const { p, e } = last[0];
-  const text = firstClause(fill(eventText(e!, p), p.vars));
+  const text = eventTitle(e!, p.vars);
   return { text: last.length > 1 ? `${last.length} matters need an answer this week: ${text}` : `Answer this week: ${text}`, go: 'inbox', urgent: true };
-}
-
-// An event's question, cut to its first clause for the strip.
-function firstClause(text: string): string {
-  const cut = text.search(/[.;:!?—]/);
-  const first = cut > 0 ? text.slice(0, cut) : text;
-  return first.length > 70 ? `${first.slice(0, 67)}…` : first;
 }
 
 // The needs as the Students tab and the satisfaction chip name them (Plan

@@ -4,7 +4,7 @@ import { WEEKS_PER_YEAR, totalEnrolled } from '../../state/types';
 import type { CatalogueEvent } from '../../data/eventCatalogueTypes';
 import { absoluteWeek, DECISION_EVENT_COOLDOWN_WEEKS, DECISION_EVENT_FIRST_YEAR } from '../../data/eventData';
 import { random, newId } from '../../engine/random';
-import { EVENT_CATALOGUE, applyEffects, eligible, eventById, eventText, fill, pickTelling, priceScale, rollCandidate, rollVars, scaledEffects } from './catalogue';
+import { EVENT_CATALOGUE, applyEffects, eligible, eventById, eventTitle, fill, pickTelling, priceScale, rollCandidate, rollVars, scaledEffects } from './catalogue';
 import { appointFaculty } from '../faculty/facultySystem';
 import { endowFund } from '../alumni/funds';
 import { facultyPay } from '../finance/financeSystem';
@@ -280,7 +280,7 @@ export function resolveCatalogueEvent(s: GameState, instanceId: string, choiceId
   c.pending = c.pending.filter((x) => x.instanceId !== instanceId);
   journal(c, e, choiceId, by, s.clock.year);
   (c.lastAnswer ??= {})[e.id] = { choiceId, year: s.clock.year };
-  const title = e.title ?? firstSentence(fill(eventText(e, p), p.vars));
+  const title = eventTitle(e, p.vars);
   const who = by === 'seat'
     ? (() => { const seat = handlerFor(s, e.domain)!; return `${seatTitle(seatDef(seat.seatId)!, seat.school)} ${seat.holder} answered`; })()
     : by === 'timeout' ? 'Nobody answered in time' : 'Answered';
@@ -300,9 +300,9 @@ function journal(c: CatalogueState, e: CatalogueEvent, choiceId: string, by: 'pl
   row[by] += 1;
 }
 
-// A sentence ends at a stop that is not a title's ("Dr. Novotny", Plan 35).
+// A text's first sentence, whole. A sentence ends at a stop that is not a
+// title's ("Dr. Novotny", Plan 35).
 export function firstSentence(text: string): string {
   const cut = text.search(/(?<!\b(?:Dr|Mr|Mrs|Ms|Prof|St))[.!?](\s|$)/);
-  const first = cut === -1 ? text : text.slice(0, cut + 1);
-  return first.length > 90 ? `${first.slice(0, 87)}…` : first;
+  return cut === -1 ? text : text.slice(0, cut + 1);
 }

@@ -98,7 +98,13 @@ export interface CatalogueEvent {
   when: Partial<Record<ConditionKey, number>>;
   needs?: NeedKey[];
   favours?: string[];           // identity tag ids (data/tagData.ts) that make it likelier
-  title?: string;               // seismic letters, the charter, and the town-and-gown events (Plan 85H)
+  // Its subject, wherever it is named: the inbox's row, the arrival's
+  // toast, NEXT, the log's line when it is answered (Plan 125G). Three to
+  // six words, sentence case, no final stop, under 50 characters filled. An
+  // inline event's may name {building}, {faculty}, {class} or {sport}, and
+  // is read through catalogue.ts's eventTitle, which fills it; a seismic
+  // letter's names nothing, since the chronicle reads it years later.
+  title: string;
   // Who the inbox says it is from, where not the domain's desk (the charter
   // comes from the board).
   from?: string;
