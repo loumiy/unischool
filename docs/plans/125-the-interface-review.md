@@ -330,6 +330,47 @@ sender; a held slip is never merged. `test/toasts.test.ts` covers it;
   Research chapter's "Show me" still rings a control that is on screen
   without opening a row.
 
+**As implemented:** `ResearchTab.tsx`'s `RunningPanel` is one line: the
+disclosure (`.collapse-toggle`, ▸/▾ with `aria-expanded`, as the Curriculum's
+program rows), the lamp, the lab, its topic, the lead scholar's portrait, name
+and score, one bar with "25/26w", and "2.5/wk". Opened, it adds the depth
+chip, the interdisciplinary tag, breakthroughs banked and published, Wind up,
+and the whole team. A `lab:<id>` target opens the row it lands on; `start:<id>`
+opens a vacant lab's choices as before. Vacant labs are drawn first, under the
+same one heading. The score is `ResearchScore`: the number in its grade's ink
+(`facultySort.ts`'s `bandOf`, `--stat-grade`), on the line, in the opened
+team, and in the team a vacant lab's offer picks; `.scholar-bar-*` is gone.
+At 1440×900 the year-15 save's thirteen labs fit, at 41 px a row
+(`125-the-interface-review/i-research-before.png`, `i-research-after.png`,
+and `i-research-open.png` with one row open). `test/research-rows.test.ts`
+holds the row, the order and the link.
+
+Departures and choices the plan did not make:
+
+- **The lead scholar** is not a stored role; the row names the team's
+  strongest researcher (the first named on a tie) and counts the others as
+  "+2", their names in its title.
+- **The depth chip lost its weeks** ("Pilot Study", not "Pilot Study · 26w"),
+  and the status "25 of 26 weeks" is gone, so the length is said once.
+- **The count is `count` over `weeksShort`** ("25/26w"); `fraction` gives
+  "25/26" with nowhere to put the unit, and `format.ts` was not this PR's to
+  add a helper to.
+- **A vacant row is one line too**: "Vacant" sits beside the name, not under
+  it, and the row is indented to keep its lamp in the running rows' column.
+- **A team with nobody left** says so on the line, in the scholar's place,
+  rather than behind the closed row.
+- **Narrower than 900 px** a running lab's line folds to three (the lab and
+  its rate; the topic; the scholar beside the bar), and to four on a phone.
+- **Guided play** needed no change. The Research chapter's "Show me" rings
+  a lab in the build menu while none is sited (`chapters.ts`'s
+  `ringedBuilding`) and otherwise opens the tab, where it rings nothing; the
+  control it asks for is a vacant lab's "Start research", which is never
+  folded and is now at the top.
+- The pillar bar at the tab's head is PR F's and is as it was.
+- Rule words rewritten: none. No sentence in `src/` or the guide described
+  the row's layout; `docs/architecture/ui-shell.md`'s line on where a lab
+  link lands now says the row opens.
+
 ### PR J — Map marks hold a size on screen (I-5)
 
 - The hall pips, `LabMark` and the full-residence mark take a scale of

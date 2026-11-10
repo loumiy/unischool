@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import SpeedUpOffers from '../components/SpeedUpOffers';
 import ConfirmButton from '../components/ConfirmButton';
 import type { Action } from '../state/actions';
@@ -14,7 +14,7 @@ import { researchSchools } from '../data/techData';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
 import HelpHint from '../components/HelpHint';
 import { rankBy } from '../systems/rivals/rivalsSystem';
-import { decimal, money, moneyShort, multiplier, pct, weeksProse, weeksShort } from '../format';
+import { count, decimal, money, moneyShort, multiplier, pct, weeksProse, weeksShort } from '../format';
 import { CloseIcon, RemoveIcon } from '../components/icons';
 import { projectOpens } from '../data/projectData';
 import { projectOpen } from '../systems/estate/projects';
@@ -24,15 +24,34 @@ import { PILLAR_WORDS } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/specialization';
 import { specializationOfferRule } from '../data/prestigeWords';
 import PillarHead from '../components/PillarHead';
+import { bandOf } from './facultySort';
 
 // =====================================================================
 // Research, as a screen. Its own tab because Curriculum is where
 // `teaching` lives, so Research being where `research` lives makes the two
 // faculty stats mean different things. One roster of every facility, a row
-// each with a lamp lit while a project runs (Plan 90); a vacant lab is idle
-// capital the player should see.
+// each with a lamp lit while a project runs (Plan 90). A vacant lab is idle
+// capital the player should see, so the vacant ones come first, and a
+// running lab is one line until opened (Plan 125 I).
 // =====================================================================
 
+
+// A scholar's research score: the number in its grade's ink, as the
+// Faculty tab draws a stat (FacultyTile.tsx's StatMeter), with no bar of its
+// own (Plan 125 I): a lab's row has one bar, the project's progress.
+function ResearchScore({ f }: { f: Faculty }) {
+  const now = Math.round(f.research);
+  return (
+    <span
+      className="scholar-stat-value"
+      style={{ '--stat-grade': `var(--grade-${bandOf(f.research).toLowerCase()})` } as CSSProperties}
+      title={`Research ${now} of a possible ${Math.round(f.researchPotential)}`}
+      aria-label={`Research ${now} out of 100`}
+    >
+      {now}
+    </span>
+  );
+}
 
 // A participant. Same furniture as the curriculum's instructor picker, but
 // showing research rather than teaching.
@@ -47,13 +66,9 @@ function ScholarRow(
         <span className="scholar-name">{f.name}</span>
         <span className="scholar-field">{f.field}</span>
       </span>
-      <span className="scholar-stat" title={`Research ${f.research} of a possible ${f.researchPotential}`}>
+      <span className="scholar-stat">
         <span className="scholar-stat-label">Research</span>
-        <span className="scholar-bar-track">
-          <span className="scholar-bar-headroom" style={{ width: `${f.researchPotential}%` }} />
-          <span className="scholar-bar-fill" style={{ width: `${f.research}%` }} />
-        </span>
-        <span className="scholar-stat-value">{f.research}</span>
+        <ResearchScore f={f} />
       </span>
       {onRemove && (
         <button type="button" className="scholar-drop" onClick={onRemove} aria-label={`Remove ${f.name}`} title={`Remove ${f.name}`}><RemoveIcon /></button>
@@ -63,73 +78,104 @@ function ScholarRow(
 }
 
 // A roster row's lamp: lit while a project runs, unlit when vacant (Plan 90).
-// The status line under the name says the same in words.
 function Lamp({ on }: { on: boolean }) {
   return <span className={`facility-lamp${on ? ' on' : ''}`} aria-hidden="true" />;
 }
 
-// A facility with work in it: what, by whom, how far along, and how many
-// breakthroughs it has banked (which decides whether it can win an award).
-// Its roster row says the project and the weeks; the team and the odds sit
-// under it.
+// A facility with work in it, as one line until opened (Plan 125 I): the
+// lab, its topic, the lead scholar and their score, how far along, and what
+// it puts out a week. Its length is said once, beside the bar. Opened (the
+// Curriculum's disclosure), the row adds the depth, the whole team, the
+// breakthroughs banked (which decide whether it can win an award) and
+// Wind up.
 function RunningPanel(
-  { s, act, lab, initiative }:
-  { s: GameState; act: (a: Action) => void; lab: Buildable; initiative: Initiative },
+  { s, act, lab, initiative, openRequested = false }:
+  {
+    s: GameState; act: (a: Action) => void; lab: Buildable; initiative: Initiative;
+    // A link landed on this lab ("lab:<id>", from its map panel).
+    openRequested?: boolean;
+  },
 ) {
+  const [open, setOpen] = useState(openRequested);
+  useEffect(() => { if (openRequested) setOpen(true); }, [openRequested]);
   const topic = researchTopic(initiative.topicId);
   const depth = initiativeDepth(initiative.depth);
   const team = s.faculty.filter((f) => initiative.participantIds.includes(f.id));
+  // The lead is the team's strongest researcher, the first named on a tie.
+  const lead = team.reduce<Faculty | null>((best, f) => (best === null || f.research > best.research ? f : best), null);
   const elapsed = initiative.weeksTotal - initiative.weeksRemaining;
-  const fraction = initiative.weeksTotal > 0 ? elapsed / initiative.weeksTotal : 0;
+  const done = initiative.weeksTotal > 0 ? elapsed / initiative.weeksTotal : 0;
   const output = initiativeWeeklyOutput(s, team, depth);
   const fields = new Set(team.map((f) => f.field));
+  const topicName = topic?.name ?? 'Unknown project';
 
   return (
-    <section className="facility-panel running" data-lab={lab.id}>
+    <section className={`facility-panel running${open ? ' open' : ''}`} data-lab={lab.id}>
       <header className="facility-head">
+        <button
+          type="button"
+          className="collapse-toggle"
+          aria-expanded={open}
+          aria-label={`${open ? 'Hide' : 'Show'} ${lab.name}'s project`}
+          onClick={() => setOpen((cur) => !cur)}
+        >
+          {open ? '▾' : '▸'}
+        </button>
         <Lamp on />
-        <span className="facility-title">
-          <span className="facility-name">{lab.name}</span>
-          <span className="facility-status busy">
-            {topic?.name ?? 'Unknown project'} · {Math.round(elapsed)} of {Math.round(initiative.weeksTotal)} weeks
+        <span className="facility-name">{lab.name}</span>
+        <span className="facility-topic" title={topicName}>{topicName}</span>
+        {lead ? (
+          <span className="facility-lead">
+            <FacultyPortrait f={portraitOf(lead)} size={24} />
+            <span className="scholar-name">{lead.name}</span>
+            {team.length > 1 && (
+              <span className="facility-lead-more" title={team.filter((f) => f !== lead).map((f) => f.name).join(', ')}>
+                +{count(team.length - 1)}
+              </span>
+            )}
+            <ResearchScore f={lead} />
           </span>
+        ) : (
+          // Said on the line, so a closed row does not hide it.
+          <span className="facility-lead empty">Nobody is left on this project.</span>
+        )}
+        <span className="facility-progress">
+          <span className="facility-track" aria-hidden="true">
+            <span className="facility-fill" style={{ width: pct(done) }} />
+          </span>
+          <span className="facility-weeks">{count(elapsed)}/{weeksShort(initiative.weeksTotal)}</span>
         </span>
-        <ConfirmButton
-          className="facility-cancel btn-danger"
-          label="Wind up"
-          armedLabel="Wind up (you lose its funding)"
-          onConfirm={() => act({ type: 'CANCEL_INITIATIVE', labId: lab.id })}
-        />
+        <span className="facility-rate">{decimal(output, 1)}/wk</span>
       </header>
 
-      <div className="facility-tags">
-        <span className="facility-depth">{depth.name} · {weeksShort(initiative.weeksTotal)}</span>
-        {/* Said once, about the project, with the multiplier. */}
-        {fields.size > 1 && (
-          <span className="facility-cross" title={`${fields.size} disciplines on the team`}>
-            interdisciplinary {multiplier(interdisciplinaryBonus(team))}
-          </span>
-        )}
-      </div>
-
-      <div className="facility-team">
-        {team.length === 0
-          ? <p className="empty-note">Nobody is left on this project.</p>
-          : team.map((f) => <ScholarRow key={f.id} f={f} />)}
-      </div>
-
-      <div className="facility-progress">
-        <span className="facility-track">
-          <span className="facility-fill" style={{ width: pct(fraction) }} />
-        </span>
-        <span className="facility-progress-meta">
-          <span>
-            <b>{initiative.breakthroughs}</b> {initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'} banked
-            {initiative.publications > 0 && ` · ${initiative.publications} published`}
-          </span>
-          <span className="facility-rate">{decimal(output, 1)}/wk</span>
-        </span>
-      </div>
+      {open && (
+        <div className="facility-more">
+          <div className="facility-tags">
+            <span className="facility-depth">{depth.name}</span>
+            {/* Said once, about the project, with the multiplier. */}
+            {fields.size > 1 && (
+              <span className="facility-cross" title={`${fields.size} disciplines on the team`}>
+                interdisciplinary {multiplier(interdisciplinaryBonus(team))}
+              </span>
+            )}
+            <span className="facility-banked">
+              <b>{initiative.breakthroughs}</b> {initiative.breakthroughs === 1 ? 'breakthrough' : 'breakthroughs'} banked
+              {initiative.publications > 0 && ` · ${initiative.publications} published`}
+            </span>
+            <ConfirmButton
+              className="facility-cancel btn-danger"
+              label="Wind up"
+              armedLabel="Wind up (you lose its funding)"
+              onConfirm={() => act({ type: 'CANCEL_INITIATIVE', labId: lab.id })}
+            />
+          </div>
+          {team.length > 0 && (
+            <div className="facility-team">
+              {team.map((f) => <ScholarRow key={f.id} f={f} />)}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -369,14 +415,16 @@ function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => vo
 export default function ResearchTab({ s, act, target, onTargetConsumed }: {
   s: GameState; act: (a: Action) => void;
   // Where to land (Plan 80B, from a lab's map panel): "lab:<id>" scrolls to
-  // its panel, "start:<id>" also opens its project choices. Consumed and
-  // cleared by the caller.
+  // its row and opens it, "start:<id>" opens its project choices. Consumed
+  // and cleared by the caller.
   target?: string;
   onTargetConsumed?: () => void;
 }) {
   // The lab a "start:" target opens. Read while the target stands, so each
   // request opens it again even after the player folded it.
   const startLab = target?.startsWith('start:') ? target.slice('start:'.length) : null;
+  // The running lab a link lands on, whose row it opens.
+  const landedLab = target ? target.replace(/^(lab|start):/, '') : null;
   useEffect(() => {
     if (!target) return;
     const labId = target.replace(/^(lab|start):/, '');
@@ -423,18 +471,19 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
           </p>
         ) : (
           <>
-            {/* One roster (Plan 90): what the university is working on
-                first, as news with its team under it, then what it isn't,
-                as a worklist. */}
+            {/* One roster (Plan 90). The labs with nothing in them come
+                first, as a worklist (Plan 125 I: an idle lab is what the
+                player comes for); then what the university is working on,
+                a line each. */}
             <h3 className="facility-group-head">
               {underway.length === 0 ? 'Ready for work' : 'The facilities'}
             </h3>
             <div className="facility-roster">
-              {underway.map(({ lab, initiative }) => (
-                <RunningPanel key={lab.id} s={s} act={act} lab={lab} initiative={initiative} />
-              ))}
               {vacant.map(({ lab }) => (
                 <VacantPanel key={lab.id} s={s} act={act} lab={lab} startRequested={startLab === lab.id} />
+              ))}
+              {underway.map(({ lab, initiative }) => (
+                <RunningPanel key={lab.id} s={s} act={act} lab={lab} initiative={initiative} openRequested={landedLab === lab.id} />
               ))}
             </div>
             <ResearchParkProgress s={s} act={act} />

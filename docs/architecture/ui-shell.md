@@ -30,8 +30,9 @@ the chronicle, the charts and the table) waits for the first commencement,
 and one note says so until then (Plan 78C). A section no milestone names is
 somewhere a link can land: the tab scrolls to its `data-section`
 (`sectionTarget.ts`). The Research tab lands on a lab the same way
-(`data-lab`, from a lab's map panel: "lab:<id>", or "start:<id>" with its
-project choices open; Plan 80B). A milestone is never undone, so a tab once open stays
+(`data-lab`, from a lab's map panel: "lab:<id>", which opens a running
+lab's row, a single line until then (Plan 125 I), or "start:<id>" with a
+vacant lab's project choices open; Plan 80B). A milestone is never undone, so a tab once open stays
 open. The first time a gated tab
 opens the activity log says so, unless its milestone's letter already
 does.
