@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------
 
 import { spawnSync } from 'node:child_process';
-import { PLAIN_RULES, plainHits } from '../tools/review/plainChecks';
+import { PLAIN_RULES, TOP_VERB, VOICE_RULES, plainHits, voiceHits, voiceTotals } from '../tools/review/plainChecks';
 
 let checks = 0;
 let failures = 0;
@@ -52,11 +52,33 @@ const clean = (text: string) => plainHits(text).length === 0;
   assert(PLAIN_RULES.length === 6, 'six rules');
 }
 
+// ---- The voice's habits are caught (Plan 125 F, docs/design/voice.md) ----
+{
+  const hit = (text: string, scope: 'all' | 'events' | 'courses', id: string) => voiceHits(text, scope).some((r) => r.id === id);
+  assert(hit('Save failed \u2014 this browser is refusing to store the game.', 'all', 'em dash'), 'an em dash');
+  assert(hit('Grounds have asked for a second mower.', 'all', 'British usage'), 'an office with a plural verb');
+  assert(hit('The returns are good, the leavers are few.', 'all', 'British usage'), 'a British word');
+  assert(!hit('Facilities has asked for a second mower.', 'all', 'British usage'), 'an office with a singular verb passes');
+  assert(hit('Facilities would like it noted that they said so first.', 'events', 'events: "would like"'), '"would like"');
+  assert(hit('The contractor is being very calm about it, which is worse.', 'events', 'events: trailing ", which"'), 'a trailing which');
+  assert(hit('The bank has written about the operating account, and the letter runs to a second page.', 'events', 'events: opens "The … has"'), 'the events\' stock opening');
+  assert(!hit('Your bank wrote on Tuesday about the operating account, and the letter runs to a second page.', 'events', 'events: opens "The … has"'), 'another opening passes');
+  assert(hit('Covers notation, scales, and harmony, the building blocks of Western music.', 'courses', 'courses: built on a list'), 'a course built on a list');
+  assert(hit('Gives a robot senses and plans on real hardware.', 'courses', 'courses: "real"'), '"real" as an intensifier');
+  const totals = voiceTotals([
+    { screen: 'Course descriptions', text: 'Covers one thing.' }, { screen: 'Course descriptions', text: 'Covers another.' },
+    { screen: 'Course descriptions', text: 'Builds a third.' }, { screen: 'Names (people, rivals, mascots)', text: 'A \u2014 B' },
+  ]);
+  assert(totals[TOP_VERB] === 2, 'the most used opening verb is counted');
+  assert(totals['em dash'] === 0, 'a name pool is not read');
+  assert(VOICE_RULES.length === 7, 'seven voice rules');
+}
+
 // ---- The counts do not rise ----
 {
   const run = spawnSync('npm', ['run', 'review:plain'], { encoding: 'utf8', cwd: process.cwd() });
   if (run.status !== 0) console.error(run.stdout, run.stderr);
-  assert(run.status === 0, 'no plain-words count rises past tools/review/plain-baseline.json');
+  assert(run.status === 0, 'no count rises past tools/review/plain-baseline.json or voice-baseline.json');
 }
 
 if (failures === 0) {

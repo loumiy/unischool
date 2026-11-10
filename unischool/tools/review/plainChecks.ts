@@ -107,3 +107,68 @@ export function plainHits(text: string): Array<{ rule: PlainRule; match: string 
   }
   return out;
 }
+
+// ---------------------------------------------------------------------
+// The voice's counts (Plan 125 F, docs/design/voice.md): habits that are
+// fine once and a giveaway when every line has them. Each is counted over
+// the screens it names and held to voice-baseline.json the same way: a
+// count may fall, and the test fails when one rises.
+//
+//   everywhere      an em dash; British usage the spelling list misses
+//   the events      "would like"; a trailing ", which …" aside; a letter
+//                   that opens "The … has …"
+//   the courses     a description built on a list of three or more; "real"
+//                   as an intensifier; the most lines that open on one verb
+// ---------------------------------------------------------------------
+
+export type VoiceScope = 'all' | 'events' | 'courses';
+export interface VoiceRule {
+  id: string;
+  scope: VoiceScope;
+  says: string;
+  test: (text: string) => boolean;
+}
+
+export const EVENT_SCREEN = 'Events (catalogue)';
+export const COURSE_SCREEN = 'Course descriptions';
+// Screens nobody reads as prose: name pools, the developer's panel, audio labels.
+export const UNREAD_SCREENS: ReadonlySet<string> = new Set(['Names (people, rivals, mascots)', 'Debug panel (developer only)', 'Audio (not read)']);
+
+// Usage, not spelling (strings.ts's BRITISH list has the spellings): a
+// collective noun with a plural verb, and words an American college does
+// not use.
+const BRITISH_USAGE = /\b(?:Grounds|Facilities|The press|the press|The team|the team|The staff|the staff) (?:have|are|were)\b|\bleavers?\b|\bcosted\b|\b(?:two|three|four|five)-yearly\b|\bporters?\b|\blecture theat(?:er|re)s?\b|\bFire Officer\b|\bat the weekend\b|\bin future\b|\bfortnight/;
+
+export const VOICE_RULES: readonly VoiceRule[] = [
+  { id: 'em dash', scope: 'all', says: 'a period, a comma or brackets', test: (t) => /\u2014/.test(t) },
+  { id: 'British usage', scope: 'all', says: 'the American word, and a singular verb for an office', test: (t) => BRITISH_USAGE.test(blank(t)) },
+  { id: 'events: "would like"', scope: 'events', says: 'say what they want', test: (t) => /\bwould like\b/i.test(t) },
+  { id: 'events: trailing ", which"', scope: 'events', says: 'end the sentence, or make the aside its own', test: (t) => /, which\b/.test(t) },
+  { id: 'events: opens "The … has"', scope: 'events', says: 'start somewhere else', test: (t) => words(t) >= 12 && /^The\b[^.?!]*?\b(?:has|have)\b/.test(sentences(t)[0] ?? '') },
+  { id: 'courses: built on a list', scope: 'courses', says: 'say the one thing the course is about', test: (t) => /\w,\s[^.]*?,\s(?:and|or)\s/.test(t) || /\w,\s[^,.]+\s(?:and|or)\s[^,.]+(?:,|\.)/.test(t) && (t.match(/,/g) ?? []).length >= 2 },
+  { id: 'courses: "real"', scope: 'courses', says: 'drop it', test: (t) => /\breal\b/i.test(t) },
+];
+
+const inScope = (scope: VoiceScope, screen: string) => (scope === 'events' ? screen === EVENT_SCREEN
+  : scope === 'courses' ? screen === COURSE_SCREEN : !UNREAD_SCREENS.has(screen));
+
+// How many course descriptions open on the most used verb.
+export const TOP_VERB = 'courses: most lines on one opening verb';
+
+export function voiceTotals(rows: ReadonlyArray<{ screen: string; text: string }>): Record<string, number> {
+  const totals: Record<string, number> = Object.fromEntries(VOICE_RULES.map((r) => [r.id, 0]));
+  const verbs = new Map<string, number>();
+  for (const r of rows) {
+    for (const rule of VOICE_RULES) if (inScope(rule.scope, r.screen) && rule.test(r.text)) totals[rule.id] += 1;
+    if (r.screen === COURSE_SCREEN) {
+      const verb = r.text.match(/^[A-Z][a-z]+/)?.[0];
+      if (verb) verbs.set(verb, (verbs.get(verb) ?? 0) + 1);
+    }
+  }
+  totals[TOP_VERB] = Math.max(0, ...verbs.values());
+  return totals;
+}
+
+export function voiceHits(text: string, scope: VoiceScope): VoiceRule[] {
+  return VOICE_RULES.filter((r) => r.scope === scope && r.test(text));
+}
