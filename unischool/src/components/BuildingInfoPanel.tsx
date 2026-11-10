@@ -1,5 +1,7 @@
 import { constructionFrozen } from '../systems/finance/distress';
 import LevelPips, { buildingLevel } from './LevelPips';
+import EffectChips from './EffectChip';
+import { buildableEffects } from '../data/buildableEffects';
 import ConfirmButton from './ConfirmButton';
 import { RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, extensionWeeks, renovationCost } from '../systems/estate/estate';
 import { canPayForWorks } from '../systems/finance/treasury';
@@ -11,7 +13,6 @@ import { attendanceFor } from '../systems/athletics/gate';
 import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
 import { isSandbox } from '../systems/sandbox/sandbox';
 import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
-import { NEED_WORD } from '../data/needWords';
 import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
@@ -53,21 +54,6 @@ function dormCapacity(t: Buildable): number | null {
   return t.effects?.capacityBonus ?? null;
 }
 
-// What a facility's servesPopulation effect counts, per facilityType. Quad
-// and lab are absent: neither has a servesPopulation effect, so see the
-// facility branch below for what they show instead.
-const FACILITY_CAPACITY_LABEL: Partial<Record<FacilityType, string>> = {
-  diningHall: 'dining seats',
-  library: 'study seats',
-  studentCenter: 'social capacity',
-  recCenter: 'recreation capacity',
-  healthCenter: 'care capacity',
-  gym: 'fitness capacity',
-  tennisCourts: 'court capacity',
-  pool: 'pool capacity',
-  artGallery: 'gallery capacity',
-};
-
 // The varsity venues (facilitiesData.ts): their panel says which teams play
 // there, not just a capacity (see AthleticsVenueInfo).
 const ATHLETICS_VENUE_TYPES: readonly FacilityType[] = [
@@ -78,16 +64,13 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
   const teams = s.orgs.teams.filter((team) => team.venueCategory === t.facilityType);
   return (
     <>
-      <p className="building-info-line">
-        {t.effects?.servesPopulation !== undefined
-          ? `${count(t.effects.servesPopulation)} social capacity`
-          : t.description}
-      </p>
+      <p className="building-info-line building-info-flavor">{t.description}</p>
+      <EffectChips effects={buildableEffects(t)} className="building-info-line" />
       {(t.expansions ?? 0) > 0 && (
         <p className="building-info-line">Expanded {t.expansions === 1 ? 'once' : `${t.expansions} times`}: {count(venueSeatsOf(t))} seats in the stands.</p>
       )}
       {teams.length === 0 ? (
-        <p className="building-info-line">No varsity team calls this home yet.</p>
+        <p className="building-info-line">No varsity team calls this home yet. The groundskeepers have it to themselves.</p>
       ) : (
         // A tile a team that plays here (Plan 60), as a hall shows its
         // programs: the sport, its quality, its coach, its crowd.
@@ -164,18 +147,14 @@ function NeedUseLine({ t, s }: { t: Buildable; s: GameState }) {
 function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; onOpenResearch?: (target: string) => void }) {
   const ft = t.facilityType;
   if (ft && ATHLETICS_VENUE_TYPES.includes(ft)) return <AthleticsVenueInfo t={t} s={s} />;
-  const label = ft ? FACILITY_CAPACITY_LABEL[ft] : undefined;
-  if (label && t.effects?.servesPopulation !== undefined) {
-    const need = t.effects.satisfactionAttribute;
-    return <p className="building-info-line">Serves {count(t.effects.servesPopulation)} {label}{need ? ` · ${NEED_WORD[need]}` : ''}</p>;
-  }
-  if (ft === 'quad') {
+  // A line of flavor, and what it gives as chips (Plan 125 A, E): the
+  // students it serves and the need that counts them, a quad's social life.
+  if ((t.effects?.servesPopulation !== undefined && ft !== 'lab') || ft === 'quad') {
     return (
-      <p className="building-info-line">
-        {t.effects?.flatSatisfactionBonus !== undefined
-          ? `+${t.effects.flatSatisfactionBonus} social life`
-          : 'A green centerpiece for campus life.'}
-      </p>
+      <>
+        <p className="building-info-line building-info-flavor">{t.description}</p>
+        <EffectChips effects={buildableEffects(t)} className="building-info-line" />
+      </>
     );
   }
   if (ft === 'lab') {

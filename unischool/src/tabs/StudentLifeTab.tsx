@@ -309,7 +309,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <section className="panel">
         <h2>Student demands</h2>
         <p className="empty-note">
-          No outstanding demands.
+          No outstanding demands. The student paper is writing about parking.
         </p>
       </section>
     );
@@ -453,7 +453,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
               </p>
             )}
             {clubs.length === 0 ? (
-              <p className="empty-note">No recognized clubs.</p>
+              <p className="empty-note">No recognized clubs. Students are meeting in hallways anyway.</p>
             ) : (
               <ul className="org-list">
                 {clubs.map((c) => (
@@ -487,7 +487,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
               </p>
             ) : chapters.length === 0 ? (
               <p className="empty-note">
-                The Hellenic Council is chartered, but no chapter has formed yet.
+                The Hellenic Council is chartered, but no chapter has formed yet. Somebody is designing the sweatshirts.
               </p>
             ) : (
               <ul className="org-list">

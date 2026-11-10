@@ -202,7 +202,7 @@ export default function InboxTab({ s, act, target, onTargetConsumed, read, onRea
               </>
             )
           ) : groups.length === 0 ? (
-            <p className="inbox-empty">{q ? 'Nothing matches.' : 'Nothing waiting. Matters, letters and the week\'s news arrive here.'}</p>
+            <p className="inbox-empty">{q ? 'Nothing matches.' : 'Nothing waiting. Enjoy it. Matters, letters and the week\'s news arrive here.'}</p>
           ) : groups.map((g) => (
             <div key={g.tier} role="group" aria-label={TIER_HEADING[g.tier]}>
               <div className="inbox-group">

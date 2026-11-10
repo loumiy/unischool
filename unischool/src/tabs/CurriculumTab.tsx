@@ -1483,7 +1483,7 @@ export default function CurriculumTab(
           {/* A filter replaces the map with a cross-school worklist. */}
           {filtering ? (
             matches.length === 0 ? (
-              <p className="empty-note">Nothing matches those filters.</p>
+              <p className="empty-note">Nothing matches those filters. Loosen one.</p>
             ) : (
               <div className="worklist">
                 {matches.map((t) => {

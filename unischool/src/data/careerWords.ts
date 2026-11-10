@@ -63,7 +63,7 @@ export const CAREER_WORDS = {
   distinguished: (program: string, year: number | undefined) =>
     (year !== undefined ? `Taught in ${program}, a program complete since Year ${year}.` : `Taught in ${program}, a program with every course complete.`),
   longService: (years: number, year: number) => `${years} years of service, reached in Year ${year}.`,
-  noRecognition: 'Nothing yet.',
+  noRecognition: 'Nothing yet. The plaques are on order.',
 
   // Training at the Faculty Training Institute (Plan 85E).
   trained: (year: number, from: number, to: number) =>

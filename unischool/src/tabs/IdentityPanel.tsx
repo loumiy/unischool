@@ -30,7 +30,7 @@ export default function IdentityPanel({ s }: { s: GameState }) {
         </span>
       </div>
       {p.tags.length === 0 ? (
-        <p className="empty-note">The guidebooks have nothing to say about your college yet.</p>
+        <p className="empty-note">The guidebooks have nothing to say about your college yet. Nothing bad, at least.</p>
       ) : (
         <ul className="identity-list">
           {p.tags.map((id) => {

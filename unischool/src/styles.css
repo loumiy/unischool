@@ -3250,7 +3250,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .effect-chip.loss .effect-chip-figure, .effect-chip.loss .effect-chip-icon { color: var(--bad-on-light); }
 .identity-effects { grid-column: 2; }
 .faculty-person-effects { margin-top: var(--space-4); }
-.office-quip { font-style: italic; color: var(--school-primary); }
+.chronicle-era-stats { margin: var(--space-4) 0; }
+.office-quip, .building-info-flavor { font-style: italic; color: var(--school-primary); }
 
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: var(--text-base); color: var(--ink); margin-bottom: 6px; font-weight: 600; }

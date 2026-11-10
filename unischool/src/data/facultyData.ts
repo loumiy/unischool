@@ -559,7 +559,17 @@ function rollBio(field: string): string {
   const institution = pick(BIO_INSTITUTIONS);
   const interests = FIELD_RESEARCH_INTERESTS[field] ?? ['the field'];
   const interest = pick(interests);
-  return `Earned a doctorate in ${field} at ${institution}; research centers on ${interest}.`;
+  // Several tellings (Plan 125 E: one template read the same on every
+  // card), chosen from what was already rolled so the random stream, and
+  // every seeded run after it, is unchanged.
+  const tellings = [
+    `Took a doctorate in ${field} at ${institution} and has worked on ${interest} ever since.`,
+    `Trained at ${institution}, in ${field}. Works on ${interest}.`,
+    `A ${field} doctorate from ${institution}. The research is on ${interest}, and so is most of the conversation.`,
+    `Came up through ${institution}'s ${field} program, and has spent the years since on ${interest}.`,
+    `Studied ${field} at ${institution}. Writes on ${interest}, at length.`,
+  ];
+  return tellings[(institution.length + interest.length) % tellings.length];
 }
 
 // ---------------------------------------------------------------------
