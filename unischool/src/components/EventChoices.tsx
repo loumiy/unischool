@@ -4,7 +4,7 @@ import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCa
 import { STATUE_ID, eventCampaign, fill, namedDamage, repairsOf, scaledEffects, statuePledgeable } from '../systems/events/catalogue';
 import { wornLine } from '../systems/estate/paths';
 import { choiceCost } from '../systems/events/catalogueEngine';
-import { money, moneyShort, pct, signed, signedMoney } from '../format';
+import { moneyShort, pct, signed, signedMoney } from '../format';
 import { clampDrawRate, debtOutstanding, drawRate } from '../systems/finance/treasury';
 import { constructionFrozen } from '../systems/finance/distress';
 import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
@@ -18,7 +18,9 @@ import { facultyPay } from '../systems/finance/financeSystem';
 // (InterruptModal.tsx's CatalogueLetterView). Each answer says what it
 // does, in the sums the college will actually pay.
 
-// What an answer does, a phrase per lever.
+// What an answer does, a phrase per lever. Sums in the short form (Plan
+// 125 C): two answers side by side are prices compared, and the letter's
+// own prose keeps the exact figure.
 function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
   const out: string[] = [];
   for (const [k, v] of Object.entries(effects) as [EffectKey, number][]) {
@@ -27,7 +29,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
     if (k === 'festival') { out.push(...festivalPhrases(v, s.students.applicantPool, annualGiving(s), { signed, money: moneyShort })); continue; }
     if (!v) continue;
     switch (k) {
-      case 'cash': out.push(v < 0 ? `costs ${money(-v)}` : `brings ${money(v)}`); break;
+      case 'cash': out.push(v < 0 ? `costs ${moneyShort(-v)}` : `brings ${moneyShort(v)}`); break;
       case 'endowment': {
         // A draw stops at what the fund holds (catalogue.ts floors it at 0).
         const moved = v < 0 ? Math.min(-v, Math.max(0, s.finance.endowment)) : v;
@@ -37,14 +39,14 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       case 'debt': {
         // Repays what is owed; the rest comes back as cash (catalogue.ts).
         const owed = debtOutstanding(s);
-        out.push(v > 0 ? `borrows ${money(v)}` : owed >= -v ? `repays ${money(-v)} of debt` : owed > 0 ? `repays the ${money(owed)} owed, the rest to cash` : `brings ${money(-v)}`);
+        out.push(v > 0 ? `borrows ${moneyShort(v)}` : owed >= -v ? `repays ${moneyShort(-v)} of debt` : owed > 0 ? `repays the ${moneyShort(owed)} owed, the rest to cash` : `brings ${moneyShort(-v)}`);
         break;
       }
       case 'backlog': {
         // Repairs done stop at the backlog there is (catalogue.ts's spreadBacklog).
         const owed = s.tech.reduce((t, b) => t + (b.backlog ?? 0), 0);
-        if (v > 0) out.push(`${money(v)} of repairs deferred`);
-        else if (owed > 0) out.push(`${money(Math.min(-v, owed))} of repairs done`);
+        if (v > 0) out.push(`${moneyShort(v)} of repairs deferred`);
+        else if (owed > 0) out.push(`${moneyShort(Math.min(-v, owed))} of repairs done`);
         break;
       }
       case 'mood': out.push(`satisfaction ${signed(v)}`); break;
@@ -58,7 +60,7 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
       case 'trees': out.push(v > 0 ? `${v} trees planted` : `${-v} trees felled`); break;
       case 'replant': out.push(`${v} trees planted`); break;
       case 'departs': out.push(`${vars.faculty ?? 'they'} leaves`); break;
-      case 'buildingFund': out.push(`${money(v)} to the building fund`); break;
+      case 'buildingFund': out.push(`${moneyShort(v)} to the building fund`); break;
       case 'historic': out.push(`${vars.building ?? 'the building'} declared historic`); break;
       // The charter (Plan 78G): the name, for good (Plan 80D: nothing renames
       // the college after it).
@@ -69,8 +71,8 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
         const building = vars.building ?? 'the building';
         const owed = s.tech.reduce((t, b) => t + (b.backlog ?? 0), 0);
         const named = s.tech.find((t) => t.id === vars.buildingId && t.status === 'done');
-        if (v > 0) out.push(`${money(named ? namedDamage(s, v, named) : v)} of repairs deferred on ${building}`);
-        else if (owed > 0) out.push(`${money(Math.min(-v, owed))} of repairs done, ${building} first`);
+        if (v > 0) out.push(`${moneyShort(named ? namedDamage(s, v, named) : v)} of repairs deferred on ${building}`);
+        else if (owed > 0) out.push(`${moneyShort(Math.min(-v, owed))} of repairs done, ${building} first`);
         break;
       }
       case 'enrollmentSpread': {
@@ -85,22 +87,22 @@ function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: 
         break;
       }
       // The candidate the event named (Plan 101D), at this college's pay.
-      case 'hire': if (vars.candidate) out.push(`appoints ${vars.candidate} (${vars.candidateField}), ${money(Math.round(facultyPay(s, Number(vars.candidateSalary) || 0)))}/yr`); break;
+      case 'hire': if (vars.candidate) out.push(`appoints ${vars.candidate} (${vars.candidateField}), ${moneyShort(Math.round(facultyPay(s, Number(vars.candidateSalary) || 0)))}/yr`); break;
       // Plan 101E's campaigns, gifts and marks on the map.
       case 'campaign': { const def = eventCampaign(s); if (def) out.push(`launches ${def.title}`); break; }
       case 'statue': {
         const statue = s.tech.find((t) => t.id === STATUE_ID);
-        if (statue && statuePledgeable(s)) out.push(`${money(statue.cost)} to the building fund for the statue, which you then place`);
+        if (statue && statuePledgeable(s)) out.push(`${moneyShort(statue.cost)} to the building fund for the statue, which you then place`);
         break;
       }
-      case 'boosterGift': out.push(`${money(v)} to the athletics department this year`); break;
+      case 'boosterGift': out.push(`${moneyShort(v)} to the athletics department this year`); break;
       case 'closeProgram': out.push(`${vars.program ?? 'the program'} closes, its courses ended`); break;
       // The board's honors college (Plan 116D).
       case 'honors': out.push(honorsPhrase(v)); break;
       case 'repairGift': {
         const repairs = repairsOf(s, v);
-        if (repairs > 0) out.push(`${money(repairs)} of repairs done`);
-        if (v - repairs > 0) out.push(`${money(v - repairs)} to the building fund`);
+        if (repairs > 0) out.push(`${moneyShort(repairs)} of repairs done`);
+        if (v - repairs > 0) out.push(`${moneyShort(v - repairs)} to the building fund`);
         break;
       }
       case 'paveLine': { const n = wornLine(s).length; if (n > 0) out.push(`${n} tiles of path laid`); break; }

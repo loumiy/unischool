@@ -162,6 +162,15 @@ it.
   the catalogue has such a pair, that card keeps `money`, and the
   **As implemented** note says which).
 
+**As implemented:** two of the three. An answer's effects
+(`EventChoices.tsx`, all sixteen sums) and the strip for a building in hand
+take `moneyShort`. The Students tab's weekly cost stays exact: it is a row of
+a `<dl>`, which the number rules give the long form, so the review's U-5 was
+wrong to list it. No catalogue event has two answers whose sums differ and
+read the same in the short form (checked over all 159). An answer's
+endowment line keeps `signedMoney`, which has no short form.
+`test/number-format.test.ts` holds both surfaces.
+
 ### PR D — Toasts keep off a tab, and like toasts merge (I-2)
 
 - While a tab is open, toasts are drawn at the top right, under the tab's

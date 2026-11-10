@@ -947,7 +947,7 @@ export default function BuildPopup({
           <span className="build-holding-name">
             {BUILD_WORDS.holding
               .replace('{building}', held.name)
-              .replace('{cost}', money(held.status === 'done' ? 0 : held.cost))
+              .replace('{cost}', moneyShort(held.status === 'done' ? 0 : held.cost))
               .replace('{pay}', BUILD_WORDS.pay[financing ?? 'none'])}
           </span>
           <StylePicker s={s} />

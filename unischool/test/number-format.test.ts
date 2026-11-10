@@ -166,6 +166,16 @@ const RULES: Array<{ what: string; re: RegExp; catches: string; passes: string; 
   }
 }
 
+// ---- Where prices are compared, the short form (Plan 125 C) ----
+// A decision's answers and the strip for a building in hand: the long form
+// is for the letter's own prose and the build tile's tooltip.
+{
+  const choices = readFileSync(join(SRC, 'components', 'EventChoices.tsx'), 'utf8');
+  assert(!/(?<![A-Za-z])money\(/.test(choices) && choices.includes('moneyShort('), 'an answer\'s effects read in the short form');
+  const build = readFileSync(join(SRC, 'components', 'BuildPopup.tsx'), 'utf8');
+  assert(/'\{cost\}', moneyShort\(/.test(build), 'the strip for a building in hand reads as its tile did');
+}
+
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);
