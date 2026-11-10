@@ -8,8 +8,16 @@ every event, a build menu that folds under a grounds tool, a lighter
 Curriculum, Faculty and Research, toasts that keep off a tab, short money on
 cards, and map marks that hold a size.*
 
-**Status: Proposed.** Nothing has landed. §3 lists four choices that are the
-owner's; each has a default, and the PRs are written to the defaults.
+**Status: Landed (10 November 2026), on `claude/gallant-tesla-g4c36a`.** All
+ten PRs, to the defaults in §3. A to F were built in turn on the branch; G, H,
+I and J were built in parallel worktrees and merged. `npm run check` passed
+after the last merge, 217 suites. Each PR's **As implemented** note follows
+its section. Two departures from the defaults: PR A keeps the button stuck to
+the foot (Plan 114G's reason) and meets the finding by reordering the cards;
+PR D puts a toast over a tab in the tab's header, not under it. Open for the
+owner: the 133 event titles (PR G) to edit; and whether a locked course's
+reason (a prerequisite, a capstone's facility) should be a foot on its cell,
+since it is only in the tooltip today (PR H).
 
 ---
 
