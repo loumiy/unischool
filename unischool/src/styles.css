@@ -2958,6 +2958,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .glance-meter-fill { display: block; height: 100%; background: var(--pillar-hue, var(--school-primary)); }
 .glance-figure { font-family: var(--display); font-weight: 800; font-size: var(--text-md); text-align: right; }
 .glance-adjustment { color: var(--ink-muted); }
+.glance-adjustments { margin: var(--space-8) 0 var(--space-12); gap: var(--space-8); }
 .glance-adjustment .glance-figure { color: var(--ink); }
 .glance-adjustment.cost .glance-figure { color: var(--bad-on-light); }
 .glance-line { font-size: var(--text-sm); }

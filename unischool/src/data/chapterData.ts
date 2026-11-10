@@ -415,7 +415,7 @@ export const DRAWER_WORDS = {
   // Which way it is heading, in the glance's arrow's word, and no target
   // figure (Plan 114B).
   prestigeNow: (now: string, heading: string) => `Prestige ${now}, ${heading}`,
-  pillars: 'What lifts it',
+  pillars: 'What it is made of',
   takenOff: 'Taken off',
   satisfactionNow: (now: string) => `Satisfaction ${now}.`,
   drag: (need: string) => `${need} is pulling it down most.`,

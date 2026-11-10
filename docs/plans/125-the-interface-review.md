@@ -250,6 +250,19 @@ its words still hold.
   `design/progression.md`'s prestige section and `data/prestigeWords.ts`'s
   rule are reread for "adds".
 
+**As implemented:** as planned. History's four rows and the objectives
+drawer's meters read `prestigeByPillar`'s parts (21.7, 16.0, 19.3, 7.7 at
+year 16, summing to 64.8 within a rounding step), the figure each tab's head
+shows. A meter is as long as the most its part could be (`pillarPartMax`:
+every pillar earning in full, at 150) and filled to its part. The heading is
+"What it is made of", here and in the drawer, since the rows no longer say
+what each adds. Endowment and Upkeep moved under Details, after a sentence
+that names the floor every college stands on and introduces the per-pillar
+lines as what each has earned above it. The pillar head's line names the
+direction ("21.7 of your 64.8 prestige · rising") instead of the target; the
+tick stays. Tests: `history-views` (the rows sum to the headline, nothing
+adjusts on the face) and `pillar-split` (the head's line).
+
 ### PR G — Every event has a subject (U-4)
 
 - **G1, the bug.** `afterSubject` compares against the uncut first sentence,
