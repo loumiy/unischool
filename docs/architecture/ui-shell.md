@@ -570,3 +570,25 @@ the map does (pan, `R`, `P`), which the menu leaves alone. Folding those
 together produced the same bug three times — `R`, `P` and `W`/`A`/`S`/`D` each
 went dead for exactly the stretch in which a player reaches for them. A tab,
 the log popup and an interrupt still silence both.
+
+## Effects, legends and keys
+
+Numbers the game used to write into sentences are drawn (Plan 125;
+`docs/design/voice.md` says why).
+
+- **Effect chips** (`components/EffectChip.tsx`, `data/effectTypes.ts`): an
+  `Effect` is a kind (which picks the icon), a signed figure, a word or two,
+  a tone (gain, loss, plain) and whether it wears off. The sign is always in
+  the figure. Producers return `Effect[]` and stay testable without React:
+  `systems/events/choiceEffects.ts` for event choices,
+  `DecisionChoice.effects` for the authored decisions, `tagEffects`,
+  `quirkEffects`, `buildableEffects`, and the chronicle's `Era.stats`. A
+  choice's cash cost stays in its corner, not in a chip.
+- **Legends** (`HelpHint`'s `legend` prop): rows of a mark as the panel
+  draws it and a few words, then `text` split on blank lines as short rules.
+  Without a legend, a `text` with blank lines renders as short paragraphs.
+- **Keys** (`components/Keyed.tsx`): in any help text, `[Q]` renders as a
+  keycap and `[icon:turn]`, `[icon:tilt]`, `[icon:home]` and
+  `[icon:double]` as the map tools' and speed control's own icons. The
+  brackets stay in the string, so the string table and a screen reader read
+  the key's name.

@@ -1,10 +1,10 @@
 {
-  "em dash": 62,
-  "British usage": 11,
-  "events: \"would like\"": 68,
-  "events: trailing \", which\"": 54,
-  "events: opens \"The … has\"": 85,
-  "courses: built on a list": 385,
-  "courses: \"real\"": 24,
-  "courses: most lines on one opening verb": 37
+  "em dash": 3,
+  "British usage": 0,
+  "events: \"would like\"": 12,
+  "events: trailing \", which\"": 9,
+  "events: opens \"The … has\"": 35,
+  "courses: built on a list": 227,
+  "courses: \"real\"": 2,
+  "courses: most lines on one opening verb": 12
 }
