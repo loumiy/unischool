@@ -38,6 +38,7 @@ import { modalWidth } from './modalLayout';
 import { currentEra, listOf } from '../systems/chronicle/chronicle';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { CatalogueChoices, CatalogueText } from './EventChoices';
+import EffectChips from './EffectChip';
 import { eventById, eventText, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
@@ -923,8 +924,9 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
                 </span>
               </span>
               <span className="event-choice-detail">
-                {choice.describe(s, ctx)}
-                {!affordable && ` You're ${money(cost - Math.max(0, s.finance.cash))} short.`}
+                <EffectChips effects={choice.effects?.(s, ctx) ?? []} />
+                <span className="event-choice-note">{choice.describe(s, ctx)}</span>
+                {!affordable && <span className="event-choice-short">You&apos;re {money(cost - Math.max(0, s.finance.cash))} short.</span>}
               </span>
             </button>
           );

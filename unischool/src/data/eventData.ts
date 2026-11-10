@@ -22,11 +22,17 @@ import type { ChapterId } from './chapterData';
 import { schoolOffers } from '../systems/techtree/programOffers';
 import { FOUNDERS_MOVE_WEEKS, RELOCATION_WEEKS } from '../systems/techtree/techSystem';
 import { buildReportPayload, rankBy } from '../systems/rivals/rivalsSystem';
-import { count as countOf, money } from '../format';
+import { count as countOf, money, signed, signedMoney } from '../format';
+import type { Effect } from './effectTypes';
 import { SEATS_PER_COURSE } from '../systems/techtree/instructionCapacity';
 import { campusFigures, campusLack, NEEDS_LETTER_ID } from './openingData';
 import { clamp } from '../math';
 import { random } from '../engine/random';
+
+// A decision's effects (DecisionChoice.effects): a bump to satisfaction,
+// which then drifts back over the weeks, and a weekly cost or saving.
+const mood = (points: number): Effect => ({ kind: 'satisfaction', figure: signed(points), words: 'satisfaction', tone: points < 0 ? 'loss' : 'gain', fades: true });
+const weekly = (amount: number, words: string): Effect => ({ kind: 'weekly', figure: signedMoney(amount), words, tone: amount < 0 ? 'loss' : 'gain' });
 
 // ---------------------------------------------------------------------
 // Week-to-week texture, as authored data. Both halves ride the existing
@@ -219,8 +225,12 @@ export interface DecisionChoice {
   // Not offered against this context when true (omitted = always offered).
   // A hidden choice never counts as the event's free choice.
   hidden?(s: GameState, ctx: DecisionEventContext): boolean;
-  // What taking this choice does, in numbers. Rendered in the modal;
-  // apply() does exactly what this says.
+  // What taking this choice does. `effects` are its numbers, drawn as
+  // chips (components/EffectChip.tsx, Plan 125 A), less the cash charged
+  // up front, which the choice's corner shows. `describe` is the rest, in
+  // a sentence. Both are rendered in the modal; apply() does exactly what
+  // they say.
+  effects?(s: GameState, ctx: DecisionEventContext): Effect[];
   describe(s: GameState, ctx: DecisionEventContext): string;
   // Cash charged up front, by the reducer; 0 for a free choice. An
   // unaffordable choice is shown disabled and refused by the reducer.
@@ -463,9 +473,13 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'sign',
         label: 'Accept the gift',
+        effects: (_s, ctx) => [
+          { kind: 'money', figure: signedMoney(ctx.amount ?? 0), tone: 'gain' },
+          mood(-NAMING_RIGHTS_SATISFACTION_HIT),
+        ],
         describe: (_s, ctx) => (ctx.subjectField === 'venue'
-          ? `You get ${money(ctx.amount ?? 0)} in cash now, and the venue becomes ${ctx.newName} for good. Satisfaction drops ${NAMING_RIGHTS_SATISFACTION_HIT} points, and recovers over the following weeks.`
-          : `You get ${money(ctx.amount ?? 0)} in cash now, and the school becomes the ${ctx.newName} for good. Satisfaction drops ${NAMING_RIGHTS_SATISFACTION_HIT} points, and recovers over the following weeks.`),
+          ? `The venue becomes ${ctx.newName} for good.`
+          : `The school becomes the ${ctx.newName} for good.`),
         cost: () => 0,
         apply: (s, ctx) => {
           s.finance.cash += ctx.amount ?? 0;
@@ -517,8 +531,12 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'charter',
         mood: 1,
         label: 'Charter the council',
+        effects: () => [
+          { kind: 'social', figure: `+${CHAPTER_SOCIAL_BONUS}`, words: 'social life per chapter, at most', tone: 'gain' },
+          { kind: 'weekly', words: 'a weekly cost per chapter', tone: 'loss' },
+        ],
         describe: () =>
-          `Chapters form as your college grows, one for every ${countOf(STUDENTS_PER_CHAPTER)} students. Each one asks for approval at the summer's student review, like a club. A chapter adds up to ${CHAPTER_SOCIAL_BONUS} points of social life, far more than a club. Each one also costs money every week, and sooner or later chapters bring problems of their own.`,
+          `Chapters form as your college grows, one for every ${countOf(STUDENTS_PER_CHAPTER)} students. Each one asks for approval at the summer's student review, like a club, and adds far more social life than a club does. Sooner or later chapters bring problems of their own.`,
         cost: () => 0,
         apply: (s) => {
           s.orgs.hellenicCouncilApproved = true;
@@ -528,7 +546,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       },
       {
         id: 'decline',
-        label: 'Decline — no Greek life here',
+        label: 'Decline, and have no Greek life',
         describe: () =>
           "No fraternity or sorority will ever form at your college, and you won't be asked again. Clubs are not affected.",
         cost: () => 0,
@@ -567,8 +585,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'pr',
         mood: -GREEK_SCANDAL_PR_SATISFACTION_HIT,
         label: 'Fund a public-relations campaign',
-        describe: (_s, ctx) =>
-          `${money(ctx.amount ?? 0)} now. ${ctx.subjectName} keeps its charter and everything it adds. Satisfaction drops ${GREEK_SCANDAL_PR_SATISFACTION_HIT} points, and recovers over the following weeks.`,
+        effects: () => [mood(-GREEK_SCANDAL_PR_SATISFACTION_HIT)],
+        describe: (_s, ctx) => `${ctx.subjectName} keeps its charter and everything it adds.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           dentSatisfaction(s, GREEK_SCANDAL_PR_SATISFACTION_HIT);
@@ -582,13 +600,18 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'disband',
         mood: -CHAPTER_SOCIAL_BONUS,
         label: 'Pull the charter',
-        describe: (s, ctx) => {
+        effects: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
           const bonus = chapter
             ? CHAPTER_SOCIAL_BONUS + (chapter.housed ? CHAPTER_HOUSED_SOCIAL_BONUS : 0)
             : CHAPTER_SOCIAL_BONUS;
-          return `Costs nothing. ${ctx.subjectName} is dissolved for good. You lose up to ${bonus.toFixed(1)} points of social life${chapter?.housed ? ` and the ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of its house` : ''}, and save ${money(chapter?.upkeepPerWeek ?? 0)} a week. It can never be chartered again.`;
+          return [
+            { kind: 'social', figure: `−${bonus.toFixed(1)}`, words: 'social life, at most', tone: 'loss' },
+            ...(chapter?.housed ? [{ kind: 'beds', figure: `−${CHAPTER_HOUSE_CAPACITY_BONUS}`, words: 'beds', tone: 'loss' } as Effect] : []),
+            weekly(chapter?.upkeepPerWeek ?? 0, 'a week saved'),
+          ];
         },
+        describe: (_s, ctx) => `${ctx.subjectName} is dissolved for good. It can never be chartered again.`,
         cost: () => 0,
         apply: (s, ctx) => {
           // A housed chapter's beds go with its house (they were added
@@ -631,8 +654,12 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'build',
         label: 'Build the chapter house',
-        describe: (s, ctx) =>
-          `${money(ctx.amount ?? 0)} now, and ${money(weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX))} a week to run it, for good. ${ctx.subjectName} adds up to ${CHAPTER_HOUSED_SOCIAL_BONUS} more points of social life and ${CHAPTER_HOUSE_CAPACITY_BONUS} beds of campus housing, both straight away. You place the house from the build menu.`,
+        effects: (s) => [
+          weekly(-weeksOfOpEx(s, GREEK_HOUSE_UPKEEP_WEEKS_OF_OPEX), 'a week to run it'),
+          { kind: 'social', figure: `+${CHAPTER_HOUSED_SOCIAL_BONUS}`, words: 'social life, at most', tone: 'gain' },
+          { kind: 'beds', figure: `+${CHAPTER_HOUSE_CAPACITY_BONUS}`, words: 'beds', tone: 'gain' },
+        ],
+        describe: () => 'The social life and the beds arrive straight away. You place the house from the build menu.',
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -672,8 +699,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         mood: -GREEK_HOUSE_DEFER_SATISFACTION_HIT,
         label: 'Not yet: ask again when we can afford it',
         hidden: (s, ctx) => (ctx.amount ?? 0) <= s.finance.cash,
-        describe: (s, ctx) =>
-          `Costs nothing. You're ${money((ctx.amount ?? 0) - Math.max(0, s.finance.cash))} short today. Satisfaction drops ${GREEK_HOUSE_DEFER_SATISFACTION_HIT} point, and recovers over the following weeks. ${ctx.subjectName} asks again in about half a year.`,
+        effects: () => [mood(-GREEK_HOUSE_DEFER_SATISFACTION_HIT)],
+        describe: (s, ctx) => `You're ${money((ctx.amount ?? 0) - Math.max(0, s.finance.cash))} short today. ${ctx.subjectName} asks again in about half a year.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -686,8 +713,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
         id: 'refuse',
         mood: -GREEK_HOUSE_REFUSAL_SATISFACTION_HIT,
         label: 'They can keep meeting where they are',
-        describe: (_s, ctx) =>
-          `Costs nothing. Satisfaction drops ${GREEK_HOUSE_REFUSAL_SATISFACTION_HIT} points, and recovers over the following weeks. ${ctx.subjectName} keeps its charter and everything it already adds, and won't ask again.`,
+        effects: () => [mood(-GREEK_HOUSE_REFUSAL_SATISFACTION_HIT)],
+        describe: (_s, ctx) => `${ctx.subjectName} keeps its charter and everything it already adds, and won't ask again.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const chapter = findChapter(s, ctx.subjectId);
@@ -750,13 +777,17 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'appoint',
         label: 'Let them make the hire',
-        describe: (s, ctx) => {
+        effects: (s, ctx) => {
           const c = ctx.coach;
-          const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
           // Pay runs through the athletics budget's tier (varsityTeamUpkeep).
-          const pay = c ? c.salary * ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].upkeepMultiplier : 0;
-          return `${money(ctx.amount ?? 0)} now to make it happen, then ${c ? `${money(pay)}/yr at this budget, rising with tenure` : 'a salary'}. `
-            + `${c ? `${c.name} becomes the team's ${role}, at quality ${c.quality}` : `The post is filled`}. That's better than the market usually offers.`;
+          return c ? [
+            { kind: 'money', figure: `−${money(c.salary * ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget].upkeepMultiplier)}/yr`, words: 'at this subsidy, rising with tenure', tone: 'loss' },
+            { kind: 'athletics', figure: String(c.quality), words: 'quality', tone: 'plain' },
+          ] : [];
+        },
+        describe: (_s, ctx) => {
+          const role = CHAIR_LABEL[(ctx.subjectField ?? 'head') as 'head' | 'assistant' | 'trainer'];
+          return `${ctx.coach ? `${ctx.coach.name} becomes the team's ${role}` : 'The post is filled'}. That's better than the market usually offers.`;
         },
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
@@ -773,7 +804,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'wait',
         label: 'Leave it to the open market',
-        describe: () => 'Costs nothing. The post stays empty until you hire someone from the market in the Athletics tab, and the team plays worse until you do.',
+        describe: () => 'The post stays empty until you hire someone from the market in the Athletics tab, and the team plays worse until you do.',
         cost: () => 0,
         apply: (s, ctx) => entry(s, `${ctx.subjectName} will go on without the appointment for now.`, 'info'),
       },
@@ -806,7 +837,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'cooperate',
         label: 'Self-report and take the ban',
-        describe: (s, ctx) => `Costs nothing. ${ctx.subjectName} is barred from the postseason through Year ${s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year}. Satisfaction drops ${SCANDAL_SATISFACTION_HIT} points, and recovers over the following weeks.`,
+        effects: () => [mood(-SCANDAL_SATISFACTION_HIT)],
+        describe: (s, ctx) => `${ctx.subjectName} is barred from the postseason through Year ${s.clock.week >= PLAYOFF_WEEK ? s.clock.year + 1 : s.clock.year}.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
@@ -819,7 +851,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'fight',
         label: 'Fight it',
-        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} to the lawyers now. Half the time, the inquiry finds nothing and there is no ban. The other half, it finds more. Then the ban lasts two seasons, and satisfaction drops ${SCANDAL_FOUGHT_SATISFACTION_HIT} points.`,
+        describe: () => `The money goes to the lawyers. Half the time, the inquiry finds nothing and there is no ban. The other half, it finds more. Then the ban lasts two seasons, and satisfaction drops ${SCANDAL_FOUGHT_SATISFACTION_HIT} points.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
@@ -860,14 +892,14 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'keep',
         label: 'Match the offer',
-        describe: (_s, ctx) => `${money(ctx.amount ?? 0)} now, and ${ctx.subjectName} stays with ${ctx.subjectField}.`,
+        describe: (_s, ctx) => `${ctx.subjectName} stays with ${ctx.subjectField}.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => entry(s, `${ctx.subjectName} turned the offer down and stays with ${ctx.subjectField}.`, 'good'),
       },
       {
         id: 'release',
         label: 'Wish them well',
-        describe: (_s, ctx) => `Costs nothing. ${ctx.subjectName} leaves, and ${ctx.subjectField} needs a new head coach. The market will list someone next week.`,
+        describe: (_s, ctx) => `${ctx.subjectName} leaves, and ${ctx.subjectField} needs a new head coach. The market will list someone next week.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const team = s.orgs.teams.find((t) => t.id === ctx.subjectId);
@@ -922,11 +954,15 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'chair',
         label: `Fund the chair`,
-        describe: (s, ctx) => {
+        effects: (s, ctx) => {
           const c = ctx.candidate;
-          return `${money(ctx.amount ?? 0)} now, then ${c ? `${money(c.salary * marketRateMultiplier(s.self.reputation))}/yr` : 'a salary at the market rate'}. `
-            + `${c ? `${c.name} takes the chair in ${ctx.subjectField} (teaching ${c.teaching}, research ${c.research})` : 'A scholar takes the chair'}, the best the board could find.`;
+          return c ? [
+            { kind: 'money', figure: `−${money(c.salary * marketRateMultiplier(s.self.reputation))}/yr`, words: 'salary', tone: 'loss' },
+            { kind: 'teaching', figure: String(c.teaching), words: 'teaching', tone: 'plain' },
+            { kind: 'research', figure: String(c.research), words: 'research', tone: 'plain' },
+          ] : [];
         },
+        describe: (_s, ctx) => `${ctx.candidate ? `${ctx.candidate.name} takes the chair in ${ctx.subjectField}` : 'A scholar takes the chair, at the market rate'}, the best the board could find.`,
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const field = ctx.subjectField ?? pick(FACULTY_FIELDS);
@@ -939,8 +975,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'campaign',
         label: "Run the board's campaign",
-        describe: (_s, ctx) =>
-          `You put in ${money(ctx.amount ?? 0)}. With the board's own match, ${money((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER)} goes into the endowment.`,
+        effects: (_s, ctx) => [{ kind: 'endowment', figure: signedMoney((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER), words: 'endowment', tone: 'gain' }],
+        describe: () => 'The board matches what you put in, and all of it goes into the endowment.',
         cost: (_s, ctx) => ctx.amount ?? 0,
         apply: (s, ctx) => {
           const raised = Math.round((ctx.amount ?? 0) * TRUSTEE_CAMPAIGN_MULTIPLIER);
@@ -951,7 +987,7 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'hold',
         label: 'Hold the course',
-        describe: () => "Costs nothing. Your college answers on the field, or it doesn't.",
+        describe: () => "Your college answers on the field, or it doesn't.",
         cost: () => 0,
         apply: (s, ctx) => entry(s, `The board's response to ${ctx.subjectName} is to hold the course.`, 'info'),
       },
@@ -1015,11 +1051,12 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'establish',
         label: 'Go varsity',
+        effects: (s) => [weekly(-weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX), 'a week to run it')],
         describe: (s, ctx) => {
           const sport = sportById(ctx.subjectField);
           const venue = sport ? venueForCategory(s, sport.venueCategory) : undefined;
           const ready = venue?.status === 'done';
-          return `${money(ctx.amount ?? 0)} now, and ${money(weeksOfOpEx(s, VARSITY_TEAM_UPKEEP_WEEKS_OF_OPEX))} a week. ` + (
+          return (
             ready
               ? `${venue!.name} is already built, so the team plays varsity at once.`
               : `${venue ? venue.name : 'A shared venue'} appears in the build menu. The team plays varsity once it's built, and shares it with any other team that uses the same kind of venue.`
@@ -1051,7 +1088,8 @@ export const DECISION_EVENTS: readonly DecisionEvent[] = [
       {
         id: 'decline',
         label: 'Stay a club',
-        describe: () => `Costs nothing. Satisfaction drops ${VARSITY_DECLINE_SATISFACTION_HIT} points, and recovers over the following weeks. The club keeps everything it already adds, and will ask again in ${VARSITY_PETITION_MIN_TENURE_YEARS} years.`,
+        effects: () => [mood(-VARSITY_DECLINE_SATISFACTION_HIT)],
+        describe: () => `The club keeps everything it already adds, and will ask again in ${VARSITY_PETITION_MIN_TENURE_YEARS} years.`,
         cost: () => 0,
         apply: (s, ctx) => {
           const club = s.orgs.clubs.find((c) => c.id === ctx.subjectId);

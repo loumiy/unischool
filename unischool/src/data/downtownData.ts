@@ -1,4 +1,5 @@
 import type { DowntownState, FestivalScale, FestivalYear, GameState } from '../state/types';
+import { toneOf, type Effect } from './effectTypes';
 import type { CatalogueEvent } from './eventCatalogueTypes';
 import { AUTUMN_POINTS } from './speedUpData';
 
@@ -258,18 +259,23 @@ export const DOWNTOWN_WORDS = {
   hintLast: 'The latest spring festival and its scale. You decide the next one in the inbox, in the fourth week of the Spring term.' as `${string}.`,
 };
 
-// What an answer to the festival does, beyond its cost and mood: a phrase
-// each (EventChoices.tsx, which passes its formatters). `pool` is last
-// summer's applicants, `giving` a year's annual giving, for the gala.
-export function festivalPhrases(
+// What an answer to the festival does, beyond its cost and mood: an effect
+// each (systems/events/choiceEffects.ts, which passes its formatters).
+// `pool` is last summer's applicants, `giving` a year's annual giving, for
+// the gala.
+export function festivalEffects(
   index: number, pool: number, giving: number,
   f: { signed: (v: number) => string; money: (m: number) => string },
-): string[] {
+): Effect[] {
   const scale = festivalScaleOf(index);
-  if (scale === 'none') return [`town goodwill ${f.signed(SKIPPED_GOODWILL)}`];
+  if (scale === 'none') return [{ kind: 'goodwill', figure: f.signed(SKIPPED_GOODWILL), words: 'town goodwill', tone: toneOf(SKIPPED_GOODWILL) }];
   const t = FESTIVAL[scale];
-  const out = [`${f.signed(Math.round(pool * t.applicants))} applicants next summer`, `town goodwill ${f.signed(t.goodwill)}`];
-  if (t.gifts > 0) out.push(`alumni gifts of about ${f.money(giving * t.gifts)} to the endowment`);
+  const applicants = Math.round(pool * t.applicants);
+  const out: Effect[] = [
+    { kind: 'students', figure: f.signed(applicants), words: 'applicants next summer', tone: toneOf(applicants) },
+    { kind: 'goodwill', figure: f.signed(t.goodwill), words: 'town goodwill', tone: toneOf(t.goodwill) },
+  ];
+  if (t.gifts > 0) out.push({ kind: 'endowment', figure: `about ${f.money(giving * t.gifts)}`, words: 'in alumni gifts to the endowment', tone: 'gain' });
   return out;
 }
 
