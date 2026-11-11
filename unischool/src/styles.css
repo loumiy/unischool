@@ -1529,9 +1529,10 @@ button.build-tile { font-family: inherit; }
   vector-effect: non-scaling-stroke;
   animation: campus-complete 1.5s ease-out forwards;
 }
-/* Founders Hall rising into its footprint at the founding (Plan 124H): on
-   the ring's easing, from the ground at the footprint's centre (the group's
-   origin, CampusMap.tsx). Reduced motion never mounts it. */
+/* Founders Hall going up at the founding (Plan 124H, CampusMap.tsx's
+   FOUNDING_STAGES_MS): each construction stage fades in over the plot, so
+   the stages read as a sequence. Reduced motion never mounts it. */
+.founding-stage { animation: enter-fade 260ms ease-out both; }
 @keyframes campus-complete {
   0% { opacity: 0; stroke-width: 1; }
   22% { opacity: 1; stroke-width: 4; }
