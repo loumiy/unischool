@@ -3,7 +3,7 @@ import type { Buildable, Facing, SchoolColors, Vernacular } from '../state/types
 import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, unproject, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { frontDepth, frontWidth, localBox, localToGrid, sideSeen, sidesOf, type Plot } from './facing';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
-import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
+import { WALL_LIGHT, clipToBox, faceTone, shadowGround, shadowOffset, sunScreenDir } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import Landmark from './landmarks';
 import LibraryMass from './libraryMotif';
@@ -6109,11 +6109,10 @@ function plotBox(p: ownFrame.Plot) {
 // CampusMap's shadow pass already lies outside it, and a second layer there
 // would read as a darker band.
 function plotShadow(b: DepthBox, height: number, plot: DepthBox, key: string) {
-  const { dcol, drow } = shadowOffset(height);
-  const c0 = Math.max(plot.col, b.col + dcol); const c1 = Math.min(plot.col + plot.w, b.col + b.w + dcol);
-  const r0 = Math.max(plot.row, b.row + drow); const r1 = Math.min(plot.row + plot.h, b.row + b.h + drow);
-  if (c1 <= c0 || r1 <= r0) return null;
-  return <polygon key={key} className="campus-building-shadow" points={polyPoints(boxFaces(c0, r0, c1 - c0, r1 - r0, 0, 0).top)} />;
+  // The whole shadow (light.ts's shadowGround: base to throw), clipped.
+  const ground = clipToBox(shadowGround(b.col, b.row, b.w, b.h, height), plot.col, plot.row, plot.col + plot.w, plot.row + plot.h);
+  if (ground.length < 3) return null;
+  return <polygon key={key} className="campus-building-shadow" points={polyPoints(ground.map((p) => project(p.col, p.row)))} />;
 }
 
 // The visible long walls of a box (its two faces along the ridge).

@@ -115,7 +115,11 @@ Three consequences, each in its own place:
   behind its terrace, a village from each house, the hospital from its slab
   and its wing, a tower from its podium and its shaft, the arena from its
   hall, entrance and annex, the Museum from the gallery behind its
-  forecourt. A site casts from the frame or shell it is drawn at
+  forecourt. Each part's shadow is the ground between its footprint and
+  the footprint thrown away from the sun (`light.ts`'s `shadowGround`, the
+  hull of the two), so it runs out from the building's corners; the throw
+  alone, which it was until the owner asked, stepped in from the two side
+  corners. A site casts from the frame or shell it is drawn at
   (`CampusMap.tsx`'s `siteRise`), not its footings. A motif that paves its
   own plot (the village's lawn, a terrace, a forecourt) covers the pass
   there, so it draws its parts' shadows on its paving itself (`plotShadow`).
