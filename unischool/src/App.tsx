@@ -235,14 +235,21 @@ export default function App() {
   }, chaptersOn);
   useEffect(() => {
     if (!chapterNow || marked(s, readMark(chapterNow.id))) return;
-    if (objectivesOpen && !lingering) act({ type: 'MARK_GUIDANCE', mark: readMark(chapterNow.id) });
+    // Read only once the drawer shows it: open on the current chapter, not
+    // a page read again, and not the moment a chapter finishes over a tab,
+    // when the drawer is about to hold the finished one (Plan 122E). Before,
+    // finishing The next course in the Curriculum with the drawer open
+    // marked Looking around read in that same moment, unseen, so it never
+    // opened by itself (the owner: players stuck on Chapter 3).
+    const justFinishedOverTab = overlay !== null && overlay.tab !== 'inbox' && lastChapter.current !== null && lastChapter.current !== chapterNow.id;
+    if (objectivesOpen && !lingering && objectivesView === null && !justFinishedOverTab) act({ type: 'MARK_GUIDANCE', mark: readMark(chapterNow.id) });
     else if (objectivesMode === 'guided' && hasPage(chapterNow.id) && !stopUp && !overlay && !buildOpen) {
       setObjectivesOpen(true);
       setLogOpen(false);
       setLadderOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterNow?.id, objectivesOpen, objectivesMode, stopUp, overlay, buildOpen, lingering]);
+  }, [chapterNow?.id, objectivesOpen, objectivesView, objectivesMode, stopUp, overlay, buildOpen, lingering]);
   // The chapter before, finished while a tab is open: the drawer opens over
   // the tab on it, marked done (Plan 122E). Leaving the tab, by closing it
   // or going to another screen, lets it go; on the map the next chapter
