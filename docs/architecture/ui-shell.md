@@ -478,7 +478,11 @@ from the startup screen opens with `s.events.opening.stage` at `'welcome'` and
 the clock held (see [interrupts.md](interrupts.md)); `App.tsx` acts once on
 each transition into a stage — opens the build menu for the hall, closes it,
 drops the pickup and opens Founders Hall's panel when the hall stands (where
-the first professor is appointed and the first program founded, Plan 80D),
+the first professor is appointed and the first program founded, Plan 80D:
+after the hall goes up, `FOUNDING_LOOK_MS`, the map eases the view to it over
+`FOUNDING_PAN_MS` and opens the panel as the pan lands, `inspectHall`'s
+`glide`; the walkthrough's card waits for the panel; reduced motion opens both
+at once),
 and starts the clock when the program is founded and the walk ends — through
 the same `setBuildOpen` and
 `inspectHall` every other caller uses, so the one-slot rule holds. The card is

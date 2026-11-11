@@ -23,7 +23,7 @@ import { useAudioDirector } from './components/audio/useAudio';
 import { audio } from './components/audio/engine';
 import InterruptModal from './components/InterruptModal';
 import { GATED_TABS, TAB_LABELS, tabAvailable, type TabId } from './components/TabNav';
-import CampusMap, { FOUNDING_RISE_MS } from './components/CampusMap';
+import CampusMap, { FOUNDING_LOOK_MS, FOUNDING_PAN_MS } from './components/CampusMap';
 import { FOUNDERS_HALL_ID } from './data/techData';
 import Toolbar from './components/Toolbar';
 import LogTicker, { objectivesShown } from './components/LogTicker';
@@ -112,6 +112,8 @@ export default function App() {
   const [inspectTarget, setInspectTarget] = useState<string | null>(null);
   // The program whose tile opens with that hall's panel (NEXT's move, Plan 78D).
   const [inspectProgram, setInspectProgram] = useState<string | null>(null);
+  // The map eases to the hall before opening its panel (the founding).
+  const [inspectGlide, setInspectGlide] = useState(false);
   // Which building's panel the map has open (reported by CampusMap), so the
   // opening walkthrough's card can tell whether its door is open.
   const [inspectedId, setInspectedId] = useState<string | null>(null);
@@ -433,10 +435,11 @@ export default function App() {
   }
   // A tab has landed on its target: clear it, keeping the tab open.
   const clearTarget = () => setOverlay((cur) => (cur ? { tab: cur.tab } : cur));
-  function inspectHall(hallId: string, programId?: string) {
+  function inspectHall(hallId: string, programId?: string, glide = false) {
     if (holding) return;
     openTab(null);
     setInspectProgram(programId ?? null);
+    setInspectGlide(glide);
     setInspectTarget(hallId);
   }
   // `target`: a building to open the menu on, ringed (Plan 114F).
@@ -484,9 +487,10 @@ export default function App() {
   // skipped. On mount, a save resumed mid-walk acts on the door-opening
   // stages but not on the clock. The ref holds the last stage acted on so
   // StrictMode's double effect can't act twice.
-  // The hall just placed rises first (Plan 124H, CampusMap.tsx's
-  // FOUNDING_RISE_MS): its panel and the walkthrough's card wait for the
-  // rise, and under reduced motion open at once.
+  // The hall just placed goes up first (Plan 124H, CampusMap.tsx's
+  // FOUNDING_LOOK_MS), then the view eases to it (FOUNDING_PAN_MS) and the
+  // map opens its panel as the pan lands; the walkthrough's card waits for
+  // the panel. Under reduced motion both open at once.
   const stage: OpeningStage = s.events.opening.stage;
   const actedStage = useRef<OpeningStage | null>(null);
   const [hallRising, setHallRising] = useState(false);
@@ -502,14 +506,19 @@ export default function App() {
       setPlacingIdState(null);
       if (prev === 'site-hall' && !reducedMotion()) {
         setHallRising(true);
-        window.setTimeout(() => {
-          setHallRising(false);
-          inspectHall(FOUNDERS_HALL_ID);
-        }, FOUNDING_RISE_MS);
+        window.setTimeout(() => inspectHall(FOUNDERS_HALL_ID, undefined, true), FOUNDING_LOOK_MS);
+        // The card comes with the panel (below); this only makes sure it
+        // comes should the panel not open.
+        window.setTimeout(() => setHallRising(false), FOUNDING_LOOK_MS + FOUNDING_PAN_MS + 400);
       } else inspectHall(FOUNDERS_HALL_ID);
     }
     else if (prev !== null && stage === 'play') setSpeed('real');
   }, [s.started, stage]);
+  // The walkthrough's card with Founders Hall's panel, which the map opens
+  // as its pan lands.
+  useEffect(() => {
+    if (hallRising && inspectedId === FOUNDERS_HALL_ID) setHallRising(false);
+  }, [hallRising, inspectedId]);
 
   // A stop opens the inbox on itself (Plan 77), the summer once the player
   // opens it (Plan 112C), and each new stop or summer beat re-points it
@@ -674,7 +683,8 @@ export default function App() {
           onOpenResearch={tabAvailable(s, 'research') ? (target) => openTab('research', target) : undefined}
           inspectTarget={inspectTarget}
           inspectProgram={inspectProgram}
-          onInspectTargetConsumed={() => { setInspectTarget(null); setInspectProgram(null); }}
+          inspectGlide={inspectGlide}
+          onInspectTargetConsumed={() => { setInspectTarget(null); setInspectProgram(null); setInspectGlide(false); }}
           // A building's panel and the build menu are one at a time (Plan
           // 96C): opening a panel closes the menu, and the map closes its
           // panel when the menu opens.

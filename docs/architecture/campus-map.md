@@ -453,6 +453,17 @@ lays it again: a sandbox's move leaves it where it was, and a save from before
 it loads as it was drawn. It is an ordinary path the player may lift or
 repave.
 
+**Founders Hall goes up** at the founding (Plan 124H, revised after two
+playtests): its canvas entries are left out while an SVG overlay plays the
+construction stages every site shows over its build weeks, the graded plot in
+its hoarding (`GroundSite`), the frame (`SiteFrame`), then the hatched shell,
+held 700, 900 and 900 ms (`FOUNDING_STAGES_MS`, each fading in over the last).
+It then stands with the completion ring and cue, and after a 300 ms beat the
+view eases to it (`easeViewTo`, the same easeInOutQuad ease as the one look
+at the downtown, `FOUNDING_PAN_MS` 750) before its panel opens. A pan or zoom
+by the player stops the ease. Reduced motion shows the hall at once and jumps
+the view.
+
 **Benches** (Plan 80I) are the one prop with a direction. A bench is set
 against one edge of its tile and faces out across it, its back to the lawn,
 so the save stores each bench's facing with it (`'bench-n'`…`'bench-w'`,
