@@ -16,7 +16,7 @@
 import { teachingCollege } from './fixtures/teaching';
 import type { Buildable, FunnelRecord } from '../src/state/types';
 import { courseHoldReason, crossMajorPrereqs } from '../src/systems/techtree/programProgress';
-import { admitRateOpening, poolChange } from '../src/systems/admissions/yearOverYear';
+import { admitRateNote, admitRateOpening, poolChange } from '../src/systems/admissions/yearOverYear';
 import { projectAdmissions } from '../src/systems/admissions/admissionsSystem';
 
 let checks = 0;
@@ -82,6 +82,9 @@ console.log('plain words tests');
   assert(admitRateOpening(true, 0.21) === 'The admit rate starts at the founding rate, 21%.', 'the first summer opens at the founding rate');
   assert(admitRateOpening(false, 0.38) === 'The admit rate starts where you set it last summer, 38%.', 'later summers open at last summer\'s');
   assert(!admitRateOpening(false, 0.38).includes('beds') && !admitRateOpening(true, 0.86, 0.62).includes('crowd'), 'no beds and no crowding: crowding went with Plan 107E (Plan 113D)');
+  // Under the figure, in a few words (Plan 126): the sentence is its title.
+  assert(admitRateNote(true, 0.21) === 'the founding rate' && admitRateNote(false, 0.38) === 'as last summer' && admitRateNote(false, 0.86, 0.62) === 'all the places hold',
+    'the note under the admit rate says where it opened');
   assert(admitRateOpening(true, 0.86, 0.62) === 'The admit rate starts at 62%, the most the places left will hold. The founding rate was 86%.', 'a founding rate above the room opens at the room');
   assert(admitRateOpening(false, 0.5, 0.62) === 'The admit rate starts where you set it last summer, 50%.', 'a rate inside the room opens where it was');
   assert(admitRateOpening(true, 0.862, 0.858) === 'The admit rate starts at 86%, the most the places left will hold.', 'a cap that reads the same as the founding rate names it once');
