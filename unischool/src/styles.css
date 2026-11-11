@@ -4968,6 +4968,15 @@ body:has(.building-info-panel) .pennant { display: none; }
 .admissions-figures dt { font-size: var(--text-xs); color: var(--ink-muted); }
 .admissions-figures dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: var(--text-2xl); }
 .admissions-figures dd.sub { font-family: var(--sans); font-weight: 500; font-size: var(--text-xs); color: var(--ink-muted); }
+/* Why the pool moved (Plan 126): a factor a row, its move at the right. */
+.admissions-card-eyebrow .good { color: var(--ok-on-light); }
+.admissions-card-eyebrow .bad { color: var(--bad-on-light); }
+.admissions-moves { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--text-sm); }
+.admissions-moves > div { display: flex; justify-content: space-between; gap: var(--space-12); }
+.admissions-moves dt { color: var(--ink); }
+.admissions-moves dd { margin: 0; font-family: var(--display); font-weight: 800; font-variant-numeric: tabular-nums; }
+.admissions-moves dd.good { color: var(--ok-on-light); }
+.admissions-moves dd.bad { color: var(--bad-on-light); }
 .admissions-change .good, .admissions-effect .good { color: var(--ok-on-light); }
 .admissions-change .bad, .admissions-effect .bad { color: var(--bad-on-light); }
 .admissions-effect { display: flex; flex-direction: column; gap: 3px; }

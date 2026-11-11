@@ -43,11 +43,6 @@ export function liftLabel(liftFactorNow: number): string {
   return liftFactorNow > 1 ? 'a one-year lift' : "last year's lift ended";
 }
 
-// The labels that are phrases, shown with a colon before the figure.
-export function takesColon(key: keyof FunnelFactors): boolean {
-  return key === 'lift';
-}
-
 // Moves smaller than this are rounding and are left off the line.
 const MOVE_FLOOR = 0.005;
 
@@ -94,4 +89,12 @@ export function admitRateOpening(firstSummer: boolean, openingRate: number, room
   return firstSummer
     ? `The admit rate starts at the founding rate, ${pct(openingRate)}.`
     : `The admit rate starts where you set it last summer, ${pct(openingRate)}.`;
+}
+
+// The same, in the two or three words under the admit rate's figure
+// (Plan 126, the owner: the card's sentence was too wordy). The sentence
+// stays as the figure's title.
+export function admitRateNote(firstSummer: boolean, openingRate: number, roomRate = 1): string {
+  if (openingRate > roomRate) return 'all the places hold';
+  return firstSummer ? 'the founding rate' : 'as last summer';
 }
