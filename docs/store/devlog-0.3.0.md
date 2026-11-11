@@ -4,8 +4,12 @@
 next upload. It covers everything merged since the 0.2.0 build
 (`d956917`, 2 November): the late-game speed fix and the map fix (PR #445),
 Plan 124 (subtraction, as decided), Plan 125 (the written content) and
-Plan 126 (the interface review's first ten). Plan 123 was a review and
-changed nothing in the game. The version number is a placeholder: rename
+Plan 126 (the interface review's first ten), and the owner's playtest
+notes after them: the admissions and summer pages, Founders Hall's
+opening, building shadows, professors without titles and the Chapter 3
+fix. The last of these are on `claude/gallant-tesla-g4c36a`, waiting to
+be merged into `main`; check they are in the build before posting. Plan
+123 was a review and changed nothing in the game. The version number is a placeholder: rename
 the file if the build ships as something else. Nothing here claims more
 than the build does.*
 
@@ -66,9 +70,10 @@ promise underway loads without it.
   pillar, and the Treasury lost the *Cost of being large* panel, which
   showed from year 1 when the cost doesn't matter until much later. The
   cost is still in the figures.
-- **Founders Hall goes up as you found the college**, in the same
-  construction stages as every other building, and its name appears
-  when it stands.
+- **Founders Hall goes up as you found the college**, through the same
+  stages as every other building: the plot behind its hoarding, the
+  frame, the shell in scaffolding. Then the view eases over to it
+  instead of snapping there, and its name appears when it stands.
 
 ### Prestige you can read
 
@@ -84,6 +89,13 @@ the four add up to your prestige.
 
 ### The campus shows what's happening
 
+- **Shadows fall where the building is.** A building used to cast its
+  whole plot at its tallest height, so shadows lay past a dining hall's
+  terrace, across the hospital's open corner and around a tower's base.
+  Now each part casts its own shadow at its own height, and the shadow
+  runs out from the walls instead of floating beside them. A building
+  site casts the shadow of the stage it's at.
+
 - **A program goes dark** on the map while one of its courses has no
   teacher, and lights again when someone's appointed.
 - **Students queue** at the dining halls and the clinics when those
@@ -97,6 +109,25 @@ the four add up to your prestige.
   cornice.
 - **The marks over buildings hold their size** as you zoom, so they
   don't shrink to specks zoomed out or swell zoomed in.
+
+### The summer, as pages
+
+Every step of the summer now opens as its own page, like admissions,
+with a count of where you are ("Summer · Year 6 · 1 of 3").
+
+- **The review leads with four figures**: prestige and how far it rose,
+  satisfaction against last year, the year's net and your rank, with
+  who passed you. The prestige bar sits under them. After that come only
+  the sections with something new to say, each kept to three items, and
+  nothing the figures already said is said again.
+- **The students' step** no longer repeats the price and admit rate you
+  set a page before.
+- **Admissions says why the pool moved** as a short list, one reason a
+  row with its share at the right, under "Applicants · +55% on last
+  summer". Under the admit rate, a few words say where it opened ("as
+  last summer", "the founding rate"). The applicants a milestone, a
+  grand landmark or the spring festival draw for one summer are now
+  called **This year's news**.
 
 ### The big moments
 
@@ -151,8 +182,11 @@ professional schools got some of the dry humor the others had. The
 offices each have a line of their own, a professor's bio is told five
 ways, and long help became legends, keys and small tables.
 
-A few names changed: the tabs' **Guide** button is now **Show me**, and
-the top professor rank is **Chair**.
+The tabs' **Guide** button is now **Show me**.
+
+**Professors no longer carry a title.** Adjunct, Assistant, Associate,
+Full and the rest were just bands of the two scores shown beside them,
+and read like a career rank they weren't. Gone from every screen.
 
 ### Sounds and motion
 
@@ -164,6 +198,12 @@ the top professor rank is **Chair**.
 
 ### Fixes
 
+- **Chapter 3 opens by itself.** Finishing Chapter 2 in the Curriculum
+  with the objectives open could leave Chapter 3 open but never shown,
+  so you sat on it without knowing. Now it appears when you close the
+  tab.
+- Chapter 2's help for a second course no longer describes steps the
+  Curriculum doesn't take.
 - Committing a course keeps your place in the Curriculum list.
 - The build menu no longer springs back open the moment you place a
   building.
