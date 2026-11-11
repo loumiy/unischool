@@ -110,6 +110,15 @@ Three consequences, each in its own place:
   on the same lawn however the view turns. Every cast shadow — buildings
   and woodland — is drawn in one pass under every mass, because a shadow
   can now fall *away* from the camera, across a building already painted.
+  A building casts from the parts it draws (`buildingMotifs.tsx`'s
+  `shadowCastersOf`), each at its own height: a dining hall from the hall
+  behind its terrace, a village from each house, the hospital from its slab
+  and its wing, a tower from its podium and its shaft, the arena from its
+  hall, entrance and annex, the Museum from the gallery behind its
+  forecourt. A site casts from the frame or shell it is drawn at
+  (`CampusMap.tsx`'s `siteRise`), not its footings. A motif that paves its
+  own plot (the village's lawn, a terrace, a forecourt) covers the pass
+  there, so it draws its parts' shadows on its paving itself (`plotShadow`).
 - **A building has a front, a back and two sides** (four-way
   orientation). A placement stores its `facing`: which map edge its front
   faces, set a quarter turn at a time with R as it is placed, square
