@@ -388,6 +388,8 @@ placement in `CampusMap.tsx` and the walkthrough's step in `OpeningCoach.tsx`.
 
 **Revised after the owner's playtest (3 November 2026):** the scaling rise read as distorted and cartoonish, out of the game's style. Founders Hall now goes up in the construction stages every other building shows (`SiteFrame`, then the hatched shell in scaffolding), 450 ms each, before it stands; `FOUNDING_RISE_MS` is 900 and the panels wait that long. The `.founding-rise` keyframes are gone, and the hall's label waits until it stands. Reduced motion still shows the hall at once.
 
+**Revised again (November 2026, the owner: "too fast, abrupt"):** the stages are the plot in its hoarding, the frame and the shell, held 700/900/900 ms with a fade-in each (`FOUNDING_RISE_MS` 2500); the hall then stands with the completion ring, and after a 300 ms beat the view eases to it over 750 ms (`easeViewTo`, shared with the downtown look) instead of jumping; the panel and step-two card open as the pan lands. Filmstrip: `docs/reviews/2026-11-founders-rise/filmstrip.png`.
+
 ### PR I — A click finishes the admissions animation (card 3)
 
 The rain, the admit line and the pour take about 4 s each summer

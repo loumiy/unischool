@@ -5,9 +5,9 @@ import { advanceClasses, trailingYearSatisfaction } from '../systems/admissions/
 import { attritionReasons, summerAttrition } from '../systems/admissions/consequences';
 import { baseShareCohortCounts } from '../systems/admissions/cohorts';
 import { gradeYear, prestigeBreakdown, standingDetailLine } from '../systems/prestige/prestigeSystem';
-import { buildReportPayload } from '../systems/rivals/rivalsSystem';
+import { buildReportPayload, playerRank } from '../systems/rivals/rivalsSystem';
 import { captureYearSnapshot, previousYear } from './history';
-import { count, money, prestigeFigure, prestigeShown, satisfactionFigure, satisfactionShown, signed, signedMoney } from '../format';
+import { count, money, prestigeShown, satisfactionFigure, satisfactionShown } from '../format';
 import { eventById } from '../systems/events/catalogue';
 import { classYears, firstClassYear, memoryFor, memoryLine, warmthFor } from '../systems/alumni/ledger';
 import { CAMPAIGNS } from '../data/campaignData';
@@ -25,6 +25,14 @@ const CAMPAIGN_CLOSINGS: ReadonlySet<string> = new Set(CAMPAIGNS.flatMap((c) => 
 // Attrition and the report card are read with the same pure functions the
 // reducer commits with, so the review can't promise a summer the boundary
 // doesn't deliver.
+//
+// Its head is four figures (the summer's page, Plan 126, the owner's
+// "tighten up the year in review"): prestige and the step the summer
+// takes, satisfaction against last year, the year's net, and the rank with
+// who passed. What those say is not said again in a section, so Money is
+// only a campaign that closed, Students starts at its demands, and
+// Standing is the terms outside the pillars that moved (the pillars are
+// the bar under the figures).
 // ---------------------------------------------------------------------
 
 export type ReviewSectionKey = 'built' | 'people' | 'research' | 'students' | 'money' | 'standing' | 'events' | 'class';
@@ -42,7 +50,7 @@ export interface ReviewLine {
 }
 
 // How many of a group's members show before "and N more".
-export const REVIEW_LIST_CAP = 5;
+export const REVIEW_LIST_CAP = 3;
 
 // Like lines, grouped (Plan 95I): one line says the thing in full; two or
 // more become one head over their short forms, as the courses always did.
@@ -68,8 +76,23 @@ export interface ReviewSection {
   empty: string;
 }
 
+// The head of the review: the year in four figures.
+export interface ReviewFigures {
+  prestigeBefore: number;
+  prestigeAfter: number;   // where the summer steps it
+  step: number;            // between the figures as shown
+  grade: number;           // this year's report card
+  satisfaction: number;    // the year's average
+  satisfactionDelta: number | null; // against last year's, from the figures as shown; none in the first year
+  net: number;             // operating funds now less a year ago
+  rank: number;
+  rankBefore: number | null; // last summer's, none in the first
+  passedBy: string[];      // who passed the college this year (the Standing beat's crossing)
+}
+
 export interface YearInReview {
   year: number;
+  figures: ReviewFigures;
   sections: ReviewSection[];
   truncated: boolean; // the log's cap fell inside this year, so the earliest weeks are gone
 }
@@ -170,17 +193,10 @@ export function projectedAttrition(s: GameState): number {
 }
 
 function students(s: GameState, entries: LogEntry[]): ReviewSection {
+  // The year's satisfaction is a figure at the head (Plan 126), and the
+  // organizations asking to be recognized are the summer's last step.
   const lines: ReviewLine[] = [];
   const average = trailingYearSatisfaction(s);
-  const lastAverage = s.students.priorYearAvgSatisfaction;
-  // From the figures as shown, so "80 against 73" reads "+7".
-  const delta = satisfactionShown(average) - satisfactionShown(lastAverage);
-  lines.push({
-    text: s.history.length > 0
-      ? `Satisfaction averaged ${satisfactionFigure(average)} this year, compared with ${satisfactionFigure(lastAverage)} last year (${signed(delta)})`
-      : `Satisfaction averaged ${satisfactionFigure(average)} this year`,
-    tone: delta >= 2 ? 'good' : delta <= -2 ? 'bad' : undefined,
-  });
   const raised = byTopic(entries, 'demand-raised').length;
   const met = byTopic(entries, 'demand-met').length;
   const failed = byTopic(entries, 'demand-failed').length;
@@ -190,8 +206,6 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
       tone: failed > 0 ? 'bad' : met > 0 ? 'good' : undefined,
     });
   }
-  const petitions = s.orgs.pendingPetitions.length;
-  if (petitions > 0) lines.push({ text: `${plural(petitions, 'student organization')} asking to be recognized` });
   const leaving = projectedAttrition(s);
   if (leaving > 0) {
     const reasons = attritionReasons(s);
@@ -200,16 +214,13 @@ function students(s: GameState, entries: LogEntry[]): ReviewSection {
       tone: 'bad',
     });
   }
-  return { key: 'students', title: 'Students', lines, empty: 'No demands, petitions or departures this year.' };
+  return { key: 'students', title: 'Students', lines, empty: 'No demands or departures this year.' };
 }
 
+// The year's net is a figure at the head (Plan 126): the section is a
+// campaign that closed, when one did.
 function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
-  const before = previousYear(s);
-  const net = s.finance.cash - before.cash;
-  const lines: ReviewLine[] = [
-    { text: `Net over the year: ${signedMoney(net)}`, tone: net >= 0 ? 'good' : 'bad' },
-    { text: `Operating funds: ${money(s.finance.cash)}, compared with ${money(before.cash)} a year ago` },
-  ];
+  const lines: ReviewLine[] = [];
   // Only a campaign's closing line counts: its launch and the building
   // fund's lines are money lines too (alumni/campaigns.ts).
   const campaigns = byTopic(entries, 'money').filter((e) => CAMPAIGN_CLOSINGS.has(e.message)).length;
@@ -217,39 +228,46 @@ function moneySection(s: GameState, entries: LogEntry[]): ReviewSection {
   return { key: 'money', title: 'Money', lines, empty: '' };
 }
 
-// The report card, read before it is applied: the year's grade, the step
-// prestige is about to take, and each input's grade against its weight.
+// The report card's terms outside the four pillars that moved this year
+// (the endowment, the buildings' upkeep), each with History's line for
+// what moves it (Plan 78C). The grade and the step are a figure at the
+// head, and the pillars the bar under it (Plan 126).
 function standing(s: GameState): ReviewSection {
   const card = gradeYear(s);
   const breakdown = prestigeBreakdown(s);
-  const step = prestigeShown(card.after) - prestigeShown(card.before);
-  const lines: ReviewLine[] = [
-    {
-      text: `This year's grade: ${card.score.toFixed(0)}. Prestige ${prestigeFigure(card.before)} → ${prestigeFigure(card.after)} (${signed(step, 1)})`,
-      tone: step >= 0 ? 'good' : 'bad',
-    },
-  ];
-  const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
-  if (last) lines.push({ text: `Prestige a year ago: ${prestigeFigure(last.prestige)}` });
-  // Same crossing the Standing beat reports, so the two agree.
-  const passedBy = last ? buildReportPayload(s).passedBy : [];
-  if (passedBy.length > 0) {
-    lines.push({ text: `Passed you this year: ${passedBy.join(', ')}`, tone: 'bad' });
-  }
+  const lines: ReviewLine[] = [];
   for (const input of breakdown.inputs) {
+    if (input.pillar) continue;
     const grade = card.grades[input.key];
-    if (grade === undefined) continue;
-    if (input.penalty && Math.abs(grade) < 0.05) continue; // a penalty that took nothing is not a line
+    if (grade === undefined || Math.abs(grade) < 0.05) continue;
     lines.push({
-      // What it added, as the glance says it: no "of" its most (Plan 114B).
-      text: `${input.label}: ${input.penalty ? '−' : '+'}${Math.abs(grade).toFixed(1)}`,
-      tone: input.penalty ? 'bad' : undefined,
-      // The four pillars' "stands at N of 150" lines went in Plan 124B
-      // (X8): the report card's bars show them. The other terms keep theirs.
-      detail: input.pillar ? undefined : standingDetailLine(input),
+      text: `${input.label}: ${grade < 0 || input.penalty ? '−' : '+'}${Math.abs(grade).toFixed(1)}`,
+      tone: input.penalty || grade < 0 ? 'bad' : undefined,
+      detail: standingDetailLine(input),
     });
   }
   return { key: 'standing', title: 'Standing', lines, empty: '' };
+}
+
+// The year in four figures (Plan 126).
+function figures(s: GameState): ReviewFigures {
+  const card = gradeYear(s);
+  const average = trailingYearSatisfaction(s);
+  const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
+  return {
+    prestigeBefore: card.before,
+    prestigeAfter: card.after,
+    step: prestigeShown(card.after) - prestigeShown(card.before),
+    grade: card.score,
+    satisfaction: average,
+    // From the figures as shown, so "80 against 73" reads "+7".
+    satisfactionDelta: last ? satisfactionShown(average) - satisfactionShown(s.students.priorYearAvgSatisfaction) : null,
+    net: s.finance.cash - previousYear(s).cash,
+    rank: playerRank(s),
+    rankBefore: last ? last.rank : null,
+    // Same crossing the Standing beat reports, so the two agree.
+    passedBy: last ? buildReportPayload(s).passedBy : [],
+  };
 }
 
 // A matter the clock answered: its log line (catalogueEngine.ts's
@@ -322,6 +340,7 @@ export function buildYearInReview(s: GameState): YearInReview {
   const oldest = s.log[s.log.length - 1];
   return {
     year: s.clock.year,
+    figures: figures(s),
     sections: [
       built(s, entries),
       people(s, entries),

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { Action } from '../state/actions';
-import type { GameState, SummerDecision, SummerPayload } from '../state/types';
-import { WEEKS_PER_YEAR } from '../state/types';
+import type { GameState, SummerBeat, SummerDecision, SummerPayload } from '../state/types';
+import { SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { tuitionFloor } from '../systems/finance/distress';
 import { TUITION_SLIDER_MAX } from '../data/foundingData';
 import { projectAdmissions, priceTolerance, priceTier, trailingYearSatisfaction, type PriceTier } from '../systems/admissions/admissionsSystem';
@@ -126,6 +126,12 @@ export function admissionsPageUp(s: GameState): boolean {
   if (i?.type !== 'summer') return false;
   const p = i.payload as SummerPayload | undefined;
   return p?.beat === 1;
+}
+
+// A summer page's eyebrow: the step of three, so the review, admissions
+// and the students read as one sequence (Plan 126).
+export function summerEyebrow(year: number, beat: SummerBeat): string {
+  return `Summer · Year ${year} · ${beat + 1} of ${SUMMER_BEATS.length}`;
 }
 
 export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Action) => void }) {
@@ -319,7 +325,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
     <div className="admissions-page" role="dialog" aria-modal="true" aria-label="Admissions" onPointerDownCapture={() => finish.current?.()}>
       <header className="admissions-page-head">
         <div>
-          <p className="admissions-page-eyebrow">Summer · Year {s.clock.year}</p>
+          <p className="admissions-page-eyebrow">{summerEyebrow(s.clock.year, 1)}</p>
           <h2>Admissions</h2>
         </div>
         <ol className="admissions-page-steps" aria-label="Admissions">

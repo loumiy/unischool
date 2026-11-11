@@ -124,7 +124,7 @@ export const CHAPTER_COPY: Record<ChapterId, ChapterCopy> = {
       'run-at-double': 'Run the clock at double speed',
     },
     help: {
-      'develop-second-course': { text: 'In the Curriculum, find the program and click Develop on its next course. Then pick a professor to teach it. Each lit lamp under the Curriculum button is a course being written.', door: 'curriculum', ringed: true },
+      'develop-second-course': { text: 'Each lit lamp under the Curriculum button is a course being written.', door: 'curriculum', ringed: true },
       'run-at-double': { text: 'Press [2] or [icon:double] to run at double speed. [Space] pauses.' },
     },
   },

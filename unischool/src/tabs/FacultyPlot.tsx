@@ -1,7 +1,6 @@
 import { Fragment, useState, type CSSProperties } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
-import { facultyQualityTier } from '../data/facultyData';
 import { candidateListingWeeks } from '../systems/administration/effects';
 import { effectiveCourseSlots } from '../systems/techtree/techSystem';
 import { facultyPay } from '../systems/finance/financeSystem';
@@ -211,7 +210,6 @@ function PickedCard({ s, act, f, isCandidate, medT, medR, commitment, load, pers
           <span className="faculty-tile-mount"><FacultyPortrait f={portraitOf(f)} size={56} shape="square" /></span>
           <span className="faculty-tile-who">
             <span className="faculty-name">{f.name}</span>
-            <span className="faculty-tile-rank">{facultyQualityTier(f)}</span>
           </span>
         </div>
         <div className="faculty-tile-stats">

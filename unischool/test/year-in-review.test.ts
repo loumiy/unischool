@@ -23,7 +23,9 @@ import { FOUNDING_PRESET } from '../src/data/foundingData';
 import type { GameState } from '../src/state/types';
 import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { LOG_CAP, WEEKS_PER_YEAR } from '../src/state/types';
-import { prestigeBreakdown, standingDetailLine } from '../src/systems/prestige/prestigeSystem';
+import { gradeYear, prestigeBreakdown, standingDetailLine } from '../src/systems/prestige/prestigeSystem';
+import { trailingYearSatisfaction } from '../src/systems/admissions/admissionsSystem';
+import { playerRank } from '../src/systems/rivals/rivalsSystem';
 
 let checks = 0;
 let failures = 0;
@@ -100,40 +102,29 @@ console.log('year in review tests');
   assert(section(s, 'research').lines.length === 0, 'a school with no lab has an empty Research section');
   assert(section(s, 'research').empty.length > 0, 'which still says something');
 
-  const students = text(s, 'students');
-  assert(/Satisfaction averaged \d+ this year/.test(students), `the students section leads with the year's average (${students})`);
-  // Its explanation went in Plan 124B (X8).
-  assert(!students.includes('how happy your students are'), 'and no longer explains satisfaction');
+  // The head is four figures (Plan 126): what they say is not said again.
+  const f = buildYearInReview(s).figures;
+  const card = gradeYear(s);
+  assert(f.prestigeBefore === card.before && f.prestigeAfter === card.after && f.grade === card.score, 'the prestige figure reads the report card before it is applied');
+  assert(f.satisfaction === trailingYearSatisfaction(s) && f.satisfactionDelta === null, `satisfaction is the year's average, with no change in the first year (${f.satisfactionDelta})`);
+  assert(f.net === s.finance.cash - FOUNDING_PRESET.startingCash, `the first year's net is measured from the founding cash (${f.net})`);
+  assert(f.rank === playerRank(s) && f.rankBefore === null && f.passedBy.length === 0, 'the rank, with nothing to compare in the first year');
+  assert(!/Satisfaction averaged/.test(text(s, 'students')), 'so the students section does not say satisfaction again');
+  assert(!text(s, 'students').includes('asking to be recognized'), 'nor the petitions, which the summer\'s last step decides');
+  assert(!/Net over the year|Operating funds/.test(text(s, 'money')), 'the money section is not the net again');
+  assert(!/This year's grade|a year ago/.test(text(s, 'standing')), 'and standing is not the grade again');
 
-  const moneyLines = text(s, 'money');
-  const net = s.finance.cash - FOUNDING_PRESET.startingCash;
-  assert(moneyLines.includes(`${net >= 0 ? '+' : '−'}$${Math.abs(Math.round(net)).toLocaleString()}`), `the first year's net is measured from the founding cash (${moneyLines})`);
-
-  const standing = text(s, 'standing');
-  assert(/This year's grade: \d+\. Prestige [\d.]+ → [\d.]+/.test(standing), `the standing section reads the report card before it is applied (${standing})`);
-  assert(['Academics', 'Research', 'Student life', 'Athletics'].every((p) => standing.includes(p)), 'and lists the four pillars by name');
+  // Standing is the terms outside the pillars that moved, each with History's line.
+  const inputs = prestigeBreakdown(s).inputs;
+  for (const line of section(s, 'standing').lines) {
+    const input = inputs.find((i) => line.text.startsWith(`${i.label}: `));
+    assert(!!input && !input.pillar, `a standing line is a term outside the pillars (${line.text})`);
+    assert(/^[^:]+: [+−]\d+\.\d$/.test(line.text), `it reads what it added, no "of" (${line.text})`);
+    assert(line.detail === standingDetailLine(input!), `${input?.label}'s detail is History's line`);
+  }
+  assert(!text(s, 'standing').includes(' of 150'), 'no pillar says where it stands of 150');
   assert(!buildYearInReview(s).truncated, 'a quiet founding year fits inside the log');
 
-  // Every term but the pillars carries its "what moves it" (Plan 78C), and
-  // it is the line History › Prestige shows for that term, from the one
-  // function. The pillars' "stands at N of 150" lines went in Plan 124B (X8).
-  const inputs = prestigeBreakdown(s).inputs;
-  const termLines = section(s, 'standing').lines.filter((l) => inputs.some((i) => l.text.startsWith(`${i.label}: `)));
-  assert(termLines.length >= 5, `the review lists the grade's terms: the pillars and the endowment at least (${termLines.length})`);
-  for (const line of termLines) {
-    const input = inputs.find((i) => line.text.startsWith(`${i.label}: `))!;
-    if (input.pillar) {
-      assert(line.detail === undefined, `${input.label} has no detail line`);
-      continue;
-    }
-    assert(!!line.detail && line.detail.trim().length > 0, `${input.label} has a detail line`);
-    assert(line.detail === standingDetailLine(input), `${input.label}'s detail is History's line`);
-  }
-  // What each term added, as the glance says it, never "of" its most (Plan 114B).
-  for (const line of termLines) assert(/^[^:]+: [+−]\d+\.\d$/.test(line.text), `a term's line reads what it added, no "of" (${line.text})`);
-  assert(!text(s, 'standing').includes(' of 150'), 'no pillar says where it stands of 150');
-  const detailed = termLines.filter((l) => !inputs.find((i) => l.text.startsWith(`${i.label}: `))!.pillar);
-  assert(section(s, 'standing').lines.filter((l) => l.detail).length === detailed.length, 'and only the other terms carry a detail');
 }
 
 // --- the review reads topics, not sentences -------------------------------
@@ -248,7 +239,7 @@ console.log('year in review tests');
   assert(group?.items?.length === 7, 'which keeps all seven, for "and N more" to open');
   assert(group?.items?.[0] === `${staff[0].name} (${staff[0].field})`, `a professor still here is named with the field (${group?.items?.[0]})`);
   assert(group?.items?.includes('Appointed Dr. Gone 0 to the faculty in History, at $1/yr') ?? false, 'one who is gone keeps the log\'s line');
-  assert(REVIEW_LIST_CAP === 5, 'and a list shows five before "and N more"');
+  assert(REVIEW_LIST_CAP === 3, 'and a list shows three before "and N more" (Plan 126)');
 
   // One of a kind stays the full sentence; none is no line.
   const one = reviewGroup(['a'], (n) => `${n} things`, (x) => x, (x) => `The thing ${x}`, 'good');

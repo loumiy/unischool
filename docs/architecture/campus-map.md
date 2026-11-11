@@ -110,6 +110,19 @@ Three consequences, each in its own place:
   on the same lawn however the view turns. Every cast shadow — buildings
   and woodland — is drawn in one pass under every mass, because a shadow
   can now fall *away* from the camera, across a building already painted.
+  A building casts from the parts it draws (`buildingMotifs.tsx`'s
+  `shadowCastersOf`), each at its own height: a dining hall from the hall
+  behind its terrace, a village from each house, the hospital from its slab
+  and its wing, a tower from its podium and its shaft, the arena from its
+  hall, entrance and annex, the Museum from the gallery behind its
+  forecourt. Each part's shadow is the ground between its footprint and
+  the footprint thrown away from the sun (`light.ts`'s `shadowGround`, the
+  hull of the two), so it runs out from the building's corners; the throw
+  alone, which it was until the owner asked, stepped in from the two side
+  corners. A site casts from the frame or shell it is drawn at
+  (`CampusMap.tsx`'s `siteRise`), not its footings. A motif that paves its
+  own plot (the village's lawn, a terrace, a forecourt) covers the pass
+  there, so it draws its parts' shadows on its paving itself (`plotShadow`).
 - **A building has a front, a back and two sides** (four-way
   orientation). A placement stores its `facing`: which map edge its front
   faces, set a quarter turn at a time with R as it is placed, square
@@ -452,6 +465,17 @@ the action that sites the hall (`PLACE_BUILDABLE` in a guided founding,
 lays it again: a sandbox's move leaves it where it was, and a save from before
 it loads as it was drawn. It is an ordinary path the player may lift or
 repave.
+
+**Founders Hall goes up** at the founding (Plan 124H, revised after two
+playtests): its canvas entries are left out while an SVG overlay plays the
+construction stages every site shows over its build weeks, the graded plot in
+its hoarding (`GroundSite`), the frame (`SiteFrame`), then the hatched shell,
+held 700, 900 and 900 ms (`FOUNDING_STAGES_MS`, each fading in over the last).
+It then stands with the completion ring and cue, and after a 300 ms beat the
+view eases to it (`easeViewTo`, the same easeInOutQuad ease as the one look
+at the downtown, `FOUNDING_PAN_MS` 750) before its panel opens. A pan or zoom
+by the player stops the ease. Reduced motion shows the hall at once and jumps
+the view.
 
 **Benches** (Plan 80I) are the one prop with a direction. A bench is set
 against one edge of its tile and faces out across it, its back to the lawn,

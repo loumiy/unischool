@@ -139,8 +139,7 @@ function place(r: Rival, overall: number, momentum = 0): void {
   place(rival, 130, 25);
   assert(playerRank(s) === 2, 'second today');
   assert(buildReportPayload(s).passedBy.includes(rival.name), 'the report says who passed');
-  const standing = buildYearInReview(s).sections.find((x) => x.key === 'standing')!;
-  assert(standing.lines.some((l) => l.text.includes(`Passed you this year: ${rival.name}`) && l.tone === 'bad'), 'and so does the year in review');
+  assert(buildYearInReview(s).figures.passedBy.includes(rival.name), 'and so does the year in review, under its rank (Plan 126)');
 
   // Below the gate the board says nothing, however the table moves: being
   // passed at #55 is the field breathing, not news.
