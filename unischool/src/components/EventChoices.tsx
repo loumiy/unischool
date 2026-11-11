@@ -1,122 +1,15 @@
 import type { GameState, PendingCatalogueEvent } from '../state/types';
-import { totalEnrolled } from '../state/types';
-import type { CatalogueChoice, CatalogueEvent, EffectKey } from '../data/eventCatalogueTypes';
-import { STATUE_ID, eventCampaign, fill, namedDamage, repairsOf, scaledEffects, statuePledgeable } from '../systems/events/catalogue';
-import { wornLine } from '../systems/estate/paths';
+import type { CatalogueEvent } from '../data/eventCatalogueTypes';
+import { fill } from '../systems/events/catalogue';
 import { choiceCost } from '../systems/events/catalogueEngine';
-import { moneyShort, pct, signed, signedMoney } from '../format';
-import { clampDrawRate, debtOutstanding, drawRate } from '../systems/finance/treasury';
-import { constructionFrozen } from '../systems/finance/distress';
-import { LIBRARY_TIER1_ID, nextLibraryFloor } from '../data/facilitiesData';
-import { festivalPhrases } from '../data/downtownData';
-import { honorsPhrase, tradePhrase } from '../data/boardQuestionData';
-import { annualGiving } from '../systems/alumni/giving';
-import { facultyPay } from '../systems/finance/financeSystem';
+import { choiceEffects } from '../systems/events/choiceEffects';
+import EffectChips from './EffectChip';
 
 // An event's text and its answers (Plan 32), shared by the inbox's reading
 // pane (InboxTab.tsx, Plan 77) and the board's letters, which are modal
 // (InterruptModal.tsx's CatalogueLetterView). Each answer says what it
-// does, in the sums the college will actually pay.
-
-// What an answer does, a phrase per lever. Sums in the short form (Plan
-// 125 C): two answers side by side are prices compared, and the letter's
-// own prose keeps the exact figure.
-function effectPhrases(s: GameState, effects: CatalogueChoice['effects'], vars: Readonly<Record<string, string>>): string[] {
-  const out: string[] = [];
-  for (const [k, v] of Object.entries(effects) as [EffectKey, number][]) {
-    // The spring festival (Plan 85H): what its scale does, or what a spring
-    // without one costs (0).
-    if (k === 'festival') { out.push(...festivalPhrases(v, s.students.applicantPool, annualGiving(s), { signed, money: moneyShort })); continue; }
-    if (!v) continue;
-    switch (k) {
-      case 'cash': out.push(v < 0 ? `costs ${moneyShort(-v)}` : `brings ${moneyShort(v)}`); break;
-      case 'endowment': {
-        // A draw stops at what the fund holds (catalogue.ts floors it at 0).
-        const moved = v < 0 ? Math.min(-v, Math.max(0, s.finance.endowment)) : v;
-        if (moved > 0) out.push(`endowment ${signedMoney(v < 0 ? -moved : moved)}`);
-        break;
-      }
-      case 'debt': {
-        // Repays what is owed; the rest comes back as cash (catalogue.ts).
-        const owed = debtOutstanding(s);
-        out.push(v > 0 ? `borrows ${moneyShort(v)}` : owed >= -v ? `repays ${moneyShort(-v)} of debt` : owed > 0 ? `repays the ${moneyShort(owed)} owed, the rest to cash` : `brings ${moneyShort(-v)}`);
-        break;
-      }
-      case 'backlog': {
-        // Repairs done stop at the backlog there is (catalogue.ts's spreadBacklog).
-        const owed = s.tech.reduce((t, b) => t + (b.backlog ?? 0), 0);
-        if (v > 0) out.push(`${moneyShort(v)} of repairs deferred`);
-        else if (owed > 0) out.push(`${moneyShort(Math.min(-v, owed))} of repairs done`);
-        break;
-      }
-      case 'mood': out.push(`satisfaction ${signed(v)}`); break;
-      case 'warmth': out.push(`alumni warmth ${signed(v)}`); break;
-      case 'quality': out.push(`incoming quality ${signed(v)}`); break;
-      case 'enrollment': {
-        const n = Math.round((v / 2000) * totalEnrolled(s.students));
-        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'freshman' : 'freshmen'}`);
-        break;
-      }
-      case 'trees': out.push(v > 0 ? `${v} trees planted` : `${-v} trees felled`); break;
-      case 'replant': out.push(`${v} trees planted`); break;
-      case 'departs': out.push(`${vars.faculty ?? 'they'} leaves`); break;
-      case 'buildingFund': out.push(`${moneyShort(v)} to the building fund`); break;
-      case 'historic': out.push(`${vars.building ?? 'the building'} declared historic`); break;
-      // The charter (Plan 78G): the name, for good (Plan 80D: nothing renames
-      // the college after it).
-      case 'charter': out.push(v > 0 ? 'University from now on' : 'College for good'); break;
-      case 'goodwill': out.push(`town goodwill ${signed(v)}`); break;
-      // Plan 101C's effects that land where they say.
-      case 'backlogOn': {
-        const building = vars.building ?? 'the building';
-        const owed = s.tech.reduce((t, b) => t + (b.backlog ?? 0), 0);
-        const named = s.tech.find((t) => t.id === vars.buildingId && t.status === 'done');
-        if (v > 0) out.push(`${moneyShort(named ? namedDamage(s, v, named) : v)} of repairs deferred on ${building}`);
-        else if (owed > 0) out.push(`${moneyShort(Math.min(-v, owed))} of repairs done, ${building} first`);
-        break;
-      }
-      case 'enrollmentSpread': {
-        const n = Math.round((v / 2000) * totalEnrolled(s.students));
-        if (n !== 0) out.push(`${signed(n)} ${Math.abs(n) === 1 ? 'student' : 'students'}, across all four years`);
-        break;
-      }
-      case 'drawRate': {
-        const from = drawRate(s);
-        const to = clampDrawRate(from + v);
-        if (to !== from) out.push(`draw rate ${pct(from, 1)} to ${pct(to, 1)}`);
-        break;
-      }
-      // The candidate the event named (Plan 101D), at this college's pay.
-      case 'hire': if (vars.candidate) out.push(`appoints ${vars.candidate} (${vars.candidateField}), ${moneyShort(Math.round(facultyPay(s, Number(vars.candidateSalary) || 0)))}/yr`); break;
-      // Plan 101E's campaigns, gifts and marks on the map.
-      case 'campaign': { const def = eventCampaign(s); if (def) out.push(`launches ${def.title}`); break; }
-      case 'statue': {
-        const statue = s.tech.find((t) => t.id === STATUE_ID);
-        if (statue && statuePledgeable(s)) out.push(`${moneyShort(statue.cost)} to the building fund for the statue, which you then place`);
-        break;
-      }
-      case 'boosterGift': out.push(`${moneyShort(v)} to the athletics department this year`); break;
-      case 'closeProgram': out.push(`${vars.program ?? 'the program'} closes, its courses ended`); break;
-      // The board's honors college (Plan 116D).
-      case 'honors': out.push(honorsPhrase(v)); break;
-      case 'repairGift': {
-        const repairs = repairsOf(s, v);
-        if (repairs > 0) out.push(`${moneyShort(repairs)} of repairs done`);
-        if (v - repairs > 0) out.push(`${moneyShort(v - repairs)} to the building fund`);
-        break;
-      }
-      case 'paveLine': { const n = wornLine(s).length; if (n > 0) out.push(`${n} tiles of path laid`); break; }
-      case 'ivy': out.push(`ivy stays on ${vars.building ?? 'the building'}`); break;
-      case 'sinkhole': out.push(`the hole fenced by ${vars.building ?? 'the building'}`); break;
-      case 'libraryFloor': {
-        const library = s.tech.find((t) => t.id === LIBRARY_TIER1_ID);
-        if (library && library.status === 'done' && nextLibraryFloor(library) && !constructionFrozen(s)) out.push('the library\'s next floor goes up');
-        break;
-      }
-    }
-  }
-  return out;
-}
+// does, in the sums the college will actually pay, as chips
+// (systems/events/choiceEffects.ts, Plan 125 A).
 
 // v2's texts break into paragraphs on a blank line.
 export function CatalogueText({ text, className }: { text: string; className: string }) {
@@ -140,14 +33,6 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
       {e.choices.map((c) => {
         const cost = choiceCost(e, c.id, p.scale);
         const affordable = c.id === e.default || cost <= Math.max(0, s.finance.cash);
-        const phrases = [
-          ...effectPhrases(s, scaledEffects(c.effects, p.scale), p.vars),
-          // A named fund (Plan 101F).
-          ...(c.fund ? [`endows ${fill(c.fund.name, p.vars).replace(/^The /, 'the ')}`] : []),
-          ...(c.mascot && !s.self.mascot ? [`the ${c.mascot} it is`] : []),
-          // The board's trade between two pillars (Plan 116D).
-          ...(c.standing ? [tradePhrase(c.standing)] : []),
-        ];
         return (
           <button key={c.id} type="button" className="event-choice" disabled={!affordable} onClick={() => onChoose(c.id)}>
             <span className="event-choice-label">
@@ -155,8 +40,8 @@ export function CatalogueChoices({ s, p, e, onChoose }: {
               {marksDefault && c.id === e.default && <span className="event-choice-cost">if nobody answers</span>}
             </span>
             <span className="event-choice-detail">
-              {phrases.length > 0 ? phrases.join(' · ') : 'no change'}
-              {!affordable && " — you can't afford this."}
+              <EffectChips effects={choiceEffects(s, c, p)} none="No change" />
+              {!affordable && <span className="event-choice-short">You can&apos;t afford this.</span>}
             </span>
           </button>
         );

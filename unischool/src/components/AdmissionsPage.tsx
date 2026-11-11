@@ -66,8 +66,8 @@ const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> =
 // standings, so the tag says where in it the price sits (the merge review,
 // Plan 70E), still without naming the number.
 function fairPosition(ratio: number): string {
-  if (ratio < 0.9) return ' — on the low side';
-  if (ratio > 1.05) return ' — near the top';
+  if (ratio < 0.9) return ', on the low side';
+  if (ratio > 1.05) return ', near the top';
   return '';
 }
 
@@ -539,7 +539,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             )}
           </div>
 
-          {/* How the standard came out (Plan 125 A): under what the class
+          {/* How the standard came out (Plan 126 A): under what the class
               does, so the consequence is read before the method. */}
           {showCloud && (
             <div className="admissions-card admissions-how">
@@ -560,7 +560,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
               <span className="stat">Drag the handle up to raise the bar or down to lower it, or click anywhere on the plot. The arrow keys move it too.</span>
               {/* Stuck to the foot of the panel, so it is in view at
                   1280×720 however long the cards run (Plan 114G), on a
-                  ground of its own, so no card shows through it (Plan 125 A). */}
+                  ground of its own, so no card shows through it (Plan 126 A). */}
               <div className="admissions-send-foot">
                 <button type="button" className={`admissions-send${ring('send')}`} data-coach="send" onClick={send}>Send the offers</button>
               </div>

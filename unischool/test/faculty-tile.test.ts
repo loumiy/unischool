@@ -126,7 +126,8 @@ const actions = (s: GameState, f: Faculty) =>
   const text = html.replace(/<[^>]+>/g, '');
   assert(text.includes(`${cap.total.supply.toLocaleString('en-US')} course slots`), `the row leads with the course slots (${text})`);
   assert(text.includes(`${cap.total.offered.toLocaleString('en-US')} on offer`), 'then those on offer');
-  assert(text.split(' ').length <= 16, `and it is one short row (${text.split(' ').length} words)`);
+  assert(text.split(' ').length <= 12, `and it is a bar with a short key (${text.split(' ').length} words)`);
+  assert(html.includes('capacity-track'), 'drawn as one bar, as each department is');
 }
 
 console.log(`  ${checks} checks, ${failures} failed`);

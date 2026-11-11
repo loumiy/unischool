@@ -24,7 +24,7 @@ one of its courses has no teacher (`darkness.ts`'s unstaffed reading), and
 takes its colour back when one is appointed (Plan 124 L). Unlike the
 labels, the marks are always on.
 
-The marks and the labels **hold a size on screen** (Plan 125 J,
+The marks and the labels **hold a size on screen** (Plan 126 J,
 `markScale.ts`). Each is drawn about its own anchor (`markAnchor`: just
 above the label's spot on the roof) and scaled there by `heldScale(zoom,
 band)`, which draws it as at the nearest zoom inside a band: the pips' band

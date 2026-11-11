@@ -2,6 +2,7 @@ import type { GameState } from '../state/types';
 import { CHRONICLE_WORDS } from '../data/chronicleData';
 import { chronicleOf, sagaLines } from '../systems/chronicle/chronicle';
 import HelpHint from '../components/HelpHint';
+import EffectChips from '../components/EffectChip';
 
 // The chronicle (Plan 33, systems/chronicle/chronicle.ts): the run as the
 // historians will divide it, era by era, and the rival's saga. In draft
@@ -24,7 +25,8 @@ export default function ChroniclePanel({ s }: { s: GameState }) {
           {eras.map((era) => (
             <li key={`${era.from}-${era.to}`} className="chronicle-era">
               <h3 className="chronicle-era-name">{era.name}</h3>
-              <p className="chronicle-era-lines">{era.lines.join(' ')}</p>
+              <EffectChips effects={era.stats} className="chronicle-era-stats" />
+              <p className="chronicle-era-lines">{era.prose.join(' ')}</p>
             </li>
           ))}
         </ol>

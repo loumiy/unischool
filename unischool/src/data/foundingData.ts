@@ -100,17 +100,17 @@ export const FOUNDING_MARKET: readonly FoundingProfessor[] = [
   {
     id: 'f3', name: 'Dr. Grace Bennett', field: 'English', teachingPotential: 85, researchPotential: 72, courseSlots: 3,
     nationality: 'United Kingdom', flag: '🇬🇧', gender: 'female', heritage: 'Anglo/Western European',
-    bio: 'Earned a doctorate in English at Marchmont University; research centers on rhetoric and composition.',
+    bio: 'Took a doctorate in English at Marchmont University and has worked on rhetoric and composition ever since.',
   },
   {
     id: 'f4', name: 'Dr. Priya Iyer', field: 'Mathematics', teachingPotential: 80, researchPotential: 79, courseSlots: 2,
     nationality: 'India', flag: '🇮🇳', gender: 'female', heritage: 'South Asian',
-    bio: 'Earned a doctorate in Mathematics at Ironwood University; research centers on numerical analysis.',
+    bio: 'Studied Mathematics at Ironwood University. Writes on numerical analysis, at length.',
   },
   {
     id: 'f2', name: 'Dr. John Okafor', field: 'Economics', teachingPotential: 88, researchPotential: 68, courseSlots: 2,
     nationality: 'Nigeria', flag: '🇳🇬', gender: 'male', heritage: 'West African',
-    bio: 'Earned a doctorate in Economics at the University of Calderwood; research centers on trade and development.',
+    bio: 'Trained at the University of Calderwood, in Economics. Works on trade and development.',
   },
 ];
 

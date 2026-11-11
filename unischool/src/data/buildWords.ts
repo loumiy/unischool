@@ -6,7 +6,7 @@ export const BUILD_WORDS = {
   putDown: 'Cancel',
   // The strip for a moment after a placement (Plan 124G).
   placed: 'Placed: {building}',
-  // The strip while a grounds tool is armed (Plan 125 B): the menu folds
+  // The strip while a grounds tool is armed (Plan 126 B): the menu folds
   // as it does for a building in hand, and "All tools" brings it back.
   tool: 'Grounds: {tool}',
   toolDone: 'All tools',

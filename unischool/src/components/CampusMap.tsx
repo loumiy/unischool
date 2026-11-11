@@ -520,7 +520,7 @@ function BuildingLabel({ t, p, label, pinned, vernacular }: {
 }) {
   const { size, centre: roof, textWidth } = labelLayout(label, t, p, vernacular);
   // Drawn about the mark's anchor, where it is held to a size on screen
-  // (Plan 125 J): `centre` is the plate's center from there.
+  // (Plan 126 J): `centre` is the plate's center from there.
   const anchor = markAnchor(t, p, vernacular);
   const centre = { x: 0, y: roof.y - anchor.y };
   const textRef = useRef<SVGTextElement>(null);
@@ -588,7 +588,7 @@ const HALL_PIP_R = 6.5;
 const HALL_PIP_GAP = 17;
 const HALL_MARK_LIFT = 28;
 // The one mark a hall shows where its row would not fit its roof (Plan
-// 125 J): a disc on the pips' plate.
+// 126 J): a disc on the pips' plate.
 const HALL_ONE_R = 10;
 // A row's width, plate and all, and the roof it has to fit: the footprint's
 // width across the screen through its middle, which a quarter turn and a
@@ -624,7 +624,7 @@ function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onIn
   const y = 0;
   const x0 = -((total - 1) * HALL_PIP_GAP) / 2;
   // Below the zoom where the row would be wider than the roof on screen, one
-  // mark for the building (Plan 125 J). A boolean, so a zoom draws a hall
+  // mark for the building (Plan 126 J). A boolean, so a zoom draws a hall
   // again only when it changes over.
   const fits = () => hallRowFits(hallRowWidth(total), roofWidth(p), zoom.get());
   const one = !useSyncExternalStore(zoom.subscribe, fits, fits);
@@ -1596,7 +1596,7 @@ export default function CampusMap({
   // The land around the campus: a third <svg>, under the map's.
   const ringWorldRef = useRef<SVGGElement>(null);
   const viewRef = useRef({ x: 0, y: 0, zoom: 1 });
-  // The zoom as the marks read it (markScale.ts, Plan 125 J), and the world
+  // The zoom as the marks read it (markScale.ts, Plan 126 J), and the world
   // group and zoom their scales were last written for.
   const [zoomStore] = useState(() => createZoomStore());
   const heldRef = useRef<{ el: SVGGElement | null; zoom: number }>({ el: null, zoom: 0 });

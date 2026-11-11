@@ -28,7 +28,7 @@ import ts from 'typescript';
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { glossaryHits } from './glossaryChecks';
-import { INSTRUCTION_SCREENS, PLAIN_RULES, plainHits } from './plainChecks';
+import { INSTRUCTION_SCREENS, PLAIN_RULES, VOICE_RULES, plainHits, voiceTotals } from './plainChecks';
 
 export interface StringRow {
   file: string;
@@ -567,6 +567,17 @@ export function summarize(rows: StringRow[]): string {
   for (const [id, n] of Object.entries(plainTotals(rows))) lines.push(`| ${id} | ${n} |`);
   lines.push('', 'The worst twenty:', '', ...plainWorst(rows, 20), '');
 
+  // The voice.
+  lines.push('## The voice', '', 'Habits that are fine once and a giveaway on every line (Plan 125; `docs/design/voice.md`, `tools/review/plainChecks.ts`). Held to `tools/review/voice-baseline.json` the same way.', '');
+  lines.push('| Habit | Strings |', '|---|---|');
+  for (const [id, n] of Object.entries(voiceTotals(rows))) lines.push(`| ${id} | ${n} |`);
+  lines.push('');
+  for (const rule of VOICE_RULES.filter((r) => r.scope === 'all')) {
+    const hits = rows.filter((r) => !r.screen.startsWith('Names') && !r.screen.startsWith('Debug') && !r.screen.startsWith('Audio') && rule.test(r.text));
+    if (hits.length === 0) continue;
+    lines.push(`${rule.id} (${rule.says}):`, '', ...hits.slice(0, 40).map((r) => `- ${r.screen}, \`${r.file}:${r.line}\`: ${bare(r.text).slice(0, 140)}`), '');
+  }
+
   // Jargon.
   lines.push('## Jargon', '', 'How often each term a new player may not know appears, and on how many screens. A term used on many screens before it is explained anywhere is the thing to check.', '');
   lines.push('| Term | Strings | Screens |', '|---|---|---|');
@@ -583,16 +594,27 @@ export function summarize(rows: StringRow[]): string {
 // `--plain-check`: the plain-words counts against the committed baseline,
 // exit 1 if any rose; `--plain-save` writes the baseline (Plan 111 PR G).
 const PLAIN_BASELINE = join(ROOT, 'tools/review/plain-baseline.json');
+const VOICE_BASELINE = join(ROOT, 'tools/review/voice-baseline.json');
 if (argv.includes('--plain-check') || argv.includes('--plain-save')) {
   const rows = collect();
   const totals = plainTotals(rows);
+  const voice = voiceTotals(rows);
   if (argv.includes('--plain-save')) {
     writeFileSync(PLAIN_BASELINE, `${JSON.stringify(totals, null, 2)}\n`);
+    writeFileSync(VOICE_BASELINE, `${JSON.stringify(voice, null, 2)}\n`);
     console.log(`plain words baseline saved: ${JSON.stringify(totals)}`);
+    console.log(`voice baseline saved: ${JSON.stringify(voice)}`);
   } else {
     const base = JSON.parse(readFileSync(PLAIN_BASELINE, 'utf8')) as Record<string, number>;
+    const voiceBase = JSON.parse(readFileSync(VOICE_BASELINE, 'utf8')) as Record<string, number>;
     const rose = Object.entries(totals).filter(([id, n]) => n > (base[id] ?? 0));
     for (const [id, n] of Object.entries(totals)) console.log(`${id}: ${n} (baseline ${base[id] ?? 0})`);
+    const voiceRose = Object.entries(voice).filter(([id, n]) => n > (voiceBase[id] ?? 0));
+    for (const [id, n] of Object.entries(voice)) console.log(`${id}: ${n} (baseline ${voiceBase[id] ?? 0})`);
+    if (voiceRose.length > 0) {
+      console.error(`\nThe voice: ${voiceRose.map(([id]) => id).join(', ')} rose past the baseline. Rewrite the new text (docs/design/voice.md), or run \`npm run review:plain -- --plain-save\` if the rise is deliberate.`);
+      if (rose.length === 0) process.exit(1);
+    }
     if (rose.length > 0) {
       console.log('\nThe worst twenty:\n' + plainWorst(rows, 20).join('\n'));
       console.error(`\nPlain words: ${rose.map(([id]) => id).join(', ')} rose past the baseline. Rewrite the new text (docs/reviews/2026-10-text-review.md), or run \`npm run review:plain -- --plain-save\` if the rise is deliberate.`);

@@ -168,7 +168,7 @@ function roundTrip(s: GameState): GameState | null {
     assert(!shut.includes(gone), `no tile of its own for ${gone.slice(1, -1)}`);
   }
   assert((shut.match(/>Eraser</g) ?? []).length === 1, 'one eraser');
-  // Armed, the menu folds to a strip with the tool's styles (Plan 125 B),
+  // Armed, the menu folds to a strip with the tool's styles (Plan 126 B),
   // as it folds for a building in hand: no tiles, and the ground is clear.
   const paths = tab('draw');
   assert(paths.includes('build-popup holding') && tiles(paths) === 0 && paths.includes('Grounds: Paths'), 'the Paths tool armed, the menu folds to its strip');

@@ -62,7 +62,7 @@ export default function TreasuryCashChart({ s }: { s: GameState }) {
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label={`Cash at each summer from Year ${x0} to Year ${last.year}, ${moneyShort(last.cash)} at the last; ${moneyShort(now.y)} now.${bands.length > 0 ? ` ${bands.length} shaded stretch${bands.length === 1 ? '' : 'es'} of deficit years.` : ''}`}
+        aria-label={`Cash at each summer from Year ${x0} to Year ${last.year}, ${moneyShort(last.cash)} at the last, and ${moneyShort(now.y)} now.${bands.length > 0 ? ` ${bands.length} shaded stretch${bands.length === 1 ? '' : 'es'} of deficit years.` : ''}`}
       >
         {bands.map((b) => (
           <rect key={b.from} className="cash-band" x={sx(Math.max(x0, b.from))} y={PAD.top} width={sx(b.to) - sx(Math.max(x0, b.from))} height={H - PAD.top - PAD.bottom} />

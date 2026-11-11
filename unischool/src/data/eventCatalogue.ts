@@ -11,7 +11,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtLeast: 3 },
     title: 'The Senate\'s concern about parking',
-    text: 'The Faculty Senate has voted, almost unanimously, to express \'grave concern\' about the parking situation. It is unclear what they would like you to do, and none of the dissenters can be located.',
+    text: 'The Faculty Senate has voted, almost unanimously, to express \'grave concern\' about the parking situation. It isn\'t clear what they want you to do, and none of the dissenters can be located.',
     timeoutWeeks: 4,
     choices: [
       { id: 'study', label: 'Fund a parking study', effects: { cash: -250000 } },
@@ -95,7 +95,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { conditionUnder: 0.8, enrolledOver: 40, maintenanceUnder: 0.95 },
     title: 'No heat in the older buildings',
-    text: 'The heating has failed across the older buildings in the third week of a cold term. Students are attending lectures in coats and have begun, inevitably, to enjoy it.',
+    text: 'In the third week of a cold term, the heating has failed across the older buildings. Students are sitting through lectures in their coats.',
     timeoutWeeks: 2,
     choices: [
       { id: 'emergency', label: 'Call in emergency contractors', effects: { cash: -400000, mood: 2 } },
@@ -127,7 +127,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { rungAtLeast: 2 },
     title: 'The auditors ask about reserves',
-    text: 'The auditors have asked, in a footnote, whether your reserves policy is \'documented anywhere\'. It isn\'t. Writing one down now would mean writing down what it has been.',
+    text: 'In a footnote, the auditors have asked whether your reserves policy is \'documented anywhere\'. It isn\'t. An honest one would have to describe how the reserves have actually been used.',
     timeoutWeeks: 3,
     choices: [
       { id: 'write', label: 'Write the policy honestly', effects: { mood: 1 } },
@@ -143,10 +143,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 15,
     when: { yearAtLeast: 25, buildingsOver: 2 },
     title: 'The storm',
-    text: 'The storm came through on Tuesday night and took the roofs off two buildings, a run of mature lindens along the north walk, and the temporary structure nobody had gotten around to making permanent. Nobody was hurt. The engineers\' report is nine pages long and uses the word \'char\' as a verb, which the insurers have queried.\n\nThe college has been here before, and the minutes say so. In the founder\'s time the same wind took the roof off the first hall. The response, recorded with some satisfaction, was to build it back higher.',
+    text: 'The storm came through on Tuesday night and took the roofs off two buildings, a run of mature lindens along the north walk, and the temporary structure nobody had gotten around to making permanent. Nobody was hurt.\n\nYour college has been here before, and the minutes say so. In the founder\'s time the same wind took the roof off the first hall. The response, recorded with some satisfaction, was to build it back higher.',
     timeoutWeeks: 6,
     choices: [
-      { id: 'rebuild', label: 'Rebuild properly', effects: { cash: -3500000, backlog: -1500000, trees: -12, mood: 4 } },
+      { id: 'rebuild', label: 'Rebuild in full', effects: { cash: -3500000, backlog: -1500000, trees: -12, mood: 4 } },
       { id: 'patch', label: 'Make it safe and put off the rest', effects: { cash: -600000, backlog: 1800000, trees: -12, mood: -2 } },
       { id: 'appeal', label: 'Launch a storm appeal to the alumni', effects: { cash: 900000, backlog: 600000, trees: -12, warmth: -2, mood: 1 } },
     ],
@@ -160,7 +160,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { yearAtLeast: 10, endowmentOver: 20000000 },
     title: 'The markets',
-    text: 'The markets have done in two weeks what they usually take a decade to do. Your endowment is worth a good deal less than it was at breakfast on Monday. The investment committee has asked for a special meeting. Three of its members have called, separately, to say they were always uneasy about the allocation.\n\nNone of this changes what your college costs to run this year. That is the whole problem.',
+    text: 'In two weeks the markets have done what they usually take a decade to do. Your endowment is worth a good deal less than it was at breakfast on Monday. The investment committee has asked for a special meeting. Three of its members have called, separately, to say they were always uneasy about the allocation.\n\nNone of this changes what your college costs to run this year. That\'s the whole problem.',
     timeoutWeeks: 6,
     choices: [
       { id: 'ride', label: 'Ride it out at the usual draw rate', effects: { endowment: -4000000 } },
@@ -177,7 +177,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { conditionUnder: 0.7, buildingsOver: 2 },
     names: { building: 'worst' },
     title: '{building}: boiler condemned',
-    text: 'The inspector has condemned the boiler in {building} and left a notice on it in a color nobody here has seen before. The boiler room is locked, and Facilities has the key. Facilities would like it on record that they have mentioned the boiler twice.',
+    text: 'An inspector has condemned the boiler in {building} and left a notice on it in a color nobody here has seen before. The boiler room is locked, and Facilities has the key.',
     timeoutWeeks: 3,
     choices: [
       { id: 'replace', label: 'Replace the boiler', effects: { cash: -700000, backlogOn: -200000, mood: 1 } },
@@ -194,7 +194,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { oldestBuildingOver: 25 },
     names: { building: 'worst' },
     title: '{building}: load-bearing ivy',
-    text: 'The surveyor\'s report on {building} notes, in passing, that the ivy on the west face is now doing some of the work the west face used to do. The Alumni Office has asked whether the ivy could be declared historic too.',
+    text: 'The surveyor\'s report on {building} notes, in passing, that the ivy on the west face is now doing some of the work the west face used to do. The alumni are fond of that ivy, and the wall can\'t be repointed with it on.',
     timeoutWeeks: 3,
     choices: [
       { id: 'rebuild', label: 'Strip the ivy and repoint the wall', effects: { cash: -450000, backlogOn: -300000, warmth: -2 } },
@@ -211,7 +211,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { backlogOver: 900000, maintenanceUnder: 0.95 },
     names: { building: 'worst' },
     title: '{building}: slates coming off',
-    text: 'Slates have been coming off {building} in ones and twos for a month. Nobody has been hit. The facilities office has begun describing this as the college\'s good fortune rather than its policy.',
+    text: 'Slates have been coming off {building} in ones and twos for a month. Nobody has been hit. The facilities office has begun describing this as your good fortune rather than your policy.',
     timeoutWeeks: 3,
     choices: [
       { id: 'reslate', label: 'Re-roof that side', effects: { cash: -350000, backlogOn: -400000 } },
@@ -228,7 +228,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { derelictOver: 1 },
     names: { building: 'derelict' },
     title: '{building}: the town complains',
-    text: 'The town has written about {building}. The letter is courteous for two paragraphs and then uses the word \'eyesore\', which the secretary has underlined. A photograph is enclosed, taken from the road, in the rain.',
+    text: 'A letter has come from the town about {building}, with a photograph taken from the road in the rain. It\'s courteous for two paragraphs, uses the word \'eyesore\' in the third, and asks what you intend to do.',
     timeoutWeeks: 3,
     choices: [
       { id: 'repair', label: 'Put it right', effects: { cash: -1200000, backlogOn: -900000 } },
@@ -245,10 +245,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { oldestBuildingOver: 30, buildingsOver: 3 },
     names: { building: 'worst' },
     title: '{building}: asbestos found',
-    text: 'A survey of {building} ahead of any renovation has found asbestos in the ceiling voids, the pipe insulation and, unexpectedly, the stage curtain of the lecture theater. The contractor is being very calm about it, which is worse.',
+    text: 'A survey of {building} ahead of any renovation has found asbestos in the ceiling voids, the pipe insulation and, unexpectedly, the stage curtain of the lecture hall. The contractor is being very calm about it.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'strip', label: 'Strip it out properly', effects: { cash: -1600000, backlogOn: -200000, mood: -1 } },
+      { id: 'strip', label: 'Strip it all out', effects: { cash: -1600000, backlogOn: -200000, mood: -1 } },
       { id: 'seal', label: 'Seal it and leave it in place', effects: { cash: -300000, backlogOn: 400000 } },
     ],
     default: 'seal',
@@ -261,7 +261,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { maintenanceUnder: 0.7, yearAtLeast: 5 },
     title: '{building}: basement flooded',
-    text: 'The basement of {building} took nine inches of water in the night. The archive was on the floor because the shelving was ordered in a year the shelving budget did not survive.',
+    text: 'In the night, the basement of {building} took nine inches of water. The archive was on the floor because the shelving was ordered in a year the shelving budget didn\'t survive.',
     timeoutWeeks: 3,
     choices: [
       { id: 'restore', label: 'Pay conservators to save the archive', effects: { cash: -180000, mood: 1 } },
@@ -310,7 +310,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { quadsOver: 0, enrolledOver: 120 },
     title: 'A worn path across the quad',
-    text: 'A brown line now runs corner to corner across the quad, worn by everyone who has ever been late. Grounds have reseeded it twice. The CFO has suggested, not entirely as a joke, that you pave what the students have surveyed for you.',
+    text: 'A brown line now runs corner to corner across the quad, worn by everyone who has ever been late. Grounds has reseeded it twice. The CFO has suggested, not entirely as a joke, that you pave what the students have surveyed for you.',
     timeoutWeeks: 3,
     choices: [
       { id: 'pave', label: 'Pave the line they have worn', effects: { mood: 2, paveLine: 1 } },
@@ -326,7 +326,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 12,
     when: { alumniOver: 500, warmthOver: 24 },
     title: 'A gift of sixty trees',
-    text: 'A class whose members have kept in touch with each other more than with {school} would like to give it sixty trees. There is no money attached. There is a planting plan, drawn by one of them, and it is rather good.',
+    text: 'A class whose members have kept in touch with each other more than with {school} wants to give it sixty trees. There is no money attached, only a planting plan drawn by one of them.',
     timeoutWeeks: 3,
     choices: [
       { id: 'accept', label: 'Accept, and plant to their plan', effects: { cash: -90000, trees: 60, warmth: 5, mood: 1 } },
@@ -342,7 +342,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { debtOver: 6000000 },
     title: 'The rating agency wants a meeting',
-    text: 'The rating agency has asked for a meeting about the construction borrowing. The questions sent in advance are all reasonable, which is what the CFO finds alarming about them.',
+    text: 'The rating agency has asked for a meeting about your construction borrowing. The questions it sent in advance are all reasonable, and you\'ll need answers to them.',
     timeoutWeeks: 3,
     choices: [
       { id: 'prepay', label: 'Pay down the principal', effects: { cash: -1500000, debt: -1500000 } },
@@ -406,7 +406,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 10,
     when: { alumniOver: 350, yearAtLeast: 14 },
     title: 'A bequest for a named building',
-    text: 'A bequest has arrived with conditions. The money is for a building, the building must carry the donor\'s name, and the name must appear \'in stone, not in vinyl\'. The sum is substantial. The estate\'s lawyers have used the word \'exacting\' about the family.',
+    text: 'A bequest has arrived with conditions. The money is for a building, the building must carry the donor\'s name, and the name must appear \'in stone, not in vinyl\'. The estate\'s lawyers have used the word \'exacting\' about the family. The sum is substantial.',
     timeoutWeeks: 3,
     choices: [
       { id: 'accept', label: 'Accept the terms', effects: { buildingFund: 4000000, warmth: 3 } },
@@ -423,7 +423,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { drawRateOver: 0.05 },
     title: 'The endowment draw is questioned',
-    text: 'The Finance Committee has noticed how much you draw from the endowment. One member has made a chart of what the fund would be worth in thirty years at this rate. They have brought copies, which is the part the CFO objects to.',
+    text: 'The Finance Committee has noticed how much you draw from the endowment. One member has brought copies of a chart showing what the fund would be worth in thirty years at this rate.',
     timeoutWeeks: 3,
     choices: [
       { id: 'cut', label: 'Pay back a year\'s extra draw and lower the rate', effects: { cash: -600000, endowment: 600000, drawRate: -0.005 } },
@@ -456,7 +456,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { rungAtLeast: 2 },
     title: 'A trustee resigns',
-    text: 'A trustee has resigned. The letter gives pressure of work as the reason and is three lines long, which is two lines longer than it needed to be and one line shorter than a letter that meant it.',
+    text: 'A trustee has resigned. The letter runs three lines and blames pressure of work. A letter that meant it would have run longer.',
     timeoutWeeks: 3,
     choices: [
       { id: 'replace', label: 'Find a replacement quickly', effects: { cash: -60000 } },
@@ -472,7 +472,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { rungAtLeast: 2, enrolledOver: 100 },
     title: 'A reporter has the figures',
-    text: 'A reporter has been asking the kind of questions that mean they already have the figures. The deadline is Friday. The Communications Officer would like to know what your position is, and does not appear to be joking.',
+    text: 'A reporter has been asking the kind of questions that mean they already have the figures. The deadline is Friday, and the Communications Officer needs to know your position.',
     timeoutWeeks: 2,
     choices: [
       { id: 'statement', label: 'Give them the numbers and a statement', effects: { mood: -1 } },
@@ -489,11 +489,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { rungAtMost: 1, yearAtLeast: 8 },
     needs: ['library'],
     title: 'The board wants a retreat',
-    text: 'The board would like a retreat. The proposal is two days at a hotel with a facilitator. The stated purpose is to think strategically about the next twenty years, which the last retreat also did.',
+    text: 'The board wants a retreat. The stated purpose is to think strategically about the next twenty years, as it was last time. The proposal is two days at a hotel with a facilitator.',
     timeoutWeeks: 3,
     choices: [
       { id: 'hold', label: 'Hold the retreat', effects: { cash: -70000 } },
-      { id: 'day', label: 'One day, in the library, no facilitator', effects: { cash: -5000, mood: 1 } },
+      { id: 'day', label: 'Make it one day in the library, with no facilitator', effects: { cash: -5000, mood: 1 } },
     ],
     default: 'day',
   },
@@ -522,7 +522,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { facultyOver: 5 },
     title: 'A sabbatical in its second year',
-    text: 'A professor on sabbatical elsewhere has not come back. The work is going well, apparently. There has been a letter about extending. The teaching that was covered for one year has now been covered for two.',
+    text: 'A professor on sabbatical elsewhere hasn\'t come back. The work is going well, apparently. There\'s been a letter about extending. The teaching that was covered for one year has now been covered for two.',
     timeoutWeeks: 3,
     choices: [
       { id: 'extend', label: 'Extend the leave', effects: { cash: -90000, quality: 1 } },
@@ -540,7 +540,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { facultyOver: 2, programsOver: 1 },
     names: { faculty: 'recent' },
     title: '{faculty}\'s spouse needs a post',
-    text: '{school} would like to keep {faculty}. Their spouse, {candidate}, is also an academic, in {candidateField}, a field your college doesn\'t teach. {faculty} has asked, mildly, whether anything might be possible. Nobody has mentioned going anywhere else, which is itself a kind of mention.',
+    text: '{faculty} is one of the newer hires at {school}, and one worth keeping. Their spouse, {candidate}, is also an academic, in {candidateField}, a field you don\'t teach. Nobody has mentioned going anywhere else. {faculty} has only asked, mildly, whether anything might be possible.',
     timeoutWeeks: 3,
     choices: [
       { id: 'line', label: 'Hire {candidate} into a courtesy post', effects: { cash: -90000, quality: 2, mood: 1, hire: 1 } },
@@ -558,7 +558,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { yearAtLeast: 32, facultyOver: 4 },
     names: { faculty: 'retiring' },
     title: 'Retired professors keep their offices',
-    text: 'Four emeritus professors are using offices the departments would like back. None of them teaches. All of them are in most days. One of them is the reason two of the others came here at all. {faculty}, who retires in June, would make five.',
+    text: 'Four emeritus professors are using offices the departments want back. None of them teaches. All of them are in most days. One of them is the reason two of the others came here at all. {faculty}, who retires in June, would make five.',
     timeoutWeeks: 3,
     choices: [
       { id: 'keep', label: 'Leave them where they are', effects: { warmth: 3, mood: 1 } },
@@ -575,7 +575,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { teachingOver: 45, enrolledOver: 130 },
     names: { faculty: 'teacher' },
     title: '{faculty}\'s lectures draw a crowd',
-    text: '{faculty}\'s lectures have started attracting people who are not registered for them, including, twice, members of the public. The lecture theater holds ninety. The Fire Officer has been in touch.',
+    text: '{faculty}\'s lectures have started attracting people who aren\'t registered for them, including, twice, members of the public. The lecture hall holds ninety. The fire marshal has been in touch.',
     timeoutWeeks: 3,
     choices: [
       { id: 'bigger', label: 'Move it and open it to the town', effects: { cash: -20000, mood: 2, warmth: 2 } },
@@ -591,7 +591,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { teachingUnder: 30, enrolledOver: 100 },
     title: 'Teaching evaluations hit a low',
-    text: 'Your teaching evaluations are the worst the college has recorded. The written comments aren\'t angry, and the Dean\'s office finds that the worrying part. They are patient. Several of them say the students expected this.',
+    text: 'This year\'s teaching evaluations are the worst your college has recorded. The written comments aren\'t angry, and the Dean\'s office finds that the worrying part. They are patient. Several of them say the students expected this.',
     timeoutWeeks: 4,
     choices: [
       { id: 'invest', label: 'Fund a plan to fix it, and publish it', effects: { cash: -180000, mood: 2, quality: 1 } },
@@ -607,10 +607,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { programsOver: 2 },
     title: 'The accreditation self-study is due',
-    text: 'The accreditation self-study is due this term. It runs to a hundred and forty pages, and the cover letter asks for evidence of \'continuous improvement\', which the Registrar has spent a week trying to write honestly.',
+    text: 'The accreditors want evidence of \'continuous improvement\', and the Registrar has spent a week trying to write that honestly. The self-study is due this term.',
     timeoutWeeks: 4,
     choices: [
-      { id: 'prepare', label: 'Fund the preparation properly', effects: { cash: -150000, quality: 1 } },
+      { id: 'prepare', label: 'Fund the preparation in full', effects: { cash: -150000, quality: 1 } },
       { id: 'minimum', label: 'Send what you already have', effects: { quality: -1 } },
     ],
     default: 'minimum',
@@ -624,10 +624,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { programsOver: 2, teachingUnder: 34, yearAtLeast: 6, enrolledOver: 200 },
     names: { program: 'closable' },
     title: 'A program short of students',
-    text: 'Enrollment in {program} is down for the fourth year. The department\'s case for keeping it is that it is the kind of thing a university should teach, which is true, and that it will recover, which is where the case becomes thinner.',
+    text: 'Enrollment in {program} is down for the fourth year. The department is right that this is the kind of thing you should teach. Its case that the numbers will recover is thinner.',
     timeoutWeeks: 4,
     choices: [
-      { id: 'invest', label: 'Fund it properly', effects: { cash: -200000, quality: 1, mood: 1 } },
+      { id: 'invest', label: 'Invest in the program', effects: { cash: -200000, quality: 1, mood: 1 } },
       { id: 'teach-out', label: 'Freeze its budget', effects: { mood: -2, warmth: -2 } },
       { id: 'close', label: 'Close {program}', effects: { mood: -3, warmth: -2, closeProgram: 1 } },
     ],
@@ -642,7 +642,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { schoolsOver: 1, endowmentOver: 60000000 },
     needs: ['library'],
     title: 'A scholar\'s library for sale',
-    text: 'A private library is for sale. It holds eleven thousand working volumes, from a scholar who taught here briefly and disliked it. The heirs would prefer it went somewhere it would be used.',
+    text: 'A private library is for sale. It holds twelve thousand working volumes, from a scholar who taught here briefly and disliked it. The heirs would prefer it went somewhere it would be used.',
     timeoutWeeks: 3,
     choices: [
       { id: 'buy', label: 'Buy the whole collection', effects: { cash: -400000, quality: 2, libraryFloor: 1 } },
@@ -659,7 +659,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { satisfactionUnder: 48, enrolledOver: 140 },
     title: 'A sit-in at {building}',
-    text: 'Forty students are sitting in the foyer of {building}. They have a list of six things, and you agree with four of them. They have been letting the cleaning staff through since Tuesday.',
+    text: 'Forty students are sitting in the foyer of {building}. They have been letting the cleaning staff through since Tuesday. They have a list of six things, and you agree with four of them.',
     timeoutWeeks: 2,
     choices: [
       { id: 'meet', label: 'Meet them and concede what is fair', effects: { cash: -150000, mood: 3 } },
@@ -694,7 +694,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { satisfactionUnder: 50, enrolledOver: 90, enrolledUnder: 1100 },
     needs: ['dining-hall'],
     title: 'A petition about the dining hall',
-    text: 'A petition about the dining hall has reached eleven hundred signatures, which is more students than {school} has. The kitchen\'s position is that it is doing what the contract says, and the kitchen is right.',
+    text: 'A petition about the dining hall has more signatures than {school} has students. The kitchen\'s position is that it\'s doing what the contract says, and the kitchen is right.',
     timeoutWeeks: 3,
     choices: [
       { id: 'renegotiate', label: 'Buy out the contract and start again', effects: { cash: -220000, mood: 3 } },
@@ -727,7 +727,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 15,
     when: { enrolledOver: 150, yearAtLeast: 6, mascotAtMost: 0 },
     title: 'A swan for a mascot',
-    text: 'Your college has never settled on a mascot. The students have settled on one: a swan, which lives on the pond and has bitten two people. The student government has produced a costume without being asked.',
+    text: 'Your college has never settled on a mascot. The students have settled on the swan that lives on the pond and has bitten two people. The student government has produced a costume without being asked.',
     timeoutWeeks: 3,
     choices: [
       { id: 'adopt', label: 'Adopt the swan', effects: { cash: -15000, mood: 3, warmth: 3 }, mascot: 'Swans' },
@@ -743,11 +743,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { enrolledOver: 130, selectivityOver: 0.55 },
     title: 'A final exam gets out early',
-    text: 'A final exam has gotten out ahead of time. Eleven students are known to have seen it. Nobody knows, or can know, how many saw it and said nothing. Student Affairs has asked for a decision before Friday.',
+    text: 'A final exam has gotten out ahead of time. It was kept in a locked cabinet, and the key was kept on top of the cabinet. Nine students are known to have seen it, and nobody can know how many saw it and said nothing. Student Affairs wants a decision before Friday.',
     timeoutWeeks: 2,
     choices: [
       { id: 'resit', label: 'Void the exam and have the whole class retake it', effects: { cash: -40000, mood: -2, quality: 1 } },
-      { id: 'eleven', label: 'Discipline the eleven', effects: { mood: -1, quality: -1 } },
+      { id: 'eleven', label: 'Discipline the nine', effects: { mood: -1, quality: -1 } },
     ],
     default: 'eleven',
   },
@@ -760,7 +760,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { enrolledOver: 120 },
     needs: ['health-center'],
     title: 'Illness in the residence halls',
-    text: 'Something is going around the residences. The Health Center has seen ninety students in four days. It has run out of the only thing that helps, which is a room to put them in that isn\'t the room they share.',
+    text: 'Something is going around the residences. The Health Center\'s handout advises staying away from anyone who is sick, and most students share a room with someone who is. The Center has seen ninety of them in four days and has run out of rooms to put them in.',
     timeoutWeeks: 2,
     choices: [
       { id: 'isolate', label: 'Take rooms in town and staff them', effects: { cash: -120000, mood: 2 } },
@@ -776,7 +776,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { alumniOver: 300 },
     title: 'A phone campaign for alumni gifts',
-    text: 'The Development Office would like to run a proper telephone campaign: students calling alumni in the evenings, a script, a target. The last one raised fifteen times what it cost and was described in two letters as \'undignified\'.',
+    text: 'The Development Office wants to run a proper telephone campaign: students calling alumni in the evenings, a script, a target. The last one was described in two letters as \'undignified\', and raised fifteen times what it cost.',
     timeoutWeeks: 3,
     choices: [
       { id: 'run', label: 'Run the campaign', effects: { cash: -60000, endowment: 900000, warmth: -2, campaign: 1 } },
@@ -794,10 +794,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { warmthUnder: 18, alumniOver: 250 },
     names: { class: 'reunion' },
     title: 'A complaint from the {class}',
-    text: 'The {class} have written collectively. The letter is careful, signed by nineteen of them, and concerns a campus that has changed without them, a tradition that has died out, and the fact that nobody told them about either.',
+    text: 'Nineteen members of the {class} have written together. Their letter concerns a campus that has changed without them, a tradition that has died out, and the fact that nobody told them about either.',
     timeoutWeeks: 4,
     choices: [
-      { id: 'answer', label: 'Answer it properly and invite them back', effects: { cash: -45000, warmth: 5 } },
+      { id: 'answer', label: 'Answer in full and invite them back', effects: { cash: -45000, warmth: 5 } },
       { id: 'acknowledge', label: 'Acknowledge it and file it', effects: { warmth: -3 } },
     ],
     default: 'acknowledge',
@@ -810,7 +810,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 10,
     when: { alumniOver: 600, warmthOver: 22 },
     title: 'Alumni ask for a board seat',
-    text: 'The alumni would like a seat on the board that they elect themselves. They have been polite about it for six years and have now been polite about it in a letter with four hundred names attached.',
+    text: 'For six years the alumni have asked politely for a seat on the board that they elect themselves. This year they have asked politely in a letter with four hundred names attached.',
     timeoutWeeks: 3,
     choices: [
       { id: 'grant', label: 'Agree to the seat, in principle', effects: { warmth: 5, mood: 1 } },
@@ -826,11 +826,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { selectivityUnder: 0.38, yearAtLeast: 5 },
     title: 'Too few deposits from admitted students',
-    text: 'Deposits from admitted students are behind. The Dean of Admissions has proposed a second round of offers, which works. The Dean has also proposed not calling it a second round, which is where the conversation slowed down.',
+    text: 'Deposits from admitted students are behind. The Dean of Admissions has proposed a second round of offers, and would rather it weren\'t called one. It would fill the class.',
     timeoutWeeks: 2,
     choices: [
       { id: 'second-round', label: 'Make a second round of offers', effects: { enrollment: 18, quality: -3 } },
-      { id: 'hold', label: 'Hold the line and take a smaller class', effects: { enrollment: -10, quality: 2, cash: -200000 } },
+      { id: 'hold', label: 'Make no more offers and take a smaller class', effects: { enrollment: -10, quality: 2, cash: -200000 } },
     ],
     default: 'second-round',
   },
@@ -842,7 +842,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { tuitionOver: 52000 },
     title: 'A parent\'s letter about tuition',
-    text: 'A parent has written about tuition. The letter is four pages, entirely reasonable, encloses a photocopy of the viewbook from the year their eldest started, and ends by asking what exactly has been added since.',
+    text: 'A parent has written about tuition. The letter encloses a photocopy of the viewbook from the year their eldest started, and asks what exactly has been added since.',
     timeoutWeeks: 3,
     choices: [
       { id: 'aid', label: 'Endow a hardship fund', effects: { cash: -300000, endowment: 300000, mood: 2, warmth: 2 }, fund: { purpose: 'scholarship', name: 'The Hardship Fund' } },
@@ -858,7 +858,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 99,
     when: { enrolledOver: 220, yearAtLeast: 9 },
     title: 'A first entry in a guidebook',
-    text: '{school} has appeared in a guidebook for the first time. The entry is three sentences long, broadly accurate, and describes the campus as \'pleasant if underfunded\', which the board has read in two entirely different tones.',
+    text: '{school} has appeared in a guidebook for the first time. The entry is broadly accurate and describes the campus as \'pleasant if underfunded\'. The board has read that in two entirely different tones. The guide sells larger entries.',
     timeoutWeeks: 3,
     choices: [
       { id: 'advertise', label: 'Pay for a larger entry', effects: { cash: -35000, enrollment: 8 } },
@@ -874,7 +874,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { enrolledUnder: 160, yearAtLeast: 6 },
     title: 'Recruiting trips beyond the county',
-    text: 'Admissions would like to visit high schools in three states instead of one. The case is a page long and rests on a single sentence. Nobody who hasn\'t heard of {school} has applied to it.',
+    text: 'Admissions wants to visit high schools in three states instead of one. Its case comes down to one sentence. Only people who have heard of {school} apply to it.',
     timeoutWeeks: 3,
     choices: [
       { id: 'fund', label: 'Fund visits in three states', effects: { cash: -90000, enrollment: 12 } },
@@ -907,7 +907,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 25,
     when: { yearAtLeast: 12, enrolledOver: 140 },
     title: 'The matter in the business office',
-    text: 'The irregularity in the business office accounts is eleven years old. It comes to a good deal more than was first thought. A temporary clerk found it while checking something else. The person responsible retired four years ago with a presentation and a speech.\n\nThe auditors have been informed because they had to be. The board has been informed because the auditors informed them. The press have not been informed, yet. The Communications Officer has written the word \'yet\' on the briefing note, in a hand that suggests she doesn\'t expect that to last.\n\nIn one version of this, you announce it first, plainly, with the figure and the referral to the authorities, and take a bad two weeks. In another, you don\'t, and wait to see whether anyone else will.',
+    text: 'The irregularity in the business office accounts is twelve years old. It comes to a good deal more than was first thought. A temporary clerk found it while checking something else. The person responsible retired four years ago with a presentation and a speech.\n\nThe auditors have been informed because they had to be. The board has been informed because the auditors informed it. The press has not been informed, yet. The Communications Officer has written the word \'yet\' on the briefing note, in a hand that suggests she doesn\'t expect that to last.',
     timeoutWeeks: 4,
     choices: [
       { id: 'announce', label: 'Announce it, refer it to the authorities, and publish the figure', effects: { cash: -400000, warmth: -3, mood: -2 } },
@@ -924,12 +924,12 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 30,
     when: { yearAtLeast: 44, alumniOver: 700 },
     title: 'The Whitfield bequest',
-    text: 'Eleanor Whitfield left {school} almost everything, which is a great deal more than anyone expected, and a letter of three sentences explaining why. She graduated in a year the college would rather not dwell on, was taught by two people it has since named rooms after, and gave nothing at all for forty years.\n\nThe letter says she did not give before because nobody asked her anything except for money. It says she is giving now because of a conversation with a student caller who asked what she had studied and then asked a second question about it. It does not name the student.\n\nThe executors are ready. The board has met twice and has not agreed. A sum this size is less a gift than a decision about what your college is going to be.',
+    text: 'Eleanor Whitfield left {school} almost everything she had, far more than anyone expected, with a letter of three sentences explaining why. She graduated in a year you would sooner forget, was taught by two people who now have rooms named after them, and gave nothing at all for forty years.\n\nThe letter says she didn\'t give before because nobody asked her anything except for money. It says she is giving now because of a conversation with a student caller who asked what she had studied and then asked a second question about it. It doesn\'t name the student.\n\nThe executors are ready. The board has met twice and has not agreed. A sum this size is less a gift than a decision about what your college is going to be.',
     timeoutWeeks: 4,
     choices: [
       { id: 'endow', label: 'Endow it and spend only the income', effects: { endowment: 14000000, warmth: 4 } },
       { id: 'build', label: 'Take it as cash and build now', effects: { cash: 12000000, mood: 4, warmth: 2 } },
-      { id: 'debt', label: 'Clear the debt and steady the ship', effects: { cash: 3000000, debt: -8000000, endowment: 3000000, warmth: -2 } },
+      { id: 'debt', label: 'Clear the debt and split the rest', effects: { cash: 3000000, debt: -8000000, endowment: 3000000, warmth: -2 } },
     ],
     default: 'endow',
   },
@@ -941,7 +941,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 25,
     when: { yearAtLeast: 14, satisfactionUnder: 52 },
     title: 'The occupation',
-    text: 'The administration building has been occupied since Thursday. It is orderly: there is a sign-up sheet, the mail is being passed through, and somebody has been watering the plants in the outer office. The demands run to two pages and are mostly about money. That means mostly things you have already admitted you can\'t afford.\n\nThe faculty are divided in a way that is new. Eleven have signed a letter supporting the students. Three have signed one opposing it. The rest are waiting to see which letter it is better to have signed, which is the part you have found most instructive.\n\nThe town is watching. The board is waiting. The students in the building are, on the whole, being more reasonable than anyone outside it.',
+    text: 'Students have occupied the administration building since Thursday. It\'s orderly: there is a sign-up sheet, the mail is being passed through, and somebody has been watering the plants in the outer office. The demands run to two pages and are mostly about money. That means mostly things you\'ve already admitted you can\'t afford.\n\nThe faculty is divided in a way that is new. Fourteen professors have signed a letter supporting the students. Three have signed one opposing it. The rest are waiting to see which letter it is better to have signed.\n\nThe students in the building are, on the whole, being more reasonable than anyone outside it. The town is watching, and the board is waiting.',
     timeoutWeeks: 5,
     choices: [
       { id: 'negotiate', label: 'Negotiate in public and give ground where they\'re right', effects: { cash: -800000, mood: 5, warmth: 2 } },
@@ -958,10 +958,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtMost: 6, enrolledUnder: 200 },
     title: 'A parent asks if you\'re accredited',
-    text: 'A prospective student\'s parent has telephoned to ask whether {school} is accredited, which it is. They also asked how long it has been open, which the Registrar found harder to answer warmly. Nobody in the county has heard of the place yet.',
+    text: 'A prospective student\'s parent has called to ask whether {school} is accredited. It is. They also asked how long it has been open, and the Registrar found that harder to answer warmly. Nobody in the county has heard of the place yet.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'campaign', label: 'Advertise properly for a year', effects: { cash: -120000, enrollment: 10 } },
+      { id: 'campaign', label: 'Advertise for a year', effects: { cash: -120000, enrollment: 10 } },
       { id: 'wait', label: 'Let the first graduates be the advertisement', effects: {} },
     ],
     default: 'wait',
@@ -974,12 +974,12 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { cashOver: 25000000, yearAtLeast: 8 },
     title: 'Idle cash in the operating account',
-    text: 'Your operating account holds more than the college has ever had, and there\'s no plan for any of it. Three memos have arrived this week proposing uses. The CFO has pointed out, with feeling, that money sitting still is the only kind that is certainly not doing anything.',
+    text: 'You have more in the operating account than you\'ve ever had, and there\'s no plan for any of it. Three memos have arrived this week proposing uses. The CFO has pointed out, with feeling, that money sitting in the account earns nothing.',
     timeoutWeeks: 3,
     choices: [
       { id: 'endow', label: 'Move it into the endowment', effects: { cash: -8000000, endowment: 8000000 } },
       { id: 'spend', label: 'Spend it on the students who are here now', effects: { cash: -6000000, mood: 4, quality: 1 } },
-      { id: 'hold', label: 'Hold it against a bad year', effects: {} },
+      { id: 'hold', label: 'Keep it in reserve for a bad year', effects: {} },
     ],
     default: 'hold',
   },
@@ -991,7 +991,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { endowmentUnder: 46000000, yearAtLeast: 10 },
     title: 'The endowment trails your peers',
-    text: 'Your endowment is smaller than those of the colleges the board compares you with. The board keeps a table of them. The table is not in the papers this time, which everyone has noticed.',
+    text: 'The board keeps a table comparing your endowment with those of other colleges. This time the table has been left out of the papers, and everyone has noticed. Yours is the smallest on it.',
     timeoutWeeks: 3,
     choices: [
       { id: 'campaign', label: 'Ask the major donors', effects: { cash: -250000, endowment: 3000000, warmth: -1 } },
@@ -1008,7 +1008,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { payrollShareOver: 0.62 },
     title: 'Salaries are most of the budget',
-    text: 'Salaries are now most of what you spend. The CFO\'s paper says this plainly in one line. It then spends four pages explaining that this is not, in itself, a criticism of anybody, which is how everyone knows what the paper is about.',
+    text: 'A paper has come from the CFO. Four of its pages explain that it isn\'t, in itself, a criticism of anybody. One line says plainly that salaries are now most of what you spend.',
     timeoutWeeks: 3,
     choices: [
       { id: 'freeze', label: 'Find a year\'s savings in the payroll', effects: { cash: 400000, mood: -3, quality: -1 } },
@@ -1024,7 +1024,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { beautyUnder: 63, treesUnder: 266 },
     title: 'Bare ground in the viewbook photos',
-    text: 'The viewbook photographs have come back, and the Admissions Office would like to discuss them. The buildings are all present and correct. The difficulty is what is between them, which in most of the frames is nothing at all.',
+    text: 'The viewbook photographs are back, and the Admissions Office wants to discuss them. The buildings are all there. In most of the frames, nothing at all stands between them.',
     timeoutWeeks: 3,
     choices: [
       { id: 'landscape', label: 'Fund a planting program', effects: { cash: -140000, trees: 70, mood: 2 } },
@@ -1040,10 +1040,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { satisfactionOver: 66 },
     title: 'A good year nobody can explain',
-    text: 'Something is going right. The returns are good, the leavers are few, and three students have written to you unprompted, which has not happened before. Academic Affairs would like to know what you are doing, so you can keep doing it.',
+    text: 'Something is going right. Fewer students are dropping out, and three have written to you unprompted, for the first time. Academic Affairs wants to know what you\'re doing, so you can keep doing it.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'invest', label: 'Put money behind whatever it is', effects: { cash: -200000, mood: 2, quality: 1 } },
+      { id: 'invest', label: 'Spend more on teaching and student life', effects: { cash: -200000, mood: 2, quality: 1 } },
       { id: 'record', label: 'Write it down and carry on', effects: { mood: 1 } },
     ],
     default: 'record',
@@ -1056,10 +1056,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { satisfactionUnder: 45, enrolledOver: 120 },
     title: 'A long run of low morale',
-    text: 'It has been a long few terms. No single thing has gone badly enough to write about. But it adds up, and it shows in the corridors, in the evaluations, and in how many people have stopped coming to things.',
+    text: 'It\'s been a long few terms. No single thing has gone badly enough to be given a committee. But it adds up, and it shows in the corridors, in the evaluations, and in how many people have stopped coming to things.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'gesture', label: 'Do something generous and unasked-for', effects: { cash: -90000, mood: 4 } },
+      { id: 'gesture', label: 'Spend on a treat for the whole campus', effects: { cash: -90000, mood: 4 } },
       { id: 'quiet', label: 'Say nothing and let it pass', effects: { mood: -1 } },
     ],
     default: 'quiet',
@@ -1072,7 +1072,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { facultyUnder: 4, enrolledOver: 140 },
     title: 'Three names on the whole schedule',
-    text: 'The schedule for next term has been drawn up and shows the same three names against every hour of it. It is workable. The Registrar has attached a note. It points out that it is workable only as long as none of the three gets sick.',
+    text: 'Next term\'s schedule shows the same three names against every hour of it. The Registrar\'s note says it will work as long as none of the three gets sick.',
     timeoutWeeks: 3,
     choices: [
       { id: 'hire', label: 'Pay the three extra to teach the overload', effects: { cash: -120000, quality: 2, mood: 2 } },
@@ -1089,7 +1089,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { winterAtLeast: 0.5, oldestBuildingOver: 6 },
     title: 'The central boiler has a cough',
-    text: 'The central boiler has begun to make a noise the facilities office describes in writing as \'a sort of cough\'. It is still producing heat. Facilities would like it noted that they said so first.',
+    text: 'The central boiler has begun to make a noise the facilities office describes as \'a sort of cough\'. It\'s still producing heat. Facilities said so first, and has kept the memo.',
     timeoutWeeks: 3,
     choices: [
       { id: 'replace', label: 'Replace the boiler', effects: { cash: -1200000, backlog: -400000 } },
@@ -1099,8 +1099,8 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'nurse',
     settles: ['replace'],
     recalls: {
-      nurse: 'The central boiler, nursed through the winter of Year {answeredYear}, is coughing again, and has added a rattle. Facilities have sent their earlier memo a second time, with the date circled.',
-      defer: 'In Year {answeredYear} you put off replacing the central boiler until the summer. It has begun to cough again. The summer work, Facilities would like it noted, never reached it.',
+      nurse: 'The central boiler, nursed through the winter of Year {answeredYear}, is coughing again, and has added a rattle. Facilities has sent its earlier memo a second time, with the date circled.',
+      defer: 'In Year {answeredYear} you put off replacing the central boiler until the summer. It has begun to cough again. The summer work, Facilities notes, never reached it.',
     },
   },
   {
@@ -1112,7 +1112,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { winterAtLeast: 0.6, enrolledOver: 100 },
     needs: ['dining-hall', 'residence-hall'],
     title: 'The walk to breakfast freezes over',
-    text: 'The walk from the residence halls to the dining hall froze overnight into one continuous sheet. Most of the freshman class crossed it at breakfast, in a manner Facilities describes as \'improvised\'. Nobody is badly hurt. One wrist.',
+    text: 'Overnight, the walk from the residence halls to the dining hall froze into one continuous sheet. Most of the freshman class crossed it at breakfast, in a manner Facilities describes as \'improvised\'. Nobody is badly hurt, though one wrist is sprained.',
     timeoutWeeks: 2,
     choices: [
       { id: 'grit', label: 'Hire a second salting crew', effects: { cash: -80000, mood: 2 } },
@@ -1130,11 +1130,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { winterAtLeast: 0.7, buildingsOver: 5 },
     needs: ['library'],
     title: 'December\'s heating bill arrives',
-    text: 'The heating bill for December has arrived. It is larger than November\'s by a figure the CFO has circled, and then, in a different pen, circled again.',
+    text: 'The heating bill for December has arrived. It\'s larger than November\'s by a figure the CFO has circled, and then, in a different pen, circled again.',
     timeoutWeeks: 3,
     choices: [
       { id: 'pay', label: 'Pay it', effects: { cash: -350000 } },
-      { id: 'thermostats', label: 'Turn every thermostat down two degrees', effects: { cash: -150000, mood: -3 } },
+      { id: 'thermostats', label: 'Turn the heat down two degrees and pay a smaller bill', effects: { cash: -150000, mood: -3 } },
     ],
     default: 'pay',
   },
@@ -1146,7 +1146,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 3,
     when: { winterAtLeast: 0.9, enrolledOver: 200 },
     title: 'Heavy snow on a teaching day',
-    text: 'It snowed eleven inches overnight. The Registrar would like a decision on whether today\'s classes are canceled. The students, on the evidence of the main lawn, have already made one.',
+    text: 'A foot of snow fell overnight. The Registrar needs a decision on whether today\'s classes are canceled. The students, on the evidence of the main lawn, have already made one.',
     timeoutWeeks: 1,
     choices: [
       { id: 'cancel', label: 'Declare a snow day', effects: { mood: 3 } },
@@ -1162,7 +1162,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { winterAtLeast: 0.95, springWeekAtMost: 3, enrolledOver: 150 },
     title: 'A dark start to spring term',
-    text: 'The spring term has started in the dark. The sun rises after the first lecture and sets before the last. The counseling service has asked, in a memo with a sun drawn on it, for a daylight lamp in every lounge.',
+    text: 'Spring term has started in the dark. The sun rises after the first lecture and sets before the last. The counseling service has asked, in a memo with a sun drawn on it, for a daylight lamp in every lounge.',
     timeoutWeeks: 3,
     choices: [
       { id: 'lamps', label: 'Buy the lamps', effects: { cash: -60000, mood: 2 } },
@@ -1178,7 +1178,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { winterAtLeast: 0.8, buildingsOver: 3 },
     title: 'Deep snow on the flat roofs',
-    text: 'The snow on the flat roofs is now deep enough that the structural engineer has asked, politely and in writing, for it to be somewhere else. He has attached a diagram with arrows on it.',
+    text: 'The snow on the flat roofs is now deep enough that the structural engineer has asked, in writing, for it to be somewhere else.',
     timeoutWeeks: 2,
     choices: [
       { id: 'clear', label: 'Clear the roofs', effects: { cash: -90000 } },
@@ -1194,10 +1194,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { winterAtLeast: 0.9, yearAtLeast: 5, buildingsOver: 4 },
     title: 'The freeze',
-    text: 'The coldest night in forty years came the Sunday before term, and on Monday the pipes gave way in three buildings at once. Water came through the ceiling of a lecture theater in the kind of steady, reasonable way that suggests it has been planning this. The custodians worked through the night. They saved the rare books by carrying them, one cart at a time, to the only room on campus that was still dry, which was the chaplain\'s.\n\nThe insurers have sent a man. He has a clipboard and a very good coat.',
+    text: 'The coldest night in a generation came the Sunday before term, and on Monday the pipes gave way in three buildings at once. Water came steadily through the ceiling of a lecture hall. The custodians worked through the night. They saved the rare books by carrying them, one cart at a time, to the only dry room on campus, the chaplain\'s.\n\nThe insurers have sent a man. He has a clipboard and a very good coat.',
     timeoutWeeks: 4,
     choices: [
-      { id: 'replumb', label: 'Replace the plumbing properly', effects: { cash: -2200000, backlog: -800000, mood: 2 } },
+      { id: 'replumb', label: 'Replace the plumbing', effects: { cash: -2200000, backlog: -800000, mood: 2 } },
       { id: 'patch', label: 'Make it safe and dry it out', effects: { cash: -900000, mood: -2 } },
       { id: 'home', label: 'Start the term a week late', effects: { cash: -150000, backlog: 900000, mood: -4 } },
     ],
@@ -1211,7 +1211,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 2,
     when: { titleRecentAtLeast: 1 },
     title: 'The {sport} team wins the title',
-    text: 'The {sport} team has won the title, and the campus has not slept since. The boosters would like a parade down the main walk, the athletics department would like a new scoreboard, and Academic Affairs would like to know when anyone intends to go back to class.',
+    text: 'Your {sport} team has won the title, and the campus hasn\'t slept since. Academic Affairs would like to know when anyone intends to go back to class. The boosters would like a parade down the main walk, and the athletics department would like a new scoreboard.',
     timeoutWeeks: 2,
     choices: [
       { id: 'parade', label: 'Hold the parade', effects: { cash: -80000, mood: 4, warmth: 1 } },
@@ -1228,7 +1228,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 3,
     when: { rivalAtLeast: 1 },
     title: 'A rival\'s banner on your roof',
-    text: 'Students from {rival} climbed your tallest building overnight and hung their colors from the top. Student Affairs has a list of names and a photograph of the banner. Your own students are asking to be allowed to answer in kind.',
+    text: 'Students from {rival} climbed your tallest building overnight and hung their colors from the top. Facilities, still waiting on a ladder that reaches that roof, has asked how they did it. Student Affairs has a list of names, and your own students are asking to be allowed to answer in kind.',
     timeoutWeeks: 2,
     choices: [
       { id: 'answer', label: 'Look the other way while your students answer', effects: { mood: 3 } },
@@ -1245,7 +1245,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { rankAtLeast: 20, yearAtLeast: 8 },
     title: 'The chair asks about your ranking',
-    text: 'The board chair has brought the guide to the meeting, open at the table, with your college\'s line underlined twice. She would like to know what you intend to do about it, and has a consultant in mind.',
+    text: 'The board chair brought the guide to the meeting, open at the rankings, with your college\'s line underlined twice. She wants to know what you intend to do about it, and has a consultant in mind.',
     timeoutWeeks: 3,
     choices: [
       { id: 'consultant', label: 'Hire the consultant', effects: { cash: -250000 } },
@@ -1262,7 +1262,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { satisfactionOver: 58, enrolledOver: 300 },
     favours: ['party-school'],
     title: 'Neighbors complain about Thursday nights',
-    text: 'The neighbors have written again about Thursday nights: the music, the singing on the walk home, and a traffic cone now on the roof of their garage. They would like a meeting, and they have copied the local paper.',
+    text: 'The neighbors have written again about Thursday nights: the music, the singing on the walk home, and a traffic cone now on the roof of their garage. They have copied the local paper, and they want a meeting.',
     timeoutWeeks: 2,
     choices: [
       { id: 'curfew', label: 'Impose quiet hours', effects: { mood: -2 } },
@@ -1280,7 +1280,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     needs: ['library'],
     favours: ['pressure-cooker'],
     title: 'Reading rooms full all night',
-    text: 'The reading rooms were full at four in the morning for the third week running. The college nurse has seen more exhaustion this term than flu. The student paper has a front page about it and a list of demands.',
+    text: 'At four in the morning, for the third week running, the reading rooms were full. The college nurse has seen more exhaustion this term than flu. So far the official response is a poster about sleep. The student paper has a front page and a list of demands.',
     timeoutWeeks: 2,
     choices: [
       { id: 'close', label: 'Close the reading rooms at midnight', effects: { mood: 1, quality: -1 } },
@@ -1298,7 +1298,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     favours: ['research-powerhouse'],
     names: { faculty: 'researcher' },
     title: 'A large grant for {faculty}',
-    text: 'A national foundation has funded a proposal from {faculty}. The grant\'s overhead, the share that comes to the college, is more than the department\'s whole budget. The foundation would like you to countersign, and to say that you mean it.',
+    text: 'A national foundation has funded a proposal from {faculty}. The grant\'s overhead, the share that comes to you, is more than the department\'s whole budget. The foundation needs you to countersign, and to say that you mean it.',
     timeoutWeeks: 3,
     choices: [
       { id: 'house', label: 'Countersign and take the overhead', effects: { cash: 200000, mood: 1 } },
@@ -1315,7 +1315,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { endowmentOver: 150000000, alumniOver: 500 },
     favours: ['old-money', 'country-club'],
     title: 'A trustee\'s grandson applies',
-    text: 'A trustee\'s grandson has applied, and his file is not strong. The trustee has not mentioned it, which is how everyone knows he would like it mentioned.',
+    text: 'A trustee\'s grandson has applied, and his file isn\'t strong. The trustee hasn\'t mentioned it, which is how everyone knows he wants it mentioned.',
     timeoutWeeks: 2,
     choices: [
       { id: 'admit', label: 'Admit him', effects: { mood: -1 } },
@@ -1350,7 +1350,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { winterAtLeast: 0.6, backlogOver: 600000 },
     names: { building: 'worst' },
     title: '{building}: a burst pipe',
-    text: 'A pipe above the second floor of {building} burst on Saturday and ran until Monday, when the first seminar of the week found it. The ceiling tiles are drying in the corridor, stacked and numbered by somebody from the security desk. Facilities calls this the most useful thing done all weekend.',
+    text: 'A pipe above the second floor of {building} burst on Saturday and ran until Monday, when the first seminar of the week found it. The ceiling tiles are drying in the corridor, stacked and numbered by somebody from the security desk.',
     timeoutWeeks: 2,
     choices: [
       { id: 'replace', label: 'Replace the whole run of pipe', effects: { cash: -220000, backlogOn: -250000, mood: 1 } },
@@ -1366,7 +1366,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { enrolledOver: 200, beautyOver: 55 },
     title: 'A fox painted on {building}',
-    text: 'Somebody has painted a fox on the end wall of {building} overnight: nine feet tall, anatomically careful, and rather good. Grounds are ready with the pressure washer. The art department has asked them to wait until it has been photographed, and then, on reflection, to wait a little longer.',
+    text: 'Somebody has painted a fox on the end wall of {building} overnight: nine feet tall and anatomically careful. The art department has asked for time to photograph it, and then, on reflection, for a little longer. Grounds is ready with the pressure washer.',
     timeoutWeeks: 3,
     choices: [
       { id: 'clean', label: 'Have it cleaned off', effects: { cash: -8000, mood: -2 } },
@@ -1393,7 +1393,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'search',
     settles: ['cards'],
     recalls: {
-      rekey: 'The master key to {building} has been lost. The locks were all changed in Year {answeredYear}. The new master key has gone the way of the old one, on a ring with nine others and, the porters report, a different small plastic lobster.',
+      rekey: 'The master key to {building} has been lost. The locks were all changed in Year {answeredYear}. The new master key has gone the way of the old one, on a ring with nine others and, the security desk reports, a different small plastic lobster.',
       search: 'The master key to {building} has been lost again. The search for the last one, begun in Year {answeredYear}, was never formally called off, and the locksmith has sent his four pages again with a new date at the top.',
     },
   },
@@ -1406,7 +1406,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { conditionUnder: 0.75, backlogOver: 500000, maintenanceUnder: 0.95 },
     names: { building: 'worst' },
     title: '{building}: a leaking gutter',
-    text: 'Rain has been getting into {building} along the valley gutter, and there are now nine buckets in the top-floor corridor. The custodians empty them twice a day and have started logging the volumes in a notebook. They would like someone senior to read it, because the numbers are going up.',
+    text: 'Rain has been getting into {building} along the valley gutter, and there are now nine buckets in the top-floor corridor. The custodians empty them twice a day and have started logging the volumes in a notebook. They want someone senior to read it, because the numbers are going up.',
     timeoutWeeks: 3,
     choices: [
       { id: 'reroof', label: 'Reroof the building', effects: { cash: -500000, backlogOn: -450000, mood: 1 } },
@@ -1424,7 +1424,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { conditionUnder: 0.8, buildingsOver: 3 },
     names: { building: 'worst' },
     title: '{building}: elevator stuck',
-    text: 'The elevator in {building} has stopped between floors for the fourth time this term, most recently for fifty minutes with a department chair inside it. The chair used the time to draft a memo about the elevator, which has now arrived. It notes that for some students the stairs are not an option.',
+    text: 'For the fourth time this term, the elevator in {building} has stopped between floors, most recently for fifty minutes with a department chair inside it. The chair used the time to draft a memo about the elevator. It has now arrived, and it notes that for some students the stairs aren\'t an option.',
     timeoutWeeks: 3,
     choices: [
       { id: 'replace', label: 'Replace the elevator', effects: { cash: -280000, backlogOn: -150000, mood: 2 } },
@@ -1441,7 +1441,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { oldestBuildingOver: 20, beautyOver: 55 },
     names: { building: 'listable' },
     title: '{building}: landmark proposed',
-    text: 'The county\'s historic preservation officer would like to designate {building} a landmark. Designation would protect it from alteration of any kind, and the officer has confirmed, when asked a second time, that this includes the repairs.',
+    text: 'A landmark is protected from alteration of any kind, and the county\'s historic preservation officer has confirmed, when asked a second time, that this includes repairs. The officer proposes to designate {building}.',
     timeoutWeeks: 4,
     choices: [
       { id: 'support', label: 'Support the designation', effects: { warmth: 3, backlog: 250000, historic: 1 } },
@@ -1474,7 +1474,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { programsOver: 2, enrolledOver: 200 },
     title: 'Two required courses in one hour',
-    text: 'The new schedule has put the required methods course for {program} in the same hour as the only other course the program requires. Forty students cannot graduate on time without being in two rooms at once. The Registrar\'s office says the software did it, and the software has not commented.',
+    text: 'The new schedule has put the required methods course for {program} in the same hour as the only other course the program requires. The Registrar\'s office says the software did it. Thirty students can\'t graduate on time without being in two rooms at once.',
     timeoutWeeks: 2,
     choices: [
       { id: 'redraw', label: 'Redraw the schedule', effects: { cash: -25000, mood: 2 } },
@@ -1519,7 +1519,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'leave',
     settles: ['require'],
     recalls: {
-      leave: 'The Curriculum Committee, left with the writing course in Year {answeredYear}, has met eleven more times and approved the minutes of all of them. The chair would again like you to \'indicate a view\', and no longer pretends it is anything but a request to be rescued.',
+      leave: 'The Curriculum Committee, left with the writing course in Year {answeredYear}, has met eleven more times and approved the minutes of all of them. The chair has again asked you to \'indicate a view\', and no longer pretends it\'s anything but a request to be rescued.',
     },
   },
   {
@@ -1531,7 +1531,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { satisfactionOver: 56, yearAtLeast: 10 },
     favours: ['country-club'],
     title: 'The median grade rises again',
-    text: 'The median grade has risen for the ninth year running and now sits a short way below the top of the scale. A graduate school has written to ask what an A from {school} is meant to signify, in a tone that suggests it has already formed a view.',
+    text: 'For the ninth year running the median grade has risen, and it now sits a short way below the top of the scale. A graduate school has written to ask what an A from {school} is meant to signify.',
     timeoutWeeks: 4,
     choices: [
       { id: 'publish', label: 'Print the median beside every grade', effects: { mood: -2, quality: 1 } },
@@ -1540,7 +1540,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'leave',
     settles: ['publish'],
     recalls: {
-      leave: 'The median grade, left alone in Year {answeredYear}, has gone on rising and now sits a whisker below the top of the scale. A second graduate school has written to ask what an A from {school} is meant to signify, and has copied the first.',
+      leave: 'The median grade, left alone in Year {answeredYear}, has gone on rising and now sits a whisker below the top of the scale. Two graduate schools have now written to ask what an A from {school} is meant to signify.',
     },
   },
   {
@@ -1553,7 +1553,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     needs: ['lab'],
     favours: ['research-powerhouse'],
     title: 'The lab inspector\'s findings',
-    text: 'The safety inspector has been through the laboratories and found a fume hood last certified the year it was installed, a fridge marked NO FOOD with somebody\'s lunch in it, and an eyewash station connected to nothing. The report is polite and numbered.',
+    text: 'A safety inspector has been through the laboratories and found a fume hood last certified the year it was installed, a fridge marked NO FOOD with somebody\'s lunch in it, and an eyewash station connected to nothing.',
     timeoutWeeks: 3,
     choices: [
       { id: 'all', label: 'Fix everything on the list', effects: { cash: -150000, backlog: -100000 } },
@@ -1571,7 +1571,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { facultyOver: 5 },
     names: { faculty: 'retiring' },
     title: '{faculty} retires in June',
-    text: '{faculty} retires in June, after enough years that two of the current department were once their students. The department would like a dinner, a volume of essays, and their office kept exactly as it is for a year, and has listed these in ascending order of seriousness.',
+    text: '{faculty} retires in June, after enough years that two of the current department were once their students. The department has asked, in ascending order of seriousness, for a dinner, a volume of essays, and their office kept exactly as it is for a year.',
     timeoutWeeks: 4,
     choices: [
       { id: 'dinner', label: 'Hold the dinner and fund the volume', effects: { cash: -35000, warmth: 2, mood: 1 } },
@@ -1590,7 +1590,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     needs: ['library'],
     favours: ['pressure-cooker'],
     title: 'Students stay past the library bell',
-    text: 'It is exam season and the library closes at midnight. At ten past, most nights, a night guard walks the stacks with a flashlight and finds thirty or forty students who did not hear the bell, are very sorry, and would like five more minutes.',
+    text: 'It\'s exam season and the library closes at midnight. At ten past, most nights, a night guard walks the stacks with a flashlight and finds thirty-odd students who didn\'t hear the bell, are very sorry, and would like five more minutes.',
     timeoutWeeks: 2,
     choices: [
       { id: 'open', label: 'Open the library all night during exams', effects: { mood: 3 } },
@@ -1599,7 +1599,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'hold',
     settles: ['open'],
     recalls: {
-      hold: 'It is exam season, and the library still closes at midnight, as you decided in Year {answeredYear}. At ten past, the night guard\'s flashlight now finds fifty students who did not hear the bell, and one who has brought a sleeping bag.',
+      hold: 'It\'s exam season, and the library still closes at midnight, as you decided in Year {answeredYear}. At ten past, the night guard\'s flashlight now finds fifty students who didn\'t hear the bell, and one who has brought a sleeping bag.',
     },
   },
   {
@@ -1611,7 +1611,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { enrolledOver: 150, yearAtLeast: 3 },
     needs: ['residence-hall'],
     title: 'Two washing machines still work',
-    text: 'The laundry room in the residence halls has six machines, two of which work, and one of which works only if struck in a place the students have marked with tape. A sign-up sheet has appeared on the door. It is fairer than anything you have issued this year.',
+    text: 'There are six machines in the residence hall laundry room. Two work, and a third works only if struck in a place the students have marked with tape. A sign-up sheet has appeared on the door.',
     timeoutWeeks: 3,
     choices: [
       { id: 'replace', label: 'Replace the machines', effects: { cash: -45000, mood: 2 } },
@@ -1629,7 +1629,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     needs: ['dining-hall'],
     favours: ['artsy'],
     title: 'The vegan dish keeps selling out',
-    text: 'The dining hall added a vegan dish to the lunch counter this term, and it has sold out by half past twelve every day since. The catering manager would like to know whether you intend to plan for this, or to go on being surprised by it at half past twelve.',
+    text: 'This term the dining hall added a vegan dish to the lunch counter, and it has sold out by half past twelve every day since. The catering manager is tired of being surprised by this, and wants to know whether you intend to plan for it.',
     timeoutWeeks: 3,
     choices: [
       { id: 'expand', label: 'Expand the menu and retrain the kitchen', effects: { cash: -50000, mood: 2 } },
@@ -1663,7 +1663,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { enrolledOver: 250, yearAtLeast: 5 },
     title: '{building}: bicycles stolen',
-    text: 'Forty-one bicycles have been stolen from outside {building} since the start of term. Campus security describes it as a wave. The insurer won\'t describe it as anything until it has seen the locks. The student government has started selling better ones at cost.',
+    text: 'More than thirty bicycles have been stolen from outside {building} since the start of term. Campus security describes it as a wave. The insurer won\'t describe it as anything until it has seen the locks. The student government has started selling better ones at cost.',
     timeoutWeeks: 3,
     choices: [
       { id: 'racks', label: 'Install covered, lit racks with cameras', effects: { cash: -70000, mood: 2 } },
@@ -1697,10 +1697,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { enrolledOver: 150, yearAtLeast: 4 },
     title: 'Freshmen bused to the wrong college',
-    text: 'Orientation went wrong in its first hour. The buses meeting the new students at the station took them to a college with a similar name, forty miles away. The other college gave them lunch and a tour, and has written, generously, to say that several of them asked about transferring.',
+    text: 'Orientation went wrong in its first hour. The buses meeting the new students at the station took them to a college with a similar name, an hour\'s drive away. The other college gave them lunch and a tour, and has written, generously, to say that several of them asked about transferring.',
     timeoutWeeks: 2,
     choices: [
-      { id: 'restart', label: 'Fetch them and restart the week properly', effects: { cash: -30000, mood: 2 } },
+      { id: 'restart', label: 'Fetch them and restart the week', effects: { cash: -30000, mood: 2 } },
       { id: 'carry', label: 'Carry on with the printed schedule', effects: { mood: -2, enrollment: -3 } },
     ],
     default: 'carry',
@@ -1713,7 +1713,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { enrolledOver: 300, yearAtLeast: 8 },
     title: 'A society invites a divisive speaker',
-    text: 'A student society has invited a speaker whose views half the campus finds objectionable and the other half has not yet looked up. The society has booked the largest lecture room. Two other societies have booked the corridor outside it. Security would like a decision by Wednesday.',
+    text: 'A student society has invited a speaker whose views half the campus finds objectionable and the other half hasn\'t yet looked up. The society has booked the largest lecture room. Two other societies have booked the corridor outside it. Security needs a decision by Wednesday.',
     timeoutWeeks: 2,
     choices: [
       { id: 'secure', label: 'Let it go ahead and pay for security', effects: { cash: -25000, mood: -1 } },
@@ -1749,7 +1749,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { alumniOver: 500, warmthOver: 22 },
     names: { class: 'reunion' },
     title: 'A reunion clock from the {class}',
-    text: 'The {class} has raised a reunion gift and would like it spent on a clock for the main walk, with the class year on its face. The committee has chosen the clock, the typeface, and the year, which is off by one.',
+    text: 'A reunion gift has come in from the {class}, to be spent on a clock for the main walk with the class year on its face. The committee has chosen the clock, the typeface, and the year. The year is off by one.',
     timeoutWeeks: 3,
     choices: [
       { id: 'clock', label: 'Accept the clock, wrong year and all', effects: { warmth: 3 } },
@@ -1766,7 +1766,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { alumniOver: 300, yearAtLeast: 8 },
     favours: ['country-club'],
     title: 'An alumnus gives a racehorse',
-    text: 'An alumnus has given your college a racehorse, with papers, a trainer, and a stable bill already running. The horse has won twice in four starts, and the Development Office would like it on the record that it did not ask for this.',
+    text: 'An alumnus has given your college a racehorse, with papers, a trainer, and a stable bill already running. The Development Office wants it on the record that it didn\'t ask for this. The horse has won twice in four starts.',
     timeoutWeeks: 2,
     choices: [
       { id: 'sell', label: 'Sell the horse at auction', effects: { cash: 140000, warmth: -1 } },
@@ -1800,7 +1800,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { alumniOver: 800 },
     title: 'Alumni addresses out of date',
-    text: 'An audit of the alumni records has found that a third of the addresses are out of date and eleven belong to the same house. The house has been receiving the annual appeal in bulk since before its current owners bought it.',
+    text: 'One house has been receiving the annual appeal in bulk since before its current owners bought it. An audit of the alumni records has found fourteen alumni listed at that address, and a third of all the addresses out of date.',
     timeoutWeeks: 3,
     choices: [
       { id: 'officer', label: 'Hire an alumni records officer', effects: { cash: -45000, warmth: 2 } },
@@ -1817,7 +1817,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { alumniOver: 400, yearAtLeast: 8 },
     title: 'A trustee offers a matching gift',
-    text: 'A trustee has offered to match every alumni gift dollar for dollar, up to about a year\'s alumni giving. The condition is that you announce the challenge and campaign for it. She has done this before, elsewhere, and says it has never once failed.',
+    text: 'A trustee has offered to match a year of alumni gifts, dollar for dollar. The condition is that you announce the challenge and campaign for it. She has done this before, elsewhere, and says it has never once failed.',
     timeoutWeeks: 3,
     choices: [
       { id: 'announce', label: 'Announce the challenge and campaign for it', effects: { cash: -90000, endowment: 1600000, warmth: -1, campaign: 1 } },
@@ -1834,7 +1834,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { endowmentOver: 80000000, enrolledOver: 150 },
     favours: ['artsy'],
     title: 'A student petition to divest',
-    text: 'The students have petitioned the investment committee to divest from the companies named in a nineteen-page appendix. The committee has read the appendix, found two of its own holdings, and one of its own members\' employers.',
+    text: 'Students have petitioned the investment committee to divest from the companies named in an appendix. The committee has read the appendix and found two of its own holdings and one of its own members\' employers.',
     timeoutWeeks: 3,
     choices: [
       { id: 'divest', label: 'Divest from the named holdings', effects: { endowment: -1200000, mood: 3 } },
@@ -1852,7 +1852,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 4,
     when: { backlogOver: 600000, buildingsOver: 3 },
     title: 'The property insurance costs more',
-    text: 'The insurers have renewed the property policy at a premium forty percent higher than last year. Their surveyor\'s letter lists fourteen items of concern, the ninth of which is described only as \'the smell\'.',
+    text: 'Fourteen items of concern are listed in the insurers\' survey, the ninth described only as \'the smell\'. The property policy has been renewed at a premium a third higher than last year.',
     timeoutWeeks: 3,
     choices: [
       { id: 'pay', label: 'Pay the higher premium', effects: { cash: -120000 } },
@@ -1869,7 +1869,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtLeast: 6, cashOver: 3000000 },
     title: 'A bank account nobody remembers',
-    text: 'The auditors have found a bank account in your college\'s name that nobody in the business office remembers opening. It holds a small balance and a recurring payment, still running, to a florist.',
+    text: 'You have a bank account that nobody in the business office remembers opening. The auditors found it. It holds a small balance and a recurring payment, still running, to a florist.',
     timeoutWeeks: 2,
     choices: [
       { id: 'close', label: 'Close the account and take the money', effects: { cash: 38000 } },
@@ -1885,7 +1885,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtLeast: 15, facultyOver: 8 },
     title: 'A shortfall in the pension plan',
-    text: 'The three-yearly review of the staff pension plan shows a shortfall. The actuary\'s letter is courteous, and recommends that something be done.',
+    text: 'The three-year review of the staff pension plan shows a shortfall. The actuary recommends, courteously, that something be done.',
     timeoutWeeks: 3,
     choices: [
       { id: 'fund', label: 'Close the gap now', effects: { cash: -900000 } },
@@ -1903,7 +1903,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { enrolledOver: 300, cashUnder: 8000000 },
     favours: ['party-school'],
     title: 'A beverage company\'s exclusive offer',
-    text: 'A beverage company has offered you an exclusive pouring contract: its machines in every building, its logo on the scoreboard, its color on the recycling bins. The draft runs to forty pages, three of which concern the bins.',
+    text: 'A beverage company has offered you an exclusive pouring contract: its machines in every building, its logo on the scoreboard, its color on the recycling bins. The draft runs to sixty pages, three of which concern the bins.',
     timeoutWeeks: 2,
     choices: [
       { id: 'sign', label: 'Sign the contract', effects: { cash: 350000, mood: -1 } },
@@ -1919,7 +1919,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtLeast: 10, cashUnder: 4000000 },
     title: 'A timber company wants the woods',
-    text: 'A timber company has offered to clear the wooded strip along your northern edge. The college has owned it since the founding and never once found a use for it. The offer letter refers to it as \'the opportunity site\'.',
+    text: 'A timber company has offered to clear the wooded strip along your northern edge. Its letter calls the strip \'the opportunity site\'. You have owned it since the founding and never once found a use for it.',
     timeoutWeeks: 3,
     choices: [
       { id: 'sell', label: 'Sell the timber on the strip', effects: { cash: 2500000, trees: -35, warmth: -2 } },
@@ -1929,7 +1929,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'keep',
     settles: ['sell', 'lease'],
     recalls: {
-      keep: 'In Year {answeredYear} you told the timber company you would keep the wooded northern strip. It has written again, with a higher figure and the same phrase: \'the opportunity site\'. The strip has still found no use, which the letter mentions twice.',
+      keep: 'In Year {answeredYear} you told the timber company you would keep the wooded northern strip. It has written again, with a higher figure and the same phrase: \'the opportunity site\'. You still haven\'t found a use for the strip, and the letter mentions that twice.',
     },
   },
   {
@@ -1940,7 +1940,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtLeast: 5 },
     title: 'The board wants a strategic plan',
-    text: 'The board has asked for a strategic plan. The last one is in your filing cabinet, in a binder whose spine reads \'Vision\', and nobody has opened it since the year it was printed.',
+    text: 'You already have a strategic plan. It\'s in your filing cabinet, in a binder whose spine reads \'Vision\', and nobody has opened it since the year it was printed. The board has asked for a new one.',
     timeoutWeeks: 3,
     choices: [
       { id: 'commission', label: 'Commission a plan from outside', effects: { cash: -180000 } },
@@ -2008,7 +2008,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 99,
     when: { yearAtLeast: 31 },
     title: 'The board\'s secretary is retiring',
-    text: 'The secretary to the board is retiring after thirty-one years. The minutes of every meeting since the founding are in her handwriting, and in a shorthand of her own devising that no one else can read.',
+    text: 'After thirty-one years, the secretary to the board is retiring. The minutes of every meeting since the founding are in her handwriting, and in a shorthand of her own devising that no one else can read.',
     timeoutWeeks: 3,
     choices: [
       { id: 'hire', label: 'Hire a full-time successor', effects: { cash: -60000 } },
@@ -2025,7 +2025,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtLeast: 26 },
     title: 'Term limits for trustees',
-    text: 'A governance review has recommended term limits for trustees. The longest-serving trustee has been on the board for twenty-six years, chaired the committee that commissioned the review, and would like to discuss the transition arrangements.',
+    text: 'A governance review has recommended term limits for trustees. The longest-serving trustee has been on the board for twenty-six years, chaired the committee that commissioned the review, and wants to discuss the transition arrangements.',
     timeoutWeeks: 3,
     choices: [
       { id: 'adopt', label: 'Adopt term limits', effects: { warmth: 2 } },
@@ -2034,7 +2034,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     default: 'grandfather',
     settles: ['adopt'],
     recalls: {
-      grandfather: 'The term limits adopted for new trustees in Year {answeredYear} have so far limited nobody. The longest-serving trustee, still on the board and still chairing its governance committee, would like to discuss whether the review that recommended them might itself be reviewed.',
+      grandfather: 'The term limits adopted for new trustees in Year {answeredYear} have so far limited nobody. The longest-serving trustee, still on the board and still chairing its governance committee, has asked whether the review that recommended them might itself be reviewed.',
     },
   },
   {
@@ -2046,7 +2046,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { rankAtLeast: 18, yearAtLeast: 4 },
     favours: ['research-powerhouse'],
     title: 'The guide\'s reputation survey arrives',
-    text: 'The guide\'s reputation survey has arrived, asking you to rate twenty-four other colleges from one to five. Last year\'s return rated {rival} a two. Your office would like to know whether that is still your position.',
+    text: 'The guide\'s reputation survey has arrived, asking you to rate twenty-four other colleges from one to five. Last year\'s return rated {rival} a two. Your office is asking whether that\'s still your position.',
     timeoutWeeks: 2,
     choices: [
       { id: 'brochure', label: 'Send the other presidents a brochure, for the board\'s sake', effects: { cash: -60000 } },
@@ -2063,7 +2063,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 5,
     when: { rivalAtLeast: 1, yearAtLeast: 5 },
     title: 'A rival\'s film is widely watched',
-    text: 'A promotional film made by {rival} has been watched more times than {rival} has living alumni. It features a rowing eight at dawn, a lecture in a meadow, and a golden retriever that does not appear to be enrolled.',
+    text: 'A promotional film made by {rival} has been watched more times than {rival} has living alumni. It features a rowing eight at dawn and a lecture in a meadow.',
     timeoutWeeks: 2,
     choices: [
       { id: 'commission', label: 'Commission a film of your own', effects: { cash: -120000, enrollment: 10 } },
@@ -2098,7 +2098,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { yearAtLeast: 7, buildingsOver: 4 },
     title: 'The river',
-    text: 'The river came over the east meadow on Thursday and did not stop at the path, which the planning documents had assured everyone it would. By Saturday there was water up to the second step of {building}, and a canoe tied to the bicycle racks. The grounds staff had carried the ground-floor archive upstairs by hand, box by box, through the night.\n\nNobody was hurt. The claims adjuster has described the damage as \'general\', which the project manager has asked him to define. Some years ago the board received a hydrologist\'s report, and noted it. She has written to say she is sorry to have been right.',
+    text: 'The river came over the east meadow on Thursday and didn\'t stop at the path. By Saturday there was water up to the second step of {building}, and a canoe tied to the bicycle racks. The grounds staff had carried the ground-floor archive upstairs by hand, box by box, through the night.\n\nNobody was hurt. Some years ago the board received a hydrologist\'s report, and noted it. She has written to say she is sorry to have been right.',
     timeoutWeeks: 5,
     choices: [
       { id: 'defend', label: 'Build the flood defenses', effects: { cash: -3200000, backlog: -1000000, mood: 2 } },
@@ -2120,7 +2120,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { yearAtLeast: 8, enrolledOver: 250 },
     title: 'The sickness term',
-    text: 'The first cases came in the week after fall break, and by the end of the month a quarter of the college had been sick at once. The public health office has not ordered anything, and has said so in a letter that reads very much like a request. Lectures are running at half attendance, and the kitchens are sending trays to the residences. The chaplain has been sitting up with the students who are frightened. There are more of them than there are seriously sick.\n\nYou have to decide whether to finish the term in person, finish it remotely, or end it early and hold exams in the spring.',
+    text: 'The first cases came in the week after fall break, and by the end of the month a quarter of the college had been sick at once. The public health office has not ordered anything, and has said so in a letter that reads very much like a request. Lectures are running at half attendance, and the kitchens are sending trays to the residences. The chaplain has been sitting up with the students who are frightened. There are more of them than there are seriously sick.\n\nWhat happens to the rest of the term is yours to decide.',
     timeoutWeeks: 4,
     choices: [
       { id: 'close', label: 'End the term early and hold exams in spring', effects: { cash: -1400000, mood: 3, quality: -1 } },
@@ -2137,7 +2137,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 15,
     when: { yearAtLeast: 10, enrolledOver: 300 },
     title: 'The essay ring',
-    text: 'An outside reader in {program} noticed that four senior theses shared a bibliography, down to the same misspelled author. The inquiry that followed has found a paid essay service run from an apartment off campus, a customer list of a hundred and forty names, and a price list the Registrar describes as \'competitive\'. Some of the names have already graduated.\n\nMost of the students on the list were frightened of failing, and Student Affairs would like that to count. The Senate would like the degrees to mean what they say. Both are right, which is why it has come to you.',
+    text: 'An outside reader in {program} noticed that four senior theses shared a bibliography, down to the same misspelled author. The inquiry that followed has found a paid essay service run from an apartment off campus, a customer list of more than a hundred names, and a price list the Registrar describes as \'competitive\'. Some of the names have already graduated.\n\nMost of the students on the list were frightened of failing, and Student Affairs wants that to count. The Senate wants the degrees to mean what they say. Both are right, and so it has come to you.',
     timeoutWeeks: 5,
     choices: [
       { id: 'rescind', label: 'Take back the degrees and fail the rest', effects: { cash: -300000, quality: 2, mood: -5, enrollmentSpread: -40, warmth: -2 } },
@@ -2154,7 +2154,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { yearAtLeast: 10, enrolledOver: 200 },
     title: 'The state grant',
-    text: 'The legislature has closed the tuition grant program at the end of a budget session that ran into the small hours. The letter telling {school} arrived eleven days after the vote. It is a page and a half long and calls the change a \'transition\'. Roughly one student in six held one of the grants.\n\nThe families affected have begun telephoning the Financial Aid office, which has three staff and has stopped taking lunch. You can replace all of the money, some of it, or none of it. Each answer has names attached.',
+    text: 'The legislature closed the tuition grant program at the end of a budget session that ran past midnight. The letter telling {school} arrived a week and a half after the vote. It calls the change a \'transition\'. Roughly one student in six held one of the grants.\n\nThe families affected have begun calling the Financial Aid office. It has three staff, and they have stopped taking lunch. Whatever you decide has names attached.',
     timeoutWeeks: 6,
     choices: [
       { id: 'replace', label: 'Replace the grants in full', effects: { cash: -2800000, mood: 3, warmth: 2 } },
@@ -2171,7 +2171,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { yearAtLeast: 12, endowmentOver: 30000000, schoolsOver: 0, buildingsOver: 4 },
     title: 'The Hartwell pledge',
-    text: 'Hartwell & Sons has filed for bankruptcy owing more than anyone outside the firm had guessed, and with it has gone the second half of Arthur Hartwell\'s pledge to {school}. The first half is spent, on the drawings for a building that was to carry his name over the door in letters eleven inches high.\n\nThe bankruptcy trustee has written to ask whether you regard the money received so far as a gift or as part of the estate. A form is enclosed. Mr. Hartwell has written separately, by hand, to apologize.',
+    text: 'Hartwell & Sons has filed for bankruptcy owing more than anyone outside the firm had guessed, and with it has gone the second half of Arthur Hartwell\'s pledge to {school}. The first half is spent, on the drawings for a building that was to carry his name over the door in letters a foot high.\n\nThe bankruptcy trustee has written to ask whether you regard the money received so far as a gift or as part of the estate. A form is enclosed. Mr. Hartwell has written separately, by hand, to apologize.',
     timeoutWeeks: 5,
     choices: [
       { id: 'finish', label: 'Make up the missing half from the endowment', effects: { endowment: -3000000, warmth: 2, mood: 1 } },
@@ -2188,7 +2188,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { yearAtLeast: 12, programsOver: 5 },
     title: 'The viewbook case',
-    text: 'Thirty-one graduates of {program} have filed suit over a line in the viewbook that promised \'employment in the field within six months\' and gave a percentage. The percentage came from a survey of nine people, four of whom were related to the staff member who conducted it. The line was withdrawn eight years ago, but not before it had been printed forty thousand times.\n\nCounsel\'s advice runs to twenty pages and concludes that you would probably win, eventually, at a cost. The graduates\' own letter is two pages long and does not mention money until the last paragraph.',
+    text: 'Thirty-one graduates of {program} have filed suit over a line in the viewbook that promised \'employment in the field within six months\' and gave a percentage. The percentage came from a survey of nine people, four of whom were related to the staff member who conducted it. The line was withdrawn eight years ago, after a great many printings.\n\nCounsel advises that you would probably win, eventually, at a cost. The graduates\' own letter doesn\'t mention money until the last paragraph.',
     timeoutWeeks: 5,
     choices: [
       { id: 'settle', label: 'Settle with every graduate named', effects: { cash: -1600000, warmth: 3 } },
@@ -2206,11 +2206,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { yearAtLeast: 6, enrolledOver: 250 },
     needs: ['dining-hall'],
     title: 'The kitchens',
-    text: 'The dining hall staff walked out at six on Monday morning, forty-two of them, after a third year in a row in which their pay was frozen and the faculty\'s was not. They are outside the service entrance with a brazier and a hand-lettered sign, and the students who stop to talk are given coffee from a thermos. Nobody inside has made a breakfast since.\n\nThe students are eating from the vending machines and the town\'s two takeout places. More of them have signed a petition supporting the staff than voted in the last student government election. The claim itself is modest, and the CFO has costed it twice to be sure.',
+    text: 'At six on Monday morning the dining hall staff walked out, after a third year in a row in which their pay was frozen and the faculty\'s was not. They are outside the service entrance with a brazier and a hand-lettered sign, and the students who stop to talk are given coffee from a thermos. Nobody inside has made a breakfast since.\n\nThe students are eating from the vending machines and the town\'s two takeout places. More of them have signed a petition supporting the staff than voted in the last student government election. The claim itself is modest, and the CFO has priced it twice to be sure.',
     timeoutWeeks: 5,
     choices: [
       { id: 'meet', label: 'Pay the claim in full', effects: { cash: -500000, mood: 4, warmth: 2 } },
-      { id: 'oneoff', label: 'Offer a one-off payment and a review', effects: { cash: -300000, mood: 1 } },
+      { id: 'oneoff', label: 'Offer a one-time payment and a review', effects: { cash: -300000, mood: 1 } },
       { id: 'contract', label: 'Bring in a catering contractor', effects: { cash: -150000, mood: -6, warmth: -4 } },
     ],
     default: 'oneoff',
@@ -2259,7 +2259,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { yearAtLeast: 20, alumniOver: 800 },
     names: { class: 'veteran' },
     title: 'The name on the prize',
-    text: 'The most famous graduate of the {class} has been convicted of a fraud large enough to have its own documentary in preparation. For a generation he was the face of the college\'s publicity. His name is on the annual prize for leadership, a seminar room and the back page of the alumni magazine, where he appears shaking hands with three successive presidents. The prize was last awarded a month ago.\n\nThe people he defrauded include a pension fund and several hundred households. A number of alumni have written asking for his name to come down. A smaller number have written to say that {school} does not rewrite its history, and the largest donor among them has copied in the board.',
+    text: 'The most famous graduate of the {class} has been convicted of a fraud large enough to have its own documentary in preparation. For a generation he was the face of your publicity. His name is on the annual prize for leadership, a seminar room and the back page of the alumni magazine, where he appears shaking hands with three successive presidents. The prize was last awarded a month ago.\n\nThe people he defrauded include a pension fund and several hundred households. A number of alumni have written asking for his name to come down. A smaller number have written to say that {school} does not rewrite its history, and the largest donor among them has written to the board as well.',
     timeoutWeeks: 5,
     choices: [
       { id: 'remove', label: 'Take his name down everywhere', effects: { cash: -150000, endowment: -1500000, warmth: 2 } },
@@ -2276,7 +2276,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 20,
     when: { rivalAtLeast: 1, yearAtLeast: 15 },
     title: 'The merger proposal',
-    text: '{rival} has written proposing a merger. The letter is courteous and long, and its appendix lists the savings to be had from one registrar, one catalog and one set of athletic fields, most of which would be theirs. The name of the combined institution is left blank, in a way that suggests it has been discussed.\n\nThe board received a copy directly, which is how you learned the letter existed. Two trustees think it is the best offer the college will ever have. The rest would like to know why {rival} thinks the college needs one.',
+    text: '{rival} has written proposing a merger. Its appendix lists the savings to be had from one registrar, one catalog and one set of athletic fields, most of which would be theirs. The name of the combined institution is left blank.\n\nThe board received a copy directly, and that\'s how you learned the letter existed. Two trustees think it\'s the best offer you will ever have. The rest want to know why {rival} thinks you need one.',
     timeoutWeeks: 6,
     choices: [
       { id: 'decline', label: 'Decline it publicly', effects: { warmth: 3, mood: 2 } },
@@ -2294,7 +2294,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     hires: 'taught',
     when: { facultyOver: 25, yearAtLeast: 15 },
     title: 'A visiting professor, nine years on',
-    text: '{candidate}\'s one-year appointment as a visiting professor of {candidateField} has been renewed nine times, and the department now introduces them as its longest-serving member. They have asked, politely, whether the word \'visiting\' could be retired.',
+    text: '{candidate}\'s one-year appointment as a visiting professor of {candidateField} has been renewed nine times, and the department now introduces them as its longest-serving member. They have asked whether the word \'visiting\' could be retired.',
     timeoutWeeks: 3,
     choices: [
       { id: 'permanent', label: 'Make the post permanent and hire {candidate}', effects: { cash: -60000, mood: 2, quality: 1, hire: 1 } },
@@ -2327,7 +2327,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { reputationOver: 58 },
     title: 'Applicants name a current student',
-    text: 'Admissions reports that a third of this year\'s applicants named a current student as the reason they applied, and several named the same one. That student has been told and has asked for nothing, which Admissions finds suspicious.',
+    text: 'Admissions reports that a third of this year\'s applicants named a current student as the reason they applied, and several named the same one. That student has been told, and has asked for nothing.',
     timeoutWeeks: 3,
     choices: [
       { id: 'ambassadors', label: 'Fund student ambassadors', effects: { cash: -40000, mood: 2, enrollment: 10 } },
@@ -2343,7 +2343,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { reputationOver: 60 },
     title: 'Forty school counselors want a tour',
-    text: 'Forty school counselors have asked to tour the campus in one afternoon, more than have visited in your college\'s whole history. The guides have been rehearsing, and one of them has written a song.',
+    text: 'Two busloads of school counselors have asked to tour the campus in one afternoon, more than have visited in your college\'s whole history. The guides have been rehearsing, and one of them has written a song.',
     timeoutWeeks: 3,
     choices: [
       { id: 'host', label: 'Host them properly', effects: { cash: -30000, enrollment: 12, quality: 1 } },
@@ -2407,7 +2407,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { reputationUnder: 40 },
     title: 'The regional paper\'s long piece',
-    text: 'The regional paper has run a long piece about your college under the headline \'Whatever It Was Going to Be\', illustrated with a photograph of the college in its first year. It is, everyone agrees, a good photograph.',
+    text: 'The regional paper has run a long piece about your college under the headline \'Whatever It Was Going to Be\', illustrated with a photograph of the campus in its first year. It is, everyone agrees, a good photograph.',
     timeoutWeeks: 3,
     choices: [
       { id: 'answer', label: 'Answer it with a plan', effects: { cash: -60000 } },
@@ -2474,7 +2474,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { facultyOver: 10 },
     names: { faculty: 'founding-retiring' },
     title: 'The last founding professor retires',
-    text: '{faculty}, the last of the founding faculty, retires this year, having taught in every building the college has put up. The farewell lecture is titled \'Where Things Began\'.',
+    text: '{faculty}, the last of the founding faculty, retires this year, having taught in every building your college has put up. The farewell lecture is titled \'Where Things Began\'.',
     timeoutWeeks: 3,
     choices: [
       { id: 'chair', label: 'Endow a chair in their name', effects: { cash: -300000, endowment: 300000, warmth: 3, quality: 1 }, fund: { purpose: 'chair', name: 'The {faculty} Chair' } },
@@ -2490,7 +2490,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 10,
     when: { yearAtLeast: 40, alumniOver: 1000 },
     title: 'Forty children of alumni enroll',
-    text: 'This year\'s entering class includes forty children of alumni, and the housing office has, as a joke, given several of them their parent\'s old room number. Two of them have been given the actual rooms.',
+    text: 'This year\'s entering class includes three dozen children of alumni, and the housing office has, as a joke, given several of them their parent\'s old room number. Two of them have been given the actual rooms.',
     timeoutWeeks: 3,
     choices: [
       { id: 'legacy', label: 'Give alumni children an edge this year', effects: { warmth: 3, quality: -2 } },
@@ -2506,7 +2506,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 99,
     when: { yearAtLeast: 44 },
     title: 'Fifty years',
-    text: 'The board would like to begin planning your college\'s fiftieth anniversary, and has already formed a committee to consider forming a committee. The questions before it are the usual ones: a dinner or a festival, whether to invite the founders\' families, and whether the history you commission should be the true one or the flattering one.\n\nThe board leans, on the whole, toward the true one, but would like it well written. It asks you for a direction and, if possible, a budget.',
+    text: 'The board wants to begin planning your college\'s fiftieth anniversary. The questions before it are the usual ones: a dinner or a festival, whether to invite the founders\' families, and whether the history you commission should be the true one or the flattering one.\n\nThe board leans, on the whole, toward the true one, but wants it well written. It asks you for a direction and, if possible, a budget.',
     timeoutWeeks: 5,
     choices: [
       { id: 'festival', label: 'Hold a festival for the town', effects: { cash: -400000, warmth: 4, mood: 2 } },
@@ -2540,7 +2540,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { yearAtLeast: 40, oldestBuildingOver: 35 },
     names: { building: 'founders' },
     title: 'Founders Hall: landmark proposed',
-    text: 'The state historic preservation office proposes to designate Founders Hall a landmark, which would protect it from alteration, and from you. Facilities has read what can no longer be changed and has asked for a chair.',
+    text: 'The state historic preservation office proposes to designate Founders Hall a landmark. That would protect it from alteration, and from you. Facilities has seen the list of what could no longer be changed.',
     timeoutWeeks: 3,
     choices: [
       { id: 'welcome', label: 'Welcome the designation', effects: { warmth: 3, backlog: 200000, historic: 1 } },
@@ -2556,11 +2556,11 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 8,
     when: { yearAtLeast: 42 },
     title: 'The chair asks who comes next',
-    text: 'The board chair has asked, gently and in private, whether you have given any thought to who comes next. The chair asks because the chair has, and has a list.',
+    text: 'Someone will come after you, and the board chair has a list of who it might be. The chair has asked, gently and in private, whether you have given it any thought.',
     timeoutWeeks: 3,
     choices: [
       { id: 'deputy', label: 'Name a deputy in private', effects: { cash: -250000 } },
-      { id: 'unfinished', label: 'Say the work is not finished', effects: { mood: 1 } },
+      { id: 'unfinished', label: 'Tell the chair you\'re not going yet', effects: { mood: 1 } },
     ],
     default: 'unfinished',
   },
@@ -2605,10 +2605,10 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 15,
     when: { yearAtLeast: 40, endowmentOver: 50000000 },
     title: 'The endowment\'s next fifty years',
-    text: 'The investment committee notes that the endowment is now older than most of the committee. It asks whether you mean to spend it on the next fifty years or keep it for the fifty after. It would like the answer in writing.',
+    text: 'The investment committee notes that the endowment is now older than most of the committee. It asks whether you mean to spend it on the next fifty years or keep it for the fifty after. It wants the answer in writing.',
     timeoutWeeks: 3,
     choices: [
-      { id: 'dividend', label: 'Take a one-off payout from it', effects: { cash: 1000000, endowment: -1000000 } },
+      { id: 'dividend', label: 'Take a one-time payout from it', effects: { cash: 1000000, endowment: -1000000 } },
       { id: 'keep', label: 'Keep it for the fifty after', effects: {} },
     ],
     default: 'keep',
@@ -2660,7 +2660,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     when: { downtownAtLeast: 0.3 },
     needs: ['great-lawn'],
     title: 'The street festival',
-    text: 'The town\'s summer street festival has outgrown Main Street, and the organizers would like to borrow your main quad for one Saturday. They promise to put it back exactly as they found it, and have attached a plan of the stalls drawn on the back of a menu.',
+    text: 'Main Street is now too small for the town\'s summer street festival, and the organizers want to borrow your main quad for one Saturday. Their plan of the stalls is drawn on the back of a menu. They promise to put the quad back exactly as they found it.',
     timeoutWeeks: 4,
     choices: [
       { id: 'lend', label: 'Lend them the quad', effects: { cash: -30000, mood: -1, goodwill: 6 } },
@@ -2677,7 +2677,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { downtownAtLeast: 0.4 },
     title: 'Rents downtown',
-    text: 'The landlords downtown have raised the rents on student apartments for the third year running, citing demand, which you created, and the downtown, which you also created. The student newspaper has run the figures on its front page under a headline the Dean of Students has asked not to be quoted.',
+    text: 'For the third year running, the landlords downtown have raised the rents on student apartments, citing demand, which you created, and the downtown, which you also created. The student newspaper has run the figures on its front page.',
     timeoutWeeks: 4,
     choices: [
       { id: 'grant', label: 'Fund a housing grant for students in need', effects: { cash: -150000, mood: 3 } },
@@ -2699,7 +2699,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     timeoutWeeks: 4,
     choices: [
       { id: 'share', label: 'Pay your half', effects: { cash: -100000, mood: 2, goodwill: 4 } },
-      { id: 'decline', label: 'Decline, since the walk does them good', effects: { goodwill: -3 } },
+      { id: 'decline', label: 'Decline the proposal', effects: { goodwill: -3 } },
     ],
     default: 'decline',
   },
@@ -2711,7 +2711,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { downtownAtLeast: 0.5 },
     title: 'Your colors downtown',
-    text: 'The Downtown Merchants\' Association would like to put your colors in every shop window for the first week of term. It asks whether you would pay for the banners. The hardware store has offered to hang them, and has been asked not to.',
+    text: 'The Downtown Merchants\' Association wants to put your colors in every shop window for the first week of term. The hardware store has offered to hang the banners, and has been asked not to. The association asks whether you will pay for them.',
     timeoutWeeks: 4,
     choices: [
       { id: 'banners', label: 'Pay for banners down Main Street', effects: { cash: -40000, mood: 1, goodwill: 4 } },
@@ -2737,7 +2737,7 @@ export const CHARTER_EVENT: CatalogueEvent = {
   cooldownYears: 0,
   when: {},
   title: 'The charter',
-  text: 'With its first laboratory open, the board has voted the college a university charter. {name} College may now call itself {name} University, as many American colleges did when they took up research and graduate work. Others kept the name they opened under and were none the worse for it.\n\nThe board would have the new name carved over Founders Hall, unless the President prefers the old one. If the President would rather the college had another name altogether, this is the one time to say so. The stone is cut once. The stonemason has been asked to wait a month.',
+  text: 'Your first laboratory is open, and the board has voted you a university charter. {name} College may now call itself {name} University. Other colleges have kept the name they opened under and were none the worse for it.\n\nThe board will have the new name carved over Founders Hall unless you prefer the old one. If you would rather have another name altogether, this is the one time to say so. The stone is cut once. The stonemason has been asked to wait a month.',
   timeoutWeeks: 4,
   choices: [
     { id: 'university', label: 'Become {name} University', effects: { charter: 1 } },

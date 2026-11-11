@@ -41,7 +41,7 @@ function tickVarsityVenues(s: GameState): void {
     s.log.unshift({
       year: s.clock.year,
       week: s.clock.week,
-      message: `${venue.name} is complete — ${team.name} now plays varsity.`,
+      message: `${venue.name} is complete, and ${team.name} now plays varsity.`,
       kind: 'good',
       topic: 'team',
       subject: team.id,

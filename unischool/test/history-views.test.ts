@@ -109,7 +109,7 @@ const HOMES: Record<HistoryView, string[]> = {
   assert(views[0].indexOf(pillarRule()) > views[0].indexOf('glance-details'), 'under Details, below the meters (Plan 107D)');
 }
 
-// ---- At a glance: one figure per pillar, and a meter (Plans 107D, 125 F) ----
+// ---- At a glance: one figure per pillar, and a meter (Plans 107D, 126 F) ----
 // Each row reads the pillar's part of prestige, the figure its tab's head
 // shows, so the four rows sum to the headline.
 {

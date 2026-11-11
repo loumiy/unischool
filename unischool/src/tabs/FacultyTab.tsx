@@ -10,7 +10,7 @@ import { discoverySchools } from '../data/techData';
 import { hasFreeSlot, unstaffedCourses } from '../systems/techtree/techSystem';
 import { facultyCapacity, hiresFor, type FacultyCapacity, type FieldCapacity } from '../systems/faculty/facultyCapacity';
 import { facultyLoads, type FacultyLoads } from '../systems/faculty/facultyAssignment';
-import HelpHint from '../components/HelpHint';
+import HelpHint, { type LegendRow } from '../components/HelpHint';
 import { DisclosureIcon } from '../components/icons';
 import { GradeChip, SearchOffer } from './CurriculumTab';
 import { searchCost } from '../systems/faculty/facultySearch';
@@ -335,7 +335,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
   const searches = searchable(s, fields);
   const over = fields.filter((c) => c.state === 'over');
   const unstaffed = over.length > 0 ? fields.reduce((n, c) => n + (c.state === 'over' ? Math.max(0, c.offered - c.supply) : 0), 0) : 0;
-  // Payroll is said only when the listings above would move it (Plan 125 E:
+  // Payroll is said only when the listings above would move it (Plan 126 E:
   // alone it was a meter at 4%, and the Treasury's statement has the line),
   // so a quiet week has no strip at all.
   const pay = payroll(s, listings);
@@ -423,7 +423,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
           <span className="next-up-label">Payroll</span>
           <span className="next-up-body">
             <span className="next-up-meta">{moneyShort(pay.weekly)}/wk · {pct(pay.share)} of expenses</span>
-            <span className="next-up-note"> — the appointments above would add {money(pay.wouldAdd)}/wk</span>
+            <span className="next-up-note"> · the appointments above would add {money(pay.wouldAdd)}/wk</span>
           </span>
         </div>
       )}
@@ -454,32 +454,36 @@ function FacultyMarketNote({ s }: { s: GameState }) {
 // one department's surplus against another's gap.
 export function FacultyFigures({ cap }: { cap: FacultyCapacity }) {
   const t = cap.total;
+  // One bar for the college (Plan 125 B), drawn as each department's is
+  // (CapacityMeter): what is on offer, what is open, the rest of the
+  // catalog faint, and a rule where the faculty's slots run out.
+  const scale = Math.max(1, t.catalogue, t.supply);
+  const widthOf = (n: number) => `${(Math.max(0, Math.min(scale, n)) / scale) * 100}%`;
+  const locked = Math.max(0, t.catalogue - t.offered - t.available);
+  const label = `${count(t.supply)} course slots: ${count(t.offered)} on offer, ${count(t.available)} open, ${t.shortfall > 0 ? `${count(t.shortfall)} short of the catalog` : 'the whole catalog covered'}.`;
   return (
-    <p className="faculty-figures">
-      <span title="Course slots the faculty supplies">
-        <strong>{count(t.supply)}</strong> course slots
-      </span>
-      {' · '}
-      <span title="Course slots in use">
-        <strong>{count(t.offered)}</strong> on offer
-      </span>
-      {t.available > 0 && (
-        <>
-          {' · '}
-          <span title="Courses open to develop, each waiting for a course slot">
-            <strong>{count(t.available)}</strong> open
-          </span>
-        </>
-      )}
-      {' · '}
-      {t.shortfall > 0 ? (
-        <span title={`You'd need about ${hiresFor(t.shortfall)} more professors to teach the whole catalog`}>
-          <strong>{count(t.shortfall)}</strong> short of the catalog
+    <div className="faculty-figures">
+      <span className="capacity-meter faculty-figures-meter" role="img" aria-label={label} title={label}>
+        <span className="capacity-track">
+          <span className="capacity-seg offered" style={{ width: widthOf(t.offered) }} />
+          <span className="capacity-seg available" style={{ width: widthOf(t.available) }} />
+          <span className="capacity-seg locked" style={{ width: widthOf(locked) }} />
+          <span className={`capacity-rule${t.supply > t.catalogue ? ' beyond' : ''}${t.supply === 0 ? ' at-zero' : ''}`} style={{ left: widthOf(t.supply) }} />
         </span>
-      ) : (
-        <span title="Every department can already teach its whole catalog">the whole catalog covered</span>
-      )}
-    </p>
+      </span>
+      <p className="capacity-legend faculty-figures-key">
+        <span className="capacity-key-pair" title="Course slots the faculty supplies"><span className="capacity-key rule" /><strong>{count(t.supply)}</strong> course slots</span>
+        <span className="capacity-key-pair" title="Course slots in use"><span className="capacity-key offered" /><strong>{count(t.offered)}</strong> on offer</span>
+        {t.available > 0 && (
+          <span className="capacity-key-pair" title="Courses open to develop, each waiting for a course slot"><span className="capacity-key available" /><strong>{count(t.available)}</strong> open</span>
+        )}
+        {t.shortfall > 0 ? (
+          <span className="capacity-key-pair" title={`You'd need about ${hiresFor(t.shortfall)} more professors to teach the whole catalog`}><span className="capacity-key locked" /><strong>{count(t.shortfall)}</strong> short</span>
+        ) : (
+          <span className="capacity-key-pair" title="Every department can already teach its whole catalog"><span className="capacity-key locked" />catalog covered</span>
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -498,14 +502,17 @@ export const FACULTY_VIEW_START: FacultyViewMemory = {
   view: 'faculty', layout: 'cards', sort: 'teaching', grid: NO_GRID_FILTER, board: { field: null, shortOnly: false },
 };
 
-// The tab's help (Plan 95G): what the summary paragraphs said, behind the
-// '?', with the figures in a row under it.
-const FACULTY_HELP = "Each card is a professor or a candidate. Teaching and research are scores out of 100, the same scale courses are graded on. The arrow shows where a score is heading. A candidate's teaching is shown against your faculty's median, and lights up when they'd raise it. Click More to open a person: their career, and Train and Dismiss. "
-  + "Use Sort and filter to narrow the cards. Table shows one row per person. Plot shows teaching against research, with your faculty's medians and the market beside them. Departments shows each department's course slots against what its courses need. "
-  + "On Departments, the figures above the bars count course slots. Course slots: what your faculty supplies. On offer: the slots your courses use. A course keeps its slot as long as it's offered, even with nobody teaching it. Open: courses ready to develop. Short of the catalog: how many more slots you'd need to teach every course. "
-  + 'A professor on a research project supplies two slots fewer. A professor at the Faculty Training Institute supplies one fewer for a term. '
-  + 'Better standing brings better candidates. Their teaching potential rises with your prestige. Their research potential rises with your research standing, and a little with prestige. Candidates vary a lot, and now and then a standout appears. Everyone starts below their potential and grows toward it while they stay. '
-  + "Appointing someone is instant and costs nothing up front. You pay their salary.";
+// The tab's help (Plan 95G; a legend since Plan 125 B): the marks, then
+// the rules that are not about marks.
+const FACULTY_HELP_LEGEND: readonly LegendRow[] = [
+  { mark: <span className="legend-bar"><span style={{ width: '70%' }} /></span>, says: 'Teaching or research, out of 100, the scale courses are graded on' },
+  { mark: <span className="legend-mono">72 → 80</span>, says: 'Where a score is heading, toward the potential they arrived with' },
+  { mark: <span className="legend-mono">4/5</span>, says: 'Course slots in use, of the slots they supply' },
+  { mark: <span className="capacity-legend"><span className="capacity-key offered" /><span className="capacity-key available" /><span className="capacity-key locked" /></span>, says: 'Slots on offer, open to develop, and short of the catalog' },
+];
+const FACULTY_HELP = 'A professor on a research project supplies two slots fewer, and one at the Faculty Training Institute one fewer for a term.\n\n'
+  + 'Better standing brings better candidates. Teaching potential rises with your prestige, and research potential with your research standing. Now and then a standout appears.\n\n'
+  + 'Appointing someone is instant, and you pay only their salary.';
 
 // A target the tab can open on: a department on the board (the Curriculum's
 // doors), or the market in a field (a retirement's notice).
@@ -746,7 +753,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
         <div className="panel-head">
           <span className="panel-head-title">
             <h2>Faculty</h2>
-            <HelpHint text={FACULTY_HELP} />
+            <HelpHint text={FACULTY_HELP} legend={FACULTY_HELP_LEGEND} />
           </span>
           <span className="stat" title={`${moneyShort(payroll(s, []).weekly)}/wk, ${pct(payroll(s, []).share)} of expenses`}>{s.faculty.length} on payroll</span>
           <span className="stat">{s.candidates.length} on the market</span>
@@ -759,7 +766,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
       <section className="panel faculty-people">
         <div className="panel-head">
           {/* What to look at, beside the title on every view; how to look
-              at it, or the departments' own buttons, at the right (Plan 125 E). */}
+              at it, or the departments' own buttons, at the right (Plan 126 E). */}
           <span className="panel-head-title faculty-what">
             <h3>{VIEWS.find((v) => v.id === view)!.title}</h3>
             <span className="dept-views segmented switch" style={switchStyle(VIEWS.length, VIEWS.findIndex((v) => v.id === view))}>
@@ -800,7 +807,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
             />
             {!market && <TrainingBar s={s} act={act} />}
             {/* What the market offers at this standing, where the market is
-                (Plan 125 E). */}
+                (Plan 126 E). */}
             {market && <FacultyMarketNote s={s} />}
             {market && (
               <p className="faculty-market-note">
@@ -848,7 +855,7 @@ export default function FacultyTab({ s, act, target, onTargetConsumed, onOpenCur
 
         {view === 'departments' && (
           <>
-            {/* The course-slot sums, above the bars that draw them (Plan 125 E). */}
+            {/* The course-slot sums, above the bars that draw them (Plan 126 E). */}
             <FacultyFigures cap={cap} />
             {/* Sort and filter (Plan 72F). */}
             <div className="dept-tools">

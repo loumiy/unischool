@@ -52,7 +52,7 @@ assert(toastsFor(before, same, [hall], () => true).length === 0, 'one finished i
 }
 const up = structuredClone(before);
 up.self.reputation += 40;
-// Like toasts in one week are one (Plan 125 D): the first stands for the
+// Like toasts in one week are one (Plan 126 D): the first stands for the
 // rest and keeps its Open; a different kind or a held slip stays its own.
 {
   const letter = (subject: string, id: string, held = false) => ({ text: `For your next college: ${subject}`, tone: 'letter' as const, open: id, kind: 'from:For your next college', ...(held ? { held: true as const } : {}) });

@@ -28,7 +28,7 @@ export const FIGURE_HINTS = {
   satisfaction: (need: string, figure: string): Sentence => `How happy your students are, out of 100 (lowest need: ${need}, at ${figure}).`,
   // The committee (Plan 80E): what it is writing, and whether there is room
   // and a course ready for it (techSystem.ts's committeeStatus).
-  committee: (writing: number, seats: number, ready: boolean): Sentence => `Courses the curriculum committee is writing, of the ${seats} it can write at once — ${
+  committee: (writing: number, seats: number, ready: boolean): Sentence => `Courses the curriculum committee is writing, of the ${seats} it can write at once. ${
     writing >= seats ? 'the next starts when one of them is done'
       : ready ? 'it has room, and a course is ready to start'
         : 'it has room, but no course can start yet'}.`,

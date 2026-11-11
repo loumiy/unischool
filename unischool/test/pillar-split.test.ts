@@ -59,7 +59,7 @@ function check(s: GameState, name: string): void {
   assert(PILLARS.every((p) => zero.parts[p] === 0), 'nothing to split at zero');
 }
 
-// The head names the summer's direction, not its target (Plan 125 F).
+// The head names the summer's direction, not its target (Plan 126 F).
 assert(pillarHeadLine(25.6, 50.3, 53.8) === '25.6 of your 50.3 prestige · rising', 'the line reads the part, prestige, and its direction');
 assert(pillarHeadLine(25.6, 50.3, 48) === '25.6 of your 50.3 prestige · falling' && pillarHeadLine(25.6, 50.3, 50.32) === '25.6 of your 50.3 prestige · steady', 'falling, and steady within a rounding step');
 

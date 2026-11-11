@@ -1,3 +1,4 @@
+import Keyed from './Keyed';
 import { TEXT_SCALES, setSettings, useSettings } from '../settings';
 import { SHORTCUTS, isKey, keyName, useHotkeys, type Shortcut, type ShortcutPlace } from './hotkeys';
 import { CloseIcon } from './icons';
@@ -94,7 +95,7 @@ export default function SettingsPanel({ onClose, children }: { onClose: () => vo
               <button key={mode} type="button" className={s.objectives === mode ? 'active' : undefined} aria-pressed={s.objectives === mode} onClick={() => setSettings({ objectives: mode })}>{OBJECTIVES_WORDS[mode]}</button>
             ))}
           </span>
-          <p className="settings-note">{OBJECTIVES_NOTES[s.objectives]}</p>
+          <p className="settings-note"><Keyed text={OBJECTIVES_NOTES[s.objectives]} /></p>
         </fieldset>
         <fieldset className="settings-row">
           <legend>Seasons</legend>

@@ -1,4 +1,5 @@
 import type { Action } from '../state/actions';
+import EffectChips from './EffectChip';
 import type { GameState, HallSlot } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import ConfirmButton from './ConfirmButton';
@@ -98,6 +99,7 @@ export function OfficeTile({ slot, s, act, open, onToggle }: {
             <div><dt>Costs</dt><dd>{moneyShort(yearlyCost(s))} a year</dd></div>
             <div><dt>Since</dt><dd>Year {office.openedYear}</dd></div>
           </dl>
+          <p className="building-info-line program-summary-next office-quip">{def.quip}</p>
           <p className="building-info-line program-summary-next">
             {def.blurb}{seated ? ` With the ${seatTitle(office.id)} seated, it does 50% more.` : ` It does 50% more with a ${seatTitle(office.id)} seated.`}
           </p>
@@ -157,6 +159,7 @@ export function OfficeOffers({ s, act, slot, picked, onPick, onOpened }: {
                   <button key={o.id} type="button" className="hall-offer-tile office-tile" disabled>
                     <span className="hall-offer-code">{d.motif} Held · slot {(heldAt(o.id) ?? 0) + 1}</span>
                     <span className="hall-offer-name">{o.title}</span>
+                    <span className="hall-offer-meta office-quip">{o.quip}</span>
                     <span className="hall-offer-meta">{o.blurb}</span>
                   </button>
                 );
@@ -170,7 +173,12 @@ export function OfficeOffers({ s, act, slot, picked, onPick, onOpened }: {
                     onClick={() => onPick(selected ? null : o.id)}>
                     <span className="hall-offer-code">{d.motif} {seatTitle(o.id)} {seated ? 'seated · +50%' : '· not seated'}</span>
                     <span className="hall-offer-name">{o.title}</span>
-                    <span className="hall-offer-meta">{o.blurb}<br />{moneyShort(officePrice(s, o.id))} to open · {moneyShort(yearlyCost(s))} a year</span>
+                    <span className="hall-offer-meta office-quip">{o.quip}</span>
+                    <span className="hall-offer-meta">{o.blurb}</span>
+                    <EffectChips className="hall-offer-meta" effects={[
+                      { kind: 'money', figure: `−${moneyShort(officePrice(s, o.id))}`, words: 'to open', tone: 'loss' },
+                      { kind: 'weekly', figure: `−${moneyShort(yearlyCost(s))}`, words: 'a year', tone: 'loss' },
+                    ]} />
                   </button>
                   {selected && (
                     <div className="office-confirm">

@@ -743,7 +743,7 @@ export function prestigeByPillar(s: GameState, of: number = s.self.reputation): 
   return { parts, current: of, target: made.target };
 }
 
-// The most each pillar's part could be (Plan 125 F): its share of the blend
+// The most each pillar's part could be (Plan 126 F): its share of the blend
 // with every pillar earning in full, at the top of the prestige scale. What
 // History's meter for a pillar is as long as, so a full meter is a pillar
 // that could hold no more of prestige.

@@ -22,7 +22,7 @@ import { standsOnCampus } from '../state/types';
 import { PARK_WORDS, landmarkYears, landmarksCounted, landmarksRunning, parkReading } from '../data/researchParkData';
 import { PILLAR_WORDS } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/specialization';
-import { specializationOfferRule } from '../data/prestigeWords';
+import OfferRoutes from '../components/OfferRoutes';
 import PillarHead from '../components/PillarHead';
 import { bandOf } from './facultySort';
 
@@ -32,13 +32,13 @@ import { bandOf } from './facultySort';
 // faculty stats mean different things. One roster of every facility, a row
 // each with a lamp lit while a project runs (Plan 90). A vacant lab is idle
 // capital the player should see, so the vacant ones come first, and a
-// running lab is one line until opened (Plan 125 I).
+// running lab is one line until opened (Plan 126 I).
 // =====================================================================
 
 
 // A scholar's research score: the number in its grade's ink, as the
 // Faculty tab draws a stat (FacultyTile.tsx's StatMeter), with no bar of its
-// own (Plan 125 I): a lab's row has one bar, the project's progress.
+// own (Plan 126 I): a lab's row has one bar, the project's progress.
 function ResearchScore({ f }: { f: Faculty }) {
   const now = Math.round(f.research);
   return (
@@ -82,7 +82,7 @@ function Lamp({ on }: { on: boolean }) {
   return <span className={`facility-lamp${on ? ' on' : ''}`} aria-hidden="true" />;
 }
 
-// A facility with work in it, as one line until opened (Plan 125 I): the
+// A facility with work in it, as one line until opened (Plan 126 I): the
 // lab, its topic, the lead scholar and their score, how far along, and what
 // it puts out a week. Its length is said once, beside the bar. Opened (the
 // Curriculum's disclosure), the row adds the depth, the whole team, the
@@ -353,7 +353,7 @@ function VacantPanel(
                 ? `Needs ${picked.depth.participants} scholars`
                 : s.finance.cash < picked.fundingCost
                   ? `${moneyShort(picked.fundingCost - s.finance.cash)} short`
-                  : `Commission — ${moneyShort(picked.fundingCost)}`}
+                  : `Commission · ${moneyShort(picked.fundingCost)}`}
           </button>
         </div>
       )}
@@ -401,7 +401,7 @@ function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => vo
         <p className="research-park-line">Going up: {weeksShort(weeksLeft)} left. Landmark Programs open when it stands.</p>
       ) : (
         <>
-          {chosen === null && <p className="research-park-line">{PARK_WORDS.gatedUnchosen(specializationOfferRule())}</p>}
+          {chosen === null && <><p className="research-park-line">{PARK_WORDS.gatedUnchosen('').trim()}</p><OfferRoutes s={s} /></>}
           <p className="research-park-line">
             {projectOpens(park.project)}
             {projectOpen(s, park) && ' It is open.'}
@@ -472,7 +472,7 @@ export default function ResearchTab({ s, act, target, onTargetConsumed }: {
         ) : (
           <>
             {/* One roster (Plan 90). The labs with nothing in them come
-                first, as a worklist (Plan 125 I: an idle lab is what the
+                first, as a worklist (Plan 126 I: an idle lab is what the
                 player comes for); then what the university is working on,
                 a line each. */}
             <h3 className="facility-group-head">

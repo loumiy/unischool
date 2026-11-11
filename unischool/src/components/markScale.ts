@@ -1,4 +1,4 @@
-// The size the map's marks hold on screen (Plan 125 J). The hall pips, the
+// The size the map's marks hold on screen (Plan 126 J). The hall pips, the
 // lab's mark, the full-residence mark and the building labels are SVG in the
 // map's own units, so they once grew and shrank with the zoom: a pip was
 // 5 px at the view a year-15 campus opens on, a label 80 px four steps in.

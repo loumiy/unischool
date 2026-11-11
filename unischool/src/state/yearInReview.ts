@@ -156,7 +156,7 @@ function research(entries: LogEntry[]): ReviewSection {
     });
   }
   if (grants > 0) lines.push({ text: `${plural(grants, 'grant')} awarded`, tone: 'good' });
-  return { key: 'research', title: 'Research', lines, empty: 'No research under way.' };
+  return { key: 'research', title: 'Research', lines, empty: 'No research under way. The labs are very tidy.' };
 }
 
 // Who won't return this summer: the same advance the boundary commits, with

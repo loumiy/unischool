@@ -508,7 +508,10 @@ node tools/review/drive.mjs <profile> fresh silent …            # Plan 123 B: 
   a player can read (literals, templates and JSX text, not ids, class names
   or comparisons), tags each with its screen, and flags British spelling and
   idiom, jargon and marks against the house style. `strings.md` is the
-  summary.
+  summary. `npm run review:plain` holds the plain-words counts and the
+  voice's (`plainChecks.ts`'s `VOICE_RULES`, Plan 125: em dashes, British
+  usage, the events' stock devices, the courses' mold) to their baselines;
+  `-- --plain-save` lowers them after a rewrite.
 - **`sweep.ts`** plays harness games over many seeds, players and odd
   college names (non-Latin, right-to-left, 64 characters), checks the
   invariants every week, and at the start of every year writes the save as

@@ -1,4 +1,4 @@
-# Plan 125 — The interface review, its first ten
+# Plan 126 — The interface review, its first ten
 
 *Planning document only — no gameplay code is changed by this file. Its job is
 to sequence the ten changes the interface review ranked first
@@ -14,7 +14,8 @@ I and J were built in parallel worktrees and merged. `npm run check` passed
 after the last merge, 217 suites. Each PR's **As implemented** note follows
 its section. Two departures from the defaults: PR A keeps the button stuck to
 the foot (Plan 114G's reason) and meets the finding by reordering the cards;
-PR D puts a toast over a tab in the tab's header, not under it. Open for the
+PR D puts a toast over a tab in the tab's header, not under it. Renumbered from 125 when it was merged with `main`, where Plan 125 (the
+written content) had landed first. Open for the
 owner: the 133 event titles (PR G) to edit; and whether a locked course's
 reason (a prerequisite, a capstone's facility) should be a foot on its cell,
 since it is only in the tooltip today (PR H).
@@ -178,6 +179,13 @@ wrong to list it. No catalogue event has two answers whose sums differ and
 read the same in the short form (checked over all 159). An answer's
 endowment line keeps `signedMoney`, which has no short form.
 `test/number-format.test.ts` holds both surfaces.
+
+**After the merge with Plan 125 (the written content):** that plan, merged
+to `main` first, turned an answer's effects into chips
+(`systems/events/choiceEffects.ts`) that keep the exact sums, so this PR's
+change to `EventChoices.tsx` was dropped in the merge in favour of the chips.
+The strip for a building in hand keeps the short form. Whether the chips
+should take the short form is the owner's call.
 
 ### PR D — Toasts keep off a tab, and like toasts merge (I-2)
 
@@ -411,8 +419,8 @@ adjusts on the face) and `pillar-split` (the head's line).
   at year 15 (3,626 and 540 before). The controls fall by only four
   because the row's five folded into one button. At year 2 the figures
   are 297 words and 50 controls.
-  [`h-curriculum-before.png`](125-the-interface-review/h-curriculum-before.png),
-  [`h-curriculum-after.png`](125-the-interface-review/h-curriculum-after.png).
+  [`h-curriculum-before.png`](126-the-interface-review/h-curriculum-before.png),
+  [`h-curriculum-after.png`](126-the-interface-review/h-curriculum-after.png).
 - **Tests.** The new `test/curriculum-head.test.ts` covers the seat row
   through every step (one stub, none at 100), the head without a ring, the
   folded filters, and the cells' feet (none under a matching row; "needs
@@ -450,7 +458,7 @@ same one heading. The score is `ResearchScore`: the number in its grade's ink
 (`facultySort.ts`'s `bandOf`, `--stat-grade`), on the line, in the opened
 team, and in the team a vacant lab's offer picks; `.scholar-bar-*` is gone.
 At 1440×900 the year-15 save's thirteen labs fit, at 41 px a row
-(`125-the-interface-review/i-research-before.png`, `i-research-after.png`,
+(`126-the-interface-review/i-research-before.png`, `i-research-after.png`,
 and `i-research-open.png` with one row open). `test/research-rows.test.ts`
 holds the row, the order and the link.
 

@@ -1,4 +1,4 @@
-// The map's marks hold a size on screen (Plan 125 J; markScale.ts): the
+// The map's marks hold a size on screen (Plan 126 J; markScale.ts): the
 // counter-scale that keeps a hall's pips, a lab's disc, a full residence's
 // disc and a building's label inside a band of screen sizes at every zoom,
 // and the zoom below which a hall's row gives way to one mark.

@@ -17,7 +17,7 @@ import type { BelowALink } from './StandingBreakdown';
 // mock-ups): the figure and which way it is going, where it sits on its
 // scale, and one meter per pillar with one number, its part of prestige:
 // the figure the pillar's tab head shows, so the four rows sum to the
-// headline (Plan 125 F, the interface review's U-1; before, each row read
+// headline (Plan 126 F, the interface review's U-1; before, each row read
 // what the pillar earned above the floor, which did not). A pillar's
 // meter is as long as the most it can add, so academics' is the longest,
 // and filled as far as the college has earned it. Everything the panel
@@ -80,7 +80,7 @@ function lastSummer(s: GameState, breakdown: StandingBreakdown): string {
     : `${rule} The first grade comes at the first summer.`;
 }
 
-// What the rows read (Plan 125 F): each pillar's part of prestige
+// What the rows read (Plan 126 F): each pillar's part of prestige
 // (prestigeByPillar, as the tab heads read it) and the most it could be.
 export interface PillarParts { parts: Record<Pillar, number>; max: Record<Pillar, number>; longest: number }
 export function pillarParts(s: GameState): PillarParts {
@@ -167,7 +167,7 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
       <details className="glance-details">
         <summary>Details</summary>
         {/* What each pillar earned above the floor every college stands on,
-            and what sits outside every pillar (Plan 125 F): the endowment
+            and what sits outside every pillar (Plan 126 F): the endowment
             and the buildings, shared among the four parts above. */}
         <p className="stat">Every college stands on {prestigeFigure(PILLAR_FLOOR)} to begin with, shared among the pillars by weight. Each pillar has earned this much above it:</p>
         <ul className="glance-terms">

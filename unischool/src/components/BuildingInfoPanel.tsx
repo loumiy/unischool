@@ -1,5 +1,7 @@
 import { constructionFrozen } from '../systems/finance/distress';
 import LevelPips, { buildingLevel } from './LevelPips';
+import EffectChips from './EffectChip';
+import { buildableEffects } from '../data/buildableEffects';
 import ConfirmButton from './ConfirmButton';
 import { RENOVATION_WEEKS, canDeclareHistoric, canExtend, canRenovate, conditionOf, extensionCost, extensionGain, extensionWeeks, renovationCost } from '../systems/estate/estate';
 import { canPayForWorks } from '../systems/finance/treasury';
@@ -11,7 +13,6 @@ import { attendanceFor } from '../systems/athletics/gate';
 import type { Buildable, FacilityType, GameState, Vernacular } from '../state/types';
 import { isSandbox } from '../systems/sandbox/sandbox';
 import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from './buildingSpec';
-import { NEED_WORD } from '../data/needWords';
 import { NEED_CATEGORIES, needUseSentence } from '../systems/estate/beyondNeed';
 import { FOUNDERS_HALL_ID, graduateProgram, isAcademicHall, programById, type ProgramInfo } from '../data/techData';
 import { hostedPrograms, isGraduateHost } from '../data/projectData';
@@ -53,21 +54,6 @@ function dormCapacity(t: Buildable): number | null {
   return t.effects?.capacityBonus ?? null;
 }
 
-// What a facility's servesPopulation effect counts, per facilityType. Quad
-// and lab are absent: neither has a servesPopulation effect, so see the
-// facility branch below for what they show instead.
-const FACILITY_CAPACITY_LABEL: Partial<Record<FacilityType, string>> = {
-  diningHall: 'dining seats',
-  library: 'study seats',
-  studentCenter: 'social capacity',
-  recCenter: 'recreation capacity',
-  healthCenter: 'care capacity',
-  gym: 'fitness capacity',
-  tennisCourts: 'court capacity',
-  pool: 'pool capacity',
-  artGallery: 'gallery capacity',
-};
-
 // The varsity venues (facilitiesData.ts): their panel says which teams play
 // there, not just a capacity (see AthleticsVenueInfo).
 const ATHLETICS_VENUE_TYPES: readonly FacilityType[] = [
@@ -78,16 +64,13 @@ function AthleticsVenueInfo({ t, s }: { t: Buildable; s: GameState }) {
   const teams = s.orgs.teams.filter((team) => team.venueCategory === t.facilityType);
   return (
     <>
-      <p className="building-info-line">
-        {t.effects?.servesPopulation !== undefined
-          ? `${count(t.effects.servesPopulation)} social capacity`
-          : t.description}
-      </p>
+      <p className="building-info-line building-info-flavor">{t.description}</p>
+      <EffectChips effects={buildableEffects(t)} className="building-info-line" />
       {(t.expansions ?? 0) > 0 && (
         <p className="building-info-line">Expanded {t.expansions === 1 ? 'once' : `${t.expansions} times`}: {count(venueSeatsOf(t))} seats in the stands.</p>
       )}
       {teams.length === 0 ? (
-        <p className="building-info-line">No varsity team calls this home yet.</p>
+        <p className="building-info-line">No varsity team calls this home yet. The groundskeepers have it to themselves.</p>
       ) : (
         // A tile a team that plays here (Plan 60), as a hall shows its
         // programs: the sport, its quality, its coach, its crowd.
@@ -164,18 +147,14 @@ function NeedUseLine({ t, s }: { t: Buildable; s: GameState }) {
 function FacilityInfo({ t, s, onOpenResearch }: { t: Buildable; s: GameState; onOpenResearch?: (target: string) => void }) {
   const ft = t.facilityType;
   if (ft && ATHLETICS_VENUE_TYPES.includes(ft)) return <AthleticsVenueInfo t={t} s={s} />;
-  const label = ft ? FACILITY_CAPACITY_LABEL[ft] : undefined;
-  if (label && t.effects?.servesPopulation !== undefined) {
-    const need = t.effects.satisfactionAttribute;
-    return <p className="building-info-line">Serves {count(t.effects.servesPopulation)} {label}{need ? ` · ${NEED_WORD[need]}` : ''}</p>;
-  }
-  if (ft === 'quad') {
+  // A line of flavor, and what it gives as chips (Plan 125 A, E): the
+  // students it serves and the need that counts them, a quad's social life.
+  if ((t.effects?.servesPopulation !== undefined && ft !== 'lab') || ft === 'quad') {
     return (
-      <p className="building-info-line">
-        {t.effects?.flatSatisfactionBonus !== undefined
-          ? `+${t.effects.flatSatisfactionBonus} social life`
-          : 'A green centerpiece for campus life.'}
-      </p>
+      <>
+        <p className="building-info-line building-info-flavor">{t.description}</p>
+        <EffectChips effects={buildableEffects(t)} className="building-info-line" />
+      </>
     );
   }
   if (ft === 'lab') {
@@ -232,7 +211,7 @@ export function ProgramTile({ program, s, act, open, onToggle, onOpenCurriculum 
         className="program-tile"
         onClick={onToggle}
         aria-expanded={open}
-        title={`${program.name} (${program.school}) — ${progress.done} of ${progress.total} courses developed`}
+        title={`${program.name} (${program.school}): ${progress.done} of ${progress.total} courses developed`}
       >
         <span className="hall-slot-motif" style={{ color: mark.hue }} aria-hidden="true">{mark.motif}</span>
         <span className="hall-slot-name">{program.name}</span>
@@ -513,7 +492,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       )}
       {claim && (
         <p className="building-info-line building-info-dedication" style={{ color: schoolMark(claim.school).hue }}>
-          {schoolMark(claim.school).motif} {claim.school} · {claim.housed} of {claim.slots}
+          {schoolMark(claim.school).motif} {claim.school} <HallPips housed={claim.housed} of={claim.slots} />
         </p>
       )}
       {claim && own.length === 0 && free > 0 && (
@@ -523,7 +502,8 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
       )}
       {!host && !founders && !claimed && !school && (
         <p className="building-info-line hall-claim-note">
-          Put three programs from one school here to make it that school&apos;s hall{lead ? ` · ${lead.school} ${lead.housed} of ${CLAIM_AT}` : ''}.
+          Put three programs from one school here to make it that school&apos;s hall.
+          {lead && <> {lead.school} <HallPips housed={lead.housed} of={6} /></>}
         </p>
       )}
       {founders && (
@@ -537,7 +517,7 @@ function HallSlots({ t, s, act, onOpenCurriculum, focusProgramId }: {
         {free === 0
           ? 'Every slot is taken.'
           : `${free} of ${slots.length} ${founders ? 'slot' : 'program slot'}${free === 1 && slots.length === 1 ? '' : 's'} free${offers.length > 0 || officesOffered > 0
-            ? ` — ${[
+            ? `. ${[
               offers.length > 0 ? `${offers.length} program${offers.length === 1 ? '' : 's'}` : '',
               officesOffered > 0 ? `${officesOffered} office${officesOffered === 1 ? '' : 's'}` : '',
             ].filter(Boolean).join(' and ')} on offer.`
@@ -850,7 +830,7 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       {t.status === 'done' && act && <EstateLine t={t} s={s} act={act} />}
       {t.status === 'developing' && weeksLeft !== undefined && (
         <p className="building-info-line building-info-construction">
-          Under construction — {weeksLeft} of {t.duration} week{t.duration === 1 ? '' : 's'} left.
+          Under construction · {weeksLeft} of {t.duration} week{t.duration === 1 ? '' : 's'} left.
         </p>
       )}
       {/* A dorm with no bed count (an entry the loader could not size) shows no line. */}
@@ -864,5 +844,19 @@ export default function BuildingInfoPanel({ t, s, act, onClose, onOpenCurriculum
       <SandboxLine t={t} s={s} act={act} onMove={onMove} />
       {act && <TakeDown key={t.id} t={t} s={s} act={act} onClose={onClose} />}
     </div>
+  );
+}
+
+// A hall's programs from one school as six pips (Plan 125 B), with marks
+// after the third (the hall is claimed) and the sixth (the school is
+// founded), so the rule the letters spell out can be seen filling.
+export function HallPips({ housed, of }: { housed: number; of: number }) {
+  return (
+    <span className="hall-pips" role="img" aria-label={`${housed} of ${of} programs. Three claim the hall, and six found the school`}>
+      {Array.from({ length: of }, (_, i) => (
+        <span key={i} className={`hall-pip${i < housed ? ' on' : ''}${i + 1 === CLAIM_AT ? ' claim' : ''}`} />
+      ))}
+      <span className="hall-pips-count">{housed}/{of}</span>
+    </span>
   );
 }

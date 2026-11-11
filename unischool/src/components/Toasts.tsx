@@ -48,7 +48,7 @@ export interface Toast {
   open?: string;
   // Stays until opened or dismissed (Plans 78B and 78E).
   held?: boolean;
-  // What it is news of, for merging like toasts (Plan 125 D): a log topic,
+  // What it is news of, for merging like toasts (Plan 126 D): a log topic,
   // or a letter's sender. Never drawn.
   kind?: string;
 }
@@ -87,7 +87,7 @@ export function arrivalsIn(before: GameState, after: GameState): Said[] {
   return out;
 }
 
-// Like toasts in one week are one toast (Plan 125 D, the interface review's
+// Like toasts in one week are one toast (Plan 126 D, the interface review's
 // I-2: three unlocks arrived as three slips cut at the word that differed).
 // The first of a kind stands for the rest, "and 2 more"; its Open goes
 // where the first's would. A held slip is never merged: each waits for its
@@ -137,7 +137,7 @@ export function distinguishedIn(fresh: readonly LogEntry[]): string | null {
 export default function Toasts({ s, inboxOpen = false, overTab = false, onOpenInbox, opened }: {
   s: GameState | null;
   inboxOpen?: boolean;
-  // A tab is open (Plan 125 D): the newest toast alone, in the tab's own
+  // A tab is open (Plan 126 D): the newest toast alone, in the tab's own
   // header, where no tab keeps anything, and not over its content.
   overTab?: boolean;
   onOpenInbox?: (id: string) => void;

@@ -894,6 +894,7 @@ how often the form is opened, `feedback_opened`).*
 | 20 October | 865 | 501 | 2 (both ★★★★★) | 2 | 11 | 1,852 | 3.94% |
 | 23 October | 1,042 | 609 | 2 (both ★★★★★) | 3 | 16 | 2,028 | 3.80% |
 | 27 October | 1,238 | 733 | 3 (all ★★★★★) | 7 | 21 | 2,403 | 5.04% |
+| 9 November | 1,669 | 976 | 3 (all ★★★★★) | 12 | 26 | 1,268 | 4.57% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
@@ -989,6 +990,26 @@ builder 13, *new and popular* tycoon 11, free management for web 11,
 the studio page 16. The college and school tag pages now bring 34
 visits between them, the clearest sign that players are searching for
 the theme itself.
+
+On 9 November (30 days, 11 October to 9 November: the launch days, 8 to
+10 October, have now left the window, so the totals undercount the run
+since launch): 1,669 views (+431 since 27 October), 976 browser plays
+(+243), 6 downloads (+4, two each on about 29 October and 8 November),
+still 3 ratings, 12 comments (+5) and 26 collections (+5). The 7-day
+impressions fell by half, from 2,403 to 1,268, at a 4.57% click-through
+rate. Daily views slid from about 40 in late October to 20 to 35 in
+November, and browser plays to about 10 to 20 a day. 0.2.0 (up on 2
+November) shows no clear lift. Referrers: Google 110 (+28), reddit.com 84
+(+5), foundplay.io 63 (+13; its weekly email counts 11 plays, up from 5),
+**the college tag page 56 (+32)**, itch.io's front page 49 (+4), then
+the browse pages (tycoon for web 45, management for web 35, tycoon 30,
+free tycoon for web 21, city builder for web 21, city builder 20, two
+school tag pages 15 each, free management for web 15, **university 11**,
+a new tag page, and free city builder for web 10), itch.io collections
+34 (+15), the studio page 20, DuckDuckGo 12 and aigamehub.app 10. The
+theme's own tag pages (college, school, university) now bring 97 visits
+between them, more than Reddit: searches for the theme have become the
+largest browse source, and they hold up while the rest tapers.
 
 ### PostHog, 11 October
 
