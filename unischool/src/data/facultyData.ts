@@ -758,10 +758,11 @@ function rollBaseCourseSlots(): number {
   return FACULTY_BASE_SLOTS_MIN + Math.floor(random() * (FACULTY_BASE_SLOTS_RANGE + 1));
 }
 
-// A display-only academic-rank ladder over (teaching+research)/2, so "hire
-// better" reads as a separate lever from "hire more". Computed, never saved.
-// The top rank is "Chair" (Plan 124 D): "Distinguished" is a program's
-// standing only.
+// A band over (teaching+research)/2, computed, never saved. It was shown
+// as an academic rank under each name until the owner asked what the
+// titles meant (Plan 126 follow-ups): they restated the two scores beside
+// them and read as a career rank they were not, so no screen shows them.
+// The portraits still use the band for how likely grey hair is.
 export type FacultyQualityTier = 'Adjunct' | 'Assistant' | 'Associate' | 'Full' | 'Chair';
 const QUALITY_TIER_THRESHOLDS: Array<[number, FacultyQualityTier]> = [
   [85, 'Chair'],

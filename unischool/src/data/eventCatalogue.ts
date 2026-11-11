@@ -2642,7 +2642,7 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
     cooldownYears: 6,
     when: { downtownAtLeast: 0.25 },
     title: 'The Bell\'s offer',
-    text: 'The Bell, the oldest bar on Main Street, proposes a partnership: a student night every Thursday, your crest over the door and a fee for the privilege. The owner has already had the crest painted, slightly wrong, and is prepared to discuss the lion.',
+    text: 'The Bell, the oldest bar on Main Street, proposes a partnership: a student night every Thursday, your crest over the door and a fee for the privilege. The owner has already had the crest painted on the sign, slightly wrong.',
     timeoutWeeks: 4,
     choices: [
       { id: 'accept', label: 'Accept, crest and all', effects: { cash: 40000, mood: 2, goodwill: -3 } },

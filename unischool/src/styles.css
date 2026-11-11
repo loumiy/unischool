@@ -2508,9 +2508,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-tile .faculty-name { white-space: normal; font-size: var(--text-md); line-height: 1.15;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 /* Rank as a stamped label. */
-.faculty-tile-rank { margin-top: var(--space-4); padding: 1px var(--space-4); border: 1.5px solid var(--ink-muted); border-radius: var(--radius-xs);
-  font-family: var(--display); font-size: var(--text-2xs); line-height: 1.2; color: var(--ink-muted);
-  text-transform: uppercase; letter-spacing: 0.12em; font-weight: 800; }
 /* Teaching and research as two short meters in one grid, so the bars line
    up: label, meter, letter. The fill and the letter take the grade's colour
    (--stat-grade, set by FacultyTile.tsx); the paler run is the potential. */
@@ -2554,7 +2551,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   .faculty-tile-top { gap: 6px; }
   .faculty-tile .faculty-portrait { width: 40px; height: 40px; }
   .faculty-tile .faculty-name { font-size: var(--text-sm); }
-  .faculty-tile-rank { display: none; }
   .faculty-stat-long { display: none; }
   .faculty-stat-short { display: inline; }
   .faculty-tile-stats { gap: 3px 6px; }
@@ -2606,7 +2602,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-row-who { all: unset; cursor: pointer; display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
 .faculty-row-mount { flex: none; display: block; overflow: hidden; border: 2px solid var(--cream-hi); border-radius: var(--radius-xs); outline: 1.5px solid var(--outline); }
 .faculty-table .faculty-name { font-weight: 700; }
-.faculty-row-rank { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); }
 .faculty-cell-stat > * { vertical-align: middle; }
 .faculty-cell-stat .faculty-stat-value { display: inline-block; min-width: 2ch; text-align: right; }
 .faculty-cell-stat .faculty-stat-track { display: inline-block; width: 64px; margin: 0 var(--space-6); }
@@ -2780,7 +2775,6 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .faculty-sheet-body .faculty-tile-top { cursor: default; pointer-events: none; }
 @media (max-width: 520px) {
   .faculty-sheet-body .faculty-portrait { width: 64px; height: 64px; }
-  .faculty-sheet-body .faculty-tile-rank { display: block; }
   .faculty-sheet-body .faculty-stat-long { display: inline; }
   .faculty-sheet-body .faculty-stat-short { display: none; }
   .faculty-sheet-body .faculty-name { font-size: var(--text-lg); }
