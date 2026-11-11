@@ -1073,12 +1073,14 @@ function plainDoorOf(d: DoorDimensions | null, back: boolean): DoorDimensions | 
 
 // A plain way in on wall `dir` of box (col, row, w, h): the door in the
 // middle, its flight, and at the back (`service`) the bins by the door.
-// Nothing on a wall the camera does not see.
-function PlainEntrance({ d, col, row, w, h, dir, wallHeight, stone, shape = 'rect', service = false }: {
+// Nothing on a wall the camera does not see. `atGrade`: under an arcade
+// wrapped round the building, entered from its walk with no flight.
+function PlainEntrance({ d: given, col, row, w, h, dir, wallHeight, stone, shape = 'rect', service = false, atGrade = false }: {
   d: DoorDimensions | null; col: number; row: number; w: number; h: number; dir: FaceDir;
-  wallHeight: number; stone: StonePalette; shape?: 'rect' | 'arched'; service?: boolean;
+  wallHeight: number; stone: StonePalette; shape?: 'rect' | 'arched'; service?: boolean; atGrade?: boolean;
 }) {
-  if (!d) return null;
+  if (!given) return null;
+  const d = atGrade ? { ...given, threshold: 0, treads: 0 } : given;
   const wall = wallOf(boxFaces(col, row, w, h, 0, wallHeight), dir);
   if (!wall.visible) return null;
   const span = wallSpan(w, h, dir);
@@ -1088,7 +1090,7 @@ function PlainEntrance({ d, col, row, w, h, dir, wallHeight, stone, shape = 'rec
     <>
       <Door d={d} origin={wall.origin} along={wall.along} wallHeight={wallHeight} span={span} side={dir} shape={service ? 'rect' : shape} />
       {service && <ServiceBins d={d} col={col} row={row} w={w} h={h} dir={dir} />}
-      <EntranceSteps d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} stone={stone} />
+      {!atGrade && <EntranceSteps d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} stone={stone} />}
     </>
   );
 }
@@ -1655,6 +1657,57 @@ function StackedMass({ col, row, w, h, height, pal, stone, paneShape, paneW, ran
 
 // The arcade: a covered walk of round arches on square piers along the
 // whole front (you walk along it, unlike a portico), lower than a portico.
+function arcadeBays(span: number): number {
+  return Math.max(2, Math.min(ARCADE_MAX, Math.round((span * METRES_PER_TILE) / ARCADE_BAY_METRES)));
+}
+// Where pier `i` of `bays` stands along a front `span` long.
+function arcadePierAt(i: number, bays: number, span: number): number {
+  return Math.min(Math.max((i / bays) * span - ARCADE_PIER / 2, 0), span - ARCADE_PIER);
+}
+// The shaded walk seen through an arcade's front (o, a): painted before
+// its piers, as is the front itself (arcadeFront) after them.
+function arcadeShade(o: Pt, a: Pt, height: number, bays: number, key: string) {
+  return (
+    <g key={key}>
+      <polygon className="iso-undercroft" points={polyPoints([o, a, facePoint(o, a, height, 1, 1), facePoint(o, a, height, 0, 1)])} />
+      {/* One round-headed opening per bay, cut in the arcade's own front. */}
+      {Array.from({ length: bays }, (_, i) => (
+        // Most of the bay is opening: arches carried on piers.
+        <polygon
+          key={i}
+          className="iso-undercroft"
+          points={polyPoints(
+            windowOutline('arched', (i + 0.09) / bays, (i + 0.91) / bays, 0.02, 0.9)
+              .map(([u, v]) => facePoint(o, a, height, u, v)),
+          )}
+        />
+      ))}
+    </g>
+  );
+}
+// The arcade's front wall, whitewashed, with the arches cut through it
+// (Plan 74G): without spandrels a row of dark bays read as a barcode at
+// the opening zoom.
+function arcadeFront(o: Pt, a: Pt, height: number, bays: number, fill: string, key: string) {
+  return (
+    <path
+      key={key}
+      fillRule="evenodd"
+      fill={fill}
+      d={[
+        `M${[o, a, facePoint(o, a, height, 1, 1), facePoint(o, a, height, 0, 1)].map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join('L')}Z`,
+        ...Array.from({ length: bays }, (_, i) => {
+          const pts = windowOutline('arched', (i + 0.09) / bays, (i + 0.91) / bays, 0, 0.84)
+            .map(([u, v]) => facePoint(o, a, height, u, v));
+          return `M${pts.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join('L')}Z`;
+        }),
+      ].join('')}
+    />
+  );
+}
+// How far an arcade's lean-to climbs from its front to the wall.
+const ARCADE_RISE = up(1.3);
+
 function Arcade({ col, row, w, h, outward, pal, stone, height = ARCADE_HEIGHT }: {
   col: number; row: number; w: number; h: number;
   outward: FaceDir; pal: Palette; stone: StonePalette;
@@ -1662,15 +1715,12 @@ function Arcade({ col, row, w, h, outward, pal, stone, height = ARCADE_HEIGHT }:
   height?: number;
 }) {
   const span = wallSpan(w, h, outward);
-  const bays = Math.max(2, Math.min(ARCADE_MAX,
-    Math.round((span * METRES_PER_TILE) / ARCADE_BAY_METRES)));
+  const bays = arcadeBays(span);
   const walk = againstWall(col, row, w, h, outward, 0, span, ARCADE_DEPTH);
 
   // Piers back to front, whitewashed in the trim.
-  const piers = depthOrder(Array.from({ length: bays + 1 }, (_, i) => {
-    const at = Math.min(Math.max((i / bays) * span - ARCADE_PIER / 2, 0), span - ARCADE_PIER);
-    return againstWall(col, row, w, h, outward, at, ARCADE_PIER, ARCADE_DEPTH);
-  }));
+  const piers = depthOrder(Array.from({ length: bays + 1 }, (_, i) =>
+    againstWall(col, row, w, h, outward, arcadePierAt(i, bays, span), ARCADE_PIER, ARCADE_DEPTH)));
 
   const front = boxFaces(walk.col, walk.row, walk.w, walk.h, 0, height);
   const frontWall = wallOf(front, outward);
@@ -1678,29 +1728,11 @@ function Arcade({ col, row, w, h, outward, pal, stone, height = ARCADE_HEIGHT }:
   const a = frontWall.along;
 
   // The tiled lean-to over the walk, and its end cap.
-  const RISE = up(1.3);
-  const roof = leanToRoof(front, outward, height, RISE, pal);
+  const roof = leanToRoof(front, outward, height, ARCADE_RISE, pal);
 
   return (
     <>
-      {/* The shaded walk behind the arches. */}
-      <polygon className="iso-undercroft" points={polyPoints(frontWall.poly)} />
-      {/* One round-headed opening per bay, cut in the arcade's own front. */}
-      {Array.from({ length: bays }, (_, i) => {
-        // Most of the bay is opening: arches carried on piers.
-        const u0 = (i + 0.09) / bays;
-        const u1 = (i + 0.91) / bays;
-        return (
-          <polygon
-            key={i}
-            className="iso-undercroft"
-            points={polyPoints(
-              windowOutline('arched', u0, u1, 0.02, 0.9)
-                .map(([u, v]) => facePoint(o, a, height, u, v)),
-            )}
-          />
-        );
-      })}
+      {arcadeShade(o, a, height, bays, 'shade')}
       {piers.map((p, i) => {
         const f = boxFaces(p.col, p.row, p.w, p.h, 0, height);
         return (
@@ -1709,24 +1741,78 @@ function Arcade({ col, row, w, h, outward, pal, stone, height = ARCADE_HEIGHT }:
           </g>
         );
       })}
-      {/* The arcade's front wall, whitewashed, with the arches cut through it
-          (Plan 74G): without spandrels a row of dark bays read as a barcode
-          at the opening zoom. */}
-      <path
-        fillRule="evenodd"
-        fill={faceTone(outward, shade(stone.trim, 0.94), shade(stone.trim, 0.76))}
-        d={[
-          `M${[o, a, facePoint(o, a, height, 1, 1), facePoint(o, a, height, 0, 1)].map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join('L')}Z`,
-          ...Array.from({ length: bays }, (_, i) => {
-            const pts = windowOutline('arched', (i + 0.09) / bays, (i + 0.91) / bays, 0, 0.84)
-              .map(([u, v]) => facePoint(o, a, height, u, v));
-            return `M${pts.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join('L')}Z`;
-          }),
-        ].join('')}
-      />
+      {arcadeFront(o, a, height, bays, faceTone(outward, shade(stone.trim, 0.94), shade(stone.trim, 0.76)), 'front')}
       <polygon points={polyPoints(roof.endCap)} fill={roof.endCapFill} />
       <polygon points={polyPoints(roof.leanTo)} fill={roof.leanToFill} />
       <WallBand origin={o} along={a} wallHeight={height} from={height - COPING * 0.7} to={height} className="iso-cornice" />
+    </>
+  );
+}
+
+// Mission's arcade entrance wraps the whole building: a walk on every
+// wall, its fronts meeting on a square pier at each corner and its
+// lean-tos hipped there into one ring. In two parts, like the building's
+// own mass: 'behind' is the walks against the walls the camera does not
+// see (only their roofs show, past the mass's sides and corners), painted
+// before the mass; 'front' the seen walls' walks, painted over it.
+function ArcadeRing({ col, row, w, h, pal, stone, height, part }: {
+  col: number; row: number; w: number; h: number;
+  pal: Palette; stone: StonePalette; height: number; part: 'behind' | 'front';
+}) {
+  const seen = visibleWalls();
+  const isSeen = (d: FaceDir) => d === seen.left || d === seen.right;
+  const D = ARCADE_DEPTH;
+  // The ring's outer box: the building grown by the walk on every side.
+  const oc = col - D; const or = row - D; const ow = w + D * 2; const oh = h + D * 2;
+  const outer = boxFaces(oc, or, ow, oh, 0, height);
+  const inner = boxFaces(col, row, w, h, 0, height);
+  const dirs = (['posRow', 'negRow', 'posCol', 'negCol'] as FaceDir[]).filter((d) => isSeen(d) === (part === 'front'));
+  // Each wall's lean-to, from the ring's outer edge up to the wall: the
+  // four meet on the hips at the corners.
+  const roofs = dirs.map((dir) => {
+    const o = wallOf(outer, dir); const i = wallOf(inner, dir);
+    return (
+      <polygon key={`r${dir}`} fill={pal[dir]} points={polyPoints([
+        lift(o.origin, height), lift(o.along, height), lift(i.along, height + ARCADE_RISE), lift(i.origin, height + ARCADE_RISE),
+      ])} />
+    );
+  });
+  if (part === 'behind') return <>{roofs}</>;
+
+  const fronts = dirs.map((dir) => {
+    const span = wallSpan(ow, oh, dir);
+    const fw = wallOf(outer, dir);
+    return { dir, span, bays: arcadeBays(span), o: fw.origin, a: fw.along };
+  });
+  // Piers back to front, across both walks: full depth between the bays,
+  // a square at each corner (shared where the two walks meet), so no
+  // pier's side lies across the other walk's corner arch.
+  const seenAt = new Set<string>();
+  const piers = depthOrder(fronts.flatMap(({ dir, span, bays }) =>
+    Array.from({ length: bays + 1 }, (_, i) => {
+      const end = i === 0 || i === bays;
+      const deep = end ? ARCADE_PIER : D;
+      return againstWall(oc, or, ow, oh, dir, arcadePierAt(i, bays, span), ARCADE_PIER, deep, deep);
+    })).filter((b) => {
+    const k = `${b.col.toFixed(3)},${b.row.toFixed(3)},${b.w.toFixed(3)},${b.h.toFixed(3)}`;
+    if (seenAt.has(k)) return false;
+    seenAt.add(k);
+    return true;
+  }));
+
+  return (
+    <>
+      {fronts.map((f) => arcadeShade(f.o, f.a, height, f.bays, `s${f.dir}`))}
+      {piers.map((p, i) => (
+        <g key={`p${i}`}>
+          {sideFaces(boxFaces(p.col, p.row, p.w, p.h, 0, height), shade(stone.trim, 0.94), shade(stone.trim, 0.76))}
+        </g>
+      ))}
+      {fronts.map((f) => arcadeFront(f.o, f.a, height, f.bays, faceTone(f.dir, shade(stone.trim, 0.94), shade(stone.trim, 0.76)), `f${f.dir}`))}
+      {roofs}
+      {fronts.map((f) => (
+        <WallBand key={`c${f.dir}`} origin={f.o} along={f.a} wallHeight={height} from={height - COPING * 0.7} to={height} className="iso-cornice" />
+      ))}
     </>
   );
 }
@@ -10305,6 +10391,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       <>
         {gableOn && !gableWall.visible && gableNode(shade(pal.wall[opposite(sides.front)], 0.9))}
         {turrets && !cornerInFront && turretNode}
+        {/* The arcade round the far walls, before the mass. */}
+        {entrance === 'arcade' && <ArcadeRing part="behind" pal={pal} stone={stone} col={col} row={row} w={w} h={h} height={arcadeHeight(H)} />}
         <polygon points={polyPoints(hf.left)} fill={pal.wallLeft} />
         <polygon points={polyPoints(hf.right)} fill={pal.wallRight} />
         {timbering && (
@@ -10497,12 +10585,17 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         )}
         {entrance === 'arcade' && (
           <>
-            {/* The door behind the arcade, at grade, then the arcade over it. */}
+            {/* The doors behind the arcade, at grade, then the arcade over
+                them, wrapped round the building. */}
             {door && mainFronts.map((dir) => {
               const fwall = wallOf(hf, dir);
               return <Door key={`d${dir}`} d={{ ...door, threshold: 0, treads: 0 }} origin={fwall.origin} along={fwall.along} wallHeight={WH} span={wallSpan(w, h, dir)} side={dir} shape={doorShape} />;
             })}
-            {mainFronts.map((dir) => <Arcade key={dir} pal={pal} stone={stone} col={col} row={row} w={w} h={h} outward={dir} height={arcadeHeight(H)} />)}
+            {plainFronts.map((dir) => (
+              <PlainEntrance key={`pe${dir}`} d={doorOn(dir)} col={col} row={row} w={w} h={h} dir={dir}
+                wallHeight={WH} stone={stone} shape={doorShape} service={dir === sides.back} atGrade />
+            ))}
+            <ArcadeRing part="front" pal={pal} stone={stone} col={col} row={row} w={w} h={h} height={arcadeHeight(H)} />
           </>
         )}
         {/* Steps land at the entrance's front (entranceStandoff); the
@@ -10518,8 +10611,9 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
             />
           );
         })}
-        {/* The sides' plain doors and the back's service door. */}
-        {plainFronts.map((dir) => (
+        {/* The sides' plain doors and the back's service door (under
+            the arcade, above, where it wraps the building). */}
+        {entrance !== 'arcade' && plainFronts.map((dir) => (
           <PlainEntrance key={`pe${dir}`} d={doorOn(dir)} col={col} row={row} w={w} h={h} dir={dir}
             wallHeight={WH} stone={stone} shape={doorShape} service={dir === sides.back} />
         ))}
@@ -10742,6 +10836,9 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   // eaves if a face fits there, else up in its own gable, or in the bell's
   // place in the espadaña.
   const clockEntrance: EntrancePart = entrance === 'arcade' && !arcadeFits(H) ? shortArcadeFallback : entrance;
+  // Mission's arcade wraps the whole building, where its wall is tall
+  // enough and no school lab's own entrance takes the front (Plan 87E).
+  const arcadeRing = !site && entrance === 'arcade' && arcadeFits(H) && feature !== 'atrium' && feature !== 'clinic';
   const wallClock = signifier === 'clock' ? fitWallClock(H, entranceTopOnWall(clockEntrance, door, H, hood)) : null;
   const clockUp = !site && !bare && signifier === 'clock' && wallClock === null;
   const clockGable = clockUp && !pavilionGable;
@@ -10776,6 +10873,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       {pavilionGable && !gableWall.visible && pavilionGableNode(shade(pal.wall[opposite(sides.front)], 0.9))}
       {clockGable && !gableWall.visible && clockGableNode(shade(pal.wall[opposite(sides.front)], 0.9))}
       {!site && !cornerInFront && residentialTurret}
+      {arcadeRing && <ArcadeRing part="behind" pal={grand === 'arcade' ? arcadePal : pal} stone={stone} col={col} row={row} w={w} h={h} height={arcadeHeight(H)} />}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
       {/* Tudor: timbered above the ground floor, on pitched buildings tall
@@ -10869,9 +10967,15 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           {entranceFronts.map((dir) => <Recess key={dir} pal={pal} col={col} row={row} w={w} h={h} wallHeight={H} outward={dir} />)}
         </>
       )}
-      {!site && entrance === 'arcade' && arcadeFits(H) && (
+      {arcadeRing && (
         <>
-          {entranceFronts.map((dir) => <Arcade key={dir} pal={grand === 'arcade' ? arcadePal : pal} stone={stone} col={col} row={row} w={w} h={h} outward={dir} height={arcadeHeight(H)} />)}
+          {/* The sides' plain doors and the back's service door, at grade
+              under the walk, then the arcade over every door. */}
+          {plainFronts.map((dir) => (
+            <PlainEntrance key={`pe${dir}`} d={doorOn(dir)} col={col} row={row} w={w} h={h} dir={dir}
+              wallHeight={H} stone={stone} shape={doorShape} service={dir === sides.back} atGrade />
+          ))}
+          <ArcadeRing part="front" pal={grand === 'arcade' ? arcadePal : pal} stone={stone} col={col} row={row} w={w} h={h} height={arcadeHeight(H)} />
         </>
       )}
       {!site && (entrance === 'canopy' || (entrance === 'arcade' && !arcadeFits(H) && shortArcadeFallback === 'canopy')) && door && (
@@ -10908,7 +11012,7 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       {/* Modern's cantilevered canopy over a glazed lobby (Plan 87I),
           after the steps it shelters. */}
       {/* The sides' plain doors and the back's service door, with their flights. */}
-      {!site && plainFronts.map((dir) => (
+      {!site && !arcadeRing && plainFronts.map((dir) => (
         <PlainEntrance key={`pe${dir}`} d={doorOn(dir)} col={col} row={row} w={w} h={h} dir={dir}
           wallHeight={H} stone={stone} shape={doorShape} service={dir === sides.back} />
       ))}
