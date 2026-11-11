@@ -3,7 +3,7 @@ import SpeedUpOffers from '../components/SpeedUpOffers';
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
-import { facultyQualityTier, marketCenters, marketStandingOf, FACULTY_FIELD_GROUPS } from '../data/facultyData';
+import { marketCenters, marketStandingOf, FACULTY_FIELD_GROUPS } from '../data/facultyData';
 import { candidateListingWeeks } from '../systems/administration/effects';
 import { researchTopic } from '../data/researchTopics';
 import { discoverySchools } from '../data/techData';
@@ -355,7 +355,7 @@ function FacultyNextUp({ s, act, fields, onOpenCurriculum, onOpenMarket }: {
                 type="button"
                 className={`next-up-door${l.weeksLeft <= 2 ? ' soon' : ''}`}
                 onClick={() => appoint(l)}
-                title={`${l.candidate.name}, ${facultyQualityTier(l.candidate)} in ${l.field}. Teaching ${l.candidate.teaching}, ${money(l.pay)}/yr at your rate.${l.course && l.score !== null ? ` Would teach ${l.course.name} at ${Math.round(l.score)}.` : ''}${l.unblocks.length > 0 ? ` Opens ${l.unblocks.join(', ')}.` : ''} Leaves the market in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
+                title={`${l.candidate.name}, in ${l.field}. Teaching ${l.candidate.teaching}, ${money(l.pay)}/yr at your rate.${l.course && l.score !== null ? ` Would teach ${l.course.name} at ${Math.round(l.score)}.` : ''}${l.unblocks.length > 0 ? ` Opens ${l.unblocks.join(', ')}.` : ''} Leaves the market in ${l.weeksLeft === 1 ? 'a week' : `${l.weeksLeft} weeks`}.`}
               >
                 Appoint {surnameOf(l.candidate.name)} · {l.field}
                 {l.score !== null && <GradeChip score={l.score} />}

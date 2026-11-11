@@ -98,9 +98,11 @@ function assert(cond: boolean, msg: string): void {
   assert(!after.includes('crowd'), 'and nothing on the page talks of crowding');
   assert(!html.includes('Your first admissions') && !after.includes('Your first admissions'), 'a run nobody guides is not walked through');
 
+  // Every step of the summer is a page now (Plan 126), and the summer keeps
+  // its row in the inbox while it waits to be opened.
   for (const beat of [0, 2] as const) {
     const other = { ...s, pendingInterrupt: { type: 'summer' as const, payload: { ...payload, beat } } };
-    assert(!interruptPageUp(other) && interruptItem(other) !== null, `beat ${beat} stays in the inbox`);
+    assert(interruptPageUp(other) && interruptItem(other) !== null, `beat ${beat} is a page too, with its row kept`);
   }
 }
 

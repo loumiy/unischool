@@ -23,7 +23,6 @@ import {
 } from '../systems/techtree/techSystem';
 import { hallDisplayName } from '../systems/techtree/schools';
 import { courseHoldReason, crossMajorPrereqs, milestoneLine, programProgress, unmetPrereqNames, type ProgramProgress } from '../systems/techtree/programProgress';
-import { facultyQualityTier } from '../data/facultyData';
 import { GRADE_A, type CourseQuality } from '../data/courseQuality';
 import {
   averageCourseQuality, courseQuality, projectedQuality,
@@ -509,7 +508,7 @@ export function InstructorOption(
         {/* The salary as the college pays it, as every Appoint shows it
             (Plan 78F): the founding picker's first professor included. */}
         <span className="instructor-option-meta">
-          {facultyQualityTier(f)} · {f.field}{pay && <> · <span className="instructor-option-pay" title={`Salary ${money(f.salary)}`}>{moneyShort(facultyPay(s, f.salary))}/yr</span></>}
+          {f.field}{pay && <> · <span className="instructor-option-pay" title={`Salary ${money(f.salary)}`}>{moneyShort(facultyPay(s, f.salary))}/yr</span></>}
         </span>
         <span className="instructor-option-bars">
           <span className="instructor-stat" title={`Teaching ${f.teaching} of a possible ${f.teachingPotential}`}>

@@ -4,7 +4,6 @@ import type { Action } from '../state/actions';
 import type { Buildable, Faculty, GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { quirkById } from '../data/quirkData';
-import { facultyQualityTier } from '../data/facultyData';
 import { candidateListingWeeks } from '../systems/administration/effects';
 import { effectiveCourseSlots } from '../systems/techtree/techSystem';
 import { careerWeeks } from '../systems/faculty/facultySystem';
@@ -282,7 +281,6 @@ export default function FacultyTile(
           <span className="faculty-tile-mount"><FacultyPortrait f={portraitOf(f)} size={56} shape="square" /></span>
           <span className="faculty-tile-who">
             <span className="faculty-name">{f.name}</span>
-            <span className="faculty-tile-rank">{facultyQualityTier(f)}</span>
           </span>
         </button>
 

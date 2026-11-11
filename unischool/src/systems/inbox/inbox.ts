@@ -83,13 +83,10 @@ export function finalReportUp(s: GameState): boolean {
 }
 
 // Whether the pending interrupt is answered on a page of its own rather
-// than in the inbox: the Final Report, and the summer's admissions (Plan
-// 108).
+// than in the inbox: every step of the summer (Plan 126; admissions since
+// Plan 108, the Final Report since Plan 60).
 export function interruptPageUp(s: GameState): boolean {
-  const i = s.pendingInterrupt;
-  if (i?.type !== 'summer') return false;
-  const p = i.payload as SummerPayload | undefined;
-  return finalReportUp(s) || p?.beat === 1;
+  return s.pendingInterrupt?.type === 'summer';
 }
 
 // The summer, while one is pending: the key the shell keeps against it,

@@ -3,7 +3,7 @@ import type { Buildable, Facing, SchoolColors, Vernacular } from '../state/types
 import { TILE_W, boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, heightScale, unproject, visibleWalls, wallOf, type BoxFaces, type Camera, type FaceDir, type Pt } from './isoProjection';
 import { frontDepth, frontWidth, localBox, localToGrid, sideSeen, sidesOf, type Plot } from './facing';
 import { depthOrder, occludes, type DepthBox } from './depthSort';
-import { WALL_LIGHT, faceTone, shadowOffset, sunScreenDir } from './light';
+import { WALL_LIGHT, clipToBox, faceTone, shadowGround, shadowOffset, sunScreenDir } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import Landmark from './landmarks';
 import LibraryMass from './libraryMotif';
@@ -79,6 +79,58 @@ export function drawnHeightOf(t: Buildable, developing: boolean, v: Vernacular):
   if (inFlight === 0) return Math.max(4, full * 0.16);
   const standing = full - inFlight * STOREY;
   return standing > 0 ? standing : Math.max(4, full * 0.16);
+}
+
+// What casts a shadow (CampusMap's shadow pass): the boxes the mass is
+// drawn as, each at the height it is drawn to. Most buildings are one box
+// over the whole plot; the ones that stand back from a terrace or a
+// forecourt, set houses out on a lawn or put a tall part beside a low one
+// cast from the parts they draw, so a shadow starts at a wall rather than
+// at the plot's edge. A site is the low frame here: CampusMap raises it to
+// the stage it is drawn at.
+export interface ShadowCaster { col: number; row: number; w: number; h: number; height: number }
+export function shadowCastersOf(t: Buildable, p: Plot, developing: boolean, v: Vernacular): ShadowCaster[] {
+  const motif = motifOf(t);
+  if (motif === 'grounds') return [];
+  const height = drawnHeightOf(t, developing, v);
+  const at = (b: DepthBox, z: number): ShadowCaster => ({ col: b.col, row: b.row, w: b.w, h: b.h, height: z });
+  const whole = [at(p, height)];
+  const inFlight = developing ? floorsUnderConstruction(t) : 0;
+  if ((developing && inFlight === 0) || motif === 'landmark') return whole;
+  // The wall height standing (an extension's new floor is scaffolding).
+  const full = wallHeightOf(t) - inFlight * STOREY;
+  const ridge = ridgeOf(t, v);
+  if (t.id === MUSEUM_ID && !developing) return [at(museumInner(p), height)];
+  if (t.facilityType === 'diningHall') {
+    const plan = diningPlan(t, p, v);
+    if (plan.band !== 'refectory') return [at(plan.hall, height)];
+    const H0 = wallHeightOf(t) - addedFloors(t) * STOREY;
+    return [
+      at(plan.hall, height),
+      at(plan.kitchen!, H0 * REFECTORY_KITCHEN_EAVES), at(plan.buttery!, H0 * REFECTORY_KITCHEN_EAVES),
+      at(plan.back!, H0 * REFECTORY_BACK_EAVES),
+    ];
+  }
+  if (signatureOf(t)?.feature === 'workshop') {
+    const { office, wing } = workshopSplit(p.col, p.row, p.w, p.h, p.facing);
+    return [at(office, height), at(wing, full + WORKSHOP_RISE)];
+  }
+  if (motif === 'village') {
+    return VILLAGE_HOUSES.map((lot) => { const hh = villageHouseHeight(t, lot, full, ridge); return at(villageLotBox(p, lot), hh.height + hh.ridge); });
+  }
+  if (motif === 'tower') return [at(p, TOWER_PODIUM_STOREYS * STOREY), at(towerShaft(p.col, p.row, p.w, p.h), height)];
+  if (motif === 'hangar' && sportsShedOf(t) === 'arena') {
+    const { annexed, main, hall, annex } = arenaSplit(p, t.expansions ?? 0);
+    return [
+      at(main, full + ARENA_VAULT_RISE), at(hall, arenaHallHeight(full)),
+      ...(annexed ? [at(annex, ARENA_ANNEX_HEIGHT + ARENA_ANNEX_RISE)] : []),
+    ];
+  }
+  if (motif === 'block' && isHospital(t) && Math.min(p.w, p.h) >= BLOCK_SPLIT_MIN_TILES) {
+    const { slab, wing, slabH, wingH } = hospitalSplit(t, p);
+    return [at(slab, slabH), at(wing, wingH)];
+  }
+  return whole;
 }
 
 
@@ -1130,6 +1182,12 @@ function ServiceBins({ d, col, row, w, h, dir }: {
 export function plotFraction(p: Plot, u: number, v: number, uw: number, vh: number): DepthBox {
   const fw = frontWidth(p); const fd = frontDepth(p);
   return localBox(p, fw * u, fd * (1 - v - vh), fw * (u + uw), fd * (1 - v));
+}
+// A village house's walls and ridge: its lot's stories, under the plot's
+// standing height `full`, plus every story added to the village (Plan 112D).
+export function villageHouseHeight(t: Buildable, lot: VillageLot, full: number, ridge: number): { height: number; ridge: number } {
+  const raise = addedFloors(t) * STOREY;
+  return { height: Math.min(full - raise, lot.s * STOREY) + raise, ridge: ridge * (lot.s >= 3 ? 1 : 0.85) };
 }
 // A village lot's house, laid out in the plot's own frame.
 export function villageLotBox(p: Plot, lot: VillageLot): DepthBox {
@@ -2339,6 +2397,20 @@ function seenWall(f: BoxFaces, dir: FaceDir): { o: Pt; a: Pt; span: number; dir:
 // it shares with the office.
 const WORKSHOP_SHARE = 0.4;
 const WORKSHOP_RISE = up(5.6);
+// The hospital (Medical Center): a tall ward slab across the back and a
+// lower glazed public wing at the front's left, set out in the building's
+// own frame (Plan 88).
+function hospitalSplit(t: Buildable, p: Plot): { slab: DepthBox; wing: DepthBox; slabStoreys: number; wingStoreys: number; slabH: number; wingH: number } {
+  const fw = frontWidth(p); const fd = frontDepth(p);
+  const slabStoreys = storeysOf(t);
+  const wingStoreys = Math.max(2, Math.round(slabStoreys * WING_STOREY_FRACTION));
+  return {
+    slab: localBox(p, 0, fd * (1 - SLAB_ROW_FRACTION), fw, fd),
+    wing: localBox(p, 0, 0, fw * WING_COL_FRACTION, fd * (1 - SLAB_ROW_FRACTION)),
+    slabStoreys, wingStoreys, slabH: slabStoreys * STOREY, wingH: wingStoreys * STOREY,
+  };
+}
+
 function workshopSplit(col: number, row: number, w: number, h: number, facing?: Facing): { office: DepthBox; wing: DepthBox; end: FaceDir; joint: FaceDir } {
   const p = { col, row, w, h, facing };
   const W = frontWidth(p); const D = frontDepth(p);
@@ -5132,23 +5204,35 @@ export function InCollegeColors({ draw }: { draw: (colors: SchoolColors) => Reac
   return <>{draw(useContext(ColorsContext))}</>;
 }
 
+// The arena's parts in its own frame: the entrance hall on the front, the
+// practice annex (its second expansion) on the right end, the main hall
+// behind and beside them.
+function arenaSplit(plot: Plot, expansions: number): { annexed: boolean; main: DepthBox; hall: DepthBox; annex: DepthBox } {
+  const W = frontWidth(plot); const D = frontDepth(plot);
+  const annexed = expansions >= 2;
+  const dH = Math.min(ARENA_HALL_DEPTH, D * 0.2);
+  const aW = annexed ? Math.min(ARENA_ANNEX_WIDTH, W * 0.25) : 0;
+  const eW = Math.min(ARENA_HALL_WIDTH, W * 0.45);
+  return {
+    annexed,
+    main: localBox(plot, 0, dH, W - aW, D),
+    hall: localBox(plot, (W - eW) / 2, 0, (W + eW) / 2, dH),
+    annex: localBox(plot, W - aW, dH + across(3), W, D - across(3)),
+  };
+}
+// The entrance hall's height under the main hall's walls.
+function arenaHallHeight(H: number): number {
+  return Math.min(up(9.5), H - up(0.8));
+}
+
 function ArenaShed({ c }: { c: ShedCtx }) {
   const { H, pal, stone } = c;
   const d = c.door;
   const plot = { col: c.col, row: c.row, w: c.w, h: c.h, facing: c.facing };
-  const W = frontWidth(plot); const D = frontDepth(plot);
   const sides = shedSides(c);
   const seen = (dir: FaceDir) => sides.seen.includes(dir);
   const tiered = c.expansions >= 1;
-  const annexed = c.expansions >= 2;
-  // The parts in the building's own frame: the hall on the front, the
-  // annex on the right end, the main hall behind and beside them.
-  const dH = Math.min(ARENA_HALL_DEPTH, D * 0.2);
-  const aW = annexed ? Math.min(ARENA_ANNEX_WIDTH, W * 0.25) : 0;
-  const eW = Math.min(ARENA_HALL_WIDTH, W * 0.45);
-  const main = localBox(plot, 0, dH, W - aW, D);
-  const hall = localBox(plot, (W - eW) / 2, 0, (W + eW) / 2, dH);
-  const annex = localBox(plot, W - aW, dH + across(3), W, D - across(3));
+  const { annexed, main, hall, annex } = arenaSplit(plot, c.expansions);
   // A footprint side's middle, on the ground, where its door is.
   const middle = (dir: FaceDir) => project(
     dir === 'posCol' ? c.col + c.w : dir === 'negCol' ? c.col : c.col + c.w / 2,
@@ -5212,7 +5296,7 @@ function ArenaShed({ c }: { c: ShedCtx }) {
 
   // The entrance hall: glass on its walls under a stone fascia, the
   // scoreboard over the doors, the front's steps.
-  const He = Math.min(up(9.5), H - up(0.8));
+  const He = arenaHallHeight(H);
   const hf = boxFaces(hall.col, hall.row, hall.w, hall.h, 0, He);
   const hFaces = shedFaces(hf);
   const glassTop = He - up(3.6);
@@ -6025,11 +6109,10 @@ function plotBox(p: ownFrame.Plot) {
 // CampusMap's shadow pass already lies outside it, and a second layer there
 // would read as a darker band.
 function plotShadow(b: DepthBox, height: number, plot: DepthBox, key: string) {
-  const { dcol, drow } = shadowOffset(height);
-  const c0 = Math.max(plot.col, b.col + dcol); const c1 = Math.min(plot.col + plot.w, b.col + b.w + dcol);
-  const r0 = Math.max(plot.row, b.row + drow); const r1 = Math.min(plot.row + plot.h, b.row + b.h + drow);
-  if (c1 <= c0 || r1 <= r0) return null;
-  return <polygon key={key} className="campus-building-shadow" points={polyPoints(boxFaces(c0, r0, c1 - c0, r1 - r0, 0, 0).top)} />;
+  // The whole shadow (light.ts's shadowGround: base to throw), clipped.
+  const ground = clipToBox(shadowGround(b.col, b.row, b.w, b.h, height), plot.col, plot.row, plot.col + plot.w, plot.row + plot.h);
+  if (ground.length < 3) return null;
+  return <polygon key={key} className="campus-building-shadow" points={polyPoints(ground.map((p) => project(p.col, p.row)))} />;
 }
 
 // The visible long walls of a box (its two faces along the ridge).
@@ -8299,13 +8382,18 @@ function ForecourtSculpture({ cc, cr, kind, stone }: { cc: number; cr: number; k
 // building's own front (four-way facing), where two sculptures flank the
 // walk to its door. With the front turned away the forecourt lies behind
 // the gallery, which hides its pieces.
+// The museum's own mass, standing back behind its forecourt.
+function museumInner(p: Plot): Plot {
+  const c = MUSEUM_COURT;
+  return { ...localBox(p, c * 0.7, c * 1.9, frontWidth(p) - c * 0.7, frontDepth(p) - c * 0.5), facing: p.facing };
+}
 function MuseumCourt({ t, p, material, vernacular, glyphs }: {
   t: Buildable; p: Plot; material: Material; vernacular: Vernacular; glyphs?: string;
 }) {
   const { col, row, w, h } = p;
   const c = MUSEUM_COURT;
-  const fw = frontWidth(p); const fd = frontDepth(p);
-  const inner: Plot = { ...localBox(p, c * 0.7, c * 1.9, fw - c * 0.7, fd - c * 0.5), facing: p.facing };
+  const fw = frontWidth(p);
+  const inner = museumInner(p);
   const stone = stoneFor(vernacular);
   const pave = stone.trim !== 'none' ? shade(stone.trim, 0.96) : shade(stone.towerStone, 0.94);
   const court = boxFaces(col, row, w, h, 0, 0).top;
@@ -8324,6 +8412,8 @@ function MuseumCourt({ t, p, material, vernacular, glyphs }: {
       <path d={joints} stroke="rgba(60, 54, 44, 0.18)" strokeWidth={0.6} fill="none" />
       {/* The way in: a darker paved walk from the front edge to the door. */}
       {(() => { const b = localBox(p, fw / 2 - across(3), 0, fw / 2 + across(3), c * 1.9); return <polygon className="museum-walk" points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} fill={shade(pave, 0.86)} />; })()}
+      {/* The gallery's shadow on its forecourt, which covers the shadow pass's. */}
+      {plotShadow(inner, drawnHeightOf(t, false, vernacular), p, 'sh')}
       {!frontSeen && sculptures}
       <BuildingMass t={t} p={inner} material={material} vernacular={vernacular} developing={false} glyphs={glyphs} />
       {frontSeen && sculptures}
@@ -9055,6 +9145,8 @@ function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Elemen
   return (
     <>
       <TerracePaving plan={plan} />
+      {/* The hall's shadow on its terrace, which covers the shadow pass's. */}
+      {shadowCastersOf(t, p, props.developing, vernacular).map((c, i) => plotShadow(c, c.height, plan.terrace, `ts${i}`))}
       {!frontSeen && furniture}
       {buildingMassArt({ ...props, p: { ...plan.hall, facing: p.facing }, bare: true }, snow)}
       {cafe && <CafeAwning plan={plan} d={doorOf(t)} H={wallHeightOf(t)} />}
@@ -9078,6 +9170,10 @@ function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Elemen
 // campus (Penn's Harnwell, Harvard's Peabody Terrace), lounges and roof
 // terraces on top of the newer ones.
 const TOWER_INSET = 0.17;                    // the shaft, set back from the podium's edge
+// The shaft's plan over the podium's.
+function towerShaft(col: number, row: number, w: number, h: number): DepthBox {
+  return { col: col + w * TOWER_INSET, row: row + h * TOWER_INSET, w: w * (1 - TOWER_INSET * 2), h: h * (1 - TOWER_INSET * 2) };
+}
 const TOWER_DECK = '#7c8377';                // the lead deck every flat roof shares
 const LOUNGE_GLOW = '#f2d08c';               // a common room's lit glazing
 const TERRACE_DECK = '#a7845c';              // timber decking
@@ -9194,8 +9290,7 @@ function ResidenceTower({ t, col, row, w, h, H, pal, deck, stone, paneShape, cre
   const pod = boxFaces(col, row, w, h, 0, PODIUM_H);
 
   // The shaft, every residential floor above the podium.
-  const sc = col + w * TOWER_INSET; const sr = row + h * TOWER_INSET;
-  const sw = w * (1 - TOWER_INSET * 2); const sh = h * (1 - TOWER_INSET * 2);
+  const { col: sc, row: sr, w: sw, h: sh } = towerShaft(col, row, w, h);
   const shaftH = H - PODIUM_H;
   const shaft = boxFaces(sc, sr, sw, sh, PODIUM_H, shaftH);
   const shaftSills = rankSills(shaftStoreys);
@@ -9649,8 +9744,6 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   }
 
   if (motif === 'village') {
-    // A story added to the village is one more on every house (Plan 112D).
-    const villageRaise = addedFloors(t) * STOREY;
     // A plot: lawn, walks, and houses and trees in one depth-ordered list.
     const items = depthOrder([
       // Set out in the plot's own frame (Plan 88): the near rank on the
@@ -9696,6 +9789,12 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {[plotFraction(p, 0, 0, 0.84, 0.18 / fd), plotFraction(p, 0, 0, 0.18 / fw, 1)].map((b, i) => (
           <polygon key={`hg${i}`} className="ground-hedge-top" points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top.map((q) => lift(q, 5)))} />
         ))}
+        {/* The houses' shadows on the lawn, which covers the shadow pass's. */}
+        {items.map((it, i) => {
+          if (it.kind !== 'house') return null;
+          const hh = villageHouseHeight(t, it.lot!, full, ridge);
+          return plotShadow(it, hh.height + hh.ridge, p, `hs${i}`);
+        })}
         {items.filter((it) => it.kind === 'tree').map((it, i) => (
           <polygon key={`ts${i}`} className="campus-tree-shadow" points={polyPoints(treeShadow(it.col + 0.5, it.row + 0.5, it.species!, it.scale!))} />
         ))}
@@ -9705,8 +9804,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
           <VillageHouse
             key={i}
             col={it.col} row={it.row} w={it.w} h={it.h}
-            height={Math.min(full - villageRaise, it.lot!.s * STOREY) + villageRaise}
-            ridge={ridge * (it.lot!.s >= 3 ? 1 : 0.85)}
+            height={villageHouseHeight(t, it.lot!, full, ridge).height}
+            ridge={villageHouseHeight(t, it.lot!, full, ridge).ridge}
             pal={pal} stone={stone} glass={stone.glass} paneShape={paneShape}
             chimney={chimneys} door={it.lot!.d} doorAt={it.lot!.d === 'row' ? sides.front : sides.right}
           />
@@ -10094,15 +10193,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     // wing in front. Only the Medical Center splits (Plan 87A: the size rule
     // alone drew the Business School as a hospital), and only when large
     // (BLOCK_SPLIT_MIN_TILES); other `block`s are one box.
-    const slabStoreys = storeysOf(t);
-    const wingStoreys = Math.max(2, Math.round(slabStoreys * WING_STOREY_FRACTION));
-    const slabH = slabStoreys * STOREY;
-    const wingH = wingStoreys * STOREY;
+    const { slab, wing, slabStoreys, wingStoreys, slabH, wingH } = hospitalSplit(t, p);
     const undercroft = UNDERCROFT_STOREYS * STOREY;
-    // Set out in the building's own frame (Plan 88): the slab across the
-    // back, the wing at the front's left.
-    const slab = localBox(p, 0, fd * (1 - SLAB_ROW_FRACTION), fw, fd);
-    const wing = localBox(p, 0, 0, fw * WING_COL_FRACTION, fd * (1 - SLAB_ROW_FRACTION));
     const sf = boxFaces(slab.col, slab.row, slab.w, slab.h, 0, slabH);
     const wf = boxFaces(wing.col, wing.row, wing.w, wing.h, 0, wingH);
     const lines = (storeys: number) => Array.from({ length: storeys - 1 }, (_, i) => (i + 1) * STOREY);

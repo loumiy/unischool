@@ -1,7 +1,6 @@
 import { Fragment, useState, type CSSProperties } from 'react';
 import type { Action } from '../state/actions';
 import type { Faculty, GameState } from '../state/types';
-import { facultyQualityTier } from '../data/facultyData';
 import { candidateListingWeeks } from '../systems/administration/effects';
 import { effectiveCourseSlots } from '../systems/techtree/techSystem';
 import { facultyPay } from '../systems/finance/financeSystem';
@@ -121,7 +120,6 @@ export default function FacultyTable({ s, act, people, isCandidate, sort, setSor
                       <span className="faculty-row-mount"><FacultyPortrait f={portraitOf(f)} size={32} shape="square" /></span>
                       <span className="faculty-tile-who">
                         <span className="faculty-name">{f.name}</span>
-                        <span className="faculty-row-rank">{facultyQualityTier(f)}</span>
                       </span>
                     </button>
                   </td>

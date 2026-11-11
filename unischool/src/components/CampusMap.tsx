@@ -27,10 +27,10 @@ import BuildingInfoPanel from './BuildingInfoPanel';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import { researchTopic } from '../data/researchTopics';
-import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
+import BuildingMotif, { ScaffoldPattern, labelHeightOf, shadowCastersOf } from './buildingMotifs';
 import { floorsUnderConstruction, materialOf, motifOf, storeysOf, wallHeightOf } from './buildingSpec';
-import { SiteFrame, siteStageOf } from './siteWorks';
-import { groundProps } from './groundMarkings';
+import { SiteFrame, siteStageOf, type SiteStage } from './siteWorks';
+import { GroundSite, groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
 import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle } from './seasons';
@@ -144,13 +144,20 @@ const DISTRICT_LOOK_MS = 900;
 // enough to notice at a glance, short enough that a run of completions in a
 // fast-forwarded year does not leave the map permanently flashing.
 const COMPLETION_PULSE_MS = 1500;
-// Founders Hall going up at the founding (Plan 124H, revised by the owner):
-// the same construction stages every other building shows over its build
-// weeks, the frame and then the scaffolded shell, played in under a second
-// before the hall stands. The walkthrough's panels after the placement wait
-// this long (App.tsx). Reduced motion shows the hall at once.
-const FOUNDING_STAGE_MS = 450;
-export const FOUNDING_RISE_MS = FOUNDING_STAGE_MS * 2;
+// Founders Hall going up at the founding (Plan 124H, revised by the owner
+// twice): the same construction stages every other building shows over its
+// build weeks, played as a sequence before the hall stands: the graded plot
+// in its hoarding, the frame to full height, then the closed shell in
+// scaffolding, each held long enough to be seen (the second playtest: under
+// a second read as a pop). Then a beat on the hall standing, its completion
+// ring and cue, before the view eases to it (FOUNDING_PAN_MS) and its panel
+// opens (App.tsx waits FOUNDING_LOOK_MS, then the map opens the panel once
+// the pan lands). Reduced motion shows the hall at once and jumps the view.
+const FOUNDING_STAGES_MS = [700, 900, 900] as const;
+export const FOUNDING_RISE_MS = FOUNDING_STAGES_MS.reduce((a, b) => a + b, 0);
+const FOUNDING_BEAT_MS = 300;
+export const FOUNDING_LOOK_MS = FOUNDING_RISE_MS + FOUNDING_BEAT_MS;
+export const FOUNDING_PAN_MS = 750;
 
 // --- pan & zoom ---
 // Kept out of React state: the world `<g>`'s transform is set imperatively
@@ -359,23 +366,32 @@ function SiteProgress(props: SiteProgressProps) {
 }
 // The same, with the weeks left given (the canvas map's art, registered
 // below).
-function siteProgressArt({ t, p, label }: SiteProgressProps, developing: GameState['developing']) {
-  const weeksLeft = developing[t.id];
-  if (weeksLeft === undefined) return null;
+// How far a new building has risen (Plan 74H), for its art and its shadow.
+// A plot of houses or a bowl fills in as it goes; a building rises in the
+// landmarks' three stages: footings (the motif's own site), then the frame
+// to full height, then the closed shell in scaffolding. `frame` and `shell`
+// say which stands; `height` is the taller of them (0 for neither).
+function siteRise(t: Buildable, weeksLeft: number) {
   const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   const motif = motifOf(t);
   const rises = motif !== 'grounds' && motif !== 'landmark' && floorsUnderConstruction(t) === 0;
-  // A plot of houses or a bowl fills in as it goes; a building rises in the
-  // landmarks' three stages (Plan 74H): footings (the motif's own site),
-  // then the frame to full height, then the closed shell in scaffolding.
   const staged = rises && motif !== 'village' && motif !== 'bowl';
   const stage = siteStageOf(elapsedFraction);
-  const d = drawnFootprint(p);
   const shellHeight = !rises ? 0 : staged ? (stage === 2 ? wallHeightOf(t) : 0) : wallHeightOf(t) * elapsedFraction;
-  const shell = shellHeight > 0 && (staged || elapsedFraction > 0.05) ? boxFaces(d.col, d.row, d.w, d.h, 0, shellHeight) : null;
+  const frame = staged && stage === 1;
+  const shell = shellHeight > 0 && (staged || elapsedFraction > 0.05);
+  return { elapsedFraction, frame, shell, shellHeight, height: Math.max(frame ? wallHeightOf(t) : 0, shell ? shellHeight : 0) };
+}
+
+function siteProgressArt({ t, p, label }: SiteProgressProps, developing: GameState['developing']) {
+  const weeksLeft = developing[t.id];
+  if (weeksLeft === undefined) return null;
+  const { elapsedFraction, frame, shell: shellUp, shellHeight } = siteRise(t, weeksLeft);
+  const d = drawnFootprint(p);
+  const shell = shellUp ? boxFaces(d.col, d.row, d.w, d.h, 0, shellHeight) : null;
   return (
     <>
-      {staged && stage === 1 && (
+      {frame && (
         <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={wallHeightOf(t)} floors={storeysOf(t)} />
       )}
       {shell && (
@@ -478,21 +494,38 @@ type CastShadowsProps = {
   camera: Camera;
 };
 function CastShadows({ placed, scene, vernacular, camera }: CastShadowsProps) {
+  const developing = useContext(DevelopingContext);
+  const sites = siteHeights(placed, developing);
   return castShadowsArt(useMemo(
-    () => castShadowPaths(placed, scene, vernacular),
-    // `camera` is read by the projection, not here.
+    () => castShadowPaths(placed, scene, vernacular, sites),
+    // `camera` is read by the projection, not here; `sites` by its key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placed, scene, vernacular, camera],
+    [placed, scene, vernacular, camera, sites.key],
   ));
 }
-function castShadowPaths(placed: CampusLayout['placed'], scene: readonly SceneEntry[], vernacular: Vernacular): { buildings: string; trees: string } {
+// How high each new site stands now (siteRise), by id, and a key that
+// changes when any does, for the memo and the canvas's ground layer.
+function siteHeights(placed: CampusLayout['placed'], developing: GameState['developing']): { byId: Map<string, number>; key: string } {
+  const byId = new Map<string, number>();
+  for (const { t, developing: going } of placed) {
+    const weeksLeft = developing[t.id];
+    if (!going || weeksLeft === undefined) continue;
+    const height = siteRise(t, weeksLeft).height;
+    if (height > 0) byId.set(t.id, height);
+  }
+  return { byId, key: [...byId].map(([id, h]) => `${id}:${h.toFixed(1)}`).join(',') };
+}
+function castShadowPaths(placed: CampusLayout['placed'], scene: readonly SceneEntry[], vernacular: Vernacular, sites: { byId: Map<string, number> }): { buildings: string; trees: string } {
   const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
   const buildings: string[] = [];
   for (const { t, p, developing } of placed) {
-    const height = drawnHeightOf(t, developing, p.vernacular ?? vernacular);
-    if (height <= 0) continue;
-    const f = drawnFootprint(p);
-    buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
+    // Each part the mass is drawn as (buildingMotifs' shadowCastersOf); a
+    // site at the frame or the shell it is drawn at, not its footings.
+    const rise = sites.byId.get(t.id) ?? 0;
+    for (const c of shadowCastersOf(t, drawnFootprint(p), developing, p.vernacular ?? vernacular)) {
+      const height = Math.max(c.height, rise);
+      if (height > 0) buildings.push(sub(castShadow(c.col, c.row, c.w, c.h, height)));
+    }
   }
   const trees: string[] = [];
   for (const e of scene) {
@@ -1077,7 +1110,8 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
           {parts.ground}
         </>
       ),
-      sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}c${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'p' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
+      // A site's shadow rises with it (siteHeights).
+      sig: `${cam}|${layout.key}|${a.inspectedId}|${siteHeights(layout.placed, a.developing).key}|${grounds.map((id) => `${a.developing[id] ?? ''}c${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'p' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
     },
     front: {
       node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} winterLit={a.winterLit ?? false} festive={a.festive ?? 0} colors={layout.colors} />,
@@ -1250,9 +1284,12 @@ registerArt(DesireLines, (p: { layout: CampusLayout; camera: Camera }, s: ArtSco
   return desireArt(s.keep('d', [runs, p.camera], () => desirePath(runs)));
 }, true);
 registerArt(SiteProgress, (p: SiteProgressProps, s: ArtScope) => siteProgressArt(p, occasion(s, 'developing')));
-registerArt(CastShadows, (p: CastShadowsProps, s: ArtScope) => castShadowsArt(
-  s.keep('d', [p.placed, p.scene, p.vernacular, p.camera], () => castShadowPaths(p.placed, p.scene, p.vernacular)),
-));
+registerArt(CastShadows, (p: CastShadowsProps, s: ArtScope) => {
+  const sites = siteHeights(p.placed, occasion(s, 'developing'));
+  return castShadowsArt(
+    s.keep('d', [p.placed, p.scene, p.vernacular, p.camera, sites.key], () => castShadowPaths(p.placed, p.scene, p.vernacular, sites)),
+  );
+});
 
 // Hall pips: one per slot, in the color of the school whose program holds
 // it, plus a flag when a slot is free and a program is on offer. Always on,
@@ -1323,7 +1360,7 @@ function useSteadyValue<T>(value: T, ms: number): T {
 
 export default function CampusMap({
   s: live, resting = false, act, selectedId, onSelect, pathTool, onSetPathTool, backOutEnabled, controlsEnabled,
-  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, onInspectTargetConsumed, onInspectedChange, buildOpen, gait, startPitch, zoomScale,
+  onOpenCurriculum, onOpenResearch, inspectTarget, inspectProgram, inspectGlide = false, onInspectTargetConsumed, onInspectedChange, buildOpen, gait, startPitch, zoomScale,
 }: {
   s: GameState;
   act: (a: Action) => void;
@@ -1352,6 +1389,10 @@ export default function CampusMap({
   // A program housed there whose tile opens with the panel, its move
   // showing (the next-step line's move, Plan 78D).
   inspectProgram?: string | null;
+  // The view eases to the hall over FOUNDING_PAN_MS and its panel opens
+  // once it lands (the founding, App.tsx), instead of a jump and the panel
+  // at once. Under reduced motion it jumps.
+  inspectGlide?: boolean;
   onInspectTargetConsumed?: () => void;
   // Reports which building's panel is open (the opening walkthrough reads it).
   onInspectedChange?: (id: string | null) => void;
@@ -1492,26 +1533,37 @@ export default function CampusMap({
   // The building going up (FOUNDING_RISE_MS): left out of the canvas while
   // its construction stages play over its footprint.
   const [rising, setRising] = useState<string | null>(null);
-  const [riseStage, setRiseStage] = useState<1 | 2>(1);
+  const [riseStage, setRiseStage] = useState<SiteStage>(0);
   const wasPlacedRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     const now = new Set(Object.keys(s.placements));
     const was = wasPlacedRef.current;
     wasPlacedRef.current = now;
     if (!was) return;
-    // Founders Hall placed (only ever at the founding): it rises into its
-    // footprint, `place` then `complete` (Plan 124H). `place` is the
-    // audio director's, on the placement; `complete` ends the rise.
+    // Founders Hall placed (only ever at the founding): it goes up through
+    // its stages in its footprint, `place` then `complete` (Plan 124H).
+    // `place` is the audio director's, on the placement; `complete` and the
+    // completion ring every finished building gets end the rise.
     if (now.has(FOUNDERS_HALL_ID) && !was.has(FOUNDERS_HALL_ID)) {
       const still = reducedMotion();
       if (!still) {
         setRising(FOUNDERS_HALL_ID);
-        setRiseStage(1);
-        pulseTimersRef.current.push(window.setTimeout(() => setRiseStage(2), FOUNDING_STAGE_MS));
+        setRiseStage(0);
+        let at = 0;
+        ([1, 2] as const).forEach((stage, i) => {
+          at += FOUNDING_STAGES_MS[i]!;
+          pulseTimersRef.current.push(window.setTimeout(() => setRiseStage(stage), at));
+        });
       }
       pulseTimersRef.current.push(window.setTimeout(() => {
         setRising(null);
         audio.play('complete');
+        if (still) return;
+        setJustFinished((cur) => [...cur, FOUNDERS_HALL_ID]);
+        pulseTimersRef.current.push(window.setTimeout(
+          () => setJustFinished((cur) => cur.filter((id) => id !== FOUNDERS_HALL_ID)),
+          COMPLETION_PULSE_MS,
+        ));
       }, still ? 0 : FOUNDING_RISE_MS));
     }
     if (reducedMotion()) return;
@@ -1685,7 +1737,9 @@ export default function CampusMap({
   }
 
   // Arriving from the tab with a hall to look at: open its panel and pan the
-  // building to the canvas center (the panel sits top-left).
+  // building to the canvas center (the panel sits top-left). With
+  // `inspectGlide` (the founding) the view eases there first and the panel
+  // opens once it lands, so it never covers a moving picture.
   useEffect(() => {
     if (!inspectTarget) return;
     const p = s.placements[inspectTarget];
@@ -1694,9 +1748,17 @@ export default function CampusMap({
       const zoom = viewRef.current.zoom;
       const rect = svg.getBoundingClientRect();
       const c = project(p.col + p.w / 2, p.row + p.h / 2);
-      applyView({ x: rect.width / 2 - c.x * zoom, y: rect.height / 2 - c.y * zoom, zoom });
-      setInspectedId(inspectTarget);
-      setFocus(inspectProgram ? { hallId: inspectTarget, programId: inspectProgram } : null);
+      const to = { x: rect.width / 2 - c.x * zoom, y: rect.height / 2 - c.y * zoom, zoom };
+      const hallId = inspectTarget;
+      const open = () => {
+        setInspectedId(hallId);
+        setFocus(inspectProgram ? { hallId, programId: inspectProgram } : null);
+      };
+      if (inspectGlide) easeViewTo(to, FOUNDING_PAN_MS, open);
+      else {
+        applyView(to);
+        open();
+      }
     }
     onInspectTargetConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1713,6 +1775,46 @@ export default function CampusMap({
     const floor = size ? Math.max(MIN_ZOOM, ringZoomFloor(size.width, size.height)) : MIN_ZOOM;
     return zoomScale === undefined ? floor : Math.max(MIN_ZOOM, floor * Math.min(1, zoomScale));
   }
+
+  // The view eased to `to` over `ms` (easeInOutQuad), as the one look at the
+  // downtown and the founding's look at Founders Hall do; `done` runs once
+  // it lands. A pan or zoom by the player stops the ease (the player has
+  // the view) and `done` runs then. Under reduced motion the view jumps.
+  const easeRef = useRef<{ raf: number; done?: () => void }>({ raf: 0 });
+  function easeViewTo(to: { x: number; y: number; zoom: number }, ms: number, done?: () => void) {
+    cancelAnimationFrame(easeRef.current.raf);
+    const before = easeRef.current.done;
+    easeRef.current = { raf: 0, done };
+    before?.();
+    const finish = () => {
+      const d = easeRef.current.done;
+      easeRef.current.done = undefined;
+      d?.();
+    };
+    if (reducedMotion()) {
+      applyView(to);
+      finish();
+      return;
+    }
+    const from = { ...viewRef.current };
+    const start = performance.now();
+    let last = viewRef.current;
+    const frame = (now: number) => {
+      // Someone else moved the view: the player has it.
+      if (viewRef.current !== last) {
+        finish();
+        return;
+      }
+      const t = Math.min(1, (now - start) / ms);
+      const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+      applyView({ x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e, zoom: from.zoom + (to.zoom - from.zoom) * e });
+      last = viewRef.current;
+      if (t < 1) easeRef.current.raf = requestAnimationFrame(frame);
+      else finish();
+    };
+    easeRef.current.raf = requestAnimationFrame(frame);
+  }
+  useEffect(() => () => cancelAnimationFrame(easeRef.current.raf), []);
 
   function applyView(next: { x: number; y: number; zoom: number }) {
     let v = { x: next.x, y: next.y, zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next.zoom)) };
@@ -2562,7 +2664,6 @@ export default function CampusMap({
   // district (clampView's CENTRE_REACH is wider than the town is long), so
   // nothing is widened for it. A pan or zoom by the player stops the ease.
   const districtSeenRef = useRef<DistrictSeen | null>(null);
-  const districtEaseRef = useRef(0);
   useEffect(() => {
     const next = districtSeen(s);
     const due = districtLookDue(districtSeenRef.current, next);
@@ -2571,28 +2672,10 @@ export default function CampusMap({
     if (!due || !rect || selectedRef.current || pathToolRef.current || turnRef.current) return;
     const g = districtCentre(s.self.name, next.step);
     const c = project(g.col, g.row);
-    const from = { ...viewRef.current };
-    const to = { x: rect.width / 2 - c.x * from.zoom, y: rect.height / 2 - c.y * from.zoom, zoom: from.zoom };
-    cancelAnimationFrame(districtEaseRef.current);
-    if (reducedMotion()) {
-      applyView(to);
-      return;
-    }
-    const start = performance.now();
-    let last = viewRef.current;
-    const frame = (now: number) => {
-      // Someone else moved the view: the player has it.
-      if (viewRef.current !== last) return;
-      const t = Math.min(1, (now - start) / DISTRICT_LOOK_MS);
-      const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-      applyView({ x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e, zoom: from.zoom });
-      last = viewRef.current;
-      if (t < 1) districtEaseRef.current = requestAnimationFrame(frame);
-    };
-    districtEaseRef.current = requestAnimationFrame(frame);
+    const zoom = viewRef.current.zoom;
+    easeViewTo({ x: rect.width / 2 - c.x * zoom, y: rect.height / 2 - c.y * zoom, zoom }, DISTRICT_LOOK_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.self.name, s.clock.year, s.clock.week, s.specialization, district]);
-  useEffect(() => () => cancelAnimationFrame(districtEaseRef.current), []);
   // The path tool's ghost: the tile the next click would pave or lift.
   // Needs no `ok`, since a path tile can never be refused.
   const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
@@ -2628,9 +2711,11 @@ export default function CampusMap({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [layout, camera, sceneList, risingEntries, groundGeo, s.self.name, s.developing, turning, snow, crowds, pennants, banners, district, winterLit, festive, highlightId, justFinished, seasonKey, groundClass, canvasBroke]);
   // The building going up, drawn over the canvas in its construction
-  // stages (siteProgressArt's own art): the frame to full height, then the
-  // closed shell in scaffolding. Canvas map only: the SVG map, kept for
-  // comparison, shows it at once.
+  // stages (the art a site shows over its build weeks): the graded plot in
+  // its hoarding (GroundSite), the frame to full height over it, then the
+  // closed shell in scaffolding. Each stage fades in over the one before
+  // (.founding-stage). Canvas map only: the SVG map, kept for comparison,
+  // shows it at once.
   const risingArt = (() => {
     if (risingEntries.length === 0 || !rising) return null;
     const p = layout.placements[rising];
@@ -2641,9 +2726,14 @@ export default function CampusMap({
     const shell = boxFaces(d.col, d.row, d.w, d.h, 0, height);
     return (
       <g aria-hidden="true" pointerEvents="none" className="founding-site">
-        {riseStage === 1 && <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={height} floors={storeysOf(t)} />}
+        <GroundSite col={d.col} row={d.row} w={d.w} h={d.h} />
+        {riseStage === 1 && (
+          <g key="frame" className="founding-stage">
+            <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={height} floors={storeysOf(t)} />
+          </g>
+        )}
         {riseStage === 2 && (
-          <g className="campus-site-shell">
+          <g key="shell" className="campus-site-shell founding-stage">
             <polygon className="campus-site-wall" points={polyPoints(shell.left)} />
             <polygon className="campus-site-wall" points={polyPoints(shell.right)} />
             <polygon className="campus-site-wall" points={polyPoints(shell.top)} />

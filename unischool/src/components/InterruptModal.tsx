@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import type { Action } from '../state/actions';
 import type {
-  Coach, GameState, InitiativeReport, SeasonResult, SummerBeat, SummerDecision, SummerPayload,
+  Coach, GameState, InitiativeReport, SeasonResult, SummerPayload,
 } from '../state/types';
 import { institutionName, SUMMER_BEATS, WEEKS_PER_YEAR } from '../state/types';
 import { REVIEW_LIST_CAP, buildYearInReview } from '../state/yearInReview';
-import type { ReviewLine } from '../state/yearInReview';
+import type { ReviewFigures, ReviewLine } from '../state/yearInReview';
 import { finalReport } from '../state/finalReport';
 import { hallEntryFor, hangInHall } from '../state/hall';
 import { unlockLabel } from '../state/unlocks';
@@ -17,7 +17,7 @@ import FeedbackPrompt from './FeedbackPrompt';
 import ReportCardActions, { NewCollegeButton } from './ReportCardActions';
 import { REPORT_WORDS } from '../data/reportData';
 import FinalReportView from './FinalReportView';
-import AdmissionsPage, { admissionsPageUp } from './AdmissionsPage';
+import AdmissionsPage, { summerEyebrow } from './AdmissionsPage';
 import { ACCLAIM_RESEARCH_BONUS, initiativeDepth } from '../data/researchData';
 import { ACCLAIM_SALARY_PREMIUM } from '../data/facultyData';
 import { computePrestigeTarget, gradeYear, pillarValue, prestigeTargetWithout } from '../systems/prestige/prestigeSystem';
@@ -31,8 +31,6 @@ import type { OrgPetition } from '../state/types';
 import type { ReportPayload } from '../systems/rivals/rivalsSystem';
 import RankingsTable from './RankingsTable';
 import { SpecializationLetter, SpecializationPage } from './SpecializationChoice';
-import Figure from './Figure';
-import { FIGURE_HINTS } from '../data/figureHints';
 import { isActivationTarget, isKey, useHotkeys } from './hotkeys';
 import { modalWidth } from './modalLayout';
 import { currentEra, listOf } from '../systems/chronicle/chronicle';
@@ -42,7 +40,7 @@ import EffectChips from './EffectChip';
 import { eventById, eventText, eventTitle, fill } from '../systems/events/catalogue';
 import { catalogueOf } from '../systems/events/catalogueEngine';
 import { letterOpensBuild } from '../systems/inbox/inbox';
-import { count, gameDate, money, moneyShort, ordinal, pct, prestigeFigure, prestigeShown, signed, signedPct, weeksShort } from '../format';
+import { count, gameDate, money, moneyShort, ordinal, prestigeFigure, prestigeShown, satisfactionFigure, signed, signedPct, weeksShort } from '../format';
 
 // Fallback content for an interrupt type with no dedicated view; reachable
 // only if content and this switch drift apart.
@@ -94,24 +92,6 @@ function StudentLifeDigest({ petitions, approved, onToggle }: {
 // current beat; one action per beat moves on (types.ts's SummerPayload,
 // reducer.ts's RESOLVE_SUMMER_BEAT). Only the last beat turns the calendar.
 // ---------------------------------------------------------------------
-// The fiftieth summer's first beat is the Final Report, and says so.
-function SummerSteps({ beat, final }: { beat: SummerBeat; final?: boolean }) {
-  const labels = SUMMER_BEATS.map((label, i) => (i === 0 && final ? 'Final Report' : label));
-  return (
-    <ol className="summer-steps" aria-label="Summer">
-      {labels.map((label, i) => (
-        <li
-          key={label}
-          className={i === beat ? 'current' : i < beat ? 'done' : ''}
-          aria-current={i === beat ? 'step' : undefined}
-        >
-          {label}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 // One line of the review. A group (Plan 95I) is its head over its first
 // REVIEW_LIST_CAP members, and "and N more" opens the rest in place.
 function ReviewLineView({ line }: { line: ReviewLine }) {
@@ -159,29 +139,72 @@ function ReviewPillars({ s }: { s: GameState }) {
   );
 }
 
+// The year in four figures (Plan 126): prestige and the summer's step,
+// satisfaction on last year, the year's net, the rank and who passed.
+function ReviewFiguresRow({ f }: { f: ReviewFigures }) {
+  const tone = (v: number) => (v > 0 ? 'good' : v < 0 ? 'bad' : '');
+  const net = `${f.net < 0 ? '−' : f.net > 0 ? '+' : ''}${moneyShort(Math.abs(f.net))}`;
+  const moved = f.rankBefore === null ? null : f.rankBefore - f.rank;
+  return (
+    <dl className="review-figures">
+      <div>
+        <dt>Prestige</dt>
+        <dd>{prestigeFigure(f.prestigeBefore)} → {prestigeFigure(f.prestigeAfter)}</dd>
+        <dd className={`sub ${tone(f.step)}`}>{signed(f.step, 1)} · this year's grade {f.grade.toFixed(0)}</dd>
+      </div>
+      <div>
+        <dt>Satisfaction</dt>
+        <dd>{satisfactionFigure(f.satisfaction)}</dd>
+        <dd className={`sub ${f.satisfactionDelta === null ? '' : tone(f.satisfactionDelta)}`}>
+          {f.satisfactionDelta === null ? 'the year\'s average' : `${signed(f.satisfactionDelta)} on last year`}
+        </dd>
+      </div>
+      <div>
+        <dt>The year's net</dt>
+        <dd className={tone(f.net)}>{net}</dd>
+        <dd className="sub">in operating funds</dd>
+      </div>
+      <div>
+        <dt>Rank</dt>
+        <dd>#{f.rank}</dd>
+        <dd className={`sub ${moved === null ? '' : tone(moved)}`}>
+          {f.passedBy.length > 0 ? `passed by ${listOf(f.passedBy)}` : moved === null ? 'in the guide' : moved === 0 ? 'held' : `${moved > 0 ? 'up' : 'down'} ${Math.abs(moved)} from #${f.rankBefore}`}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+// Beat one: the year just lived (state/yearInReview.ts), as a page (Plan
+// 126: every step of the summer is outside the inbox). The figures, the
+// pillar bar with the terms outside it that moved, then the sections that
+// have something to say: an empty one is left out.
 function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: () => void; onSave: () => void }) {
   const review = buildYearInReview(s);
   const era = currentEra(s);
+  const standing = review.sections.find((x) => x.key === 'standing');
+  const sections = review.sections.filter((x) => x.key !== 'standing' && x.lines.length > 0);
   return (
     <>
-      <h2>Year {review.year} in review</h2>
-      {review.truncated && <p>It was a busy year, and the log has lost its first few weeks.</p>}
       {era && <p className="review-era">{CHRONICLE_WORDS.now.replace('{era}', era.name)}</p>}
-      <div className="review-grid">
-        {review.sections.map((section) => (
-          <section key={section.key} className="review-section">
-            <h3>{section.title}</h3>
-            {section.lines.length === 0 ? (
-              <p className="review-empty">{section.empty}</p>
-            ) : (
-              <ul>
-                {section.lines.map((line, i) => <ReviewLineView key={i} line={line} />)}
-              </ul>
-            )}
-            {section.key === 'standing' && <ReviewPillars s={s} />}
-          </section>
-        ))}
-      </div>
+      {review.truncated && <p className="review-empty">It was a busy year, and the log has lost its first few weeks.</p>}
+      <ReviewFiguresRow f={review.figures} />
+      <ReviewPillars s={s} />
+      {standing && standing.lines.length > 0 && (
+        <ul className="review-terms">{standing.lines.map((line, i) => <ReviewLineView key={i} line={line} />)}</ul>
+      )}
+      {sections.length > 0 ? (
+        <div className="review-grid">
+          {sections.map((section) => (
+            <section key={section.key} className="review-section">
+              <h3>{section.title}</h3>
+              <ul>{section.lines.map((line, i) => <ReviewLineView key={i} line={line} />)}</ul>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <p className="review-empty">A quiet year.</p>
+      )}
       {review.year === 5 && <FeedbackPrompt s={s} prompt="five-years" text="Five years in. Two minutes of feedback?" onSave={onSave} />}
       {backUpDue(review.year) && (
         <p className="review-backup">
@@ -190,7 +213,7 @@ function ReviewBeat({ s, onContinue, onSave }: { s: GameState; onContinue: () =>
         </p>
       )}
       <div className="modal-actions">
-        <button onClick={onContinue}>Continue</button>
+        <button onClick={onContinue}>On to admissions →</button>
       </div>
     </>
   );
@@ -235,16 +258,14 @@ function FinalReportBeat({ s, onContinue, onNewCollege, onSave }: { s: GameState
 
 // Beat four: the student-life digest, and what the school is about to commit
 // before the year turns over.
-function StudentsBeat({ s, decision, petitions, onResolve }: {
+function StudentsBeat({ s, petitions, onResolve }: {
   s: GameState;
-  decision: SummerDecision;
   petitions: OrgPetition[];
   onResolve: (approvedPetitionIds: string[]) => void;
 }) {
   const [approved, setApproved] = useState<Set<string>>(() => new Set(petitions.map((p) => p.id)));
   return (
     <>
-      <h2>Students</h2>
       {petitions.length === 0 ? (
         <p>No new student organizations asked to be recognized this year.</p>
       ) : null}
@@ -257,37 +278,11 @@ function StudentsBeat({ s, decision, petitions, onResolve }: {
           return next;
         })}
       />
-      <dl className="admissions-outcomes">
-        <Figure label="Tuition for the incoming class" value={`${money(decision.tuition)}/yr`} hint={FIGURE_HINTS.tuitionLocked} />
-        <Figure label="Admit rate" value={pct(decision.admitRate)} hint={FIGURE_HINTS.admitRate} />
-      </dl>
+      {/* The price and the admit rate were set a page ago (Plan 126): not
+          said again. */}
       <div className="modal-actions">
         <button onClick={() => onResolve([...approved])}>Open Year {s.clock.year + 1}</button>
       </div>
-    </>
-  );
-}
-
-function SummerView({ s, payload, act }: { s: GameState; payload: SummerPayload; act: (a: Action) => void }) {
-  const decision = payload.decision ?? { tuition: payload.tuition, admitRate: payload.admitRate };
-  return (
-    <>
-      <SummerSteps beat={payload.beat} final={payload.final} />
-      {payload.beat === 0 && payload.final ? (
-        <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onSave={() => act({ type: 'SAVE_GAME' })} />
-      ) : payload.beat === 0 ? (
-        <ReviewBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onSave={() => act({ type: 'SAVE_GAME' })} />
-      ) : payload.beat === 1 ? (
-        // Answered on its own page (Plan 108, AdmissionsPage.tsx).
-        <p>Admissions is open on its own page.</p>
-      ) : (
-        <StudentsBeat
-          s={s}
-          decision={decision}
-          petitions={s.orgs.pendingPetitions}
-          onResolve={(approvedPetitionIds) => act({ type: 'RESOLVE_ADMISSIONS', ...decision, approvedPetitionIds })}
-        />
-      )}
     </>
   );
 }
@@ -941,6 +936,55 @@ function DecisionEventView({ s, eventId, ctx, onResolve, onDismiss }: {
 // Report's, the summer's admissions and, opened from its letter, the
 // specialization's. Every other stop is answered in the inbox
 // (InterruptContent, below).
+// A step of the summer as a page (Plan 126): the admissions page's frame
+// and head, its eyebrow counting the step of three, so the three read as
+// one sequence (AdmissionsPage.tsx's summerEyebrow). The Final Report
+// keeps its own page (Plan 60).
+// Every step of the summer is a page (Plan 126, the owner: the middle step
+// took the player out of the inbox, so now none is in it). The fiftieth
+// summer's Final Report is one of its own (Plan 60): by now the player may
+// be running years at full speed, clicking through each summer, and the end
+// of the run (for now) has to stop them. Admissions is Plan 108's page.
+function summerPage(s: GameState, summer: SummerPayload, act: (a: Action) => void, onNewCollege?: () => void) {
+  if (summer.final && summer.beat === 0) {
+    return (
+      <div className="final-page" role="dialog" aria-modal="true" aria-label={REPORT_WORDS.title}>
+        <div className="final-page-inner">
+          <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onNewCollege={onNewCollege} onSave={() => act({ type: 'SAVE_GAME' })} />
+        </div>
+      </div>
+    );
+  }
+  if (summer.beat === 1) return <AdmissionsPage key="admissions" s={s} act={act} />;
+  return <SummerPage key={`summer-${summer.beat}`} s={s} payload={summer} act={act} />;
+}
+
+function SummerPage({ s, payload, act }: { s: GameState; payload: SummerPayload; act: (a: Action) => void }) {
+  const title = payload.beat === 0 ? `Year ${s.clock.year} in review` : SUMMER_BEATS[payload.beat];
+  const decision = payload.decision ?? { tuition: payload.tuition, admitRate: payload.admitRate };
+  return (
+    <div className="admissions-page summer-page" role="dialog" aria-modal="true" aria-label={title} data-interrupt="summer">
+      <header className="admissions-page-head">
+        <div>
+          <p className="admissions-page-eyebrow">{summerEyebrow(s.clock.year, payload.beat)}</p>
+          <h2>{title}</h2>
+        </div>
+      </header>
+      <div className="summer-page-body">
+        {payload.beat === 0 ? (
+          <ReviewBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onSave={() => act({ type: 'SAVE_GAME' })} />
+        ) : (
+          <StudentsBeat
+            s={s}
+            petitions={s.orgs.pendingPetitions}
+            onResolve={(approvedPetitionIds) => act({ type: 'RESOLVE_ADMISSIONS', ...decision, approvedPetitionIds })}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function InterruptModal({ s, act, onNewCollege, specializationOpen = false, onCloseSpecialization, summerWaiting = false }: {
   s: GameState;
   act: (a: Action) => void;
@@ -999,22 +1043,7 @@ export default function InterruptModal({ s, act, onNewCollege, specializationOpe
 
   if (!interrupt) return null;
 
-  // The fiftieth summer's Final Report is a page, not a card (Plan 60): by
-  // now the player may be running years at full speed, clicking through each
-  // summer, and the end of the run (for now) has to stop them.
-  const summer = interrupt.type === 'summer' ? interrupt.payload as SummerPayload : null;
-  if (summer?.final && summer.beat === 0) {
-    return (
-      <div className="final-page" role="dialog" aria-modal="true" aria-label={REPORT_WORDS.title}>
-        <div className="final-page-inner">
-          <FinalReportBeat s={s} onContinue={() => act({ type: 'RESOLVE_SUMMER_BEAT' })} onNewCollege={onNewCollege} onSave={() => act({ type: 'SAVE_GAME' })} />
-        </div>
-      </div>
-    );
-  }
-
-  // The summer's admissions is a page of its own (Plan 108).
-  if (summer && admissionsPageUp(s)) return <AdmissionsPage key="admissions" s={s} act={act} />;
+  if (interrupt.type === 'summer') return summerPage(s, interrupt.payload as SummerPayload, act, onNewCollege);
 
   // The specialization's page (Plan 110), over the inbox that holds its
   // letter: closed, the letter is where it was.
@@ -1052,7 +1081,8 @@ export function InterruptContent({ s, act, onOpenBuild, onOpenSpecialization, on
   return (
     <div className={`modal modal-inbox modal-${modalWidth(interrupt)}`} data-interrupt={interrupt.type}>
       {interrupt.type === 'summer' ? (
-        <SummerView s={s} payload={interrupt.payload as SummerPayload} act={act} />
+        // Its pages cover the inbox (Plan 126); this is never seen over it.
+        summerPage(s, interrupt.payload as SummerPayload, act)
       ) : interrupt.type === 'milestone' ? (
         <MilestoneCelebrationView
           s={s}
