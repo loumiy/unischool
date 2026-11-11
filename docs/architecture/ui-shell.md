@@ -161,7 +161,9 @@ buttons are disabled and Close gives way to a flat note, "Answer to go on",
 not a button: Plan 95K), and once it is
 answered returns the player to the view they were on, or opens the build menu
 when a letter was answered with "Continue and open Build" (Plan 78B). The
-Final Report's page, the summer's admissions (Plan 108) and the
+Final Report's page, every step of the summer (its review, admissions
+and students: Plan 108 for admissions, Plan 126 for the other two, which
+share its frame and an eyebrow counting the step of three) and the
 specialization's page (Plan 110) stand in front of the screen. The summer is
 the one stop the shell does not open (Plan 112C): it stops the clock and
 waits, pinned here with a door in its pane, as a note above the clock
