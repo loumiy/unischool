@@ -5,6 +5,91 @@ point to the development records in `docs/plans/`.*
 
 ---
 
+## 0.3.0
+
+*An update mostly of subtraction: the owner's cut list (Plan 124), the
+written content (125), the interface review's first ten (126), the
+late-game speed fix found after 0.2.0's build, and the owner's playtest
+notes after them. Saves from 0.2.0 load.*
+
+### New
+
+- **Prestige by pillar.** Curriculum, Research, Students and Athletics
+  open with one bar of prestige split into its four parts, the tab's own
+  lit, with a tick for where it is heading. History, the objectives and
+  the summer review show the same parts, which add up to your prestige.
+  (124K, 126F)
+- **The campus shows what the tabs say.** A program's mark goes dark
+  while a course has no teacher; students queue at dining halls and
+  clinics while those needs are short; full stands are drawn as people,
+  filling over a few weeks a couple of times a year, with a crowd
+  outside when packed and a pennant the year after a title. (124L, 124M1)
+- **The football stadium's exterior**, a college stadium's. (124M2)
+- **The Final Report is staged** over the campus, its grades stamped in
+  one by one. (124M3)
+- **Every letter has a title**, read by the inbox, NEXT and the log.
+  (126G)
+- **Effect chips** on answers, reputations, quirks, offices, facilities
+  and a milestone's letter, which also shows the buildings it opens.
+  (125A)
+- **The summer as pages.** The review and the students' step open as
+  pages like admissions, counted "1 of 3". The review leads with four
+  figures and the pillar bar, then only what has something to say.
+
+### Changed
+
+- **Founders Hall goes up** through the construction stages at the
+  founding, and the view eases to it. (124H)
+- **The camera's buttons show on every device**; *Looking around* can be
+  skipped; the map help is a few lines and a list of keys. (124A)
+- **An objective shows once it can be done**, and year 1's explaining
+  paragraphs, the summer review's pillar lines and the *Cost of being
+  large* panel are gone. (124B)
+- **One campus figure**, Campus out of 150 with its parts, in the Estate
+  panel and the build menu. (124F)
+- **Lighter screens.** Curriculum's committee is one line, with
+  "+80 places" on the next Develop while places are short; a lab is one
+  line until opened, vacant labs first; Faculty's head is three counts;
+  *What this class does* sits above the admissions button; the build
+  menu folds to a strip under a grounds tool and after a placement;
+  money on a choice is short. (124G, 124J, 126A–C, 126E, 126H, 126I)
+- **Admissions says why the pool moved** as a short list, and where the
+  admit rate opened in a few words. A one-summer boost is "This year's
+  news".
+- **Toasts** wrap to two lines, like ones merge, and over a tab the
+  newest sits in the tab's header. (126D)
+- **Map marks hold their size** as you zoom. (126J)
+- **Fewer badges and less gold.** No ! on each build category; "new" is a
+  cream dot; Athletics' "needs staff" has its own mark. (124C)
+- **The words.** Most letters rewritten to "you"; 342 of 473 course
+  descriptions rewritten; a line for each office; five tellings of a
+  professor's bio; help as legends, keycaps and small tables. (125)
+- **Sounds and motion.** A departure is silent and a failed demand sounds
+  a loss; candidates, petitions and publications are quiet; three
+  entrance motions instead of seven. "Guide" is "Show me". (124D)
+- **Shadows** are cast by each part of a building at its height, run out
+  from its corners, and a site casts its stage's.
+- **Mission arcades** wrap the whole building.
+
+### Removed
+
+- **Promises.** The Final Report's mark is standings and rank, in the
+  old proportion; a written report keeps its grade, and a save with a
+  promise pending loads without it. (124E)
+- **Professors' titles** (Adjunct to Chair), which restated the two
+  scores beside them.
+
+### Fixed
+
+- **Late-game lag**, from 0.2.0's Deans: a week on a seven-Dean save from
+  166 ms to 17 ms. (PR #445)
+- A busy building could vanish from the map after a turn. (PR #445)
+- Chapter 3 could open without showing; it now shows when the tab closes.
+- Committing a course keeps the Curriculum's scroll; the build menu no
+  longer springs open after a placement. (124G)
+- Chapter 2's help for a second course described steps the Curriculum
+  doesn't take.
+
 ## 0.2.0
 
 *One update made of five plans: fixes and words from the playtest
