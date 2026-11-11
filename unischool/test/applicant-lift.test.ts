@@ -8,7 +8,7 @@
 //      the Admissions beat previews it and as the reducer commits it, and
 //      the reveal names it;
 //   2. it is in that summer's pool only: the next summer's has none, and
-//      its reveal says the lift ended;
+//      its reveal names last year's news, gone;
 //   3. a milestone's bonus waits in the lift too, not in the pool;
 //   4. a save written at version 80 loads with no lift waiting.
 //
@@ -116,8 +116,8 @@ function resolve(s: GameState): GameState {
   assert(nextShown.lift === 0 && nextShown.factors.lift === 1, 'so its pool has no lift');
   const change = poolChange(nextShown, next.students.lastFunnel);
   const ended = change?.parts.find((p) => p.key === 'lift');
-  assert(ended !== undefined && ended.change < 0 && ended.label === "last year's lift ended",
-    `and the reveal says last year's lift ended (${JSON.stringify(ended)})`);
+  assert(ended !== undefined && ended.change < 0 && ended.label === "last year's news",
+    `and the reveal says last year's news is gone (${JSON.stringify(ended)})`);
 }
 
 // ---- 3. A milestone's bonus waits in the lift ----

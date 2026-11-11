@@ -9,7 +9,7 @@ import { aidPerStudent, netTuition } from '../systems/alumni/funds';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { cohortBreakdown, deriveCohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { admitRateNote, admitRateOpening, poolChange } from '../systems/admissions/yearOverYear';
+import { admitRateNote, admitRateOpening, LIFT_HINT, poolChange } from '../systems/admissions/yearOverYear';
 import { admissionsRange } from '../systems/administration/effects';
 import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
 import { COHORT_COLOR } from './cohortColors';
@@ -560,7 +560,7 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
                   {change.parts.length > 0 && (
                     <dl className="admissions-moves">
                       {change.parts.map((p) => (
-                        <div key={p.key}>
+                        <div key={p.key} title={p.key === 'lift' ? LIFT_HINT : undefined}>
                           <dt>{p.label.charAt(0).toUpperCase() + p.label.slice(1)}</dt>
                           <dd className={p.change >= 0 ? 'good' : 'bad'}>{signedPct(p.change)}</dd>
                         </div>

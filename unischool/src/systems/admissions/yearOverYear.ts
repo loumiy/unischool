@@ -33,15 +33,23 @@ const LABELS: Array<[keyof FunnelFactors, string]> = [
   ['cohortDemand', 'what you offer'],
   ['beauty', 'the campus'],
   ['tags', 'what the guidebooks say'],
-  ['lift', 'a one-year lift'],
+  ['lift', "this year's news"],
 ];
 
-// The year's lift (Plan 79C) is there one summer. A summer with one names
-// it, whichever way it moved against last year's; a summer without one, read
-// against a summer that had one, says it ended. Shown with a colon.
+// The year's lift (Plan 79C) is there one summer: applicants drawn by the
+// year's news, a milestone reached, a grand landmark finished or the spring
+// festival (types.ts's applicantLift). Named for what the player did, not
+// the mechanism (the owner: "a one-year lift" was not clear). A summer with
+// one says "this year's news", whichever way it moved against last year's;
+// a summer without one, read against a summer that had one, says "last
+// year's news", and its move is the fall.
 export function liftLabel(liftFactorNow: number): string {
-  return liftFactorNow > 1 ? 'a one-year lift' : "last year's lift ended";
+  return liftFactorNow > 1 ? "this year's news" : "last year's news";
 }
+
+// What a factor's row says on hover: only the news needs it, since it is
+// the one that names no lever.
+export const LIFT_HINT = 'Applicants drawn by this year\'s milestones, a grand landmark finished, or the spring festival. They count for one summer.';
 
 // Moves smaller than this are rounding and are left off the line.
 const MOVE_FLOOR = 0.005;
