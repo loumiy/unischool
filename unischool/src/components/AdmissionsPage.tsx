@@ -9,7 +9,7 @@ import { aidPerStudent, netTuition } from '../systems/alumni/funds';
 import { intakeCeiling } from '../systems/techtree/instructionCapacity';
 import { cohortBreakdown, deriveCohortSignals } from '../systems/admissions/cohorts';
 import { projectConsequences } from '../systems/admissions/consequences';
-import { admitRateOpening, poolChange, takesColon } from '../systems/admissions/yearOverYear';
+import { admitRateNote, admitRateOpening, LIFT_HINT, poolChange } from '../systems/admissions/yearOverYear';
 import { admissionsRange } from '../systems/administration/effects';
 import { SCALE_FREE_BELOW, marginalStudentCost } from '../systems/finance/financeSystem';
 import { COHORT_COLOR } from './cohortColors';
@@ -497,7 +497,15 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
           <div className={`admissions-card${showCloud ? '' : ' waiting'}${ring('rate')}`} data-coach="rate">
             <p className="admissions-card-eyebrow">2 · The standard</p>
             <dl className="admissions-figures">
-              <div><dt>Admit rate</dt><dd>{showCloud ? pct(admitRate) : '—'}</dd></div>
+              <div>
+                <dt>Admit rate</dt><dd>{showCloud ? pct(admitRate) : '—'}</dd>
+                {/* Where it opened, in a few words; the sentence is its title. */}
+                {showCloud && (
+                  <dd className="sub" title={admitRateOpening(!s.students.lastFunnel, payload.admitRate, maxAdmitRate)}>
+                    {admitRateNote(!s.students.lastFunnel, payload.admitRate, maxAdmitRate)}
+                  </dd>
+                )}
+              </div>
               <div><dt>Freshman class</dt><dd>{showCloud ? count(shownOutcome.enrolled) : '—'}</dd><dd className="sub">of {count(ceiling.seatsLeft)} places</dd></div>
               <div><dt>Median SAT · GPA</dt><dd>{showCloud && classDots.length > 0 ? `${count(medianSat)} · ${medianGpa.toFixed(1)}` : '—'}</dd></div>
               <div><dt title={FIGURE_HINTS.incomingQuality}>Incoming quality</dt><dd>{showCloud ? `${count(shownOutcome.avgIncomingQuality)}/100` : '—'}</dd><dd className="sub">Part of your academics score</dd></div>
@@ -539,19 +547,30 @@ export default function AdmissionsPage({ s, act }: { s: GameState; act: (a: Acti
             )}
           </div>
 
-          {/* How the standard came out (Plan 126 A): under what the class
-              does, so the consequence is read before the method. */}
-          {showCloud && (
+          {/* Why the pool moved, as a list rather than a sentence (Plan 126,
+              the owner: the card was too wordy). The count is the plot's
+              heading and the admit rate's opening is under its figure. */}
+          {showCloud && (change || shownOutcome.honorsTurnedAway > 0) && (
             <div className="admissions-card admissions-how">
-              {showCloud && change && (
-                <p className="stat admissions-change">
-                  {count(outcome.applicants)} applicants, <span className={change.change >= 0 ? 'good' : 'bad'}>{signedPct(change.change)}</span> from last summer
-                  {change.parts.length > 0 && <>: {change.parts.map((p, i) => <span key={p.key} className={p.change >= 0 ? 'good' : 'bad'}>{i > 0 ? ', ' : ''}{p.label}{takesColon(p.key) ? ':' : ''} {signedPct(p.change)}</span>)}</>}
-                </p>
+              {change && (
+                <>
+                  <p className="admissions-card-eyebrow">
+                    Applicants · <span className={change.change >= 0 ? 'good' : 'bad'}>{signedPct(change.change)}</span> on last summer
+                  </p>
+                  {change.parts.length > 0 && (
+                    <dl className="admissions-moves">
+                      {change.parts.map((p) => (
+                        <div key={p.key} title={p.key === 'lift' ? LIFT_HINT : undefined}>
+                          <dt>{p.label.charAt(0).toUpperCase() + p.label.slice(1)}</dt>
+                          <dd className={p.change >= 0 ? 'good' : 'bad'}>{signedPct(p.change)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </>
               )}
-              {showCloud && <p className="stat">{admitRateOpening(!s.students.lastFunnel, payload.admitRate, maxAdmitRate)}</p>}
               {/* The board's honors college (Plan 116D): the class it cut. */}
-              {showCloud && shownOutcome.honorsTurnedAway > 0 && <p className="stat">Your honors college turns away your {count(shownOutcome.honorsTurnedAway)} weakest admits.</p>}
+              {shownOutcome.honorsTurnedAway > 0 && <p className="stat">Your honors college turns away your {count(shownOutcome.honorsTurnedAway)} weakest admits.</p>}
             </div>
           )}
 
