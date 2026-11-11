@@ -1,6 +1,7 @@
 import type { GameState } from '../state/types';
 import HelpHint from '../components/HelpHint';
-import { tagById, TAG_EARN_AT, TAG_YEARS, type TagDef } from '../data/tagData';
+import { tagById, TAG_EARN_AT, TAG_YEARS, type TagDef , tagEffects } from '../data/tagData';
+import EffectChips from '../components/EffectChip';
 import { perceptionOf, tagIndicators } from '../systems/identity/tags';
 
 // What the guidebooks say (Plan 31, V2 #30): the identity tags the college
@@ -29,7 +30,7 @@ export default function IdentityPanel({ s }: { s: GameState }) {
         </span>
       </div>
       {p.tags.length === 0 ? (
-        <p className="empty-note">The guidebooks have nothing to say about your college yet.</p>
+        <p className="empty-note">The guidebooks have nothing to say about your college yet. Nothing bad, at least.</p>
       ) : (
         <ul className="identity-list">
           {p.tags.map((id) => {
@@ -39,6 +40,7 @@ export default function IdentityPanel({ s }: { s: GameState }) {
                 <strong className={`identity-sticker${isWarning(t) ? ' warning' : ''}`}><span>{t.name}</span></strong>
                 <q className="identity-quote">{t.blurb}</q>
                 <p className="identity-why">{t.why} {t.teeth.line}</p>
+                <EffectChips effects={tagEffects(t)} className="identity-effects" />
               </li>
             );
           })}

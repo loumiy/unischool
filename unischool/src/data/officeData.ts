@@ -11,7 +11,7 @@
 export type OfficeDomain = 'enrolment' | 'academic' | 'students' | 'money';
 
 export const OFFICE_DOMAINS: readonly { id: OfficeDomain; label: string; motif: string }[] = [
-  { id: 'enrolment', label: 'Enrolment', motif: '✉' },
+  { id: 'enrolment', label: 'Enrollment', motif: '✉' },
   { id: 'academic', label: 'Academic', motif: '✎' },
   { id: 'students', label: 'Students', motif: '⚑' },
   { id: 'money', label: 'Money and standing', motif: '⚖' },
@@ -24,8 +24,10 @@ export interface OfficeDef {
   // The seat (seatData.ts) whose holder makes the office half again as
   // effective.
   seatId: string;
-  // What it does, in one sentence for the hall panel's card.
+  // What it does, plainly and with its numbers, for the hall panel's card.
   blurb: string;
+  // The office as the college knows it: one dry line (docs/design/voice.md).
+  quip: string;
   // The price to open, in weeks of operating cost (moneyScale.ts), so an
   // office costs the same share of the budget in year 5 as in year 35.
   priceWeeks: number;
@@ -49,65 +51,6 @@ export const OFFICE_SEAT_BONUS = 1.5;
 // that open them (Plan 89 §3; the sixth gave way to a second specialization
 // building, Plan 120C). A save from before holds the six it had.
 export const MAX_OFFICES = 5;
-
-export const OFFICES: readonly OfficeDef[] = [
-  {
-    id: 'admissions', title: 'Admissions Office', domain: 'enrolment', seatId: 'provost', priceWeeks: 4,
-    blurb: 'Shows the likely range of applicants before you set the summer\'s price.',
-  },
-  {
-    id: 'career-services', title: 'Career Services', domain: 'enrolment', seatId: 'provost', priceWeeks: 3,
-    blurb: 'Draws more pre-professional applicants.',
-  },
-  {
-    id: 'financial-aid', title: 'Financial Aid Office', domain: 'enrolment', seatId: 'provost', priceWeeks: 3,
-    blurb: 'Draws more price-sensitive applicants without lowering your price.',
-  },
-  {
-    id: 'curriculum', title: 'Office of Curriculum Development', domain: 'academic', seatId: 'provost', priceWeeks: 5,
-    blurb: 'One more seat on the curriculum committee.',
-  },
-  {
-    id: 'sponsored-research', title: 'Office of Sponsored Research', domain: 'academic', seatId: 'provost', priceWeeks: 4,
-    blurb: 'Papers win grants more often, and larger ones.',
-  },
-  {
-    id: 'faculty-recruitment', title: 'Office of Faculty Recruitment', domain: 'academic', seatId: 'provost', priceWeeks: 3,
-    blurb: 'More candidates on the faculty market, listed longer.',
-  },
-  {
-    id: 'student-activities', title: 'Student Activities Office', domain: 'students', seatId: 'dean-of-students', priceWeeks: 3,
-    blurb: 'Lets you charter a club directly, once a term.',
-  },
-  {
-    id: 'athletics-development', title: 'Athletics Development Office', domain: 'students', seatId: 'dean-of-students', priceWeeks: 5,
-    blurb: 'Lets you found a varsity team without a petition, once its venue is built.',
-  },
-  {
-    id: 'counseling', title: 'Counseling & Wellness', domain: 'students', seatId: 'dean-of-students', priceWeeks: 3,
-    blurb: 'Student demands arrive less often, and you get longer to meet them.',
-  },
-  {
-    id: 'facilities-management', title: 'Facilities Management', domain: 'money', seatId: 'facilities', priceWeeks: 3,
-    blurb: 'Full maintenance funding pays down the backlog twice as fast. Storms do less damage.',
-  },
-  {
-    id: 'alumni-relations', title: 'Alumni Relations', domain: 'money', seatId: 'advancement', priceWeeks: 4,
-    blurb: 'Alumni give more, and campaigns go further.',
-  },
-  {
-    id: 'institutional-research', title: 'Office of Institutional Research', domain: 'money', seatId: 'provost', priceWeeks: 2,
-    blurb: 'From the spring, forecasts where the summer’s grade will rank you.',
-  },
-];
-
-export function officeDef(id: string): OfficeDef | undefined {
-  return OFFICES.find((o) => o.id === id);
-}
-
-export function officeDomain(id: OfficeDomain): { id: OfficeDomain; label: string; motif: string } {
-  return OFFICE_DOMAINS.find((d) => d.id === id)!;
-}
 
 // ---- What each office does (PR 89E), before the seat bonus ----
 // Every lever below is scaled by the office's strength k (offices.ts's
@@ -149,6 +92,77 @@ export const FACILITIES_DAMAGE_CUT = 0.3;
 // Alumni Relations: the annual fund, and a campaign's yearly response.
 export const ALUMNI_GIVING_LIFT = 0.15;
 export const ALUMNI_CAMPAIGN_LIFT = 0.2;
+
+export const OFFICES: readonly OfficeDef[] = [
+  {
+    id: 'admissions', title: 'Admissions Office', domain: 'enrolment', seatId: 'provost', priceWeeks: 4,
+    blurb: 'Shows the likely range of applicants before you set the summer\'s price.',
+    quip: 'Has read every essay about a summer that changed a life, and can still count.',
+  },
+  {
+    id: 'career-services', title: 'Career Services', domain: 'enrolment', seatId: 'provost', priceWeeks: 3,
+    blurb: `Draws ${Math.round(CAREER_SERVICES_PULL * 100)}% more pre-professional applicants.`,
+    quip: 'Keeps a closet of loaner blazers and a list of alumni who return calls.',
+  },
+  {
+    id: 'financial-aid', title: 'Financial Aid Office', domain: 'enrolment', seatId: 'provost', priceWeeks: 3,
+    blurb: `Price-sensitive applicants read your price as ${Math.round(FINANCIAL_AID_DISCOUNT * 100)}% lower. Your price doesn't change.`,
+    quip: 'Turns the sticker price into a number a family can read standing up.',
+  },
+  {
+    id: 'curriculum', title: 'Office of Curriculum Development', domain: 'academic', seatId: 'provost', priceWeeks: 5,
+    blurb: 'One more seat on the curriculum committee.',
+    quip: 'Knows which form a new course needs, and which form that form needs.',
+  },
+  {
+    id: 'sponsored-research', title: 'Office of Sponsored Research', domain: 'academic', seatId: 'provost', priceWeeks: 4,
+    blurb: `Papers win grants ${Math.round(SPONSORED_GRANT_CHANCE_LIFT * 100)}% more often, and the grants are ${Math.round(SPONSORED_GRANT_SIZE_LIFT * 100)}% larger.`,
+    quip: 'Reads the grant instructions your professors were never going to read.',
+  },
+  {
+    id: 'faculty-recruitment', title: 'Office of Faculty Recruitment', domain: 'academic', seatId: 'provost', priceWeeks: 3,
+    blurb: `${RECRUITMENT_POOL_EXTRA} more candidates on the faculty market, each listed ${RECRUITMENT_LISTING_EXTRA_WEEKS} weeks longer.`,
+    quip: 'Takes candidates to dinner and does not mention the parking.',
+  },
+  {
+    id: 'student-activities', title: 'Student Activities Office', domain: 'students', seatId: 'dean-of-students', priceWeeks: 3,
+    blurb: 'Lets you charter a club directly, once a term.',
+    quip: 'Approves the posters, books the rooms and owns the only working laminator.',
+  },
+  {
+    id: 'athletics-development', title: 'Athletics Development Office', domain: 'students', seatId: 'dean-of-students', priceWeeks: 5,
+    blurb: 'Lets you found a varsity team without a petition, once its venue is built.',
+    quip: 'Shakes hands in the parking lot on game day, and remembers every name.',
+  },
+  {
+    id: 'counseling', title: 'Counseling & Wellness', domain: 'students', seatId: 'dean-of-students', priceWeeks: 3,
+    blurb: `Student demands come ${Math.round(COUNSELING_COOLDOWN_LIFT * 100)}% further apart, and you get ${Math.round(COUNSELING_DEADLINE_LIFT * 100)}% longer to meet them.`,
+    quip: 'A quiet corridor, soft chairs and someone with time.',
+  },
+  {
+    id: 'facilities-management', title: 'Facilities Management', domain: 'money', seatId: 'facilities', priceWeeks: 3,
+    blurb: `Full maintenance funding pays down the backlog ${1 + FACILITIES_PAYDOWN_LIFT} times as fast. Storms do ${Math.round(FACILITIES_DAMAGE_CUT * 100)}% less damage.`,
+    quip: 'Knows where every pipe runs, and holds the only copy of the drawings.',
+  },
+  {
+    id: 'alumni-relations', title: 'Alumni Relations', domain: 'money', seatId: 'advancement', priceWeeks: 4,
+    blurb: `Alumni give ${Math.round(ALUMNI_GIVING_LIFT * 100)}% more each year, and campaigns raise ${Math.round(ALUMNI_CAMPAIGN_LIFT * 100)}% more.`,
+    quip: 'Never loses an address. Graduates have tried.',
+  },
+  {
+    id: 'institutional-research', title: 'Office of Institutional Research', domain: 'money', seatId: 'provost', priceWeeks: 2,
+    blurb: 'From the spring, forecasts where the summer\'s grade will rank you.',
+    quip: 'Counts everything the college does, then counts it again.',
+  },
+];
+
+export function officeDef(id: string): OfficeDef | undefined {
+  return OFFICES.find((o) => o.id === id);
+}
+
+export function officeDomain(id: OfficeDomain): { id: OfficeDomain; label: string; motif: string } {
+  return OFFICE_DOMAINS.find((d) => d.id === id)!;
+}
 
 // An office's name in a sentence: "the Admissions Office", but "Career
 // Services" and the other plain names, which take no article.

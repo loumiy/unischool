@@ -946,7 +946,16 @@ export default function BuildPopup({
       title="Build"
       onClose={onClose}
       className="build-popup"
-      headExtra={<HelpHint text="Every building you can build, sorted into categories along the top. Click a category to see its buildings. Each tile shows what's built, what's under construction and what you can build next. Housing, dining and fitness fold their finished buildings into one tile marked '×N built'. Click it to see each one. Each building serves a set number of students, and every need grows with enrollment. So a bigger class needs more campus life, with or without more beds. Most students commute. Housing is a need of its own (see Housing in the Students tab), not a condition of admission. Still, every bed draws more applicants, up to 2,500 beds. Buildings you can't build yet aren't listed. To build, click a tile or drag it onto the map. Then click an empty tile on the map. You pay at that moment, and construction starts. The map stays visible behind this bar, so you can see where a building will go before you place it." />}
+      headExtra={<HelpHint
+        legend={[
+          { mark: <span className="legend-stamp">BUILT</span>, says: 'Standing. Housing, dining and fitness fold theirs into one tile marked ×N. Click it to see each' },
+          { mark: <span className="legend-mono">$400k · 13w</span>, says: 'The cost, paid when you place it, and the weeks to build' },
+          { mark: <span className="legend-mono">serves 1,200</span>, says: 'How many students it serves, and which need counts them' },
+        ]}
+        text={'Every need grows with enrollment, so a bigger class needs more campus life, with or without more beds.\n\n'
+          + 'Most students commute. Every bed still draws more applicants, up to 2,500 beds.\n\n'
+          + 'Click a tile or drag it onto the map, then click open ground. Buildings you can\'t build yet aren\'t listed.'}
+      />}
     >
       <div className="build-mode">
         <div className="build-mode-topline">

@@ -111,7 +111,7 @@ function resolveOccasion(s: GameState, team: VarsityTeam, occasion: Occasion, ro
     const run = Math.abs(rivalry.streak);
     vars.trophy = trophyFor(s, team.sport);
     vars.series = `${rivalry.wins}–${rivalry.losses}`;
-    if (run > 1) vars.streak = won ? ` — the ${ordinal(run)} straight year` : ` for the ${ordinal(run)} year running`;
+    if (run > 1) vars.streak = won ? `, the ${ordinal(run)} straight year` : ` for the ${ordinal(run)} year running`;
   }
   const tellings = GAME_LINES[occasion][won ? 'won' : 'lost'];
   const telling = tellings[pickLine(`${team.id}:${occasion}:${won ? 'won' : 'lost'}`, s.clock.year, tellings.length)];

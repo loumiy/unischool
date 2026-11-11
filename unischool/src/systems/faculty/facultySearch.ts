@@ -80,7 +80,7 @@ export function tickSearches(s: GameState): void {
       s.candidates.push(found);
       s.log.unshift({
         year: s.clock.year, week: s.clock.week,
-        message: `${findPrefix(field)}${found.name} — listed on the market now.`,
+        message: `${findPrefix(field)}${found.name} is listed on the market now.`,
         topic: 'candidate',
         subject: found.id,
         kind: first ? 'good' : 'info',

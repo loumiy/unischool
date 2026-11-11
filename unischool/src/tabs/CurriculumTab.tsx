@@ -513,7 +513,7 @@ export function SearchOffer({ s, act, field }: { s: GameState; act: (a: Action) 
   if (left > 0) {
     return (
       <p className="course-drawer-note search-running">
-        A {field} search is running — {left} week{left === 1 ? '' : 's'} left.
+        A {field} search is running, {left} week{left === 1 ? '' : 's'} left.
       </p>
     );
   }
@@ -855,7 +855,7 @@ export function RowAction({ s, act, program, progress, lookup, onSelect, compact
     return (
       <p className="row-action">
         <span className="row-action-note">
-          Next <span className="cell-code">{code}</span> {titleFromName ?? code} — needs {next.requiresFaculty} faculty
+          Next <span className="cell-code">{code}</span> {titleFromName ?? code} needs {next.requiresFaculty} faculty
           {gate === 'hireable' ? ', and a candidate is listed.' : ', and nobody is on the market.'}
         </span>
         <button type="button" className="row-action-secondary" onClick={() => onSelect(next.id)}>
@@ -1452,7 +1452,16 @@ export default function CurriculumTab(
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" />
             <HelpHint
               align="end"
-              text={`One line per program, grouped by school. A school gets its name once six of its programs share a hall. Graduate programs come last, under the Graduate School and the Business, Law and Medical Schools. Each line shows the program's score out of 100 (its courses' average), how many of its ten courses are done, and its next course. For that course it shows the best free professor and the score they'd teach it at. That score is their teaching, minus a little for upper-level courses and more for advanced ones, the capstone and graduate work. Click Develop to start it. Open a line (▸) to see its courses, and click Choose… to pick someone else. Below top band (under ${GRADE_A}) and No instructor list the courses holding your college back. One course from established shows the last course each program needs for its milestone. Found programs from an academic hall on the map. To swap two professors, drag one onto another course in the same department. Both scores preview while you drag.`}
+              legend={[
+                { mark: <ScoreMark score={79} />, says: 'A program\'s score, the average of its courses, out of 100' },
+                { mark: <span className="legend-mono">5/10</span>, says: 'Courses done, of the program\'s ten' },
+                { mark: <span className="legend-chip row-action-develop">Develop</span>, says: 'Starts the next course with the best free professor, at the score shown' },
+                { mark: <span className="legend-mono">▸</span>, says: 'Opens a program\'s courses. Choose… picks someone else' },
+                { mark: <span className="legend-chip">Below top band</span>, says: `Courses under ${GRADE_A}, holding your college back` },
+              ]}
+              text={'A school gets its name once six of its programs share a hall. Graduate programs come last.\n\n'
+                + 'A professor teaches a little under their teaching score in upper-level courses, and further under in advanced ones, the capstone and graduate work.\n\n'
+                + 'Found programs from an academic hall on the map. To swap two professors, drag one onto another course in their department.'}
             />
           </span>
         </div>
@@ -1474,7 +1483,7 @@ export default function CurriculumTab(
           {/* A filter replaces the map with a cross-school worklist. */}
           {filtering ? (
             matches.length === 0 ? (
-              <p className="empty-note">Nothing matches those filters.</p>
+              <p className="empty-note">Nothing matches those filters. Loosen one.</p>
             ) : (
               <div className="worklist">
                 {matches.map((t) => {

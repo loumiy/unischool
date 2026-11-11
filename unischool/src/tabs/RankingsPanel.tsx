@@ -3,7 +3,7 @@ import HelpHint from '../components/HelpHint';
 import RankingsTable, { rankingsRows } from '../components/RankingsTable';
 import { sectionAnchor } from '../components/sectionTarget';
 import { SECTION_HEADINGS } from '../data/statChips';
-import { PILLAR_RULE_HOME, pillarWeightsWords } from '../data/prestigeWords';
+import { pillarWeightsWords } from '../data/prestigeWords';
 import { TOP_50_CUTOFF, pillarColumns, rankedList, specializations } from '../systems/rivals/rivalsSystem';
 
 // The guide (Plan 80C): the Rank chip's page. The table the top-fifty
@@ -23,7 +23,7 @@ export default function RankingsPanel({ s }: { s: GameState }) {
         </div>
         <HelpHint
           align="end"
-          text={`The guide's ranking, which Rank shows: every college in the field by its prestige, highest first, with its four pillars beside it (academics, research, student life, athletics). Prestige is their blend, the same for every college: ${pillarWeightsWords()}. Each rival specializes in one pillar, tagged after its name, and runs higher there; what a specialization does for the college is in ${PILLAR_RULE_HOME}. The guide prints the top ${TOP_50_CUTOFF}. Each pillar's own ranking is in the standings.`}
+          text={`Every college in the field by prestige, highest first, with its four pillars beside it. This is the ranking Rank shows.\n\nPrestige blends the pillars the same way for every college (${pillarWeightsWords()}).\n\nThe tag after a rival's name is the pillar it specializes in. The guide prints the top ${TOP_50_CUTOFF}, and each pillar's own ranking is in the standings.`}
         />
       </div>
       <p className="stat">

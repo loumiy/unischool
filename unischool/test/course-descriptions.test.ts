@@ -2,9 +2,9 @@
 // The course descriptions (src/data/courseDescriptions.ts).
 //
 // Authored content, so the checks are authoring checks: every key names a
-// real undergraduate course, every sentence follows the two rules the
-// table's header states (one sentence in the entry courses' register; it
-// says something the title does not), and — the invariant Plan 20's PRs
+// real undergraduate course, every description follows the two rules the
+// table's header states (one sentence or two in the entry courses'
+// register; it says something the title does not), and — the invariant Plan 20's PRs
 // D–G built toward — that EVERY undergraduate course has one. While the
 // table filled, this test printed how many courses were still on the
 // template fallback and held the count to going down; the templates are
@@ -39,10 +39,10 @@ const titleOf = (id: string): string => byId.get(id)!.name.replace(/^[A-Z]+ \d+ 
     if (!byId.has(id)) continue;
     const title = titleOf(id);
     assert(/^[A-Z]/.test(text) && text.endsWith('.'), `${id} is a capitalized sentence ending in a full stop`);
-    // One sentence: no full stop followed by a space and a capital inside
-    // it. Abbreviations and initials are allowed a stop before a lower-case
-    // continuation ("e.g. the"), which the catalog does not use anyway.
-    assert(!/\. [A-Z]/.test(text), `${id} is one sentence, not several`);
+    // One sentence or two (Plan 125 D, docs/design/voice.md: 473 single
+    // sentences of one shape read as one template): at most one full stop
+    // followed by a space and a capital inside it.
+    assert((text.match(/\. [A-Z]/g) ?? []).length <= 1, `${id} is one sentence or two, not more`);
     assert(!/\b[A-Z]{4}\s?\d{3}\b/.test(text), `${id} names no course code`);
     assert(!/\bthis course\b/i.test(text), `${id} does not say "this course"`);
     assert(text.length >= 40, `${id} says enough to be a description (${text.length} chars)`);
@@ -81,7 +81,7 @@ const titleOf = (id: string): string => byId.get(id)!.name.replace(/^[A-Z]+ \d+ 
   const seen = new Set<string>();
   for (const [id, text] of Object.entries(GRADUATE_COURSE_DESCRIPTIONS)) {
     assert(gradIds.has(id), `${id} names a graduate course`);
-    assert(/^[A-Z]/.test(text) && text.endsWith('.') && !/\. [A-Z]/.test(text), `${id} is one capitalized sentence`);
+    assert(/^[A-Z]/.test(text) && text.endsWith('.') && (text.match(/\. [A-Z]/g) ?? []).length <= 1, `${id} is one or two capitalized sentences`);
     assert(!/\b[A-Z]{2,4}\s?\d{3}\b/.test(text) && !/\bthis course\b/i.test(text), `${id} names no course code and does not say "this course"`);
     assert(text.length >= 60, `${id} says enough (${text.length} chars)`);
     assert(!seen.has(text), `${id} is not a copy of another`);

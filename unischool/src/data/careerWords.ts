@@ -1,4 +1,5 @@
 import type { QuirkEffects } from './quirkData';
+import type { Effect } from './effectTypes';
 
 // ---------------------------------------------------------------------
 // The words of a professor's page (Plan 84E): the tile on the Faculty tab,
@@ -37,7 +38,7 @@ export const CAREER_WORDS = {
   slotsLabel: 'Course slots',
   outputLabel: 'Scholarly output',
   output: (perWeek: string, paper: number) => `${perWeek} a week (a paper takes ${paper})`,
-  noOutput: (field: string) => `none — no research facility in ${field}'s school`,
+  noOutput: (field: string) => `none, with no research facility in ${field}'s school`,
 
   // The courses.
   noCourses: 'Has not taught a course here yet.',
@@ -62,7 +63,7 @@ export const CAREER_WORDS = {
   distinguished: (program: string, year: number | undefined) =>
     (year !== undefined ? `Taught in ${program}, a program complete since Year ${year}.` : `Taught in ${program}, a program with every course complete.`),
   longService: (years: number, year: number) => `${years} years of service, reached in Year ${year}.`,
-  noRecognition: 'Nothing yet.',
+  noRecognition: 'Nothing yet. The plaques are on order.',
 
   // Training at the Faculty Training Institute (Plan 85E).
   trained: (year: number, from: number, to: number) =>
@@ -101,4 +102,21 @@ export function quirkEffectWords(effects: QuirkEffects): string[] {
 export function quirkExplained(effects: QuirkEffects): string {
   const words = quirkEffectWords(effects);
   return words.join(', ');
+}
+
+// The same numbers as chips (components/EffectChip.tsx, Plan 125 A), always
+// in this order, so two cards read the same way. Higher pay is the
+// college's loss.
+export function quirkEffects(effects: QuirkEffects): Effect[] {
+  const out: Effect[] = [];
+  const points = (n: number) => `${n > 0 ? '+' : '−'}${Math.abs(n)}`;
+  const tone = (n: number): Effect['tone'] => (n > 0 ? 'gain' : 'loss');
+  if (effects.teaching) out.push({ kind: 'teaching', figure: points(effects.teaching), words: 'teaching potential', tone: tone(effects.teaching) });
+  if (effects.research) out.push({ kind: 'research', figure: points(effects.research), words: 'research potential', tone: tone(effects.research) });
+  if (effects.salary && effects.salary !== 1) {
+    const pct = Math.round(Math.abs(effects.salary - 1) * 100);
+    out.push({ kind: 'money', figure: `${effects.salary > 1 ? '+' : '−'}${pct}%`, words: 'pay', tone: effects.salary > 1 ? 'loss' : 'gain' });
+  }
+  if (effects.morale) out.push({ kind: 'satisfaction', figure: points(effects.morale), words: 'morale', tone: tone(effects.morale) });
+  return out;
 }

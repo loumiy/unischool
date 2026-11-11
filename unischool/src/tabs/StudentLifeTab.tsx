@@ -174,6 +174,28 @@ function SatisfactionDial({ score, dormant }: { score: number; dormant: boolean 
   );
 }
 
+// The five needs as one bar (Plan 125 B): each segment as wide as the
+// need's share of satisfaction, filled as far as the need is met, so the
+// filled length is where satisfaction is heading and the gaps are what
+// holds it back.
+function NeedShares({ s }: { s: GameState }) {
+  const shown = ATTRIBUTE_ORDER.filter((attribute) => attribute !== 'health' || !attributeDetail(s, 'health').dormant);
+  const total = shown.reduce((t, a) => t + ATTRIBUTE_WEIGHTS[a], 0);
+  return (
+    <div className="need-shares" role="img" aria-label={shown.map((a) => `${ATTRIBUTE_LABELS[a]} ${ATTRIBUTE_WEIGHTS[a]}% of satisfaction, ${Math.round(attributeDetail(s, a).score)} of 100 met`).join('; ')}>
+      {shown.map((a) => {
+        const score = Math.max(0, Math.min(100, attributeDetail(s, a).score));
+        return (
+          <span key={a} className="need-share" style={{ flexGrow: ATTRIBUTE_WEIGHTS[a] / total }} title={`${ATTRIBUTE_LABELS[a]}: ${ATTRIBUTE_WEIGHTS[a]}% of satisfaction, ${Math.round(score)}/100 met`}>
+            <span className="need-share-track"><span className="need-share-fill" style={{ width: `${score}%` }} /></span>
+            <span className="need-share-label">{ATTRIBUTE_LABELS[a]} <b>{ATTRIBUTE_WEIGHTS[a]}%</b></span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 // One attribute's card: dial, name, weight, coverage line, and a collapsed
 // building-by-building breakdown, all read from attributeDetail.
 function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof SatisfactionAttributes }) {
@@ -192,9 +214,11 @@ function AttributeCard({ s, attribute }: { s: GameState; attribute: keyof Satisf
         <div className="satisfaction-card-text">
           <span className="satisfaction-card-label">{label}</span>
           {dialFull(detail.score, detail.dormant) && <span className="satisfaction-card-full">Full marks</span>}
-          {/* The need's share of the headline, as a multiplier tag (Plan 90 I). */}
+          {/* The need's share of the headline, as a percent (Plan 125 B; a
+              "×0.20" multiplier tag before it): the bar above the cards
+              draws all five. */}
           <span className="satisfaction-card-weight" title={`${ATTRIBUTE_WEIGHTS[attribute]}% of satisfaction`}>
-            ×{(ATTRIBUTE_WEIGHTS[attribute] / 100).toFixed(2)}
+            {ATTRIBUTE_WEIGHTS[attribute]}%
           </span>
           {/* Housing says beds against the beds wanted; the other needs say
               nothing here (Plan 96E: "1,200/113 served" beside a score of 40
@@ -268,7 +292,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
       <div className="panel-head">
         <h2>{SECTION_HEADINGS['students.breakdown']}</h2>
         <HelpHint
-          text="These are the needs that make up satisfaction, read live off the campus. A building finished this week shows here at once. The headline catches up over the coming weeks. Health joins them once your college is big enough to need care on campus. The multiplier is a need's share of the headline (×0.20 is a fifth). Click Show sources to see what's behind a score."
+          text="These are the needs that make up satisfaction, read live off the campus. A building finished this week shows here at once. The headline catches up over the coming weeks. Health joins them once your college is big enough to need care on campus. The bar shows each need's share of satisfaction, filled as far as it is met. Click Show sources to see what's behind a score."
         />
       </div>
       {/* Today's figure heads the needs it is made of, not the clubs'
@@ -282,6 +306,7 @@ function SatisfactionBreakdownPanel({ s }: { s: GameState }) {
         />
       </dl>
       {drag && <p className="satisfaction-drag">{dragLine(drag)}</p>}
+      <NeedShares s={s} />
       <ul className="satisfaction-cards">
         {/* Health shows once it is a need (Plan 104M): below its gate it
             scores full and counts against nothing, and a dormant card read
@@ -309,7 +334,7 @@ function StudentDemandPanel({ s }: { s: GameState }) {
       <section className="panel">
         <h2>Student demands</h2>
         <p className="empty-note">
-          No outstanding demands.
+          No outstanding demands. The student paper is writing about parking.
         </p>
       </section>
     );
@@ -453,7 +478,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
               </p>
             )}
             {clubs.length === 0 ? (
-              <p className="empty-note">No recognized clubs.</p>
+              <p className="empty-note">No recognized clubs. Students are meeting in hallways anyway.</p>
             ) : (
               <ul className="org-list">
                 {clubs.map((c) => (
@@ -487,7 +512,7 @@ export default function StudentLifeTab({ s, act, clubs: clubsOpen = true }: { s:
               </p>
             ) : chapters.length === 0 ? (
               <p className="empty-note">
-                The Hellenic Council is chartered, but no chapter has formed yet.
+                The Hellenic Council is chartered, but no chapter has formed yet. Somebody is designing the sweatshirts.
               </p>
             ) : (
               <ul className="org-list">

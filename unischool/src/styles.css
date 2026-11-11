@@ -854,6 +854,36 @@ button.toolbar-stat:hover { border-color: var(--school-secondary); }
 .help-hint-text { position: absolute; z-index: 15; top: 22px; left: 0; width: min(240px, calc(100vw - 16px));
   margin: 0; max-height: min(60vh, 420px); overflow-y: auto; }
 .help-hint-text.align-end { left: auto; right: 0; }
+/* A legend (Plan 125 B): each mark as the panel draws it, then a few words. */
+.help-hint-legend { width: min(320px, calc(100vw - 16px)); }
+/* Scoped past .panel dl (a figure list's two columns), which a legend sits inside. */
+.help-hint-legend dl, .panel .help-hint-legend dl { display: grid; grid-template-columns: 1fr; gap: var(--space-6); margin: 0 0 var(--space-8); }
+.help-legend-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--space-8); align-items: center; }
+.help-legend-row dt, .panel .help-legend-row dt { display: flex; justify-content: flex-start; align-items: center; gap: var(--space-4); font-weight: 700; color: var(--ink); }
+.help-legend-row dd, .panel .help-legend-row dd { margin: 0; text-align: left; font-family: inherit; font-weight: 400; color: inherit; }
+.help-hint-legend p { margin: var(--space-6) 0 0; }
+.help-hint-paras p { margin: 0; }
+.help-hint-paras p + p { margin-top: var(--space-6); }
+.legend-mono { font-family: var(--mono); font-weight: 700; }
+.legend-chip { display: inline-block; padding: 1px var(--space-6); border: 2px solid var(--outline); border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: 800; white-space: nowrap; background: var(--cream-hi); }
+.legend-bar { display: inline-block; width: 64px; height: 7px; border-radius: 4px; background: var(--cream-lo); overflow: hidden; }
+.legend-bar > span { display: block; height: 100%; background: var(--ok-on-light); }
+.faculty-figures { display: grid; gap: var(--space-4); margin: var(--space-8) 0 0; }
+.faculty-figures-meter .capacity-track { height: 10px; }
+.faculty-figures-key { margin: 0; font-size: var(--text-sm); }
+.legend-stamp { font-family: var(--mono); font-weight: 700; font-size: var(--text-2xs); padding: 0 4px; border: 1.5px solid var(--outline); border-radius: 3px; transform: rotate(-4deg); display: inline-block; }
+.coach-meter { display: inline-flex; align-items: center; gap: var(--space-6); min-width: 0; }
+.coach-meter-track { position: relative; width: 84px; height: 7px; border-radius: 4px; background: var(--cream-lo); overflow: hidden; flex: none; }
+.coach-meter-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--school-primary); border-radius: 4px; }
+.coach-meter-range { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--school-primary) 30%, transparent); }
+.coach-meter-figure { font-family: var(--mono); font-weight: 700; font-size: var(--text-sm); }
+.coach-meter-ceiling { color: var(--ink-muted); font-weight: 500; }
+.legend-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; }
+/* Keys and the map tools' own icons inside help text (Keyed.tsx). */
+kbd.keycap { font-family: var(--mono); font-size: var(--text-xs); font-weight: 700; min-width: 1.6em; display: inline-block; text-align: center;
+  padding: 0 4px; margin: 0 1px; border: 1px solid var(--ink-muted); border-bottom-width: 2px; border-radius: 4px; background: var(--cream-hi); color: var(--ink); line-height: 1.4; }
+.keyed-icon { display: inline-flex; vertical-align: -3px; margin: 0 1px; }
+.keyed-icon svg { width: 15px; height: 15px; }
 
 .badge { display: inline-block; background: var(--school-secondary); color: var(--school-on-secondary); font-family: var(--display); font-weight: 800;
   border: 1.5px solid var(--outline); font-size: var(--text-2xs); border-radius: var(--radius-pill); padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
@@ -2253,6 +2283,21 @@ button.btn-speed-up { color: var(--school-primary); border-color: var(--school-p
 .panel dl.satisfaction-target { margin: 0 0 var(--space-12); }
 /* What pulls satisfaction down, while it falls (Plan 104I). */
 .satisfaction-drag { margin: calc(-1 * var(--space-4)) 0 var(--space-12); font-weight: 700; color: var(--danger-ink); }
+/* The routes to the board's offer (OfferRoutes.tsx): a checklist. */
+.offer-routes { margin-top: var(--space-8); font-size: var(--text-sm); }
+.offer-routes-head { margin: 0 0 var(--space-4); color: var(--ink-muted); }
+.offer-routes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.offer-routes li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.offer-route-tick { width: 14px; height: 14px; border: 1.5px solid var(--outline); border-radius: 3px; display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; line-height: 1; color: var(--cream-hi); margin-top: 1px; }
+.offer-routes li.met .offer-route-tick { background: var(--ok-on-light); border-color: var(--ok-on-light); }
+.offer-route-now { color: var(--ink-muted); font-family: var(--mono); font-size: var(--text-xs); }
+.need-shares { display: flex; gap: 3px; margin: var(--space-8) 0 var(--space-12); }
+.need-share { display: grid; gap: var(--space-2); min-width: 0; flex-basis: 0; }
+.need-share-track { height: 10px; border-radius: 3px; background: var(--cream-lo); overflow: hidden; border: 1px solid var(--parchment-line); }
+.need-share-fill { display: block; height: 100%; background: var(--school-primary); }
+.need-share-label { font-size: var(--text-2xs); color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.need-share-label b { color: var(--ink); font-family: var(--mono); }
 .satisfaction-cards { display: grid; gap: 10px; grid-auto-flow: row dense;
   grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); }
 .satisfaction-card { border: 2px solid var(--outline); border-radius: var(--radius-lg);
@@ -3198,6 +3243,30 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   font-family: var(--display); font-weight: 800; font-size: var(--text-lg); }
 .event-choice-cost { font-family: var(--display); font-weight: 800; font-size: var(--text-sm); color: var(--school-primary); white-space: nowrap; }
 .event-choice-detail { display: block; margin-top: 5px; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-muted); }
+.event-choice-short { display: block; margin-top: var(--space-4); font-weight: 700; color: var(--bad-on-light); }
+.event-choice-note { display: block; margin-top: var(--space-4); }
+
+/* An effect chip (EffectChip.tsx, Plan 125 A): what something does, drawn.
+   An icon for the kind, the signed figure in the mono face, a word or two;
+   green for a gain, red for a loss. Not pressable, so no outline and no
+   offset: a tint, like the state chips. */
+.effect-chips { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); align-items: center; }
+.effect-chip { display: inline-flex; align-items: center; gap: var(--space-4); padding: 2px var(--space-6);
+  border-radius: var(--radius-xs); background: color-mix(in srgb, var(--ink-muted) 10%, transparent);
+  color: var(--ink); font-size: var(--text-sm); line-height: 1.3; font-weight: 500; max-width: 100%; }
+.effect-chip-icon, .effect-chip-fades { display: inline-flex; flex: none; }
+.effect-chip-icon svg { width: 14px; height: 14px; }
+.effect-chip-fades svg { width: 11px; height: 11px; }
+.effect-chip-fades { color: var(--ink-muted); }
+.effect-chip-figure { font-family: var(--mono); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.effect-chip.gain { background: color-mix(in srgb, var(--ok-on-light) 13%, transparent); }
+.effect-chip.gain .effect-chip-figure, .effect-chip.gain .effect-chip-icon { color: var(--ok-on-light); }
+.effect-chip.loss { background: color-mix(in srgb, var(--bad-on-light) 13%, transparent); }
+.effect-chip.loss .effect-chip-figure, .effect-chip.loss .effect-chip-icon { color: var(--bad-on-light); }
+.identity-effects { grid-column: 2; }
+.faculty-person-effects { margin-top: var(--space-4); }
+.chronicle-era-stats { margin: var(--space-4) 0; }
+.office-quip, .building-info-flavor { font-style: italic; color: var(--school-primary); }
 
 .admissions-field { display: block; margin-bottom: 16px; }
 .admissions-field span { display: block; font-size: var(--text-base); color: var(--ink); margin-bottom: 6px; font-weight: 600; }
@@ -3332,6 +3401,25 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   .athletics-side { position: sticky; top: 0; }
 }
 .athletics-budget { display: flex; align-items: center; gap: 10px; margin: 12px 0 6px; flex-wrap: wrap; }
+/* A hall's programs from one school (BuildingInfoPanel.tsx's HallPips):
+   a gap after the third pip, where the hall is claimed. */
+.hall-pips { display: inline-flex; align-items: center; gap: 3px; margin-left: var(--space-4); vertical-align: -1px; }
+.hall-pip { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; }
+.hall-pip.on { background: currentColor; }
+.hall-pip.claim { margin-right: 5px; }
+.hall-pips-count { font-family: var(--mono); font-size: var(--text-xs); margin-left: 3px; }
+.board-ladder { display: inline-flex; gap: 3px; margin-top: var(--space-4); }
+.board-ladder-step { width: 14px; height: 8px; border-radius: 2px; border: 1.5px solid var(--outline); background: transparent; }
+.board-ladder-step.bad { border-color: var(--bad-on-light); }
+.board-ladder-step.on { background: var(--outline); }
+.board-ladder-step.on.bad { background: var(--bad-on-light); }
+.subsidy-table { border-collapse: collapse; margin: 0 0 var(--space-8); font-size: var(--text-xs); width: 100%; table-layout: fixed; }
+.subsidy-table th[scope="row"] { width: 34%; }
+.subsidy-table th, .subsidy-table td { padding: 2px var(--space-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; font-variant-numeric: tabular-nums; }
+.subsidy-table th[scope="row"] { text-align: left; font-weight: 500; color: var(--ink-muted); padding-left: 0; }
+.subsidy-table thead th { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+.subsidy-table td { font-family: var(--mono); }
+.subsidy-table .on { background: color-mix(in srgb, var(--school-secondary) 35%, transparent); color: var(--ink); font-weight: 700; }
 .athletics-budget-label { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
 /* The pot, as a short ledger. */
 .panel .athletics-pot { margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); }
@@ -3774,6 +3862,10 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .letter-body { line-height: 1.55; }
 .milestone-opens { margin: 0 0 14px; padding: 10px 14px 10px 30px; border: 2px solid var(--outline); border-radius: var(--radius-lg); background: var(--cream-hi); color: var(--ink); }
 .milestone-opens li { margin: 4px 0; line-height: 1.4; }
+.milestone-opens li.milestone-opens-building { list-style: none; margin: var(--space-8) 0 var(--space-8) -16px; display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: var(--space-12); align-items: center; }
+.milestone-opens-thumb { width: 56px; height: 44px; }
+.milestone-opens-words { display: grid; gap: var(--space-2); }
+.milestone-opens-gloss { color: var(--ink-muted); font-size: var(--text-sm); }
 .letter-ask { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; margin: 0 0 14px !important;
   background: var(--cream-hi); border: 2px solid var(--outline); border-radius: var(--radius-lg); color: var(--ink); font-weight: 600; }
 .letter-ask-label { flex: none; font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); text-transform: uppercase;

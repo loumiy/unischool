@@ -138,9 +138,9 @@ export const MILESTONES: readonly Milestone[] = [
     tabs: [],
     letter: 'You teach four programs now. The board thinks your students have earned somewhere to spend time between classes.',
     opens: [
-      'Student Center: somewhere to spend time between classes, and a boost to social life',
-      'Recreation Center: somewhere to play, and a boost to social life',
-      "The Founder's Statue: your first landmark, and a little campus beauty",
+      'Student Center: somewhere to spend time between classes',
+      'Recreation Center: courts, a climbing wall and a reason to leave the library',
+      "The Founder's Statue: your first landmark",
     ],
   },
   {
@@ -162,7 +162,7 @@ export const MILESTONES: readonly Milestone[] = [
     // Students' guidebook, clubs and funnel open with the tab itself.
     sections: ['history.record'],
     letter: 'Your first year is over. The Students tab is open now. It shows how happy your students are, what they need, what the guidebooks say about you, and the clubs students have started. History keeps a record of each year.',
-    opens: ['History: the record of each year', 'Students: satisfaction and the five needs behind it, what the guidebooks say, clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit, and campus beauty'],
+    opens: ['History: the record of each year', 'Students: satisfaction and the five needs behind it, what the guidebooks say, clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit'],
   },
   {
     id: 'curriculum',
@@ -198,7 +198,7 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: ['HLTH-T1', 'AMENITY-GAZEBO'],
     tabs: [],
     letter: 'Your college is the size of a small town now, and people in towns get sick. From here on, students expect health care on campus, and it counts toward their satisfaction. A town also needs running. From here on, every time the college doubles in size, each student costs a little more to administer.',
-    opens: ['Health & Counseling Center: health care for students', 'The Gazebo: an open pavilion for summer evenings, and campus beauty'],
+    opens: ['Health & Counseling Center: health care for students', 'The Gazebo: an open pavilion for summer evenings'],
   },
   {
     id: 'regional',
@@ -276,7 +276,7 @@ export const MILESTONES: readonly Milestone[] = [
     buildables: ['HLTH-T2', 'AMENITY-GARDEN'],
     tabs: [],
     letter: 'A campus this size needs a proper clinic, and it has the room for a garden.',
-    opens: ['University Clinic: outpatient care for thousands more', 'The Japanese Garden: a koi pond, a torii and cherry trees, and campus beauty'],
+    opens: ['University Clinic: outpatient care for thousands more', 'The Japanese Garden: a koi pond, a torii and cherry trees'],
   },
   {
     id: 'research',

@@ -29,6 +29,7 @@ as the record of what was believed at the time.
 | [faculty.md](design/faculty.md) | Hiring, assignment, and the grade every course carries |
 | [research.md](design/research.md) | Topics, teams, depth, and what a run produces |
 | [student-life.md](design/student-life.md) | Clubs, Greek life, varsity athletics, and student demands |
+| [voice.md](design/voice.md) | Who is talking, where the jokes go, and how often each device may be used |
 
 `design/inbox.html` (with `inbox-campus.jpg`) is the inbox proposal Plan 77
 was planned from: a picture of a design that has since been built, kept

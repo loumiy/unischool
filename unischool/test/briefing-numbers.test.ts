@@ -33,6 +33,7 @@ const FILES = ['src/data/chapterData.ts', 'src/data/openingData.ts'];
 // Figures that are names, not quantities, each with its reason.
 const ALLOWED: Array<{ pattern: RegExp; why: string }> = [
   { pattern: /\bPress [1-4]\b/, why: 'a key on the keyboard' },
+  { pattern: /\[\d\]/, why: 'a keycap (components/Keyed.tsx), a key on the keyboard' },
   { pattern: /\b[1248]×/, why: "a speed's own label (1×, 2×, 4×, 8×)" },
   { pattern: /\b(?:all|its) four years\b/, why: "a degree's four class years, freshman to senior" },
   { pattern: /\bout of 100\b|\/100\b/, why: "a score's scale" },

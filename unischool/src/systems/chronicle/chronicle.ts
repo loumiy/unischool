@@ -11,6 +11,7 @@ import { eventById } from '../events/catalogue';
 import { mainSport } from '../rivals/collegeRival';
 import { rankedListBy } from '../rivals/rivalsSystem';
 import { moneyShort } from '../../format';
+import type { Effect } from '../../data/effectTypes';
 import { sportById } from '../../data/studentLifeData';
 import { RUNG_NAMES } from '../finance/distress';
 import { TAG_PHRASES } from '../../data/reportData';
@@ -61,6 +62,11 @@ export interface Era {
   from: number;
   to: number;
   lines: string[];
+  // The era's figures as chips (Plan 125 E), and its lines without the
+  // ones the chips say, for the chronicle's own panel. `lines` stays whole:
+  // the hall of fame keeps it and the share card reads it.
+  stats: Effect[];
+  prose: string[];
 }
 
 export interface RivalSaga {
@@ -339,6 +345,50 @@ function nameEra(s: GameState, span: Span, recs: YearRecord[], used: Set<string>
   return `${fill(options[start], vars)} (${span.from}–${span.to})`;
 }
 
+// An era's figures (Plan 125 E): where it stood in the guide at its start
+// and end, what happened to cash and the endowment, the classes it
+// graduated, its titles and prizes. The lines that say these in words are
+// the ones the chronicle panel leaves out beside the chips.
+const STAT_LINE_KEYS = ['rank', 'rankFlat', 'money', 'moneyPlain', 'classes', 'titles', 'title', 'prizes', 'prize'] as const;
+function eraStats(span: Span, recs: YearRecord[]): Effect[] {
+  const years = recs.filter((r) => r.year >= span.from && r.year <= span.to);
+  const out: Effect[] = [];
+  const ranked = years.filter((r) => r.rank !== null);
+  if (ranked.length >= 2) {
+    const a = ranked[0].rank!;
+    const b = ranked[ranked.length - 1].rank!;
+    out.push({ kind: 'prestige', figure: Math.abs(a - b) <= 1 ? `#${b}` : `#${a} → #${b}`, words: 'in the guide', tone: b < a - 1 ? 'gain' : b > a + 1 ? 'loss' : 'plain' });
+  }
+  const closed = years.filter((r) => r.net !== null);
+  if (closed.length) {
+    const net = closed.reduce((t, r) => t + (r.net ?? 0), 0);
+    out.push({ kind: 'money', figure: `${net >= 0 ? '+' : '−'}${moneyShort(Math.abs(net))}`, words: 'cash', tone: net >= 0 ? 'gain' : 'loss' });
+    const first = closed[0].endowment;
+    const last = closed[closed.length - 1].endowment;
+    if (first !== null && last !== null) out.push({ kind: 'endowment', figure: `${moneyShort(first)} → ${moneyShort(last)}`, words: 'endowment', tone: last >= first ? 'gain' : 'loss' });
+  }
+  const classes = years.filter((r) => r.graduated > 0).length;
+  if (classes) out.push({ kind: 'quality', figure: String(classes), words: classes === 1 ? 'class graduated' : 'classes graduated', tone: 'plain' });
+  const titles = years.reduce((t, r) => t + r.titles, 0);
+  if (titles) out.push({ kind: 'athletics', figure: String(titles), words: titles === 1 ? 'title' : 'titles', tone: 'gain' });
+  const prizes = years.reduce((t, r) => t + r.prizes, 0);
+  if (prizes) out.push({ kind: 'research', figure: String(prizes), words: prizes === 1 ? 'research prize' : 'research prizes', tone: 'gain' });
+  return out;
+}
+
+// Whether a line is one the era's chips say: a figure line, matched by the
+// fixed text of its template before its first placeholder, or after its
+// last where it opens on one ("{classes} graduated.").
+function isStatLine(line: string): boolean {
+  return STAT_LINE_KEYS.some((k) => {
+    const template: string = CHRONICLE_LINES[k];
+    const head = template.split('{')[0];
+    if (head.length > 0) return line.startsWith(head);
+    const tail = template.slice(template.lastIndexOf('}') + 1);
+    return tail.length > 3 && line.endsWith(tail);
+  });
+}
+
 function summarise(span: Span, recs: YearRecord[]): string[] {
   const L = CHRONICLE_LINES;
   const years = recs.filter((r) => r.year >= span.from && r.year <= span.to);
@@ -435,7 +485,7 @@ export function chronicleOf(s: GameState): Chronicle {
     const repeats = new Set(previous.filter((l) => l === CHRONICLE_LINES.builtNone || l.startsWith('The guide had')));
     const lines = said.filter((l, i) => i === 0 || !repeats.has(l));
     previous = said;
-    return { ...span, name, lines };
+    return { ...span, name, lines, stats: eraStats(span, recs), prose: lines.filter((l, i) => i === 0 || !isStatLine(l)) };
   });
   return { eras, rival: rivalSaga(s) };
 }

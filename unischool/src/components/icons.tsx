@@ -497,3 +497,80 @@ export const PILLAR_ICONS: Readonly<Record<Pillar, () => React.JSX.Element>> = {
   studentLife: StudentLifeIcon,
   athletics: AthleticsIcon,
 };
+
+// ---- The effect chips' icons (EffectChip.tsx, Plan 125 A) ----
+
+// Lucide's "circle-dollar-sign" (see LUCIDE_LICENSE.txt).
+export function MoneyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+      <path d="M12 18V6" />
+    </svg>
+  );
+}
+
+// Lucide's "banknote" (see LUCIDE_LICENSE.txt): money kept, not spent.
+export function EndowmentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <rect width="20" height="12" x="2" y="6" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </svg>
+  );
+}
+
+// Lucide's "credit-card" (see LUCIDE_LICENSE.txt).
+export function DebtIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <rect width="20" height="14" x="2" y="5" rx="2" />
+      <line x1="2" x2="22" y1="10" y2="10" />
+    </svg>
+  );
+}
+
+// Lucide's "flame" (see LUCIDE_LICENSE.txt): how warm the alumni feel. The
+// heart is social life's (StudentLifeIcon).
+export function AlumniIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+    </svg>
+  );
+}
+
+// A mortarboard, drawn here: the class that enrolls.
+export function QualityIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M12 5 2 10l10 5 10-5z" />
+      <path d="M6 12.2V16c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-3.8" />
+      <path d="M22 10v5" />
+    </svg>
+  );
+}
+
+// A shopfront, drawn here: the town beside the campus.
+export function TownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <path d="M4 9 5.5 4h13L20 9" />
+      <path d="M3 9h18" />
+      <path d="M5 9v11h14V9" />
+      <path d="M10 20v-5h4v5" />
+    </svg>
+  );
+}
+
+// Lucide's "clock" (see LUCIDE_LICENSE.txt): weeks, and what wears off.
+export function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" {...STROKE}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}

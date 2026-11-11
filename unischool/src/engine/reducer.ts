@@ -982,8 +982,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
 
     case 'SAVE_FAILED': {
       const message = action.manual
-        ? 'Save failed — this browser is refusing to store the game.'
-        : 'Autosave failed — this browser is refusing to store the game. Progress will be lost on refresh.';
+        ? 'Save failed. This browser is refusing to store the game.'
+        : 'Autosave failed. This browser is refusing to store the game, so progress will be lost on refresh.';
       const confirmation = s.log[0];
       if (action.manual && confirmation?.message === 'Game saved.') {
         confirmation.message = message;

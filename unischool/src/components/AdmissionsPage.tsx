@@ -66,8 +66,8 @@ const PRICE_TIER_COPY: Record<PriceTier, { label: string; className: string }> =
 // standings, so the tag says where in it the price sits (the merge review,
 // Plan 70E), still without naming the number.
 function fairPosition(ratio: number): string {
-  if (ratio < 0.9) return ' — on the low side';
-  if (ratio > 1.05) return ' — near the top';
+  if (ratio < 0.9) return ', on the low side';
+  if (ratio > 1.05) return ', near the top';
   return '';
 }
 

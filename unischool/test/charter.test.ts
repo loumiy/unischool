@@ -82,7 +82,9 @@ const weeksOn = (s: GameState, n: number) => {
   const e = eventById(waiting(s)!.eventId)!;
   const labels = e.choices.map((c) => c.label.replace('{name}', s.self.name));
   assert(labels[0] === `Become ${s.self.name} University` && labels[1] === `Keep the name ${s.self.name} College` && e.default === 'university', `two answers, the first the default (${labels.join(' / ')})`);
-  assert(!/\byou\b|\byour\b/i.test(`${e.text} ${labels.join(' ')}`), 'written to the President, not to "you"');
+  // Written to "you", as every letter is (Plan 125 C, docs/design/voice.md;
+  // it was "the President" until then).
+  assert(/\byou\b/.test(e.text) && !/\bthe President\b/.test(e.text), 'written to "you", not to "the President"');
   tickEvents(s);
   assert(s.catalogue!.pending.filter((p) => p.eventId === CHARTER_EVENT.id).length === 1, 'raised once');
 }

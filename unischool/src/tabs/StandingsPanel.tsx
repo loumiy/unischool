@@ -30,7 +30,7 @@ export default function StandingsPanel({ s, belowA }: { s: GameState; belowA?: B
       <div className="panel-head">
         <span className="panel-head-title">
           <h2>The standings</h2>
-          <HelpHint text={`Seven rankings of the same colleges. Prestige is the one the guide leads with, and the one Rank shows. It blends four pillars, the same way for you and every rival. Each rival specializes in one pillar, which runs higher and steadier than its others. To see how a specialization raises your own pillar, open ${PILLAR_RULE_HOME}. Campus measures how well you've laid out your grounds, from decorations and quads to paths at the doors and buildings in good repair. Financial strength measures your endowment per student. Neither counts toward prestige. The Final Report grades the six rankings beside prestige, and reads prestige once, as the guide's final word.`} />
+          <HelpHint text={`Seven rankings of the same colleges. Rank shows the first, prestige, which blends the four pillars the same way for everyone.\n\nEach rival specializes in one pillar, which runs higher and steadier than its others. ${PILLAR_RULE_HOME} shows what a specialization does for yours.\n\nCampus grades your grounds, and financial strength your endowment per student. Neither counts toward prestige. The Final Report grades all six beside it.`} />
         </span>
         <span className="stat">of {field}</span>
       </div>

@@ -76,6 +76,20 @@ function BudgetLine({ label, note, amount, largest }: { label: string; note: str
   );
 }
 
+// The board's scale as a ladder (Plan 125 B), in place of "rung 1 of 5":
+// a step for each rung from Sound down to an interim CFO, the college's
+// lit, each named on hover with what it costs.
+const RUNG_COSTS = ['Cash covers a term', 'Cash under a term\'s expenses', 'Two deficit terms in a row', 'No building or borrowing', 'No maintenance, and no tuition cuts', 'The board runs the draw and maintenance'];
+function BoardLadder({ rung }: { rung: number }) {
+  return (
+    <span className="board-ladder" role="img" aria-label={`${RUNG_NAMES[rung]}, step ${rung + 1} of ${RUNG_RECEIVERSHIP + 1}, from Sound down to an interim CFO`}>
+      {RUNG_NAMES.map((name, i) => (
+        <span key={name} className={`board-ladder-step${i === rung ? ' on' : ''}${i >= RUNG_DEFICIT ? ' bad' : ''}`} title={`${name}: ${RUNG_COSTS[i]}`} />
+      ))}
+    </span>
+  );
+}
+
 // What the rung the college stands on means, and what moves it
 // (finance/distress.ts).
 function rungNote(s: GameState): string {
@@ -137,10 +151,10 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
   const services = servicesMultiplier(s);
   // Says how the sections are running, so the cost model is readable.
   const sectionsNote = teaching.courses === 0
-    ? 'no course is offered yet'
+    ? 'No course is offered yet'
     : teaching.overflow > 0
-      ? `every section is full and ${count(teaching.overflow)} students are in overflow`
-      : `sections are running ${pct(teaching.fill)} full`;
+      ? `Every section is full and ${count(teaching.overflow)} students are in overflow`
+      : `Sections are running ${pct(teaching.fill)} full`;
 
   // What drives each line's figure. Which lines show is treasuryStatement.ts's.
   const notes: Record<StatementLineSpec['key'], string> = {
@@ -151,8 +165,8 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
     athleticsSurplus: `${money(flow.gateRevenue)}/wk at the gate`,
     weeklySalaries: `${s.faculty.length} on the roster at ${multiplier(marketRate)} market rate for prestige ${prestigeFigure(s.self.reputation)}, and salaries rise with tenure`,
     seatUpkeep: `${count(s.students.capacity)} beds`,
-    instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section a week — ${sectionsNote}`,
-    servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk — advising, registrar, IT, grounds${services > 1 ? ` — ${multiplier(services)} with the classrooms full` : ''}`,
+    instructionCost: `${count(teaching.courses)} courses in ${count(teaching.sections)} sections of ${SECTION_SIZE}, at ${money(SECTION_COST)} a section a week. ${sectionsNote}`,
+    servicesCost: `${count(totalEnrolled(s.students))} enrolled × ${money(SERVICES_PER_STUDENT_PER_WEEK)}/wk: advising, registrar, IT and grounds${services > 1 ? `, ${multiplier(services)} with the classrooms full` : ''}`,
     scaleCost: `the extra administration ${count(totalEnrolled(s.students))} students need (${decimal(Math.log2(totalEnrolled(s.students) / SCALE_FREE_BELOW), 1)} doublings past ${count(SCALE_FREE_BELOW)})`,
     academicUpkeep: `running ${coursesDone} courses and the teaching buildings they sit in`,
     facilityUpkeep: 'libraries, dining, rec and labs',
@@ -214,14 +228,14 @@ function BudgetView({ s, act }: { s: GameState; act: (a: Action) => void }) {
             <div className="treasury-kpi">
               <span className="eyebrow">The board <HelpHint align="end" text={`${FIGURE_HINTS.board} ${rungNote(s)}`} /></span>
               <strong className={distress.rung >= RUNG_DEFICIT ? 'bad' : undefined}>{RUNG_NAMES[distress.rung]}</strong>
-              <span className="stat">rung {distress.rung} of {RUNG_RECEIVERSHIP}</span>
+              <BoardLadder rung={distress.rung} />
             </div>
           </div>
           <h3 className="eyebrow">Cash, Year {s.history[0]?.year ?? 1} to now</h3>
           <TreasuryCashChart s={s} />
           <p className="empty-note">
             You pay for a building or a course in full when you start it, so your cash sets how fast you can grow.
-            <HelpHint align="end" text="You can also pay for a building from a campaign's building fund, or with a loan for the shortfall. A capital project can take half its cost from the endowment. A deficit never closes your college. Instead, it moves you down the board's scale one term at a time: tight, deficit, a construction freeze, austerity, an interim CFO. You move back up as your finances recover." />
+            <HelpHint align="end" text="You can also pay for a building from a campaign's building fund, or with a loan for the shortfall. A capital project can take half its cost from the endowment. A deficit never closes your college. It moves you down the board's ladder one term at a time, and you move back up as your finances recover." />
           </p>
         </div>
 

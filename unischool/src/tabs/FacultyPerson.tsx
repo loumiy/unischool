@@ -3,7 +3,8 @@ import { institutionName } from '../state/types';
 import { quirkById } from '../data/quirkData';
 import { PUBLICATION_POINTS, facultyResearchOutput, labEquippedFields } from '../data/researchData';
 import { GRADE_A, GRADE_B } from '../data/courseQuality';
-import { CAREER_WORDS as W, quirkExplained } from '../data/careerWords';
+import { CAREER_WORDS as W, quirkEffects } from '../data/careerWords';
+import EffectChips from '../components/EffectChip';
 import { facultyPay } from '../systems/finance/financeSystem';
 import {
   courseTimeline, isFounder, joinedLine, recognitions, researchLines, statSeries, trainingLines, yearOfWeek, yearsHere,
@@ -143,7 +144,7 @@ export default function FacultyPerson(
           <dt>{W.quirkLabel}</dt>
           <dd>
             {quirk
-              ? <><strong>{quirk.name}.</strong> {quirk.line}{quirkExplained(quirk.effects) && <> <span className="faculty-person-note">{quirkExplained(quirk.effects)}</span></>}</>
+              ? <><strong>{quirk.name}.</strong> {quirk.line}<EffectChips effects={quirkEffects(quirk.effects)} className="faculty-person-effects" /></>
               : W.noQuirk}
           </dd>
           <dt>{W.payLabel}</dt>

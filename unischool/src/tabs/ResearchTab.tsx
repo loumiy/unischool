@@ -22,7 +22,7 @@ import { standsOnCampus } from '../state/types';
 import { PARK_WORDS, landmarkYears, landmarksCounted, landmarksRunning, parkReading } from '../data/researchParkData';
 import { PILLAR_WORDS } from '../data/specializationData';
 import { specializationOf } from '../systems/prestige/specialization';
-import { specializationOfferRule } from '../data/prestigeWords';
+import OfferRoutes from '../components/OfferRoutes';
 import PillarHead from '../components/PillarHead';
 
 // =====================================================================
@@ -307,7 +307,7 @@ function VacantPanel(
                 ? `Needs ${picked.depth.participants} scholars`
                 : s.finance.cash < picked.fundingCost
                   ? `${moneyShort(picked.fundingCost - s.finance.cash)} short`
-                  : `Commission — ${moneyShort(picked.fundingCost)}`}
+                  : `Commission · ${moneyShort(picked.fundingCost)}`}
           </button>
         </div>
       )}
@@ -355,7 +355,7 @@ function ResearchParkProgress({ s, act }: { s: GameState; act: (a: Action) => vo
         <p className="research-park-line">Going up: {weeksShort(weeksLeft)} left. Landmark Programs open when it stands.</p>
       ) : (
         <>
-          {chosen === null && <p className="research-park-line">{PARK_WORDS.gatedUnchosen(specializationOfferRule())}</p>}
+          {chosen === null && <><p className="research-park-line">{PARK_WORDS.gatedUnchosen('').trim()}</p><OfferRoutes s={s} /></>}
           <p className="research-park-line">
             {projectOpens(park.project)}
             {projectOpen(s, park) && ' It is open.'}
