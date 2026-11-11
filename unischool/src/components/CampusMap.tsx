@@ -27,7 +27,7 @@ import BuildingInfoPanel from './BuildingInfoPanel';
 import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../data/techData';
 import { schoolMark } from '../data/schoolPalette';
 import { researchTopic } from '../data/researchTopics';
-import BuildingMotif, { ScaffoldPattern, drawnHeightOf, labelHeightOf } from './buildingMotifs';
+import BuildingMotif, { ScaffoldPattern, labelHeightOf, shadowCastersOf } from './buildingMotifs';
 import { floorsUnderConstruction, materialOf, motifOf, storeysOf, wallHeightOf } from './buildingSpec';
 import { SiteFrame, siteStageOf } from './siteWorks';
 import { groundProps } from './groundMarkings';
@@ -359,23 +359,32 @@ function SiteProgress(props: SiteProgressProps) {
 }
 // The same, with the weeks left given (the canvas map's art, registered
 // below).
-function siteProgressArt({ t, p, label }: SiteProgressProps, developing: GameState['developing']) {
-  const weeksLeft = developing[t.id];
-  if (weeksLeft === undefined) return null;
+// How far a new building has risen (Plan 74H), for its art and its shadow.
+// A plot of houses or a bowl fills in as it goes; a building rises in the
+// landmarks' three stages: footings (the motif's own site), then the frame
+// to full height, then the closed shell in scaffolding. `frame` and `shell`
+// say which stands; `height` is the taller of them (0 for neither).
+function siteRise(t: Buildable, weeksLeft: number) {
   const elapsedFraction = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   const motif = motifOf(t);
   const rises = motif !== 'grounds' && motif !== 'landmark' && floorsUnderConstruction(t) === 0;
-  // A plot of houses or a bowl fills in as it goes; a building rises in the
-  // landmarks' three stages (Plan 74H): footings (the motif's own site),
-  // then the frame to full height, then the closed shell in scaffolding.
   const staged = rises && motif !== 'village' && motif !== 'bowl';
   const stage = siteStageOf(elapsedFraction);
-  const d = drawnFootprint(p);
   const shellHeight = !rises ? 0 : staged ? (stage === 2 ? wallHeightOf(t) : 0) : wallHeightOf(t) * elapsedFraction;
-  const shell = shellHeight > 0 && (staged || elapsedFraction > 0.05) ? boxFaces(d.col, d.row, d.w, d.h, 0, shellHeight) : null;
+  const frame = staged && stage === 1;
+  const shell = shellHeight > 0 && (staged || elapsedFraction > 0.05);
+  return { elapsedFraction, frame, shell, shellHeight, height: Math.max(frame ? wallHeightOf(t) : 0, shell ? shellHeight : 0) };
+}
+
+function siteProgressArt({ t, p, label }: SiteProgressProps, developing: GameState['developing']) {
+  const weeksLeft = developing[t.id];
+  if (weeksLeft === undefined) return null;
+  const { elapsedFraction, frame, shell: shellUp, shellHeight } = siteRise(t, weeksLeft);
+  const d = drawnFootprint(p);
+  const shell = shellUp ? boxFaces(d.col, d.row, d.w, d.h, 0, shellHeight) : null;
   return (
     <>
-      {staged && stage === 1 && (
+      {frame && (
         <SiteFrame col={d.col} row={d.row} w={d.w} h={d.h} height={wallHeightOf(t)} floors={storeysOf(t)} />
       )}
       {shell && (
@@ -478,21 +487,38 @@ type CastShadowsProps = {
   camera: Camera;
 };
 function CastShadows({ placed, scene, vernacular, camera }: CastShadowsProps) {
+  const developing = useContext(DevelopingContext);
+  const sites = siteHeights(placed, developing);
   return castShadowsArt(useMemo(
-    () => castShadowPaths(placed, scene, vernacular),
-    // `camera` is read by the projection, not here.
+    () => castShadowPaths(placed, scene, vernacular, sites),
+    // `camera` is read by the projection, not here; `sites` by its key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placed, scene, vernacular, camera],
+    [placed, scene, vernacular, camera, sites.key],
   ));
 }
-function castShadowPaths(placed: CampusLayout['placed'], scene: readonly SceneEntry[], vernacular: Vernacular): { buildings: string; trees: string } {
+// How high each new site stands now (siteRise), by id, and a key that
+// changes when any does, for the memo and the canvas's ground layer.
+function siteHeights(placed: CampusLayout['placed'], developing: GameState['developing']): { byId: Map<string, number>; key: string } {
+  const byId = new Map<string, number>();
+  for (const { t, developing: going } of placed) {
+    const weeksLeft = developing[t.id];
+    if (!going || weeksLeft === undefined) continue;
+    const height = siteRise(t, weeksLeft).height;
+    if (height > 0) byId.set(t.id, height);
+  }
+  return { byId, key: [...byId].map(([id, h]) => `${id}:${h.toFixed(1)}`).join(',') };
+}
+function castShadowPaths(placed: CampusLayout['placed'], scene: readonly SceneEntry[], vernacular: Vernacular, sites: { byId: Map<string, number> }): { buildings: string; trees: string } {
   const sub = (pts: { x: number; y: number }[]) => `M${polyPoints(pts).replace(/ /g, 'L')}Z`;
   const buildings: string[] = [];
   for (const { t, p, developing } of placed) {
-    const height = drawnHeightOf(t, developing, p.vernacular ?? vernacular);
-    if (height <= 0) continue;
-    const f = drawnFootprint(p);
-    buildings.push(sub(castShadow(f.col, f.row, f.w, f.h, height)));
+    // Each part the mass is drawn as (buildingMotifs' shadowCastersOf); a
+    // site at the frame or the shell it is drawn at, not its footings.
+    const rise = sites.byId.get(t.id) ?? 0;
+    for (const c of shadowCastersOf(t, drawnFootprint(p), developing, p.vernacular ?? vernacular)) {
+      const height = Math.max(c.height, rise);
+      if (height > 0) buildings.push(sub(castShadow(c.col, c.row, c.w, c.h, height)));
+    }
   }
   const trees: string[] = [];
   for (const e of scene) {
@@ -1077,7 +1103,8 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
           {parts.ground}
         </>
       ),
-      sig: `${cam}|${layout.key}|${a.inspectedId}|${grounds.map((id) => `${a.developing[id] ?? ''}c${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'p' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
+      // A site's shadow rises with it (siteHeights).
+      sig: `${cam}|${layout.key}|${a.inspectedId}|${siteHeights(layout.placed, a.developing).key}|${grounds.map((id) => `${a.developing[id] ?? ''}c${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'p' : ''}`).join(',')}|${a.name}|${a.groundClass}`,
     },
     front: {
       node: <RingFront name={a.name} vernacular={layout.vernacular} camera={camera} turning={a.turning} snow={a.snow} district={a.district ?? 0} winterLit={a.winterLit ?? false} festive={a.festive ?? 0} colors={layout.colors} />,
@@ -1250,9 +1277,12 @@ registerArt(DesireLines, (p: { layout: CampusLayout; camera: Camera }, s: ArtSco
   return desireArt(s.keep('d', [runs, p.camera], () => desirePath(runs)));
 }, true);
 registerArt(SiteProgress, (p: SiteProgressProps, s: ArtScope) => siteProgressArt(p, occasion(s, 'developing')));
-registerArt(CastShadows, (p: CastShadowsProps, s: ArtScope) => castShadowsArt(
-  s.keep('d', [p.placed, p.scene, p.vernacular, p.camera], () => castShadowPaths(p.placed, p.scene, p.vernacular)),
-));
+registerArt(CastShadows, (p: CastShadowsProps, s: ArtScope) => {
+  const sites = siteHeights(p.placed, occasion(s, 'developing'));
+  return castShadowsArt(
+    s.keep('d', [p.placed, p.scene, p.vernacular, p.camera, sites.key], () => castShadowPaths(p.placed, p.scene, p.vernacular, sites)),
+  );
+});
 
 // Hall pips: one per slot, in the color of the school whose program holds
 // it, plus a flag when a slot is free and a program is on offer. Always on,
