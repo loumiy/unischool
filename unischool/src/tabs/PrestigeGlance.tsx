@@ -3,7 +3,7 @@ import type { GameState } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { count, moneyShort, prestigeFigure } from '../format';
 import {
-  gradeYear, PRESTIGE_MAX, type Pillar, type StandingBreakdown, type StandingInput,
+  gradeYear, pillarPartMax, PILLAR_FLOOR, PILLARS, PRESTIGE_MAX, prestigeByPillar, type Pillar, type StandingBreakdown, type StandingInput,
 } from '../systems/prestige/prestigeSystem';
 import { rankForecast } from '../systems/administration/forecast';
 import { collegeSpecialization } from '../systems/prestige/milestone';
@@ -15,7 +15,10 @@ import type { BelowALink } from './StandingBreakdown';
 // ---------------------------------------------------------------------
 // History › Prestige, at a glance (Plan 107D, the owner's pick of the
 // mock-ups): the figure and which way it is going, where it sits on its
-// scale, and one meter per pillar with one number, what it adds. A pillar's
+// scale, and one meter per pillar with one number, its part of prestige:
+// the figure the pillar's tab head shows, so the four rows sum to the
+// headline (Plan 126 F, the interface review's U-1; before, each row read
+// what the pillar earned above the floor, which did not). A pillar's
 // meter is as long as the most it can add, so academics' is the longest,
 // and filled as far as the college has earned it. Everything the panel
 // said in words before (the pillars' make-up, the summer, the
@@ -77,24 +80,34 @@ function lastSummer(s: GameState, breakdown: StandingBreakdown): string {
     : `${rule} The first grade comes at the first summer.`;
 }
 
-// One pillar's row: its meter as long as the most it can add, filled as far
-// as earned, and what it adds. Exported for the objectives drawer (Plan
-// 114B, as Plan 107D proposed); render it inside a `ul.glance-rows`.
-export function PillarMeter({ s, input, longest }: { s: GameState; input: StandingInput; longest: number }) {
+// What the rows read (Plan 126 F): each pillar's part of prestige
+// (prestigeByPillar, as the tab heads read it) and the most it could be.
+export interface PillarParts { parts: Record<Pillar, number>; max: Record<Pillar, number>; longest: number }
+export function pillarParts(s: GameState): PillarParts {
+  const max = pillarPartMax(s);
+  return { parts: prestigeByPillar(s).parts, max, longest: Math.max(...PILLARS.map((p) => max[p])) };
+}
+
+// One pillar's row: its meter as long as the most its part could be,
+// filled to its part, and its part. Exported for the objectives drawer
+// (Plan 114B, as Plan 107D proposed); render it inside a `ul.glance-rows`.
+export function PillarMeter({ s, input, split }: { s: GameState; input: StandingInput; split: PillarParts }) {
   const key = input.key as Pillar;
   const Icon = PILLAR_ICONS[key];
-  const fill = input.weight > 0 ? Math.max(0, Math.min(1, input.contribution / input.weight)) : 0;
+  const part = split.parts[key];
+  const max = split.max[key];
+  const fill = max > 0 ? Math.max(0, Math.min(1, part / max)) : 0;
   const shut = pillarDoorShut(s, key);
   return (
     <li className={`glance-row glance-pillar pillar-${key}`}>
       <span className="glance-icon" aria-hidden="true">{Icon && <Icon />}</span>
       <span className="glance-label">{input.label}</span>
       <span className="glance-meter-lane">
-        <span className="glance-meter" style={{ width: `${(input.weight / longest) * 100}%` }} aria-hidden="true">
+        <span className="glance-meter" style={{ width: `${(max / split.longest) * 100}%` }} aria-hidden="true">
           <span className="glance-meter-fill" style={{ width: `${fill * 100}%` }} />
         </span>
       </span>
-      <span className="glance-figure">{signed(input.contribution)}</span>
+      <span className="glance-figure">{prestigeFigure(part)}</span>
       {shut && <span className="glance-shut">{shut}</span>}
     </li>
   );
@@ -126,7 +139,7 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
   const step = forecast ? gradeYear(s).after - breakdown.current : null;
   const pillars = breakdown.inputs.filter((i) => i.pillar);
   const adjustments = breakdown.inputs.filter((i) => !i.pillar && i.key in ADJUSTMENT_LABELS);
-  const longest = Math.max(...pillars.map((p) => p.weight));
+  const split = pillarParts(s);
   const at = Math.max(0, Math.min(1, breakdown.current / PRESTIGE_MAX));
   return (
     <div className="glance">
@@ -146,16 +159,17 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
       </div>
       <div className="glance-scale" aria-hidden="true"><span>0</span><span>{PRESTIGE_MAX}</span></div>
 
-      <h3 className="glance-title">What lifts it</h3>
+      <h3 className="glance-title">What it is made of</h3>
       <ul className="glance-rows">
-        {pillars.map((p) => <PillarMeter key={p.key} s={s} input={p} longest={longest} />)}
-        {adjustments.map((a) => (
-          <AdjustmentRow key={a.key} input={{ ...a, label: ADJUSTMENT_LABELS[a.key] }} line={adjustmentLine(s, a)} />
-        ))}
+        {pillars.map((p) => <PillarMeter key={p.key} s={s} input={p} split={split} />)}
       </ul>
 
       <details className="glance-details">
         <summary>Details</summary>
+        {/* What each pillar earned above the floor every college stands on,
+            and what sits outside every pillar (Plan 126 F): the endowment
+            and the buildings, shared among the four parts above. */}
+        <p className="stat">Every college stands on {prestigeFigure(PILLAR_FLOOR)} to begin with, shared among the pillars by weight. Each pillar has earned this much above it:</p>
         <ul className="glance-terms">
           {pillars.map((p) => (
             <li key={p.key} className={`pillar-${p.key}`}>
@@ -164,6 +178,13 @@ export function PrestigeGlance({ s, breakdown, belowA, head }: {
             </li>
           ))}
         </ul>
+        {adjustments.length > 0 && (
+          <ul className="glance-rows glance-adjustments">
+            {adjustments.map((a) => (
+              <AdjustmentRow key={a.key} input={{ ...a, label: ADJUSTMENT_LABELS[a.key] }} line={adjustmentLine(s, a)} />
+            ))}
+          </ul>
+        )}
         <p className="stat pillar-rule">{pillarRule()}</p>
         <p className="stat specialization-status">{collegeSpecialization(s)}</p>
         {forecast && (

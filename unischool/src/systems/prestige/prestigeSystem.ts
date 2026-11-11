@@ -743,6 +743,19 @@ export function prestigeByPillar(s: GameState, of: number = s.self.reputation): 
   return { parts, current: of, target: made.target };
 }
 
+// The most each pillar's part could be (Plan 126 F): its share of the blend
+// with every pillar earning in full, at the top of the prestige scale. What
+// History's meter for a pillar is as long as, so a full meter is a pillar
+// that could hold no more of prestige.
+export function pillarPartMax(s: GameState): Record<Pillar, number> {
+  const made = prestigeBreakdown(s);
+  const full = (p: Pillar) => PILLAR_WEIGHTS[p] * PILLAR_FLOOR + (made.inputs.find((i) => i.key === p)?.weight ?? 0);
+  const total = PILLARS.reduce((sum, p) => sum + full(p), 0);
+  const out = {} as Record<Pillar, number>;
+  for (const p of PILLARS) out[p] = total > 0 ? PRESTIGE_MAX * (full(p) / total) : PRESTIGE_MAX * PILLAR_WEIGHTS[p];
+  return out;
+}
+
 // Welfare: trailing-year average satisfaction; 40 earns nothing, 80 pays in full.
 const WELFARE_FLOOR_SATISFACTION = 40;
 const WELFARE_FULL_SATISFACTION = 80;

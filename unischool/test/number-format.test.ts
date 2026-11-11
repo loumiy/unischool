@@ -166,6 +166,14 @@ const RULES: Array<{ what: string; re: RegExp; catches: string; passes: string; 
   }
 }
 
+// ---- Where prices are compared, the short form (Plan 126 C) ----
+// The strip for a building in hand reads as its tile did. (A decision's
+// answers are chips since Plan 125 A, which keep the exact sums.)
+{
+  const build = readFileSync(join(SRC, 'components', 'BuildPopup.tsx'), 'utf8');
+  assert(/'\{cost\}', moneyShort\(/.test(build), 'the strip for a building in hand reads as its tile did');
+}
+
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
   process.exit(0);

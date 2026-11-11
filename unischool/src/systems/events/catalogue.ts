@@ -377,6 +377,14 @@ export function fill(text: string, vars: Record<string, string>): string {
   return text.replace(/\{(\w+)\}/g, (m, key: string) => vars[key] ?? m);
 }
 
+// An event's title as a firing reads it (Plan 125G): its names filled, and
+// its first letter raised, since a building's name is kept to be read
+// mid-sentence ("the Chapel: boiler condemned").
+export function eventTitle(e: CatalogueEvent, vars: Record<string, string>): string {
+  const title = fill(e.title, vars);
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
 // ---- Effects ----
 // What a gift for the buildings spends on repairs (Plan 101G): the backlog
 // owed, at most the gift.

@@ -22,7 +22,21 @@ claimed hall's own school's programs (Plan 78D; `HallMarks` in
 `CampusMap.tsx`). A program's pip goes dark, ringed in dashed red, while
 one of its courses has no teacher (`darkness.ts`'s unstaffed reading), and
 takes its colour back when one is appointed (Plan 124 L). Unlike the
-labels, the marks are always on. The Curriculum
+labels, the marks are always on.
+
+The marks and the labels **hold a size on screen** (Plan 126 J,
+`markScale.ts`). Each is drawn about its own anchor (`markAnchor`: just
+above the label's spot on the roof) and scaled there by `heldScale(zoom,
+band)`, which draws it as at the nearest zoom inside a band: the pips' band
+is 0.75 to 1.25 (a pip 9.75 to 16 px across), the lab's and the full
+residence's discs 0.6 to 0.85 (about 19 to 28 px), a label's face 0.55 to
+0.75 (10 to 26 px). Inside its band a mark grows with the map, outside it
+stops. Where a hall's row of pips, at that size, would take more than three
+quarters of its roof's width on screen (`hallRowFits`, `HALL_ROW_FIT`;
+below a zoom of about 0.33 for a 7x5 hall), the row gives way to one mark
+for the building: the dark pip, larger, while any of its programs is dark,
+else the count of its programs in a ring (gold while a program is on offer
+for a free slot), with the row's title and reading. The Curriculum
 tab's "Found in <hall>" door comes back the other way: `App.tsx` closes the
 tab and hands the hall's id to the map (`inspectTarget`), which pans to the
 building and opens its panel — the same one-way, consumed-on-arrival channel
@@ -161,7 +175,12 @@ only their consumers:
 - `BannerContext`: the lamps in commencement week.
 
 The hall pips and the walkers are drawn after the scene from the live
-state. `npm run profile` gates every change to the
+state. The marks' sizes on screen are three CSS variables (`--k-pip`,
+`--k-disc`, `--k-label`) that `applyView` writes on the world group when the
+zoom changes, read by `.campus-k-*`, so a zoom re-renders no mark and a pan
+writes nothing; the one thing a zoom changes in React is whether a hall shows
+its row or one mark, which each hall reads from the map's `ZoomStore` as a
+boolean, so a hall is drawn again only when it changes over. `npm run profile` gates every change to the
 map.
 
 ## The canvas (Plan 83)

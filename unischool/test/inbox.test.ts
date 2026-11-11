@@ -7,10 +7,17 @@
 import { createInitialState } from '../src/state/actions';
 import { reducer } from '../src/engine/reducer';
 import { bindScriptStream } from '../src/engine/random';
-import { answered, BULLETIN_WEEKS, bulletins, finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from '../src/systems/inbox/inbox';
+import { afterSubject, answered, BULLETIN_WEEKS, bulletins, finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from '../src/systems/inbox/inbox';
 import { inboxPointer } from '../src/systems/guidance/nextStep';
 import { arrivalsIn } from '../src/components/Toasts';
-import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
+import { CHARTER_EVENT, EVENT_CATALOGUE } from '../src/data/eventCatalogue';
+import { BOARD_QUESTIONS } from '../src/data/boardQuestionData';
+import { FESTIVAL_EVENT } from '../src/data/downtownData';
+import { initialTech } from '../src/data/techData';
+import { SPORTS } from '../src/data/studentLifeData';
+import { isPlaceableKind } from '../src/state/campusMap';
+import { eventTitle, eventTexts, fill, rollVars } from '../src/systems/events/catalogue';
+import { firstSentence } from '../src/systems/events/catalogueEngine';
 import { CHARTER_ID, MILESTONES } from '../src/data/ladderData';
 import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
 import { foundingDistress, postBoardLetter } from '../src/systems/finance/distress';
@@ -80,7 +87,8 @@ function fresh(): GameState {
   const items = inboxItems(s);
   const e = items.find((i) => i.kind === 'event')!;
   assert(e !== undefined && e.tier === 'decide' && e.weeksLeft === inline.timeoutWeeks && !e.urgent, 'an event waits to be decided, with its weeks');
-  assert(e.subject.length > 0 && e.subject.length <= 90, `with a subject cut to a sentence ("${e.subject}")`);
+  assert(e.subject === inline.title, `with its title for a subject ("${e.subject}")`);
+  assert(e.preview === fill(inline.text, s.catalogue!.pending[0].vars).split('\n')[0], 'and its text, from the start, for a preview');
   let badge = inboxBadge(items);
   assert(badge.count === 1 && !badge.urgent, 'it counts on the button, calmly');
   assert(inboxPointer(s) === null, 'NEXT leaves a matter with weeks to go to the button');
@@ -89,7 +97,7 @@ function fresh(): GameState {
   badge = inboxBadge(inboxItems(s));
   assert(badge.urgent, 'in its last week the count turns red');
   const p = inboxPointer(s);
-  assert(p !== null && p.go === 'inbox' && p.urgent === true && p.text.startsWith('Answer this week:'), `and NEXT points at the inbox ("${p?.text}")`);
+  assert(p !== null && p.go === 'inbox' && p.urgent === true && p.text === `Answer this week: ${e.subject}`, `and NEXT points at the inbox, by the matter's subject ("${p?.text}")`);
 
   withEvent(s, weekOf(s), 'b');
   const order = inboxItems(s).filter((i) => i.tier === 'decide').map((i) => i.ref);
@@ -255,6 +263,71 @@ function fresh(): GameState {
 
   s.pendingInterrupt = { type: 'summer', payload: { beat: 0, final: true, tuition: 1, admitRate: 0.5 } };
   assert(finalReportUp(s) && inboxItems(s)[0].subject === `Year ${s.clock.year}: The Final Report`, 'the Final Report waits as the summer, then keeps its page');
+}
+
+// A row does not say its sentence twice (Plan 125G1): the preview starts
+// after the subject when the subject is the text's first sentence, cut or
+// whole.
+{
+  const first = 'An inspector spent forty minutes in the boiler room of the Art Gallery, then came out and condemned the boiler.';
+  const rest = 'The building is cold and the notice on the door is red.';
+  const text = `${first} ${rest}\nA second paragraph.`;
+  assert(first.length > 90, 'a first sentence too long for a subject');
+  assert(afterSubject(text, `${first.slice(0, 87)}…`) === rest, 'cut with an ellipsis, the subject still opens the sentence, and the preview starts after it');
+  assert(afterSubject(text, first.replace(/\.$/, '')) === rest, 'as it does whole');
+  assert(afterSubject(text, 'Art Gallery: boiler condemned') === `${first} ${rest}`, 'under a title, the preview is the text from its start');
+  assert(afterSubject('Dr. Novotny has an offer. They brought the letter.', 'Dr. Novotny has an offer') === 'They brought the letter.', 'a title\'s stop does not end the sentence');
+  assert(afterSubject(first, first.replace(/\.$/, '')) === first, 'and a text of one sentence keeps it');
+  assert(firstSentence(text) === first, 'the first sentence is read whole');
+}
+
+// Every event has a subject (Plan 125G2): a title of three to six words,
+// under 50 characters with the longest names the game can put in it, in
+// sentence case, with no final stop and nothing left unfilled.
+{
+  const all = [...EVENT_CATALOGUE, CHARTER_EVENT, FESTIVAL_EVENT, ...BOARD_QUESTIONS];
+  const catalogue = EVENT_CATALOGUE;
+  const untitled = all.filter((e) => typeof e.title !== 'string' || e.title.trim().length === 0).map((e) => e.id);
+  assert(untitled.length === 0, `every event has a title (${untitled.join(', ') || 'all'})`);
+
+  const NAMES = ['building', 'faculty', 'class', 'sport'];
+  const names = (t: string) => [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+  const strange = catalogue.filter((e) => names(e.title).some((n) => !NAMES.includes(n))).map((e) => e.id);
+  assert(strange.length === 0, `a title names only a building, a professor, a class or a sport (${strange.join(', ') || 'all'})`);
+  const letters = all.filter((e) => e.kind === 'seismic' && e.title.includes('{')).map((e) => e.id);
+  assert(letters.length === 0, `a letter's title, which the chronicle reads unfilled, names nothing (${letters.join(', ') || 'all'})`);
+  // A title names only what its every telling names.
+  const unnamed = catalogue.filter((e) => names(e.title).some((n) => !eventTexts(e).every((t) => t.includes(`{${n}}`)))).map((e) => e.id);
+  assert(unnamed.length === 0, `a title names only what every telling of its text names (${unnamed.join(', ') || 'all'})`);
+
+  const written = catalogue.filter((e) => e.title.length >= 50).map((e) => e.id);
+  assert(written.length === 0, `every title is under 50 characters as written (${written.join(', ') || 'all'})`);
+  // The longest each name runs: a building's and a team's from the data, a
+  // class's from the ledger's two forms, a professor's a long one.
+  const longest = (xs: string[]) => xs.reduce((a, b) => (b.length > a.length ? b : a), '');
+  const long: Record<string, string> = {
+    building: longest(initialTech().filter(isPlaceableKind).map((t) => t.name)),
+    faculty: 'Dr. Aleksandra Kowalczyk',
+    class: 'first graduating class',
+    sport: longest(SPORTS.map((x) => x.teamName.replace(/ Team$/, ''))),
+  };
+  assert(long.building.length >= 25 && long.sport.length >= 20, `the longest names are long ("${long.building}", "${long.sport}")`);
+  const over = catalogue.filter((e) => eventTitle(e, long).length >= 50).map((e) => `${e.id} (${eventTitle(e, long).length})`);
+  assert(over.length === 0, `every title is under 50 characters with the longest names in it (${over.join(', ') || 'all'})`);
+
+  const s = fresh();
+  const filled = catalogue.map((e) => ({ e, title: eventTitle(e, rollVars(s, e)) }));
+  const open = filled.filter((x) => x.title.includes('{')).map((x) => x.e.id);
+  assert(open.length === 0, `a filled title holds no unfilled name (${open.join(', ') || 'all'})`);
+  const lower = filled.filter((x) => x.title[0] !== x.title[0].toUpperCase()).map((x) => x.title);
+  assert(lower.length === 0, `a filled title starts with a capital (${lower.join(', ') || 'all'})`);
+  assert(eventTitle({ ...catalogue[0], title: '{building}: boiler condemned' }, { building: 'the Chapel' }) === 'The Chapel: boiler condemned', 'a building named first takes its capital');
+  const stopped = all.filter((e) => /[.!…]$/.test(e.title)).map((e) => e.id);
+  assert(stopped.length === 0, `no title ends in a stop (${stopped.join(', ') || 'all'})`);
+  const wordy = catalogue.filter((e) => e.kind === 'inline' && !e.id.startsWith('town-')).filter((e) => { const n = e.title.split(/\s+/).length; return n < 3 || n > 6; }).map((e) => e.id);
+  assert(wordy.length === 0, `an inline event's title is three to six words (${wordy.join(', ') || 'all'})`);
+  const dashed = all.filter((e) => /[—–]/.test(e.title)).map((e) => e.id);
+  assert(dashed.length === 0, `no title holds a dash (${dashed.join(', ') || 'all'})`);
 }
 
 if (failures === 0) {

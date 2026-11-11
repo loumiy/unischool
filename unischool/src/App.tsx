@@ -585,6 +585,9 @@ export default function App() {
     else if (logOpen) setLogOpen(false);
     // A building in hand is put down before the menu closes (Plan 34).
     else if (buildOpen && placingId) setPlacingIdState(null);
+    // An armed grounds tool is put away the same way, which unfolds the
+    // menu (Plan 126 B).
+    else if (buildOpen && pathTool) setPathToolState(null);
     else if (buildOpen) closeBuild();
     else if (overlay) openTab(null);
   }, shellLive);
@@ -688,7 +691,7 @@ export default function App() {
         {walkTab && <TabWalk key={`${walkTab}:${replay?.n ?? 0}`} tab={walkTab} label={TAB_LABELS[walkTab]} onEnd={endWalk} />}
         {/* The week's small news (Plan 70H), a school's banner, and what
             arrives in the inbox (Plan 77), each with a way to open it. */}
-        <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />
+        <Toasts s={shellLive ? s : null} inboxOpen={overlay?.tab === 'inbox'} overTab={overlay !== null} onOpenInbox={(id) => { markOpened(id); openTab('inbox', id); }} opened={opened} />
         {/* The school's pennant (Pennant.tsx); the tab's title takes that
             corner while a tab is open. */}
         {!overlay && <Pennant s={s} />}

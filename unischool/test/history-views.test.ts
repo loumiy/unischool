@@ -30,7 +30,7 @@ import { STANDINGS } from '../src/systems/rivals/rivalsSystem';
 import { pillarRule, summerRule } from '../src/data/prestigeWords';
 import { researchSchools } from '../src/data/techData';
 import { GRADE_POINTS, meanGradeLetter } from '../src/data/courseQuality';
-import { EARLY_FADE_YEAR, PILLARS, PRESTIGE_FALL_RATE, prestigeBreakdown, riseRateIn, teachingCeiling } from '../src/systems/prestige/prestigeSystem';
+import { EARLY_FADE_YEAR, pillarPartMax, PILLARS, PRESTIGE_FALL_RATE, prestigeBreakdown, prestigeByPillar, riseRateIn, teachingCeiling } from '../src/systems/prestige/prestigeSystem';
 import { prestigeFigure } from '../src/format';
 
 let checks = 0;
@@ -109,21 +109,28 @@ const HOMES: Record<HistoryView, string[]> = {
   assert(views[0].indexOf(pillarRule()) > views[0].indexOf('glance-details'), 'under Details, below the meters (Plan 107D)');
 }
 
-// ---- At a glance: one figure per pillar, and a meter (Plan 107D) ----
+// ---- At a glance: one figure per pillar, and a meter (Plans 107D, 126 F) ----
+// Each row reads the pillar's part of prestige, the figure its tab's head
+// shows, so the four rows sum to the headline.
 {
   const s = launch();
   const html = unescape(render(s, 'prestige'));
   const breakdown = prestigeBreakdown(s);
-  const longest = Math.max(...breakdown.inputs.filter((i) => i.pillar).map((i) => i.weight));
+  const { parts } = prestigeByPillar(s);
+  const max = pillarPartMax(s);
+  const longest = Math.max(...PILLARS.map((p) => max[p]));
+  let sum = 0;
   for (const p of PILLARS) {
-    const input = breakdown.inputs.find((i) => i.key === p)!;
     const row = html.slice(html.indexOf(`glance-pillar pillar-${p}`));
     const figure = row.replace(/<[^>]+>/g, ' ').match(/[+−]?\d+\.\d/)?.[0];
-    const want = `${input.contribution >= 0.05 ? '+' : ''}${input.contribution.toFixed(1)}`;
-    assert(figure === want, `${p}'s row reads one figure, what it adds (${figure} for ${want})`);
+    assert(figure === prestigeFigure(parts[p]), `${p}'s row reads one figure, its part of prestige (${figure} for ${prestigeFigure(parts[p])})`);
+    sum += Number(figure);
     const meter = row.match(/glance-meter" style="width:([\d.]+)%/)?.[1];
-    assert(meter !== undefined && Math.abs(Number(meter) - input.weight / longest * 100) < 0.01, `and a meter as long as the most it can add (${meter}%)`);
+    assert(meter !== undefined && Math.abs(Number(meter) - max[p] / longest * 100) < 0.01, `and a meter as long as the most its part could be (${meter}%)`);
   }
+  assert(Math.abs(sum - s.self.reputation) < 0.45, `the four rows sum to the headline (${sum.toFixed(1)} for ${prestigeFigure(s.self.reputation)})`);
+  const face = html.slice(0, html.indexOf('glance-details'));
+  assert(!face.includes('glance-adjustment'), 'the endowment and upkeep are under Details, not on the face');
   const text = html.slice(0, html.indexOf('glance-details')).replace(/<[^>]+>/g, '');
   assert(!/ of 150 → /.test(text) && !/points of prestige/.test(text), 'no pillar line reads two scales');
   assert(!text.includes(prestigeFigure(breakdown.target)) || prestigeFigure(breakdown.target) === prestigeFigure(breakdown.current), 'and the target is not shown as a figure (Plan 98B)');

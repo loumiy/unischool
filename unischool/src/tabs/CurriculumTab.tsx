@@ -36,7 +36,6 @@ import { sectionAnchor } from '../components/sectionTarget';
 import { SECTION_HEADINGS } from '../data/statChips';
 import { CloseIcon, StatusIcon } from '../components/icons';
 import FacultyPortrait, { portraitOf } from '../components/FacultyPortrait';
-import { ProgressRing } from '../components/Progress';
 import type { Faculty } from '../state/types';
 import { count, countWord, durationWords, fraction, money, moneyShort, signed, surnameOf, weeksShort } from '../format';
 import {
@@ -60,9 +59,6 @@ import PillarHead from '../components/PillarHead';
 //     Business, Law and Medical Schools, in their home schools' colors.
 // A revealed course is never hidden again; "locked" means revealed but
 // blocked (a faculty gate or cross-major prereq), never "undiscovered".
-
-// The catalog's own completion is the panel's headline figure.
-const CATALOG_RING_SIZE = 46;
 
 // A sub-group inside a school section: a completed major or a revealed
 // graduate program (`graduate` carries its degree and the gate it cleared).
@@ -298,6 +294,17 @@ function AggregateGrade({ s, ids, label }: { s: GameState; ids: string[]; label:
 // progress, an unstaffed marker, and a neutral gate dot (not the field's
 // initial, which would hint at school membership).
 //
+// A course still ahead has a foot only where its program's row does not
+// already say it (Plan 125H, the interface review's S-1). A row's Develop
+// line carries its next course's price and best free teacher, and the
+// courses of a tier share both, so a cell in a row (`rowSays`, the foot the
+// next course would print) keeps them in its title and drawer. It prints a
+// foot when nobody can teach it ("needs faculty"), and its price and
+// teacher when they are not the row's: a graduate row whose courses are
+// taught by different people, or a row with no Develop line (every course
+// ahead is waiting). In the filters' worklist a cell has no row, and keeps
+// its price and teacher.
+//
 // Developed courses carry an instructor chip that drags onto another course
 // to swap instructors, previewing both grades. An illegal drop (see
 // techSystem.ts's canSwapInstructors) is a no-op.
@@ -336,10 +343,26 @@ function InstructorChip({ f, quality, draggable, onDragStart, onDragEnd }: {
   );
 }
 
-export function CourseCell({ s, t, selected, onSelect, dnd }: {
+// The foot a course still ahead would print, as words: "$4.0M · Berg 82",
+// "$4.0M · needs faculty", or "$4.0M" for a course that needs nobody. Null
+// for a course started, done or locked. A cell compares its own with its
+// row's next course's (aheadFoot of progress.next).
+export function aheadFoot(s: GameState, t: Buildable | null | undefined): string | null {
+  if (!t) return null;
+  const state = cellState(s, t);
+  if (state !== 'available' && state !== 'blocked') return null;
+  const best = t.requiresFaculty ? eligibleInstructors(s, t)[0] : undefined;
+  return `${moneyShort(t.cost)}${best ? ` · ${surnameOf(best.name)} ${count(projectedQuality(t, best).score)}` : t.requiresFaculty ? ' · needs faculty' : ''}`;
+}
+
+export function CourseCell({ s, t, selected, onSelect, dnd, rowSays }: {
   s: GameState; t: Buildable; selected: boolean; onSelect: (id: string) => void;
   // Only inside the rows; the worklist's cells carry none.
   dnd?: DragHandlers;
+  // In a program's row: the foot its Develop line already says (aheadFoot
+  // of the next course), or null when it has none. Undefined in the
+  // worklist, where every course still ahead keeps its foot.
+  rowSays?: string | null;
 }) {
   const state = cellState(s, t);
   const [code, titleFromName] = t.name.split(' · ');
@@ -367,6 +390,15 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
   // Why a course not yet started cannot start, in the drawer's words (Plan
   // 78F): a greyed (locked) cell's prerequisites, or what holds a red one.
   const reason = courseHoldReason(s, t);
+  const needsFaculty = ahead && !best && !!t.requiresFaculty;
+  const inRow = rowSays !== undefined;
+  // Price and teacher, unless the row says them (see aheadFoot).
+  const ownFoot = ahead && !needsFaculty && (!inRow || aheadFoot(s, t) !== rowSays);
+  // The price, the weeks and the teacher, then what holds it: all a cell
+  // in a row says of a course still ahead, short of its drawer.
+  const hover = ahead
+    ? `${t.name}: ${moneyShort(t.cost)}, ${durationWords(t.duration)}.${best ? ` ${best.name} would teach it at ${count(bestQuality!.score)}.` : ''}${reason ? ` ${reason}.` : ''}`
+    : reason ? `${t.name}: ${reason}` : undefined;
 
   // Swap preview: while a chip is over a legal target, both cells show their
   // would-be grade. Derived from the drag state, not stored.
@@ -391,14 +423,15 @@ export function CourseCell({ s, t, selected, onSelect, dnd }: {
       id={`course-${t.id}`}
       className={`course-cell ${state}${t.graduateProgram ? ' graduate' : ''}${unstaffed ? ' unstaffed' : ''}${transit ? ' transit' : ''}${selected ? ' selected' : ''}${isSource ? ' drag-source' : ''}${legalTarget ? ' drop-target' : ''}${isTarget && legalTarget ? ' drop-over' : ''}`}
       aria-pressed={selected}
-      title={reason ? `${t.name}: ${reason}` : undefined}
+      title={hover}
       onClick={() => onSelect(t.id)}
       onDragOver={dnd && legalTarget ? (e) => { e.preventDefault(); if (dnd.over !== t.id) dnd.onDragOver(t.id); } : undefined}
       onDrop={dnd && legalTarget ? (e) => { e.preventDefault(); dnd.onDrop(t.id); } : undefined}
     >
       <span className="cell-code">{code}</span>
-      <span className="cell-title" title={reason ? undefined : title}>{title}</span>
-      {ahead && (
+      <span className="cell-title" title={hover ? undefined : title}>{title}</span>
+      {inRow && needsFaculty && <span className="cell-next">needs faculty</span>}
+      {(ownFoot || (!inRow && needsFaculty)) && (
         <span className="cell-next">
           {moneyShort(t.cost)}
           {best
@@ -950,6 +983,8 @@ function ProgramRowView(
   const dark = unstaffedPrograms(s).has(program.id);
   const finished = progress.total > 0 && progress.done === progress.total;
   const objectives = useSettings().objectives;
+  // What the row's Develop line says of its next course (Plan 125H).
+  const rowSays = aheadFoot(s, progress.next);
   const [collapsed, toggle] = useCollapse(
     `program:${program.id}`,
     programFoldedByDefault(s, program, rowsOpenEarly(s, objectives), { progress, dark, lookup }),
@@ -984,7 +1019,7 @@ function ProgramRowView(
           const rule = !graduate && (i === 1 || i === 5 || i === 9) ? <span key={`rule-${i}`} className="tier-rule" aria-hidden="true" /> : null;
           const cell = !t || !row.revealed.has(id)
             ? <span key={id} className="course-cell placeholder" aria-hidden="true" />
-            : <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} dnd={dnd} />;
+            : <CourseCell key={id} s={s} t={t} selected={selectedId === id} onSelect={onSelect} dnd={dnd} rowSays={rowSays} />;
           return rule ? [rule, cell] : cell;
         })}
       </div>}
@@ -1080,7 +1115,7 @@ function FilterBar(
   { filters: Filters; onChange: (f: Filters) => void; resultCount: number | null },
 ) {
   return (
-    <div className="curriculum-filters">
+    <div className="curriculum-filters" id="curriculum-filters">
       <input
         id="curriculum-search"
         type="search"
@@ -1199,41 +1234,51 @@ function CommitteeBox({ s, lookup, onOpenFaculty }: {
 // The curriculum committee (techSystem.ts's committeeSeats): a seat for each
 // course it can write at once, undergraduate or graduate (Plan 80E), four to
 // start and one more at each prestige step, up to eight. A filled seat shows
-// its course, how far along it is and its weeks; an open one reads "Free"; a
-// locked one says what opens it. The dock's lamps under the Curriculum tab
-// draw the same seats (Plan 91, CommitteeLamps.tsx).
+// its course, how far along it is and its weeks; an open one reads "Free".
+// After the earned seats comes one stub for the next, "next at prestige 70",
+// and none once every step is passed (Plan 125H: a box for every seat still
+// locked was drawn before, four of them from year 2, and a sentence under
+// them that repeated the first). The dock's lamps under the Curriculum tab
+// draw the earned seats (Plan 91, CommitteeLamps.tsx).
+export type CommitteeSeat =
+  | { kind: 'busy'; course: Buildable; weeksLeft: number }
+  | { kind: 'free' }
+  | { kind: 'next'; at: number };
+export function committeeSeatRow(s: GameState): CommitteeSeat[] {
+  const writing = coursesInDevelopment(s);
+  const row: CommitteeSeat[] = Array.from({ length: committeeSeats(s) }, (_, i) => {
+    const course = writing[i];
+    return course ? { kind: 'busy', course, weeksLeft: s.developing[course.id] ?? course.duration } : { kind: 'free' };
+  });
+  const next = nextCommitteeSeatAt(s);
+  if (next !== null) row.push({ kind: 'next', at: next });
+  return row;
+}
+
 function CommitteePanel({ s }: { s: GameState }) {
   const seats = committeeSeats(s);
   const writing = coursesInDevelopment(s);
-  // The Office of Curriculum Development's seat (Plan 89E) sits beside the
-  // prestige seats, so the locked ones still read their own prestige.
+  // The Office of Curriculum Development's seat (Plan 89E) is one more
+  // than the prestige steps give.
   const officeSeats = committeeOfficeSeats(s);
   const maxSeats = COURSE_DEVELOPMENT_SLOTS + COMMITTEE_PRESTIGE_STEPS.length + officeSeats;
-  const next = nextCommitteeSeatAt(s);
   return (
     <section className="committee" aria-label="Curriculum committee" {...sectionAnchor('curriculum.committee')}>
       <header className="committee-head">
         <span className="next-up-label">{SECTION_HEADINGS['curriculum.committee']}</span>
         <span className="committee-count">writing {writing.length} of {seats}</span>
-        <HelpHint
-          align="end"
-          text={`The curriculum committee writes up to ${seats} courses at once, graduate courses included. When one is done, its seat is free for the next. Each course takes its own number of weeks, so they finish at different times. The committee gains a seat at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}${officeSeats > 0 ? '. One of them comes from the Office of Curriculum Development' : ''}.`}
-        />
       </header>
       <ol className="committee-seats">
-        {Array.from({ length: maxSeats }, (_, i) => {
-          if (i >= seats) {
-            const at = COMMITTEE_PRESTIGE_STEPS[i - COURSE_DEVELOPMENT_SLOTS - officeSeats];
+        {committeeSeatRow(s).map((seat, i) => {
+          if (seat.kind === 'next') {
             return (
-              <li key={i} className="committee-seat locked" title={`Opens at prestige ${at}`}>
-                <span className="committee-seat-left">at prestige</span>
-                <span className="committee-seat-name">{at}</span>
+              <li key={i} className="committee-seat locked" title={`The committee gains a seat at prestige ${seat.at}`}>
+                <span className="committee-seat-left">next at prestige {seat.at}</span>
               </li>
             );
           }
-          const t = writing[i];
-          if (!t) return <li key={i} className="committee-seat open" title="Free. The committee has room for another course."><span className="committee-seat-name">Free</span></li>;
-          const left = s.developing[t.id] ?? t.duration;
+          if (seat.kind === 'free') return <li key={i} className="committee-seat open" title="Free. The committee has room for another course."><span className="committee-seat-name">Free</span></li>;
+          const { course: t, weeksLeft: left } = seat;
           const done = t.duration > 0 ? 1 - left / t.duration : 1;
           const code = t.name.split(' · ')[0];
           return (
@@ -1245,7 +1290,10 @@ function CommitteePanel({ s }: { s: GameState }) {
           );
         })}
       </ol>
-      {next !== null && <p className="committee-note">One more at a time from prestige {next}.</p>}
+      <HelpHint
+        align="end"
+        text={`The curriculum committee writes up to ${seats} courses at once, graduate courses included. When one is done, its seat is free for the next. Each course takes its own number of weeks, so they finish at different times. The committee gains a seat at prestige ${COMMITTEE_PRESTIGE_STEPS.join(', ')}, up to ${maxSeats}${officeSeats > 0 ? '. One of them comes from the Office of Curriculum Development' : ''}.`}
+      />
     </section>
   );
 }
@@ -1304,14 +1352,12 @@ export default function CurriculumTab(
   },
 ) {
   const revealedGrad = revealedGraduatePrograms(s);
-  // The headline ring counts undergraduate courses plus revealed graduate
+  // The headline count is of undergraduate courses plus revealed graduate
   // work, never the whole seed.
   const courses = s.tech.filter(
     (t) => t.kind === 'course' && (!t.graduateProgram || revealedGrad.has(t.graduateProgram)),
   );
   const doneCourses = courses.filter((t) => t.status === 'done').length;
-  const catalogFraction = courses.length > 0 ? doneCourses / courses.length : 0;
-  const catalogPct = Math.round(catalogFraction * 100);
 
   const lookup = new Map(s.tech.map((t) => [t.id, t]));
   const sections = buildSections(s, revealedGrad);
@@ -1319,6 +1365,10 @@ export default function CurriculumTab(
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  // The filters fold behind one button in the head (Plan 125H). They are
+  // open once it is pressed, and whenever a filter is set: a link that
+  // arrives with one (targetFilters) opens them with it.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Committing a course keeps the list where it was (Plan 124G, R-4). The
   // commit can fold rows above it (programFoldedByDefault: a row whose next
@@ -1394,6 +1444,7 @@ export default function CurriculumTab(
     } else if (filtered) {
       setSelectedId(null);
       setFilters(filtered);
+      setFiltersOpen(true);
     } else if (target === 'curriculum.committee') {
       // The dock's committee chip (Plan 80E): the panel shows unfiltered.
       // 'nearest', since where the head is pinned it is already in view.
@@ -1417,6 +1468,18 @@ export default function CurriculumTab(
   }, [unseenKey]);
 
   const filtering = filtersActive(filters);
+  const filtersShown = filtersOpen || filtering;
+  // Pressed open, the search takes the keys; pressed shut, the filters go
+  // with the row, since no filter is ever set out of sight.
+  const toggleFilters = () => {
+    if (filtersShown) {
+      setFiltersOpen(false);
+      setFilters(NO_FILTERS);
+      return;
+    }
+    setFiltersOpen(true);
+    window.setTimeout(() => document.getElementById('curriculum-search')?.focus(), 0);
+  };
   const matches = filtering
     ? visibleCourseIds(s)
       .map((id) => lookup.get(id))
@@ -1440,16 +1503,18 @@ export default function CurriculumTab(
             )}
           </span>
           <span className="panel-head-figure">
-            <span className="progress-figure">
-              <ProgressRing
-                fraction={catalogFraction}
-                size={CATALOG_RING_SIZE}
-                center={`${catalogPct}%`}
-                title={`${doneCourses} of ${courses.length} courses developed`}
-              />
-              <span className="stat">{fraction(doneCourses, courses.length)}<br />developed</span>
-            </span>
+            <span className="stat">{fraction(doneCourses, courses.length)} developed</span>
             <AggregateGrade s={s} ids={courses.map((c) => c.id)} label="The catalog" />
+            <button
+              type="button"
+              className={`panel-action curriculum-filter-toggle${filtersShown ? ' on' : ''}`}
+              aria-expanded={filtersShown}
+              aria-controls="curriculum-filters"
+              title={filtering ? 'Clear the filters and fold them away' : filtersShown ? 'Fold the filters away' : 'Search the courses, or list them by status'}
+              onClick={toggleFilters}
+            >
+              Filter
+            </button>
             <HelpHint
               align="end"
               legend={[
@@ -1457,7 +1522,8 @@ export default function CurriculumTab(
                 { mark: <span className="legend-mono">5/10</span>, says: 'Courses done, of the program\'s ten' },
                 { mark: <span className="legend-chip row-action-develop">Develop</span>, says: 'Starts the next course with the best free professor, at the score shown' },
                 { mark: <span className="legend-mono">▸</span>, says: 'Opens a program\'s courses. Choose… picks someone else' },
-                { mark: <span className="legend-chip">Below top band</span>, says: `Courses under ${GRADE_A}, holding your college back` },
+                { mark: <span className="legend-chip">Filter</span>, says: 'Opens a search and the lists of courses' },
+                { mark: <span className="legend-chip">Below top band</span>, says: `In Filter: courses under ${GRADE_A}, holding your college back` },
               ]}
               text={'A school gets its name once six of its programs share a hall. Graduate programs come last.\n\n'
                 + 'A professor teaches a little under their teaching score in upper-level courses, and further under in advanced ones, the capstone and graduate work.\n\n'
@@ -1466,13 +1532,14 @@ export default function CurriculumTab(
           </span>
         </div>
 
-        {/* The committee, the offers and the filters stay pinned at the
-            head of the tab while the programs scroll (Plan 76B). */}
+        {/* The committee, the offers and the filters, while they are open,
+            stay pinned at the head of the tab while the programs scroll
+            (Plan 76B). */}
         <div className="curriculum-pinned">
         {!filtering && <CommitteeBox s={s} lookup={lookup} onOpenFaculty={onOpenFaculty} />}
         {!filtering && <FreeSlotLine s={s} onGo={onGo} />}
 
-        <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />
+        {filtersShown && <FilterBar filters={filters} onChange={setFilters} resultCount={filtering ? matches.length : null} />}
 
         {s.finance.cash < 0 && (
           <p className="stall-note">Cash is negative.</p>

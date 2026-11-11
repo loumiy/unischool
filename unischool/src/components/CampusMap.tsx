@@ -1,9 +1,10 @@
 import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
-import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { BenchFacing, Buildable, Facing, GameState, HallSlot, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
 import { entryKey, useCampusLayout, type CampusLayout } from './campusLayout';
+import { DISC_ZOOM, LABEL_ZOOM, PIP_ZOOM, createZoomStore, hallRowFits, heldScale, type ZoomStore } from './markScale';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import {
   ROAD_FIRST_ROW, canPlace, nextFacing,
@@ -46,7 +47,7 @@ import { surfaceOf } from '../state/paving';
 import { shapeStroke, tilesBetween, type Stroke } from './pathStroke';
 import { castShadow } from './light';
 import {
-  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
+  DEFAULT_CAMERA, DEFAULT_PITCH_INDEX, PITCHES, TILE_W, TURN_MS, VIEWS, WORLD, boxFaces, lift, polyPoints, project, setCamera, tileAt,
   turnStep, unproject, type Camera, type Pt,
 } from './isoProjection';
 import { reducedMotion, useSettings } from '../settings';
@@ -324,6 +325,19 @@ function labelLayout(label: string, t: Buildable, p: Placement, college: Vernacu
   return { size, centre, textWidth };
 }
 
+// Where a building's mark sits (a hall's pips, a lab's disc, a full
+// residence's): just above its label. It is also the point the mark and the
+// label are held to a size on screen about (markScale.ts), so the mark
+// stays where it is on the roof at every zoom and the label keeps clear
+// under it.
+function markAnchor(t: Buildable, p: Placement, college: Vernacular) {
+  const { size, centre } = labelLayout(t.name, t, p, college);
+  return { x: centre.x, y: centre.y - size * 0.6 - HALL_MARK_LIFT };
+}
+function anchorTransform(a: { x: number; y: number }): string {
+  return `translate(${a.x.toFixed(2)} ${a.y.toFixed(2)})`;
+}
+
 // One thing standing on the map, as the depth sort sees it. Masses, trees
 // and props are sorted as one list so a tree can be in front of one hall and
 // behind another.
@@ -504,7 +518,11 @@ function castShadowsArt(d: { buildings: string; trees: string }) {
 function BuildingLabel({ t, p, label, pinned, vernacular }: {
   t: Buildable; p: Placement; label: string; pinned: boolean; vernacular: Vernacular;
 }) {
-  const { size, centre, textWidth } = labelLayout(label, t, p, vernacular);
+  const { size, centre: roof, textWidth } = labelLayout(label, t, p, vernacular);
+  // Drawn about the mark's anchor, where it is held to a size on screen
+  // (Plan 126 J): `centre` is the plate's center from there.
+  const anchor = markAnchor(t, p, vernacular);
+  const centre = { x: 0, y: roof.y - anchor.y };
   const textRef = useRef<SVGTextElement>(null);
   // The measured box, relative to the text's anchor. It depends only on the
   // name and size, so it is re-measured when those change and re-anchored on
@@ -544,19 +562,23 @@ function BuildingLabel({ t, p, label, pinned, vernacular }: {
       data-h={p.h}
       data-pinned={pinned ? '1' : undefined}
     >
-      <rect
-        className="campus-label-plate"
-        x={plate.x - LABEL_PLATE_PAD_X}
-        y={plate.y - LABEL_PLATE_PAD_Y}
-        width={plate.w + LABEL_PLATE_PAD_X * 2}
-        height={plate.h + LABEL_PLATE_PAD_Y * 2}
-        rx={3}
-      />
-      {/* .campus-label-text carries dominant-baseline: middle; don't add a
-          manual baseline nudge. */}
-      <text ref={textRef} className="campus-label-text" x={centre.x} y={centre.y} fontSize={size}>
-        {label}
-      </text>
+      <g transform={anchorTransform(anchor)}>
+        <g className="campus-k-label">
+          <rect
+            className="campus-label-plate"
+            x={plate.x - LABEL_PLATE_PAD_X}
+            y={plate.y - LABEL_PLATE_PAD_Y}
+            width={plate.w + LABEL_PLATE_PAD_X * 2}
+            height={plate.h + LABEL_PLATE_PAD_Y * 2}
+            rx={3}
+          />
+          {/* .campus-label-text carries dominant-baseline: middle; don't add a
+              manual baseline nudge. */}
+          <text ref={textRef} className="campus-label-text" x={centre.x} y={centre.y} fontSize={size}>
+            {label}
+          </text>
+        </g>
+      </g>
     </g>
   );
 }
@@ -565,6 +587,18 @@ function BuildingLabel({ t, p, label, pinned, vernacular }: {
 const HALL_PIP_R = 6.5;
 const HALL_PIP_GAP = 17;
 const HALL_MARK_LIFT = 28;
+// The one mark a hall shows where its row would not fit its roof (Plan
+// 126 J): a disc on the pips' plate.
+const HALL_ONE_R = 10;
+// A row's width, plate and all, and the roof it has to fit: the footprint's
+// width across the screen through its middle, which a quarter turn and a
+// tilt leave as it is.
+function hallRowWidth(pips: number): number {
+  return (pips - 1) * HALL_PIP_GAP + HALL_PIP_R * 2 + 8;
+}
+function roofWidth(p: Placement): number {
+  return Math.min(p.w, p.h) * TILE_W;
+}
 
 // A program's pip is ringed silver once it is Established and gold once it
 // is Distinguished (Plan 112D). The owner, of the red ring it replaces (a
@@ -573,20 +607,30 @@ const HALL_MARK_LIFT = 28;
 // the hall panel still say which department a course waits on.
 const STANDING_WORD: Record<ProgramStanding, string> = { established: 'Established', distinguished: 'Distinguished' };
 
-function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onInspect }: {
+function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onInspect, zoom }: {
   t: Buildable; p: Placement; slots: ReadonlyArray<HallSlot>;
+  // The map's zoom, read only for whether the row fits the roof.
+  zoom: ZoomStore;
   offerWaiting: boolean; standing: ReadonlyArray<ProgramStanding | null>;
   // A program with a course nobody teaches (Plan 124 L): its pip goes dark,
   // ringed in dashed red, until a teacher is appointed (mapSignals.ts).
   dark: ReadonlyArray<boolean>;
   vernacular: Vernacular; onInspect: () => void;
 }) {
-  const { size, centre } = labelLayout(t.name, t, p, vernacular);
-  const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
   const free = slots.filter(slotFree).length;
   const flag = free > 0 && offerWaiting;
   const total = slots.length + (flag ? 1 : 0);
-  const x0 = centre.x - ((total - 1) * HALL_PIP_GAP) / 2;
+  // The pips are laid out about the mark's anchor.
+  const y = 0;
+  const x0 = -((total - 1) * HALL_PIP_GAP) / 2;
+  // Below the zoom where the row would be wider than the roof on screen, one
+  // mark for the building (Plan 126 J). A boolean, so a zoom draws a hall
+  // again only when it changes over.
+  const fits = () => hallRowFits(hallRowWidth(total), roofWidth(p), zoom.get());
+  const one = !useSyncExternalStore(zoom.subscribe, fits, fits);
+  // What the one mark counts: the slots held, programs and offices alike, so
+  // Founders Hall holding only offices does not read "0".
+  const held = slots.filter((slot) => slot.programId !== null || slot.office).length;
   // An office's pip wears the college's own colour (Plan 89F).
   const hues = slots.map((slot) => {
     if (slot.office) return 'var(--school-primary)';
@@ -604,26 +648,50 @@ function HallMarks({ t, p, slots, offerWaiting, standing, dark, vernacular, onIn
   return (
     <g className="campus-hall-marks" role="button" onClick={onInspect} aria-label={`${t.name}: ${slots.length - free} of ${slots.length} program slots filled${tiers ? `, ${tiers}` : ''}${darkWords ? `, ${darkWords}` : ''}${flag ? ', a program on offer' : ''}`}>
       <title>{`${slots.length - free} of ${slots.length} program slots filled${tiers ? ` · ${tiers} (silver ring Established, gold Distinguished)` : ''}${darkWords ? ` · ${darkWords}` : ''}${flag ? ' · room for a program on offer' : ''}`}</title>
-      <rect
-        className="campus-hall-marks-plate"
-        x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}
-        width={(total - 1) * HALL_PIP_GAP + HALL_PIP_R * 2 + 8} height={HALL_PIP_R * 2 + 6}
-        rx={HALL_PIP_R + 3}
-      />
-      {hues.map((hue, i) => (
-        <circle
-          key={i}
-          className={`campus-hall-pip${hue ? ' filled' : ''}${dark[i] ? ' dark' : standing[i] ? ` ${standing[i]}` : ''}`}
-          cx={x0 + i * HALL_PIP_GAP} cy={y} r={HALL_PIP_R}
-          style={hue && !dark[i] ? { fill: hue } : undefined}
-        />
-      ))}
-      {flag && (
-        <g className="campus-hall-flag" transform={`translate(${x0 + slots.length * HALL_PIP_GAP} ${y})`}>
-          <circle r={HALL_PIP_R + 1} />
-          <path d={`M ${-HALL_PIP_R * 0.55} 0 H ${HALL_PIP_R * 0.55} M 0 ${-HALL_PIP_R * 0.55} V ${HALL_PIP_R * 0.55}`} />
+      <g transform={anchorTransform(markAnchor(t, p, vernacular))}>
+        <g className="campus-k-pip">
+          {one ? (
+            <>
+              {/* A little more to click than the disc. */}
+              <circle className="campus-hall-one-hit" r={HALL_ONE_R + 8} />
+              <circle className="campus-hall-marks-plate" r={HALL_ONE_R + 3.5} />
+              {/* Dark while any program is; else how many slots it holds,
+                  ringed gold while there is room for one on offer. */}
+              {darkCount > 0 ? (
+                <circle className="campus-hall-pip dark" r={HALL_ONE_R} />
+              ) : (
+                <>
+                  <circle className={`campus-hall-one${flag ? ' offer' : ''}`} r={HALL_ONE_R} />
+                  <text className="campus-hall-count" fontSize={HALL_ONE_R * 1.5}>{held}</text>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <rect
+                className="campus-hall-marks-plate"
+                x={x0 - HALL_PIP_R - 4} y={y - HALL_PIP_R - 3}
+                width={hallRowWidth(total)} height={HALL_PIP_R * 2 + 6}
+                rx={HALL_PIP_R + 3}
+              />
+              {hues.map((hue, i) => (
+                <circle
+                  key={i}
+                  className={`campus-hall-pip${hue ? ' filled' : ''}${dark[i] ? ' dark' : standing[i] ? ` ${standing[i]}` : ''}`}
+                  cx={x0 + i * HALL_PIP_GAP} cy={y} r={HALL_PIP_R}
+                  style={hue && !dark[i] ? { fill: hue } : undefined}
+                />
+              ))}
+              {flag && (
+                <g className="campus-hall-flag" transform={`translate(${x0 + slots.length * HALL_PIP_GAP} ${y})`}>
+                  <circle r={HALL_PIP_R + 1} />
+                  <path d={`M ${-HALL_PIP_R * 0.55} 0 H ${HALL_PIP_R * 0.55} M 0 ${-HALL_PIP_R * 0.55} V ${HALL_PIP_R * 0.55}`} />
+                </g>
+              )}
+            </>
+          )}
         </g>
-      )}
+      </g>
     </g>
   );
 }
@@ -643,16 +711,15 @@ const LAB_ORBIT = (() => {
 function LabMark({ t, p, run, vernacular, onInspect }: {
   t: Buildable; p: Placement; run: Initiative; vernacular: Vernacular; onInspect: () => void;
 }) {
-  const { size, centre } = labelLayout(t.name, t, p, vernacular);
-  const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
   const done = run.weeksTotal > 0 ? Math.max(0, Math.min(1, 1 - run.weeksRemaining / run.weeksTotal)) : 0;
   const hue = t.schoolGate ? schoolMark(t.schoolGate).hue : undefined;
   const topic = researchTopic(run.topicId)?.name ?? 'Research';
   const still = reducedMotion();
   return (
-    <g className="campus-lab-mark" role="button" onClick={onInspect} transform={`translate(${centre.x.toFixed(2)} ${y.toFixed(2)})`}
+    <g className="campus-lab-mark" role="button" onClick={onInspect} transform={anchorTransform(markAnchor(t, p, vernacular))}
       aria-label={`${t.name}: ${topic}, ${pct(done)} done`}>
       <title>{`${topic} · ${weeksShort(run.weeksRemaining)} left`}</title>
+      <g className="campus-k-disc">
       <circle className="campus-lab-plate" r={LAB_MARK_R + 4.5} />
       <circle className="campus-lab-track" r={LAB_MARK_R} />
       <circle
@@ -671,6 +738,7 @@ function LabMark({ t, p, run, vernacular, onInspect }: {
             <animateMotion dur="2.6s" repeatCount="indefinite" path={LAB_ORBIT} />
           </circle>
         )}
+      </g>
       </g>
     </g>
   );
@@ -701,19 +769,19 @@ const HOUSE_MARK_R = 11;
 function FullMark({ t, p, vernacular, onInspect }: {
   t: Buildable; p: Placement; vernacular: Vernacular; onInspect: () => void;
 }) {
-  const { size, centre } = labelLayout(t.name, t, p, vernacular);
-  const y = centre.y - size * 0.6 - HALL_MARK_LIFT;
   const r = HOUSE_MARK_R;
   return (
-    <g className="campus-full-mark" role="button" onClick={onInspect} transform={`translate(${centre.x.toFixed(2)} ${y.toFixed(2)})`}
+    <g className="campus-full-mark" role="button" onClick={onInspect} transform={anchorTransform(markAnchor(t, p, vernacular))}
       aria-label={`${t.name}: full, every bed taken`}>
       <title>Full: every bed taken</title>
+      <g className="campus-k-disc">
       <circle className="campus-lab-plate" r={r + 4.5} />
       <circle className="campus-full-ring" r={r} />
       {/* A bed: headboard, mattress, pillow, legs. */}
       <path className="campus-full-bed" d={`M ${-r * 0.6} ${-r * 0.4} V ${r * 0.42} M ${-r * 0.6} ${r * 0.1} H ${r * 0.62} V ${r * 0.42}`} />
       <rect className="campus-full-pillow" x={-r * 0.46} y={-r * 0.16} width={r * 0.34} height={r * 0.22} rx={r * 0.06} />
       <path className="campus-full-bed" d={`M ${-r * 0.08} ${-r * 0.06} H ${r * 0.62}`} />
+      </g>
     </g>
   );
 }
@@ -1192,10 +1260,12 @@ registerArt(CastShadows, (p: CastShadowsProps, s: ArtScope) => castShadowsArt(
 // stall in any week. What each hall shows is read once a state (the offers
 // and the departments are the costly part), and a turn only re-projects it
 // (Plan 80H: every frame of a turn read every hall's offers again).
-const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, camera }: {
+const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, camera, zoom }: {
   s: GameState; layout: CampusLayout; onInspect: (id: string) => void;
   // A prop so the memo redraws on a camera change (the pips are projected).
   camera: Camera;
+  // The same store for the map's life, so the memo never sees it change.
+  zoom: ZoomStore;
 }) {
   void camera;
   const halls = useMemo(() => {
@@ -1223,6 +1293,7 @@ const HallMarksLayer = memo(function HallMarksLayer({ s, layout, onInspect, came
           dark={dark}
           vernacular={layout.vernacular}
           onInspect={() => onInspect(t.id)}
+          zoom={zoom}
         />
       ))}
     </>
@@ -1456,7 +1527,7 @@ export default function CampusMap({
   // A lab's news (labNews.ts): a paper, a grant or a breakthrough rises over
   // the lab the week it lands. A load or a new run is where the run stands,
   // not news; reduced motion shows it still, for as long.
-  const [labNews, setLabNews] = useState<readonly (LabNews & { key: number; still: boolean; scale: number })[]>([]);
+  const [labNews, setLabNews] = useState<readonly (LabNews & { key: number; still: boolean; scale: number; markScale: number })[]>([]);
   const heardRef = useRef<GameState['log'][number] | undefined>(undefined);
   const labNewsKeyRef = useRef(0);
   useEffect(() => {
@@ -1466,7 +1537,7 @@ export default function CampusMap({
     const still = reducedMotion();
     const scale = Math.max(LAB_NEWS_SCALE[0], Math.min(LAB_NEWS_SCALE[1], 1 / viewRef.current.zoom));
     const made = labNewsIn(fresh, (id) => s.placements[id] !== undefined)
-      .map((n) => ({ ...n, key: labNewsKeyRef.current++, still, scale }));
+      .map((n) => ({ ...n, key: labNewsKeyRef.current++, still, scale, markScale: heldScale(viewRef.current.zoom, DISC_ZOOM) }));
     if (made.length === 0) return;
     const keys = new Set(made.map((n) => n.key));
     setLabNews((cur) => [...cur, ...made]);
@@ -1525,6 +1596,10 @@ export default function CampusMap({
   // The land around the campus: a third <svg>, under the map's.
   const ringWorldRef = useRef<SVGGElement>(null);
   const viewRef = useRef({ x: 0, y: 0, zoom: 1 });
+  // The zoom as the marks read it (markScale.ts, Plan 126 J), and the world
+  // group and zoom their scales were last written for.
+  const [zoomStore] = useState(() => createZoomStore());
+  const heldRef = useRef<{ el: SVGGElement | null; zoom: number }>({ el: null, zoom: 0 });
   // The canvas's size, kept by an observer so the pan's leash never has to
   // measure the scene mid-drag.
   const canvasSizeRef = useRef<{ width: number; height: number } | null>(null);
@@ -1666,6 +1741,16 @@ export default function CampusMap({
     worldRef.current?.setAttribute('transform', transform);
     ghostWorldRef.current?.setAttribute('transform', transform);
     ringWorldRef.current?.setAttribute('transform', transform);
+    // The marks' and labels' size on screen: written when the zoom changes,
+    // so a pan writes nothing and a zoom renders nothing.
+    const world = worldRef.current;
+    if (world && (heldRef.current.el !== world || heldRef.current.zoom !== v.zoom)) {
+      heldRef.current = { el: world, zoom: v.zoom };
+      world.style.setProperty('--k-pip', heldScale(v.zoom, PIP_ZOOM).toFixed(4));
+      world.style.setProperty('--k-disc', heldScale(v.zoom, DISC_ZOOM).toFixed(4));
+      world.style.setProperty('--k-label', heldScale(v.zoom, LABEL_ZOOM).toFixed(4));
+    }
+    zoomStore.set(v.zoom);
     paintLabels(cursorRef.current);
     if (canvasOn() && size) mapCanvasRef.current?.setView(v, size);
   }
@@ -2722,7 +2807,7 @@ export default function CampusMap({
             {risingArt}
             <Walkers key={canvasOn() ? 'canvas' : 'svg'} layout={layout} students={totalEnrolled(s.students)} gait={gait} camera={camera} turning={turning} sink={canvasOn() ? crowdSink : undefined} resting={resting} queues={queues} gathered={gathered} />
             {/* Founders Hall's slots wait for it to stand (Plan 124H). */}
-            {!rising && <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />}
+            {!rising && <HallMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} zoom={zoomStore} />}
             <LabMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             <FullMarksLayer s={s} layout={layout} onInspect={onInspect} camera={camera} />
             {justPlaced.map((id) => {
@@ -2741,10 +2826,11 @@ export default function CampusMap({
             {labNews.map((n) => {
               const placed = layout.placed.find(({ t }) => t.id === n.lab);
               if (!placed) return null;
-              const { size, centre } = labelLayout(placed.t.name, placed.t, placed.p, layout.vernacular);
-              const y = centre.y - size * 0.6 - HALL_MARK_LIFT - LAB_MARK_R - 6;
+              // Over the lab's mark, at the size the mark had when it rose.
+              const anchor = markAnchor(placed.t, placed.p, layout.vernacular);
+              const y = anchor.y - (LAB_MARK_R + 6) * n.markScale;
               return (
-                <g key={n.key} className={`lab-news ${n.kind}${n.still ? ' still' : ''}`} transform={`translate(${centre.x.toFixed(2)} ${y.toFixed(2)}) scale(${n.scale.toFixed(3)})`} aria-hidden="true">
+                <g key={n.key} className={`lab-news ${n.kind}${n.still ? ' still' : ''}`} transform={`translate(${anchor.x.toFixed(2)} ${y.toFixed(2)}) scale(${n.scale.toFixed(3)})`} aria-hidden="true">
                   <text style={{ animationDelay: `${n.order * LAB_NEWS_STEP_MS}ms` }} y={n.still ? -n.order * 16 : 0}>{n.text}</text>
                 </g>
               );

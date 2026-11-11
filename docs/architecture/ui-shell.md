@@ -30,8 +30,9 @@ the chronicle, the charts and the table) waits for the first commencement,
 and one note says so until then (Plan 78C). A section no milestone names is
 somewhere a link can land: the tab scrolls to its `data-section`
 (`sectionTarget.ts`). The Research tab lands on a lab the same way
-(`data-lab`, from a lab's map panel: "lab:<id>", or "start:<id>" with its
-project choices open; Plan 80B). A milestone is never undone, so a tab once open stays
+(`data-lab`, from a lab's map panel: "lab:<id>", which opens a running
+lab's row, a single line until then (Plan 126 I), or "start:<id>" with a
+vacant lab's project choices open; Plan 80B). A milestone is never undone, so a tab once open stays
 open. The first time a gated tab
 opens the activity log says so, unless its milestone's letter already
 does.
@@ -56,8 +57,9 @@ The **log ticker** is one line, the newest log entry, directly above the
 toolbar. Above it a **toast stack** shows the things that never stop the clock
 — a course or building finished, a program founded, a petition, a paper, a
 candidate in a short field, a project concluded without a report — six
-seconds each, four at most (`Toasts.tsx`), each a button that opens the tab
-it is about; an **arrival** (a matter or a letter reaching the inbox) carries
+seconds each, four at most (`Toasts.tsx`), up to two lines each, like ones
+of a week merged into the first ("…, and 2 more", Plan 125D); over an open
+tab the newest alone sits in the tab's header, so none covers the tab; an **arrival** (a matter or a letter reaching the inbox) carries
 an Open button and stays eight seconds (in year one a founding note or a
 milestone stays until opened or dismissed, Plan 78B), and none arrives while
 the inbox is open. With Settings' "Pause for an urgent matter" on (the
@@ -525,10 +527,13 @@ points. A door that names a building, or a chapter that rings one, opens
 it on that building's tab instead (Plan 114F). The grounds' tools are **quarter tiles** (`BuildPopup.tsx`'s
 `CampusToolsTiles`): four to the space of one building's tile, under one
 "Grounds · free" label, so the row of small, repeatable things stays short.
-**Paths** and **Trees** are one tile each, a row each; armed, its styles
-extend from it in its row as a tray (`MiniToolRow`: Paving, Cobbles and
-Brick; Any tree and the seven species), the chosen one ringed, and the tool's
-own tile shows the one chosen. Both choices are the session's, not the run's
+**Paths** and **Trees** are one tile each, and the tool's own tile shows the
+style chosen. Armed, any grounds tool folds the menu to a strip along the
+toolbar (Plan 125B, `ToolStrip`), as a building in hand does, so the ground
+being drawn on is never under it: the tool's name, its styles as pills
+(Paving, Cobbles and Brick; Any tree and the seven species), and *All tools*,
+which puts the tool away and opens the menu again. `Esc` does the same
+before it closes the menu. Both choices are the session's, not the run's
 (`pathChoice.ts`, `plantingChoice.ts`). Lamp, Banner lamp, Bench and Flower
 bed follow in columns of two, then one **Eraser** that deletes whatever
 decoration is on a tile. While a grounds tool is armed, a strip at the top of

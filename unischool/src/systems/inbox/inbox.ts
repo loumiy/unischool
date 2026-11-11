@@ -5,7 +5,7 @@ import { absoluteWeek, findDecisionEvent, findOpeningLetter, type MilestonePaylo
 import { MILESTONES, CHARTER_ID } from '../../data/ladderData';
 import { BOARD_LETTERS, type BoardLetter } from '../../data/boardData';
 import { demandCopy } from '../../data/demandData';
-import { STATUE_ID, eventById, eventText, fill } from '../events/catalogue';
+import { STATUE_ID, eventById, eventText, eventTitle, fill } from '../events/catalogue';
 import { catalogueOf, firstSentence } from '../events/catalogueEngine';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER } from '../finance/sweep';
 import { cutLetter } from '../athletics/cut';
@@ -161,7 +161,7 @@ function interruptWords(s: GameState, type: string, payload: unknown): [string, 
       const instanceId = (payload as { instanceId?: string } | undefined)?.instanceId;
       const p = catalogueOf(s).pending.find((x) => x.instanceId === instanceId);
       const e = p ? eventById(p.eventId) : undefined;
-      return ['A letter to the President', e ? eventSubject(e, fill(eventText(e, p!), p!.vars)) : 'A letter to the President'];
+      return ['A letter to the President', e ? eventTitle(e, p!.vars) : 'A letter to the President'];
     }
     case 'decision-event': {
       const id = (payload as { eventId?: string } | undefined)?.eventId ?? '';
@@ -237,17 +237,16 @@ export function boardAsks(id: string): boolean {
   return id === IDLE_CASH_LETTER || id === IDLE_CASH_AGAIN_LETTER;
 }
 
-// An inline event's subject: its title if it has one, else its first
-// sentence, as the log names it when it is answered, without its stop.
-export function eventSubject(e: CatalogueEvent, text: string): string {
-  return e.title ?? firstSentence(text).replace(/\.$/, '');
-}
-
 // The list's preview: the body after the subject, when the subject is its
-// first sentence, so the row does not say it twice.
-function afterSubject(text: string, subject: string): string {
+// first sentence, so the row does not say it twice. The sentence is read
+// whole (Plan 125G): a subject cut with an ellipsis still opens it, and the
+// preview starts at the sentence after.
+export function afterSubject(text: string, subject: string): string {
   const first = text.split('\n')[0];
-  return first.startsWith(subject) ? first.slice(subject.length).replace(/^[.!?]?\s*/, '') || first : first;
+  const sentence = firstSentence(first);
+  const stem = subject.replace(/…$/, '');
+  const said = stem.length > 0 && sentence.startsWith(stem) && (stem !== subject || sentence.replace(/[.!?]$/, '') === subject.replace(/[.!?]$/, ''));
+  return said ? first.slice(sentence.length).trimStart() || first : first;
 }
 
 // The read state the view keeps for the one letter the game does not save
@@ -267,7 +266,7 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
     if (!e || e.kind !== 'inline') continue;
     const text = fill(eventText(e, p), p.vars);
     const weeksLeft = Math.max(0, e.timeoutWeeks - (now - p.firedWeek));
-    const subject = eventSubject(e, text);
+    const subject = eventTitle(e, p.vars);
     decide.push({
       id: `event:${p.instanceId}`, kind: 'event', tier: 'decide', ref: p.instanceId,
       from: e.from ?? DOMAIN_LABEL[e.domain], subject, preview: afterSubject(text, subject),

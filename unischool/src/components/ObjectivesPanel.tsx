@@ -7,7 +7,7 @@ import { MILESTONES, CHARTER_ID, type Progress } from '../data/ladderData';
 import { nextMilestone } from '../systems/ladder/ladderSystem';
 import { count, gameDateOfWeek, prestigeFigure, satisfactionFigure } from '../format';
 import { prestigeBreakdown } from '../systems/prestige/prestigeSystem';
-import { DIRECTION_LABELS, PillarMeter, prestigeDirection } from '../tabs/PrestigeGlance';
+import { DIRECTION_LABELS, PillarMeter, pillarParts, prestigeDirection } from '../tabs/PrestigeGlance';
 import { satisfactionDrag } from '../systems/satisfaction/satisfactionSystem';
 import { NEED_LABELS } from '../data/figureHints';
 
@@ -48,14 +48,14 @@ function StandingLive({ s }: { s: GameState }) {
   const pillars = b.inputs.filter((i) => i.pillar !== undefined);
   const taken = b.inputs.filter((i) => i.penalty && i.contribution < -0.05);
   const drag = satisfactionDrag(s);
-  const longest = Math.max(...pillars.map((p) => p.weight));
+  const split = pillarParts(s);
   return (
     <div className="objectives-live">
       <h4>{W.live}</h4>
       <p>{W.prestigeNow(prestigeFigure(b.current), DIRECTION_LABELS[prestigeDirection(b)])}</p>
       <p>{W.pillars}</p>
       <ul className="glance-rows">
-        {pillars.map((p) => <PillarMeter key={p.key} s={s} input={p} longest={longest} />)}
+        {pillars.map((p) => <PillarMeter key={p.key} s={s} input={p} split={split} />)}
       </ul>
       {taken.length > 0 && <p>{W.takenOff}: {taken.map((p) => `${p.label} ${p.contribution.toFixed(1)}`).join(' · ')}</p>}
       <p>

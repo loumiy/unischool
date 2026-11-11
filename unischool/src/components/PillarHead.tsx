@@ -8,12 +8,17 @@ import { PILLAR_LABELS, PILLARS, PRESTIGE_MAX, prestigeByPillar, type Pillar } f
 // Students, Athletics), one bar of prestige stacked by pillar on the
 // prestige scale, the tab's own pillar lit and the others faded, with a
 // ghost tick where the summer is taking it, so the lag its rise cap makes
-// is seen. The parts are prestigeSystem.ts's prestigeByPillar. The band's
+// is seen. Its line names the direction, not the target (Plan 126 F). The parts are prestigeSystem.ts's prestigeByPillar. The band's
 // prestige chip stays as it is (the owner, on the mock-ups).
 // ---------------------------------------------------------------------
 
+// The target is not a figure here either (Plan 126 F: History hides it,
+// Plan 98B), so the line says which way the summer is taking it, as
+// History's arrow does, and the bar's tick shows how far.
 export function pillarHeadLine(part: number, current: number, target: number): string {
-  return `${prestigeFigure(part)} of your ${prestigeFigure(current)} prestige · heading for ${prestigeFigure(target)}`;
+  const gap = target - current;
+  const way = gap >= 0.05 ? 'rising' : gap <= -0.05 ? 'falling' : 'steady';
+  return `${prestigeFigure(part)} of your ${prestigeFigure(current)} prestige · ${way}`;
 }
 
 // The bar alone: the four parts stacked from the left, `lit` full and the
