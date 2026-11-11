@@ -1,17 +1,16 @@
 # Devlog draft · UniSchool 0.3.0
 
 *A draft for the itch.io devlog, for the owner to edit and post with the
-next upload. It covers everything merged since the 0.2.0 build
+0.3.0 upload. It covers everything merged since the 0.2.0 build
 (`d956917`, 2 November): the late-game speed fix and the map fix (PR #445),
-Plan 124 (subtraction, as decided), Plan 125 (the written content) and
+Plan 124 (subtraction, as decided), Plan 125 (the written content),
 Plan 126 (the interface review's first ten), and the owner's playtest
-notes after them: the admissions and summer pages, Founders Hall's
-opening, building shadows, professors without titles and the Chapter 3
-fix. The last of these are on `claude/gallant-tesla-g4c36a`, waiting to
-be merged into `main`; check they are in the build before posting. Plan
-123 was a review and changed nothing in the game. The version number is a placeholder: rename
-the file if the build ships as something else. Nothing here claims more
-than the build does.*
+notes after them (PRs #451 to #453): the admissions and summer pages,
+Founders Hall's opening, building shadows, professors without titles,
+the Chapter 3 fix and the Mission arcade. Plan 123 was a review and
+changed nothing in the game. The full list is in
+[`changelog.md`](changelog.md). Nothing here claims more than the build
+does.*
 
 ---
 
@@ -107,6 +106,8 @@ the four add up to your prestige.
   year.
 - **The football stadium has an outside**: arches, gates, banners and a
   cornice.
+- **Mission buildings' arcades run all the way round**, meeting on a
+  pier at each corner, where they used to stop at the front.
 - **The marks over buildings hold their size** as you zoom, so they
   don't shrink to specks zoomed out or swell zoomed in.
 
