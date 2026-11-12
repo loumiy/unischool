@@ -142,7 +142,10 @@ function layOut({ inner, outer, zIn, zOut, steps = 0, aisles = 0, innerNear, see
     });
     if (heads.length) out.push(<path key={`${j}h`} className="walker-head" d={heads.join('')} />);
   }
-  return <g className="stand-crowd">{out}</g>;
+  // A sprite on the canvas map (canvasPaint.ts): recorded once and drawn
+  // from a bitmap, so the venue drawn again round it (its roofs in the
+  // snow) does not draw its people again.
+  return <g className="stand-crowd" data-sprite="">{out}</g>;
 }
 
 // ---- Pennants ----

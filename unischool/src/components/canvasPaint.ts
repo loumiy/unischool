@@ -31,6 +31,13 @@ import { PointList, setRawPoints } from './isoProjection';
 // - Each op carries the building it belongs to, so the map can pick the
 //   building under the pointer from the ops (`HitList`) as the SVG's hit
 //   test did: the topmost shape that takes pointer events.
+// - A group marked `data-sprite` (a stand's crowd, thousands of figures
+//   that never change with the season) is recorded once, kept by its
+//   element while the styles it read resolve the same, and recorded as one
+//   op, a sprite: `replay` draws it once into a bitmap at the scale and
+//   pixel offset it is drawn at, and then copies the bitmap, so a building
+//   drawn again around it (its roofs in the snow) pays a copy for it, not
+//   its figures.
 // - `replay` given a region draws only the ops that reach it, and of a long
 //   path only the subpaths that do (the map's layers are drawn a tile at a
 //   time).
@@ -600,7 +607,16 @@ export type Op =
   }
   | { k: 'text'; m: Affine; text: string; x: number; y: number; size: number; font: string; spacing: number; align: CanvasTextAlign; baseline: CanvasTextBaseline; fill: string; a: number }
   | { k: 'layer'; alpha: number; ops: Op[] }
-  | { k: 'clip'; cuts: { shape: Shape; m: Affine }[]; ops: Op[] };
+  | { k: 'clip'; cuts: { shape: Shape; m: Affine }[]; ops: Op[] }
+  | SpriteOp;
+// A group recorded once and drawn from a bitmap (see the head of the file).
+// The same object while its group is unchanged, so a recording that holds it
+// matches the last one there. `box` keeps its box at the last zoom asked.
+export interface SpriteOp { k: 'sprite'; ops: Op[]; box?: { zoom: number; box: Box } }
+function spriteBox(op: SpriteOp, zoom: number): Box {
+  if (op.box?.zoom !== zoom) op.box = { zoom, box: opsBox(op.ops, zoom) };
+  return op.box.box;
+}
 
 // The world box of what `ops` draw at this zoom (a stroke that does not
 // scale is wider in world units the further out the view is).
@@ -616,6 +632,12 @@ export function opsBox(ops: readonly Op[], zoom: number, into: Box = [Infinity, 
     } else if (op.k === 'text') {
       const half = op.size * (op.text.length * 0.45 + 1);
       const b = boxThrough([op.x - half, op.y - op.size, op.x + half, op.y + op.size], op.m, 1);
+      if (b[0] < into[0]) into[0] = b[0];
+      if (b[1] < into[1]) into[1] = b[1];
+      if (b[2] > into[2]) into[2] = b[2];
+      if (b[3] > into[3]) into[3] = b[3];
+    } else if (op.k === 'sprite') {
+      const b = spriteBox(op, zoom);
       if (b[0] < into[0]) into[0] = b[0];
       if (b[1] < into[1]) into[1] = b[1];
       if (b[2] > into[2]) into[2] = b[2];
@@ -666,7 +688,7 @@ export class HitList {
   // is not kept: under the pointer it would only ever say "no building".
   addOps(ops: readonly Op[]): void {
     for (const op of ops) {
-      if (op.k === 'layer' || op.k === 'clip') { this.addOps(op.ops); continue; }
+      if (op.k === 'layer' || op.k === 'clip' || op.k === 'sprite') { this.addOps(op.ops); continue; }
       if (op.k !== 'shape' || !op.events) continue;
       if (op.owner === null && !this.owned) continue;
       this.owned ||= op.owner !== null;
@@ -798,6 +820,12 @@ export class Recorder {
   private roots = new Map<string, Instance>();
   private inst: Instance = newInstance();
   private gen = 0;
+  // Groups marked data-sprite, recorded once (see the head of the file): by
+  // the group's props (a kept element's), then by where and how it is drawn,
+  // each with the class links it read and their styles then.
+  private sprites = new WeakMap<object, Map<string, { op: SpriteOp; links: [Link, string][] }>>();
+  // While a sprite records, the links it reads.
+  private spriteLinks: Link[] | null = null;
   constructor(opts: RecordOptions) {
     this.opts = opts;
     this.defs = opts.defs ?? new Map();
@@ -947,11 +975,50 @@ export class Recorder {
     const k = `${tag}.${cls}`;
     let l = chain.kids.get(k);
     if (!l) { l = { tag, cls, up: chain, kids: new Map(), gen: -1 }; chain.kids.set(k, l); }
+    this.fresh(l);
+    this.spriteLinks?.push(l);
+    return l;
+  }
+  // A link's style, resolved again if the rules changed (a new season).
+  private fresh(l: Link): ClassStyle {
     if (l.gen !== this.opts.rules.generation) {
       l.style = this.opts.rules.resolve(chainArray(l));
       l.gen = this.opts.rules.generation;
     }
-    return l;
+    return l.style!;
+  }
+
+  // A group marked data-sprite: its recording kept while it is drawn in the
+  // same place and paint and every style it read resolves the same, so a
+  // change of season passes it by; recorded as one sprite op.
+  private sprite(props: Record<string, unknown>, p: Paint, alpha: number, own: Link): void {
+    const where = `${alpha}|${this.owner}|${this.m.join(',')}|${JSON.stringify(p)}|${JSON.stringify(chainArray(own))}`;
+    let kept = this.sprites.get(props);
+    const hit = kept?.get(where);
+    if (hit && hit.links.every(([l, style]) => JSON.stringify(this.fresh(l)) === style)) {
+      this.out.push(hit.op);
+      return;
+    }
+    const outer = this.out;
+    const reading = this.spriteLinks;
+    const ops: Op[] = [];
+    this.out = ops;
+    this.spriteLinks = [];
+    let read: Link[] = [];
+    try {
+      this.walk(props.children as React.ReactNode, p, alpha, own);
+    } finally {
+      this.out = outer;
+      read = this.spriteLinks ?? [];
+      this.spriteLinks = reading;
+    }
+    const links = [...new Set(read)].map((l): [Link, string] => [l, JSON.stringify(l.style)]);
+    // A sprite inside another reads for it too.
+    if (reading) reading.push(...links.map(([l]) => l));
+    const op: SpriteOp = { k: 'sprite', ops };
+    if (!kept) { kept = new Map(); this.sprites.set(props, kept); }
+    kept.set(where, { op, links });
+    this.out.push(op);
   }
 
   private element(tag: string, props: Record<string, unknown>, inherited: Paint, alpha: number, chain: Link): void {
@@ -1041,6 +1108,8 @@ export class Recorder {
         this.out = layer.ops;
         this.walk(props.children as React.ReactNode, p, 1, own);
         this.out = outer;
+      } else if (props['data-sprite'] !== undefined) {
+        this.sprite(props, p, alpha, own);
       } else {
         this.walk(props.children as React.ReactNode, p, alpha, own);
       }
@@ -1232,10 +1301,71 @@ export function replay(ctx: CanvasRenderingContext2D, ops: readonly Op[], view: 
       replay(ctx, op.ops, view, depth);
       ctx.restore();
       lastSet.delete(ctx);
+    } else if (op.k === 'sprite') {
+      drawSprite(ctx, op, view, depth);
     } else {
       drawLayer(ctx, op, view, depth);
     }
   }
+}
+
+// A sprite's bitmaps, the most recently drawn kept up to SPRITE_PIXELS_KEPT
+// pixels in all: every stand's crowd at each of its levels (a venue fills
+// and empties week by week, and each level is its own crowd), at the scale
+// the map is drawn at. A kept group holds its sprite op for as long as its
+// element is kept; the bitmaps are let go sooner.
+interface SpriteImage { k: number; fx: number; fy: number; zoom: number; ox: number; oy: number; image: HTMLCanvasElement | OffscreenCanvas }
+const spriteImages = new Map<SpriteOp, SpriteImage>();
+const SPRITE_PIXELS_KEPT = 16_000_000;
+let spritePixels = 0;
+const pixelsOf = (img: SpriteImage) => img.image.width * img.image.height;
+// Larger than this, a sprite is drawn shape by shape.
+const SPRITE_MAX_SIDE = 4096;
+const SPRITE_MAX_AREA = 8_000_000;
+const fraction = (v: number) => v - Math.floor(v);
+
+function drawSprite(ctx: CanvasRenderingContext2D, op: SpriteOp, view: ReplayView, depth: number): void {
+  const b = view.base;
+  const k = b[0];
+  // Only a plain scale and shift (the map's views, a building's drawing)
+  // is drawn from a bitmap; anything else draws its shapes.
+  if (b[1] !== 0 || b[2] !== 0 || b[3] !== k || !(k > 0)) { replay(ctx, op.ops, view, depth + 1); lastSet.delete(ctx); return; }
+  const wb = spriteBox(op, view.zoom);
+  if (!Number.isFinite(wb[0])) return;
+  // The bitmap is drawn at whole pixels, the shift's fraction drawn into it,
+  // so the copy lands on the pixels the shapes would have.
+  const fx = fraction(b[4]); const fy = fraction(b[5]);
+  const ox = Math.floor(wb[0] * k + fx) - 1; const oy = Math.floor(wb[1] * k + fy) - 1;
+  const w = Math.ceil(wb[2] * k + fx) + 1 - ox; const h = Math.ceil(wb[3] * k + fy) + 1 - oy;
+  const x = Math.floor(b[4]) + ox; const y = Math.floor(b[5]) + oy;
+  const r = view.region;
+  if (r && (x >= r[2] || y >= r[3] || x + w <= r[0] || y + h <= r[1])) return;
+  if (w <= 0 || h <= 0) return;
+  if (w > SPRITE_MAX_SIDE || h > SPRITE_MAX_SIDE || w * h > SPRITE_MAX_AREA) { replay(ctx, op.ops, view, depth + 1); lastSet.delete(ctx); return; }
+  let img = spriteImages.get(op);
+  if (img) {
+    spriteImages.delete(op);
+    spritePixels -= pixelsOf(img);
+    if (img.k !== k || img.fx !== fx || img.fy !== fy || img.zoom !== view.zoom) img = undefined;
+  }
+  if (!img) {
+    const image = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
+    const c = image.getContext('2d') as unknown as CanvasRenderingContext2D | null;
+    if (!c) { replay(ctx, op.ops, view, depth + 1); lastSet.delete(ctx); return; }
+    replay(c, op.ops, { base: [k, 0, 0, k, fx - ox, fy - oy], zoom: view.zoom, dpr: view.dpr });
+    img = { k, fx, fy, zoom: view.zoom, ox, oy, image };
+  }
+  spriteImages.set(op, img);
+  spritePixels += pixelsOf(img);
+  for (const [old, gone] of spriteImages) {
+    if (spritePixels <= SPRITE_PIXELS_KEPT || old === op) break;
+    spriteImages.delete(old);
+    spritePixels -= pixelsOf(gone);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.drawImage(img.image as CanvasImageSource, x, y);
+  lastSet.delete(ctx);
 }
 
 function drawLayer(ctx: CanvasRenderingContext2D, op: { alpha: number; ops: Op[] }, view: ReplayView, depth: number): void {
