@@ -1,5 +1,6 @@
 import { speedLock } from '../systems/delegation/seats';
 import { useReducer, useEffect, useRef, useState, useCallback } from 'react';
+import { markSettled } from '../state/perState';
 import type { GameState } from '../state/types';
 import { WEEKS_PER_YEAR } from '../state/types';
 import { reducer } from './reducer';
@@ -30,8 +31,17 @@ export const SANDBOX_SPEEDS: readonly Speed[] = ['fast'];
 // startup screen. persistence.ts collapses every bad-save case to null, so a
 // bad save can never stop the game booting. Read-only, so safe under
 // StrictMode's double-invocation of the lazy initializer.
+// The game's states are settled as the reducer returns them (state/
+// perState.ts): React's state is never changed in place, and the next
+// action starts from a clone, so figures read off one can be kept for it.
+// Only here, in the game itself: the tests, the headless players and the
+// tools are free to change a state they hold, and work everything afresh.
+function settledReducer(state: GameState, action: Parameters<typeof reducer>[1]): GameState {
+  return markSettled(reducer(state, action));
+}
+
 function initialGameState(): GameState {
-  return loadGame() ?? createPreStartState();
+  return markSettled(loadGame() ?? createPreStartState());
 }
 
 // Sampling granularity of the week accumulator (1% of the fastest week).
@@ -40,7 +50,7 @@ function initialGameState(): GameState {
 const SAMPLE_MS = 50;
 
 export function useGame() {
-  const [state, rawDispatch] = useReducer(reducer, undefined, initialGameState);
+  const [state, rawDispatch] = useReducer(settledReducer, undefined, initialGameState);
   const [speed, setSpeedRaw] = useState<Speed>('paused');
   const stateRef = useRef(state);
   stateRef.current = state;

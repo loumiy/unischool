@@ -4,6 +4,7 @@ import { qualityOf, tierOf, type CourseQuality } from '../../data/courseQuality'
 import { programOfCourse } from '../../data/techData';
 import { isInTransit } from '../techtree/programOffers';
 import { unstaffedPrograms } from '../techtree/darkness';
+import { perState } from '../../state/perState';
 
 // Who teaches what, in both directions, read from one record: s.courseFaculty,
 // the instructor chosen when the course was started (types.ts's CourseFaculty).
@@ -110,7 +111,10 @@ export function averageCourseQuality(s: GameState, ids: string[]): number | null
 
 // Every graded course's score on campus (Plan 71: academic satisfaction and
 // prestige's teaching standard read each course, not only the mean).
-export function campusCourseScores(s: GameState): number[] {
+// Once per settled state (state/perState.ts): the screens ask it many
+// times a week.
+export const campusCourseScores = perState(campusCourseScoresFresh);
+function campusCourseScoresFresh(s: GameState): number[] {
   const unstaffed = unstaffedPrograms(s);
   const out: number[] = [];
   for (const t of s.tech) {

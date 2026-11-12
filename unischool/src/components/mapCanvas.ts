@@ -1,4 +1,5 @@
 import type * as React from 'react';
+import { isValidElement } from 'react';
 import { HitList, Recorder, StyleResolver, opsBox, replay, type Affine, type Box, type Op } from './canvasPaint';
 import type { DepthBox } from './depthSort';
 import { projectorFor, type Camera, type Pt } from './isoProjection';
@@ -35,6 +36,11 @@ import { FIGURE_H, FIGURE_HALF_W, type Crowd, type CrowdSink, type WalkerColors 
 //   frames.
 // - A change of season or snow redraws everything, a few things a frame
 //   within a budget, the old drawings standing in meanwhile.
+// - Covered (a tab over the map, `setHidden`), it asks for no animation
+//   frames: a change to the scene is recorded and its drawings made in the
+//   browser's idle time, a slice at a time, and the frame composed once
+//   they are all made. The map shows again already drawn as it stands,
+//   rather than as it stood when the tab opened, catching up in view.
 // - A frame that throws stops it for good and tells the map (`onFail`),
 //   which falls back to the SVG map for the session.
 //
@@ -157,15 +163,36 @@ function softChanged(a: string, b: string): string[] {
   return [...keys].filter((k) => x[k] !== y[k]);
 }
 
-// A recording as a string, to tell whether a change of season changed it.
-// A Path2D carries its `d` beside it, so it is left out. Null when it
-// cannot be written (then it counts as changed).
-function opsKey(ops: readonly Op[]): string | null {
-  try {
-    return JSON.stringify(ops, (_k, v: unknown) => (typeof Path2D !== 'undefined' && v instanceof Path2D ? undefined : v));
-  } catch {
-    return null;
+// Whether two recordings draw the same, to tell whether a change of season
+// changed a thing. What a shape keeps once it has been measured or drawn
+// (its box and subpaths) is left out, or a recording that has been laid
+// would never match a fresh one; a Path2D carries its `d` beside it, so it
+// is left out too. A React node (a def's children) matches only itself.
+// Walked rather than written out as JSON: the stadium's recording is
+// thousands of shapes, and a change of season usually differs in the first.
+const KEPT_ON_SHAPE = new Set(['box', 'subs']);
+function sameOps(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+    return typeof a === 'number' && typeof b === 'number' && Number.isNaN(a) && Number.isNaN(b);
   }
+  if (typeof Path2D !== 'undefined' && a instanceof Path2D && b instanceof Path2D) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (!sameOps(a[i], b[i])) return false;
+    return true;
+  }
+  if (isValidElement(a) || isValidElement(b)) return false;
+  const x = a as Record<string, unknown>;
+  const y = b as Record<string, unknown>;
+  let n = 0;
+  for (const k in x) {
+    if (KEPT_ON_SHAPE.has(k)) continue;
+    n += 1;
+    if (!(k in y) || !sameOps(x[k], y[k])) return false;
+  }
+  for (const k in y) if (!KEPT_ON_SHAPE.has(k)) n -= 1;
+  return n === 0;
 }
 
 // How far the ground's and the land in front's drawings reach past each
@@ -194,6 +221,23 @@ const BUILD_MS = 20;
 const MAX_DRAWING = 4096;
 // The completion ring's animation (styles.css's campus-complete).
 const RING_MS = 1500;
+// Covered, how long a slice of work waits for the browser to be idle
+// before it runs anyway, and how long a slice runs: short, since a click
+// on the tab over the map waits for the slice running.
+const IDLE_TIMEOUT_MS = 1000;
+const IDLE_SLICE_MS = 8;
+
+// Runs `fn` when the browser is next idle (or after IDLE_TIMEOUT_MS), and
+// returns what cancels it. Where there is no requestIdleCallback (Safari),
+// a timer.
+function whenIdle(fn: () => void): () => void {
+  if (typeof requestIdleCallback === 'function') {
+    const id = requestIdleCallback(fn, { timeout: IDLE_TIMEOUT_MS });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 32);
+  return () => clearTimeout(id);
+}
 
 // The land behind or the ground under the scene: one drawing of the view
 // and a margin past each edge, kept in tiles of TILE device pixels. A pan
@@ -398,6 +442,9 @@ export class MapCanvas implements CrowdSink {
   private ringStart = new Map<string, number>();
   private softSeen = '';
   private raf = 0;
+  // Covered (setHidden): work waits for idle time, and what cancels it.
+  private hidden = false;
+  private idleCancel: (() => void) | null = null;
   // The last frame left something to draw.
   private pending = true;
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -431,6 +478,8 @@ export class MapCanvas implements CrowdSink {
   }
   dispose(): void {
     if (this.raf) cancelAnimationFrame(this.raf);
+    this.idleCancel?.();
+    this.idleCancel = null;
     if (this.settleTimer) clearTimeout(this.settleTimer);
     this.groundRules.dispose();
     this.entryRules.dispose();
@@ -485,16 +534,38 @@ export class MapCanvas implements CrowdSink {
   }
 
   request(): void {
-    if (this.raf || this.failed) return;
+    if (this.raf || this.idleCancel || this.failed) return;
+    if (this.hidden) {
+      this.idleCancel = whenIdle(() => {
+        this.idleCancel = null;
+        this.frame(performance.now());
+      });
+      return;
+    }
     this.raf = requestAnimationFrame((t) => {
       this.raf = 0;
       this.frame(t);
     });
   }
   // Draws now, in this task (a turn's frame, with the commit that set it).
+  // Covered, it waits for idle time instead: nobody sees the frame, and the
+  // commit that asked is the one a tab's clicks wait on.
   flush(): void {
+    if (this.hidden) { this.request(); return; }
     if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
     this.frame(performance.now());
+  }
+  // The map is covered (true) or shows again (false). Shown again, the
+  // next animation frame composes the whole map from the drawings made
+  // while it was covered.
+  setHidden(hidden: boolean): void {
+    if (hidden === this.hidden) return;
+    this.hidden = hidden;
+    if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
+    this.idleCancel?.();
+    this.idleCancel = null;
+    this.forceFull = true;
+    this.request();
   }
 
   // Nothing left to draw but the walkers: the view is shown in full, its
@@ -714,7 +785,11 @@ export class MapCanvas implements CrowdSink {
         if (!r.drawing || r.redraw) now2.push(r);
         else if (r.drawing.scale !== s || r.soft !== scene.soft) later.push(r);
       }
+      // Covered, a slice stops at its time: what is left is the next
+      // slice's, nothing being drawn straight on meanwhile.
+      const sliceOut = () => this.hidden && performance.now() - t0 > IDLE_SLICE_MS;
       for (const r of now2) {
+        if (sliceOut()) { more = true; break; }
         if (r.soft !== scene.soft && this.refreshSoft(r, scene, zoomNow)) st.recorded += 1;
         // Past the frame's time for drawings (after a turn, most of the
         // scene's): drawn straight onto the map this frame, and kept
@@ -724,7 +799,7 @@ export class MapCanvas implements CrowdSink {
       }
       let budget = BUILD_SHAPES;
       for (const r of later) {
-        if (budget <= 0) { more = true; break; }
+        if (budget <= 0 || sliceOut()) { more = true; break; }
         if (r.soft !== scene.soft) {
           const known = r.freeOf !== undefined && softChanged(r.soft, scene.soft).every((k) => r.freeOf!.has(k));
           if (!known) {
@@ -743,12 +818,22 @@ export class MapCanvas implements CrowdSink {
       const t2 = performance.now();
       st.parts.draw = t2 - t1;
       const area = { area: TILE_AREA * dpr * dpr };
-      const late = performance.now() - t0 > BUILD_MS;
+      const late = performance.now() - t0 > (this.hidden ? IDLE_SLICE_MS : BUILD_MS);
       if (this.land.update(v, size, s, dpr, area, late)) more = true;
       // After a turn, one layer's view a frame: the ground waits a frame
       // (drawn straight on meanwhile) when the land drew its view in this one.
       if (this.ground.update(v, size, s, dpr, area, late || this.land.drewView)) more = true;
       st.parts.layers = performance.now() - t2;
+    }
+    // Covered: no frame is composed until every drawing is made, the next
+    // slice waiting for idle time; the last slice composes it, so the
+    // canvas holds the map as it stands when the tab closes.
+    if (this.hidden && more) {
+      st.ms = performance.now() - t0;
+      this.stats = st;
+      this.pending = true;
+      this.request();
+      return;
     }
     const t3 = performance.now();
 
@@ -904,8 +989,7 @@ export class MapCanvas implements CrowdSink {
     const changed = softChanged(r.soft, scene.soft);
     const ops = this.entryRec.record(r.entry.key, r.entry.node, scene.values);
     r.soft = scene.soft;
-    const before = opsKey(r.ops);
-    if (before !== null && before === opsKey(ops)) {
+    if (sameOps(r.ops, ops)) {
       r.freeOf ??= new Set();
       for (const k of changed) r.freeOf.add(k);
       return false;

@@ -24,6 +24,18 @@ export interface Season {
 // summer palette as styles.css has it, for the map with seasons off.
 export const SUMMER_GREEN_WEEK = 50;
 
+// The map's season moves in steps of SEASON_WEEKS weeks, not every week
+// (the owner's call, after Plan 96G's follow-up): each step repaints every
+// tree and every snowy roof, and a full campus felt each one. A week shows
+// the season of the first week of its step (weeks 1–3 show week 1's, 4–6
+// week 4's, … 52 its own), so the snow still comes in over two steps and
+// the leaves turn over four.
+export const SEASON_WEEKS = 3;
+export function seasonWeek(week: number): number {
+  const w = ((Math.round(week) - 1) % 52 + 52) % 52;
+  return Math.floor(w / SEASON_WEEKS) * SEASON_WEEKS + 1;
+}
+
 // A ramp from 0 at `a` to 1 at `b`.
 const ramp = (w: number, a: number, b: number) => Math.max(0, Math.min(1, (w - a) / (b - a)));
 

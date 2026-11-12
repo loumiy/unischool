@@ -5,6 +5,7 @@
 // through the recorder's hook; and neither the painter, the compositor nor
 // the art's registry reaches into React.
 
+import { createElement } from 'react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readSave } from '../src/state/persistence';
@@ -214,7 +215,7 @@ assert(typeof polyPoints([{ x: 1, y: 2 }]) === 'string', 'points are strings aga
   const black = new Map<string, number>();
   const visit = (ops: readonly Op[]): void => {
     for (const op of ops) {
-      if (op.k === 'layer' || op.k === 'clip') { visit(op.ops); continue; }
+      if (op.k === 'layer' || op.k === 'clip' || op.k === 'sprite') { visit(op.ops); continue; }
       if (op.k !== 'shape' || op.fill !== '#000') continue;
       // A closed shape (a polygon, a rect, a circle); a path's area is not
       // known here, and a clock's hands are a path with no area to fill.
@@ -247,6 +248,38 @@ for (const file of ['src/components/canvasPaint.ts', 'src/components/canvasArt.t
   for (const word of ['__CLIENT_INTERNALS', '$$typeof', '_currentValue', 'Symbol.for(']) {
     assert(!src.includes(word), `${file} does not use ${word}`);
   }
+}
+
+// A group marked data-sprite (a stand's crowd, spectators.tsx) is recorded
+// once, as one sprite op: the same op while its element is the same and
+// the styles it read resolve the same (a change of season that leaves them
+// alone), recorded again when one changes or the element does.
+{
+  let head = 'rgb(9, 9, 9)';
+  const sheet: { -readonly [K in keyof ClassRules]: ClassRules[K] } = {
+    generation: 0,
+    resolve: (chain) => (chain[chain.length - 1]!.cls === 'walker-head' ? { opacity: 1, display: true, fill: head } : { opacity: 1, display: true }),
+    color: (v) => v,
+  };
+  const rec = new Recorder({ rules: sheet });
+  const crowd = createElement('g', { className: 'stand-crowd', 'data-sprite': '' },
+    createElement('path', { d: 'M0 0L4 0L4 4Z', fill: '#c33' }),
+    createElement('path', { className: 'walker-head', d: 'M1 1L2 1L2 2Z' }));
+  const scene = (c: React.ReactNode) => createElement('g', { 'data-building': 'b-STAND' }, createElement('rect', { x: 0, y: 0, width: 10, height: 10, fill: '#888' }), c);
+  const spriteOf = (ops: Op[]) => ops.find((o) => o.k === 'sprite');
+  const first = spriteOf(rec.record('stand', scene(crowd)));
+  assert(first !== undefined && first.k === 'sprite' && first.ops.length === 2, 'a data-sprite group is recorded as one sprite op holding its shapes');
+  sheet.generation += 1;
+  assert(spriteOf(rec.record('stand', scene(crowd))) === first, 'a change of rules that leaves its styles alone keeps the same sprite');
+  head = 'rgb(1, 1, 1)';
+  sheet.generation += 1;
+  const restyled = spriteOf(rec.record('stand', scene(crowd)));
+  assert(restyled !== first, 'a change to a style it reads records it again');
+  const other = createElement('g', { className: 'stand-crowd', 'data-sprite': '' }, createElement('path', { d: 'M0 0L9 0L9 9Z', fill: '#3c3' }));
+  assert(spriteOf(rec.record('stand', scene(other))) !== restyled, 'another crowd is another sprite');
+  const hits = new HitList();
+  hits.addOps(rec.record('stand', scene(crowd)));
+  assert(hits.size === 3, `the sprite's shapes can still be pointed at (${hits.size} of 3)`);
 }
 
 if (failures === 0) {

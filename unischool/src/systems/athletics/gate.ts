@@ -2,6 +2,7 @@ import type { GameState, VarsityTeam } from '../../state/types';
 import { WEEKS_PER_YEAR, standsOnCampus, totalEnrolled } from '../../state/types';
 import { venueSeatsOf } from '../../data/facilitiesData';
 import { coachingQuality, registerGateReader, sportEconomics } from '../../data/studentLifeData';
+import { perState, perStateKeyed } from '../../state/perState';
 
 // ---------------------------------------------------------------------
 // Gate revenue: every active program plays HOME_DATES_PER_SEASON home dates,
@@ -39,7 +40,10 @@ export function venueSeats(s: GameState, team: VarsityTeam): number {
 }
 
 // The crowd at one home date. Zero for a team that cannot play.
-export function attendanceFor(s: GameState, team: VarsityTeam): number {
+// Once per settled state (state/perState.ts): the screens ask it many
+// times a week.
+export const attendanceFor = perStateKeyed(attendanceForFresh);
+function attendanceForFresh(s: GameState, team: VarsityTeam): number {
   if (team.status !== 'active') return 0;
   const seats = venueSeats(s, team);
   if (seats === 0) return 0;
@@ -54,7 +58,10 @@ export function ticketPriceFor(team: VarsityTeam): number {
 }
 
 // The department's gate for the year — the earned half of the pot.
-export function annualGateRevenue(s: GameState): number {
+// Once per settled state (state/perState.ts): the screens ask it many
+// times a week.
+export const annualGateRevenue = perState(annualGateRevenueFresh);
+function annualGateRevenueFresh(s: GameState): number {
   return s.orgs.teams.reduce((sum, team) => sum + annualGateFor(s, team), 0);
 }
 
