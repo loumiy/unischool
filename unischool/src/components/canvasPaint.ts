@@ -414,11 +414,13 @@ function boxOf(s: Shape): Box {
   if (!s.box) s.box = s.d ? boxOfPath(s.d) : [-Infinity, -Infinity, Infinity, Infinity];
   return s.box;
 }
-// A path's box, from the boxes of its subpaths when it is long (a record
-// again after a change meets the same strings: the path network's outline
-// changes a subpath or two when a tile is drawn).
+// A path's box, kept by its string, and from the boxes of its subpaths when
+// it is long: a record again after a change meets the same strings (a
+// change of season, most weeks of the year, records everything again with
+// new colors and the same shapes; the path network's outline changes a
+// subpath or two when a tile is drawn).
 function boxOfPath(d: string): Box {
-  if (d.length < LONG_PATH) return pathBox(d);
+  if (d.length < LONG_PATH) return cachedBox(d);
   const subs = splitPath(d);
   if (!subs) return cachedBox(d);
   const b: Box = [Infinity, Infinity, -Infinity, -Infinity];
@@ -431,11 +433,15 @@ function boxOfPath(d: string): Box {
   return b[0] === Infinity ? [0, 0, 0, 0] : b;
 }
 const LONG_PATH = 4000;
+// About the distinct paths a full campus records (the stadium alone has
+// three thousand shapes), so a late year's season does not clear the
+// cache partway through each pass.
+const BOXES_KEPT = 100_000;
 const boxes = new Map<string, Box>();
 function cachedBox(d: string): Box {
   let b = boxes.get(d);
   if (!b) {
-    if (boxes.size > 20_000) boxes.clear();
+    if (boxes.size > BOXES_KEPT) boxes.clear();
     b = pathBox(d);
     boxes.set(d, b);
   }

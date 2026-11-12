@@ -1,5 +1,5 @@
 import { distance, midpoint, pinchView, type Point, type View } from './mapGestures';
-import { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { memo, startTransition, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Action, CampusTool } from '../state/actions';
 import type { BenchFacing, Buildable, Facing, GameState, HallSlot, Initiative, Placement, TileCoord, Vernacular } from '../state/types';
 import { totalEnrolled } from '../state/types';
@@ -144,6 +144,9 @@ const DISTRICT_LOOK_MS = 900;
 // enough to notice at a glance, short enough that a run of completions in a
 // fast-forwarded year does not leave the map permanently flashing.
 const COMPLETION_PULSE_MS = 1500;
+// Under a tab, how long the map's catch-up to the college waits for the
+// browser to be idle before it runs anyway.
+const REST_CATCH_UP_MS = 1000;
 // Founders Hall going up at the founding (Plan 124H, revised by the owner
 // twice): the same construction stages every other building shows over its
 // build weeks, played as a sequence before the hall stands: the graded plot
@@ -1401,9 +1404,9 @@ export default function CampusMap({
   // The clock's pace as a multiple of Play, 0 while it is stopped: how fast
   // the walkers walk.
   gait: number;
-  // A tab covers the map (Plan 96G): it draws the college as it last showed
-  // it and the walkers stop, so a week under a tab costs the map nothing.
-  // It catches up the moment the tab closes.
+  // A tab covers the map (Plan 96G): the walkers stop and the canvas
+  // composes no frames. The canvas map still follows the college, in the
+  // browser's idle time, so the tab closes on the campus as it stands.
   resting?: boolean;
   // MOCKUP (TitleBackdrop.tsx): the tilt to open on, as a PITCHES index
   // (the last is the plan view). Read once, at mount.
@@ -1422,7 +1425,10 @@ export default function CampusMap({
   // removes the tab paints first, the map as it last showed; the catch-up
   // follows as its own task.
   const [dozing, setDozing] = useState(resting);
-  if (resting && !dozing) setDozing(true);
+  // Under a tab, the state the map last caught up to (below), or null for
+  // the one it showed when the tab opened.
+  const [caught, setCaught] = useState<GameState | null>(null);
+  if (resting && !dozing) { setDozing(true); setCaught(null); }
   useEffect(() => {
     if (resting || !dozing) return undefined;
     let timer = 0;
@@ -1432,7 +1438,40 @@ export default function CampusMap({
   const asleep = resting || dozing;
   const shownRef = useRef(live);
   if (!asleep) shownRef.current = live;
+  else if (caught) shownRef.current = caught;
   const s = shownRef.current;
+  // Under a tab the canvas map catches up to the college when the browser
+  // is idle, as a transition the tab's own work comes before. The canvas
+  // records and draws what changed in idle time too (mapCanvas.ts's
+  // setHidden) and composes no frame, so a week under a tab costs the tab
+  // nothing it would notice. Without this the map woke on the campus as it
+  // stood when the tab opened, often a season before, and repainted itself
+  // into today's in view, a few buildings a frame. One catch-up waits at a
+  // time and takes the latest state when it runs.
+  const liveRef = useRef(live);
+  liveRef.current = live;
+  const catchUpRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!resting || !canvasOn() || catchUpRef.current || live === shownRef.current) return;
+    const run = () => {
+      catchUpRef.current = null;
+      startTransition(() => setCaught(liveRef.current));
+    };
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(run, { timeout: REST_CATCH_UP_MS });
+      catchUpRef.current = () => cancelIdleCallback(id);
+    } else {
+      const id = window.setTimeout(run, 50);
+      catchUpRef.current = () => window.clearTimeout(id);
+    }
+  }, [resting, live]);
+  useEffect(() => {
+    if (resting) return undefined;
+    catchUpRef.current?.();
+    catchUpRef.current = null;
+    return undefined;
+  }, [resting]);
+  useEffect(() => () => { catchUpRef.current?.(); }, []);
   // The picked-up building's facing (R turns it a quarter at a time).
   const [facing, setFacing] = useState<Facing>(0);
   // The bench tool's facing once R has turned it (Plan 80I); until then a
@@ -1512,7 +1551,11 @@ export default function CampusMap({
   // would cancel them on every unrelated tick and the ring would never
   // leave.
   const pulseTimersRef = useRef<number[]>([]);
+  // Not while a tab covers the map, whose catch-up would play them unseen:
+  // the map shows again with a ring round each building finished under it,
+  // and the same holds for the dust and the labs' news below.
   useEffect(() => {
+    if (resting) return;
     const now = new Set(Object.keys(s.developing));
     const done = [...wasDevelopingRef.current].filter((id) => !now.has(id) && id in s.placements);
     wasDevelopingRef.current = now;
@@ -1522,7 +1565,7 @@ export default function CampusMap({
       () => setJustFinished((cur) => cur.filter((id) => !done.includes(id))),
       COMPLETION_PULSE_MS,
     ));
-  }, [s.developing, s.placements]);
+  }, [s.developing, s.placements, resting]);
   useEffect(() => () => {
     for (const timer of pulseTimersRef.current) window.clearTimeout(timer);
   }, []);
@@ -1536,6 +1579,7 @@ export default function CampusMap({
   const [riseStage, setRiseStage] = useState<SiteStage>(0);
   const wasPlacedRef = useRef<Set<string> | null>(null);
   useEffect(() => {
+    if (resting) return;
     const now = new Set(Object.keys(s.placements));
     const was = wasPlacedRef.current;
     wasPlacedRef.current = now;
@@ -1574,7 +1618,7 @@ export default function CampusMap({
       () => setJustPlaced((cur) => cur.filter((id) => !fresh.includes(id))),
       DUST_MS,
     ));
-  }, [s.placements]);
+  }, [s.placements, resting]);
 
   // A lab's news (labNews.ts): a paper, a grant or a breakthrough rises over
   // the lab the week it lands. A load or a new run is where the run stands,
@@ -1583,6 +1627,7 @@ export default function CampusMap({
   const heardRef = useRef<GameState['log'][number] | undefined>(undefined);
   const labNewsKeyRef = useRef(0);
   useEffect(() => {
+    if (resting) return;
     const fresh = linesSince(s.log, heardRef.current);
     heardRef.current = s.log[0];
     if (!fresh) return;
@@ -1598,7 +1643,7 @@ export default function CampusMap({
       () => setLabNews((cur) => cur.filter((n) => !keys.has(n.key))),
       LAB_NEWS_MS + last * LAB_NEWS_STEP_MS,
     ));
-  }, [s.log, s.placements]);
+  }, [s.log, s.placements, resting]);
 
   // Whether a placed building is on the screen now (Plan 70H: a toast
   // speaks for one finished out of sight). Read by Toasts.tsx through
@@ -2665,6 +2710,8 @@ export default function CampusMap({
   // nothing is widened for it. A pan or zoom by the player stops the ease.
   const districtSeenRef = useRef<DistrictSeen | null>(null);
   useEffect(() => {
+    // Under a tab it waits, unseen, for the map to show (as the rings do).
+    if (resting) return;
     const next = districtSeen(s);
     const due = districtLookDue(districtSeenRef.current, next);
     districtSeenRef.current = next;
@@ -2675,7 +2722,7 @@ export default function CampusMap({
     const zoom = viewRef.current.zoom;
     easeViewTo({ x: rect.width / 2 - c.x * zoom, y: rect.height / 2 - c.y * zoom, zoom }, DISTRICT_LOOK_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.self.name, s.clock.year, s.clock.week, s.specialization, district]);
+  }, [s.self.name, s.clock.year, s.clock.week, s.specialization, district, resting]);
   // The path tool's ghost: the tile the next click would pave or lift.
   // Needs no `ok`, since a path tile can never be refused.
   const pathGhost = pathTool && hover ? { ...hover, tool: pathTool } : null;
@@ -2761,6 +2808,12 @@ export default function CampusMap({
       mapCanvasRef.current = null;
     };
   }, [canvasBroke]);
+  // Covered by a tab, the compositor works in idle time and shows nothing;
+  // uncovered, its next frame shows the map whole. Before the scene's own
+  // effect below, so a scene set under the tab waits for idle time.
+  useLayoutEffect(() => {
+    mapCanvasRef.current?.setHidden(resting);
+  }, [resting, canvasBroke]);
   // What the review tools read of the map (mapProbe.ts's MapReview).
   useEffect(() => {
     // Set on every mount, and cleared only if still this map's (mapProbe.ts).
