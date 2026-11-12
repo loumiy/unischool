@@ -4334,9 +4334,36 @@ button.inbox-row:hover { background: var(--cream-hi); }
    here (the open building is map-local state, not App's). */
 body:has(.building-info-panel) .pennant { display: none; }
 
-/* The trophy case. */
-.trophy { display: flex; align-items: baseline; gap: var(--space-8); }
-.trophy-year { font-family: var(--display); font-weight: 800; font-variant-numeric: tabular-nums; opacity: 0.8; }
+/* The trophy case (TrophyCase.tsx): a brass tally, then one cup per sport
+   on wooden shelves, four to a shelf. Each title is a band on its cup's base. */
+.trophy-defs { position: absolute; }
+.trophy-tally { display: flex; align-items: center; gap: 10px; padding: var(--space-8) var(--space-12);
+  border: 2px solid var(--outline); border-radius: var(--radius-sm); color: #3b2a08;
+  background: linear-gradient(160deg, #f7e1a0, #d8aa45 55%, #b8862a); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+.trophy-tally-num { font-family: var(--display); font-weight: 800; font-size: var(--text-4xl); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.trophy-tally-text { display: grid; line-height: 1.25; min-width: 0; }
+.trophy-tally-text b { font-family: var(--display); font-weight: 800; font-size: var(--text-base); }
+.trophy-tally-text span { font-size: var(--text-xs); font-weight: 600; opacity: 0.8; }
+.trophy-tally-zero { background: var(--cream-lo); color: var(--ink-muted); box-shadow: none; border-style: dashed; border-color: var(--parchment-line); }
+.trophy-mantel { display: grid; gap: var(--space-4); margin-top: 14px; }
+.trophy-row, .trophy-labels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--space-4); padding: 0 var(--space-2); }
+.trophy-row { align-items: end; }
+.trophy-item { display: flex; flex-direction: column; align-items: center; }
+.trophy-art { display: block; filter: drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.35)); }
+.trophy-item-empty { color: var(--parchment-line); }
+.trophy-art-ghost { filter: none; }
+.trophy-band { height: 13px; margin-top: -1px; display: grid; place-items: center; border: 1px solid #1b0f07; border-radius: 1.5px;
+  background: linear-gradient(#5a3519, #3a2010); }
+.trophy-band span { background: linear-gradient(#f6dc8c, #c8962f); color: #3b2a08; font-family: var(--mono); font-weight: 700;
+  font-size: 7.5px; line-height: 1; padding: 1px 2px; border-radius: 1px; font-variant-numeric: tabular-nums; }
+.trophy-band-empty { background: none; border: 1px dashed var(--parchment-line); }
+.trophy-plank { height: 8px; border: 2px solid var(--outline); border-radius: 2px; background: linear-gradient(#a9774a, #6b4224);
+  box-shadow: 0 2px 0 rgba(27, 42, 74, 0.2); }
+.trophy-labels { padding-top: 3px; padding-bottom: var(--space-6); text-align: center; }
+.trophy-labels div { display: grid; align-content: start; line-height: 1.2; min-width: 0; }
+.trophy-labels b { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); overflow-wrap: anywhere; }
+.trophy-labels span { font-size: var(--text-2xs); color: var(--ink-muted); }
+.trophy-note { margin: var(--space-8) 0 0; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.4; }
 
 /* The priority list: ranked program cards with the funded line. */
 .priority-slot { list-style: none; display: flex; min-width: 0; }

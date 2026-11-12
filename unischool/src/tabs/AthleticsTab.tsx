@@ -10,6 +10,7 @@ import { ATHLETICS_COMPLEX_ID, COMPLEX_WORDS, complexReading, complexRecruiting,
 import OfferRoutes from '../components/OfferRoutes';
 import { specializationOf } from '../systems/prestige/specialization';
 import HelpHint from '../components/HelpHint';
+import TrophyCase from '../components/TrophyCase';
 import Figure from '../components/Figure';
 import {
   ATHLETICS_BUDGET_ORDER, CHAIR_LABEL, ATHLETICS_BUDGET_TIERS, BAND_LABEL, COACH_CANDIDATE_LISTING_WEEKS, COLLEGE_PULL_MAX,
@@ -549,29 +550,6 @@ function NextAction({ s, team, ring, onOpenBuild }: { s: GameState; team: Varsit
     return <span className="team-card-next">postseason ban through {team.postseasonBanThroughYear}</span>;
   }
   return null;
-}
-
-// The trophy case: every title as an object with a year and sport, newest first.
-function TrophyCase({ s }: { s: GameState }) {
-  if (s.orgs.titles.length === 0) return null;
-  const titles = [...s.orgs.titles].sort((a, b) => b.year - a.year);
-  return (
-    <section className="panel">
-      <div className="panel-head">
-        <h2>Trophy case</h2>
-        <HelpHint text="Every national title your college has won, by year and sport. A title lifts the athletics pillar for good. It also grows the summer's applicant pool for a few years. For about a year, donors are easier to find and a campaign raises more." />
-      </div>
-      <ul className="org-list trophy-case">
-        {titles.map((title) => (
-          <li key={`${title.sport}:${title.year}`} className="trophy">
-            <span className="trophy-year">Year {title.year}</span>
-            <span className="org-name">{sportById(title.sport)?.teamName.replace(/ Team$/, '') ?? title.sport}</span>
-            <span className="stat">national champions</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
 }
 
 const SCHOLARSHIP_LABEL: Record<ScholarshipLevel, string> = { none: 'None', some: 'Some', full: 'Full' };
