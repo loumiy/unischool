@@ -12,6 +12,7 @@ import { venueExpansionsMax } from './facilitiesData';
 import { rollCoachName } from './facultyData';
 import { makeRivalRng } from './rivalData';
 import { random, newId } from '../engine/random';
+import { perState, perStateKeyed } from '../state/perState';
 
 // Student organizations (see docs/design/student-life.md), gated on campus
 // the player has built:
@@ -830,7 +831,10 @@ export function registerGateReader(reader: (s: GameState) => number): void {
   gateReader = reader;
 }
 
-export function departmentPot(s: GameState): DepartmentPot {
+// Once per settled state (state/perState.ts): the screens ask it many
+// times a week.
+export const departmentPot = perState(departmentPotFresh);
+function departmentPotFresh(s: GameState): DepartmentPot {
   const tier = ATHLETICS_BUDGET_TIERS[s.orgs.athleticsBudget];
   const subsidy = tier.subsidyPerYear;
   // What the gate earned, and a booster club's gift this year (Plan 101E).
@@ -900,7 +904,10 @@ export function stepRecruiting(current: number, target: number): number {
   return Math.max(target, current - RECRUITING_FULL_CLASS_PER_WEEK);
 }
 
-export function fundedFractionFor(s: GameState, team: VarsityTeam): number {
+// Once per settled state (state/perState.ts): the screens ask it many
+// times a week.
+export const fundedFractionFor = perStateKeyed(fundedFractionForFresh);
+function fundedFractionForFresh(s: GameState, team: VarsityTeam): number {
   return fundedFrom(departmentPot(s), team);
 }
 

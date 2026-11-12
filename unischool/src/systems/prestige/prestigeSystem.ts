@@ -19,6 +19,7 @@ import { SPECIALIZATION_CARDS, specializationTerm, specializedLine } from '../..
 import { specializationOf } from './specialization';
 import { BOARD_STANDING_LABEL, activeBoardAnswers, boardStandingDetail } from '../../data/boardQuestionData';
 import { clamp, clamp01 } from '../../math';
+import { perState } from '../../state/perState';
 
 export { specializationOf };
 
@@ -693,7 +694,10 @@ export function pillarScore(s: GameState, pillar: Pillar): number {
 // Prestige (Plan 85B): the four pillars' blend, then the adjustments. The
 // baseline is the pillars' floor, so the pillar inputs sum to the weighted
 // mean of their values.
-export function prestigeBreakdown(s: GameState): StandingBreakdown {
+// Once per settled state (state/perState.ts): the screens ask it many
+// times a week.
+export const prestigeBreakdown = perState(prestigeBreakdownFresh);
+function prestigeBreakdownFresh(s: GameState): StandingBreakdown {
   const pillars = PILLARS.map((p) => {
     const made = pillarBreakdown(s, p);
     const input = weigh(

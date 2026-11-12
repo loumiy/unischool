@@ -16,6 +16,7 @@ import { clamp } from '../../math';
 import { DOWNTOWN_WORDS, offCampusShare } from '../../data/downtownData';
 import { pct } from '../../format';
 import { instructionCapacity, instructionCoverage } from '../techtree/instructionCapacity';
+import { perState } from '../../state/perState';
 
 // Satisfaction is the weighted sum of five attributes, each fed by its own
 // facilities. Ratio attributes compare servesPopulation against enrolled
@@ -234,7 +235,10 @@ export function libraryPoints(s: GameState): number {
   return clamp(servedPopulationFor(s, 'academic') / (enrolled * expectedRatio(s, 'academic')), 0, 1) * ACADEMIC_LIBRARY_POINTS;
 }
 
-export function computeSatisfactionBreakdown(s: GameState): SatisfactionAttributes {
+// Once per settled state (state/perState.ts): the screens ask it many
+// times a week.
+export const computeSatisfactionBreakdown = perState(computeSatisfactionBreakdownFresh);
+function computeSatisfactionBreakdownFresh(s: GameState): SatisfactionAttributes {
   const enrolled = totalEnrolled(s.students);
 
   // Teaching against the standard, plus the library's seats (Plan 71).
