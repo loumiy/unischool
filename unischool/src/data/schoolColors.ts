@@ -46,6 +46,12 @@ export function colorPairName(colors: SchoolColors): string | null {
   return SCHOOL_COLOR_PAIRS.find((p) => p.primary === colors.primary && p.secondary === colors.secondary)?.name ?? null;
 }
 
+// A pair's id, or 'other' if it is not in the table (the play statistics'
+// run_started sends this, never the hex values).
+export function colorPairId(colors: SchoolColors): string {
+  return SCHOOL_COLOR_PAIRS.find((p) => p.primary === colors.primary && p.secondary === colors.secondary)?.id ?? 'other';
+}
+
 // The same FNV-style hash rivalData.ts uses for its derived axes, bucketed.
 // Duplicated rather than imported so this module does not depend on the
 // rival table that consults it.

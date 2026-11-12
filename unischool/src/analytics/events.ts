@@ -5,6 +5,7 @@ import { REPORT_GRADES } from '../data/reportData';
 import { EDITIONS, PLATFORMS } from '../build';
 import { CHAPTER_COPY, OBJECTIVES_MODES } from '../data/chapterData';
 import { WEEKS_PER_YEAR } from '../state/types';
+import { SCHOOL_COLOR_PAIRS } from '../data/schoolColors';
 
 // THE PLAY STATISTICS' EVENTS (Plan 97E, from Plan 70K): every event the
 // game may send, and every field each may carry. Nothing a player typed
@@ -25,6 +26,9 @@ export type FieldKind = 'number' | 'boolean' | 'build' | 'id' | 'message' | read
 
 const PILLARS: readonly Pillar[] = ['academics', 'research', 'studentLife', 'athletics'];
 const VERNACULARS: readonly Vernacular[] = ['georgian', 'gothic', 'classical', 'mission', 'modern', 'tudor', 'italianate', 'secondEmpire', 'artDeco'];
+// The school's colors, by the founding picker's pair id (data/schoolColors.ts);
+// 'other' for a pair not in the table (an old save's, say).
+export const COLOR_IDS = [...SCHOOL_COLOR_PAIRS.map((p) => p.id), 'other'] as const;
 // Every tab, checked against TabId: a tab added there fails to compile here
 // until it is listed.
 const TAB_IDS_RECORD: Record<TabId, true> = { faculty: true, curriculum: true, research: true, treasury: true, students: true, history: true, athletics: true, inbox: true };
@@ -74,7 +78,7 @@ const yearFields: Record<string, FieldKind> = {
 
 export const EVENTS = {
   app_opened: { screen: SCREEN_BANDS, touch: 'boolean', first_launch: 'boolean' },
-  run_started: { vernacular: VERNACULARS, mode: ['normal', 'sandbox'] },
+  run_started: { vernacular: VERNACULARS, colors: COLOR_IDS, mode: ['normal', 'sandbox'] },
   run_resumed: { year: 'number' },
   year_reached: yearFields,
   specialization_offered: { year: 'number' },

@@ -96,7 +96,7 @@ function testScriptedRun(): void {
   appOpened();
 
   const g = foundGame({ name: NAME, clone: true });
-  runStarted(g.s.self.vernacular, false);
+  runStarted(g.s.self.vernacular, false, g.s.self.colors);
   const act = g.act.bind(g);
   g.act = (a) => {
     const prev = g.s;
@@ -128,6 +128,8 @@ function testScriptedRun(): void {
   for (const n of ['app_opened', 'run_started', 'year_reached', 'heartbeat', 'run_resumed', 'report_shared', 'save_exported', 'crashed', 'run_finished']) {
     assert(names.includes(n), `the run sent ${n}`);
   }
+  const started = all.find((e) => e.event === 'run_started');
+  assert(started?.properties.colors === 'maroon-gold', `run_started names the school's color pair, not its hex values (${String(started?.properties.colors)})`);
   const years = all.filter((e) => e.event === 'year_reached').map((e) => e.properties.year as number);
   assert(JSON.stringify(years) === JSON.stringify([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), `year_reached at each of the first ten summers, not the eleventh (${years.join(', ')})`);
   const first = all.find((e) => e.event === 'year_reached' && e.properties.year === 1);
@@ -163,7 +165,7 @@ function testScriptedRun(): void {
   sent = [];
   track('heartbeat');
   reportShared('copy');
-  runStarted('gothic', true);
+  runStarted('gothic', true, { primary: '#000000', secondary: '#ffffff' });
   flush();
   assert(sent.length === 0 && !fakeStorage.has(ID_KEY), 'and sends nothing after');
 }

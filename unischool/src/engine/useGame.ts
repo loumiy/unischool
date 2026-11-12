@@ -250,7 +250,7 @@ export function useGame() {
     if (a.type === 'RESET') clearSave();
     if (a.type === 'START_GAME') {
       setFoundings((n) => n + 1);
-      runStarted(a.vernacular, a.sandbox === true);
+      runStarted(a.vernacular, a.sandbox === true, a.colors);
     }
     dispatch(a);
   }, []);

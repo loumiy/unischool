@@ -42,7 +42,7 @@ and never ask.
 | Event | When | Its own fields |
 |---|---|---|
 | `app_opened` | The game opens | screen size (`phone`, `tablet`, `laptop` or `desktop`), touch screen or not, first launch or not |
-| `run_started` | A college is founded | campus architecture, normal or sandbox |
+| `run_started` | A college is founded | campus architecture, the school's colors (one of the founding picker's eight pairs, by name), normal or sandbox |
 | `run_resumed` | A saved run is continued | year |
 | `opening_step` | The walkthrough moves on to its next step | the step reached: `site-hall`, `appoint`, `found`, or `play` (the walkthrough finished; since Plan 106 PR C it ends on the first program founded) |
 | `opening_skipped` | The walkthrough's skip is confirmed | the step it was skipped on (`welcome` or one of the steps above), whether the board's letters were kept |

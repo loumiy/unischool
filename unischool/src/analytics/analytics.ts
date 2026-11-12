@@ -1,7 +1,8 @@
 import { DEV_BUILD } from '../engine/devBuild';
 import { BUILD_STAMP } from '../build';
 import { getSettings, onSettings, setSettings } from '../settings';
-import { institutionName, type GameState, type OpeningStage } from '../state/types';
+import { institutionName, type GameState, type OpeningStage, type SchoolColors } from '../state/types';
+import { colorPairId } from '../data/schoolColors';
 import type { TabId } from '../components/TabNav';
 import { COMMON_FIELDS, EVENTS, PLAYING_SPEEDS, TAB_IDS, eventFits, fieldFits, finishedFields, screenBand, stateEvents, type EventName, type Fields, type PlayingSpeed } from './events';
 
@@ -254,10 +255,11 @@ export function appOpened(): void {
 }
 
 // A new college: a new run id, its time from zero.
-export function runStarted(vernacular: string, sandbox: boolean): void {
+// The colors go as the picker's pair id, never the hex values.
+export function runStarted(vernacular: string, sandbox: boolean, colors: SchoolColors): void {
   if (!statsAvailable() || consent() === 'off') return;
   run = { id: uuid(), ms: 0, year: emptyYear() };
-  track('run_started', { vernacular, mode: sandbox ? 'sandbox' : 'normal' });
+  track('run_started', { vernacular, colors: colorPairId(colors), mode: sandbox ? 'sandbox' : 'normal' });
 }
 
 export function runResumed(year: number): void {
