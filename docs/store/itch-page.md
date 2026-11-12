@@ -273,6 +273,38 @@ words read at the size of a store thumbnail.
 | 6 | [`itch/6-young-campus.jpg`](itch/6-young-campus.jpg) | Five years in: the first halls round a quad. |
 | 7 | [`itch/6-chapters.jpg`](itch/6-chapters.jpg) | Chapters teach the founding years, one objective at a time. |
 
+## The GIFs
+
+Four GIFs of play, for the description, beside the Vimeo trailer and the
+screenshots (12 November 2026, `main` after 0.3.0). The screenshots hold
+still screens; the GIFs show what moves. Each is a real run of the game
+under the repository's own tools (`tools/itchGifs/`, see
+[`tools/README.md`](../../unischool/tools/README.md), *The itch.io GIFs*),
+in Halifax's navy and gold, 960 px wide at 12 frames a second, looping,
+each under itch.io's 3 MB for an image.
+
+| # | File | What it shows | Caption (for the alt text) |
+|---|---|---|---|
+| 1 | [`itch/gifs/1-build.gif`](itch/gifs/1-build.gif) | Year 15, a campus with its walkers out. Walnut Hall is picked from the build menu and set on an empty lot; its 36 weeks go by at 4× while the leaves fall, the snow comes and goes; a brick walk is drawn round it with Shift held, a tile of lawn left between, and the lawn filled with flower beds. | Place a hall, watch it rise, lay out the grounds. |
+| 2 | [`itch/gifs/2-courses.gif`](itch/gifs/2-courses.gif) | Week 6 of a new college, the Curriculum tab. English, Economics, Mathematics and Physics each start their next course with their row's Develop button until the committee is writing four; the weeks pass at 2× until all four are taught. | Each program grows a course at a time. |
+| 3 | [`itch/gifs/3-admissions.gif`](itch/gifs/3-admissions.gif) | The summer of Year 6. The price tried higher and put back, then locked; the applicants it drew; the admit line dragged up the cloud to a 13% class and back down until the hall is full; the offers sent, and the class takes its seats. | Set the price, then choose who gets in. |
+| 4 | [`itch/gifs/4-year.gif`](itch/gifs/4-year.gif) | Year 41, a grown campus, no interface: one year at 4×, from the fall to the last week before the summer. The leaves turn and fall, the snow comes and goes, the gardens flower, and the stadium and the track fill on their game weeks and empty again. | A year on a grown campus. |
+
+One thing is staged: GIF 2's save is given $4.2M. A college in week 6
+has about $1.4M, one course's worth (each costs $910k), so the four
+could not start together otherwise. Nothing else in any of them is
+changed from the run, except that GIF 1 moves the chapel's placement one
+block south, so its tower does not stand over the new walk (placement is
+drawing only).
+
+**Where they go.** In the description, each under the section it
+illustrates: GIF 1 at the end of *Build a campus*, GIF 2 after *Grow the
+institution*'s curriculum paragraph, GIF 3 after *Make the big
+decisions*' admissions paragraph, and GIF 4 under the opening lines
+("Over the next fifty years, you decide what it will become"). itch.io takes a GIF through the description editor's image
+button; some uploads have been reported to lose their animation, so
+check each plays once the page is saved.
+
 ## The cover image
 
 [`itch/cover.jpg`](itch/cover.jpg): the fall campus of screenshot 1,

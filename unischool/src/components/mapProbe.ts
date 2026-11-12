@@ -43,6 +43,9 @@ export interface MapReview {
   // Each placed building, its name as the map gives it, and the middle of
   // its footprint on the page.
   buildings(): { id: string; name: string; x: number; y: number }[];
+  // A point of the grid (a tile's corner; col + 0.5, row + 0.5 its middle)
+  // on the page, as the current view draws it.
+  tile(col: number, row: number): { x: number; y: number };
   // The canvas's last frame's time in ms, and everything in the scene it
   // has not been able to draw since it started, by name (null on the SVG
   // map).

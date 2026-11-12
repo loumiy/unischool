@@ -341,6 +341,61 @@ one is refused). The flags are in the script's header. The clip is VP9
 when the ffmpeg found has it (`/usr/bin/ffmpeg` is tried first), VP8
 otherwise.
 
+### The itch.io GIFs
+
+`itchGifs/` makes the four GIFs on the itch.io page
+(`docs/store/itch-page.md`, *The GIFs*): building, courses, admissions
+and a year of a grown campus. Each script is a timeline on `rig.mjs`,
+which goes further than `clip.mjs`: it drives the game's own interface
+(the build menu, the Curriculum tab's Develop buttons, the admissions
+sliders and admit line), with a pointer drawn over the page since a
+headless screenshot has none, and writes a frame for every step of page
+time under Playwright's fake clock.
+
+```sh
+npm run dev                                          # in one shell
+# 1. Build mode: year 15, Walnut Hall placed, built, walked round and planted.
+npm run scenario -- --player Completionist --year 15 --week 10 --clear-modal --name Halifax --colors navy-gold node_modules/.tmp/gif/mid.json
+npm run layout -- node_modules/.tmp/gif/mid.json node_modules/.tmp/gif/mid-laid.json
+node tools/itchGifs/build.mjs node_modules/.tmp/gif/mid-laid.json ../docs/store/itch/gifs/1-build.gif
+# 2. Courses: week 6, four programs' next courses started (the save given $4.2M).
+npm run scenario -- --player Guided --year 1 --week 5 --clear-modal --name Halifax --colors navy-gold node_modules/.tmp/gif/early.json
+node tools/itchGifs/courses.mjs node_modules/.tmp/gif/early.json ../docs/store/itch/gifs/2-courses.gif
+# 3. Admissions: the summer of Year 6.
+npm run scenario -- summer --name Halifax --colors navy-gold node_modules/.tmp/gif/summer.json
+node tools/itchGifs/admissions.mjs node_modules/.tmp/gif/summer.json ../docs/store/itch/gifs/3-admissions.gif
+# 4. A year: year 41, laid out, the interface hidden.
+npm run scenario -- --player Completionist --year 41 --week 1 --clear-modal --name Halifax --colors navy-gold node_modules/.tmp/gif/late.json
+npm run layout -- node_modules/.tmp/gif/late.json node_modules/.tmp/gif/late-laid.json
+node tools/itchGifs/year.mjs node_modules/.tmp/gif/late-laid.json ../docs/store/itch/gifs/4-year.gif
+```
+
+Each takes one to three minutes. The recipes are tied to that seeded
+run: GIF 1's lot (rows 81-89, cols 50-60, `--lot` moves it) is the free
+ground of that layout, and its week 10 is the first with the $23M for
+Walnut Hall that still lets 36 weeks of building finish before the
+summer (week 52 holds the clock) and before week 51's letter. A changed
+balance can move either; the scripts log the weeks they reach.
+
+What the rig learned the hard way:
+
+- **Jump, don't run.** `clock.runFor` fires every animation frame in
+  between, and each costs the software renderer a whole paint (30 s a
+  frame on a 4x week). `clock.fastForward` fires each due timer once.
+- **Then let the canvas finish.** The map repaints what changed over
+  several frames (a season's ground, tile by tile); one frame per jump
+  left a strip of last season's snow on screen for good. The rig steps
+  16 ms at a time until `__campusMap.settled()`, and takes that time off
+  the next jump, so the game's clock keeps its speed.
+- **A paused clock stills the walkers.** Drawing is done at real speed.
+- **`__campusMap.tile(col, row)`** (`mapProbe.ts`) puts a grid point on
+  the page, which is how the strokes and the site are aimed.
+
+The encoder is ffmpeg: one palette for the whole clip (128 colours),
+ordered (Bayer) dithering, which compresses to half the size of error
+diffusion on these flat colours, and only the changed rectangle per
+frame. 960 px wide, 12 frames a second.
+
 **It does not download a browser.** The dependency is `playwright-core`, the
 browserless package, so installing this repo does not pull several hundred MB
 nobody asked for. Point `CHROME_PATH` at any Chromium or Chrome build; failing

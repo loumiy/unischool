@@ -2780,6 +2780,12 @@ export default function CampusMap({
         const w = worldFromEvent({ clientX, clientY });
         return w ? mapCanvasRef.current?.buildingAt(w.x, w.y) ?? null : null;
       },
+      tile: (col, row) => {
+        const rect = svgRef.current?.getBoundingClientRect();
+        const v = viewRef.current;
+        const c = project(col, row);
+        return { x: (rect?.left ?? 0) + c.x * v.zoom + v.x, y: (rect?.top ?? 0) + c.y * v.zoom + v.y };
+      },
       buildings: () => {
         const rect = svgRef.current?.getBoundingClientRect();
         const v = viewRef.current;
