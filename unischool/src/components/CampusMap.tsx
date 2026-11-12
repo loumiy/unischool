@@ -33,7 +33,7 @@ import { SiteFrame, siteStageOf, type SiteStage } from './siteWorks';
 import { GroundSite, groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
 import PathwayLayer from './pathways';
-import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle } from './seasons';
+import { SUMMER_GREEN_WEEK, SnowContext, seasonOf, seasonStyle, seasonWeek } from './seasons';
 import { RingBack, RingFront } from './Surroundings';
 import { FESTIVAL_SCALES, districtFestive, districtStep, districtWinterLit } from '../data/downtownData';
 import { DEFAULT_ZOOM, clampView, districtCentre, framedView, ringZoomFloor } from './ringLand';
@@ -2683,8 +2683,9 @@ export default function CampusMap({
   // At most one change of season every SEASON_STEP_MS of real time (Plan
   // 96G's follow-up): a new season redraws every tree and some buildings,
   // which at Play is once a week, and at 8× was eight times as often. Above
-  // Play the colors step a few weeks at a time, too fast to see.
-  const week = useSteadyValue(seasonsOn ? s.clock.week : SUMMER_GREEN_WEEK, SEASON_STEP_MS);
+  // Play the colors step a few weeks at a time, too fast to see. The
+  // season itself moves every SEASON_WEEKS weeks (seasons.ts's seasonWeek).
+  const week = useSteadyValue(seasonsOn ? seasonWeek(s.clock.week) : SUMMER_GREEN_WEEK, SEASON_STEP_MS);
   const season = useMemo(() => seasonStyle(week), [week]);
   const snow = useMemo(() => seasonOf(week).snow, [week]);
   // The downtown (Plan 85H): its step; whether its windows are warm (the

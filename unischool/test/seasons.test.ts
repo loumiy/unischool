@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------
 
 import { renderToStaticMarkup } from 'react-dom/server';
-import { SNOW_COLOR, SUMMER_GREEN_WEEK, seasonOf, seasonStyle } from '../src/components/seasons';
+import { SEASON_WEEKS, SNOW_COLOR, SUMMER_GREEN_WEEK, seasonOf, seasonStyle, seasonWeek } from '../src/components/seasons';
 import { buildingMassArt, materialOf, paletteFrom } from '../src/components/buildingMotifs';
 import { landmarkArt } from '../src/components/landmarks';
 import { gazeboArt } from '../src/components/groundMarkings';
@@ -193,6 +193,23 @@ assert(DEFAULT_SETTINGS.seasons === true, 'seasons are on by default');
 assert(normaliseSettings({ textScale: 1.15 }).seasons === true, 'settings saved before the switch keep the seasons');
 assert(normaliseSettings({ seasons: false }).seasons === false, 'and turning them off holds');
 assert(still(SUMMER_GREEN_WEEK), `the seasons-off week (${SUMMER_GREEN_WEEK}) is the plain summer map`);
+
+// The season moves every SEASON_WEEKS weeks: a week shows its step's first
+// week, the year has 18 steps, snow still comes and goes over more than one,
+// and the seasons-off week stays plain.
+{
+  const steps = new Set<number>();
+  for (let w = 1; w <= 52; w++) {
+    const at = seasonWeek(w);
+    steps.add(at);
+    assert(at <= w && w - at < SEASON_WEEKS, `week ${w} shows the season of week ${at}, its step's first`);
+  }
+  assert(steps.size === Math.ceil(52 / SEASON_WEEKS), `the year has ${steps.size} seasons on the map`);
+  assert(seasonWeek(53) === seasonWeek(1) && seasonWeek(0) === seasonWeek(52), 'the steps wrap with the year');
+  const snows = [...steps].map((w) => seasonOf(w).snow).filter((x) => x > 0 && x < 1);
+  assert(snows.length >= 2, `snow comes in and goes out over steps of its own (${snows.length} part-snowy steps)`);
+  assert(still(seasonWeek(SUMMER_GREEN_WEEK)), 'the seasons-off week is plain at its step too');
+}
 
 if (failures === 0) {
   console.log(`  ✓ all ${checks} checks passed`);
