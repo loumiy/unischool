@@ -241,6 +241,12 @@ function sportDisplayName(profile: SportProfile, gender: SportGender): string {
 export interface SportDefinition {
   id: string;
   gender: SportGender;
+  // The sport without its gender ('Basketball'), its base key ('basketball',
+  // shared by both genders), and the gender's prefix ("Women's"), empty for a
+  // one-gender sport. The trophy case shelves by these.
+  label: string;
+  key: string;
+  genderLabel: string;
   clubName: string;
   teamName: string;
   venueCategory: FacilityType;
@@ -254,6 +260,9 @@ export const SPORTS: readonly SportDefinition[] = SPORT_PROFILES.flatMap((profil
     return {
       id: sportId(profile, gender),
       gender,
+      label: profile.label,
+      key: profile.key,
+      genderLabel: profile.genders.length > 1 ? GENDER_LABEL[gender] : '',
       clubName: `${name} Club`,
       teamName: `${name} Team`,
       venueCategory: profile.venueCategory,
