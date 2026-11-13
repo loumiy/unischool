@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import type { FacilityType, Vernacular } from '../state/types';
+import type { Facing, FacilityType, Vernacular } from '../state/types';
 import { Spectators, VenuePennants } from './spectators';
 import { ROOF_SNOW, SnowContext, snowOn } from './seasons';
 import { boxFaces, heightScale, lift, polyPoints, project, projectedArc, projectedCircle, projectedStadium, type FaceDir, type Pt } from './isoProjection';
@@ -2166,6 +2166,9 @@ export function groundProps(
   stage = 0,
   // The campus's style, for what is painted in its trim (the gazebo).
   vernacular?: Vernacular,
+  // The placement's facing, for the props that have a front (the kiosk's
+  // counter).
+  facing?: Facing,
 ): GroundProp[] {
   // Nothing stands on a site yet.
   if (developing) return [];
@@ -2175,7 +2178,7 @@ export function groundProps(
     case 'athleticsDiamond': return diamondProps(col, row, w, h, stage);
     case 'tennisCourts': return courtsProps(col, row, w, h);
     case 'basketballCourts': return basketballProps({ col, row, w, h });
-    case 'coffeeKiosk': return kioskProps({ col, row, w, h });
+    case 'coffeeKiosk': return kioskProps({ col, row, w, h }, facing);
     case 'foodTrucks': return trucksProps({ col, row, w, h });
     case 'pool': return poolProps(col, row, w, h);
     case 'quad': return quadProps(col, row, w, h, tier ?? 1);

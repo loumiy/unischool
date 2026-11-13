@@ -17,7 +17,7 @@
 // back), so the plan keeps whichever way it is turned. The front door is
 // at the middle of the front, where walkRoutes.ts walks to.
 
-import { boxFaces, facePoint, lift, polyPoints, project, type BoxFaces, type FaceDir, type Pt } from './isoProjection';
+import { boxFaces, cameraAxes, facePoint, groundSquash, lift, polyPoints, project, type BoxFaces, type FaceDir, type Pt } from './isoProjection';
 import { up } from './campusScale';
 import { faceTone } from './light';
 import { shade } from './tint';
@@ -358,23 +358,39 @@ export function Observatory({ p }: { p: Plot }) {
     const phi = (i / rings) * (Math.PI / 2);
     return { pts: ring(R * 1.04 * Math.cos(phi), DRUM_H + up(0.3) + R * 1.04 * Math.sin(phi) * up(7.5), 36), tone: 0.86 + 0.16 * (i / rings) };
   });
-  // The shutter: a dark band up the dome's camera side, and the telescope
-  // looking out of it.
-  const frontAngle = (() => {
-    const pts = ring(R, 0, 72);
-    const i = lowest(pts);
-    return (i / 72) * Math.PI * 2;
-  })();
+  // The shutter: a band from the drum to near the crown, pointing over the
+  // entrance (the building's front), and the telescope looking out of it.
+  // It is fixed in the building's frame, so it goes round the dome as the
+  // camera turns: drawn only where the dome's surface faces the camera
+  // (full on the near side, narrowing toward the limb, hidden behind).
+  const fg = localToGrid(p, cu, 0);
+  const tf = Math.atan2(fg.row - g.row, fg.col - g.col);
+  const { cosA, sinA } = cameraAxes();
+  const sinE = groundSquash(); const cosE = Math.sqrt(Math.max(0, 1 - sinE * sinE));
+  const facesCamera = (t: number, phi: number) => cosE * Math.cos(phi) * (Math.cos(t) * sinA + Math.sin(t) * cosA) + sinE * Math.sin(phi) > 0.02;
   const slitPt = (phi: number, side: number) => {
     const r = R * 1.05 * Math.cos(phi);
-    const t = frontAngle + side * (0.16 / Math.max(0.3, Math.cos(phi)));
+    const t = tf + side * (0.16 / Math.max(0.3, Math.cos(phi)));
     return lift(project(g.col + Math.cos(t) * r, g.row + Math.sin(t) * r), DRUM_H + up(0.3) + R * 1.05 * Math.sin(phi) * up(7.5));
   };
-  const slitPhis = Array.from({ length: 8 }, (_, i) => (i / 7) * (Math.PI / 2) * 0.92);
-  const slit = [...slitPhis.map((ph) => slitPt(ph, -1)), ...[...slitPhis].reverse().map((ph) => slitPt(ph, 1))];
+  const slitPhis = Array.from({ length: 12 }, (_, i) => (i / 11) * (Math.PI / 2) * 0.92);
+  // The longest run of samples whose both edges face the camera.
+  const seenRun = (() => {
+    let best: number[] = []; let cur: number[] = [];
+    slitPhis.forEach((ph, i) => {
+      const dt = 0.16 / Math.max(0.3, Math.cos(ph));
+      if (facesCamera(tf - dt, ph) && facesCamera(tf + dt, ph)) { cur.push(i); if (cur.length > best.length) best = [...cur]; } else cur = [];
+    });
+    return best.map((i) => slitPhis[i]!);
+  })();
+  const slit = seenRun.length >= 2
+    ? [...seenRun.map((ph) => slitPt(ph, -1)), ...[...seenRun].reverse().map((ph) => slitPt(ph, 1))]
+    : null;
+  const scopePhi = Math.PI * 0.3;
+  const scopeSeen = facesCamera(tf, scopePhi) && facesCamera(tf, 0.12);
   const scopeFoot = lift(project(g.col, g.row), DRUM_H + R * up(7.5) * 0.35);
-  const scopeTip = slitPt(Math.PI * 0.3, 0);
-  const scopeOut = { x: scopeTip.x + (scopeTip.x - scopeFoot.x) * 0.25, y: scopeTip.y + (scopeTip.y - scopeFoot.y) * 0.25 };
+  const scopeTip = slitPt(scopePhi, 0);
+  const scopeOut = { x: scopeTip.x + (scopeTip.x - scopeFoot.x) * 0.45, y: scopeTip.y + (scopeTip.y - scopeFoot.y) * 0.45 };
   const drumNode = (
     <>
       <polygon points={P(sideNear)} fill={shade(OBS_WALL, 0.84)} />
@@ -382,9 +398,13 @@ export function Observatory({ p }: { p: Plot }) {
       {/* A cornice band at the drum's top. */}
       <polygon points={P(top)} fill={shade(OBS_WALL, 0.92)} />
       {domeRings.map((rg, i) => <polygon key={i} points={P(rg.pts)} fill={shade(DOME, rg.tone)} />)}
-      <polygon points={P(slit)} fill={SLIT} />
-      <line x1={scopeFoot.x} y1={scopeFoot.y} x2={scopeOut.x} y2={scopeOut.y} stroke="#c7ccd2" strokeWidth={2.4} strokeLinecap="round" />
-      <line x1={scopeFoot.x} y1={scopeFoot.y} x2={scopeOut.x} y2={scopeOut.y} stroke="#6c7480" strokeWidth={1} strokeLinecap="round" />
+      {slit && <polygon points={P(slit)} fill={SLIT} />}
+      {slit && scopeSeen && (
+        <>
+          <line x1={scopeTip.x} y1={scopeTip.y} x2={scopeOut.x} y2={scopeOut.y} stroke="#c7ccd2" strokeWidth={2.4} strokeLinecap="round" />
+          <line x1={scopeTip.x} y1={scopeTip.y} x2={scopeOut.x} y2={scopeOut.y} stroke="#6c7480" strokeWidth={1} strokeLinecap="round" />
+        </>
+      )}
     </>
   );
   // The entrance block at the front, white, flat-roofed, with the door.

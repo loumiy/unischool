@@ -89,7 +89,10 @@ export function Cinema({ p, wall }: { p: Plot; wall: string }) {
   const W = frontWidth(p); const D = frontDepth(p);
   const frontDir = sidesOf(p.facing).front;
   const hallBox = localBox(p, 0.35, 1.5, W - 0.35, D - 0.1);
-  const lobbyBox = localBox(p, 0.1, 0.12, W - 0.1, 1.6);
+  // The lobby meets the auditorium without overlapping it: overlapping
+  // boxes have no order (depthSort.ts's occludes is 0), and the hall was
+  // drawn over the lobby from behind.
+  const lobbyBox = localBox(p, 0.1, 0.12, W - 0.1, 1.5);
   const crownBox = localBox(p, W * 0.32, 0.12, W * 0.68, 0.9);
   const hall = boxFaces(hallBox.col, hallBox.row, hallBox.w, hallBox.h, 0, CINEMA_HALL);
   const lobby = boxFaces(lobbyBox.col, lobbyBox.row, lobbyBox.w, lobbyBox.h, 0, CINEMA_FRONT);
