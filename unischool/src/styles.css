@@ -400,34 +400,53 @@ button, input, select, textarea { font-size: inherit; }
   gap: var(--space-24); padding: 40px var(--space-16); background: color-mix(in srgb, var(--cream) 97%, transparent); }
 .title-card { width: min(640px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   box-shadow: var(--elevation-dialog); padding: var(--space-24); }
-/* The title art's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx):
-   the quad under a clear sky, and the mark and the name in white on it.
-   The menus over it are the game's own cards. */
+/* The title's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx): a
+   clear sky over a campus skyline (assets/title-skyline.svg, the owner's
+   pick of five, 13 November), the mark and the name in white in the sky.
+   The menus over it are the game's own cards. The skyline is a band of its
+   own: each screen keeps its foot clear of it (the padding below), and it
+   rides at the foot of what scrolls ("local"), so a card never covers it. */
 .title-screen, .startup, .front-art > .front-screen {
-  background: #4f9be0 url('./assets/campus-quad.webp') center 62% / cover no-repeat fixed; }
+  --skyline-h: clamp(110px, 20vh, 200px);
+  background:
+    url('./assets/title-skyline.svg') center bottom / auto var(--skyline-h) repeat-x local,
+    linear-gradient(180deg, #3f8ad6 0%, #6fb0ea 55%, #b9dcf7 100%) fixed;
+  padding-bottom: calc(var(--skyline-h) + var(--space-16)); }
 /* A front screen opened from the title (App.tsx): its card over the art. */
 .front-art { display: contents; }
-.title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) 40px; }
+.title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) calc(var(--skyline-h) + var(--space-24)); }
 .title-head { text-align: center; color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
 .logo { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
-.logo-mark { width: clamp(88px, 13vw, 150px); height: auto; display: block; color: #fff;
+.logo-mark { width: clamp(72px, 9vw, 120px); height: auto; display: block; color: #fff;
   filter: drop-shadow(0 2px 10px rgba(10, 50, 110, 0.25)); }
 /* The game's own name: Archivo at its heaviest, in wide capitals. */
-.logo-name { margin: 0; font-family: var(--sans); font-weight: 800; font-size: clamp(40px, 8vw, 96px); line-height: 1;
+.logo-name { margin: 0; font-family: var(--sans); font-weight: 800; font-size: clamp(36px, 5.6vw, 72px); line-height: 1;
   letter-spacing: 0.04em; text-transform: uppercase; color: #fff; }
-.title-tagline { margin: var(--space-12) 0 0; font-family: var(--sans); font-weight: 600; font-size: var(--text-xl); color: #fff; }
+/* The subtitle, "University Tycoon": under the name and nearer its size. */
+.title-tagline { margin: var(--space-8) 0 0; font-family: var(--sans); font-weight: 700; font-size: clamp(20px, 2.6vw, 34px);
+  line-height: 1.1; letter-spacing: 0.02em; color: #fff; }
 /* The menu: the game's own front-screen card and buttons over the art,
    narrower so the quad shows round it. */
 .title-screen .title-card { width: min(460px, 100%); margin-top: auto; }
+/* A wide screen: the name at the left and the menu at the right, side by
+   side over the skyline, each centred in the sky (auto margins, so a tall
+   menu scrolls rather than slipping under the top). */
+@media (min-width: 1000px) {
+  .title-screen { flex-direction: row; justify-content: center; align-items: flex-start; gap: clamp(40px, 7vw, 120px); }
+  .title-screen .title-head { flex: 0 1 560px; margin-block: auto; }
+  .title-screen .title-card { flex: 0 0 auto; margin-block: auto; }
+}
 /* A short screen (Plan 115G, the founding card's rule below): the mark,
    the name and the card's padding close up, so the menu and the hall of
    fame fit in a 1280×720 laptop without the screen scrolling. */
 @media (max-height: 800px) {
-  .title-screen { gap: var(--space-12); padding-top: var(--space-16); padding-bottom: var(--space-16); }
+  /* The skyline lower, so the menus keep their room. */
+  .title-screen, .startup, .front-art > .front-screen { --skyline-h: clamp(84px, 14vh, 112px); }
+  .title-screen { gap: var(--space-12); padding-top: var(--space-16); padding-bottom: calc(var(--skyline-h) + var(--space-16)); }
   .title-screen .logo { gap: var(--space-6); }
-  .title-screen .logo-mark { width: clamp(56px, 9vh, 88px); }
-  .title-screen .logo-name { font-size: clamp(40px, 9vh, 72px); }
-  .title-screen .title-tagline { margin-top: var(--space-6); font-size: var(--text-lg); }
+  .title-screen .logo-mark { width: clamp(52px, 9vh, 80px); }
+  .title-screen .logo-name { font-size: clamp(34px, 8vh, 60px); }
+  .title-screen .title-tagline { margin-top: var(--space-6); font-size: clamp(18px, 3.6vh, 28px); }
   .title-screen .title-card { padding: var(--space-16) var(--space-24); }
 }
 /* MOCKUP (TitleScreen.tsx's ?title=): three titles without the painting. */
@@ -496,51 +515,6 @@ body:has(.title-backdrop) :is(.pennant, .main-menu, .map-tools-toggle, .campus-m
 :root:has(.title-backdrop) .startup { position: relative; z-index: 60; }
 .title-v-live .title-head { text-shadow: 0 2px 16px rgba(10, 25, 50, 0.5); }
 .title-v-live .title-card { background: color-mix(in srgb, var(--cream-hi) 94%, transparent); backdrop-filter: blur(6px); }
-
-/* MOCKUP (TitleScreen.tsx's ?title=): five still backgrounds for the
-   title, the mark, the name and the menu as they are. */
-/* A · Sky: the title art's blue, paler at the horizon, over a flat campus
-   skyline. */
-.title-screen.title-v-sky { background:
-  url('./assets/title-skyline.svg') center bottom / max(100vw, 1100px) auto no-repeat fixed,
-  linear-gradient(180deg, #3f8ad6 0%, #6fb0ea 55%, #b9dcf7 100%) fixed; }
-/* B · Blueprint: a drafting grid on deep blue, a campus plan drawn faint
-   across it. */
-.title-screen.title-v-blueprint { background:
-  url('./assets/title-plan.svg') center 85% / min(1500px, 150vw) auto no-repeat fixed,
-  linear-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px) 0 0 / 120px 120px fixed,
-  linear-gradient(90deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px) 0 0 / 120px 120px fixed,
-  linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 24px 24px fixed,
-  linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 24px 24px fixed,
-  #1f4f86; }
-.title-v-blueprint .title-head { text-shadow: none; }
-.title-v-blueprint .logo-mark { filter: none; }
-/* C · Lawn: the quad's mown stripes, darker at the top for the white
-   name. */
-.title-screen.title-v-lawn { background:
-  radial-gradient(ellipse 70% 45% at 50% 12%, rgba(30, 48, 20, 0.45), rgba(30, 48, 20, 0) 100%) fixed,
-  repeating-linear-gradient(135deg, var(--grass) 0 90px, var(--grass-deep) 90px 180px) fixed; }
-.title-v-lawn .title-head { text-shadow: 0 2px 14px rgba(20, 36, 12, 0.45); }
-.title-v-lawn .logo-mark { filter: drop-shadow(0 2px 10px rgba(20, 36, 12, 0.35)); }
-/* D · Stripes: the school's colours as a scarf's diagonal bars, deeper
-   round the name. */
-.title-screen.title-v-stripes { background:
-  radial-gradient(ellipse 60% 42% at 50% 14%, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0) 100%) fixed,
-  repeating-linear-gradient(-45deg,
-    var(--school-primary) 0 120px, var(--school-secondary) 120px 134px,
-    var(--school-primary) 134px 146px, var(--school-on-primary) 146px 152px,
-    var(--school-primary) 152px 164px, var(--school-secondary) 164px 178px) fixed; }
-.title-v-stripes .title-head { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.4); }
-.title-v-stripes .title-card { border-color: color-mix(in srgb, var(--school-primary) 55%, black); }
-/* E · Paper: the game's cream under a faint isometric grid, the map's own
-   angles; the mark and the name in ink. */
-.title-screen.title-v-paper { background:
-  repeating-linear-gradient(30deg, transparent 0 39px, rgba(27, 42, 74, 0.09) 39px 40px) fixed,
-  repeating-linear-gradient(-30deg, transparent 0 39px, rgba(27, 42, 74, 0.09) 39px 40px) fixed,
-  radial-gradient(ellipse 80% 60% at 50% 30%, var(--cream-hi), var(--cream-lo)) fixed; }
-.title-v-paper .title-head { color: var(--outline); text-shadow: none; }
-.title-v-paper .logo-mark, .title-v-paper .logo-name, .title-v-paper .title-tagline { color: var(--outline); filter: none; }
-.title-v-paper .logo-mark { color: var(--school-primary); }
 
 /* A save this version could not open (TitleScreen.tsx). */
 .title-set-aside { margin: 0 0 14px; padding: 10px 14px; border: 2px dashed var(--parchment-line); border-radius: var(--radius-lg);
@@ -3721,9 +3695,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .demand-deadline.urgent { color: var(--danger-ink); }
 
 /* ---------- Startup screen ---------- */
-/* Over the title art (see the title screen's register above). */
+/* Over the title's sky (see the title screen's register above). */
 .startup { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: var(--space-16); padding: 24px var(--space-16); box-sizing: border-box; }
+  gap: var(--space-16); padding: 24px var(--space-16) calc(var(--skyline-h) + var(--space-16)); box-sizing: border-box; }
 .startup-brand { display: flex; align-items: center; gap: var(--space-12); color: #fff;
   font-family: var(--sans); font-weight: 800; font-size: var(--text-3xl); letter-spacing: 0.04em; text-transform: uppercase;
   text-shadow: 0 2px 12px rgba(10, 50, 110, 0.3); }
@@ -3799,7 +3773,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    440×214 viewBox, and the card's padding and margins close up, so Open the
    doors sits inside 720 px. Height only: a phone is taller than 800 px. */
 @media (max-height: 800px) {
-  .startup { gap: var(--space-8); padding-top: var(--space-12); padding-bottom: var(--space-12); }
+  .startup { gap: var(--space-8); padding-top: var(--space-12); padding-bottom: calc(var(--skyline-h) + var(--space-12)); }
   .startup-brand { font-size: var(--text-2xl); }
   .startup-brand-mark { width: 32px; }
   .startup-card { padding: var(--space-16) var(--space-24) var(--space-24); }

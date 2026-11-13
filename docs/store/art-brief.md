@@ -31,7 +31,9 @@ are no characters to brand.
   campus growing.
 - `docs/assets/`: every building in every one of the nine architectural
   styles, as the game draws it.
-- `unischool/src/assets/campus-quad.webp`: the placeholder title painting.
+- `unischool/src/assets/campus-quad.webp`: the placeholder title painting
+  (off the title screen since 13 November 2026, where a sky over a drawn
+  campus skyline, `title-skyline.svg`, took its place).
   The commission replaces it. Its composition is a fair starting point
   (two halls framing a quad and a path, students walking, a clear sky);
   its execution is not.
