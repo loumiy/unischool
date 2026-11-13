@@ -66,9 +66,10 @@ export function effectsOf(s: GameState, effects: CatalogueChoice['effects'], var
       case 'departs': out.push({ kind: 'faculty', words: `${vars.faculty ?? 'they'} leaves`, tone: 'loss' }); break;
       case 'buildingFund': out.push({ kind: 'money', figure: money(v), words: 'to the building fund', tone: 'gain' }); break;
       case 'historic': out.push(other(`${vars.building ?? 'the building'} declared historic`)); break;
-      // The charter (Plan 78G): the name, for good (Plan 80D: nothing renames
-      // the college after it).
-      case 'charter': out.push(other(v > 0 ? 'University from now on' : 'College for good')); break;
+      // The charters (Plan 127): the name, until the next letter (Plan 80D:
+      // nothing else renames the college).
+      case 'charter':
+      case 'universityCharter': out.push(other(v === 2 ? 'Institute from now on' : v === 3 ? 'University from now on' : 'The name stays')); break;
       case 'goodwill': out.push({ kind: 'goodwill', figure: signed(v), words: 'town goodwill', tone: toneOf(v) }); break;
       // Plan 101C's effects that land where they say.
       case 'backlogOn': {

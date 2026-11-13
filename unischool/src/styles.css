@@ -3726,7 +3726,17 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
   padding: var(--space-4) var(--space-8); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--school-primary);
   font-family: var(--display); font-weight: 800; font-size: var(--text-sm); cursor: pointer; }
 .startup-back:hover { background: var(--cream-lo); }
-/* The name field; the fixed half of the name is carved into the facade. */
+/* The name field and its title (Plan 127): one row from 480px wide,
+   stacked below; the whole name is carved into the facade. */
+.startup-name-row { display: flex; gap: var(--space-8); align-items: stretch; }
+.startup-name-row .startup-name { flex: 1 1 auto; min-width: 0; }
+.startup-title { flex: 0 0 auto; width: 11.5em; font-size: var(--text-md, 1rem); padding: var(--space-8) var(--space-8); border-radius: var(--radius-md);
+  border: 2px solid var(--outline); background: var(--cream); color: var(--ink); font-family: var(--display); font-weight: 800; cursor: pointer; }
+.startup-title:focus { border-color: var(--gold-dim); }
+@media (max-width: 479px) {
+  .startup-name-row { flex-direction: column; }
+  .startup-title { width: 100%; }
+}
 .startup-name { width: 100%; box-sizing: border-box; font-size: var(--text-xl); padding: var(--space-8) var(--space-12); border-radius: var(--radius-md);
   border: 2px solid var(--outline); background: var(--cream); color: var(--ink); font-family: var(--display); }
 .startup-name:focus { border-color: var(--gold-dim); }
@@ -3736,8 +3746,8 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 
 .startup-facade { margin: 14px 0 28px; }
 .startup-facade-svg { display: block; width: 100%; height: auto; }
-/* Why the facade says College (Plan 78G): a muted line under the stone,
-   shown only while the typed name ends in "University". */
+/* A muted line under the stone (Plan 127): how a name opening "University
+   of" will read, or what earns a typed title not yet open. */
 .startup-facade-caption { margin: var(--space-8) 0 0; font-size: var(--text-xs); line-height: 1.35; color: var(--ink-muted); text-align: center; }
 /* One stone color for every solid; depth comes from .facade-line strokes. */
 /* The facade's sky: the one surface not colored from the vernacular. */

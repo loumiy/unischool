@@ -407,7 +407,8 @@ const LAB_UPKEEP_PER_WEEK = 1_400; // ~$73k/yr — specialized equipment is expe
 // Each standing lab adds this to the campus-wide research-output multiplier,
 // read live off effects.researchRateBonus. Small on purpose: the gate is the
 // decision, the multiplier the reward for building several. The first lab
-// anywhere also offers the College -> University charter.
+// anywhere also brings the board's Institute charter (Plan 127,
+// systems/events/charter.ts).
 const LAB_RESEARCH_RATE_BONUS = 0.12;
 function labId(prefix: string): string {
   return `LAB-${prefix}`;

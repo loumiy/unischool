@@ -216,17 +216,19 @@ Everything that needs to stop time rides on this one mechanism:
   queues like a milestone rather than firing on the spot, and it shares the
   decision events' cooldown, so it redistributes the existing texture budget
   instead of adding a stream on top of it.
-- **The university charter** — no longer an interrupt (Plan 72E). Raised
-  the first quiet week a lab is at work, which it still takes as its own,
-  as a matter to decide in the inbox (Plan 78G): the catalogue's first inline
-  event raised rather than drawn (`CHARTER_EVENT` in
-  `src/data/eventCatalogue.ts`, `src/systems/events/charter.ts`). It has a
-  fixed instance id and reads its names off the state, so raising it draws
-  nothing from the run's stream; no seat answers it, and it holds no place
-  in the queue the draws are limited to. Unanswered, it takes "Become X
-  University" after four weeks in the tick, like any inline event. The
-  pennant renames the college (see
-  [progression.md](../design/progression.md)'s "College, and University").
+- **The charters** — no longer an interrupt (Plan 72E). Each is raised as a
+  matter to decide in the inbox (Plan 78G), taking the quiet week it lands
+  as its own: the Institute charter the first quiet week a lab is at work,
+  the University charter the first quiet week a graduate program has been
+  founded (Plan 127). They are the catalogue's inline events raised rather
+  than drawn (`CHARTER_EVENTS` in `src/data/eventCatalogue.ts`,
+  `src/systems/events/charter.ts`). Each has a fixed instance id and reads
+  its names off the state, so raising one draws nothing from the run's
+  stream; no seat answers them, and they hold no place in the queue the
+  draws are limited to. Unanswered, each takes its offer after four weeks in
+  the tick, like any inline event. The Institute charter's letter carries
+  the college's one rename (see
+  [progression.md](../design/progression.md)'s "College, Institute and University").
 - **The spring festival** — never an interrupt (Plan 85H). At a college
   specialized in student life, from the Spring Term's fourth week, once a
   year, the student government's question joins the inbox as the
@@ -278,7 +280,7 @@ the stack.
 Everything addressed to the president that does not stop the clock waits in
 the **inbox** (Plan 77, `src/systems/inbox/inbox.ts`, `InboxTab.tsx`), a
 full-screen tab in three tiers: **to decide** (the catalogue's inline events,
-the university charter among them, a student demand, a board letter with an
+the two charters among them, a student demand, a board letter with an
 ask), **letters** (milestones, the celebrations and research reports, a
 bonus architecture earned for the next college, the board's distress
 letters, the founding notes) and **bulletins** (the toasts' news, kept for a

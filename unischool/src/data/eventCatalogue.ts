@@ -2721,15 +2721,21 @@ export const EVENT_CATALOGUE: readonly CatalogueEvent[] = [
   },
 ];
 
-// The university charter (Plan 78G): an inline event that is never drawn
-// (the spring festival, data/downtownData.ts, is the other). It is raised
-// the first quiet week a lab is at work (eventSystem.ts's fireCharter), once
-// a run, and waits in the inbox like any other; left
-// unanswered, the college becomes a University, as it did before the
-// question. {name} is the first half of the college's name. Its letter
-// carries the college's one rename (Plan 80D, InboxTab.tsx's CharterAnswer).
-export const CHARTER_EVENT: CatalogueEvent = {
-  id: 'university-charter',
+// The two charters (Plan 78G, Plan 127): inline events that are never
+// drawn (the spring festival, data/downtownData.ts, is the other kind). Each
+// is raised once a run and waits in the inbox like any other (systems/
+// events/charter.ts). {name} is the first half of the college's name,
+// {school} the whole of it.
+//
+// The Institute charter comes the first quiet week a lab is at work
+// (eventSystem.ts's fireInstituteCharter), in one of three tellings picked
+// by the title the college carries when it is raised, each with fixed
+// answers, so the four-week default cannot change under the player. Its
+// letter carries the college's one rename (Plan 80D, InboxTab.tsx's
+// CharterAnswer). The 'charter' effect is the title the answer leaves:
+// 2 Institute, -1 the name as it stands.
+export const INSTITUTE_CHARTER_EVENT: CatalogueEvent = {
+  id: 'charter-institute',
   kind: 'inline',
   domain: 'board',
   from: 'The board',
@@ -2737,11 +2743,67 @@ export const CHARTER_EVENT: CatalogueEvent = {
   cooldownYears: 0,
   when: {},
   title: 'The charter',
-  text: 'Your first laboratory is open, and the board has voted you a university charter. {name} College may now call itself {name} University. Other colleges have kept the name they opened under and were none the worse for it.\n\nThe board will have the new name carved over Founders Hall unless you prefer the old one. If you would rather have another name altogether, this is the one time to say so. The stone is cut once. The stonemason has been asked to wait a month.',
+  text: 'Your first laboratory is open, and the board has voted you a charter. {name} College may now call itself {name} Institute, the name of a place that does research. Other colleges have kept the name they opened under and were none the worse for it. From now on, a college you found may open as an Institute.\n\nThe board will have the name carved over Founders Hall. If you would rather have another name altogether, this is the one time to say so. The stone is cut once. The stonemason has been asked to wait a month.',
   timeoutWeeks: 4,
   choices: [
-    { id: 'university', label: 'Become {name} University', effects: { charter: 1 } },
+    { id: 'institute', label: 'Become {name} Institute', effects: { charter: 2 } },
     { id: 'college', label: 'Keep the name {name} College', effects: { charter: -1 } },
+  ],
+  default: 'institute',
+};
+
+// Founded as an Institute (Plan 127, D4): the letter still comes, for the
+// rename, with one answer.
+export const INSTITUTE_CHARTER_KEPT_EVENT: CatalogueEvent = {
+  ...INSTITUTE_CHARTER_EVENT,
+  id: 'charter-institute-kept',
+  text: 'Your first laboratory is open, and the board has voted you a charter. {name} Institute has carried the name of a place that does research since it opened, and now it does research.\n\nThe board will have the name carved over Founders Hall. If you would rather have another name altogether, this is the one time to say so. The stone is cut once. The stonemason has been asked to wait a month.',
+  choices: [
+    { id: 'institute', label: 'Keep the name {name} Institute', effects: { charter: -1 } },
+  ],
+  default: 'institute',
+};
+
+// Founded as a University (Plan 127, D4): keep it, or take Institute.
+export const INSTITUTE_CHARTER_UNIVERSITY_EVENT: CatalogueEvent = {
+  ...INSTITUTE_CHARTER_EVENT,
+  id: 'charter-institute-university',
+  text: 'Your first laboratory is open, and the board has voted you a charter. {name} University may keep its name, or call itself {name} Institute, the name of a place that does research. Neither name is a step down from the other. From now on, a college you found may open as an Institute.\n\nThe board will have the name carved over Founders Hall. If you would rather have another name altogether, this is the one time to say so. The stone is cut once. The stonemason has been asked to wait a month.',
+  choices: [
+    { id: 'university', label: 'Keep the name {name} University', effects: { charter: -1 } },
+    { id: 'institute', label: 'Become {name} Institute', effects: { charter: 2 } },
   ],
   default: 'university',
 };
+
+// The University charter comes the first quiet week a graduate program has
+// been founded (eventSystem.ts's fireUniversityCharter), unless the college
+// is already a University. No rename: that stays with the first letter
+// (Plan 127, D2). The 'universityCharter' effect: 3 University, -1 the name
+// as it stands.
+export const UNIVERSITY_CHARTER_EVENT: CatalogueEvent = {
+  id: 'charter-university',
+  kind: 'inline',
+  domain: 'board',
+  from: 'The board',
+  weight: 0,
+  cooldownYears: 0,
+  when: {},
+  title: 'The university charter',
+  text: 'Your first graduate program has begun, and the board has voted you a university charter. {school} may now call itself {name} University. Other colleges have kept the name they opened under and were none the worse for it. From now on, a college you found may open as a University.\n\nThe board will have the new name carved over Founders Hall unless you prefer the one it has. The stonemason has been asked to wait a month.',
+  timeoutWeeks: 4,
+  choices: [
+    { id: 'university', label: 'Become {name} University', effects: { universityCharter: 3 } },
+    { id: 'keep', label: 'Keep the name {school}', effects: { universityCharter: -1 } },
+  ],
+  default: 'university',
+};
+
+// Every charter telling: raised, never drawn.
+export const CHARTER_EVENTS: readonly CatalogueEvent[] = [
+  INSTITUTE_CHARTER_EVENT, INSTITUTE_CHARTER_KEPT_EVENT, INSTITUTE_CHARTER_UNIVERSITY_EVENT, UNIVERSITY_CHARTER_EVENT,
+];
+
+export function isCharterEvent(id: string): boolean {
+  return CHARTER_EVENTS.some((e) => e.id === id);
+}

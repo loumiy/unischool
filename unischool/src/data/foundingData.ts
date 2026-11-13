@@ -4,16 +4,19 @@ import { COLLEGE_NAME_MAX, type Vernacular } from '../state/types';
 // startup screen asks only for a name (StartupScreen.tsx); anything that
 // should vary between schools belongs in play.
 
-// Under the founding facade when the typed name ends in "University"
-// (StartupScreen.tsx, Plan 78G): the facade reads College, and this says
-// when that changes (systems/events/charter.ts).
-export const UNIVERSITY_CAPTION = 'Every college opens as a College; the board grants "University" with its first research lab.';
+// Under the founding facade when the typed name ends in a title not yet
+// earned (StartupScreen.tsx, Plan 127): the facade reads the title in the
+// dropdown, and this says what opens the typed one (state/unlocks.ts's
+// TITLE_UNLOCKS).
+export const lockedTitleCaption = (title: string, condition: string): string =>
+  `${condition} to open "${title}".`;
 
-// Under the founding facade when the typed name opens with "University of"
-// or "College of" (the second review's H7-7): the suffix is added all the
-// same, so the form shows the name as the pennant will carry it.
-export const prefixedCaption = (bare: string): string =>
-  `This will read "${bare} College", and "${bare} University" once the board grants it.`;
+// Under the founding facade when the typed name opens with "University of",
+// "Institute of" or "College of" (the second review's H7-7): the title is
+// added all the same, so the form shows the name as the pennant will carry
+// it.
+export const prefixedCaption = (bare: string, title: string): string =>
+  `This will read "${bare} ${title}".`;
 
 // Under the name field, on the founding screen and in the charter's rename,
 // once the name has reached the longest it can be (the review's G7-19): the

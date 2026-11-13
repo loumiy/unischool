@@ -1178,13 +1178,27 @@ export interface SchoolColors {
   secondary: string; // accent: active tab, primary button fill, focus ring
 }
 
+// The three titles a college can carry (Plan 127): equals in the name, not
+// a ladder. An Institute is a research identity, not a step below University.
+export type InstitutionTitle = 'College' | 'Institute' | 'University';
+export const INSTITUTION_TITLES: readonly InstitutionTitle[] = ['College', 'Institute', 'University'];
+
+export function isInstitutionTitle(x: unknown): x is InstitutionTitle {
+  return INSTITUTION_TITLES.includes(x as InstitutionTitle);
+}
+
 export interface University {
-  // The name in two halves: the player's first half ("Halifax") and a
-  // suffix, "College" until the one-time 'charter' offer makes it
-  // "University". Separate so nothing parses a name to rename it.
+  // The name in two halves: the player's first half ("Halifax") and its
+  // title, chosen at founding from those this browser has earned, and
+  // offered again by the two charter letters (Plan 127, systems/events/
+  // charter.ts). Separate so nothing parses a name to rename it.
   name: string;
-  suffix: string;       // may be empty in a migrated old save (persistence.ts's v6 -> v7)
-  universityCharterOffered: boolean; // set whether accepted or declined, so it never recurs
+  suffix: InstitutionTitle;
+  // The two charter letters (Plan 127): each set when its letter is raised,
+  // whatever the answer, so neither recurs. `institute` comes with the first
+  // lab at work, `university` with the first graduate program founded; a
+  // college founded as a University has the second from the start.
+  charters: { institute: boolean; university: boolean };
   // Team name, empty until the athletic director's interrupt asks for it.
   // Every reader must handle empty.
   mascot: string;
@@ -1216,34 +1230,35 @@ export interface ReportCard {
   after: number;                   // prestige after the step
 }
 
-// The half of the name the player writes: a trailing "College" or
-// "University" typed into it is dropped, since the game supplies the suffix
-// and later changes it (the University charter). Without this, "Halifax
-// University" founded as "Halifax University College" and chartered as
-// "Halifax University University".
+// The half of the name the player writes: a trailing "College", "Institute"
+// or "University" typed into it is dropped, since the title is chosen beside
+// it and may change later (the charters, Plan 127). Without this, "Halifax
+// University" would found as "Halifax University University".
 // The longest name the founding screen and the pennant's rename take.
 export const COLLEGE_NAME_MAX = 60;
 
 export function bareSchoolName(typed: string): string {
-  return typed.trim().replace(/(\s+(college|university))+$/i, '').trim();
+  return typed.trim().replace(/(\s+(college|institute|university))+$/i, '').trim();
 }
 
-// Whether a typed name ends in "University" after a name of its own: the
-// founding screen then says why the facade reads College (Plan 78G).
-export function typedUniversity(typed: string): boolean {
-  return /\suniversity$/i.test(typed.trim()) && bareSchoolName(typed) !== '';
+// The title a typed name ends in, after a name of its own (Plan 127): the
+// founding screen then switches its dropdown to it, or says what earns it.
+export function typedTitle(typed: string): InstitutionTitle | null {
+  if (bareSchoolName(typed) === '') return null;
+  const m = /\s(college|institute|university)$/i.exec(typed.trim());
+  return m ? INSTITUTION_TITLES.find((x) => x.toLowerCase() === m[1].toLowerCase()) ?? null : null;
 }
 
-// Whether a typed name opens with "University of" or "College of" (the
-// second review's H7-7): the suffix still follows it, so the founding form
-// says how it will read rather than changing the rule.
+// Whether a typed name opens with "University of", "Institute of" or
+// "College of" (the second review's H7-7): the title still follows it, so
+// the founding form says how it will read rather than changing the rule.
 export function typedPrefixed(typed: string): boolean {
-  return /^(university|college)\s+of\s+\S/i.test(typed.trim());
+  return /^(university|institute|college)\s+of\s+\S/i.test(typed.trim());
 }
 
-// The full display name; handles an empty suffix without a stray space.
+// The full display name.
 export function institutionName(u: University): string {
-  return u.suffix ? `${u.name} ${u.suffix}` : u.name;
+  return u.name ? `${u.name} ${u.suffix}` : '';
 }
 
 // Total enrolled: derived, never stored. Every per-student reading uses it.

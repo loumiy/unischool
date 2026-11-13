@@ -10,11 +10,17 @@ point to the development records in `docs/plans/`.*
 *More to build: sixteen new buildings and two redrawn, the dining chain
 sized for a 40,000 campus, the hall doors, a new title screen, the
 trophy case, faster weeks late in a run, and a sandbox with everything
-open. Saves from 0.3.0 load and get every new building, locked until it
+open; and a college can open as an Institute or a University. Saves
+from 0.3.0 load and get every new building, locked until it
 qualifies.*
 
 ### New
 
+- **A college can open as a College, an Institute or a University**, once
+  you've earned it. Pick the title from the list beside the name; the board
+  offers Institute with your first research lab and University with your
+  first graduate program, and each is open to every college you found after.
+  (127)
 - **Somewhere to go in the evening.** Campus Radio (3×3, $250k, social
   for 600, at the first commencement), the Pub (3×3, $300k, 600, at
   *A town's worth*), the Bowling Alley (7×4, $520k, 1,000, at *A town's

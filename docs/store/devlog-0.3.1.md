@@ -5,7 +5,7 @@
 (`7deabcf`, PRs #454 to #461, 11 to 13 November): the performance work,
 the seasons, the trophy case, the new title screen and theme, the hall
 doors and redrawn buildings, sixteen new things to build, the sandbox
-changes, and Plan 127, which is in progress and not in this build. The
+changes, and Plan 127 (College, Institute, University, PR #462). The
 full list is in [`changelog.md`](changelog.md). The pictures are in [`devlog-0.3.1/`](devlog-0.3.1/), drawn
 by the game's own art in the Georgian set (`npm run sheet`). Nothing here
 claims more than the build does.*
@@ -21,8 +21,7 @@ claims more than the build does.*
 0.3.0 was an update of taking things out. This one puts things in. After
 it went up, one of you asked for more to place on campus besides
 decorations, and another asked why the college always has to be called
-College. The first is most of this update. The second is the next one,
-and there's a section on it at the end.
+College. Both are in this update.
 
 Your saves come with you: a 0.3.0 college opens in 0.3.1, and it gets
 every new building, locked until it qualifies, like a new run would.
@@ -231,33 +230,30 @@ first title too, with empty spots on the shelf.
 - Build tiles no longer show "#1", "#2" on the gym, the pool, the halls
   and the dining halls. The names already tell them apart.
 
-### Coming next: College, Institute, University (in progress)
+### College, Institute or University
 
-*Not in 0.3.1.* Right now every college opens as **X College** and may
-become **X University** with its first research lab. A player asked why
-it has to say College at all. What if you want to be an Institute? Here
-is the plan:
+![Founding as an Institute](devlog-0.3.1/founding-title.png)
 
-- **There will be three titles: College, Institute and University.**
-  They're equals, not steps. An Institute is a research or technical
-  college, not an almost-University.
-- **In a run, Institute comes with your first research lab, and
-  University with your first graduate program.** Each comes as a letter
-  that offers the new title or keeping your current one, as the charter
-  does today. University will come later than it does now, at Year 15
-  at the earliest, and the Institute letter keeps that mid-game moment.
-- **You'll choose the title when you found the college**, from a
-  dropdown beside the name. A first college can only be a College.
-  Institute and University show as locked, with what earns them, and
-  once you earn a title in any run, every college after can open with
-  it. Sandbox runs don't unlock anything.
+Until now every college opened as **X College** and could become **X
+University** with its first research lab. One of you asked why it has to
+say College at all: what if you want to be an Institute? Now you can.
+
+- **There are three titles: College, Institute and University.** They're
+  equals, not steps. An Institute is a research or technical college, not
+  an almost-University.
+- **In a run, the board offers Institute with your first research lab,
+  and University with your first graduate program.** Each comes as a
+  letter that offers the new title or keeping the name you have. The
+  Institute letter still carries the one chance to rename the college.
+  University comes later than it used to, at Year 15 at the earliest.
+- **You choose the title when you found the college**, from a list beside
+  the name. Your first college can only be a College. Institute and
+  University show as locked, with what earns them, and once you've earned
+  a title in any run, every college after can open with it. A sandbox has
+  all three open, but earns nothing for your other runs.
 - **Your saves and unlocks carry over.** A college that already took the
-  charter keeps its name. If you've won the old charter in this browser,
-  Institute starts unlocked.
-
-The design is done, and the work is planned in five parts: the title in
-the save, the two letters, the unlocks across runs, the dropdown, and
-the words. If you have a view on it, the form in the menu is the place.
+  old charter keeps its name. If you'd unlocked Second Empire by winning
+  the old charter, Institute starts unlocked.
 
 ### What's next
 

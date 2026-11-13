@@ -33,7 +33,7 @@ import { institutionName, totalEnrolled } from '../src/state/types';
 import type { GameState, Vernacular } from '../src/state/types';
 import { firstFreeSpot, footprintOf, isPlaceableKind, placementFor } from '../src/state/campusMap';
 import { SCENARIOS, findScenario, atModal, type Scenario } from './scenarios';
-import { CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
+import { INSTITUTE_CHARTER_INSTANCE, UNIVERSITY_CHARTER_INSTANCE, charterVars } from '../src/systems/events/charter';
 import { clearBoardLetters } from '../src/systems/finance/distress';
 import { DOUBLE_SPEED_MARK, LOOK_MARKS, MARKED_TABS, readMark, tabMark } from '../src/state/chapters';
 import { layPathToFounders } from '../sim/harness/moves';
@@ -190,8 +190,9 @@ if (flags.name) {
     report.title = report.title.split(was).join(now);
   }
   // The charter's answers name the college (systems/events/charter.ts).
-  const charter = state.catalogue?.pending.find((p) => p.instanceId === CHARTER_INSTANCE);
-  if (charter) charter.vars = charterVars(state);
+  for (const charter of state.catalogue?.pending ?? []) {
+    if (charter.instanceId === INSTITUTE_CHARTER_INSTANCE || charter.instanceId === UNIVERSITY_CHARTER_INSTANCE) charter.vars = charterVars(state);
+  }
 }
 if (flags.vernacular) state.self.vernacular = flags.vernacular as Vernacular;
 if (flags.colors) {
