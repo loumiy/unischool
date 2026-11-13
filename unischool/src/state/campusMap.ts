@@ -264,7 +264,8 @@ export function canPlace(s: GameState, t: Buildable, row: number, col: number, f
 }
 
 // Built but unsited. Only Founders Hall, in a guided founding, where placing
-// it is the walkthrough's first step (state/opening.ts). Siting it is free.
+// it is the walkthrough's first step (state/opening.ts), or a sandbox's,
+// where it is the player's first move. Siting it is free.
 export function awaitsSite(s: GameState, t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'done' && !(t.id in s.placements);
 }
