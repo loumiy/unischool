@@ -35,8 +35,8 @@ marked **0.1.x** and fixed in a patch.*
   on 0.2.0 past year 50: "Ty for the big update! I really like being
   able to be specialised in two things :D" (F15); F7's, from the
   Epilogue: "I quite like the flowerbeds you added" (F14). GiantSweet, on
-  the page: "great game and I will be continuing to play" (I10). *24 players · reddit (R1,
-  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8, I10), live (T1), form (F1, F2, F3, F4, F6,
+  the page: "great game and I will be continuing to play" (I10). *25 players · reddit (R1,
+  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8, I10, I11), live (T1), form (F1, F2, F3, F4, F6,
   F7, F8, F10, F11), discord (D1), service (S1, S2, S5).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
@@ -941,6 +941,7 @@ how often the form is opened, `feedback_opened`).*
 | 23 October | 1,042 | 609 | 2 (both ★★★★★) | 3 | 16 | 2,028 | 3.80% |
 | 27 October | 1,238 | 733 | 3 (all ★★★★★) | 7 | 21 | 2,403 | 5.04% |
 | 9 November | 1,669 | 976 | 3 (all ★★★★★) | 12 | 26 | 1,268 | 4.57% |
+| 13 November | 1,906 | 1,098 | 4 (all ★★★★★) | 14 | 29 | 2,572 | 4.55% |
 
 Where the 10 October views came from (top referrers): Google 18,
 itch.io's front page 12, reddit.com 12 (and 8 more from the Reddit
@@ -1056,6 +1057,20 @@ a new tag page, and free city builder for web 10), itch.io collections
 theme's own tag pages (college, school, university) now bring 97 visits
 between them, more than Reddit: searches for the theme have become the
 largest browse source, and they hold up while the rest tapers.
+
+On 13 November (30 days, 15 October to 13 November, so the window has
+moved four days since 9 November): 1,906 views (+237), 1,098 browser
+plays (+122), still 6 downloads (two each on about 17 October, 29
+October and 8 November), 4 ratings (+1, I11, five stars), 14 comments
+(+2, one of them GiantSweet's, I10) and 29 collections (+3). The 7-day
+impressions doubled, from 1,268 to 2,572, at a 4.55% click-through rate.
+Daily views turned up on 10 November, from about 30 to 51, and held at
+50 to 62 through the 13th; browser plays went from about 16 a day to 27
+to 32. The rise began the day before 0.3.0 went up (11 November, by
+PostHog's first 0.3.0 player), so the update alone doesn't explain it.
+The page's title had become "UniSchool: University Tycoon" by 13
+November (the owner said so that day); when it changed is not recorded,
+so whether it is part of the rise isn't known. No referrers this time.
 
 ### PostHog, 11 October
 
@@ -1885,3 +1900,6 @@ the owner has it. Her notes from the video's description, as written:*
   Institute? Anyway, great game and I will be continuing to play." Filed
   under *Aesthetics* (praise; the road-walkers) and *Asked for in play*
   (parking, cars and roads, the name). Not yet answered.
+- **I11** · a player (the owner passed it on without a name) · rating,
+  about 13 November — ★★★★★, no review. The page's fourth rating; all
+  four are five stars.
