@@ -8,7 +8,7 @@
 
 import type { SchoolColors, GameState } from '../state/types';
 import { registerArt, registerProvider, type ArtScope } from './canvasPaint';
-import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, PennantContext, VenueContext } from './mapOccasions';
+import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, GatePartContext, PennantContext, VenueContext } from './mapOccasions';
 import { StadiumFacade, stadiumFacadeArt, type StadiumFacadeProps } from './stadiumFacade';
 import { Spectators, VenuePennants, spectatorsArt, venuePennantsArt, type PennantsProps, type SpectatorsProps } from './spectators';
 import { SnowContext } from './seasons';
@@ -35,10 +35,12 @@ export interface Occasions {
   venue: string | null;
   // The building being drawn, for its doors (Plan 122's follow-up).
   doorSite: Plot | null;
+  // The half of the Triumphal Gate an entry draws, or null for all of it.
+  gatePart: 'passage' | 'shell' | null;
 }
 // The values a scene without its providers reads (a test's); the map always
 // wraps its scene in every provider.
-const FALLBACK: Partial<Occasions> = { doorSite: null, pennants: new Set() };
+const FALLBACK: Partial<Occasions> = { doorSite: null, pennants: new Set(), gatePart: null };
 export function occasion<K extends keyof Occasions>(scope: ArtScope, name: K): Occasions[K] {
   if (name in scope.values) return scope.values[name] as Occasions[K];
   if (!(name in FALLBACK)) throw new Error(`canvasArt: no ${name} in the scene (wrap it in its provider)`);
@@ -61,6 +63,7 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
   registerProvider(PennantContext, 'pennants');
   registerProvider(VenueContext, 'venue');
   registerProvider(DoorSiteContext, 'doorSite');
+  registerProvider(GatePartContext, 'gatePart');
 
   // The readers of occasions.
   registerArt(RoofFlag, (p: { at: Pt }, s) => roofFlagArt(p, occasion(s, 'colors')));
@@ -68,7 +71,7 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
   registerArt(BuildingMass, (p: BuildingMassProps, s) => buildingMassArt(p, occasion(s, 'snow')));
   registerArt(Door, (p: DoorProps, s) => doorArt(p, occasion(s, 'doorSite')));
   registerArt(EntranceSteps, (p: EntranceStepsProps, s) => entranceStepsArt(p, occasion(s, 'doorSite')));
-  registerArt(Landmark, (p: LandmarkProps, s) => landmarkArt(p, occasion(s, 'developing'), occasion(s, 'collegeName'), occasion(s, 'snow')));
+  registerArt(Landmark, (p: LandmarkProps, s) => landmarkArt(p, occasion(s, 'developing'), occasion(s, 'collegeName'), occasion(s, 'snow'), occasion(s, 'gatePart')));
   registerArt(Gazebo, (p: GazeboProps, s) => gazeboArt(p, occasion(s, 'snow')));
   registerArt(Lamp, (p: { at: Pt }, s) => lampArt(p, occasion(s, 'banner')));
   registerArt(RakedStand, (p: RakedStandProps) => rakedStandArt(p));

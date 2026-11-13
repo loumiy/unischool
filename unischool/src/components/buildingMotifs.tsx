@@ -9,7 +9,7 @@ import Landmark from './landmarks';
 import LibraryMass from './libraryMotif';
 import { ColorsContext } from './mapOccasions';
 import { Spectators, VenuePennants } from './spectators';
-import { StadiumFacade, type ArchHead, type FacadeWall, type StadiumFacadeProps } from './stadiumFacade';
+import { StadiumFacade, type ArchHead, type FacadeWall } from './stadiumFacade';
 import {
   labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
@@ -9962,8 +9962,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
       const span = dir === fb.dir.CD ? fb.spanLeft : fb.spanRight;
       return { origin: wall.origin, along: wall.along, height: z, span, brick: shade(tint, STAND_TONE[dir] * 0.82) };
     };
-    const facade = (walls: Array<FacadeWall | null>, stage: number, key: string, tower?: StadiumFacadeProps['tower']) => (
-      <StadiumFacade key={key} walls={walls.filter((x): x is FacadeWall => x !== null)} stage={stage} head={head} stone={limestone} name={t.name} tower={tower ?? null} />
+    const facade = (walls: Array<FacadeWall | null>, stage: number, key: string) => (
+      <StadiumFacade key={key} walls={walls.filter((x): x is FacadeWall => x !== null)} stage={stage} head={head} stone={limestone} name={t.name} />
     );
 
     // A site under construction is the bowl's earthworks, not a stadium.
@@ -10226,23 +10226,13 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
     }));
     const cornersAt = (n: number) => corners.filter((c) => c.farCount === n).map((c) => c.node);
 
-    // The outside: both outer walls the camera sees, full height, and the
-    // entrance tower at the corner between the front and its left (the
-    // building's own frame), drawn first when it stands behind the bowl.
+    // The outside: both outer walls the camera sees, full height.
     const rim = decked ? upperTop : STAND_TOP;
     const outside = (['negRow', 'posRow', 'negCol', 'posCol'] as const).map((dir) => outerWall(col, row, w, h, rim, dir));
-    const sides = sidesOf(p.facing);
-    const cornerOf = (dir: FaceDir) => (dir === 'posRow' ? { r: row + h } : dir === 'negRow' ? { r: row } : dir === 'posCol' ? { c: col + w } : { c: col });
-    const cc = { ...cornerOf(sides.front), ...cornerOf(sides.left) } as { c: number; r: number };
-    const ts = Math.min(2.6, Math.min(w, h) * 0.13);
-    const tower = { col: cc.c - ts / 2, row: cc.r - ts / 2, size: ts, height: rim * (decked ? 1.22 : 1.32) };
-    const towerBehind = project(cc.c, cc.r).y < project(col + w / 2, row + h / 2).y - 1;
-    const towerNode = facade([], stage, 'tower', tower);
 
     return (
       <>
         {/* The concourse, under everything. */}
-        {towerBehind && towerNode}
         <polygon points={polyPoints(f.top)} fill={concourse} />
         {cornersAt(2)}
         {masts[0]}
@@ -10255,7 +10245,6 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
         {cornersAt(0)}
         {masts[3]}
         {facade(outside, stage, 'outside')}
-        {!towerBehind && towerNode}
         {/* A title's pennants all the way round the rim (Plan 124 M1). */}
         <VenuePennants z={decked ? upperTop : STAND_TOP} edges={[
           [[col, row], [col + w, row]], [[col + w, row], [col + w, row + h]],

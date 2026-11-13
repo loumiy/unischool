@@ -254,6 +254,7 @@ function figures(s: GameState): ReviewFigures {
   const card = gradeYear(s);
   const average = trailingYearSatisfaction(s);
   const last = s.history.length > 0 ? s.history[s.history.length - 1] : null;
+  const stepped: GameState = { ...s, self: { ...s.self, reputation: card.after } };
   return {
     prestigeBefore: card.before,
     prestigeAfter: card.after,
@@ -263,10 +264,14 @@ function figures(s: GameState): ReviewFigures {
     // From the figures as shown, so "80 against 73" reads "+7".
     satisfactionDelta: last ? satisfactionShown(average) - satisfactionShown(s.students.priorYearAvgSatisfaction) : null,
     net: s.finance.cash - previousYear(s).cash,
-    rank: playerRank(s),
+    // The review is read before admissions, where the summer step moves
+    // prestige (applyReportCard), so the rank is taken at the prestige the
+    // step leaves (the figure beside it), as last year's row was: at the
+    // prestige still unstepped, the rank read as last year's.
+    rank: playerRank(stepped),
     rankBefore: last ? last.rank : null,
     // Same crossing the Standing beat reports, so the two agree.
-    passedBy: last ? buildReportPayload(s).passedBy : [],
+    passedBy: last ? buildReportPayload(stepped).passedBy : [],
   };
 }
 

@@ -27,6 +27,10 @@ export const CrowdContext = createContext<ReadonlyMap<string, number>>(new Map()
 export const PennantContext = createContext<ReadonlySet<string>>(new Set());
 // The venue a stand belongs to, set round each building and its props.
 export const VenueContext = createContext<string | null>(null);
+// Which half of the Triumphal Gate to draw (landmarks.tsx): the canvas map
+// draws the passages' insides and the pierced shell as two entries, so a
+// walker under an arch goes between them; null draws it whole.
+export const GatePartContext = createContext<'passage' | 'shell' | null>(null);
 // The college's colors in commencement week, else null.
 export const BannerContext = createContext<SchoolColors | null>(null);
 

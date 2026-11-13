@@ -1,24 +1,22 @@
 import { useContext } from 'react';
 import type { SchoolColors } from '../state/types';
 import { CollegeNameContext, ColorsContext } from './mapOccasions';
-import { boxFaces, facePoint, heightScale, polyPoints, wallOf, type FaceDir, type Pt } from './isoProjection';
+import { facePoint, heightScale, polyPoints, type Pt } from './isoProjection';
 import { METRES_PER_TILE, up } from './campusScale';
 import { shade } from './tint';
 
 // The football stadium's outside (Plan 124 M2): a college stadium's face in
 // place of the plain brick box. After Ohio Stadium's arches and rotunda,
-// Notre Dame Stadium's brick and Bryant-Denny's facade and tower:
+// Notre Dame Stadium's brick and Bryant-Denny's facade:
 //   - a stone plinth;
 //   - ground-level openings, with a wide gate every sixth bay;
 //   - a tier of tall arches with stone voussoirs (round, pointed or
 //     square-headed as the vernacular's openings are);
 //   - banners in the college's colours on every third pier;
 //   - a limestone cornice carrying the stadium's name;
-//   - an entrance tower at a corner.
 // Each expansion adds to it: the opening stands get an arcade along their
-// backs, the ends a second, the closed bowl its full height of arches,
-// gates and the tower, and the upper deck a second tier of arches over the
-// first and a taller tower.
+// backs, the ends a second, the closed bowl its full height of arches and
+// gates, and the upper deck a second tier of arches over the first.
 
 export type ArchHead = 'round' | 'pointed' | 'flat';
 
@@ -41,10 +39,6 @@ export interface StadiumFacadeProps {
   stone: string;
   // The building's own name ("Football Stadium" reads as the college's).
   name: string;
-  // The entrance tower, when the bowl is closed: a box at a corner. The
-  // bowl draws the walls and the tower as two of these, each in its place
-  // in the paint order.
-  tower?: { col: number; row: number; size: number; height: number } | null;
 }
 
 export function StadiumFacade(props: StadiumFacadeProps) {
@@ -182,54 +176,15 @@ function wallArt(w: FacadeWall, key: string, p: StadiumFacadeProps, colors: Scho
   return <g key={key}>{parts}</g>;
 }
 
-function towerArt(p: StadiumFacadeProps, colors: SchoolColors, title: string): React.JSX.Element | null {
-  const t = p.tower;
-  if (!t) return null;
-  const f = boxFaces(t.col, t.row, t.size, t.size, 0, t.height);
-  const tones: Record<'CD' | 'BC', number> = { CD: 0.96, BC: 0.84 };
-  const parts: React.JSX.Element[] = [];
-  (['CD', 'BC'] as const).forEach((edge) => {
-    const dir = f.dir[edge] as FaceDir;
-    const wall = wallOf(f, dir);
-    const w: FacadeWall = { origin: wall.origin, along: wall.along, height: t.height, span: t.size, brick: shade(p.stone, tones[edge]) };
-    const at = (u: number, v: number) => facePoint(w.origin, w.along, w.height, u, v);
-    parts.push(<polygon key={`${edge}w`} points={polyPoints(wall.poly)} fill={w.brick} />);
-    // A tall entrance arch, a window over it, a band and a cornice.
-    parts.push(<polygon key={`${edge}r`} points={polyPoints(opening(w, p.head, 0.5, 0.3, 0, 0.6))} fill={shade(p.stone, 0.74)} />);
-    parts.push(<polygon key={`${edge}a`} points={polyPoints(opening(w, p.head, 0.5, 0.24, 0, 0.57))} fill={DARK} />);
-    parts.push(<polygon key={`${edge}h`} points={polyPoints(opening(w, p.head, 0.5, 0.1, 0.66, 0.8))} fill={DARK} />);
-    parts.push(<polygon key={`${edge}c`} points={polyPoints([at(0, 0.86), at(1, 0.86), at(1, 0.9), at(0, 0.9)])} fill={shade(p.stone, 0.7)} />);
-    // The college's colours in a band under the cornice, and its name.
-    parts.push(<polygon key={`${edge}k`} points={polyPoints([at(0.04, 0.9), at(0.96, 0.9), at(0.96, 0.97), at(0.04, 0.97)])} fill={colors.primary} />);
-    if (edge === 'CD' && title) {
-      const mid = at(0.5, 0.935);
-      const len = Math.hypot(w.along.x - w.origin.x, w.along.y - w.origin.y);
-      const size = Math.min(w.height * 0.06 * heightScale(), (len * 0.86) / (Math.max(6, title.length) * CHAR_W));
-      if (size >= 2.5) {
-        parts.push(
-          <text key="tn" className="stadium-inscription on-colour" fontSize={size} style={{ fill: colors.secondary }}
-            transform={`matrix(${((w.along.x - w.origin.x) / len).toFixed(4)},${((w.along.y - w.origin.y) / len).toFixed(4)},0,1,${mid.x.toFixed(1)},${mid.y.toFixed(1)})`}>
-            {title}
-          </text>,
-        );
-      }
-    }
-  });
-  parts.push(<polygon key="top" points={polyPoints(f.top)} fill={shade(p.stone, 1.06)} />);
-  return <g key="tower">{parts}</g>;
-}
-
 export function stadiumFacadeArt(p: StadiumFacadeProps, colors: SchoolColors, college: string): React.JSX.Element {
   const title = stadiumTitle(p.name, college);
   // The name goes on the longest wall the camera sees.
   let longest = -1;
   p.walls.forEach((w, i) => { if (longest < 0 || w.span > p.walls[longest]!.span) longest = i; });
   const walls = p.walls.map((w, i) => wallArt(w, `w${i}`, p, colors, title, p.stage >= 2 && i === longest));
-  const tower = p.stage >= 2 ? towerArt(p, colors, title) : null;
   return (
     <g className="stadium-facade">
       {walls}
-      {tower}
     </g>
   );
 }

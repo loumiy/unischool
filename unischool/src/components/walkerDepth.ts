@@ -9,6 +9,11 @@ import type { DepthBox } from './depthSort';
 
 interface Axes { cosA: number; sinA: number }
 
+// A box a walker is weighed against. `covers`: a walker inside it is behind
+// what the entry draws (the Triumphal Gate's walls either side of and over
+// a passage, whose inside is an entry of its own drawn before them).
+export type WalkerBox = DepthBox & { covers?: boolean };
+
 // Is the thing on `b` nearer the camera than a walker at (wc, wr)? The
 // relation depthSort.ts paints by, for a point rather than a box (Plan 42's
 // nearerThanWalker): a box separated from the point along a grid axis is
@@ -16,8 +21,9 @@ interface Axes { cosA: number; sinA: number }
 // inside a footprint (a walker on a door's step, fading in) is in front of
 // it. A small thing (a tree, a lamp) stands at its middle, and is nearer
 // when that point is further along the way toward the camera.
-export function nearerThanWalker(b: DepthBox, wc: number, wr: number, ax: Axes): boolean {
+export function nearerThanWalker(b: WalkerBox, wc: number, wr: number, ax: Axes): boolean {
   const { sinA, cosA } = ax;
+  if (b.covers && wc > b.col && wc < b.col + b.w && wr > b.row && wr < b.row + b.h) return true;
   if (b.w <= 1 && b.h <= 1) {
     const c = b.col + b.w / 2; const r = b.row + b.h / 2;
     return c * sinA + r * cosA > wc * sinA + wr * cosA;
@@ -33,7 +39,7 @@ export function nearerThanWalker(b: DepthBox, wc: number, wr: number, ax: Axes):
 // thing nearer the camera among `candidates` (indices into the scene's
 // order, ascending: the things whose drawing reaches the figure), or the
 // scene's length when none is. The walker is drawn just before that thing.
-export function walkerSlot(boxes: readonly DepthBox[], candidates: readonly number[], wc: number, wr: number, ax: Axes): number {
+export function walkerSlot(boxes: readonly WalkerBox[], candidates: readonly number[], wc: number, wr: number, ax: Axes): number {
   for (const i of candidates) if (nearerThanWalker(boxes[i]!, wc, wr, ax)) return i;
   return boxes.length;
 }
