@@ -31,7 +31,7 @@ const SHOWN = 3;
 // by ?title= in the address. colours: the school's colours, flat, with a
 // scarf's stripes; split: the mark on a panel, the menu beside it; live:
 // the campus itself behind the menu, the run's own or, with none underway,
-// a finished demo campus, turning (TitleBackdrop.tsx; 0.2.0 and 0.3.0's
+// a finished demo campus, turning (TitleBackdrop.tsx; 0.2.0 and 0.2.1's
 // title). No ?title=, or anything else, is the sky.
 const VARIANTS = ['colours', 'split', 'live'] as const;
 type Variant = typeof VARIANTS[number];

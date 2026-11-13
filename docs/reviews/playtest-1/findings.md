@@ -754,7 +754,7 @@ marked **0.1.x** and fixed in a patch.*
   with a third title: Institute, earned with the first research lab, and
   University with the first graduate program; each is open at founding
   once earned in any run. Planned: [Plan 127](../../plans/127-college-institute-university.md).
-  **Fixed** for the build after 0.3.0 (Plan 127): the founding screen has a
+  **Fixed** for 0.2.2 (Plan 127): the founding screen has a
   title dropdown beside the name, College / Institute / University, with a
   locked title saying what earns it; the board's two charter letters offer
   Institute with the first lab and University with the first graduate
@@ -1066,8 +1066,9 @@ October and 8 November), 4 ratings (+1, I11, five stars), 14 comments
 impressions doubled, from 1,268 to 2,572, at a 4.55% click-through rate.
 Daily views turned up on 10 November, from about 30 to 51, and held at
 50 to 62 through the 13th; browser plays went from about 16 a day to 27
-to 32. The rise began the day before 0.3.0 went up (11 November, by
-PostHog's first 0.3.0 player), so the update alone doesn't explain it.
+to 32. The rise began the day before 0.2.1 went up (11 November, by
+PostHog's first player on it; 0.2.1 was released as 0.3.0, and PostHog
+records it so), so the update alone doesn't explain it.
 The page's title had become "UniSchool: University Tycoon" by 13
 November (the owner said so that day); when it changed is not recorded,
 so whether it is part of the rise isn't known. No referrers this time.

@@ -1,7 +1,8 @@
-# Devlog draft · UniSchool 0.3.0
+# Devlog draft · UniSchool 0.2.1 (posted as 0.3.0)
 
 *A draft for the itch.io devlog, for the owner to edit and post with the
-0.3.0 upload. It covers everything merged since the 0.2.0 build
+0.3.0 upload, which went up on 12 November and was renumbered 0.2.1
+the next day. The text below is as written for that upload. It covers everything merged since the 0.2.0 build
 (`d956917`, 2 November): the late-game speed fix and the map fix (PR #445),
 Plan 124 (subtraction, as decided), Plan 125 (the written content),
 Plan 126 (the interface review's first ten), and the owner's playtest
