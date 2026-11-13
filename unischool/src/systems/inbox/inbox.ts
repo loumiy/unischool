@@ -349,7 +349,9 @@ export function inboxItems(s: GameState, opts: InboxOptions = {}): InboxItem[] {
   // Newest first; unread milestones of one year before read ones.
   letters.sort((a, b) => b.week - a.week || Number(b.unread) - Number(a.unread));
   const hold = interruptItem(s);
-  return [...(hold ? [hold] : []), ...decide, ...letters, ...bulletins(s)];
+  // A sandbox run is sent no letters (systems/sandbox): no milestones, no
+  // board, no founding notes, no news. Its matters to decide still come.
+  return [...(hold ? [hold] : []), ...decide, ...(s.sandbox ? [] : letters), ...bulletins(s)];
 }
 
 // The toasts' news (Toasts.tsx's toastsFor), filed from the log for a term:

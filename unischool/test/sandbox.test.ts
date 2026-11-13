@@ -6,6 +6,7 @@
 
 import { teachingCollege } from './fixtures/teaching';
 import { reducer } from '../src/engine/reducer';
+import { defaultAnswer } from '../src/engine/defaultAnswers';
 import { firstFreeSpot, footprintOf, isPlaceableKind } from '../src/state/campusMap';
 import { bindScriptStream } from '../src/engine/random';
 import { canStartDevelopment, committeeLamps, committeeSeats, committeeSetAside, courseSlotsFree } from '../src/systems/techtree/techSystem';
@@ -13,7 +14,12 @@ import { SANDBOX_CASH } from '../src/systems/sandbox/sandbox';
 import { createPreStartState } from '../src/state/actions';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
-import type { GameState } from '../src/state/types';
+import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
+import { inboxItems } from '../src/systems/inbox/inbox';
+import { MILESTONES } from '../src/data/ladderData';
+import { TAB_ORDER, tabAvailable } from '../src/components/TabNav';
+import { officeAllowance } from '../src/systems/administration/offices';
+import { MAX_OFFICES } from '../src/data/officeData';
 
 bindScriptStream(5150);
 
@@ -42,6 +48,13 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
   const placeable = s.tech.filter((t) => isPlaceableKind(t));
   const shut = placeable.filter((t) => t.status === 'locked');
   assert(shut.length === 0, `every building is open from the start (${shut.map((t) => t.id).join(', ')})`);
+  const unreached = MILESTONES.filter((m) => s.ladder.reached[m.id] === undefined);
+  assert(unreached.length === 0, `every milestone is reached from the start (${unreached.map((m) => m.id).join(', ')})`);
+  const tabsShut = TAB_ORDER.filter((id) => !tabAvailable(s, id));
+  assert(tabsShut.length === 0, `so every tab is open (${tabsShut.join(', ')})`);
+  assert(officeAllowance(s) === MAX_OFFICES, `and every office (${officeAllowance(s)} of ${MAX_OFFICES})`);
+  assert(s.ladder.unread.length === 0, 'without a milestone letter');
+  assert(!found(false).ladder.reached[MILESTONES[MILESTONES.length - 1]!.id], 'while a normal run reaches them over time');
   const n = found(false);
   assert(n.tech.some((t) => isPlaceableKind(t) && t.status === 'locked'), 'while a normal run opens them over time');
   assert(n.sandbox === undefined, 'a normal founding is not a sandbox');
@@ -111,6 +124,38 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
   s = reducer(s, { type: 'PLACE_BUILDABLE', buildableId: t.id, row: spot.row, col: spot.col, facing: 0 });
   assert(s.tech.find((x) => x.id === t.id)!.status === 'developing', 'a normal run builds over weeks');
   assert(s.finance.cash === 1_000, 'and pays for it');
+}
+
+// ---- No objectives, letters or milestones to see ----
+{
+  // A sandbox run and a normal one, each played for three years, every stop
+  // given its default answer.
+  const run = (sandbox: boolean, from: GameState) => {
+    let s: GameState = structuredClone(from);
+    s.pendingInterrupt = null;
+    if (sandbox) s.sandbox = true;
+    const stops: string[] = [];
+    let letterTier = 0;
+    for (let i = 0; i < 3 * WEEKS_PER_YEAR; i++) {
+      if (s.pendingInterrupt) stops.push(s.pendingInterrupt.type);
+      const answer = defaultAnswer(s);
+      s = reducer(s, answer ?? { type: 'TICK' });
+      letterTier += inboxItems(s).filter((x) => x.tier === 'letter').length;
+    }
+    return { s, stops, letterTier };
+  };
+  const start = teachingCollege('Quiet');
+  start.events.opening.read = [];
+  start.events.opening.skipped = false;
+  const sand = run(true, start);
+  const norm = run(false, start);
+  assert(!sand.stops.includes('letter'), `a sandbox is sent no opening letter (${sand.stops.join(', ')})`);
+  assert(sand.letterTier === 0, 'its inbox never holds a letter');
+  assert(sand.s.ladder.unread.length === 0, 'no milestone waits to be read');
+  assert(!sand.s.log.some((l) => l.topic === 'milestone'), 'and no milestone reaches the log');
+  assert(sand.s.events.pendingMilestones.length === 0 && !(sand.s.events.news ?? []).some((n) => n.type === 'milestone'), 'or is celebrated');
+  assert(norm.letterTier > 0 && norm.stops.includes('letter'), `while a normal run is sent its letters (${norm.stops.join(', ')})`);
+  assert(norm.s.log.some((l) => l.topic === 'milestone') || norm.s.ladder.unread.length > 0 || Object.keys(norm.s.ladder.reached).length > Object.keys(start.ladder.reached).length, 'and hears of its milestones');
 }
 
 if (failures === 0) {

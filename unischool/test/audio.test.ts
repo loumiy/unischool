@@ -56,6 +56,7 @@ function at(year: number, week = 10): GameState {
   const bytes = statSync('src/assets/title-theme.mp3').size;
   assert(bytes > 100_000 && bytes < 4_000_000, `the title theme ships, compressed (${bytes} bytes)`);
   assert(TITLE_MUSIC.gain > 0 && TITLE_MUSIC.gain <= 1, 'the title theme is never boosted past its master');
+  assert(TITLE_MUSIC.inGame > 0 && TITLE_MUSIC.inGame < 1, 'the theme plays on in the game, quieter than on the title');
   assert(TITLE_MUSIC.crossfade >= 1 && TITLE_MUSIC.fadeOut > 0, 'the title theme loops and leaves with a fade, not a cut');
 }
 
