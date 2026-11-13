@@ -11,6 +11,7 @@ import { ColorsContext } from './mapOccasions';
 import { Spectators, VenuePennants } from './spectators';
 import { StadiumFacade, type ArchHead, type FacadeWall } from './stadiumFacade';
 import { BowlingAlley, Cinema, Pub } from './townVenues';
+import { CampusRadio, Greenhouse, Observatory } from './campusShowpieces';
 import {
   labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
@@ -10342,6 +10343,10 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   if (!site && t.facilityType === 'pub') return <Pub p={p} pal={pal} stone={stone} />;
   if (!site && t.facilityType === 'cinema') return <Cinema p={p} wall={shade(material.wall, wallShadeOf(t))} />;
   if (!site && t.facilityType === 'bowlingAlley') return <BowlingAlley p={p} />;
+  // The radio station and the sciences' showpieces (campusShowpieces.tsx).
+  if (!site && t.facilityType === 'radio') return <CampusRadio p={p} />;
+  if (!site && t.id === 'AMENITY-GREENHOUSE') return <Greenhouse p={p} />;
+  if (!site && t.id === 'AMENITY-OBSERVATORY') return <Observatory p={p} />;
 
   // The Research Park and the Graduate College lay out their own plots
   // (Plan 87B); a site is the plain frame below.

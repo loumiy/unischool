@@ -289,6 +289,13 @@ const ART_GALLERY_WEEKS = 10;
 // little above the Student Center's $/seat (330) so they widen the choice
 // rather than undercut it; the courts feed `health` beside the fitness
 // chain, behind the gym, at about the tennis courts' $/seat.
+// The campus radio station opens first, at the first commencement, and the
+// pub follows at a town's worth. Media Studies' advanced courses need the
+// radio (techData.ts's ARTS_CAPSTONE_GATE).
+export const CAMPUS_RADIO_ID = 'CAMPUS-RADIO';
+const CAMPUS_RADIO_SERVES = 600;
+const CAMPUS_RADIO_COST = 250_000;
+const CAMPUS_RADIO_WEEKS = 10;
 export const PUB_ID = 'PUB';
 const PUB_SERVES = 600;
 const PUB_COST = 300_000;
@@ -566,7 +573,7 @@ export const GRAND_LANDMARK_IDS: readonly string[] = GRAND_LANDMARKS.map((l) => 
 // The small landmarks and amenities (Plan 26): cheap, each worth a little
 // campus beauty (systems/estate/beauty.ts), opened along the ladder. None has
 // a satisfaction attribute, so no harness strategy builds one.
-export const AMENITIES: ReadonlyArray<{ id: string; name: string; description: string; cost: number; weeks: number; upkeep: number; beauty: number }> = [
+export const AMENITIES: ReadonlyArray<{ id: string; name: string; description: string; cost: number; weeks: number; upkeep: number; beauty: number; programGate?: string }> = [
   { id: 'AMENITY-STATUE', name: "The Founder's Statue", description: 'The founder in bronze on a stone plinth, a little larger than life, and a meeting place from the day it goes up.', cost: 150_000, weeks: 10, upkeep: 300, beauty: 0.6 },
   // Plan 99C: between the statue and the fountain, at the town the garden
   // left for the city.
@@ -581,6 +588,10 @@ export const AMENITIES: ReadonlyArray<{ id: string; name: string; description: s
   { id: 'AMENITY-PARTERRE', name: 'The Parterre', description: 'Low box hedges clipped into knots around gravel walks and a sundial, laid out to be looked down on from the windows.', cost: 200_000, weeks: 12, upkeep: 900, beauty: 0.9 },
   { id: 'AMENITY-AMPHITHEATER', name: 'The Amphitheater', description: 'Grass terraces stepped down to a small stone stage, for plays in June and for lectures outdoors when the heating fails.', cost: 700_000, weeks: 20, upkeep: 900, beauty: 1.2 },
   { id: 'AMENITY-SCULPTURE', name: 'The Sculpture Garden', description: 'Bronze and steel on plinths across a mown lawn, each piece the gift of a class that could agree on one.', cost: 450_000, weeks: 14, upkeep: 700, beauty: 1.1 },
+  // A science's showpiece: each opens when its program is distinguished,
+  // every course complete (Buildable.programGate), not on the ladder.
+  { id: 'AMENITY-GREENHOUSE', name: 'The Greenhouse', description: 'A white-framed glasshouse full of palms, ferns and orchids, kept warm all winter: the showpiece of a distinguished Environmental Science program.', cost: 450_000, weeks: 16, upkeep: 1_200, beauty: 1.4, programGate: 'ENVS' },
+  { id: 'AMENITY-OBSERVATORY', name: 'The Observatory', description: 'A white dome that opens at night for a telescope, and an open evening every clear Friday: the showpiece of a distinguished Aerospace Engineering program.', cost: 550_000, weeks: 20, upkeep: 1_000, beauty: 1.4, programGate: 'AERO' },
   { id: 'AMENITY-POND', name: 'The Pond', description: 'A big pond with reeds round its edge, lily pads, a wooden footbridge over the narrow end and a family of ducks who think it is theirs.', cost: 600_000, weeks: 18, upkeep: 1_000, beauty: 1.8 },
 ];
 
@@ -770,6 +781,22 @@ export function initialFacilities(): Buildable[] {
     },
 
     // The town's pleasures (Plan 127; see above PUB_ID).
+    {
+      id: CAMPUS_RADIO_ID,
+      kind: 'facility',
+      facilityType: 'radio',
+      name: 'Campus Radio',
+      description: 'A small studio under a tall mast with a red light on top. Students run the shows through the night, and the advanced Media Studies courses are taught here.',
+      cost: CAMPUS_RADIO_COST,
+      duration: CAMPUS_RADIO_WEEKS,
+      prereqs: [],
+      status: 'locked',
+      effects: {
+        servesPopulation: CAMPUS_RADIO_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: priceUpkeep(CAMPUS_RADIO_COST),
+      },
+    },
     {
       id: PUB_ID,
       kind: 'facility',
@@ -1051,6 +1078,7 @@ export function initialFacilities(): Buildable[] {
       prereqs: [],
       status: 'locked',
       effects: { upkeepPerWeek: a.upkeep, beauty: a.beauty },
+      ...(a.programGate ? { programGate: a.programGate } : {}),
     })),
 
     // The capital projects (Plan 33, data/projectData.ts).

@@ -43,6 +43,7 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   artGallery: 'portico',
   basketballCourts: 'grounds',
   pub: 'pavilion',
+  radio: 'pavilion',
   bowlingAlley: 'pavilion',
   cinema: 'pavilion',
   athleticsField: 'grounds',
@@ -76,6 +77,9 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   // something on it.
   'AMENITY-BELLTOWER': 'landmark',
   'AMENITY-CHAPEL': 'chapel',
+  // A science's showpiece (Plan 127) draws itself (campusShowpieces.tsx).
+  'AMENITY-GREENHOUSE': 'pavilion',
+  'AMENITY-OBSERVATORY': 'pavilion',
   // The capital projects (Plan 33), each in the motif of what it is.
   'PROJ-ARTS': 'portico',
   'PROJ-RESEARCH-PARK': 'works',
@@ -367,6 +371,8 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
     // house, the movie theater's lobby front 12 m (townVenues.tsx).
     case 'bowlingAlley': return 2;
     case 'cinema': return 3;
+    // The radio studio is one story under its mast.
+    case 'radio': return 1;
     case 'lab': return 2;
     default: return 2;
   }
@@ -1685,8 +1691,11 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     // The chapel is built in the campus's stone; the others stand on open
     // ground or draw their own, so they take the material every vernacular
     // shares.
+    // The observatory draws its own white drum (campusShowpieces.tsx); its
+    // stone sets it apart from the clinic it would otherwise share a
+    // signature with.
     case 'amenity':
-      return t.id === 'AMENITY-CHAPEL' ? MATERIALS.limestone : MATERIALS.clinical;
+      return t.id === 'AMENITY-CHAPEL' || t.id === 'AMENITY-OBSERVATORY' ? MATERIALS.limestone : MATERIALS.clinical;
     // A landmark draws its own stone (landmarks.tsx); for everything else
     // that asks, it is the one material every vernacular shares.
     case 'landmark':
