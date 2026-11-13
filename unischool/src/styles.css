@@ -1467,6 +1467,8 @@ button.build-tile { font-family: inherit; }
 .iso-door-leaf { fill: rgba(96, 68, 36, 0.75); }
 .iso-door-bar { fill: rgba(38, 30, 16, 0.42); }
 .iso-door-glass { fill: rgba(255, 253, 246, 0.42); }
+/* Modern's glass doors: sky in the leaves, the opening behind dark steel. */
+.iso-door-leaf-glazed { fill: rgba(150, 196, 226, 0.9); }
 .iso-door-lintel { fill: rgba(38, 30, 16, 0.3); }
 /* A door someone is on the step of (Walkers.tsx): the leaves swing in to
    their hinges and the lit hall shows through. */
