@@ -5,7 +5,14 @@ point to the development records in `docs/plans/`.*
 
 ---
 
-## Next
+## 0.3.1
+
+*More to build: sixteen new buildings and two redrawn, the dining chain
+sized for a 40,000 campus, the hall doors, a new title screen, the
+trophy case, faster weeks late in a run, and a sandbox with everything
+open; and a college can open as an Institute or a University. Saves
+from 0.3.0 load and get every new building, locked until it
+qualifies.*
 
 ### New
 
@@ -14,6 +21,75 @@ point to the development records in `docs/plans/`.*
   offers Institute with your first research lab and University with your
   first graduate program, and each is open to every college you found after.
   (127)
+- **Somewhere to go in the evening.** Campus Radio (3×3, $250k, social
+  for 600, at the first commencement), the Pub (3×3, $300k, 600, at
+  *A town's worth*), the Bowling Alley (7×4, $520k, 1,000, at *A town's
+  worth*) and the Movie Theater (5×5, $820k, 1,600, at *A small city*),
+  all on the Social tab. Media Studies' four advanced courses are taught
+  at the radio.
+- **Four gardens**, for beauty: the Parterre (5×5, $200k, 0.9, at the
+  first commencement), the Amphitheater (7×6, $700k, 1.2, at *A town's
+  worth*), the Sculpture Garden (6×5, $450k, 1.1, at *A regional name*)
+  and the Pond (10×7, $600k, 1.8, at *A small city*).
+- **Two showpieces** opened by a distinguished program, not a milestone:
+  the Greenhouse (5×3, $450k, beauty 1.4) for Environmental Science and
+  the Observatory (3×3, $550k, beauty 1.4) for Aerospace Engineering. The
+  program's news names its showpiece.
+- **The Coffee Kiosk** (2×2, $180k, 150 places, after the first dining
+  hall) and **the Food Truck Plaza** (5×4, $1.1M, 1,000 places, after the
+  Hilltop Cafeteria).
+- **Basketball Courts** (6×4, $450k, health for 1,200, after the gym), on
+  the Health tab.
+- **The trophy case** is a case: a brass tally of national titles, one
+  cup per team on wooden shelves, and a band with the year on a cup's
+  base for each title.
+- **The title theme plays on in the game**, at about a third of its
+  volume.
+
+### Changed
+
+- **The dining chain serves 24,100** in place of 47,050, what a 40,000
+  campus needs beside the grocery and the towers' shops, so every hall is
+  needed by 40,000. A save keeps what it built; halls not yet started take
+  the new seats, price and order.
+- **The Grand Table is a trattoria**: a one-storey stucco house on a 3×3
+  plot, with an awning, a TRATTORIA sign and a terrace under a pergola.
+  Seats and cost unchanged; a built one shrinks in place on load.
+- **The Athletic Performance Complex, redrawn**: a speed field, a
+  training hall with a sawtooth roof, and a performance wing. No more
+  track on the roof.
+- **Renamed:** Commons Cafeteria is the Hilltop Cafeteria, Old Well
+  Commons is Old Well Hall, Waterside Commons is Waterside Market Hall. A
+  donor's name is kept.
+- **Hall doors.** Side and back doors are near the front door's size;
+  Italianate doors are all arched; Art Deco halls have a front door;
+  Modern halls' doors are glass and at grade; Modern Founders Hall is
+  symmetrical, its carillon in the middle of the roof.
+- **The Mission library** has its arcade on every side and its doors at
+  grade; the **Tudor library**'s windows sit clear of its doors.
+- **The title screen** is a sky over a campus skyline, and the game is
+  *UniSchool: University Tycoon*. The founding, hall, settings and
+  credits screens share the sky.
+- **The map's seasons move every three weeks**, so a big campus repaints
+  about 13 times a year in place of 40.
+- **Faster late in a run.** Closing a tab is instant, where the map
+  repainted the missed weeks for nearly a second; the tabs' figures are
+  worked out once a week (Students' redraw from 110 to 51 ms on a year-45
+  save); a full stadium's crowd is drawn once and reused.
+- **Sandbox:** everything is open from week 1; no objectives, letters or
+  milestone notices (decisions still come); you site Founders Hall
+  yourself, free, before the clock starts; the style pickers match the
+  rest of the game.
+- Build tiles no longer show "#1", "#2".
+
+### Fixed
+
+- The summer review's rank was taken from last year's prestige, and often
+  said "held" after a rise.
+- Walkers were drawn over the Triumphal Gate's walls; they now pass
+  through its arches.
+- The football stadium's corner tower drew wrong at some angles; it is
+  gone.
 
 ---
 
