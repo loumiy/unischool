@@ -1,7 +1,7 @@
 import type { AlumniClass, Buildable, Faculty, GameState, Loan, PendingCatalogueEvent } from '../../state/types';
 import { WEEKS_PER_YEAR, institutionName, totalEnrolled } from '../../state/types';
 import type { CatalogueChoice, CatalogueEvent, ConditionKey, EffectKey, NeedKey } from '../../data/eventCatalogueTypes';
-import { CHARTER_EVENT, EVENT_CATALOGUE } from '../../data/eventCatalogue';
+import { CHARTER_EVENTS, EVENT_CATALOGUE } from '../../data/eventCatalogue';
 import { EVENT_VARIANTS } from '../../data/eventVariants';
 import { hashUnit } from '../../data/rivalData';
 import { random } from '../../engine/random';
@@ -30,7 +30,7 @@ import { FOUNDERS_HALL_ID, milestoneSchools, programById } from '../../data/tech
 import { isSchoolFounded } from '../techtree/schools';
 import { closeProgram, closeRefusal } from '../techtree/techSystem';
 import { inTitleYear, sportById } from '../../data/studentLifeData';
-import { grantCharter } from './charter';
+import { grantTitle, titleOfEffect } from './charter';
 import { FESTIVAL_EVENT, districtGrowth } from '../../data/downtownData';
 import { BOARD_QUESTIONS } from '../../data/boardQuestionData';
 import { changeGoodwill, holdFestival } from '../studentlife/downtown';
@@ -530,7 +530,8 @@ export function applyEffects(s: GameState, effects: CatalogueChoice['effects'], 
         if (v > 0 && t && canDeclareHistoric(s, t)) t.historic = true;
         break;
       }
-      case 'charter': grantCharter(s, v > 0); break; // charter.ts
+      case 'charter': grantTitle(s, 'institute', titleOfEffect(v)); break; // charter.ts
+      case 'universityCharter': grantTitle(s, 'university', titleOfEffect(v)); break;
       case 'goodwill': changeGoodwill(s, v); break; // studentlife/downtown.ts
       case 'festival': holdFestival(s, v); break;
       case 'backlogOn': backlogOn(s, v, vars); break;
@@ -607,13 +608,14 @@ function departs(s: GameState, vars: Readonly<Record<string, string>>): void {
   });
 }
 
-// Any event a firing can name: the drawn catalog, and the charter, the
+// Any event a firing can name: the drawn catalog, and the charters, the
 // spring festival and the board's questions, which are raised rather than
 // drawn (charter.ts, catalogueEngine.ts's raiseFestival and
 // raiseBoardQuestion).
 export function eventById(id: string): CatalogueEvent | undefined {
   return EVENT_CATALOGUE.find((e) => e.id === id)
-    ?? (id === CHARTER_EVENT.id ? CHARTER_EVENT : id === FESTIVAL_EVENT.id ? FESTIVAL_EVENT : BOARD_QUESTIONS.find((e) => e.id === id));
+    ?? CHARTER_EVENTS.find((e) => e.id === id)
+    ?? (id === FESTIVAL_EVENT.id ? FESTIVAL_EVENT : BOARD_QUESTIONS.find((e) => e.id === id));
 }
 
 export { EVENT_CATALOGUE };

@@ -5,7 +5,7 @@ import { clauseById } from '../data/alumniData';
 import { quirkById } from '../data/quirkData';
 import { RETIRED_STAFFING_POLICY, seatDef } from '../data/seatData';
 import { officeDef } from '../data/officeData';
-import { CHARTER_EVENT, EVENT_CATALOGUE } from '../data/eventCatalogue';
+import { EVENT_CATALOGUE, isCharterEvent } from '../data/eventCatalogue';
 import { isBoardQuestion } from '../data/boardQuestionData';
 import { BOARD_LETTERS } from '../data/boardData';
 import { recordUnlocks } from './unlocks';
@@ -23,7 +23,7 @@ import {
   ROAD_FIRST_ROW, TRATTORIA_FOOTPRINT, TRATTORIA_ID, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
-import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, isVernacular, standsOnCampus } from './types';
+import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, isInstitutionTitle, isVernacular, standsOnCampus } from './types';
 import { fellTrees } from '../data/treeData';
 import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
@@ -71,7 +71,7 @@ export const SAVE_KEY = 'unischool.save';
 // title screen says so, and the player can still download it. Each new link
 // gets a fixture written by the version before it (test/save-migrations
 // .test.ts, test/fixtures/). See docs/architecture/game-state.md.
-export const SAVE_VERSION = 103; // Plan 101H: closed programs
+export const SAVE_VERSION = 104; // Plan 127: College, Institute, University
 // The version the public build first shipped with. Saves from it on must
 // keep loading; test/fixtures/save-launch.json is one.
 export const LAUNCH_SAVE_VERSION = 78;
@@ -91,11 +91,12 @@ function carryRetired(state: GameState): void {
 
 // 78 -> 79, Plan 72E: the charter is a log line, not a modal. A save held
 // at the old question takes it as the question's default did (accepted)
-// and moves on a week, as answering it did.
+// and moves on a week, as answering it did. (The flag it set is read as the
+// Institute charter by the 103 -> 104 step, threeTitles.)
 function grantHeldCharter(state: GameState): void {
   if (state.pendingInterrupt?.type !== 'charter') return;
   const was = institutionName(state.self);
-  state.self.universityCharterOffered = true;
+  (state.self as GameState['self'] & { universityCharterOffered?: boolean }).universityCharterOffered = true;
   state.self.suffix = 'University';
   state.log.unshift({
     year: state.clock.year, week: state.clock.week, kind: 'good', topic: 'milestone',
@@ -387,6 +388,41 @@ function noFundsYet(state: GameState): void {
 // save that has.
 function noClosuresYet(state: GameState): void {
   delete state.closedPrograms;
+}
+
+// 103 -> 104, Plan 127: three titles and two charters. The old charter came
+// with the first lab, so a save that had it has had the Institute letter; a
+// college that took University keeps the name and has no University letter
+// to come, and one that kept College may still have it at its first
+// graduate program (D5). An old letter still waiting is answered with its
+// default, University, as grantHeldCharter answered the old modal, and its
+// last answer is kept under the letter that now asks the same.
+function threeTitles(state: GameState): void {
+  const self = state.self as GameState['self'] & { universityCharterOffered?: boolean; suffix: string };
+  if (self.suffix !== 'Institute' && self.suffix !== 'University') self.suffix = 'College';
+  const offered = self.universityCharterOffered === true;
+  delete self.universityCharterOffered;
+  self.charters = { institute: offered, university: offered && self.suffix === 'University' };
+  const cat = state.catalogue;
+  if (!cat) return;
+  const held = Array.isArray(cat.pending) ? cat.pending.find((p) => p?.eventId === 'university-charter') : undefined;
+  if (held) {
+    cat.pending = cat.pending.filter((p) => p !== held);
+    const was = institutionName(self);
+    self.suffix = 'University';
+    self.charters = { institute: true, university: true };
+    state.log.unshift({
+      year: state.clock.year, week: state.clock.week, kind: 'good', topic: 'milestone', subject: 'charter',
+      message: `Your first laboratory is open, and the board has granted a university charter. ${was} is now ${institutionName(self)}.`,
+    });
+    (cat.lastAnswer ??= {})['university-charter'] = { choiceId: 'university', year: state.clock.year };
+  }
+  const last = cat.lastAnswer?.['university-charter'];
+  if (cat.lastAnswer && last) {
+    delete cat.lastAnswer['university-charter'];
+    if (last.choiceId === 'university') cat.lastAnswer['charter-university'] = { choiceId: 'university', year: last.year };
+    else cat.lastAnswer['charter-institute'] = { choiceId: 'college', year: last.year };
+  }
 }
 
 // What money bought (Plan 95X), on every load: the training classes and the
@@ -719,6 +755,7 @@ export const MIGRATIONS: Readonly<Record<number, (state: GameState) => void>> = 
   100: gazeboJoins,
   101: noFundsYet,
   102: noClosuresYet,
+  103: threeTitles,
 };
 
 // Walks a parsed payload up the chain to SAVE_VERSION. Returns false when a
@@ -1406,7 +1443,7 @@ function sanitizeCatalogue(state: GameState): void {
   state.catalogue!.pending = (c.pending as unknown[]).filter((p): p is PendingCatalogueEvent => {
     const e = p as Partial<PendingCatalogueEvent> | null;
     return typeof e === 'object' && e !== null && typeof e.instanceId === 'string' && typeof e.eventId === 'string'
-      && (e.eventId === CHARTER_EVENT.id || e.eventId === FESTIVAL_EVENT.id || isBoardQuestion(e.eventId) || EVENT_CATALOGUE.some((x) => x.id === e.eventId)) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
+      && (isCharterEvent(e.eventId) || e.eventId === FESTIVAL_EVENT.id || isBoardQuestion(e.eventId) || EVENT_CATALOGUE.some((x) => x.id === e.eventId)) && Number.isFinite(e.firedWeek) && Number.isFinite(e.scale) && e.scale! > 0
       && typeof e.vars === 'object' && e.vars !== null;
   });
   // The journal: malformed entries are dropped.
@@ -1431,7 +1468,7 @@ function sanitizeCatalogue(state: GameState): void {
       for (const [id, a] of Object.entries(raw as Record<string, unknown>)) {
         const x = a as { choiceId?: unknown; year?: unknown } | null;
         if (typeof x === 'object' && x !== null && typeof x.choiceId === 'string' && Number.isInteger(x.year)
-          && (id === CHARTER_EVENT.id || id === FESTIVAL_EVENT.id || isBoardQuestion(id) || EVENT_CATALOGUE.some((e) => e.id === id))) kept[id] = { choiceId: x.choiceId, year: x.year as number };
+          && (isCharterEvent(id) || id === FESTIVAL_EVENT.id || isBoardQuestion(id) || EVENT_CATALOGUE.some((e) => e.id === id))) kept[id] = { choiceId: x.choiceId, year: x.year as number };
       }
     }
     if (Object.keys(kept).length > 0) cat.lastAnswer = kept; else delete cat.lastAnswer;
@@ -1870,6 +1907,13 @@ function sanitize(state: GameState): void {
   // else is dealt again off its id.
   for (const r of state.rivals) if (!isSpecialization(r.specialization)) r.specialization = dealtSpecialization(r.id);
   sanitizeSpecialization(state);
+  // The title and the charters (Plan 127): an unknown title reads College,
+  // and a malformed record is read off the title.
+  if (!isInstitutionTitle(state.self.suffix)) state.self.suffix = 'College';
+  const charters = state.self.charters as unknown as Partial<GameState['self']['charters']> | undefined;
+  if (typeof charters !== 'object' || charters === null || typeof charters.institute !== 'boolean' || typeof charters.university !== 'boolean') {
+    state.self.charters = { institute: false, university: state.self.suffix === 'University' };
+  }
   sanitizeTraining(state);
   sanitizeLandmarkWork(state);
   sanitizeComplexRuns(state);

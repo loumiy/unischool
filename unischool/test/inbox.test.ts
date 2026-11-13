@@ -10,7 +10,7 @@ import { bindScriptStream } from '../src/engine/random';
 import { afterSubject, answered, BULLETIN_WEEKS, bulletins, finalReportUp, inboxBadge, inboxItems, INTERRUPT_ITEM_ID } from '../src/systems/inbox/inbox';
 import { inboxPointer } from '../src/systems/guidance/nextStep';
 import { arrivalsIn } from '../src/components/Toasts';
-import { CHARTER_EVENT, EVENT_CATALOGUE } from '../src/data/eventCatalogue';
+import { CHARTER_EVENTS, EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { BOARD_QUESTIONS } from '../src/data/boardQuestionData';
 import { FESTIVAL_EVENT } from '../src/data/downtownData';
 import { initialTech } from '../src/data/techData';
@@ -285,7 +285,7 @@ function fresh(): GameState {
 // under 50 characters with the longest names the game can put in it, in
 // sentence case, with no final stop and nothing left unfilled.
 {
-  const all = [...EVENT_CATALOGUE, CHARTER_EVENT, FESTIVAL_EVENT, ...BOARD_QUESTIONS];
+  const all = [...EVENT_CATALOGUE, ...CHARTER_EVENTS, FESTIVAL_EVENT, ...BOARD_QUESTIONS];
   const catalogue = EVENT_CATALOGUE;
   const untitled = all.filter((e) => typeof e.title !== 'string' || e.title.trim().length === 0).map((e) => e.id);
   assert(untitled.length === 0, `every event has a title (${untitled.join(', ') || 'all'})`);

@@ -1,10 +1,14 @@
 // The bonus vernaculars' unlocks (state/unlocks.ts): each is earned by
 // something a run does, banked in its own storage key at a save, and
-// never taken away by a later run.
+// never taken away by a later run. And the titles (Plan 127): a first
+// browser has College only; Institute and University, once earned in a
+// run, are open to every run after it; a browser with Second Empire starts
+// with Institute; a sandbox earns none.
 
 import { createInitialState } from '../src/state/actions';
 import { bindScriptStream } from '../src/engine/random';
-import { UNLOCKS, UNLOCKS_KEY, TUDOR_BEDS, isUnlocked, readUnlocks, recordUnlocks } from '../src/state/unlocks';
+import { UNLOCKS, UNLOCKS_KEY, TUDOR_BEDS, TITLE_UNLOCKS_KEY, isNewTitle, isUnlocked, markTitleSeen, openTitles, readTitleUnlocks, readTitlesSeen, readUnlocks, recordTitles, recordUnlocks } from '../src/state/unlocks';
+import { graduatePrograms } from '../src/data/techData';
 import { saveGame } from '../src/state/persistence';
 import { BONUS_VERNACULAR_CHOICES, VERNACULAR_CHOICES } from '../src/components/buildingSpec';
 
@@ -56,8 +60,8 @@ console.log('unlocks tests');
   if (gallery) gallery.status = 'done';
   assert(JSON.stringify(recordUnlocks(s)) === '["italianate"]', 'opening the gallery earns Italianate, and only it is new');
 
-  s.self.universityCharterOffered = true;
-  assert(JSON.stringify(recordUnlocks(s)) === '["secondEmpire"]', 'the charter earns Second Empire, whichever name the college keeps');
+  s.self.charters.institute = true;
+  assert(JSON.stringify(recordUnlocks(s)) === '["secondEmpire"]', 'the Institute charter earns Second Empire, whichever name the college keeps');
 
   const stadium = s.tech.find((t) => t.facilityType === 'footballStadium');
   if (stadium) stadium.status = 'done';
@@ -76,6 +80,48 @@ console.log('unlocks tests');
   assert(JSON.stringify(readUnlocks()) === '["tudor"]', 'an unknown id is passed over');
   store.set(UNLOCKS_KEY, 'not json');
   assert(readUnlocks().length === 0, 'an unreadable key unlocks nothing');
+}
+
+// ---- The titles (Plan 127) ----
+{
+  store.clear();
+  const s = createInitialState('Larchmont');
+  assert(JSON.stringify(openTitles()) === '["College"]', 'a first browser has College only');
+  assert(recordTitles(s).length === 0, 'a new college earns no title');
+  s.self.charters.institute = true;
+  assert(JSON.stringify(recordTitles(s)) === '["Institute"]', 'the Institute charter earns Institute');
+  const hall = Object.keys(s.halls)[0];
+  s.halls[hall][0] = { programId: graduatePrograms()[0].id };
+  saveGame(s);
+  assert(JSON.stringify(readTitleUnlocks()) === '["Institute","University"]', 'a graduate program founded earns University, banked by a save');
+  const next = createInitialState('Northcote');
+  saveGame(next);
+  assert(JSON.stringify(openTitles()) === '["College","Institute","University"]', 'and the next run may open under either');
+
+  assert(isNewTitle('Institute', readTitleUnlocks(), readTitlesSeen()), 'a title not yet used is new');
+  markTitleSeen('Institute');
+  assert(!isNewTitle('Institute', readTitleUnlocks(), readTitlesSeen()) && isNewTitle('University', readTitleUnlocks(), readTitlesSeen()), 'until a college is founded under it');
+  assert(!isNewTitle('College', readTitleUnlocks(), readTitlesSeen()), 'College is never new');
+
+  // The Second Empire seed (D5): a browser that won the old charter.
+  store.clear();
+  store.set(UNLOCKS_KEY, '["secondEmpire"]');
+  assert(JSON.stringify(readTitleUnlocks()) === '["Institute"]', 'a browser with Second Empire starts with Institute');
+  recordTitles(createInitialState('Eastbury'));
+  store.set(UNLOCKS_KEY, '[]');
+  assert(JSON.stringify(readTitleUnlocks()) === '["Institute"]', 'and keeps it once banked');
+
+  // A sandbox earns nothing (D6).
+  store.clear();
+  const sand = createInitialState('Sandford');
+  sand.sandbox = true;
+  sand.self.charters.institute = true;
+  sand.halls[Object.keys(sand.halls)[0]][0] = { programId: graduatePrograms()[0].id };
+  saveGame(sand);
+  assert(recordTitles(sand).length === 0 && readTitleUnlocks().length === 0, 'a sandbox earns no title');
+
+  store.set(TITLE_UNLOCKS_KEY, 'not json');
+  assert(readTitleUnlocks().length === 0, 'an unreadable key opens nothing');
 }
 
 if (failures === 0) {

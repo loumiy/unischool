@@ -2,7 +2,7 @@ import { cutTeam } from '../systems/athletics/cut';
 import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../systems/finance/sweep';
 import { DEV_BUILD } from './devBuild';
 import { catalogueOf, resolveCatalogueEvent } from '../systems/events/catalogueEngine';
-import { CHARTER_INSTANCE, charterVars } from '../systems/events/charter';
+import { INSTITUTE_CHARTER_INSTANCE, charterVars } from '../systems/events/charter';
 import { launchCampaign, tickCampaigns } from '../systems/alumni/campaigns';
 import { holdReunion } from '../systems/alumni/giving';
 import { appointSeat, markStaffedByHand, setSeatPolicy, tickStaffing } from '../systems/delegation/seats';
@@ -228,7 +228,7 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       // double invocation a save from here could persist the discarded run.
       // useGame.ts takes the founding save from the committed state.
       // A sandbox's player sites Founders Hall too, without the walkthrough.
-      const next = createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed, action.sandbox === true);
+      const next = createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed, action.sandbox === true, action.suffix);
       // A guided founding's systems wait for their chapters (Plan 106 PR E).
       if (action.guided && !action.sandbox && next.guidance) next.guidance.gated = true;
       if (action.sandbox) {
@@ -719,22 +719,24 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
     }
 
     // The college's name (Plan 72E), from the pennant: the name the
-    // founding screen took, and College or, once chartered, University.
-    // The college's one rename (Plan 80D): in the charter's letter, while it
-    // waits for an answer (InboxTab.tsx's CharterAnswer). Refused at any
-    // other time; the pennant renames nothing.
+    // founding screen took, and its title (Plan 127).
+    // The college's one rename (Plan 80D): in the Institute charter's
+    // letter, while it waits for an answer (InboxTab.tsx's CharterAnswer).
+    // Refused at any other time; the pennant renames nothing. Its title may
+    // be the one the college carries or Institute, the one the letter opens;
+    // anything else keeps the title as it stands.
     case 'RENAME_COLLEGE': {
-      if (!s.catalogue?.pending.some((p) => p.instanceId === CHARTER_INSTANCE)) return state;
+      if (!s.catalogue?.pending.some((p) => p.instanceId === INSTITUTE_CHARTER_INSTANCE)) return state;
       const name = bareSchoolName(action.name).slice(0, COLLEGE_NAME_MAX);
       if (name === '') return state;
-      const suffix = action.suffix === 'University' && s.self.universityCharterOffered ? 'University' : 'College';
+      const suffix = action.suffix === 'Institute' ? 'Institute' : s.self.suffix;
       if (name === s.self.name && suffix === s.self.suffix) return state;
       const was = institutionName(s.self);
       s.self.name = name;
       s.self.suffix = suffix;
       s.log.unshift({ year: s.clock.year, week: s.clock.week, kind: 'info', message: `${was} is renamed ${institutionName(s.self)}.` });
       // The charter's answers name the college (Plan 78G): they follow it.
-      const charter = s.catalogue?.pending.find((p) => p.instanceId === CHARTER_INSTANCE);
+      const charter = s.catalogue?.pending.find((p) => p.instanceId === INSTITUTE_CHARTER_INSTANCE);
       if (charter) charter.vars = charterVars(s);
       return s;
     }

@@ -7,7 +7,7 @@ import type {
 import { DEFAULT_ATHLETICS_BUDGET, initialCoachCandidatePool } from '../data/studentLifeData';
 import { emptyDowntown } from '../data/downtownData';
 import type { DecisionEventContext } from '../data/eventData';
-import { WEEKS_PER_YEAR } from './types';
+import { WEEKS_PER_YEAR, type InstitutionTitle } from './types';
 import { centredPlacement, footprintOf, isPlaceableKind } from './campusMap';
 import { initialTech, FOUNDERS_HALL_REPUTATION_BONUS, FOUNDERS_HALL_ID, ACADEMIC_HALL_SLOTS } from '../data/techData';
 import { repriceCatalogue, unlockAvailable } from '../systems/techtree/techSystem';
@@ -42,8 +42,9 @@ import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSyste
 // FOUNDING_PROGRAMS), and the market lists a professor for each; until the
 // courses come, the college is crowded (instructionCapacity.ts).
 
-// Swapped for "University" only by the charter offer.
-export const STARTING_INSTITUTION_SUFFIX = 'College';
+// The title a college opens with when none is chosen: the founding
+// screen's default, and the tools', tests' and scenarios' (Plan 127).
+export const STARTING_INSTITUTION_SUFFIX: InstitutionTitle = 'College';
 
 // The map's campus tools; the right button deletes what the armed tool lays.
 // `draw` paves with the material the build menu's path tiles chose
@@ -57,7 +58,7 @@ export type CampusTool = 'draw' | 'plant' | 'lamp' | 'bannerLamp' | 'bench' | 'f
 export type Action =
   | { type: 'TICK' }                                   // advance one week
   // `guided`: a human founding, with the opening walkthrough (state/opening.ts).
-  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean; seed?: number; sandbox?: boolean }
+  | { type: 'START_GAME'; name: string; vernacular: Vernacular; colors: SchoolColors; guided?: boolean; seed?: number; sandbox?: boolean; suffix?: InstitutionTitle }
   | { type: 'ADVANCE_OPENING' }
   // `keepLetters`: skipping from a mid-walk card leaves the first year's
   // letters on; the welcome's decline turns them off too.
@@ -184,7 +185,7 @@ export type Action =
   // deadline; there is deliberately no accept/refuse.
   // The college's one rename, in the charter's letter while it waits
   // (Plan 80D); cosmetic.
-  | { type: 'RENAME_COLLEGE'; name: string; suffix: 'College' | 'University' }
+  | { type: 'RENAME_COLLEGE'; name: string; suffix: InstitutionTitle }
   // Restaffing (Plan 59, systems/faculty/restaffing.ts): every unstaffed
   // course of a school, or of the college when school is null; `courseIds`
   // narrows it to a Curriculum section's courses (Plan 80B).
@@ -292,7 +293,7 @@ export function createPreStartState(): GameState {
     pathways: {},
     trees: {},
     rivals: [],
-    self: { name: '', suffix: '', universityCharterOffered: false, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), facultyServed: 0 },
+    self: { name: '', suffix: STARTING_INSTITUTION_SUFFIX, charters: { institute: false, university: false }, mascot: '', reputation: 0, reportCard: null, socialStanding: 0, researchStanding: 0, vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), facultyServed: 0 },
     history: [],
     log: [],
     pendingInterrupt: null,
@@ -350,9 +351,11 @@ export function createInitialState(
   // Founders Hall left for the player to site, without the walkthrough: a
   // sandbox founding's. A guided founding always leaves it unsited.
   unsitedHall = false,
+  // The title chosen at founding (Plan 127), from those the browser has.
+  title: InstitutionTitle = STARTING_INSTITUTION_SUFFIX,
 ): GameState {
   const stream = { rng: seed | 0 };
-  const state = withRandom(stream, () => foundState(name, vernacular, colors, guided, guided || unsitedHall));
+  const state = withRandom(stream, () => foundState(name, vernacular, colors, guided, guided || unsitedHall, title));
   state.rng = stream.rng;
   return state;
 }
@@ -367,6 +370,7 @@ function foundState(
   colors: SchoolColors = schoolColorsOf(FOUNDING_COLORS),
   guided = false,
   unsitedHall = guided,
+  title: InstitutionTitle = STARTING_INSTITUTION_SUFFIX,
 ): GameState {
   const preset = FOUNDING_PRESET;
 
@@ -438,8 +442,10 @@ function foundState(
     rivals: initialRivals(),
     self: {
       name,
-      suffix: STARTING_INSTITUTION_SUFFIX,
-      universityCharterOffered: false,
+      suffix: title,
+      // A college founded a University has no University letter to come
+      // (Plan 127, D4).
+      charters: { institute: false, university: title === 'University' },
       mascot: '',
       reputation: foundingReputation,
       reportCard: null,

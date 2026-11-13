@@ -7,9 +7,10 @@ run, Institute is granted with the first research lab and University with the
 first graduate program. A title earned in any run can be chosen at founding
 in every run after it, from a dropdown beside the name.*
 
-**Status: Proposed (13 November 2026).** Nothing has landed. The owner's
+**Status: Landed (13 November 2026), PRs A–E on one branch.** The owner's
 decisions are in §2. The defaults this plan takes where the owner hasn't
-ruled are in §3, each marked so it can be overruled before its PR starts.
+ruled are in §3; all were taken as written. See §6 for what the build
+did differently.
 
 ---
 
@@ -244,3 +245,41 @@ ruled are in §3, each marked so it can be overruled before its PR starts.
   case D4 names, picked when the letter is raised, each with static choices.
   Either way the choices are fixed once raised, so the four-week default
   can't change under the player.
+
+## 6. As implemented
+
+- **One branch, five parts.** A to E landed together; the save bump (104)
+  and the fixture (`test/fixtures/save-v103.json`, the `charter` scenario
+  written at version 103, with the old letter waiting) are in it.
+- **D4 as fixed variants** (§5's plainer build): three Institute tellings,
+  `charter-institute`, `charter-institute-kept` (one answer) and
+  `charter-institute-university`, picked by the title when the letter is
+  raised, plus `charter-university`. The instance ids are
+  `charter-institute` and `charter-university`. The effects are `charter`
+  and `universityCharter`, whose value is the title the answer leaves (2
+  Institute, 3 University, -1 the name as it stands).
+- **The University letter waits for the Institute letter** to be answered,
+  so the two never stand in the inbox together.
+- **University is earned across runs by the graduate program itself**
+  (`graduateProgramFounded`), not by `charters.university`, so an old save
+  named University by the old charter doesn't unlock it (D5).
+- **A college founded as a University that takes Institute** at the first
+  letter gets no University letter: `charters.university` is set at
+  founding (D4 as written).
+- **A sandbox banks nothing at a save either.** `writeSave` called
+  `recordUnlocks` for sandbox runs, so a sandbox could bank architectures;
+  `recordUnlocks` now returns early in a sandbox (D6). A sandbox founding
+  has every title open, as it has every architecture.
+- **The locked-title caption** reads "Found a graduate program in any run
+  to open \"University\"." It is one line, but like the old
+  `UNIVERSITY_CAPTION` and the "University of" caption it still pushes the
+  founding card about 20 px past 1280×720 while shown. The page scrolls
+  only while a caption shows, as before.
+- **Words rewritten:** `foundingData.ts` (`UNIVERSITY_CAPTION` gone,
+  `lockedTitleCaption`, `prefixedCaption`), `choiceEffects.ts`, the
+  comments in `techData.ts`, `chapters.ts`, `Pennant.tsx`, `InboxTab.tsx`,
+  `sim/harness/game.ts`, `types.ts` and `unlocks.ts`;
+  `docs/design/progression.md` and `docs/architecture/interrupts.md`.
+- **Screenshots** in `127-college-institute-university/`: a first browser
+  (two locked options), Institute new (typed after the name, chosen), and
+  a phone (stacked).

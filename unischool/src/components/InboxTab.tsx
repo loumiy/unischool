@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Buildable, GameState, LogEntry, PendingCatalogueEvent, Vernacular } from '../state/types';
 import { COLLEGE_NAME_MAX, WEEKS_PER_YEAR, bareSchoolName } from '../state/types';
 import type { CatalogueEvent } from '../data/eventCatalogueTypes';
-import { CHARTER_INSTANCE } from '../systems/events/charter';
+import { INSTITUTE_CHARTER_INSTANCE } from '../systems/events/charter';
 import { NAME_LIMIT_NOTE } from '../data/foundingData';
 import type { Action } from '../state/actions';
 import { isCutLetter } from '../systems/athletics/cut';
@@ -286,11 +286,12 @@ function ReadHead({ tier, from, subject, meta }: { tier: InboxTier; from: string
   );
 }
 
-// The charter's answers (Plan 80D), with the college's one rename beside
-// them: the name as it stands, which the President may change before
+// The Institute charter's answers (Plan 80D, Plan 127), with the college's
+// one rename beside them: the name as it stands, which the President may change before
 // answering. The answers read with the name typed; an answer with a new
 // name renames the college (RENAME_COLLEGE, refused once the charter is
-// settled), then settles the charter. Nothing renames the college after.
+// settled), then settles the charter. Nothing renames the college after:
+// the University charter has no name field (Plan 127, D2).
 function CharterAnswer({ s, act, p, e }: {
   s: GameState;
   act: (a: Action) => void;
@@ -310,7 +311,7 @@ function CharterAnswer({ s, act, p, e }: {
       <CatalogueChoices
         s={s} p={shown} e={e}
         onChoose={(choiceId) => {
-          if (typed !== '' && typed !== s.self.name) act({ type: 'RENAME_COLLEGE', name: typed, suffix: s.self.suffix === 'University' ? 'University' : 'College' });
+          if (typed !== '' && typed !== s.self.name) act({ type: 'RENAME_COLLEGE', name: typed, suffix: s.self.suffix });
           act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId: p.instanceId, choiceId });
         }}
       />
@@ -367,7 +368,7 @@ function ReadingPane({ s, act, item, onOpenTab, onOpenSpecialization, summerWait
           <div className="inbox-read-main">
             <div className="inbox-body"><CatalogueText text={text} className="inbox-para" /></div>
             <p className="inbox-section-label eyebrow">Answers</p>
-            {p.instanceId === CHARTER_INSTANCE
+            {p.instanceId === INSTITUTE_CHARTER_INSTANCE
               ? <CharterAnswer key={p.instanceId} s={s} act={act} p={p} e={e} />
               : <CatalogueChoices s={s} p={p} e={e} onChoose={(choiceId) => act({ type: 'RESOLVE_CATALOGUE_EVENT', instanceId: p.instanceId, choiceId })} />}
           </div>

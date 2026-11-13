@@ -6,8 +6,9 @@ reports on it.
 ## Startup
 
 A **startup screen** asks the player three things before play: the **name** of
-the school — their half of it only; every school opens as a *College* (see
-"College, and University" below) — the **vernacular** its campus is built
+the school — their half of it only, with its title chosen beside it from a
+dropdown (see "College, Institute and University" below) — the
+**vernacular** its campus is built
 in, and the **colours** it wears.
 
 ## The ladder
@@ -851,30 +852,62 @@ the board proposes a response at a real cost (see
 response"). No poaching: that is the faculty-lifecycle plan's, and it will read
 this drift when it comes.
 
-## College, and University
+## College, Institute and University
 
-A school opens as **"<Name> College"**. The player writes only the first half at
-founding; the word after it is fixed institutional form. A "College" or
-"University" typed after the name is dropped, and a typed "University" gets a
-caption under the founding facade (Plan 78G): "Every college opens as a
-College; the board grants 'University' with its first research lab." When the
-**first lab is at work**, the board grants a **university charter** — the
-same gate research hangs off, read through the same helper so the two can
-never drift apart. Since Plan 78G the name is the President's to decide: the
-charter waits in the inbox as a matter to decide, "The charter", with two
-answers, **"Become <Name> University"** (the default, taken after four weeks)
-and **"Keep the name <Name> College"**. Either answer writes the charter's
-line in the log and the Answered list keeps the choice. It is a naming change
-and nothing else: a `suffix` string plus a flag recording that the charter
-was granted (set when it is raised, so it never recurs), joined for display
-by `institutionName()`. No system reads the name. **The charter's letter
-carries the college's one rename** (Plan 80D): beside the two answers, a
-field holds the name as it stands, and an answer with a new name typed
-renames the college first (`RENAME_COLLEGE`, refused at any other time).
-Either answer is final: nothing renames the college after it, and a
-college that keeps "College" keeps it. The bonus Second Empire
-architecture is earned by the charter, whichever name is kept. Until Plan
-72 the charter was a one-time question in a modal; from Plan 72E to Plan
-78G it was a silent rename with a log line; and from Plan 72E to Plan 80D
-the pennant renamed the college, name and suffix, as often as the player
-liked.
+A college carries one of three titles, **College**, **Institute** or
+**University** (Plan 127, `types.ts`'s `InstitutionTitle`). They are equals in
+the name, not a ladder: an Institute is a research identity, not a step below
+University. The name is in two halves, the player's (`University.name`) and
+the title (`University.suffix`), joined for display by `institutionName()`.
+It is cosmetic: no system reads it.
+
+- **At founding** the player writes the first half and picks the title from
+  a dropdown beside it ("Halifax [College ▾]"). A first browser has College
+  only; Institute and University show in the list, disabled, with what earns
+  them ("Institute: open a research lab in any run", "University: found a
+  graduate program in any run"). A title typed after the name is dropped
+  (`bareSchoolName`) and switches the dropdown to it if it is open, or gets a
+  caption saying what earns it. A name opening "University of", "Institute
+  of" or "College of" gets a caption showing how it will read. An open title
+  not yet used is marked "(new)" until a college is founded under it. In a
+  sandbox every title is open.
+- **Across runs** a title is earned once and open to every college after it
+  (`unlocks.ts`'s `TITLE_UNLOCKS`, in their own key,
+  `unischool.unlocks.titles`, banked at every save and when a run is hung,
+  never in a sandbox). Institute is earned by the Institute charter (the
+  first lab at work), University by the first graduate program founded. A
+  browser that won the old university charter has Second Empire, and starts
+  with Institute.
+- **Within a run** the board offers the titles by letter, each a matter to
+  decide in the inbox, raised rather than drawn, with its offer as the
+  default after four weeks (`systems/events/charter.ts`). Each letter is
+  raised once a run, recorded in `University.charters`, and either answer is
+  final until the next letter.
+  - **The Institute charter**, "The charter", the first quiet week a lab is
+    at work: the same gate research hangs off, read through the same helper
+    so the two never drift apart. A College is offered "Become <Name>
+    Institute" (the default) or "Keep the name <Name> College". A college
+    founded as an Institute is told the name stays, with one answer; one
+    founded as a University may keep its name (the default) or become an
+    Institute. **This letter carries the college's one rename** (Plan 80D):
+    beside the answers, a field holds the name as it stands, and an answer
+    with a new name typed renames the college first (`RENAME_COLLEGE`,
+    refused at any other time). It comes in every run, so the rename always
+    has its home. The bonus Second Empire architecture is earned with it,
+    whichever name is kept.
+  - **The University charter**, "The university charter", the first quiet
+    week a graduate program has been founded (housed in its host, its entry
+    course begun), once the Institute charter is answered: "Become <Name>
+    University" (the default) or "Keep the name". It has no name field. A
+    college founded as a University never gets it.
+- **A graduate program always comes after a lab** (every school has a course
+  that needs one), so in a run the letters come in that order: Institute,
+  then University, from Year 15 at the earliest.
+
+History: until Plan 72 the charter was a one-time question in a modal; from
+Plan 72E to Plan 78G a silent rename with a log line; from Plan 78G to Plan
+127 one letter at the first lab offering University, every college opening
+as a College; and from Plan 72E to Plan 80D the pennant renamed the college,
+name and suffix, as often as the player liked. Saves from before Plan 127
+that had the old charter are read as having had the Institute letter, and an
+old letter still waiting is answered with its default, University.

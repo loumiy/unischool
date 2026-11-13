@@ -13,8 +13,8 @@ import { hasTag } from '../identity/tags';
 import { handlerFor, seatTitle } from '../delegation/seats';
 import { weeksOfOpEx } from '../../data/moneyScale';
 import { ESCALATION_WEEKS_OF_OPEX, seatDef } from '../../data/seatData';
-import { CHARTER_EVENT } from '../../data/eventCatalogue';
-import { CHARTER_INSTANCE, charterVars } from './charter';
+import { isCharterEvent } from '../../data/eventCatalogue';
+import { INSTITUTE_CHARTER_INSTANCE, UNIVERSITY_CHARTER_INSTANCE, charterVars, instituteCharterEvent, universityCharterEvent } from './charter';
 import { FESTIVAL_EVENT, FESTIVAL_INSTANCE, FESTIVAL_WEEK, downtownWorks, festivalHeld } from '../../data/downtownData';
 import { BOARD_QUESTIONS, BOARD_QUESTION_FROM_YEAR, BOARD_QUESTION_INSTANCE, BOARD_QUESTION_WEEK, boardQuestionIndex, donorFamily, isBoardQuestion } from '../../data/boardQuestionData';
 import { closeRefusal } from '../techtree/techSystem';
@@ -130,20 +130,24 @@ export function tickCatalogue(s: GameState): void {
   if (choice) resolveCatalogueEvent(s, p.instanceId, choice, 'seat');
 }
 
-// The drawn events waiting: the charter, the spring festival and the board's
+// The drawn events waiting: the charters, the spring festival and the board's
 // question are raised, not drawn, and hold no place in the queue the draws
 // are held to.
 function drawnWaiting(c: CatalogueState): number {
-  return c.pending.filter((p) => p.eventId !== CHARTER_EVENT.id && p.eventId !== FESTIVAL_EVENT.id && !isBoardQuestion(p.eventId)).length;
+  return c.pending.filter((p) => !isCharterEvent(p.eventId) && p.eventId !== FESTIVAL_EVENT.id && !isBoardQuestion(p.eventId)).length;
 }
 
-// The charter (charter.ts), raised by eventSystem.ts rather than drawn: a
-// fixed id and names read off the state, so it takes nothing from the run's
-// stream, and no seat answers it: the name is the President's.
-export function raiseCharter(s: GameState): void {
+// The charters (charter.ts), raised by eventSystem.ts rather than drawn: a
+// fixed id and names read off the state, so they take nothing from the
+// run's stream, and no seat answers them: the name is the President's. The
+// Institute charter's telling is picked here, by the title the college
+// carries, so its answers are fixed once it is raised.
+export function raiseCharter(s: GameState, letter: 'institute' | 'university'): void {
   const c = s.catalogue ??= { pending: [], lastFired: {}, lastInlineWeek: 0, lastSeismicWeek: 0 };
-  if (c.pending.some((p) => p.eventId === CHARTER_EVENT.id)) return;
-  c.pending.push({ instanceId: CHARTER_INSTANCE, eventId: CHARTER_EVENT.id, firedWeek: absoluteWeek(s), vars: charterVars(s), scale: priceScale(s) });
+  const instanceId = letter === 'institute' ? INSTITUTE_CHARTER_INSTANCE : UNIVERSITY_CHARTER_INSTANCE;
+  if (c.pending.some((p) => p.instanceId === instanceId)) return;
+  const e = letter === 'institute' ? instituteCharterEvent(s) : universityCharterEvent();
+  c.pending.push({ instanceId, eventId: e.id, firedWeek: absoluteWeek(s), vars: charterVars(s), scale: priceScale(s) });
 }
 
 // The spring festival (Plan 85H, data/downtownData.ts), raised by

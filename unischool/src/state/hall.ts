@@ -1,4 +1,4 @@
-import type { GameState, SchoolColors, Vernacular } from './types';
+import type { GameState, InstitutionTitle, SchoolColors, Vernacular } from './types';
 import { institutionName } from './types';
 import type { FinalReport } from './finalReport';
 import { chronicleOf } from '../systems/chronicle/chronicle';
@@ -18,7 +18,7 @@ export interface HallEntry {
   id: string;
   college: string;       // the full name
   name: string;          // what the facade carves, with the suffix
-  suffix: string;        // 'College' or 'University'
+  suffix: InstitutionTitle; // what it was called when the report was written
   vernacular: Vernacular;
   colors: SchoolColors;
   title: string;

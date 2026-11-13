@@ -43,8 +43,8 @@ export const fakeStorage = new Map<string, string>();
 };
 
 export const DEFAULT_SEED = 12345;
-// "Test": the charter adds the suffix, so a save reads "Test College",
-// then "Test University" (the second review's H7-8b).
+// "Test": the title follows it, so a save reads "Test College", then
+// whatever the charters make it (the second review's H7-8b, Plan 127).
 export const DEFAULT_NAME = 'Test';
 const MAX_ANSWERS = 64;
 

@@ -13,6 +13,7 @@ import {
   absoluteWeek, describeMilestone, findDecisionEvent, hasFreeChoice,
 } from '../../data/eventData';
 import { labEquippedFields } from '../../data/researchData';
+import { INSTITUTE_CHARTER_INSTANCE, graduateProgramFounded } from './charter';
 import { ELITE_CLOSE_ABOVE_PRESTIGE } from '../rivals/rivalsSystem';
 import { AD_OFFER_COOLDOWN_YEARS, coachNamesInUse, rollAthleticDirectorCandidates, rollMascotSuggestion } from '../../data/studentLifeData';
 import { random } from '../../engine/random';
@@ -74,20 +75,33 @@ export function fileNews(s: GameState, letter: NewsLetter): void {
   s.events.news = [...(s.events.news ?? []).filter((n) => letter.week - n.week < WEEKS_PER_YEAR), letter];
 }
 
-// The one-time, cosmetic College -> University charter, granted once a lab
-// is at work (docs/design/progression.md). Since Plan 78G a matter to decide
-// in the inbox, not a silent rename (charter.ts): "Become X University",
-// the default after four weeks, or "Keep the name X College". Raised, not
-// drawn, so it takes nothing from the run's stream; and it still takes the
-// week it lands, as the modal and the log line did, so the weeks after it
-// read the same. Its letter carries the college's one rename (RENAME_COLLEGE,
-// Plan 80D).
-function fireCharter(s: GameState): boolean {
-  if (s.self.universityCharterOffered) return false;
+// The cosmetic Institute charter, offered once a lab is at work
+// (docs/design/progression.md, Plan 127): a matter to decide in the inbox
+// (charter.ts), "Become X Institute" the default after four weeks for a
+// College. Raised, not drawn, so it takes nothing from the run's stream;
+// and it takes the week it lands, so the weeks after it read the same. Its
+// letter carries the college's one rename (RENAME_COLLEGE, Plan 80D), and
+// comes whatever the college is called.
+function fireInstituteCharter(s: GameState): boolean {
+  if (s.self.charters.institute) return false;
   // Same helper as research's own lab gate, so the two cannot drift.
   if (labEquippedFields(s).size === 0) return false;
-  s.self.universityCharterOffered = true;
-  raiseCharter(s);
+  s.self.charters.institute = true;
+  raiseCharter(s, 'institute');
+  return true;
+}
+
+// The University charter (Plan 127): the first quiet week a graduate
+// program has been founded, unless the college is already a University.
+// It waits for the Institute charter to be answered, so the two letters
+// never stand in the inbox together.
+function fireUniversityCharter(s: GameState): boolean {
+  if (s.self.charters.university) return false;
+  if (s.self.suffix === 'University') { s.self.charters.university = true; return false; }
+  if (!graduateProgramFounded(s)) return false;
+  if (s.catalogue?.pending.some((p) => p.instanceId === INSTITUTE_CHARTER_INSTANCE)) return false;
+  s.self.charters.university = true;
+  raiseCharter(s, 'university');
   return true;
 }
 
@@ -328,7 +342,8 @@ export function tickEvents(s: GameState): void {
   // random decision roll last.
   if (fireMilestoneCelebration(s)) return;
   if (fireSecondBuilding(s)) return;
-  if (fireCharter(s)) return;
+  if (fireInstituteCharter(s)) return;
+  if (fireUniversityCharter(s)) return;
   if (fireDeanRecommendations(s)) return;
   if (fireResearchReport(s)) return;
   if (fireChampionshipReport(s)) return;

@@ -5,6 +5,18 @@ point to the development records in `docs/plans/`.*
 
 ---
 
+## Next
+
+### New
+
+- **A college can open as a College, an Institute or a University**, once
+  you've earned it. Pick the title from the list beside the name; the board
+  offers Institute with your first research lab and University with your
+  first graduate program, and each is open to every college you found after.
+  (127)
+
+---
+
 ## 0.3.0
 
 *An update mostly of subtraction: the owner's cut list (Plan 124), the

@@ -754,6 +754,11 @@ marked **0.1.x** and fixed in a patch.*
   with a third title: Institute, earned with the first research lab, and
   University with the first graduate program; each is open at founding
   once earned in any run. Planned: [Plan 127](../../plans/127-college-institute-university.md).
+  **Fixed** for the build after 0.3.0 (Plan 127): the founding screen has a
+  title dropdown beside the name, College / Institute / University, with a
+  locked title saying what earns it; the board's two charter letters offer
+  Institute with the first lab and University with the first graduate
+  program.
 
 ## 7 · Bugs
 

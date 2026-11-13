@@ -335,9 +335,9 @@ export const CHAPTERS: readonly Chapter[] = [
   // waiting for another.
   {
     // Research, once a school is founded and its first laboratory can be
-    // built (in a natural run, years 9 to 10). The university charter that
+    // built (in a natural run, years 9 to 10). The Institute charter that
     // follows the first lab at work is the board's to offer, not an
-    // objective (Plan 112A).
+    // objective (Plan 112A, Plan 127).
     id: 'research',
     earliest: week(5, 1),
     side: true,
