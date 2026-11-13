@@ -26,10 +26,11 @@ import {
 // the ambience is birdsong scheduled with the music, and an effect is a
 // few enveloped oscillators. Where there is no Web Audio (tests, old browsers) every call is a no-op.
 //
-// One exception to "everything synthesised": the title screen plays a
-// recorded theme (assets/title-theme.mp3), looped with a crossfade, and the
-// synthesised music waits under it. If the recording can't be fetched or
-// decoded, the title plays the founding theme as before.
+// One exception to "everything synthesised": the music is a recorded theme
+// (assets/title-theme.mp3), looped with a crossfade, at full level on the
+// title screen and quieter in the game, and the synthesised themes wait
+// under it. If the recording can't be fetched or decoded, the synthesised
+// themes play as before.
 
 // Vite emits the file and rewrites this to its built URL; elsewhere (the
 // tests) it is only a string nobody fetches.
@@ -48,8 +49,8 @@ export class AudioEngine {
   private ctx: Ctx | null = null;
   private buses: { master: GainNode; music: GainNode; ambience: GainNode; sfx: GainNode } | null =
     null;
-  // The synthesised themes' own level under the music bus, so the title's
-  // recording can fade them out and back.
+  // The synthesised themes' own level under the music bus, so the
+  // recording can fade out whatever of them was already ringing.
   private synth: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private settings: AudioSettings = { ...DEFAULT_AUDIO };
@@ -126,7 +127,7 @@ export class AudioEngine {
     this.synth.connect(this.buses.music);
     this.noise = makeNoise(ctx);
     this.applyLevels();
-    if (this.titleOn) void this.startTitle();
+    void this.startTitle();
     this.nextAt = ctx.currentTime + 0.1;
     this.timer = setInterval(() => this.schedule(), SCHEDULE_MS);
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -173,9 +174,9 @@ export class AudioEngine {
     if (!ctx || !this.buses) return;
     if (this.titleOut && this.titleBuffer && this.titleNext < ctx.currentTime + 1) this.titlePass(this.titleBuffer);
     while (this.nextAt < ctx.currentTime + LOOKAHEAD_S) {
-      // On the title, the themes rest (the birds don't) and begin again
-      // from their first phrase when the player leaves it.
-      if (this.titleOn && !this.titleFailed) {
+      // While the recording plays, the themes rest (the birds don't); if
+      // it fails, they begin from their first phrase.
+      if (!this.titleFailed) {
         this.step = 0;
         this.playing = null;
         this.nextAt += REST_S;
@@ -253,19 +254,23 @@ export class AudioEngine {
 
   // ---------- the title's recording ----------
 
-  // On the title screen or off it. The file is fetched the first time it is
-  // asked for, before any gesture, so the recording is ready when sound is.
+  // On the title screen or off it: the recording plays on both, quieter in
+  // the game. The file is fetched the first time this is called, before any
+  // gesture, so the recording is ready when sound is.
   setTitle(on: boolean): void {
-    if (on === this.titleOn) return;
-    this.titleOn = on;
-    if (on && !this.titleBytes && this.available && typeof fetch === 'function') {
+    if (!this.titleBytes && this.available && typeof fetch === 'function') {
       this.titleBytes = fetch(TITLE_URL)
         .then((r) => (r.ok ? r.arrayBuffer() : null))
         .catch(() => null);
     }
-    if (!this.ctx) return;
-    if (on) void this.startTitle();
-    else this.stopTitle();
+    if (on === this.titleOn) return;
+    this.titleOn = on;
+    if (!this.ctx || !this.titleOut) return;
+    this.titleOut.gain.setTargetAtTime(this.titleLevel(), this.ctx.currentTime, TITLE_MUSIC.fadeOut / 4);
+  }
+
+  private titleLevel(): number {
+    return TITLE_MUSIC.gain * (this.titleOn ? 1 : TITLE_MUSIC.inGame);
   }
 
   private async startTitle(): Promise<void> {
@@ -283,11 +288,11 @@ export class AudioEngine {
         return;
       }
     }
-    // Still on the title, in the same context, and not started meanwhile.
-    if (!this.titleOn || this.ctx !== ctx || !this.buses || this.titleOut) return;
+    // The same context, and not started meanwhile.
+    if (this.ctx !== ctx || !this.buses || this.titleOut) return;
     const now = ctx.currentTime;
     const out = ctx.createGain();
-    out.gain.value = TITLE_MUSIC.gain;
+    out.gain.value = this.titleLevel();
     out.connect(this.buses.music);
     this.titleOut = out;
     this.titleNext = now + 0.05;
@@ -319,20 +324,6 @@ export class AudioEngine {
     };
     this.titleSources.push(src);
     this.titleNext = end - xf;
-  }
-
-  // Off the title: the recording fades out and the themes fade back in.
-  private stopTitle(): void {
-    const ctx = this.ctx;
-    if (!ctx) return;
-    const now = ctx.currentTime;
-    this.synth?.gain.setTargetAtTime(1, now, 0.3);
-    const out = this.titleOut;
-    if (!out) return;
-    out.gain.setTargetAtTime(0, now, TITLE_MUSIC.fadeOut / 4);
-    for (const src of this.titleSources) src.stop(now + TITLE_MUSIC.fadeOut);
-    this.titleSources = [];
-    this.titleOut = null;
   }
 
   // ---------- ambience ----------
