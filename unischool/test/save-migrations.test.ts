@@ -456,6 +456,37 @@ function testCafeteriaRenamed(): void {
 }
 testCafeteriaRenamed();
 
+// Plan 127's dining rebalance (persistence.ts's rebalanceDining): a save
+// gets the Coffee Kiosk and the Food Truck Plaza, a hall not yet started
+// takes the new seats, price and what it opens after, and a built one keeps
+// what it was built with.
+function testDiningRebalanced(): void {
+  const wrapper = JSON.parse(fixture('save-v97.json'));
+  const tech = wrapper.state.tech as Buildable[];
+  wrapper.state.tech = tech.filter((t) => t.id !== 'DINING-KIOSK' && t.id !== 'DINING-TRUCKS');
+  const node = (id: string) => (wrapper.state.tech as Buildable[]).find((t) => t.id === id)!;
+  for (const id of ['DINING-01', 'DININGHALL-02', 'DININGHALL-03', 'DININGHALL-04', 'DININGHALL-05', 'DININGHALL-06']) node(id).status = 'done';
+  node('DININGHALL-06').effects!.servesPopulation = 8_000;
+  node('DININGHALL-06').cost = 16_000_000;
+  node('DININGHALL-07').status = 'locked';
+  node('DININGHALL-08').status = 'available';
+  node('DININGHALL-08').cost = 38_400_000;
+  node('DININGHALL-08').effects!.servesPopulation = 16_000;
+  const s = loads(JSON.stringify(wrapper), 'a save from before the dining rebalance');
+  if (!s) return;
+  const got = (id: string) => s.tech.find((t) => t.id === id);
+  assert(!!got('DINING-KIOSK') && !!got('DINING-TRUCKS'), 'the Coffee Kiosk and the Food Truck Plaza join the save');
+  assert(s.tech.findIndex((t) => t.id === 'DINING-KIOSK') === s.tech.findIndex((t) => t.id === 'DINING-01') + 1, 'the kiosk follows the Original Commons');
+  unlockAvailable(s);
+  assert(got('DINING-KIOSK')?.status === 'available' && got('DINING-TRUCKS')?.status === 'available', 'and open at once, what they open after being built');
+  assert(got('DININGHALL-06')?.effects?.servesPopulation === 8_000 && got('DININGHALL-06')?.cost === 16_000_000, 'a built hall keeps the seats and price it was built with');
+  const central = got('DININGHALL-08')!;
+  assert(central.cost === 15_840_000 && central.effects?.servesPopulation === 6_600, `a hall not yet started takes the new terms (${central.cost}, ${central.effects?.servesPopulation})`);
+  assert(central.status === 'locked', 'and waits for Harborview, which it opens after');
+  assert(got('DININGHALL-05')?.prereqs.join() === 'DININGHALL-03' || got('DININGHALL-05')?.status === 'done', 'Old Well opens after the Hilltop Cafeteria');
+}
+testDiningRebalanced();
+
 // The Grand Table shrank to a trattoria (campusMap.ts's TRATTORIA_FOOTPRINT):
 // one sited at the old 7x5 is shrunk in place, its front edge kept and
 // centred along it, its facing kept, in every facing.

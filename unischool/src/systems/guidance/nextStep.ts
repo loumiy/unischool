@@ -2,6 +2,7 @@ import type { Buildable, GameState, SatisfactionAttributes } from '../../state/t
 import { standsOnCampus } from '../../state/types';
 import { OPENING_LETTERS } from '../../data/eventData';
 import { FOUNDERS_HALL_ID, isAcademicHall, milestoneSchools, programById } from '../../data/techData';
+import { isDiningPlace } from '../../data/facilitiesData';
 import { CLAIM_AT, claimedHalls, claimedSchool, hallDisplayName, homeSchool, schoolHall } from '../techtree/schools';
 import { seatingAsk } from './seating';
 import { establishAsk } from './establish';
@@ -80,7 +81,7 @@ const ATTRIBUTE_LABEL: Record<keyof SatisfactionAttributes, string> = NEED_LABEL
 const ATTRIBUTE_BUILD: Record<keyof SatisfactionAttributes, { text: string; names: (t: Buildable) => boolean }> = {
   academic: { text: 'build a library', names: (t) => t.facilityType === 'library' },
   social: { text: 'build a student center or a recreation building', names: (t) => t.facilityType === 'studentCenter' || t.facilityType === 'recCenter' },
-  basicNeeds: { text: 'build a dining hall', names: (t) => t.facilityType === 'diningHall' },
+  basicNeeds: { text: 'build a dining hall', names: (t) => isDiningPlace(t) },
   health: { text: 'build a health center or a gym', names: (t) => t.facilityType === 'healthCenter' || t.facilityType === 'gym' },
   housing: { text: 'build a residence hall', names: (t) => t.kind === 'dorm' },
 };

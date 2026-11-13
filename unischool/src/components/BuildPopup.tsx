@@ -15,7 +15,7 @@ import BuildThumb from './BuildThumb';
 import DecorThumb from './decorThumbs';
 import { foundersHallUnsited } from '../state/opening';
 import { projectsAsked, ringedBuilding, ringedTool } from '../state/chapters';
-import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory, isDiningPlace, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
@@ -63,6 +63,8 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   library: 'Library',
   studentCenter: 'Student Center',
   diningHall: 'Dining',
+  coffeeKiosk: 'Coffee Kiosk',
+  foodTrucks: 'Food Truck Plaza',
   grocery: 'Grocery Store',
   recCenter: 'Recreation',
   healthCenter: 'Health',
@@ -149,7 +151,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   // each belongs to a specific chapter, so no "#N" and no collapse.
   { key: 'chapterHouse', label: 'Chapter houses', repeatable: false, match: (t) => !!t.chapterHouse },
   // The grocery folds into Dining: one more basicNeeds option.
-  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' || t.facilityType === 'grocery' },
+  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => isDiningPlace(t) || t.facilityType === 'grocery' },
   // The health chain is three differently named buildings upgraded in place,
   // so it keeps tier chips; the tab says "Health", the rungs name themselves.
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
@@ -331,6 +333,8 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'library': return LibraryIcon;
     case 'studentCenter': return StudentLifeIcon;
     case 'diningHall':
+    case 'coffeeKiosk':
+    case 'foodTrucks':
     case 'grocery': return DiningIcon;
     case 'healthCenter': return HealthIcon;
     case 'quad': return QuadIcon;

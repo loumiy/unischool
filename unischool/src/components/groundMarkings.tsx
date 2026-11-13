@@ -12,6 +12,7 @@ import { QUAD_WALK, quadCentre } from './quadGeometry';
 import { FlowerMounds, bedMound, lampArt } from './dressing';
 import { roll } from '../data/treeData';
 import { AmphitheaterGround, BasketballGround, ParterreGround, PondGround, SculptureGround, amphitheaterProps, basketballProps, parterreProps, pondProps, sculptureProps } from './campusGardens';
+import { KioskGround, TrucksGround, kioskProps, trucksProps } from './diningGrounds';
 
 // Open ground: the Buildables you walk across rather than into (quad, pool
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
@@ -2133,6 +2134,8 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
     case 'athleticsDiamond': return <Diamond col={col} row={row} w={w} h={h} />;
     case 'tennisCourts': return <Courts col={col} row={row} w={w} h={h} />;
     case 'basketballCourts': return <BasketballGround col={col} row={row} w={w} h={h} />;
+    case 'coffeeKiosk': return <KioskGround col={col} row={row} w={w} h={h} />;
+    case 'foodTrucks': return <TrucksGround col={col} row={row} w={w} h={h} />;
     case 'pool': return <PoolDeck col={col} row={row} w={w} h={h} />;
     case 'quad': return <Quad col={col} row={row} w={w} h={h} tier={tier ?? 1} />;
     case 'amenity':
@@ -2172,6 +2175,8 @@ export function groundProps(
     case 'athleticsDiamond': return diamondProps(col, row, w, h, stage);
     case 'tennisCourts': return courtsProps(col, row, w, h);
     case 'basketballCourts': return basketballProps({ col, row, w, h });
+    case 'coffeeKiosk': return kioskProps({ col, row, w, h });
+    case 'foodTrucks': return trucksProps({ col, row, w, h });
     case 'pool': return poolProps(col, row, w, h);
     case 'quad': return quadProps(col, row, w, h, tier ?? 1);
     default: return [];

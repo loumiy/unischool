@@ -54,22 +54,39 @@ export function priceUpkeep(price: number): number {
 // landmarks, capital projects (the Medical Center among them), labs, halls
 // and dorms keep their own upkeep.
 export const PRICE_UPKEEP_TYPES: ReadonlySet<FacilityType> = new Set<FacilityType>([
-  'diningHall', 'grocery', 'library', 'studentCenter', 'recCenter', 'healthCenter', 'gym', 'tennisCourts', 'pool', 'artGallery',
+  'diningHall', 'coffeeKiosk', 'foodTrucks', 'grocery', 'library', 'studentCenter', 'recCenter', 'healthCenter', 'gym', 'tennisCourts', 'pool', 'artGallery',
   'athleticsField', 'athleticsArena', 'athleticsDiamond', 'athleticsNatatorium', 'footballStadium', 'fieldHouse',
 ]);
 
-// --- Dining hall: repeatable chain, basic need, scales hard with capacity ---
+// --- Dining: the chain of halls and two small places beside it ---
 // basicNeeds carries the steepest under-capacity penalty
 // (satisfactionSystem.ts's BASIC_NEEDS_PENALTY_CURVATURE).
 //
-// Eight authored halls (350 to 16,000) that roughly double at the small end
-// and taper to ~1.35x, so each is a meaningful share of campus dining and
-// visibly bigger on the map (campusMap.ts's DINING_FOOTPRINTS reads
-// servesPopulation). The chain serves 47,050; with the grocery and the
-// towers' retail (campusData.ts) the campus feeds about 70,000 at 1:1, but
-// those shops count for at most RETAIL_FOOD_SHARE of the need, so a campus
-// of 34,000 needs the dining halls through the seventh. Cost per seat climbs
-// (1.3k -> 2.4k), like the dorm chain.
+// Sized to a campus of about 40,000 (Plan 127's dining rebalance). A
+// student needs one place (TARGET_RATIO.basicNeeds); the grocery and the
+// towers' shops count for at most RETAIL_FOOD_SHARE of that, so at 40,000
+// the dining places carry 24,000. Everything below serves 24,100: each
+// one, even the kiosk, is needed by 40,000, and none alone is a large
+// share late. Added storeys (estate.ts, up to +50% a hall, at a dearer
+// place) carry a campus past it.
+//
+//   The Original Commons      350   day one
+//   Coffee Kiosk              150   after the Original Commons
+//   Union Square Eatery       900   after the Original Commons
+//   Hilltop Cafeteria       1,800   after Union Square
+//   Food Truck Plaza        1,000   after Hilltop
+//   The Grand Table           600   after Hilltop (a trattoria)
+//   Old Well Hall           3,000   after Hilltop
+//   Waterside Market Hall   4,200   after Old Well
+//   Harborview Market       5,500   after Waterside
+//   Central Dining Pavilion 6,600   after Harborview
+//
+// The halls' price per place climbs with their size (714 -> 2,400), like
+// the dorm chain: feeding a big campus costs more a head. The kiosk and
+// the trucks are cheap per place (no kitchen hall to build); the Grand
+// Table is dear (a restaurant, not a canteen). Before the grocery opens at
+// GROCERY_POPULATION_GATE the halls feed everyone: Old Well and Waterside
+// carry a campus to about 12,000.
 const DINING_STARTING_ID = 'DINING-01';
 const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly the founding (all-commuter) class
 // Cheap and quick, so feeding the founding class does not swallow the
@@ -77,24 +94,42 @@ const DINING_STARTING_SERVES = FOUNDING_BODY; // one founding hall feeds exactly
 const DINING_STARTING_COST = 250_000;
 const DINING_STARTING_WEEKS = 16;
 
-// One rung per hall after the founding one, in build order.
+// One rung per hall after the founding one, in build order. `after` is the
+// hall it opens after.
 interface DiningRung {
   id: string;
   name: string;
   serves: number;
   cost: number;
   weeks: number;
+  after: string;
+  description?: string;
 }
 
-const DINING_RUNGS: DiningRung[] = [
-  { id: 'DININGHALL-02', name: 'Union Square Eatery', serves: 900, cost: 1_200_000, weeks: 14 },
-  { id: 'DININGHALL-03', name: 'Hilltop Cafeteria', serves: 1_800, cost: 2_700_000, weeks: 16 },
-  { id: 'DININGHALL-04', name: 'The Grand Table', serves: 3_000, cost: 5_000_000, weeks: 18 },
-  { id: 'DININGHALL-05', name: 'Old Well Hall', serves: 5_000, cost: 9_000_000, weeks: 20 },
-  { id: 'DININGHALL-06', name: 'Waterside Market Hall', serves: 8_000, cost: 16_000_000, weeks: 22 },
-  { id: 'DININGHALL-07', name: 'Harborview Market', serves: 12_000, cost: 26_400_000, weeks: 24 },
-  { id: 'DININGHALL-08', name: 'Central Dining Pavilion', serves: 16_000, cost: 38_400_000, weeks: 26 },
+const HALL_DESCRIPTION = 'Another dining hall, with longer opening hours and the same argument about the waffle iron.';
+export const DINING_RUNGS: readonly DiningRung[] = [
+  { id: 'DININGHALL-02', name: 'Union Square Eatery', serves: 900, cost: 1_200_000, weeks: 14, after: DINING_STARTING_ID },
+  { id: 'DININGHALL-03', name: 'Hilltop Cafeteria', serves: 1_800, cost: 2_700_000, weeks: 16, after: 'DININGHALL-02' },
+  { id: 'DININGHALL-04', name: 'The Grand Table', serves: 600, cost: 1_500_000, weeks: 14, after: 'DININGHALL-03',
+    description: 'A small trattoria with a wood-fired oven, checked tablecloths and a terrace under a vine. Students book it for birthdays.' },
+  { id: 'DININGHALL-05', name: 'Old Well Hall', serves: 3_000, cost: 5_400_000, weeks: 20, after: 'DININGHALL-03' },
+  { id: 'DININGHALL-06', name: 'Waterside Market Hall', serves: 4_200, cost: 8_400_000, weeks: 22, after: 'DININGHALL-05' },
+  { id: 'DININGHALL-07', name: 'Harborview Market', serves: 5_500, cost: 12_100_000, weeks: 24, after: 'DININGHALL-06' },
+  { id: 'DININGHALL-08', name: 'Central Dining Pavilion', serves: 6_600, cost: 15_840_000, weeks: 26, after: 'DININGHALL-07' },
 ];
+
+// The coffee kiosk: a counter, an awning and two café tables, for the
+// first students past the founding class.
+export const COFFEE_KIOSK_ID = 'DINING-KIOSK';
+const COFFEE_KIOSK_SERVES = 150;
+const COFFEE_KIOSK_COST = 180_000;
+const COFFEE_KIOSK_WEEKS = 8;
+// The food trucks: four parked round a paved plaza of picnic tables, a
+// mid-sized place for a growing campus.
+export const FOOD_TRUCKS_ID = 'DINING-TRUCKS';
+const FOOD_TRUCKS_SERVES = 1_000;
+const FOOD_TRUCKS_COST = 1_100_000;
+const FOOD_TRUCKS_WEEKS = 10;
 
 function diningChain(): Buildable[] {
   const nodes: Buildable[] = [
@@ -116,20 +151,35 @@ function diningChain(): Buildable[] {
         upkeepPerWeek: priceUpkeep(DINING_STARTING_COST),
       },
     },
+    {
+      id: COFFEE_KIOSK_ID,
+      kind: 'facility',
+      facilityType: 'coffeeKiosk',
+      name: 'Coffee Kiosk',
+      description: 'A coffee counter under a striped awning, with two café tables and a queue at ten to nine.',
+      cost: COFFEE_KIOSK_COST,
+      duration: COFFEE_KIOSK_WEEKS,
+      prereqs: [DINING_STARTING_ID],
+      status: 'locked',
+      effects: {
+        servesPopulation: COFFEE_KIOSK_SERVES,
+        satisfactionAttribute: 'basicNeeds',
+        upkeepPerWeek: priceUpkeep(COFFEE_KIOSK_COST),
+      },
+    },
   ];
 
-  let previousId = DINING_STARTING_ID;
   for (const rung of DINING_RUNGS) {
     nodes.push({
       id: rung.id,
       kind: 'facility',
       facilityType: 'diningHall',
       name: rung.name,
-      description: 'Another dining hall, with longer opening hours and the same argument about the waffle iron.',
+      description: rung.description ?? HALL_DESCRIPTION,
       cost: rung.cost,
       duration: rung.weeks,
-      prereqs: [previousId], // strictly sequential, same reasoning as the dorm chain
-      // Each unlocks the tick its prereq finishes.
+      prereqs: [rung.after],
+      // Each unlocks the tick the hall before it finishes.
       status: 'locked',
       effects: {
         servesPopulation: rung.serves,
@@ -137,10 +187,33 @@ function diningChain(): Buildable[] {
         upkeepPerWeek: priceUpkeep(rung.cost),
       },
     });
-    previousId = rung.id;
+    if (rung.id === 'DININGHALL-03') {
+      nodes.push({
+        id: FOOD_TRUCKS_ID,
+        kind: 'facility',
+        facilityType: 'foodTrucks',
+        name: 'Food Truck Plaza',
+        description: 'Four food trucks parked round a paved square of picnic tables under string lights. The menu changes with the trucks.',
+        cost: FOOD_TRUCKS_COST,
+        duration: FOOD_TRUCKS_WEEKS,
+        prereqs: ['DININGHALL-03'],
+        status: 'locked',
+        effects: {
+          servesPopulation: FOOD_TRUCKS_SERVES,
+          satisfactionAttribute: 'basicNeeds',
+          upkeepPerWeek: priceUpkeep(FOOD_TRUCKS_COST),
+        },
+      });
+    }
   }
 
   return nodes;
+}
+
+// Every place that feeds students but the grocery and the towers' shops:
+// the halls, the kiosk and the trucks.
+export function isDiningPlace(t: Pick<Buildable, 'facilityType'>): boolean {
+  return t.facilityType === 'diningHall' || t.facilityType === 'coffeeKiosk' || t.facilityType === 'foodTrucks';
 }
 
 // --- Campus grocery store: single building, basicNeeds, population-gated ---

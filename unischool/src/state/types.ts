@@ -313,6 +313,9 @@ export type FacilityType =
   | 'healthCenter' | 'quad' | 'lab'
   // Single-instance basicNeeds feeder beside the repeatable dining chain.
   | 'grocery'
+  // Two small dining places beside the chain (Plan 127): a coffee kiosk
+  // and a plaza of food trucks, each with no storeys to add.
+  | 'coffeeKiosk' | 'foodTrucks'
   // One-off: gym/pool/tennis feed `health`, arts venues feed `social`.
   | 'gym' | 'tennisCourts' | 'pool' | 'artGallery'
   // Outdoor basketball courts feed `health`; the pub, the bowling alley and
