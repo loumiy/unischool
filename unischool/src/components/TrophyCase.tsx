@@ -108,9 +108,6 @@ export default function TrophyCase({ s }: { s: GameState }) {
           </div>
         ))}
       </div>
-      {titles.length === 0 && (
-        <p className="trophy-note">When one of your teams wins a national title, it gets a cup on this shelf. Each time that team wins again, its cup gets a new band with the year.</p>
-      )}
     </section>
   );
 }

@@ -4363,7 +4363,6 @@ body:has(.building-info-panel) .pennant { display: none; }
 .trophy-labels div { display: grid; align-content: start; line-height: 1.2; min-width: 0; }
 .trophy-labels b { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); overflow-wrap: anywhere; }
 .trophy-labels span { font-size: var(--text-2xs); color: var(--ink-muted); }
-.trophy-note { margin: var(--space-8) 0 0; font-size: var(--text-sm); color: var(--ink-muted); line-height: 1.4; }
 
 /* The priority list: ranked program cards with the funded line. */
 .priority-slot { list-style: none; display: flex; min-width: 0; }
