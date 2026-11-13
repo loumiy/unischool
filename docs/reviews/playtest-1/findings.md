@@ -730,12 +730,16 @@ marked **0.1.x** and fixed in a patch.*
   parking can impact student satisfaction." Nothing in the game today;
   a lot beside the road is in `BACKLOG.md` as decoration only (the rest
   of the decorative assets, item 4). *1 player · comment (I10).*
+  **Declined** (the owner, 13 November 2026): an early build, when the map
+  was a bare grid of blocks, had parking; it took up a lot of space,
+  wasn't fun to manage and wasn't nice to look at, so it was taken out.
 
 - **Cars, and local roads with crosswalks.** "Some simple car models
   that drive past the college or directly into the college to park," and
   "local roads with sidewalks and crosswalks as a special path that only
   cars can take and pedestrians use the crosswalks." Nothing on the road
-  moves today. *1 player · comment (I10).*
+  moves today. *1 player · comment (I10).* The owner (13 November 2026)
+  is open to cars, but they aren't high on the list.
 
 - **A name without "College" on the end.** "When naming our college, I
   dont think it's necessary to have 'College' at the end regardless. What
@@ -743,7 +747,10 @@ marked **0.1.x** and fixed in a patch.*
   Today every college opens as "[Name] College" and the board grants
   "University" with the first research lab (the founding screen's caption
   says so; `foundingData.ts`'s `UNIVERSITY_CAPTION`), so the suffix is
-  part of the climb. *1 player · comment (I10).*
+  part of the climb. *1 player · comment (I10).* The owner (13 November
+  2026): the College-then-University naming can confuse players. One way
+  to clear it up: make the suffix a dropdown on the founding screen, with
+  University shown but locked until the college earns it.
 
 ## 7 · Bugs
 
