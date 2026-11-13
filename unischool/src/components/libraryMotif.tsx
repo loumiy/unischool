@@ -6,12 +6,12 @@ import { SUN_FROM, WALL_LIGHT } from './light';
 import { METRES_PER_TILE, STOREY, across, up } from './campusScale';
 import { shade } from './tint';
 import {
-  BASE_COURSE, CORNICE, EAVES_COURSE, ENTABLATURE, FLOOR_COURSE, SILL_HEIGHT, STEP_OVERHANG, TOWER_PINNACLE_PLAN, TOWER_PINNACLE_RISE,
+  ARCADE_DEPTH, BASE_COURSE, CORNICE, EAVES_COURSE, ENTABLATURE, FLOOR_COURSE, SILL_HEIGHT, STEP_OVERHANG, TOWER_PINNACLE_PLAN, TOWER_PINNACLE_RISE,
   VERNACULARS, WINDOW_HEIGHT, baysAcross, eavesOf, hasTrim, paneShapeOf, rankSills, ridgeOf, roofFor, storeysOf, wallShadeOf, windowOutline,
   type DoorDimensions, type Material, type StonePalette, type WindowShape,
 } from './buildingSpec';
 import {
-  Arcade, Balustrade, BellGable, Cylinder, CurtainWall, Door, EavesBrackets, EntranceSteps, GiltFinial, HippedRoof, LEAD, MansardRoof,
+  ArcadeRing, Balustrade, BellGable, Cylinder, CurtainWall, Door, EavesBrackets, EntranceSteps, GiltFinial, HippedRoof, LEAD, MansardRoof,
   Merlons, PavilionTower, Piers, RoofFlag, StageOpenings, TowerShaft, WallBand,
   againstWall, arcadeHeight, backSlopesFirst, gableEnds, gableSlopes, nearRing, opposite, outsideWall, outwardOf, paletteFrom,
   pyramid, ridgeChimneys, sideFaces, snowOnRoofs, wallSpan, windows, type Palette,
@@ -498,18 +498,16 @@ function CivicLibrary(props: LibraryProps) {
         );
       }
       case 'mission':
-        return (
-          <g key={`e${dir}`}>
-            <Arcade col={col} row={row} w={w} h={h} outward={dir} pal={pal} stone={stone} height={arcadeH} />
-            {flight(col, row, w, h, dir, across(2.6), across(7), up(0.8), 3, stone)}
-          </g>
-        );
+        // The arcade wraps every wall (missionRing); the front's flight
+        // climbs to its middle arches from outside the walk, in the roof's
+        // terracotta (whitewash steps were lost against the arcade).
+        return <g key={`e${dir}`}>{flight(col, row, w, h, dir, ARCADE_DEPTH, across(13), up(1.6), 5, { ...stone, trim: shade(pal.roof, 1.18) })}</g>;
       case 'tudor':
         return (
           <g key={`e${dir}`}>
             {isRowWall(dir) === alongW
               ? <CrossGable col={col} row={row} w={w} h={h} dir={dir} width={crossW} depth={across(2.4)} H={H} rise={ridge * (crossW / 2) / (Math.min(w, h) / 2 + eaves)} pal={pal} stone={stone} storeys={storeys} door={door} />
-              : <Oriel col={col} row={row} w={w} h={h} dir={dir} H={H} stone={stone} pal={pal} />}
+              : <Oriel col={col} row={row} w={w} h={h} dir={dir} H={H} stone={stone} pal={pal} door={door} />}
             {flight(col, row, w, h, dir, isRowWall(dir) === alongW ? across(2.4) : 0, door.widthTiles * 2, door.threshold, 5, stone)}
           </g>
         );
@@ -535,9 +533,14 @@ function CivicLibrary(props: LibraryProps) {
   const wallEntrance = (dir: FaceDir) => {
     if (dir === sides.front) return entrance(dir);
     if (scheme === 'tudor') return entrance(dir);
-    if (scheme === 'mission' && dir === sides.back) return entrance(dir);
+    if (scheme === 'mission') return null;
     return minorEntrance(dir);
   };
+  // Mission's arcade, wrapped round the whole building as the halls' is:
+  // the walks behind before the mass, the seen ones over it.
+  const missionRing = (part: 'behind' | 'front') => (scheme === 'mission' && !extending
+    ? <ArcadeRing part={part} pal={pal} stone={stone} col={col} row={row} w={w} h={h} height={arcadeH} />
+    : null);
   // An entrance on a front turned away, painted before the mass so only
   // what rises past the roof shows.
   const hiddenFront = !frontSeen && !extending && scheme !== 'mission' && scheme !== 'tudor' ? entrance(sides.front) : null;
@@ -562,6 +565,7 @@ function CivicLibrary(props: LibraryProps) {
   return (
     <>
       {hiddenFront}
+      {missionRing('behind')}
       {!frontSeen && bellGables}
       <polygon points={polyPoints(f.left)} fill={pal.wallLeft} />
       <polygon points={polyPoints(f.right)} fill={pal.wallRight} />
@@ -594,6 +598,7 @@ function CivicLibrary(props: LibraryProps) {
         ? <Balustrade key={`ba${dir}`} col={col} row={row} w={w} h={h} base={H} outward={dir} pal={pal} stone={stone} />
         : <Merlons key={`pa${dir}`} col={col} row={row} w={w} h={h} base={H} outward={dir} pal={pal} block={wallSpan(w, h, dir)} gap={0} rise={up(scheme === 'deco' ? 1.2 : 0.85)} depth={across(0.35)} fill={trim ? stone.trim : undefined} />
       ))}
+      {missionRing('front')}
       {fronts.map(wallEntrance)}
       {frontSeen && bellGables}
     </>
@@ -752,14 +757,18 @@ function CrossGable({ col, row, w, h, dir, width, depth, H, rise, pal, stone, st
   );
 }
 
-// A two-storey oriel on a Tudor gable end, over its door.
-function Oriel({ col, row, w, h, dir, H, stone, pal }: {
-  col: number; row: number; w: number; h: number; dir: FaceDir; H: number; stone: StonePalette; pal: Palette;
+// A two-storey oriel on a Tudor gable end, over its door: its corbel
+// starts clear of the door's head, so the door under it reads whole (it
+// stood on the door's top half).
+function Oriel({ col, row, w, h, dir, H, stone, pal, door }: {
+  col: number; row: number; w: number; h: number; dir: FaceDir; H: number; stone: StonePalette; pal: Palette; door: DoorDimensions;
 }) {
   const span = wallSpan(w, h, dir);
   const width = across(5);
   const b = againstWall(col, row, w, h, dir, span / 2 - width / 2, width, across(1.0));
-  const z0 = STOREY * 1.25; const z1 = Math.min(H - up(1.0), z0 + STOREY * 2);
+  const z0 = Math.max(STOREY * 1.25, door.threshold + door.height + up(1.2) + up(0.6));
+  const z1 = Math.min(H - up(1.0), z0 + STOREY * 2);
+  if (z1 - z0 < up(2)) return null;
   const f = boxFaces(b.col, b.row, b.w, b.h, z0, z1 - z0);
   const corbel = boxFaces(b.col, b.row, b.w, b.h, z0 - up(1.2), up(1.2));
   const front = wallOf(f, dir);

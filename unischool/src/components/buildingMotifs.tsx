@@ -11330,7 +11330,7 @@ export { materialOf } from './buildingSpec';
 
 // The parts the library draws itself from (Plan 87F, libraryMotif.tsx).
 export {
-  Arcade, BellGable, CurtainWall, Door, EavesBrackets, EntranceSteps, GiltFinial, HippedRoof, LEAD,
+  ArcadeRing, BellGable, CurtainWall, Door, EavesBrackets, EntranceSteps, GiltFinial, HippedRoof, LEAD,
   MansardRoof, Merlons, Balustrade, PavilionTower, Piers, StageOpenings, TowerShaft, WallBand,
   againstWall, arcadeHeight, backSlopesFirst, gableEnds, gableSlopes, nearRing, opposite, outsideWall, outwardOf,
   pyramid, ridgeChimneys, sideFaces, wallSpan, windows, Cylinder,
