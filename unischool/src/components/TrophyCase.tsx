@@ -57,13 +57,13 @@ export default function TrophyCase({ s }: { s: GameState }) {
     <section className="panel">
       <div className="panel-head">
         <h2>Trophy case</h2>
-        <HelpHint text="Every national title your college has won. Each sport that wins one gets a cup, and every title after that adds a band with its year to the cup's base. A title lifts the athletics pillar for good. It also grows the summer's applicant pool for a few years. For about a year, donors are easier to find and a campaign raises more." />
+        <HelpHint text="When one of your teams wins a national title, it gets a cup here. Each time it wins again, its cup gets a band with the year. A national title raises your athletics prestige for good. It also brings in more applicants for a few summers. For about a year, donors are easier to find and campaigns raise more." />
       </div>
       <TrophyDefs />
       {titles.length === 0 ? (
         <div className="trophy-tally trophy-tally-zero">
           <span className="trophy-tally-num">0</span>
-          <span className="trophy-tally-text"><b>No national titles yet</b><span>Each champion sport earns a cup</span></span>
+          <span className="trophy-tally-text"><b>No national titles yet</b><span>Win one and that team gets a cup</span></span>
         </div>
       ) : (
         <div className="trophy-tally">
@@ -109,7 +109,7 @@ export default function TrophyCase({ s }: { s: GameState }) {
         ))}
       </div>
       {titles.length === 0 && (
-        <p className="trophy-note">A cup joins the shelf for each sport that wins a national title. Every repeat adds an engraved band to its base.</p>
+        <p className="trophy-note">When one of your teams wins a national title, it gets a cup on this shelf. Each time that team wins again, its cup gets a new band with the year.</p>
       )}
     </section>
   );

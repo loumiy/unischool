@@ -84,7 +84,7 @@ const SCREENS: Array<[RegExp, string]> = [
   [/tabs\/(FacultyTab|FacultyTile|FacultyPerson|AdministrationPanel|facultySort|facultyCareer)\.tsx?$|data\/careerWords\.ts$/, 'Faculty tab'],
   [/tabs\/ResearchTab\.tsx$/, 'Research tab'],
   [/tabs\/(StudentsTab|EnrollmentTab|StudentLifeTab|IdentityPanel)\.tsx$/, 'Students tab'],
-  [/tabs\/AthleticsTab\.tsx$/, 'Athletics tab'],
+  [/tabs\/AthleticsTab\.tsx$|components\/TrophyCase\.tsx$/, 'Athletics tab'],
   [/tabs\/(HistoryTab|StandingsPanel|StandingBreakdown|RankingsPanel|ChroniclePanel|AlumniPanel)\.tsx$|components\/RankingsTable\.tsx$/, 'History tab'],
   // Plan 85: the choice, the board's notice and the four programs it opens.
   [/components\/SpecializationChoice\.tsx$|data\/specializationData\.ts$/, 'Specialization (choice and notice)'],
