@@ -8564,7 +8564,7 @@ function Parasol({ cc, cr, stripes }: { cc: number; cr: number; stripes: readonl
 }
 
 // A bare table with a chair either side along the terrace, far chair first.
-function CafeTable({ cc, cr, alongW }: { cc: number; cr: number; alongW: boolean }) {
+function CafeTable({ cc, cr, alongW, cloth = TABLE_TOP }: { cc: number; cr: number; alongW: boolean; cloth?: string }) {
   const s = across(0.55); const off = across(1.0);
   const chairs = [-1, 1].map((k) => (alongW ? { col: cc + k * off - s / 2, row: cr - s / 2 } : { col: cc - s / 2, row: cr + k * off - s / 2 }))
     .map((c) => ({ ...c, y: project(c.col + s / 2, c.row + s / 2).y }))
@@ -8578,7 +8578,7 @@ function CafeTable({ cc, cr, alongW }: { cc: number; cr: number; alongW: boolean
     <>
       {chair(chairs[0]!, 0)}
       <line x1={top.x} y1={top.y} x2={top.x} y2={project(cc, cr).y} stroke="#4a4540" strokeWidth={0.9} />
-      <polygon points={polyPoints(projectedCircle(cc, cr, across(0.6), 12).map((q) => lift(q, up(0.75))))} fill={TABLE_TOP} stroke="rgba(60, 54, 44, 0.35)" strokeWidth={0.5} />
+      <polygon points={polyPoints(projectedCircle(cc, cr, across(0.6), 12).map((q) => lift(q, up(0.75))))} fill={cloth} stroke={cloth === TABLE_TOP ? 'rgba(60, 54, 44, 0.35)' : '#f4efe4'} strokeWidth={cloth === TABLE_TOP ? 0.5 : 0.7} />
       {chair(chairs[1]!, 1)}
     </>
   );
@@ -8654,7 +8654,7 @@ function TerraceFurniture({ plan, doorAt, free, cafe, plain }: {
 
 // The café's striped awning, either side of its door: sloping out from
 // under the eaves over the tables, with a scalloped valance.
-function CafeAwning({ plan, d, H }: { plan: DiningPlan; d: DoorDimensions | null; H: number }) {
+function CafeAwning({ plan, d, H, stripes = [SIGNAL_RED, '#f2e8d4'] }: { plan: DiningPlan; d: DoorDimensions | null; H: number; stripes?: readonly string[] }) {
   const b = plan.hall;
   const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
   const wall = wallOf(f, plan.front);
@@ -8676,7 +8676,7 @@ function CafeAwning({ plan, d, H }: { plan: DiningPlan; d: DoorDimensions | null
           <g key={r}>
             {Array.from({ length: n }, (_, i) => {
               const a = u0 + ((u1 - u0) * i) / n; const c = u0 + ((u1 - u0) * (i + 1)) / n;
-              const tone = i % 2 === 0 ? SIGNAL_RED : '#f2e8d4';
+              const tone = stripes[i % stripes.length]!;
               return (
                 <g key={i}>
                   <polygon points={polyPoints([inner(a), inner(c), outer(c, z0), outer(a, z0)])} fill={tone} />
@@ -8687,6 +8687,153 @@ function CafeAwning({ plan, d, H }: { plan: DiningPlan; d: DoorDimensions | null
           </g>
         );
       })}
+    </g>
+  );
+}
+
+// --- The Grand Table, a trattoria -------------------------------------
+// The one dining hall drawn as a restaurant rather than a hall: warm
+// stucco and a terracotta roof in Italianate dress on any campus, a green,
+// white and red awning either side of the door under a signboard, and on
+// the terrace a pergola hung with vines and string lights over tables in
+// red and white cloths, with a clear way in at the door.
+export const TRATTORIA_ID = 'DININGHALL-04';
+const TRATTORIA_MATERIAL: Material = { wall: '#dba872', roof: '#b0583a' };
+const TRATTORIA_AWNING = ['#2f7d4a', '#f3ede0', '#c8392e', '#f3ede0'] as const;
+const TRATTORIA_TILE = '#c98f68';
+const PERGOLA_TIMBER = '#6e4f34';
+const VINE = ['#4f7d3a', '#6a9645', '#3f6a30'] as const;
+const BULB = '#ffe29a';
+const CLOTHS = ['#c8392e', '#f3ede0'] as const;
+const PERGOLA_TOP = up(3.0);
+
+// The terrace's terracotta paving, in half-tile squares.
+function TrattoriaPaving({ plan }: { plan: DiningPlan }) {
+  const b = plan.terrace;
+  const at = terraceFrame(plan);
+  const L = plan.alongW ? b.w : b.h; const T = plan.alongW ? b.h : b.w;
+  const lines: string[] = [];
+  const seg = (x0: number, y0: number, x1: number, y1: number) => {
+    const g0 = at(x0, y0); const g1 = at(x1, y1);
+    const a = project(g0.col, g0.row); const c = project(g1.col, g1.row);
+    lines.push(`M${a.x.toFixed(1)},${a.y.toFixed(1)}L${c.x.toFixed(1)},${c.y.toFixed(1)}`);
+  };
+  for (let x = 0.5; x < L - 0.01; x += 0.5) seg(x, 0, x, T);
+  for (let y = 0.5; y < T - 0.01; y += 0.5) seg(0, y, L, y);
+  return (
+    <>
+      <polygon points={polyPoints(boxFaces(b.col, b.row, b.w, b.h, 0, 0).top)} fill={TRATTORIA_TILE} />
+      <path d={lines.join('')} stroke={shade(TRATTORIA_TILE, 0.86)} strokeWidth={0.5} fill="none" />
+    </>
+  );
+}
+
+// The terrace under its pergola: posts and tables in depth order, then the
+// joists and beams, the vines on them and the lights strung along the
+// outer beam. Two runs either side of the way in; `free` is the depth clear
+// of the walls.
+function TrattoriaTerrace({ plan, doorAt, free, frontSeen }: { plan: DiningPlan; doorAt: number; free: number; frontSeen: boolean }) {
+  const at = terraceFrame(plan);
+  const b = plan.terrace;
+  const L = plan.alongW ? b.w : b.h;
+  const clear = 0.62;
+  const y0 = 0.12; const y1 = Math.max(y0 + 0.5, Math.min(0.95, free - 0.55));
+  const runs = ([[0.2, doorAt - clear], [doorAt + clear, L - 0.2]] as const).filter(([a, c]) => c - a > 0.5);
+  type Item = DepthBox & { kind: 'post' | 'table' | 'planter'; cc: number; cr: number; i: number };
+  const items: Item[] = [];
+  const put = (kind: Item['kind'], x: number, y: number) => {
+    const c = at(x, y);
+    const r = kind === 'post' ? 0.04 : across(1.0);
+    items.push({ kind, cc: c.col, cr: c.row, col: c.col - r, row: c.row - r, w: r * 2, h: r * 2, i: items.length });
+  };
+  const bays = ([a, c]: readonly [number, number]) => Math.max(1, Math.round((c - a) / 0.9));
+  for (const run of runs) {
+    const [a, c] = run;
+    const n = bays(run);
+    for (let k = 0; k <= n; k++) for (const y of [y0, y1]) put('post', a + ((c - a) * k) / n, y);
+    // Tables under the pergola, between its posts, and a row by the wall.
+    for (let k = 0; k < n; k++) put('table', a + ((c - a) * (k + 0.5)) / n, (y0 + y1) / 2);
+    if (free - 0.3 > y1 + 0.2) for (let k = 0; k < n; k++) put('table', a + ((c - a) * (k + 0.5)) / n, free - 0.3);
+  }
+  for (const x of [doorAt - clear + 0.12, doorAt + clear - 0.12]) put('planter', x, 0.13);
+  const top = (x: number, y: number) => { const g = at(x, y); return lift(project(g.col, g.row), PERGOLA_TOP); };
+  const line = (p: Pt, q: Pt, key: string, w: number) => <line key={key} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={PERGOLA_TIMBER} strokeWidth={w} strokeLinecap="round" />;
+  const overhead: React.JSX.Element[] = [];
+  runs.forEach((run, r) => {
+    const [a, c] = run;
+    const n = Math.max(2, Math.round((c - a) / 0.22));
+    for (let k = 0; k <= n; k++) {
+      const x = a + ((c - a) * k) / n;
+      overhead.push(line(top(x, y0 - 0.05), top(x, y1 + 0.05), `j${r}-${k}`, 0.9));
+    }
+    // The beam nearer the camera last.
+    for (const y of (frontSeen ? [y1, y0] : [y0, y1])) overhead.push(line(top(a - 0.05, y), top(c + 0.05, y), `b${r}-${y}`, 1.6));
+    // Vines over the joists: leafy clumps, placed by a hash of their place.
+    for (let k = 0; k < n * 3; k++) {
+      const h = Math.sin((r + 1) * 12.9898 + k * 78.233) * 43758.5453;
+      const f = h - Math.floor(h);
+      const g = at(a + (c - a) * ((k + 0.5) / (n * 3)), y0 + (y1 - y0) * (0.12 + 0.76 * f));
+      const ring = projectedCircle(g.col, g.row, across(0.9 + f * 0.8), 8).map((q) => lift(q, PERGOLA_TOP + up(0.15)));
+      overhead.push(<polygon key={`v${r}-${k}`} points={polyPoints(ring)} fill={VINE[k % VINE.length]} />);
+    }
+    // String lights along the outer beam, sagging between its posts.
+    const m = bays(run);
+    for (let k = 0; k < m; k++) {
+      const xa = a + ((c - a) * k) / m; const xb = a + ((c - a) * (k + 1)) / m;
+      const pts: Pt[] = [];
+      for (let j = 0; j <= 8; j++) {
+        const u = j / 8;
+        const q = top(xa + (xb - xa) * u, y0);
+        pts.push({ x: q.x, y: q.y + 4 * u * (1 - u) * up(0.7) * heightScale() });
+      }
+      overhead.push(<polyline key={`s${r}-${k}`} points={polyPoints(pts)} fill="none" stroke="#3a3530" strokeWidth={0.5} />);
+      for (let j = 1; j < 8; j += 2) overhead.push(<circle key={`l${r}-${k}-${j}`} cx={pts[j]!.x} cy={pts[j]!.y + 0.6} r={0.9} fill={BULB} />);
+    }
+  });
+  const post = (it: Item) => {
+    const foot = project(it.cc, it.cr);
+    const head = lift(foot, PERGOLA_TOP);
+    return <line key={it.i} x1={foot.x} y1={foot.y} x2={head.x} y2={head.y} stroke={PERGOLA_TIMBER} strokeWidth={1.4} />;
+  };
+  return (
+    <>
+      {depthOrder(items).map((it) => (
+        it.kind === 'post' ? post(it)
+          : it.kind === 'table' ? <CafeTable key={it.i} cc={it.cc} cr={it.cr} alongW={plan.alongW} cloth={CLOTHS[it.i % 2]} />
+            : <Planter key={it.i} cc={it.cc} cr={it.cr} />
+      ))}
+      {overhead}
+    </>
+  );
+}
+
+// The signboard over the door, above the awning: dark green with a gilt
+// edge and the word in cream.
+function TrattoriaSign({ plan, H }: { plan: DiningPlan; H: number }) {
+  const b = plan.hall;
+  const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
+  const wall = wallOf(f, plan.front);
+  if (!wall.visible) return null;
+  const z0 = Math.min(up(3.3), H - EAVES_COURSE * 1.2) + up(0.3);
+  const z1 = z0 + up(1.3);
+  if (z1 >= H - EAVES_COURSE) return null;
+  const q = (u: number, z: number) => facePoint(wall.origin, wall.along, H, u, z / H);
+  const span = wallSpan(b.w, b.h, plan.front);
+  const half = Math.min(0.17, 1.15 / span);
+  const len = Math.hypot(wall.along.x - wall.origin.x, wall.along.y - wall.origin.y);
+  const ux = (wall.along.x - wall.origin.x) / len; const uy = (wall.along.y - wall.origin.y) / len;
+  const mid = q(0.5, (z0 + z1) / 2);
+  const text = 'TRATTORIA';
+  const size = Math.min((z1 - z0) * heightScale() * 0.62, (len * half * 2 * 0.8) / (text.length * 0.82));
+  return (
+    <g className="trattoria-sign">
+      <polygon points={polyPoints([q(0.5 - half, z0), q(0.5 + half, z0), q(0.5 + half, z1), q(0.5 - half, z1)])} fill="#24553a" stroke="#c9a84a" strokeWidth={0.7} />
+      {size >= 2.2 && (
+        <text className="stadium-inscription" fontSize={size} style={{ fill: '#f3ede0' }}
+          transform={`matrix(${ux.toFixed(4)},${uy.toFixed(4)},0,1,${mid.x.toFixed(1)},${mid.y.toFixed(1)})`}>
+          {text}
+        </text>
+      )}
     </g>
   );
 }
@@ -9221,6 +9368,22 @@ function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Elemen
   }
   const L = plan.alongW ? plan.terrace.w : plan.terrace.h;
   const T = plan.alongW ? plan.terrace.h : plan.terrace.w;
+  if (t.id === TRATTORIA_ID) {
+    const frontSeen = sideSeen(p.facing, 'front');
+    const terrace = <TrattoriaTerrace plan={plan} doorAt={L / 2} free={T} frontSeen={frontSeen} />;
+    const H = wallHeightOf(t);
+    return (
+      <>
+        <TrattoriaPaving plan={plan} />
+        {shadowCastersOf(t, p, props.developing, vernacular).map((c, i) => plotShadow(c, c.height, plan.terrace, `ts${i}`))}
+        {!frontSeen && terrace}
+        {buildingMassArt({ ...props, p: { ...plan.hall, facing: p.facing }, bare: true, vernacular: 'italianate', material: TRATTORIA_MATERIAL }, snow)}
+        <CafeAwning plan={plan} d={doorOf(t)} H={H} stripes={TRATTORIA_AWNING} />
+        <TrattoriaSign plan={plan} H={H} />
+        {frontSeen && terrace}
+      </>
+    );
+  }
   const cafe = plan.band === 'cafe';
   // Mission's arcade runs along the front of a hall tall enough for one.
   const arcaded = entrancePartOf(t, vernacular) === 'arcade' && arcadeFits(wallHeightOf(t));

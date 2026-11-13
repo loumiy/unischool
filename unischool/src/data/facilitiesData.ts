@@ -88,7 +88,7 @@ interface DiningRung {
 
 const DINING_RUNGS: DiningRung[] = [
   { id: 'DININGHALL-02', name: 'Union Square Eatery', serves: 900, cost: 1_200_000, weeks: 14 },
-  { id: 'DININGHALL-03', name: 'Commons Cafeteria', serves: 1_800, cost: 2_700_000, weeks: 16 },
+  { id: 'DININGHALL-03', name: 'Hilltop Cafeteria', serves: 1_800, cost: 2_700_000, weeks: 16 },
   { id: 'DININGHALL-04', name: 'The Grand Table', serves: 3_000, cost: 5_000_000, weeks: 18 },
   { id: 'DININGHALL-05', name: 'Old Well Commons', serves: 5_000, cost: 9_000_000, weeks: 20 },
   { id: 'DININGHALL-06', name: 'Waterside Commons', serves: 8_000, cost: 16_000_000, weeks: 22 },

@@ -434,6 +434,20 @@ function testGardenKept(): void {
 }
 testGardenKept();
 
+// The third dining hall's old catalog name takes the new one on load; a
+// donor's name stays.
+function testCafeteriaRenamed(): void {
+  const named = (name: string) => {
+    const wrapper = JSON.parse(fixture('save-v97.json'));
+    const hall = wrapper.state.tech.find((t: { id: string }) => t.id === 'DININGHALL-03');
+    hall.name = name;
+    return loads(JSON.stringify(wrapper), `a save with the third dining hall as ${name}`)?.tech.find((t) => t.id === 'DININGHALL-03')?.name;
+  };
+  assert(named('Commons Cafeteria') === 'Hilltop Cafeteria', 'the Commons Cafeteria is the Hilltop Cafeteria now');
+  assert(named('The Okafor Cafeteria') === 'The Okafor Cafeteria', "and a donor's name is kept");
+}
+testCafeteriaRenamed();
+
 console.log('save migrations tests');
 if (failures > 0) {
   console.error(`  ${failures} of ${checks} checks failed`);
