@@ -74,6 +74,7 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   artGallery: 'Art Gallery',
   basketballCourts: 'Basketball Courts',
   pub: 'Pub',
+  radio: 'Campus Radio',
   bowlingAlley: 'Bowling Alley',
   cinema: 'Movie Theater',
   athleticsField: 'Multi-Sport Field',
@@ -139,6 +140,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' && t.id !== REC_CENTER_TIER2_ID },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
   // The town's pleasures (Plan 127): three venues for the Social tab.
+  { key: 'radio', label: FACILITY_LABELS.radio, repeatable: false, match: (t) => t.facilityType === 'radio' },
   { key: 'pub', label: FACILITY_LABELS.pub, repeatable: false, match: (t) => t.facilityType === 'pub' },
   { key: 'bowlingAlley', label: FACILITY_LABELS.bowlingAlley, repeatable: false, match: (t) => t.facilityType === 'bowlingAlley' },
   { key: 'cinema', label: FACILITY_LABELS.cinema, repeatable: false, match: (t) => t.facilityType === 'cinema' },
@@ -342,6 +344,7 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'pool': return FitnessIcon;
     case 'artGallery': return ArtsIcon;
     case 'pub':
+    case 'radio':
     case 'bowlingAlley':
     case 'cinema': return StudentLifeIcon;
     case 'athleticsField':

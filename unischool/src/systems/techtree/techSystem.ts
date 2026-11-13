@@ -438,6 +438,8 @@ function meetsUnlockGates(s: GameState, t: Buildable): boolean {
   // (eventData.ts's 'varsity-petition'); s.orgs.teams is the reveal signal.
   if (t.athleticsVenueReveal && !s.orgs.teams.some((team) => team.venueCategory === t.facilityType)) return false;
   if (t.athleticsDepartmentReveal && s.orgs.teams.length === 0) return false;
+  // A science's showpiece waits on its program being distinguished.
+  if (t.programGate !== undefined && !s.milestones[`program-distinguished:${t.programGate}`]) return false;
   return true;
 }
 

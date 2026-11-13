@@ -174,7 +174,8 @@ export function describeMilestone(s: GameState, key: string): MilestoneEntry | n
           key,
           headline: `${major.name} is now a distinguished program`,
           detail: `All ten courses in ${major.name} (${school.schoolName}) are finished, including the capstone.`,
-          unlocks: [],
+          // A science's showpiece, if it has one (the greenhouse, the observatory).
+          unlocks: s.tech.filter((t) => t.programGate === major.prefix).map((t) => t.name),
         };
       }
     }

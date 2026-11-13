@@ -149,7 +149,7 @@ export const MILESTONES: readonly Milestone[] = [
     name: 'First commencement',
     condition: 'the first summer closes',
     reached: (s) => s.history.length >= 1,
-    buildables: ['AMENITY-FOUNTAIN', 'PUB', 'AMENITY-PARTERRE'],
+    buildables: ['AMENITY-FOUNTAIN', 'CAMPUS-RADIO', 'AMENITY-PARTERRE'],
     // The Students tab opens here, with satisfaction (Plan 104M): in week
     // one every need reads low because nothing is built yet, which read as
     // failure (S1), so the walkthrough builds the needs instead of showing
@@ -161,8 +161,8 @@ export const MILESTONES: readonly Milestone[] = [
     tabs: ['students'],
     // Students' guidebook, clubs and funnel open with the tab itself.
     sections: ['history.record'],
-    letter: 'Your first year is over. The Students tab is open now. It shows how happy your students are, what they need, what the guidebooks say about you, and the clubs students have started. History keeps a record of each year. Your first graduates will want somewhere to celebrate, so you can build a pub.',
-    opens: ['History: the record of each year', 'Students: satisfaction and the five needs behind it, what the guidebooks say, clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit', 'The Pub: a quiz night and a beer garden', 'The Parterre: a formal garden of clipped hedges'],
+    letter: 'Your first year is over. The Students tab is open now. It shows how happy your students are, what they need, what the guidebooks say about you, and the clubs students have started. History keeps a record of each year. Your students would like a voice of their own, so you can build a campus radio station.',
+    opens: ['History: the record of each year', 'Students: satisfaction and the five needs behind it, what the guidebooks say, clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit', 'Campus Radio: a studio and a mast, with shows run by students', 'The Parterre: a formal garden of clipped hedges'],
   },
   {
     id: 'curriculum',
@@ -195,10 +195,10 @@ export const MILESTONES: readonly Milestone[] = [
     name: "A town's worth",
     condition: `${count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
-    buildables: ['HLTH-T1', 'AMENITY-GAZEBO', 'BOWLING-ALLEY', 'AMENITY-AMPHITHEATER'],
+    buildables: ['HLTH-T1', 'AMENITY-GAZEBO', 'PUB', 'BOWLING-ALLEY', 'AMENITY-AMPHITHEATER'],
     tabs: [],
-    letter: 'Your college is the size of a small town now, and people in towns get sick. From here on, students expect health care on campus, and it counts toward their satisfaction. A town also needs running. From here on, every time the college doubles in size, each student costs a little more to administer.',
-    opens: ['Health & Counseling Center: health care for students', 'The Gazebo: an open pavilion for summer evenings', 'Bowling Alley: lanes and a league', 'The Amphitheater: grass terraces and a stage'],
+    letter: 'Your college is the size of a small town now, and people in towns get sick. From here on, students expect health care on campus, and it counts toward their satisfaction. A town also needs running. From here on, every time the college doubles in size, each student costs a little more to administer. Every town has a pub, and now yours can too.',
+    opens: ['Health & Counseling Center: health care for students', 'The Gazebo: an open pavilion for summer evenings', 'The Pub: a quiz night and a beer garden', 'Bowling Alley: lanes and a league', 'The Amphitheater: grass terraces and a stage'],
   },
   {
     id: 'regional',

@@ -116,6 +116,7 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   // The town's pleasures (Plan 127). The courts are three side by side, a
   // full court 28 m by 15 m each with its run-off: open ground.
   basketballCourts: { w: 6, h: 4 },
+  radio: { w: 3, h: 3 },           // the studio, and the mast's guyed foot beside it
   pub: { w: 3, h: 3 },             // the house at the front, the beer garden behind
   bowlingAlley: { w: 7, h: 4 },   // sixteen lanes about 25 m long, and the counter in front
   cinema: { w: 5, h: 5 },
@@ -148,6 +149,8 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'AMENITY-AMPHITHEATER': { w: 7, h: 6 },
   'AMENITY-SCULPTURE': { w: 6, h: 5 },
   'AMENITY-POND': { w: 10, h: 7 },
+  'AMENITY-GREENHOUSE': { w: 5, h: 3 },
+  'AMENITY-OBSERVATORY': { w: 3, h: 3 },
   // The capital projects (Plan 33): larger than anything else of their kind.
   'PROJ-ARTS': { w: 11, h: 9 },
   'PROJ-RESEARCH-PARK': { w: 13, h: 8 },
