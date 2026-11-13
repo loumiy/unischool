@@ -62,7 +62,7 @@ function aboutToFinish(opts: { breakthroughs?: number } = {}): {
   // The charter offer fires on the first quiet week after any lab finishes
   // and outranks a research report (see eventSystem.ts's tickEvents), so it
   // is answered up front rather than left to shadow the checks below.
-  s.self.universityCharterOffered = true;
+  s.self.charters.institute = true;
   const field = labFields(lab.id)[0];
   const topic = RESEARCH_TOPICS.find((t) => t.fields.length === 1 && t.fields[0] === field)!;
 

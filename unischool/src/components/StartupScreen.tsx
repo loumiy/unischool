@@ -2,25 +2,27 @@ import { useEffect, useRef, useState } from 'react';
 import { isKey, useHotkeys } from './hotkeys';
 import { STARTING_INSTITUTION_SUFFIX } from '../state/actions';
 import { BONUS_VERNACULAR_CHOICES, FOUNDERS_GEORGIAN_COLOURS, VERNACULARS, VERNACULAR_CHOICES } from './buildingSpec';
-import { isUnlocked, readUnlocks, unlockOf, readSeen, isNewUnlock, markSeen } from '../state/unlocks';
-import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, UNIVERSITY_CAPTION, prefixedCaption } from '../data/foundingData';
+import { isUnlocked, readUnlocks, unlockOf, readSeen, isNewUnlock, markSeen, readTitleUnlocks, readTitlesSeen, isTitleOpen, isNewTitle, markTitleSeen, titleUnlockOf } from '../state/unlocks';
+import { FOUNDING_VERNACULAR, NAME_LIMIT_NOTE, lockedTitleCaption, prefixedCaption } from '../data/foundingData';
 import { FOUNDING_COLORS, SCHOOL_COLOR_PAIRS, schoolColorsOf, type SchoolColorChoice } from '../data/schoolColors';
 import { applySchoolColors } from './theme';
 import { LogoMark } from './Logo';
 import { FACADE_BAND_Y, FacadeCrown, FacadeFront, paneOver, type FacadePalette } from './facades';
-import type { SchoolColors, Vernacular } from '../state/types';
-import { COLLEGE_NAME_MAX, bareSchoolName, typedPrefixed, typedUniversity } from '../state/types';
+import type { InstitutionTitle, SchoolColors, Vernacular } from '../state/types';
+import { COLLEGE_NAME_MAX, INSTITUTION_TITLES, bareSchoolName, typedPrefixed, typedTitle } from '../state/types';
 
 // Shown once, before play begins: name the school, and choose its
 // architecture and colors. Every other founding condition comes from
 // FOUNDING_PRESET (data/foundingData.ts).
 //
-// The player writes only half the name: every school opens as a College,
-// and the suffix is fixed because the game later offers to change it (the
-// University charter, see systems/events/charter.ts). A "College" or
-// "University" typed after the name is dropped (types.ts's bareSchoolName),
-// and the facade shows the whole name carved in stone. A typed "University"
-// gets a caption saying when it comes (Plan 78G); the field starts empty.
+// The player writes only half the name, and picks the title beside it from
+// a dropdown (Plan 127): College always, Institute and University once a run
+// in this browser has earned them (state/unlocks.ts's TITLE_UNLOCKS); the
+// board's charters offer them again within a run (systems/events/charter.ts).
+// A title typed after the name is dropped (types.ts's bareSchoolName) and
+// switches the dropdown to it, or, while locked, gets a caption saying what
+// earns it; the facade shows the whole name carved in stone. The field
+// starts empty.
 
 // The facade: Founders Hall seen head-on, in the chosen vernacular. Every
 // color and part is read from buildingSpec.ts's VERNACULARS, so this preview
@@ -199,9 +201,9 @@ function GeorgianFront({ wall, trim, wallTop }: { wall: string; trim: string; wa
   );
 }
 
-// `suffix`: what the school became (the hall of fame's portraits); a new
-// school is a college.
-export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTITUTION_SUFFIX }: { name: string; vernacular: Vernacular; colors: SchoolColors; suffix?: string }) {
+// `suffix`: the title on the lintel, the one chosen at founding or what the
+// school became (the hall of fame's portraits).
+export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTITUTION_SUFFIX }: { name: string; vernacular: Vernacular; colors: SchoolColors; suffix?: InstitutionTitle }) {
   const bare = bareSchoolName(name);
   const bannerText = bare ? `${bare.toUpperCase()} ${suffix.toUpperCase()}` : suffix.toUpperCase();
   const fontSize = bannerFontSize(bannerText.length);
@@ -274,7 +276,7 @@ export function SchoolFacade({ name, vernacular, colors, suffix = STARTING_INSTI
 }
 
 export default function StartupScreen({ onStart, onBack, replacing, sandbox = false }: {
-  onStart: (name: string, vernacular: Vernacular, colors: SchoolColors) => void;
+  onStart: (name: string, vernacular: Vernacular, colors: SchoolColors, title: InstitutionTitle) => void;
   // Back to the title screen, founding nothing (Escape too, outside the
   // name field).
   onBack: () => void;
@@ -297,6 +299,21 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
   const [seen] = useState(readSeen);
   const open = (id: Vernacular) => sandbox || isUnlocked(id, unlocked);
   const locked = !open(vernacular);
+  // The titles (Plan 127): earned in earlier runs, or all of them in a
+  // sandbox; new until a college is founded under one.
+  const [titlesUnlocked] = useState(readTitleUnlocks);
+  const [titlesSeen] = useState(readTitlesSeen);
+  const titleOpen = (t: InstitutionTitle) => sandbox || isTitleOpen(t, titlesUnlocked);
+  const [title, setTitle] = useState<InstitutionTitle>(STARTING_INSTITUTION_SUFFIX);
+  // A title typed after the name: chosen, if open; otherwise the caption
+  // below the facade says what earns it.
+  const typed = typedTitle(name);
+  const typedLocked = typed !== null && !titleOpen(typed) ? titleUnlockOf(typed) : undefined;
+  const onName = (value: string) => {
+    setName(value);
+    const t = typedTitle(value);
+    if (t && titleOpen(t)) setTitle(t);
+  };
 
   // Preview the theme live: the pick is written to the root properties as
   // it changes (App.tsx writes it again once the run exists).
@@ -311,7 +328,8 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
     if (!ready || founded.current) return;
     founded.current = true;
     markSeen(vernacular);
-    onStart(bareSchoolName(name), vernacular, colors);
+    if (!sandbox) markTitleSeen(title);
+    onStart(bareSchoolName(name), vernacular, colors, title);
   };
 
   return (
@@ -330,22 +348,44 @@ export default function StartupScreen({ onStart, onBack, replacing, sandbox = fa
         {/* What the game is, in one line. */}
         <div className="dateline">{sandbox ? 'Sandbox: unlimited funds, and nothing to wait for.' : 'Fifty years to build a university.'}</div>
         <h1>Name your college</h1>
-        <input
-          className="startup-name"
-          aria-label="The college's name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Halifax"
-          maxLength={COLLEGE_NAME_MAX}
-        />
+        {/* The name and its title on one row: "Halifax [College ▾]". A
+            locked title is a disabled option saying what earns it. */}
+        <div className="startup-name-row">
+          <input
+            className="startup-name"
+            aria-label="The college's name"
+            type="text"
+            value={name}
+            onChange={(e) => onName(e.target.value)}
+            placeholder="e.g. Halifax"
+            maxLength={COLLEGE_NAME_MAX}
+          />
+          <select
+            className="startup-title"
+            aria-label="The college's title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value as InstitutionTitle)}
+          >
+            {INSTITUTION_TITLES.map((t) => {
+              const isOpen = titleOpen(t);
+              const condition = titleUnlockOf(t)?.condition ?? '';
+              return (
+                <option key={t} value={t} disabled={!isOpen}>
+                  {isOpen
+                    ? `${t}${!sandbox && isNewTitle(t, titlesUnlocked, titlesSeen) ? ' (new)' : ''}`
+                    : `${t}: ${condition.charAt(0).toLowerCase()}${condition.slice(1)}`}
+                </option>
+              );
+            })}
+          </select>
+        </div>
         {name.length >= COLLEGE_NAME_MAX && <p className="startup-name-note" role="status">{NAME_LIMIT_NOTE}</p>}
         <div className="startup-facade">
-          <SchoolFacade name={name} vernacular={vernacular} colors={colors} />
+          <SchoolFacade name={name} vernacular={vernacular} colors={colors} suffix={title} />
           {typedPrefixed(name) ? (
-            <p className="startup-facade-caption" role="note">{prefixedCaption(bareSchoolName(name))}</p>
-          ) : typedUniversity(name) && (
-            <p className="startup-facade-caption" role="note">{UNIVERSITY_CAPTION}</p>
+            <p className="startup-facade-caption" role="note">{prefixedCaption(bareSchoolName(name), title)}</p>
+          ) : typedLocked && (
+            <p className="startup-facade-caption" role="note">{lockedTitleCaption(typedLocked.id, typedLocked.condition)}</p>
           )}
         </div>
         {/* The architecture: one row of five names (blurbs are tooltips);

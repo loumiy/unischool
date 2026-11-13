@@ -8,8 +8,9 @@ import { useSettings, type TextScale } from '../settings';
 // its type, so it wraps to a few balanced lines and never clips.
 // App.tsx hides it while a tab is open (tabs put their own title in that
 // corner). Inert, so clicks fall through to the map, bar the name (for its
-// title). The college is renamed once, in the charter's letter (Plan 80D,
-// InboxTab.tsx's CharterAnswer); the pennant only shows the name.
+// title). The college is renamed once, in the Institute charter's letter
+// (Plan 80D, Plan 127, InboxTab.tsx's CharterAnswer); the pennant only shows
+// the name.
 
 // The sizes, largest first: the name's length each holds, and its share of
 // --text-2xl (styles.css's .pennant-name rules, which these follow).

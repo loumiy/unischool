@@ -48,7 +48,7 @@ function running(depth: InitiativeDepth, research = 80): { s: GameState; labId: 
   const s = createInitialState('Output');
   const lab = s.tech.find((t) => t.kind === 'facility' && t.facilityType === 'lab')!;
   lab.status = 'done';
-  s.self.universityCharterOffered = true;
+  s.self.charters.institute = true;
   const field = labFields(lab.id)[0];
   const topic = RESEARCH_TOPICS.find((t) => t.fields.length === 1 && t.fields[0] === field)!;
   const def = initiativeDepth(depth);

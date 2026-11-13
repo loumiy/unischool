@@ -657,8 +657,8 @@ export default function App() {
             sandbox={foundSandbox}
             replacing={s.started ? institutionName(s.self) : undefined}
             onBack={() => setFront('title')}
-            onStart={(name, vernacular, colors) => {
-              act({ type: 'START_GAME', name, vernacular, colors, guided: !foundSandbox, seed: freshSeed(), sandbox: foundSandbox || undefined });
+            onStart={(name, vernacular, colors, suffix) => {
+              act({ type: 'START_GAME', name, vernacular, colors, guided: !foundSandbox, seed: freshSeed(), sandbox: foundSandbox || undefined, suffix });
               setFrontState(null);
             }}
           />

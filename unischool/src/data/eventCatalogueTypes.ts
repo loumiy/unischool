@@ -44,7 +44,8 @@ export type EffectKey =
   | 'departs'     // the professor the event names ({faculty}) leaves (Plan 72B)
   | 'buildingFund' // money into the restricted building fund, not cash (Plan 76D)
   | 'historic'    // the building the event names ({building}) is declared historic (Plan 76D)
-  | 'charter'     // the university charter's answer (Plan 78G): 1 takes "University", -1 keeps the name
+  | 'charter'     // the Institute charter's answer (Plan 127): 2 takes "Institute", -1 keeps the name
+  | 'universityCharter' // the University charter's answer (Plan 127): 3 takes "University", -1 keeps the name
   | 'goodwill'    // the town's goodwill (Plan 85H, data/downtownData.ts), points
   | 'festival'    // the spring festival's answer (Plan 85H): 0 none, 1 to 4 its scale, smallest first
   // Effects that land where they say (Plan 101C):
