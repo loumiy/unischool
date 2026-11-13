@@ -487,6 +487,32 @@ function testDiningRebalanced(): void {
 }
 testDiningRebalanced();
 
+// Buildings added to the catalogue after a save was written
+// (persistence.ts's backfillFacilities): each joins the save locked, and the
+// weekly unlock opens the ones whose gates hold, as in a new run; a
+// showpiece still waits on its distinguished program.
+function testFacilitiesBackfilled(): void {
+  const added = ['AMENITY-POND', 'AMENITY-PARTERRE', 'PUB', 'CINEMA', 'CAMPUS-RADIO', 'AMENITY-GREENHOUSE', 'AMENITY-OBSERVATORY'];
+  const wrapper = JSON.parse(fixture('save-v97.json'));
+  wrapper.state.tech = (wrapper.state.tech as Buildable[]).filter((t) => !added.includes(t.id));
+  const s = loads(JSON.stringify(wrapper), 'a save from before the new buildings');
+  if (!s) return;
+  const got = (id: string) => s.tech.find((t) => t.id === id);
+  assert(added.every((id) => got(id)?.status === 'locked'), 'every building the save lacked joins it, locked');
+  assert(new Set(s.tech.map((t) => t.id)).size === s.tech.length, 'and none twice');
+  const again = loads(JSON.stringify({ ...wrapper, state: s }), 'the same save loaded again');
+  assert(again?.tech.length === s.tech.length, 'loading again adds nothing');
+  s.milestones = { ...s.milestones };
+  delete s.milestones['program-distinguished:ENVS'];
+  unlockAvailable(s);
+  assert(got('AMENITY-GREENHOUSE')?.status === 'locked', 'the Greenhouse still waits on a distinguished Environmental Science');
+  s.milestones['program-distinguished:ENVS'] = true;
+  unlockAvailable(s);
+  const opened = got('AMENITY-GREENHOUSE')?.status === 'available' || (got('AMENITY-GREENHOUSE')?.prereqs.length ?? 0) > 0;
+  assert(opened, 'and opens once it is');
+}
+testFacilitiesBackfilled();
+
 // The Grand Table shrank to a trattoria (campusMap.ts's TRATTORIA_FOOTPRINT):
 // one sited at the old 7x5 is shrunk in place, its front edge kept and
 // centred along it, its facing kept, in every facing.

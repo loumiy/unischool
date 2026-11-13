@@ -1009,6 +1009,25 @@ function rebalanceDining(state: GameState): void {
   }
 }
 
+// Buildings added to the catalogue after a save was written (the pond and
+// gardens, the town's venues, the radio, the showpieces): each one the save
+// lacks joins its tech list locked, after the catalogue building before it.
+// The weekly unlockAvailable (techSystem.ts) opens it once its prereqs and
+// gates hold, as it would have in a new run. Idempotent, so no save version.
+export function backfillFacilities(state: GameState): void {
+  if (!Array.isArray(state.tech)) return;
+  const have = new Set(state.tech.map((t) => t.id));
+  const catalog = initialFacilities();
+  catalog.forEach((fresh, i) => {
+    if (have.has(fresh.id)) return;
+    const after = i > 0 ? state.tech.findIndex((t) => t.id === catalog[i - 1]!.id) : -1;
+    state.tech.splice(after >= 0 ? after + 1 : state.tech.length, 0, {
+      ...fresh, prereqs: [...fresh.prereqs], effects: fresh.effects && { ...fresh.effects }, status: 'locked',
+    });
+    have.add(fresh.id);
+  });
+}
+
 // The Grand Table shrank to a trattoria's footprint (campusMap.ts's
 // TRATTORIA_FOOTPRINT). One sited larger keeps its front edge, centred
 // along it, and its facing; the land behind and beside it is freed. Not a
@@ -1823,6 +1842,7 @@ function sanitize(state: GameState): void {
   sanitizeOpening(state);
   shrinkTrattoria(state);
   rebalanceDining(state);
+  backfillFacilities(state);
   sanitizePlacements(state);
   // Halls after placements (a hall's slots are real only while it stands),
   // offers after halls (an offer is real only while its program is unhoused).
