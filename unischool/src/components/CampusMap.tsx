@@ -17,7 +17,7 @@ import AgeMarks, { Sinkhole, type AgeBand } from './ageMarks';
 import { Bench, dressingProps } from './dressing';
 import { facingToCamera, frontWidth, localToGrid } from './facing';
 import { defaultBenchFacing, turnFacing } from '../state/dressing';
-import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, PennantContext, VenueContext, isCommencement } from './mapOccasions';
+import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, DevelopingContext, GatePartContext, PennantContext, VenueContext, isCommencement } from './mapOccasions';
 import { desireLines, walkGrid } from './walkRoutes';
 import { programStanding, type ProgramStanding } from '../systems/techtree/programProgress';
 import { drawsGlobalOffers, schoolOffers } from '../systems/techtree/programOffers';
@@ -28,7 +28,8 @@ import { FOUNDERS_HALL_ID, isAcademicHall, programById } from '../data/techData'
 import { schoolMark } from '../data/schoolPalette';
 import { researchTopic } from '../data/researchTopics';
 import BuildingMotif, { ScaffoldPattern, labelHeightOf, shadowCastersOf } from './buildingMotifs';
-import { floorsUnderConstruction, materialOf, motifOf, storeysOf, wallHeightOf } from './buildingSpec';
+import { GATE_ID, GATE_INSET, floorsUnderConstruction, materialOf, motifOf, storeysOf, wallHeightOf } from './buildingSpec';
+import Landmark from './landmarks';
 import { SiteFrame, siteStageOf, type SiteStage } from './siteWorks';
 import { GroundSite, groundProps } from './groundMarkings';
 import { depthOrder, type DepthBox } from './depthSort';
@@ -853,7 +854,7 @@ export function sceneEntries(layout: CampusLayout): SceneEntry[] {
       const d = drawnFootprint(p);
       // A venue expanding in place keeps its props (Plan 54), and they
       // grow with its expansions.
-      for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, p.vernacular ?? layout.vernacular)) {
+      for (const prop of groundProps(t.facilityType, d.col, d.row, d.w, d.h, t.tier, developing && t.renovatingFrom === undefined, t.id, t.expansions ?? 0, p.vernacular ?? layout.vernacular, p.facing)) {
         entries.push({
           kind: 'prop', key: `g-${t.id}-${prop.key}`, node: prop.node, owner: t.id, shadows: prop.shadows,
           col: prop.col, row: prop.row, w: prop.w, h: prop.h,
@@ -1091,10 +1092,33 @@ export function canvasSceneOf(a: Omit<CampusSceneProps, 'front'> & {
     } else {
       const e = layout.byId.get(se.id)!;
       const id = e.t.id;
-      entries.push({
-        key: se.key, kind: 'mass', box, node, owner: id,
-        sig: `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|crowd${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'pen' : ''}|${colors}|${a.name}|${layout.vernacular}`,
-      });
+      const sig = `${cam}|${entryKey(e)}|${id === a.inspectedId ? 'inspected' : ''}|${a.developing[id] ?? ''}|crowd${a.crowds.get(id) ?? 0}${a.pennants.has(id) ? 'pen' : ''}|${colors}|${a.name}|${layout.vernacular}`;
+      if (id === GATE_ID && !e.developing) {
+        // The finished Triumphal Gate as two entries (Plan 75B's walkers
+        // through its passages): the passages' insides, then the pierced
+        // walls and all over them. A walker inside the gate's body is
+        // drawn between the two, seen through the arch and hidden by the
+        // masonry either side; one in the plot's margin is weighed against
+        // the body as against any building.
+        const d = drawnFootprint(e.p);
+        const body = { col: d.col + GATE_INSET, row: d.row + GATE_INSET, w: d.w - GATE_INSET * 2, h: d.h - GATE_INSET * 2 };
+        entries.push({
+          key: `${se.key}-passage`, kind: 'mass', box, walkerBox: body, owner: id, sig,
+          node: (
+            <VenueContext.Provider value={id}>
+              <g className="campus-building" data-building={id}>
+                <GatePartContext.Provider value="passage"><Landmark t={e.t} p={d} developing={false} /></GatePartContext.Provider>
+              </g>
+            </VenueContext.Provider>
+          ),
+        });
+        entries.push({
+          key: se.key, kind: 'mass', box, walkerBox: { ...body, covers: true }, owner: id, sig,
+          node: <GatePartContext.Provider value="shell">{node}</GatePartContext.Provider>,
+        });
+        continue;
+      }
+      entries.push({ key: se.key, kind: 'mass', box, node, owner: id, sig });
     }
   }
   return {

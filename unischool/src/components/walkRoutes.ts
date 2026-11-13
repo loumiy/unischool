@@ -3,6 +3,7 @@ import type { FaceDir } from './isoProjection';
 import { CAMPUS_GRID_HEIGHT, CAMPUS_GRID_WIDTH } from '../state/types';
 import { ROAD_FIRST_ROW, parsePathTileKey, pathTileKey } from '../state/campusMap';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
+import { isDiningPlace } from '../data/facilitiesData';
 import { sidesOf } from './facing';
 import { quadTile } from './quadGeometry';
 import { GATE_ID, gatePassageTiles } from './buildingSpec';
@@ -136,7 +137,7 @@ export function doors(input: WalkInput, grid: Float32Array): Stop[] {
     const entrances = entrancesOf(p, grid);
     if (entrances.length === 0) continue;
     const weight = t.kind === 'dorm' ? 3
-      : isAcademicHall(t as Buildable) || t.facilityType === 'diningHall' ? 2
+      : isAcademicHall(t as Buildable) || isDiningPlace(t) ? 2
         : t.facilityType === 'library' || t.facilityType === 'studentCenter' || t.facilityType === 'recCenter' ? 1.5
           : 1;
     out.push({ key: id, id, weight, entrances });

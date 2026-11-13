@@ -24,7 +24,7 @@ import type { CampusTool } from '../src/state/actions';
 import { campusLayout, entryKey } from '../src/components/campusLayout';
 import { PATH_SURFACES, surfaceOf } from '../src/state/paving';
 import { moveRefusal } from '../src/state/sandboxMoves';
-import { firstFreeSpot, footprintOf, isPlaceableKind, orientedFootprint, placementTiles } from '../src/state/campusMap';
+import { centredPlacement, firstFreeSpot, footprintOf, isPlaceableKind, orientedFootprint, placementTiles } from '../src/state/campusMap';
 import { SAVE_KEY, SAVE_VERSION, loadGame } from '../src/state/persistence';
 import type { GameState, Pathways } from '../src/state/types';
 
@@ -53,6 +53,12 @@ const found = (sandbox: boolean): GameState => {
     type: 'START_GAME', name: 'Decoration', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), seed: 31, sandbox,
   });
   s.pendingInterrupt = null;
+  // A sandbox's player sites Founders Hall: here, where a normal run's stands.
+  if (sandbox) {
+    const hall = s.tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
+    const spot = centredPlacement(footprintOf(hall));
+    return reducer(s, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: spot.row, col: spot.col, facing: 0 });
+  }
   return s;
 };
 

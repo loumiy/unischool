@@ -15,7 +15,7 @@ import BuildThumb from './BuildThumb';
 import DecorThumb from './decorThumbs';
 import { foundersHallUnsited } from '../state/opening';
 import { projectsAsked, ringedBuilding, ringedTool } from '../state/chapters';
-import { FACILITY_CATEGORY_OF, type FacilityCategory, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
+import { FACILITY_CATEGORY_OF, type FacilityCategory, isDiningPlace, nextVenueExpansion, REC_CENTER_TIER2_ID } from '../data/facilitiesData';
 import { CHAPTER_HOUSE_CAPACITY_BONUS } from '../data/studentLifeData';
 import { FOUNDERS_HALL_ID, isAcademicHall } from '../data/techData';
 import HelpHint from './HelpHint';
@@ -63,6 +63,8 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   library: 'Library',
   studentCenter: 'Student Center',
   diningHall: 'Dining',
+  coffeeKiosk: 'Coffee Kiosk',
+  foodTrucks: 'Food Truck Plaza',
   grocery: 'Grocery Store',
   recCenter: 'Recreation',
   healthCenter: 'Health',
@@ -72,6 +74,11 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   tennisCourts: 'Tennis Courts',
   pool: 'Pool',
   artGallery: 'Art Gallery',
+  basketballCourts: 'Basketball Courts',
+  pub: 'Pub',
+  radio: 'Campus Radio',
+  bowlingAlley: 'Bowling Alley',
+  cinema: 'Movie Theater',
   athleticsField: 'Multi-Sport Field',
   athleticsArena: 'Arena',
   athleticsDiamond: 'Diamond',
@@ -101,10 +108,8 @@ const GROUNDS_GROUP_KEYS: ReadonlySet<string> = new Set(['quad', 'landmark', 'am
 interface TypeGroup {
   key: string;
   label: string;
-  // Built instances collapse behind one "Built ×N" tile. Repeatable groups
-  // number their tiles "#N" unless `sequential: false` (the labs).
+  // Built instances collapse behind one "Built ×N" tile.
   repeatable: boolean;
-  sequential?: false;
   // From FACILITY_CATEGORY_OF (the single source for category membership),
   // plus housing and academic. Absent groups render as their own tab.
   category?: BuildCategory;
@@ -120,7 +125,7 @@ interface TypeGroup {
 // student center, health, quad); one-offs revealed by a major's tier-2
 // coursework (performing arts, gallery; see MUSIC_TIER2_IDS /
 // STUDIO_ART_TIER2_IDS); and independent multi-instance types (labs).
-const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; sequential?: false; match: (t: Buildable) => boolean }> = [
+const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; match: (t: Buildable) => boolean }> = [
   // The halls (Founders Hall, then techData.ts's chain) are one repeatable
   // sequential group. In a guided founding Founders Hall is 'done' but
   // unsited, which keeps it out of the collapse (see BuildGroupTiles) and
@@ -128,20 +133,25 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'hall', label: 'Academic halls', repeatable: true, match: (t) => isAcademicHall(t) },
   { key: 'library', label: FACILITY_LABELS.library, repeatable: false, match: (t) => t.facilityType === 'library' },
   // Labs collapse like halls, but are independent (one per lab-gated major,
-  // any order), so no "#N".
-  { key: 'lab', label: FACILITY_LABELS.lab, repeatable: true, sequential: false, match: (t) => t.facilityType === 'lab' },
+  // any order).
+  { key: 'lab', label: FACILITY_LABELS.lab, repeatable: true, match: (t) => t.facilityType === 'lab' },
   // Social: the student center, the Recreation Center, the arts
   // facilities. The gym, pool, tennis courts and Sports & Recreation Complex, which
   // feed health, sit with the health chain (Plans 80B and 80F).
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
   { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' && t.id !== REC_CENTER_TIER2_ID },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
+  // The town's pleasures (Plan 127): the radio and three venues, on the Social tab.
+  { key: 'radio', label: FACILITY_LABELS.radio, repeatable: false, match: (t) => t.facilityType === 'radio' },
+  { key: 'pub', label: FACILITY_LABELS.pub, repeatable: false, match: (t) => t.facilityType === 'pub' },
+  { key: 'bowlingAlley', label: FACILITY_LABELS.bowlingAlley, repeatable: false, match: (t) => t.facilityType === 'bowlingAlley' },
+  { key: 'cinema', label: FACILITY_LABELS.cinema, repeatable: false, match: (t) => t.facilityType === 'cinema' },
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   // Greek chapter houses share the Housing tab but are their own group:
   // each belongs to a specific chapter, so no "#N" and no collapse.
   { key: 'chapterHouse', label: 'Chapter houses', repeatable: false, match: (t) => !!t.chapterHouse },
   // The grocery folds into Dining: one more basicNeeds option.
-  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => t.facilityType === 'diningHall' || t.facilityType === 'grocery' },
+  { key: 'diningHall', label: FACILITY_LABELS.diningHall, repeatable: true, match: (t) => isDiningPlace(t) || t.facilityType === 'grocery' },
   // The health chain is three differently named buildings upgraded in place,
   // so it keeps tier chips; the tab says "Health", the rungs name themselves.
   { key: 'healthCenter', label: FACILITY_LABELS.healthCenter, repeatable: false, match: (t) => t.facilityType === 'healthCenter' },
@@ -159,6 +169,8 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // Varsity venues stay locked (so invisible) until a team needing them is
   // granted (facilitiesData.ts's athleticsVenueReveal, eventData.ts's
   // 'varsity-petition').
+  // The basketball courts stand beside the fitness chain, not in it.
+  { key: 'basketballCourts', label: FACILITY_LABELS.basketballCourts, repeatable: false, match: (t) => t.facilityType === 'basketballCourts' },
   { key: 'athleticsField', label: FACILITY_LABELS.athleticsField, repeatable: false, match: (t) => t.facilityType === 'athleticsField' },
   { key: 'athleticsArena', label: FACILITY_LABELS.athleticsArena, repeatable: false, match: (t) => t.facilityType === 'athleticsArena' },
   { key: 'athleticsDiamond', label: FACILITY_LABELS.athleticsDiamond, repeatable: false, match: (t) => t.facilityType === 'athleticsDiamond' },
@@ -197,11 +209,10 @@ function projectNotYetOpen(s: GameState, t: Buildable): boolean {
 
 function buildGroups(s: GameState): TypeGroup[] {
   return TYPE_MATCHERS
-    .map(({ key, label, repeatable, sequential, match }) => ({
+    .map(({ key, label, repeatable, match }) => ({
       key,
       label,
       repeatable,
-      sequential,
       // Most keys are the FacilityType they match; the rest have no entry in
       // FACILITY_CATEGORY_OF and so no category.
       category: (HOUSING_GROUP_KEYS.has(key) ? 'housing'
@@ -290,6 +301,11 @@ export function ringedTile(s: GameState, target?: string | null): string | null 
 }
 const RingedTile = createContext<string | null>(null);
 
+// The menu's tabs as id and label, in order (test/build-tab.test.ts).
+export function buildTabList(s: GameState): { id: string; label: string; ids: string[] }[] {
+  return buildSections(s).map((x) => ({ id: x.id, label: x.label, ids: x.groups.flatMap((g) => g.items.map((t) => t.id)) }));
+}
+
 // The tab a Buildable is listed under, by section id (test/balance.test.ts).
 export function buildTabOf(s: GameState, id: string): string | undefined {
   return buildSections(s).find((section) => section.groups.some((g) => g.items.some((t) => t.id === id)))?.id;
@@ -322,6 +338,8 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'library': return LibraryIcon;
     case 'studentCenter': return StudentLifeIcon;
     case 'diningHall':
+    case 'coffeeKiosk':
+    case 'foodTrucks':
     case 'grocery': return DiningIcon;
     case 'healthCenter': return HealthIcon;
     case 'quad': return QuadIcon;
@@ -331,8 +349,13 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'recCenter':
     case 'gym':
     case 'tennisCourts':
+    case 'basketballCourts':
     case 'pool': return FitnessIcon;
     case 'artGallery': return ArtsIcon;
+    case 'pub':
+    case 'radio':
+    case 'bowlingAlley':
+    case 'cinema': return StudentLifeIcon;
     case 'athleticsField':
     case 'athleticsArena':
     case 'athleticsDiamond':
@@ -399,17 +422,10 @@ function builtGroupDetail(kind: string, built: Buildable[]): string | undefined 
   return serves > 0 ? `serves ${count(serves)}` : undefined;
 }
 
-// The stamp's chain position for a sequential chain; nothing for
-// one-of-a-kind types, and nothing for a tiered building: its name says
-// which step it is, and its level shows on its own panel (Plan 96D).
-function rowMarker(t: Buildable, group: TypeGroup, index: number): string | undefined {
-  if (t.tier !== undefined) return undefined;
-  if (group.repeatable && group.sequential !== false) return `#${index + 1}`;
-  return undefined;
-}
-
 // The tile's head (Plan 90): a strip of plan paper with the building's
-// drawing on it, and the stamp ("#3", "BUILT", "×7 BUILT") in its corner.
+// drawing on it, and the stamp ("BUILT", "×7 BUILT") in its corner. A
+// chain's place ("#3") is not stamped: the names already tell the halls,
+// dorms and dining halls apart.
 // A building is drawn as the map draws it (Plan 94, BuildThumb.tsx); a tool
 // (paths, trees, lamps, benches) keeps its icon.
 function TilePlan({ Icon, stamp, t, vernacular }: {
@@ -438,9 +454,9 @@ function tileStyle(s: GameState, t: Buildable): Vernacular {
 // placed. `act` is used only for in-place work on a done building: the
 // library's "add a floor" and a venue expansion, which need no map click.
 function BuildTile({
-  s, t, marker, placingId, onArmPlacement, act,
+  s, t, placingId, onArmPlacement, act,
 }: {
-  s: GameState; t: Buildable; marker?: string;
+  s: GameState; t: Buildable;
   placingId: string | null; onArmPlacement: (id: string | null) => void;
   act: (a: Action) => void;
 }) {
@@ -467,7 +483,7 @@ function BuildTile({
             : `Adds ${count(rung.seatsGain)} seats and ${count(rung.servesGain)} social capacity.`}
           onClick={() => act({ type: 'EXPAND_VENUE', venueId: t.id })}
         >
-          <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+          <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp="BUILT" />
           <span className="build-tile-name">{t.name}</span>
           <TileLines lines={lines} />
           <span className="build-tile-foot">expand · {moneyShort(rung.cost)} · {weeksShort(rung.weeks)}</span>
@@ -481,7 +497,7 @@ function BuildTile({
     }
     return (
       <div className="build-tile done" title={[t.name, ...lines].join(' · ')}>
-        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker ? `${marker} BUILT` : 'BUILT'} />
+        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp="BUILT" />
         <span className="build-tile-name">{t.name}</span>
         <TileLines lines={lines} />
       </div>
@@ -513,7 +529,7 @@ function BuildTile({
         }}
         onClick={() => onArmPlacement(armed ? null : t.id)}
       >
-        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} />
         <span className="build-tile-name">{t.name}</span>
         <TileLines lines={lines} />
         <span className="build-tile-foot">{armed ? 'placing…' : 'place · no charge'}</span>
@@ -526,7 +542,7 @@ function BuildTile({
     const elapsed = t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
     return (
       <div className="build-tile developing" title={`${t.name} · ${t.duration - weeksLeft} of ${t.duration} weeks built`}>
-        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker} />
+        <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} />
         <span className="build-tile-name">{t.name}</span>
         <span className="build-tile-progress">
           <ProgressBar
@@ -586,7 +602,7 @@ function BuildTile({
       }}
       onClick={() => onArmPlacement(armed ? null : t.id)}
     >
-      <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} stamp={marker} />
+      <TilePlan Icon={Icon} t={t} vernacular={tileStyle(s, t)} />
       <span className="build-tile-name">{t.name}</span>
       <TileLines lines={lines} />
       <span className="build-tile-foot">
@@ -638,34 +654,31 @@ function BuildGroupTiles({ s, group, placingId, onArmPlacement, act }: {
   act: (a: Action) => void;
 }) {
   const [open, setOpen] = useState(false);
-  // Chain position is read before the built/unbuilt split (visible items are
-  // a prefix of the chain), so a tile's #N never shifts as the group collapses.
-  const numbered = group.items.map((t, index) => ({ t, marker: rowMarker(t, group, index) }));
-  const done = numbered.filter(({ t }) => t.status === 'done');
-  const awaitingSiting = done.filter(({ t }) => !(t.id in s.placements));
-  const built = done.filter(({ t }) => t.id in s.placements);
-  const rest = numbered.filter(({ t }) => t.status !== 'done');
+  const done = group.items.filter((t) => t.status === 'done');
+  const awaitingSiting = done.filter((t) => !(t.id in s.placements));
+  const built = done.filter((t) => t.id in s.placements);
+  const rest = group.items.filter((t) => t.status !== 'done');
   const collapseBuilt = group.repeatable && built.length >= COLLAPSE_BUILT_FROM;
 
   return (
     <>
-      {awaitingSiting.map(({ t, marker }) => (
-        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
+      {awaitingSiting.map((t) => (
+        <BuildTile key={t.id} s={s} t={t} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}
       {collapseBuilt
         ? (
           <>
-            <BuiltSummaryTile group={group} built={built.map(({ t }) => t)} open={open} onToggle={() => setOpen((v) => !v)} vernacular={s.self.vernacular} />
-            {open && built.map(({ t, marker }) => (
-              <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
+            <BuiltSummaryTile group={group} built={built} open={open} onToggle={() => setOpen((v) => !v)} vernacular={s.self.vernacular} />
+            {open && built.map((t) => (
+              <BuildTile key={t.id} s={s} t={t} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
             ))}
           </>
         )
-        : built.map(({ t, marker }) => (
-          <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
+        : built.map((t) => (
+          <BuildTile key={t.id} s={s} t={t} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
         ))}
-      {rest.map(({ t, marker }) => (
-        <BuildTile key={t.id} s={s} t={t} marker={marker} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
+      {rest.map((t) => (
+        <BuildTile key={t.id} s={s} t={t} placingId={placingId} onArmPlacement={onArmPlacement} act={act} />
       ))}
       {group.closed.map((t) => <ClosedTile key={t.id} s={s} t={t} />)}
     </>
@@ -848,7 +861,7 @@ function StylePicker({ s }: { s: GameState }) {
   return (
     <label className="build-style-picker" title="Sandbox: the style your next building is built in. To change a finished building's style, open its panel.">
       <span>Style</span>
-      <select value={style ?? ''} onChange={(e) => setBuildStyle(e.target.value === '' ? null : e.target.value as Vernacular)}>
+      <select className="pill-select small" value={style ?? ''} onChange={(e) => setBuildStyle(e.target.value === '' ? null : e.target.value as Vernacular)}>
         <option value="">College's own ({choices.find((c) => c.id === s.self.vernacular)?.label ?? s.self.vernacular})</option>
         {choices.filter((c) => c.id !== s.self.vernacular).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
       </select>

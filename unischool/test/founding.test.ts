@@ -22,6 +22,7 @@ import { SIDEWALK_ROW } from '../src/state/drive';
 import { bindScriptStream } from '../src/engine/random';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { ROAD_FIRST_ROW, centredPlacement, footprintOf, occupantAt, parsePathTileKey, placementCovers } from '../src/state/campusMap';
+import { openingHoldsClock } from '../src/state/opening';
 
 bindScriptStream(4242);
 const store = new Map<string, string>();
@@ -305,8 +306,15 @@ console.log('founding tests');
     assert(s.events.opening.stage === 'found', `and the walk goes on to the program (facing ${facing})`);
   }
 
-  // Siting it again (a sandbox's move) lays no second drive.
+  // A sandbox founding leaves the hall to the player too, without the walk:
+  // unsited, the clock held, no drive.
   let sand = start(false, true);
+  assert(!(FOUNDERS_HALL_ID in sand.placements) && drive(sand).length === 0, 'a sandbox founding opens with the hall unsited and no drive');
+  assert(sand.events.opening.stage === 'play' && openingHoldsClock(sand), 'with no walkthrough, and the clock held until it stands');
+  const sandSpot = centredPlacement(footprintOf(node));
+  sand = reducer(sand, { type: 'PLACE_BUILDABLE', buildableId: FOUNDERS_HALL_ID, row: sandSpot.row, col: sandSpot.col, facing: 0 });
+  assert(FOUNDERS_HALL_ID in sand.placements && !openingHoldsClock(sand) && drive(sand).length === 0, 'siting it frees the clock, and lays no drive');
+  // Siting it again (a sandbox's move) lays no second drive.
   const before = JSON.stringify(sand.pathways);
   const at = sand.placements[FOUNDERS_HALL_ID]!;
   sand = reducer(sand, { type: 'MOVE_BUILDABLE', id: FOUNDERS_HALL_ID, row: at.row - 12, col: at.col - 30, facing: 0 });

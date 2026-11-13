@@ -32,6 +32,9 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   library: 'portico',
   studentCenter: 'pavilion',
   diningHall: 'pavilion',
+  // The kiosk and the food trucks stand on paving (diningGrounds.tsx).
+  coffeeKiosk: 'grounds',
+  foodTrucks: 'grounds',
   recCenter: 'hangar',
   healthCenter: 'pavilion',
   quad: 'grounds',
@@ -41,6 +44,11 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   // The rec pool is an open-air deck; the natatorium is a roofed venue.
   pool: 'grounds',
   artGallery: 'portico',
+  basketballCourts: 'grounds',
+  pub: 'pavilion',
+  radio: 'pavilion',
+  bowlingAlley: 'pavilion',
+  cinema: 'pavilion',
   athleticsField: 'grounds',
   athleticsArena: 'hangar',
   athleticsDiamond: 'grounds',
@@ -72,6 +80,9 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   // something on it.
   'AMENITY-BELLTOWER': 'landmark',
   'AMENITY-CHAPEL': 'chapel',
+  // A science's showpiece (Plan 127) draws itself (campusShowpieces.tsx).
+  'AMENITY-GREENHOUSE': 'pavilion',
+  'AMENITY-OBSERVATORY': 'pavilion',
   // The capital projects (Plan 33), each in the motif of what it is.
   'PROJ-ARTS': 'portico',
   'PROJ-RESEARCH-PARK': 'works',
@@ -83,8 +94,9 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   // The Faculty Training Institute (Plan 85E): an academic hall, for the
   // teaching it is about, in the civic stone and under a cupola.
   'PROJ-TRAINING': 'hall',
-  // The Athletic Performance Complex (Plan 85G): a big modern block, glazed
-  // from plinth to eaves, with a running track on its roof.
+  // The Athletic Performance Complex (Plan 85G): drawn by its own plan
+  // (performancePlan): a sawtooth training hall, a glazed performance wing
+  // and an outdoor speed field beside them.
   'PROJ-ATHLETICS-COMPLEX': 'block',
 };
 
@@ -129,7 +141,6 @@ export type Signifier =
   | 'mast'        // Computing: a mast and a dish
   | 'tanks'       // Neuroscience: the scanners' cryogen tanks
   | 'cupola'      // the Faculty Training Institute: a glazed cupola astride the ridge
-  | 'track'       // the Athletic Performance Complex: a running track on the roof
   | 'ticker';     // Experimental Economics: a ticker board along its front (Plan 87I)
 const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-MECH': 'gantry',
@@ -142,7 +153,6 @@ const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-COMP': 'mast',
   'LAB-NEUR': 'tanks',
   'PROJ-TRAINING': 'cupola',
-  'PROJ-ATHLETICS-COMPLEX': 'track',
   'LAB-ECON': 'ticker',
 };
 const SIGNIFIERS_BY_TYPE: Partial<Record<FacilityType, Signifier>> = {
@@ -353,13 +363,19 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
       if (serves >= CLINIC_MIN_SERVES) return 3;
       return 2;
     case 'diningHall':
-      if (serves >= 10_000) return 3;
+      if (serves >= 5_000) return 3;
       // A terrace hall (Plan 87D) has a floor over its dining room.
       if (serves >= DINING_TERRACE_MIN_SERVES) return 2;
       return 1;
     case 'studentCenter':
       return serves >= STUDENT_CENTRE_EXPANDED_MIN_SERVES ? 3 : 2;
     case 'grocery': return 1;
+    // The bowling alley's lanes are one long shed, the pub a two-story
+    // house, the movie theater's lobby front 12 m (townVenues.tsx).
+    case 'bowlingAlley': return 2;
+    case 'cinema': return 3;
+    // The radio studio is one story under its mast.
+    case 'radio': return 1;
     case 'lab': return 2;
     default: return 2;
   }
@@ -390,6 +406,7 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
 
 // How many floors this building has. Zero means open ground, or a clear-span
 // volume whose height comes from CLEAR_SPAN_METRES instead.
+const TRATTORIA_HALL_ID = 'DININGHALL-04';
 export function storeysOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark' || motif === 'chapel') return 0;
@@ -402,6 +419,9 @@ export function storeysOf(t: Buildable): number {
   if (t.kind === 'dorm') return dormStoreys(t.effects?.capacityBonus ?? 0) + addedFloors(t);
   if (t.chapterHouse) return CHAPTER_HOUSE_STOREYS;
   if (t.facilityType === 'project') return (PROJECT_SPECS[t.id]?.storeys ?? facilityStoreys('project', 0)) + addedFloors(t);
+  // The Grand Table is a one-storey trattoria (campusMap.ts's
+  // TRATTORIA_FOOTPRINT), whatever its seats.
+  if (t.id === TRATTORIA_HALL_ID) return 1 + addedFloors(t);
   if (t.kind === 'facility') return facilityStoreysOf(t) + addedFloors(t);
   return 2;
 }
@@ -579,7 +599,10 @@ export function doorFamilyOf(t: Buildable): DoorFamily | null {
     // Every lab-gated building takes a service door whatever its motif.
     case 'lab': return 'service';
     case 'library':
-    case 'grocery': return 'shopfront';
+    case 'grocery':
+    case 'cinema':
+    case 'bowlingAlley': return 'shopfront';
+    case 'pub': return 'residential';
     case 'healthCenter':
       return (t.effects?.servesPopulation ?? 0) >= HOSPITAL_MIN_SERVES ? 'canopy' : 'civic';
     default: return 'civic';
@@ -1671,8 +1694,11 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     // The chapel is built in the campus's stone; the others stand on open
     // ground or draw their own, so they take the material every vernacular
     // shares.
+    // The observatory draws its own white drum (campusShowpieces.tsx); its
+    // stone sets it apart from the clinic it would otherwise share a
+    // signature with.
     case 'amenity':
-      return t.id === 'AMENITY-CHAPEL' ? MATERIALS.limestone : MATERIALS.clinical;
+      return t.id === 'AMENITY-CHAPEL' || t.id === 'AMENITY-OBSERVATORY' ? MATERIALS.limestone : MATERIALS.clinical;
     // A landmark draws its own stone (landmarks.tsx); for everything else
     // that asks, it is the one material every vernacular shares.
     case 'landmark':
@@ -1693,6 +1719,14 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     case 'recCenter':
     case 'athleticsArena':
     case 'fieldHouse':
+      return MATERIALS.render;
+    // The town's pleasures (Plan 127): the pub in dark brick, the movie
+    // theater in buff, the bowling alley's shed rendered.
+    case 'pub':
+      return MATERIALS.brickDark;
+    case 'cinema':
+      return MATERIALS.brickBuff;
+    case 'bowlingAlley':
       return MATERIALS.render;
     // Open ground and venues drawn as markings take a wall color only for their props.
     default:
@@ -1821,7 +1855,7 @@ export function chapelPlan(p: Plot, v: Vernacular): ChapelPlan {
 // the building (its facing), never with the view.
 // Thresholds are campusMap.ts's dining ladder's, kept as literals.
 const DINING_TERRACE_MIN_SERVES = 1_200;
-const DINING_REFECTORY_MIN_SERVES = 7_000;
+const DINING_REFECTORY_MIN_SERVES = 4_000;
 export type DiningBand = 'cafe' | 'terrace' | 'refectory';
 export function diningBandOf(t: Buildable): DiningBand | undefined {
   if (t.kind !== 'facility' || t.facilityType !== 'diningHall') return undefined;
@@ -1862,10 +1896,54 @@ export const REFECTORIES: Readonly<Record<Vernacular, RefectorySpec>> = {
 // The hall's eaves at the 9x6; the two largest stand a little taller. The
 // kitchen and the back range as shares of them.
 function refectoryEavesMetres(t: Buildable): number {
-  return (asBuilt(t).effects?.servesPopulation ?? 0) >= 10_000 ? 13.5 : 12;
+  return (asBuilt(t).effects?.servesPopulation ?? 0) >= 5_000 ? 13.5 : 12;
 }
 export const REFECTORY_KITCHEN_EAVES = 0.72;
 export const REFECTORY_BACK_EAVES = 0.4;
+
+// The Athletic Performance Complex (Plan 85G; redrawn from scratch after
+// the owner's "a plain building with a track on the roof"): the parts a
+// college athletics performance center is made of, side by side on its
+// plot rather than stacked. In the building's own frame (four-way facing):
+//   - the speed field on its left, full depth: turf with sprint lanes down
+//     its outer edge, where the athletes train outdoors;
+//   - the training hall behind on the right: one clear span under a
+//     sawtooth of north lights, its glazed teeth facing the front, a roller
+//     door onto the field, an indoor sprint straight seen through its glass;
+//   - the performance wing across the front: two glazed floors (the strength
+//     hall on the ground, sports science over it) with the way in, behind a
+//     strip of paving that takes its canopy and steps.
+// The art (buildingMotifs.tsx's PerformanceComplex), the shadows and the
+// weathering all read this one plan.
+export const PERFORMANCE_COMPLEX_ID = 'PROJ-ATHLETICS-COMPLEX';
+export const PERFORMANCE_FIELD_SHARE = 0.36;  // of the front's width
+export const PERFORMANCE_FIELD_GAP = 0.35;    // tiles of paving between the field and the buildings
+export const PERFORMANCE_FORECOURT = 0.7;     // tiles of paving before the wing, for its canopy and steps
+export const PERFORMANCE_WING_SHARE = 0.33;   // of the depth behind the forecourt
+export const PERFORMANCE_TEETH = 3;
+export const PERFORMANCE_TOOTH_RISE = up(4.2);
+// The wing's two floors and its parapet, under the hall's eaves.
+export const PERFORMANCE_WING_HEIGHT = STOREY * 2 + up(1.4);
+export interface PerformancePlan {
+  W: number; D: number;     // the front's width and the depth, in tiles
+  u0: number;               // where the buildings start across the front
+  wingD: number;            // how deep the wing reaches from the front (the hall starts there)
+  field: { col: number; row: number; w: number; h: number };
+  hall: { col: number; row: number; w: number; h: number };
+  wing: { col: number; row: number; w: number; h: number };
+}
+export function performancePlan(p: Plot): PerformancePlan {
+  const W = frontWidth(p); const D = frontDepth(p);
+  const fieldW = W * PERFORMANCE_FIELD_SHARE;
+  const u0 = fieldW + PERFORMANCE_FIELD_GAP;
+  const wingD = PERFORMANCE_FORECOURT + (D - PERFORMANCE_FORECOURT) * PERFORMANCE_WING_SHARE;
+  return {
+    W, D, u0, wingD,
+    field: localBox(p, 0, 0, fieldW, D),
+    hall: localBox(p, u0, wingD, W, D),
+    wing: localBox(p, u0, PERFORMANCE_FORECOURT, W, wingD),
+  };
+}
 
 export interface DiningPlan {
   band: DiningBand;

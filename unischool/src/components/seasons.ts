@@ -109,7 +109,6 @@ const WINTER_HAZE = '#dce2e6';
 // the courts' surround, the water, and the Japanese garden's planting.
 const TURF = '#6d9150';
 const TURF_DEEP = '#5d7f43';
-const TURF_ROOF = '#5d8a4a';
 const COURT = '#5e8a58';
 const WATER = '#6ba3bd';
 const POOL_COVER = '#7d8b88';
@@ -186,8 +185,6 @@ export function seasonStyle(week: number): CSSProperties {
     // not dry, but takes the same snow.
     '--turf': pitch(TURF),
     '--turf-deep': pitch(TURF_DEEP),
-    // The roof track's infield is not swept: it takes the lawn's snow.
-    '--turf-roof': ground(TURF_ROOF),
     '--court': mixColor(COURT, SNOW, s.snow * PITCH_COVER),
     // Open water: the pool is covered while snow lies, its lanes and deep
     // end under the cover; the garden's pond freezes, the koi under the ice.

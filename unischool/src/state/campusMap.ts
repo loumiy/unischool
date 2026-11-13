@@ -62,12 +62,15 @@ const DORM_FOOTPRINTS: SizeRung[] = [
 const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
   // facilitiesData.ts's DINING_RUNGS. Bigger halls are multi-story, so
   // density climbs with size.
+  // Plan 127's rebalance kept each hall on the land it had: the Central
+  // Dining Pavilion (6,600) the 11x9, Harborview (5,500) the 11x7,
+  // Waterside (4,200) the 9x6, Old Well (3,000) the 7x6.
   diningHall: [
-    { min: 14_000, fp: { w: 11, h: 9 } },
-    { min: 10_000, fp: { w: 11, h: 7 } },
-    { min: 7_000, fp: { w: 9, h: 6 } },
-    { min: 4_000, fp: { w: 7, h: 6 } },
-    { min: 2_500, fp: { w: 7, h: 5 } },
+    { min: 6_000, fp: { w: 11, h: 9 } },
+    { min: 5_000, fp: { w: 11, h: 7 } },
+    { min: 4_000, fp: { w: 9, h: 6 } },
+    { min: 2_500, fp: { w: 7, h: 6 } },
+    { min: 2_200, fp: { w: 7, h: 5 } },
     { min: 1_200, fp: { w: 5, h: 4 } },
     { min: 700, fp: { w: 5, h: 3 } },
     { min: 0, fp: { w: 3, h: 3 } },
@@ -113,6 +116,17 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   tennisCourts: { w: 12, h: 4 }, // six courts in a row, which is ~110m by 36m — open ground, no door to centre
   pool: { w: 7, h: 4 },          // a 50m pool and its deck
   artGallery: { w: 5, h: 3 },
+  // The town's pleasures (Plan 127). The courts are three side by side, a
+  // full court 28 m by 15 m each with its run-off: open ground.
+  basketballCourts: { w: 6, h: 4 },
+  radio: { w: 3, h: 3 },           // the studio, and the mast's guyed foot beside it
+  pub: { w: 3, h: 3 },             // the house at the front, the beer garden behind
+  bowlingAlley: { w: 7, h: 4 },   // sixteen lanes about 25 m long, and the counter in front
+  cinema: { w: 5, h: 5 },
+  // Dining beside the halls (Plan 127): a kiosk and its two tables, and
+  // four trucks round a square of picnic tables.
+  coffeeKiosk: { w: 2, h: 2 },
+  foodTrucks: { w: 5, h: 4 },
 
   // Varsity venues, sized from the real thing. The field holds a 400m track
   // (176m by 92m, see groundMarkings.tsx) with a 105m by 68m pitch inside and
@@ -138,6 +152,12 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'AMENITY-GARDEN': { w: 6, h: 6 },
   'AMENITY-CHAPEL': { w: 5, h: 3 },
   'AMENITY-BELLTOWER': { w: 3, h: 3 },
+  'AMENITY-PARTERRE': { w: 5, h: 5 },
+  'AMENITY-AMPHITHEATER': { w: 7, h: 6 },
+  'AMENITY-SCULPTURE': { w: 6, h: 5 },
+  'AMENITY-POND': { w: 10, h: 7 },
+  'AMENITY-GREENHOUSE': { w: 5, h: 3 },
+  'AMENITY-OBSERVATORY': { w: 3, h: 3 },
   // The capital projects (Plan 33): larger than anything else of their kind.
   'PROJ-ARTS': { w: 11, h: 9 },
   'PROJ-RESEARCH-PARK': { w: 13, h: 8 },
@@ -149,7 +169,16 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'PROJ-ATHLETICS-COMPLEX': { w: 13, h: 9 },
 };
 
+// The Grand Table is a neighbourhood trattoria, not a hall: a one-storey
+// house on the back of a 3x3 plot and its terrace on the front, on far
+// less land than the dining ladder's 7x5 for its seats (its seats are the
+// ladder's still). Odd across the front, so its door sits on a tile. A save sited before it shrank is
+// shrunk in place on load (persistence.ts's shrinkTrattoria).
+export const TRATTORIA_ID = 'DININGHALL-04';
+export const TRATTORIA_FOOTPRINT: Footprint = { w: 3, h: 3 };
+
 export function footprintOf(t: Buildable): Footprint {
+  if (t.id === TRATTORIA_ID) return TRATTORIA_FOOTPRINT;
   if (t.facilityType === 'landmark' || t.facilityType === 'amenity' || t.facilityType === 'project') return LANDMARK_FOOTPRINTS[t.id] ?? DEFAULT_FACILITY_FOOTPRINT;
   if (t.kind === 'building') return SCHOOL_BUILDING_FOOTPRINT;
   if (t.chapterHouse) return CHAPTER_HOUSE_FOOTPRINT;
@@ -264,7 +293,8 @@ export function canPlace(s: GameState, t: Buildable, row: number, col: number, f
 }
 
 // Built but unsited. Only Founders Hall, in a guided founding, where placing
-// it is the walkthrough's first step (state/opening.ts). Siting it is free.
+// it is the walkthrough's first step (state/opening.ts), or a sandbox's,
+// where it is the player's first move. Siting it is free.
 export function awaitsSite(s: GameState, t: Buildable): boolean {
   return isPlaceableKind(t) && t.status === 'done' && !(t.id in s.placements);
 }

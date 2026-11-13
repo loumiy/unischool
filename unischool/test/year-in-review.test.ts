@@ -25,7 +25,7 @@ import { EVENT_CATALOGUE } from '../src/data/eventCatalogue';
 import { LOG_CAP, WEEKS_PER_YEAR } from '../src/state/types';
 import { gradeYear, prestigeBreakdown, standingDetailLine } from '../src/systems/prestige/prestigeSystem';
 import { trailingYearSatisfaction } from '../src/systems/admissions/admissionsSystem';
-import { playerRank } from '../src/systems/rivals/rivalsSystem';
+import { playerRank, rankedList } from '../src/systems/rivals/rivalsSystem';
 
 let checks = 0;
 let failures = 0;
@@ -108,7 +108,8 @@ console.log('year in review tests');
   assert(f.prestigeBefore === card.before && f.prestigeAfter === card.after && f.grade === card.score, 'the prestige figure reads the report card before it is applied');
   assert(f.satisfaction === trailingYearSatisfaction(s) && f.satisfactionDelta === null, `satisfaction is the year's average, with no change in the first year (${f.satisfactionDelta})`);
   assert(f.net === s.finance.cash - FOUNDING_PRESET.startingCash, `the first year's net is measured from the founding cash (${f.net})`);
-  assert(f.rank === playerRank(s) && f.rankBefore === null && f.passedBy.length === 0, 'the rank, with nothing to compare in the first year');
+  const stepped = { ...s, self: { ...s.self, reputation: card.after } };
+  assert(f.rank === playerRank(stepped) && f.rankBefore === null && f.passedBy.length === 0, 'the rank at the stepped prestige, with nothing to compare in the first year');
   assert(!/Satisfaction averaged/.test(text(s, 'students')), 'so the students section does not say satisfaction again');
   assert(!text(s, 'students').includes('asking to be recognized'), 'nor the petitions, which the summer\'s last step decides');
   assert(!/Net over the year|Operating funds/.test(text(s, 'money')), 'the money section is not the net again');
@@ -150,6 +151,28 @@ console.log('year in review tests');
   const after = reducer(s, { type: 'RESOLVE_ADMISSIONS', tuition: s.finance.listedTuition, admitRate: s.students.admitRate, approvedPetitionIds: [] });
   assert(after.history[0].attrition === leaving, `and the boundary records exactly that figure (${after.history[0].attrition})`);
   assert(Math.abs(after.history[0].satisfactionAverage - 35) < 1e-9, 'with the average the year was graded on');
+}
+
+// --- the rank is the one the summer files ----------------------------------
+// The review is read before admissions applies the summer step, so a rank
+// taken at the unstepped prestige read as last year's ("held").
+{
+  let s = toSummer(teachingCollege('Rank'));
+  s = reducer(s, { type: 'RESOLVE_ADMISSIONS', tuition: s.finance.listedTuition, admitRate: s.students.admitRate, approvedPetitionIds: [] });
+  s = toSummer(s);
+  // Just under a rival the year's step carries the college past: the
+  // rank must move with the step.
+  const target = prestigeBreakdown(s).target;
+  const rival = rankedList(s).filter((e) => !e.isPlayer && e.value < target - 1).sort((a, b) => b.value - a.value)[0]!;
+  s.self.reputation = rival.value - 0.01;
+  const f = buildYearInReview(s).figures;
+  const card = gradeYear(s);
+  assert(card.after > rival.value, `the year steps prestige past ${rival.name} (${card.before.toFixed(2)} → ${card.after.toFixed(2)}, against ${rival.value.toFixed(2)})`);
+  assert(f.rank < playerRank(s), `so the rank climbs from the unstepped one (${playerRank(s)} → ${f.rank})`);
+  assert(f.rankBefore === s.history[s.history.length - 1].rank, 'the rank before is last summer\'s row');
+  const after = reducer(s, { type: 'RESOLVE_ADMISSIONS', tuition: s.finance.listedTuition, admitRate: s.students.admitRate, approvedPetitionIds: [] });
+  const filed = after.history[after.history.length - 1].rank;
+  assert(f.rank === filed, `the review's rank is the one this summer files (${f.rank} against ${filed})`);
 }
 
 // --- the snapshot's own figures --------------------------------------------

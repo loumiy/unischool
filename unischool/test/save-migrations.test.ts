@@ -23,7 +23,8 @@ import { initialTech } from '../src/data/techData';
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
-import { WEEKS_PER_YEAR, type Faculty, type GameState } from '../src/state/types';
+import { WEEKS_PER_YEAR, type Buildable, type Faculty, type GameState, type Placement } from '../src/state/types';
+import { footprintOf } from '../src/state/campusMap';
 import { grownStat, LEGACY_START_FRACTION } from '../src/data/facultyData';
 import { LANDMARKS_COUNTED, landmarksCounted } from '../src/data/researchParkData';
 import { speedUpRefusal, speedUpsFor } from '../src/systems/prestige/speedUps';
@@ -433,6 +434,115 @@ function testGardenKept(): void {
   assert(garden?.status === 'available', `its garden stays open (${garden?.status})`);
 }
 testGardenKept();
+
+// The third dining hall's old catalog name takes the new one on load; a
+// donor's name stays.
+function testCafeteriaRenamed(): void {
+  const named = (name: string) => {
+    const wrapper = JSON.parse(fixture('save-v97.json'));
+    const hall = wrapper.state.tech.find((t: { id: string }) => t.id === 'DININGHALL-03');
+    hall.name = name;
+    return loads(JSON.stringify(wrapper), `a save with the third dining hall as ${name}`)?.tech.find((t) => t.id === 'DININGHALL-03')?.name;
+  };
+  assert(named('Commons Cafeteria') === 'Hilltop Cafeteria', 'the Commons Cafeteria is the Hilltop Cafeteria now');
+  assert(named('The Okafor Cafeteria') === 'The Okafor Cafeteria', "and a donor's name is kept");
+  const renamed = (id: string, name: string) => {
+    const wrapper = JSON.parse(fixture('save-v97.json'));
+    wrapper.state.tech.find((t: { id: string }) => t.id === id).name = name;
+    return loads(JSON.stringify(wrapper), `a save with ${id} as ${name}`)?.tech.find((t) => t.id === id)?.name;
+  };
+  assert(renamed('DININGHALL-05', 'Old Well Commons') === 'Old Well Hall', 'Old Well Commons is Old Well Hall now');
+  assert(renamed('DININGHALL-06', 'Waterside Commons') === 'Waterside Market Hall', 'Waterside Commons is Waterside Market Hall now');
+}
+testCafeteriaRenamed();
+
+// Plan 127's dining rebalance (persistence.ts's rebalanceDining): a save
+// gets the Coffee Kiosk and the Food Truck Plaza, a hall not yet started
+// takes the new seats, price and what it opens after, and a built one keeps
+// what it was built with.
+function testDiningRebalanced(): void {
+  const wrapper = JSON.parse(fixture('save-v97.json'));
+  const tech = wrapper.state.tech as Buildable[];
+  wrapper.state.tech = tech.filter((t) => t.id !== 'DINING-KIOSK' && t.id !== 'DINING-TRUCKS');
+  const node = (id: string) => (wrapper.state.tech as Buildable[]).find((t) => t.id === id)!;
+  for (const id of ['DINING-01', 'DININGHALL-02', 'DININGHALL-03', 'DININGHALL-04', 'DININGHALL-05', 'DININGHALL-06']) node(id).status = 'done';
+  node('DININGHALL-06').effects!.servesPopulation = 8_000;
+  node('DININGHALL-06').cost = 16_000_000;
+  node('DININGHALL-07').status = 'locked';
+  node('DININGHALL-08').status = 'available';
+  node('DININGHALL-08').cost = 38_400_000;
+  node('DININGHALL-08').effects!.servesPopulation = 16_000;
+  const s = loads(JSON.stringify(wrapper), 'a save from before the dining rebalance');
+  if (!s) return;
+  const got = (id: string) => s.tech.find((t) => t.id === id);
+  assert(!!got('DINING-KIOSK') && !!got('DINING-TRUCKS'), 'the Coffee Kiosk and the Food Truck Plaza join the save');
+  assert(s.tech.findIndex((t) => t.id === 'DINING-KIOSK') === s.tech.findIndex((t) => t.id === 'DINING-01') + 1, 'the kiosk follows the Original Commons');
+  unlockAvailable(s);
+  assert(got('DINING-KIOSK')?.status === 'available' && got('DINING-TRUCKS')?.status === 'available', 'and open at once, what they open after being built');
+  assert(got('DININGHALL-06')?.effects?.servesPopulation === 8_000 && got('DININGHALL-06')?.cost === 16_000_000, 'a built hall keeps the seats and price it was built with');
+  const central = got('DININGHALL-08')!;
+  assert(central.cost === 15_840_000 && central.effects?.servesPopulation === 6_600, `a hall not yet started takes the new terms (${central.cost}, ${central.effects?.servesPopulation})`);
+  assert(central.status === 'locked', 'and waits for Harborview, which it opens after');
+  assert(got('DININGHALL-05')?.prereqs.join() === 'DININGHALL-03' || got('DININGHALL-05')?.status === 'done', 'Old Well opens after the Hilltop Cafeteria');
+}
+testDiningRebalanced();
+
+// Buildings added to the catalogue after a save was written
+// (persistence.ts's backfillFacilities): each joins the save locked, and the
+// weekly unlock opens the ones whose gates hold, as in a new run; a
+// showpiece still waits on its distinguished program.
+function testFacilitiesBackfilled(): void {
+  const added = ['AMENITY-POND', 'AMENITY-PARTERRE', 'PUB', 'CINEMA', 'CAMPUS-RADIO', 'AMENITY-GREENHOUSE', 'AMENITY-OBSERVATORY'];
+  const wrapper = JSON.parse(fixture('save-v97.json'));
+  wrapper.state.tech = (wrapper.state.tech as Buildable[]).filter((t) => !added.includes(t.id));
+  const s = loads(JSON.stringify(wrapper), 'a save from before the new buildings');
+  if (!s) return;
+  const got = (id: string) => s.tech.find((t) => t.id === id);
+  assert(added.every((id) => got(id)?.status === 'locked'), 'every building the save lacked joins it, locked');
+  assert(new Set(s.tech.map((t) => t.id)).size === s.tech.length, 'and none twice');
+  const again = loads(JSON.stringify({ ...wrapper, state: s }), 'the same save loaded again');
+  assert(again?.tech.length === s.tech.length, 'loading again adds nothing');
+  s.milestones = { ...s.milestones };
+  delete s.milestones['program-distinguished:ENVS'];
+  unlockAvailable(s);
+  assert(got('AMENITY-GREENHOUSE')?.status === 'locked', 'the Greenhouse still waits on a distinguished Environmental Science');
+  s.milestones['program-distinguished:ENVS'] = true;
+  unlockAvailable(s);
+  const opened = got('AMENITY-GREENHOUSE')?.status === 'available' || (got('AMENITY-GREENHOUSE')?.prereqs.length ?? 0) > 0;
+  assert(opened, 'and opens once it is');
+}
+testFacilitiesBackfilled();
+
+// The Grand Table shrank to a trattoria (campusMap.ts's TRATTORIA_FOOTPRINT):
+// one sited at the old 7x5 is shrunk in place, its front edge kept and
+// centred along it, its facing kept, in every facing.
+function testTrattoriaShrunk(): void {
+  const fp = footprintOf({ id: 'DININGHALL-04' } as Buildable);
+  assert(fp.w === 3 && fp.h === 3, `the Grand Table is 3x3 (${fp.w}x${fp.h})`);
+  // The old box at each facing, and the new one wanted: front edge kept.
+  const cases: Array<{ facing: 0 | 1 | 2 | 3; old: Placement; want: Omit<Placement, 'facing'> }> = [
+    { facing: 0, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 32, col: 32, w: 3, h: 3 } },
+    { facing: 1, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 32, col: 30, w: 3, h: 3 } },
+    { facing: 2, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 30, col: 32, w: 3, h: 3 } },
+    { facing: 3, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 32, col: 32, w: 3, h: 3 } },
+  ];
+  for (const { facing, old, want } of cases) {
+    const wrapper = JSON.parse(fixture('save-v97.json'));
+    const s0 = wrapper.state as GameState;
+    // Clear the ground around it, so the hygiene that follows moves nothing.
+    for (const [id, p] of Object.entries(s0.placements)) {
+      if (p.col < 45 && p.row < 45 && p.col + p.w > 25 && p.row + p.h > 25) delete s0.placements[id];
+    }
+    const t = s0.tech.find((x) => x.id === 'DININGHALL-04')!;
+    t.status = 'done';
+    s0.placements['DININGHALL-04'] = { ...old, facing };
+    const s = loads(JSON.stringify(wrapper), `a save with the Grand Table at 7x5 facing ${facing}`);
+    const p = s?.placements['DININGHALL-04'];
+    assert(!!p && p.row === want.row && p.col === want.col && p.w === want.w && p.h === want.h && (p.facing ?? 0) === facing,
+      `facing ${facing}: shrunk in place to ${JSON.stringify(want)} (${JSON.stringify(p)})`);
+  }
+}
+testTrattoriaShrunk();
 
 console.log('save migrations tests');
 if (failures > 0) {

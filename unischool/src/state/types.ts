@@ -313,8 +313,14 @@ export type FacilityType =
   | 'healthCenter' | 'quad' | 'lab'
   // Single-instance basicNeeds feeder beside the repeatable dining chain.
   | 'grocery'
+  // Two small dining places beside the chain (Plan 127): a coffee kiosk
+  // and a plaza of food trucks, each with no storeys to add.
+  | 'coffeeKiosk' | 'foodTrucks'
   // One-off: gym/pool/tennis feed `health`, arts venues feed `social`.
   | 'gym' | 'tennisCourts' | 'pool' | 'artGallery'
+  // Outdoor basketball courts feed `health`; the pub, the bowling alley and
+  // the movie theater feed `social` (Plan 127).
+  | 'basketballCourts' | 'pub' | 'bowlingAlley' | 'cinema' | 'radio'
   // Varsity competition venues, one per sport category, distinct from the
   // rec facilities. Hidden until a team needing one is granted varsity
   // status (Buildable.athleticsVenueReveal).
@@ -352,6 +358,10 @@ export interface Buildable {
   athleticsVenueReveal?: true;
   // Revealed once the school fields any varsity team (the field house).
   athleticsDepartmentReveal?: true;
+  // Opens once this program (a major's prefix) is distinguished, every course
+  // complete (techSystem.ts's meetsUnlockGates): the greenhouse and the
+  // observatory, each its science's showpiece.
+  programGate?: string;
   // Times this venue has been expanded in place (EXPAND_VENUE); read by
   // systems/athletics/gate.ts for seats.
   expansions?: number;

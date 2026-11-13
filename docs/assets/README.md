@@ -45,13 +45,13 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **Experimental Economics Lab**: LAB-ECON · 5x3
 - **The Original Commons**: DINING-01 · 3x3
 - **Union Square Eatery**: DININGHALL-02 · 5x3
-- **Commons Cafeteria**: DININGHALL-03 · 5x4
-- **The Grand Table**: DININGHALL-04 · 7x5
+- **Hilltop Cafeteria**: DININGHALL-03 · 5x4
+- **The Grand Table**: DININGHALL-04 · 3x3
 
 ![Pavilions: dining, the student center, the grocery, chapter houses](pavilion-2.jpg)
 
-- **Old Well Commons**: DININGHALL-05 · 7x6
-- **Waterside Commons**: DININGHALL-06 · 9x6
+- **Old Well Hall**: DININGHALL-05 · 7x6
+- **Waterside Market Hall**: DININGHALL-06 · 9x6
 - **Harborview Market**: DININGHALL-07 · 11x7
 - **Central Dining Pavilion**: DININGHALL-08 · 11x9
 - **Campus Grocery Store**: GROCERY-01 · 5x4
@@ -192,6 +192,11 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **Multi-Sport Field**: ATH-FIELD expanded 2× · 22x13
 - **Baseball & Softball Diamond**: ATH-DIAMOND expanded 1× · 14x14
 - **Baseball & Softball Diamond**: ATH-DIAMOND expanded 2× · 14x14
+
+Not on the sheets yet (Plan 127), beside the dining halls:
+
+- **Coffee Kiosk**: DINING-KIOSK · 2x2
+- **Food Truck Plaza**: DINING-TRUCKS · 5x4
 
 ## The grand landmarks and the bell tower
 

@@ -71,7 +71,7 @@ const greenness = (c: string) => parseInt(c.slice(3, 5), 16) - (parseInt(c.slice
 const pinkness = (c: string) => parseInt(c.slice(1, 3), 16) - parseInt(c.slice(3, 5), 16);
 const tok = (w: number, k: string) => (seasonStyle(w) as Record<string, string>)[k]!;
 const OPEN_GROUND_SUMMER: Record<string, string> = {
-  '--turf': '#6d9150', '--turf-deep': '#5d7f43', '--turf-roof': '#5d8a4a', '--court': '#5e8a58',
+  '--turf': '#6d9150', '--turf-deep': '#5d7f43', '--court': '#5e8a58',
   '--water': '#6ba3bd', '--pond': '#6ba3bd', '--garden-grass': '#7fa652', '--moss': '#6d8a4a',
   '--sakura': '#7d9e4a', '--sakura-top': '#9ab85f',
   '--azalea': '#d9829f', '--azalea-top': '#f0a8c0', '--azalea-deep': '#b5487a', '--azalea-deep-top': '#d5679a',
@@ -104,7 +104,6 @@ assert(tok(12, '--petal-opacity') === '0', 'week 12: no petals');
 const lawn26 = lightness(tok(26, '--lawn'));
 const turf26 = lightness(tok(26, '--turf'));
 assert(turf26 > lightness('#6d9150') + 40 && turf26 < lawn26 - 20, `week 26: the turf under half the lawn's snow (${tok(26, '--turf')} against ${tok(26, '--lawn')})`);
-assert(tok(26, '--turf-roof') !== '#5d8a4a' && lightness(tok(26, '--turf-roof')) > turf26, `week 26: the roof's infield is not swept, so it takes more snow than a pitch (${tok(26, '--turf-roof')})`);
 assert(lightness(tok(26, '--court')) > lightness('#5e8a58') + 40, `week 26: the courts take the snow too (${tok(26, '--court')})`);
 assert(tok(26, '--water') === '#7d8b88', `week 26: the pool is under its cover (${tok(26, '--water')})`);
 assert(tok(26, '--pond') === '#c4d3da', `week 26: the pond is frozen pale (${tok(26, '--pond')})`);

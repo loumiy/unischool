@@ -7,7 +7,7 @@ import { shade } from './tint';
 import { METRES_PER_TILE, across, up } from './campusScale';
 import { GATE_ARCH_HALF, GATE_ARCH_TOP, GATE_BODY_SHARE, GATE_INSET, GATE_SIDE_ARCH_HALF, GATE_SIDE_ARCH_TOP, wallHeightOf } from './buildingSpec';
 import { SCAFFOLD_PATTERN_ID } from './buildingMotifs';
-import { DevelopingContext, CollegeNameContext } from './mapOccasions';
+import { DevelopingContext, CollegeNameContext, GatePartContext } from './mapOccasions';
 import { ROOF_SNOW, SnowContext, snowOn } from './seasons';
 
 // The grand landmarks (Plan 25): a campanile, a great dome and a triumphal
@@ -841,7 +841,10 @@ function gothicLancet(a: Pt, b: Pt, hgt: number): Pt[] {
   return pts;
 }
 
-function TriumphalGate({ t, p, share, building, name, snow }: { t: Buildable; p: Plot; share: number; building: boolean; name: string; snow: number }) {
+// `part`: the passages' insides alone, or everything but them (the canvas
+// map's two entries, so a walker under an arch is drawn between them:
+// over the passage, under the walls either side and over it); null for all.
+function TriumphalGate({ t, p, share, building, name, snow, part = null }: { t: Buildable; p: Plot; share: number; building: boolean; name: string; snow: number; part?: GatePart }) {
   const H = wallHeightOf(t);
   const fullBody = H * GATE_BODY_SHARE;
   const bodyH = Math.min(fullBody, H * share);
@@ -937,12 +940,20 @@ function TriumphalGate({ t, p, share, building, name, snow }: { t: Buildable; p:
       </g>
     );
   };
+  if (part === 'passage') {
+    return (
+      <g className="landmark landmark-gate">
+        {done && passage(long, greatArch)}
+        {done && passage(short, lesserArch)}
+      </g>
+    );
+  }
   return (
     <g className="landmark landmark-gate">
       {done ? (
         <>
-          {passage(long, greatArch)}
-          {passage(short, lesserArch)}
+          {part !== 'shell' && passage(long, greatArch)}
+          {part !== 'shell' && passage(short, lesserArch)}
           {pierced(left)}
           {pierced(right)}
         </>
@@ -1009,12 +1020,13 @@ export function landmarkVolumes(t: Buildable, p: Plot): { col: number; row: numb
 // `vernacular` styles the Great Dome's crown (Plan 87G); the rest of the
 // landmarks are the same in every set.
 export type LandmarkProps = { t: Buildable; p: Plot; developing: boolean; vernacular?: Vernacular };
+export type GatePart = 'passage' | 'shell' | null;
 export default function Landmark(props: LandmarkProps) {
-  return landmarkArt(props, useContext(DevelopingContext), useContext(CollegeNameContext), useContext(SnowContext));
+  return landmarkArt(props, useContext(DevelopingContext), useContext(CollegeNameContext), useContext(SnowContext), useContext(GatePartContext));
 }
 // The landmark given the weeks left on the works, the college's name and
 // the snow on its roofs: what the canvas map draws (canvasArt.ts).
-export function landmarkArt({ t, p, developing, vernacular }: LandmarkProps, developingWeeks: GameState['developing'], name: string, snow: number): React.JSX.Element {
+export function landmarkArt({ t, p, developing, vernacular }: LandmarkProps, developingWeeks: GameState['developing'], name: string, snow: number, gatePart: GatePart = null): React.JSX.Element {
   const weeksLeft = developingWeeks[t.id];
   const fraction = developing && weeksLeft !== undefined && t.duration > 0 ? (t.duration - weeksLeft) / t.duration : 1;
   const stage = developing ? Math.min(2, stageOf(fraction)) as Stage : 3;
@@ -1023,5 +1035,5 @@ export function landmarkArt({ t, p, developing, vernacular }: LandmarkProps, dev
   if (t.id === 'LANDMARK-CAMPANILE') return <Campanile t={t} p={p} share={share} building={building} snow={snow} />;
   if (t.id === 'AMENITY-BELLTOWER') return <BellTower t={t} p={p} share={share} building={building} snow={snow} />;
   if (t.id === 'LANDMARK-DOME') return <GreatDome t={t} p={p} share={share} building={building} vernacular={vernacular} snow={snow} />;
-  return <TriumphalGate t={t} p={p} share={share} building={building} name={name} snow={snow} />;
+  return <TriumphalGate t={t} p={p} share={share} building={building} name={name} snow={snow} part={gatePart} />;
 }

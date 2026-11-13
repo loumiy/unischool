@@ -52,6 +52,24 @@ setCamera(DEFAULT_CAMERA);
   assert(!nearerThanWalker(tree, 41.4, 41.4, ax), 'not than one a step in front');
 }
 
+// ---- Under the Triumphal Gate's arches (Plan 75B) ----
+// The finished gate is two entries: the passages' insides, then the pierced
+// walls over them (CampusMap.tsx). A walker inside the body goes between
+// the two, in every view: over the passage, under the walls.
+{
+  const body = { col: 40.2, row: 40.2, w: 8.6, h: 2.6 };
+  const boxes = [body, { ...body, covers: true }];
+  for (const azimuth of VIEWS) {
+    setCamera({ ...DEFAULT_CAMERA, azimuth });
+    const ax = cameraAxes();
+    assert(walkerSlot(boxes, [0, 1], 44.5, 41.5, ax) === 1, `a walker in the passage is drawn over its inside and under its walls (${azimuth})`);
+    // Out of the body, the walls weigh a walker as any building does.
+    const behind = nearerThanWalker(body, 44.5, 39.9, ax);
+    assert(nearerThanWalker(boxes[1]!, 44.5, 39.9, ax) === behind, `outside the body the walls are a building like any other (${azimuth})`);
+  }
+  setCamera(DEFAULT_CAMERA);
+}
+
 // ---- In every view, a nearer thing is nearer by depthSort's own rule ----
 {
   for (const azimuth of VIEWS) {

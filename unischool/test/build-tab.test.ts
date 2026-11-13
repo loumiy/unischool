@@ -19,7 +19,7 @@ import { FOUNDERS_HALL_ID } from '../src/data/techData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { centredPlacement, footprintOf } from '../src/state/campusMap';
-import { buildTabOf, initialBuildTab, ringedTile } from '../src/components/BuildPopup';
+import { buildTabList, buildTabOf, initialBuildTab, ringedTile } from '../src/components/BuildPopup';
 import { ringedBuilding } from '../src/state/chapters';
 import { RESEARCH_PARK_ID } from '../src/data/researchParkData';
 import { stepBuilding, stepTarget } from '../src/systems/guidance/nextStep';
@@ -130,6 +130,21 @@ console.log('build tab tests');
   assert(initialBuildTab(s, 'LIB-T1') === 'academic', 'and opens on the Academic tab');
   assert(stepBuilding(s, { kind: 'build-for', attribute: 'social' })?.id === 'SCTR-T1', 'a need for social names the Student Center once it can be built');
   assert(stepTarget(s, { text: 'Hire someone', go: 'faculty' }) === undefined && initialBuildTab(s, null) === 'campus-tools', 'a line that is not a build door names nothing');
+}
+
+// Every tab once (Plan 127): the radio once had no category, so its own
+// tab split Social in two, both with the id 'social', and the second, with
+// the Pub, the Bowling Alley and the Movie Theater, could not be opened.
+{
+  const sandbox = reducer(createPreStartState(), {
+    type: 'START_GAME', name: 'Tabs', vernacular: FOUNDING_VERNACULAR, colors: schoolColorsOf(FOUNDING_COLORS), seed: 7, sandbox: true,
+  });
+  const tabs = buildTabList(sandbox);
+  const ids = tabs.map((t) => t.id);
+  assert(new Set(ids).size === ids.length, `every build tab appears once (${ids.join(', ')})`);
+  for (const id of ['CAMPUS-RADIO', 'PUB', 'BOWLING-ALLEY', 'CINEMA']) {
+    assert(buildTabOf(sandbox, id) === 'social', `${id} is on the Social tab (${buildTabOf(sandbox, id)})`);
+  }
 }
 
 if (failures > 0) {

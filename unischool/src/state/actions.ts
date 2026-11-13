@@ -33,7 +33,8 @@ import { DEFAULT_SEED, withRandom } from '../engine/random';
 import { foundingLadder, holdBackUnreached } from '../systems/ladder/ladderSystem';
 
 // A founded university opens with only Founders Hall built, pre-placed at the
-// map's center unless the founding is guided (state/opening.ts sites it then).
+// map's center unless the founding is guided or a sandbox (the player sites
+// it then: state/opening.ts holds the clock until it stands).
 // The founding body is all commuters and enrollment is never capacity-gated,
 // so `capacity` starts at 0. Since Plan 80D it opens with nothing to teach:
 // no professor, no course, and every program slot of Founders Hall empty.
@@ -346,9 +347,12 @@ export function createInitialState(
   colors: SchoolColors = schoolColorsOf(FOUNDING_COLORS),
   guided = false,
   seed = DEFAULT_SEED,
+  // Founders Hall left for the player to site, without the walkthrough: a
+  // sandbox founding's. A guided founding always leaves it unsited.
+  unsitedHall = false,
 ): GameState {
   const stream = { rng: seed | 0 };
-  const state = withRandom(stream, () => foundState(name, vernacular, colors, guided));
+  const state = withRandom(stream, () => foundState(name, vernacular, colors, guided, guided || unsitedHall));
   state.rng = stream.rng;
   return state;
 }
@@ -362,6 +366,7 @@ function foundState(
   vernacular: Vernacular = FOUNDING_VERNACULAR,
   colors: SchoolColors = schoolColorsOf(FOUNDING_COLORS),
   guided = false,
+  unsitedHall = guided,
 ): GameState {
   const preset = FOUNDING_PRESET;
 
@@ -369,7 +374,7 @@ function foundState(
 
   const foundersHall = tech.find((t) => t.id === FOUNDERS_HALL_ID)!;
   foundersHall.builtYear = 1;
-  const foundingPlacements: Placements = guided ? {} : { [FOUNDERS_HALL_ID]: centredPlacement(footprintOf(foundersHall)) };
+  const foundingPlacements: Placements = unsitedHall ? {} : { [FOUNDERS_HALL_ID]: centredPlacement(footprintOf(foundersHall)) };
 
   const foundingReputation = preset.startingReputation + FOUNDERS_HALL_REPUTATION_BONUS;
 
@@ -501,9 +506,9 @@ function foundState(
 
   // The walk along the road, for every founding (Plan 122J). A headless
   // founding's hall stands from the start, and so does its drive to the road
-  // (Plan 115B); a guided founding's player lays paths as they see fit.
+  // (Plan 115B); a player who sites the hall lays paths as they see fit.
   laySidewalk(state);
-  if (!guided) layDrive(state);
+  if (!unsitedHall) layDrive(state);
   appointFoundingFaculty(state);
   holdBackUnreached(state);
   unlockAvailable(state);

@@ -3,7 +3,7 @@ import { isValidElement } from 'react';
 import { HitList, Recorder, StyleResolver, opsBox, replay, type Affine, type Box, type Op } from './canvasPaint';
 import type { DepthBox } from './depthSort';
 import { projectorFor, type Camera, type Pt } from './isoProjection';
-import { walkerSlot } from './walkerDepth';
+import { walkerSlot, type WalkerBox } from './walkerDepth';
 import { FIGURE_H, FIGURE_HALF_W, type Crowd, type CrowdSink, type WalkerColors } from './Walkers';
 
 // The canvas map (Plan 83D): the scene kept as drawings, composited each
@@ -51,6 +51,8 @@ export interface CanvasEntry {
   kind: 'mass' | 'prop' | 'tree';
   // Where it stands on the grid, for the walkers' depth.
   box: DepthBox;
+  // The box a walker is weighed against, when not `box` (walkerDepth.ts).
+  walkerBox?: WalkerBox;
   node: React.ReactNode;
   // Everything its drawing depends on but the season and the doors held
   // open; a change records and draws it again.
@@ -1080,7 +1082,7 @@ export class MapCanvas implements CrowdSink {
     if (!crowd || crowd.size === 0) return out;
     const proj = projectorFor(scene.camera);
     const ax = { cosA: Math.cos(scene.camera.azimuth), sinA: Math.sin(scene.camera.azimuth) };
-    const boxes = this.order.map((r) => r.entry.box);
+    const boxes = this.order.map((r) => r.entry.walkerBox ?? r.entry.box);
     const C = MapCanvas.CELL;
     const keyed: { i: number; y: number; slot: number; fig: Box; still: boolean }[] = [];
     for (let i = 0; i < crowd.size; i++) {

@@ -79,7 +79,7 @@ const fresh = (): GameState => createInitialState('Beauty');
 // ---- The amenities ----
 {
   const s = fresh();
-  assert(AMENITIES.every((a) => milestoneForBuildable(a.id) !== undefined), 'every amenity waits on a milestone');
+  assert(AMENITIES.every((a) => (milestoneForBuildable(a.id) !== undefined) !== (a.programGate !== undefined)), 'every amenity waits on a milestone, or else on a distinguished program');
   assert(AMENITIES.every((a) => s.tech.find((t) => t.id === a.id)?.effects?.satisfactionAttribute === undefined), 'none is on the harness\'s path');
   const base = campusBeauty(s);
   const statue = s.tech.find((t) => t.id === 'AMENITY-STATUE')!;

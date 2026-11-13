@@ -1,6 +1,6 @@
 import type { Buildable, GameState } from '../state/types';
 import { standsOnCampus } from '../state/types';
-import { ART_GALLERY_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID } from './facilitiesData';
+import { ART_GALLERY_ID, CAMPUS_RADIO_ID, HEALTH_CENTER_TIER2_ID, HEALTH_CENTER_TIER3_ID } from './facilitiesData';
 import { ANY_SCHOOL, GRADUATE_HOSTS, hostName } from './projectData';
 import { COURSE_DESCRIPTIONS, GRADUATE_COURSE_DESCRIPTIONS } from './courseDescriptions';
 import { hashUnit } from './rivalData';
@@ -419,8 +419,14 @@ function labId(prefix: string): string {
 // the Performing Arts Center until Plan 51 retired it for the Arts Center,
 // which is earned by the whole Arts & Media curriculum and so cannot gate
 // part of it.
+// Media Studies' advanced courses (Social Media Analytics, Photojournalism,
+// Public Relations and the rest) are taught in the campus radio station,
+// which opens at the first commencement and has no course prereqs, so this
+// cannot be circular either. Film, the other Communication major, has its
+// own Media Production Studio.
 const ARTS_CAPSTONE_GATE: Partial<Record<string, string>> = {
   SART: ART_GALLERY_ID,
+  MDIA: CAMPUS_RADIO_ID,
 };
 
 // Clinical coursework gates on a health-chain facility. Keyed by course, not

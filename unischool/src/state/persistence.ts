@@ -20,7 +20,7 @@ import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../system
 import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
 import { isCutLetter } from '../systems/athletics/cut';
 import {
-  ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
+  ROAD_FIRST_ROW, TRATTORIA_FOOTPRINT, TRATTORIA_ID, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, isVernacular, standsOnCampus } from './types';
@@ -29,7 +29,7 @@ import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
 import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes, programById, programOfCourse } from '../data/techData';
 import { initialDorms } from '../data/campusData';
-import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
+import { REC_CENTER_TIER2_ID, initialFacilities, isDiningPlace } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS, LEGACY_START_FRACTION } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
@@ -975,6 +975,85 @@ function facingFor(node: Buildable, fp: { w: number; h: number }, raw: unknown):
   return across ? 1 : 0;
 }
 
+// Plan 127's dining rebalance, on every load: the chain was resized to a
+// campus of about 40,000, and the Coffee Kiosk and the Food Truck Plaza
+// joined it. A save keeps the catalog it was founded with, so:
+//   - a dining place the save lacks joins it, locked, after the place
+//     before it in the catalog (the next tick opens it if what it opens
+//     after is done);
+//   - one not yet started takes the catalog's seats, price, weeks and what
+//     it opens after, and goes back to locked if that is not done yet
+//     (nothing was spent on it);
+//   - one under way or built keeps what it was built with: its seats were
+//     paid for.
+// Idempotent, so no save version.
+function rebalanceDining(state: GameState): void {
+  if (!Array.isArray(state.tech)) return;
+  const catalog = initialFacilities().filter(isDiningPlace);
+  catalog.forEach((fresh, i) => {
+    const saved = state.tech.find((t) => t.id === fresh.id);
+    if (!saved) {
+      const after = i > 0 ? state.tech.findIndex((t) => t.id === catalog[i - 1]!.id) : -1;
+      state.tech.splice(after >= 0 ? after + 1 : state.tech.length, 0, { ...fresh, prereqs: [...fresh.prereqs], effects: fresh.effects && { ...fresh.effects }, status: fresh.prereqs.length === 0 ? fresh.status : 'locked' });
+      return;
+    }
+    if (saved.status !== 'locked' && saved.status !== 'available') return;
+    saved.cost = fresh.cost;
+    saved.duration = fresh.duration;
+    saved.prereqs = [...fresh.prereqs];
+    if (saved.effects && fresh.effects) saved.effects.servesPopulation = fresh.effects.servesPopulation;
+  });
+  const done = new Set(state.tech.filter((t) => t.status === 'done').map((t) => t.id));
+  for (const t of state.tech) {
+    if (isDiningPlace(t) && t.status === 'available' && !t.prereqs.every((id) => done.has(id))) t.status = 'locked';
+  }
+}
+
+// Buildings added to the catalogue after a save was written (the pond and
+// gardens, the town's venues, the radio, the showpieces): each one the save
+// lacks joins its tech list locked, after the catalogue building before it.
+// The weekly unlockAvailable (techSystem.ts) opens it once its prereqs and
+// gates hold, as it would have in a new run. Idempotent, so no save version.
+export function backfillFacilities(state: GameState): void {
+  if (!Array.isArray(state.tech)) return;
+  const have = new Set(state.tech.map((t) => t.id));
+  const catalog = initialFacilities();
+  catalog.forEach((fresh, i) => {
+    if (have.has(fresh.id)) return;
+    const after = i > 0 ? state.tech.findIndex((t) => t.id === catalog[i - 1]!.id) : -1;
+    state.tech.splice(after >= 0 ? after + 1 : state.tech.length, 0, {
+      ...fresh, prereqs: [...fresh.prereqs], effects: fresh.effects && { ...fresh.effects }, status: 'locked',
+    });
+    have.add(fresh.id);
+  });
+}
+
+// The Grand Table shrank to a trattoria's footprint (campusMap.ts's
+// TRATTORIA_FOOTPRINT). One sited larger keeps its front edge, centred
+// along it, and its facing; the land behind and beside it is freed. Not a
+// version bump: any placement bigger than the footprint is shrunk, so it
+// holds for saves from every version.
+function shrinkTrattoria(state: GameState): void {
+  const p = state.placements?.[TRATTORIA_ID] as Placement | undefined;
+  if (!p || typeof p !== 'object' || !Number.isInteger(p.w) || !Number.isInteger(p.h)) return;
+  const facing = p.facing === 1 || p.facing === 2 || p.facing === 3 ? p.facing : 0;
+  const odd = facing % 2 === 1;
+  // Across the front and front to back, as stored and as wanted.
+  const across = odd ? p.h : p.w; const deep = odd ? p.w : p.h;
+  const want = TRATTORIA_FOOTPRINT;
+  if (across <= want.w && deep <= want.h) return;
+  const nw = Math.min(across, want.w); const nd = Math.min(deep, want.h);
+  const inset = Math.floor((across - nw) / 2);
+  // The new box in the old one's own frame: `inset` along the front from
+  // its left, front edge kept (facing.ts's localToGrid).
+  let { row, col } = p;
+  if (facing === 0) { col += inset; row += p.h - nd; }
+  else if (facing === 1) { row += inset; }
+  else if (facing === 2) { col += p.w - inset - nw; }
+  else { col += p.w - nd; row += p.h - inset - nw; }
+  state.placements[TRATTORIA_ID] = { ...p, row, col, w: odd ? nd : nw, h: odd ? nw : nd };
+}
+
 function sanitizePlacements(state: GameState): void {
   if (typeof state.placements !== 'object' || state.placements === null) {
     state.placements = {};
@@ -1601,6 +1680,12 @@ function refreshAuthoredText(state: GameState): void {
     // The MBA's capital project was the Business School, beside the School
     // of Business: a saved one under the old name takes the new.
     if (t.id === 'PROJ-BUSINESS' && t.name === 'The Business School') t.name = authored.name;
+    // Three dining halls were "commons" (the Commons Cafeteria, Old Well
+    // Commons, Waterside Commons): a saved one under its old name takes the
+    // new.
+    if (t.id === 'DININGHALL-03' && t.name === 'Commons Cafeteria') t.name = authored.name;
+    if (t.id === 'DININGHALL-05' && t.name === 'Old Well Commons') t.name = authored.name;
+    if (t.id === 'DININGHALL-06' && t.name === 'Waterside Commons') t.name = authored.name;
     // A course's weeks are the catalog's until it starts (techData.ts's
     // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
     // was started with, so its progress still reads against them.
@@ -1755,6 +1840,9 @@ export function adoptSave(state: GameState): boolean {
 
 function sanitize(state: GameState): void {
   sanitizeOpening(state);
+  shrinkTrattoria(state);
+  rebalanceDining(state);
+  backfillFacilities(state);
   sanitizePlacements(state);
   // Halls after placements (a hall's slots are real only while it stands),
   // offers after halls (an offer is real only while its program is unhoused).
