@@ -538,6 +538,7 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
   pool: 'health',
   basketballCourts: 'health',
   artGallery: 'social',
+  radio: 'social',
   pub: 'social',
   bowlingAlley: 'social',
   cinema: 'social',

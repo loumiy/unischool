@@ -141,7 +141,7 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; ma
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
   { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' && t.id !== REC_CENTER_TIER2_ID },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
-  // The town's pleasures (Plan 127): three venues for the Social tab.
+  // The town's pleasures (Plan 127): the radio and three venues, on the Social tab.
   { key: 'radio', label: FACILITY_LABELS.radio, repeatable: false, match: (t) => t.facilityType === 'radio' },
   { key: 'pub', label: FACILITY_LABELS.pub, repeatable: false, match: (t) => t.facilityType === 'pub' },
   { key: 'bowlingAlley', label: FACILITY_LABELS.bowlingAlley, repeatable: false, match: (t) => t.facilityType === 'bowlingAlley' },
@@ -300,6 +300,11 @@ export function ringedTile(s: GameState, target?: string | null): string | null 
   return target ?? ringedBuilding(s)?.id ?? null;
 }
 const RingedTile = createContext<string | null>(null);
+
+// The menu's tabs as id and label, in order (test/build-tab.test.ts).
+export function buildTabList(s: GameState): { id: string; label: string; ids: string[] }[] {
+  return buildSections(s).map((x) => ({ id: x.id, label: x.label, ids: x.groups.flatMap((g) => g.items.map((t) => t.id)) }));
+}
 
 // The tab a Buildable is listed under, by section id (test/balance.test.ts).
 export function buildTabOf(s: GameState, id: string): string | undefined {
