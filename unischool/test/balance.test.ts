@@ -168,8 +168,10 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
     for (const id of ids) node(s, id).status = 'done';
     return s;
   };
-  const toNeed = ['DINING-01', 'DININGHALL-02', 'DININGHALL-03', 'DININGHALL-04', 'HLTH-T1', 'GYM', 'SCTR-T1', 'REC-T1'];
-  const overbuilt = [...toNeed, 'DININGHALL-05', 'HLTH-T2', 'SCTR-T2'];
+  // Dining to need: 350 + 900 + 1,800 + 3,000 = 6,050 places for 5,500.
+  const toNeed = ['DINING-01', 'DININGHALL-02', 'DININGHALL-03', 'DININGHALL-05', 'HLTH-T1', 'GYM', 'SCTR-T1', 'REC-T1'];
+  // And past it: Waterside and Harborview, to 15,750.
+  const overbuilt = [...toNeed, 'DININGHALL-06', 'DININGHALL-07', 'HLTH-T2', 'SCTR-T2'];
   const a = college(toNeed);
   const b = college(overbuilt);
   const over = (s: GameState, need: 'basicNeeds' | 'health' | 'social') => needCapacity(s, need).capacity / needCapacity(s, need).need;
@@ -184,11 +186,11 @@ const node = (s: GameState, id: string) => s.tech.find((t) => t.id === id)!;
   // Dining at exactly twice the need pays three times its upkeep.
   const dining = b.tech.filter((t) => t.facilityType === 'diningHall' && t.status === 'done');
   const diningUpkeep = dining.reduce((sum, t) => sum + t.effects!.upkeepPerWeek!, 0);
-  b.students.classes = { freshman: 1_381, sophomore: 1_381, junior: 1_381, senior: 1_382 }; // 5,525: the halls' 11,050 is twice it
+  b.students.classes = { freshman: 1_969, sophomore: 1_969, junior: 1_969, senior: 1_968 }; // 7,875: the halls' 15,750 is twice it
   const diningBeyond = beyondNeedUpkeep(b).byNeed.find((n) => n.attribute === 'basicNeeds')!;
   assert(near(needCapacity(b, 'basicNeeds').capacity / needCapacity(b, 'basicNeeds').need, 2, 1e-9), 'the halls feed twice the need');
   assert(near(diningUpkeep + diningBeyond.upkeep, 3 * diningUpkeep, 1e-6), 'and dining costs three times its upkeep');
-  assert(needUseSentence(b, 'basicNeeds').startsWith('Dining: 11,050 places for 5,525 students'), `the panel says so ("${needUseSentence(b, 'basicNeeds')}")`);
+  assert(needUseSentence(b, 'basicNeeds').startsWith('Dining: 15,750 places for 7,875 students'), `the panel says so ("${needUseSentence(b, 'basicNeeds')}")`);
   // The Medical Center's places, a capital project's, never push the rest
   // of health past the line.
   const withHospital = college([...toNeed, 'HLTH-T3']);

@@ -193,6 +193,11 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **Baseball & Softball Diamond**: ATH-DIAMOND expanded 1× · 14x14
 - **Baseball & Softball Diamond**: ATH-DIAMOND expanded 2× · 14x14
 
+Not on the sheets yet (Plan 127), beside the dining halls:
+
+- **Coffee Kiosk**: DINING-KIOSK · 2x2
+- **Food Truck Plaza**: DINING-TRUCKS · 5x4
+
 ## The grand landmarks and the bell tower
 
 ![The grand landmarks and the bell tower](landmark.jpg)

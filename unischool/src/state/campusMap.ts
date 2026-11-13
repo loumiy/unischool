@@ -62,12 +62,15 @@ const DORM_FOOTPRINTS: SizeRung[] = [
 const FACILITY_SIZE_LADDERS: Partial<Record<FacilityType, SizeRung[]>> = {
   // facilitiesData.ts's DINING_RUNGS. Bigger halls are multi-story, so
   // density climbs with size.
+  // Plan 127's rebalance kept each hall on the land it had: the Central
+  // Dining Pavilion (6,600) the 11x9, Harborview (5,500) the 11x7,
+  // Waterside (4,200) the 9x6, Old Well (3,000) the 7x6.
   diningHall: [
-    { min: 14_000, fp: { w: 11, h: 9 } },
-    { min: 10_000, fp: { w: 11, h: 7 } },
-    { min: 7_000, fp: { w: 9, h: 6 } },
-    { min: 4_000, fp: { w: 7, h: 6 } },
-    { min: 2_500, fp: { w: 7, h: 5 } },
+    { min: 6_000, fp: { w: 11, h: 9 } },
+    { min: 5_000, fp: { w: 11, h: 7 } },
+    { min: 4_000, fp: { w: 9, h: 6 } },
+    { min: 2_500, fp: { w: 7, h: 6 } },
+    { min: 2_200, fp: { w: 7, h: 5 } },
     { min: 1_200, fp: { w: 5, h: 4 } },
     { min: 700, fp: { w: 5, h: 3 } },
     { min: 0, fp: { w: 3, h: 3 } },
@@ -119,6 +122,10 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   pub: { w: 3, h: 3 },             // the house at the front, the beer garden behind
   bowlingAlley: { w: 7, h: 4 },   // sixteen lanes about 25 m long, and the counter in front
   cinema: { w: 5, h: 5 },
+  // Dining beside the halls (Plan 127): a kiosk and its two tables, and
+  // four trucks round a square of picnic tables.
+  coffeeKiosk: { w: 2, h: 2 },
+  foodTrucks: { w: 5, h: 4 },
 
   // Varsity venues, sized from the real thing. The field holds a 400m track
   // (176m by 92m, see groundMarkings.tsx) with a 105m by 68m pitch inside and

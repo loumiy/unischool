@@ -29,7 +29,7 @@ import { dealtSpecialization, isSpecialization } from '../data/rivalData';
 import { glyphsFor, RECRUITING_MAX_LIFT, SCHOLARSHIP_ORDER, SPORTS } from '../data/studentLifeData';
 import { ACADEMIC_HALL_COUNT, academicHallId, FOUNDERS_HALL_ID, graduatePrograms, initialTech, majorPrefixes, programById, programOfCourse } from '../data/techData';
 import { initialDorms } from '../data/campusData';
-import { REC_CENTER_TIER2_ID, initialFacilities } from '../data/facilitiesData';
+import { REC_CENTER_TIER2_ID, initialFacilities, isDiningPlace } from '../data/facilitiesData';
 import { FACULTY_FIELDS, FOUNDING_TENURE_WEEKS, LEGACY_START_FRACTION } from '../data/facultyData';
 import { FOUNDING_MARKET } from '../data/foundingData';
 import { TRAINING_INSTITUTE_ID } from '../data/trainingData';
@@ -975,6 +975,40 @@ function facingFor(node: Buildable, fp: { w: number; h: number }, raw: unknown):
   return across ? 1 : 0;
 }
 
+// Plan 127's dining rebalance, on every load: the chain was resized to a
+// campus of about 40,000, and the Coffee Kiosk and the Food Truck Plaza
+// joined it. A save keeps the catalog it was founded with, so:
+//   - a dining place the save lacks joins it, locked, after the place
+//     before it in the catalog (the next tick opens it if what it opens
+//     after is done);
+//   - one not yet started takes the catalog's seats, price, weeks and what
+//     it opens after, and goes back to locked if that is not done yet
+//     (nothing was spent on it);
+//   - one under way or built keeps what it was built with: its seats were
+//     paid for.
+// Idempotent, so no save version.
+function rebalanceDining(state: GameState): void {
+  if (!Array.isArray(state.tech)) return;
+  const catalog = initialFacilities().filter(isDiningPlace);
+  catalog.forEach((fresh, i) => {
+    const saved = state.tech.find((t) => t.id === fresh.id);
+    if (!saved) {
+      const after = i > 0 ? state.tech.findIndex((t) => t.id === catalog[i - 1]!.id) : -1;
+      state.tech.splice(after >= 0 ? after + 1 : state.tech.length, 0, { ...fresh, prereqs: [...fresh.prereqs], effects: fresh.effects && { ...fresh.effects }, status: fresh.prereqs.length === 0 ? fresh.status : 'locked' });
+      return;
+    }
+    if (saved.status !== 'locked' && saved.status !== 'available') return;
+    saved.cost = fresh.cost;
+    saved.duration = fresh.duration;
+    saved.prereqs = [...fresh.prereqs];
+    if (saved.effects && fresh.effects) saved.effects.servesPopulation = fresh.effects.servesPopulation;
+  });
+  const done = new Set(state.tech.filter((t) => t.status === 'done').map((t) => t.id));
+  for (const t of state.tech) {
+    if (isDiningPlace(t) && t.status === 'available' && !t.prereqs.every((id) => done.has(id))) t.status = 'locked';
+  }
+}
+
 // The Grand Table shrank to a trattoria's footprint (campusMap.ts's
 // TRATTORIA_FOOTPRINT). One sited larger keeps its front edge, centred
 // along it, and its facing; the land behind and beside it is freed. Not a
@@ -1788,6 +1822,7 @@ export function adoptSave(state: GameState): boolean {
 function sanitize(state: GameState): void {
   sanitizeOpening(state);
   shrinkTrattoria(state);
+  rebalanceDining(state);
   sanitizePlacements(state);
   // Halls after placements (a hall's slots are real only while it stands),
   // offers after halls (an offer is real only while its program is unhoused).

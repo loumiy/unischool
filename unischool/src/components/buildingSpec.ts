@@ -32,6 +32,9 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   library: 'portico',
   studentCenter: 'pavilion',
   diningHall: 'pavilion',
+  // The kiosk and the food trucks stand on paving (diningGrounds.tsx).
+  coffeeKiosk: 'grounds',
+  foodTrucks: 'grounds',
   recCenter: 'hangar',
   healthCenter: 'pavilion',
   quad: 'grounds',
@@ -356,7 +359,7 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
       if (serves >= CLINIC_MIN_SERVES) return 3;
       return 2;
     case 'diningHall':
-      if (serves >= 10_000) return 3;
+      if (serves >= 5_000) return 3;
       // A terrace hall (Plan 87D) has a floor over its dining room.
       if (serves >= DINING_TERRACE_MIN_SERVES) return 2;
       return 1;
@@ -1843,7 +1846,7 @@ export function chapelPlan(p: Plot, v: Vernacular): ChapelPlan {
 // the building (its facing), never with the view.
 // Thresholds are campusMap.ts's dining ladder's, kept as literals.
 const DINING_TERRACE_MIN_SERVES = 1_200;
-const DINING_REFECTORY_MIN_SERVES = 7_000;
+const DINING_REFECTORY_MIN_SERVES = 4_000;
 export type DiningBand = 'cafe' | 'terrace' | 'refectory';
 export function diningBandOf(t: Buildable): DiningBand | undefined {
   if (t.kind !== 'facility' || t.facilityType !== 'diningHall') return undefined;
@@ -1884,7 +1887,7 @@ export const REFECTORIES: Readonly<Record<Vernacular, RefectorySpec>> = {
 // The hall's eaves at the 9x6; the two largest stand a little taller. The
 // kitchen and the back range as shares of them.
 function refectoryEavesMetres(t: Buildable): number {
-  return (asBuilt(t).effects?.servesPopulation ?? 0) >= 10_000 ? 13.5 : 12;
+  return (asBuilt(t).effects?.servesPopulation ?? 0) >= 5_000 ? 13.5 : 12;
 }
 export const REFECTORY_KITCHEN_EAVES = 0.72;
 export const REFECTORY_BACK_EAVES = 0.4;
