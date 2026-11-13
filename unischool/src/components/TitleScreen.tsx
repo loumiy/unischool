@@ -32,7 +32,14 @@ const SHOWN = 3;
 // live: the campus itself behind the menu, the run's own or, with none
 // underway, a finished demo campus (TitleBackdrop.tsx). Anything else is
 // the painted title.
-const VARIANTS = ['colours', 'split', 'live'] as const;
+//
+// MOCKUP, five still backgrounds to replace live's turning campus (the
+// owner's ask, 13 November), the mark, the name and the menu unchanged:
+// sky, a campus skyline under the title art's sky; blueprint, a campus
+// plan on a drafting grid; lawn, a mown quad's stripes; stripes, the
+// school's colours as a scarf's diagonal bars; paper, an isometric grid on
+// the game's cream, with the name in ink.
+const VARIANTS = ['colours', 'split', 'live', 'sky', 'blueprint', 'lawn', 'stripes', 'paper'] as const;
 type Variant = typeof VARIANTS[number];
 export function titleVariant(): Variant | null {
   if (typeof window === 'undefined') return null;
@@ -65,7 +72,7 @@ export default function TitleScreen({ s, onContinue, onNewCollege, onSandbox, on
     <div className={`front-screen title-screen${shown ? ` title-v-${shown}` : ''}`} role="dialog" aria-modal="true" aria-label="UniSchool">
       <header className="title-head">
         <Logo />
-        <p className="title-tagline">Fifty years to build a university.</p>
+        <p className="title-tagline">University Tycoon</p>
         {shown === 'colours' && <div className="title-scarf" aria-hidden="true" />}
       </header>
       <div className="title-card">

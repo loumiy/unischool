@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="2">
+  <!-- MOCKUP (styles.css's .title-v-blueprint): a campus plan in thin
+       white lines: halls round a quad, a fountain, the paths between. -->
+  <rect x="100" y="80" width="1000" height="640" stroke-dasharray="10 8"/>
+  <rect x="200" y="140" width="260" height="110"/><rect x="740" y="140" width="260" height="110"/>
+  <rect x="520" y="120" width="160" height="150"/><circle cx="600" cy="195" r="38"/>
+  <rect x="160" y="320" width="120" height="260"/><rect x="920" y="320" width="120" height="260"/>
+  <rect x="200" y="620" width="300" height="70"/><rect x="700" y="620" width="300" height="70"/>
+  <rect x="340" y="320" width="520" height="250" stroke-dasharray="4 6"/>
+  <circle cx="600" cy="445" r="46"/><circle cx="600" cy="445" r="20"/>
+  <path d="M600 270 V399 M600 491 V620 M280 445 H554 M646 445 H920"/>
+  <path d="M340 320 L556 430 M860 320 L644 430 M340 570 L556 460 M860 570 L644 460"/>
+  <g stroke-width="1"><path d="M100 760 H400"/><path d="M100 752 V768 M400 752 V768 M250 755 V765"/></g>
+</svg>
