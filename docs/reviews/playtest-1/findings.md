@@ -750,7 +750,10 @@ marked **0.1.x** and fixed in a patch.*
   part of the climb. *1 player · comment (I10).* The owner (13 November
   2026): the College-then-University naming can confuse players. One way
   to clear it up: make the suffix a dropdown on the founding screen, with
-  University shown but locked until the college earns it.
+  University shown but locked until the college earns it. **Decided**,
+  with a third title: Institute, earned with the first research lab, and
+  University with the first graduate program; each is open at founding
+  once earned in any run. Planned: [Plan 127](../../plans/127-college-institute-university.md).
 
 ## 7 · Bugs
 
