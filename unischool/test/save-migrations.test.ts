@@ -23,7 +23,8 @@ import { initialTech } from '../src/data/techData';
 import { foundGame, playYears } from '../sim/harness/game';
 import { createGuidedPlayer } from '../sim/harness/guided';
 import { brokenRules } from '../sim/harness/invariants';
-import { WEEKS_PER_YEAR, type Faculty, type GameState } from '../src/state/types';
+import { WEEKS_PER_YEAR, type Buildable, type Faculty, type GameState, type Placement } from '../src/state/types';
+import { footprintOf } from '../src/state/campusMap';
 import { grownStat, LEGACY_START_FRACTION } from '../src/data/facultyData';
 import { LANDMARKS_COUNTED, landmarksCounted } from '../src/data/researchParkData';
 import { speedUpRefusal, speedUpsFor } from '../src/systems/prestige/speedUps';
@@ -445,8 +446,46 @@ function testCafeteriaRenamed(): void {
   };
   assert(named('Commons Cafeteria') === 'Hilltop Cafeteria', 'the Commons Cafeteria is the Hilltop Cafeteria now');
   assert(named('The Okafor Cafeteria') === 'The Okafor Cafeteria', "and a donor's name is kept");
+  const renamed = (id: string, name: string) => {
+    const wrapper = JSON.parse(fixture('save-v97.json'));
+    wrapper.state.tech.find((t: { id: string }) => t.id === id).name = name;
+    return loads(JSON.stringify(wrapper), `a save with ${id} as ${name}`)?.tech.find((t) => t.id === id)?.name;
+  };
+  assert(renamed('DININGHALL-05', 'Old Well Commons') === 'Old Well Hall', 'Old Well Commons is Old Well Hall now');
+  assert(renamed('DININGHALL-06', 'Waterside Commons') === 'Waterside Market Hall', 'Waterside Commons is Waterside Market Hall now');
 }
 testCafeteriaRenamed();
+
+// The Grand Table shrank to a trattoria (campusMap.ts's TRATTORIA_FOOTPRINT):
+// one sited at the old 7x5 is shrunk in place, its front edge kept and
+// centred along it, its facing kept, in every facing.
+function testTrattoriaShrunk(): void {
+  const fp = footprintOf({ id: 'DININGHALL-04' } as Buildable);
+  assert(fp.w === 3 && fp.h === 3, `the Grand Table is 3x3 (${fp.w}x${fp.h})`);
+  // The old box at each facing, and the new one wanted: front edge kept.
+  const cases: Array<{ facing: 0 | 1 | 2 | 3; old: Placement; want: Omit<Placement, 'facing'> }> = [
+    { facing: 0, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 32, col: 32, w: 3, h: 3 } },
+    { facing: 1, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 32, col: 30, w: 3, h: 3 } },
+    { facing: 2, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 30, col: 32, w: 3, h: 3 } },
+    { facing: 3, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 32, col: 32, w: 3, h: 3 } },
+  ];
+  for (const { facing, old, want } of cases) {
+    const wrapper = JSON.parse(fixture('save-v97.json'));
+    const s0 = wrapper.state as GameState;
+    // Clear the ground around it, so the hygiene that follows moves nothing.
+    for (const [id, p] of Object.entries(s0.placements)) {
+      if (p.col < 45 && p.row < 45 && p.col + p.w > 25 && p.row + p.h > 25) delete s0.placements[id];
+    }
+    const t = s0.tech.find((x) => x.id === 'DININGHALL-04')!;
+    t.status = 'done';
+    s0.placements['DININGHALL-04'] = { ...old, facing };
+    const s = loads(JSON.stringify(wrapper), `a save with the Grand Table at 7x5 facing ${facing}`);
+    const p = s?.placements['DININGHALL-04'];
+    assert(!!p && p.row === want.row && p.col === want.col && p.w === want.w && p.h === want.h && (p.facing ?? 0) === facing,
+      `facing ${facing}: shrunk in place to ${JSON.stringify(want)} (${JSON.stringify(p)})`);
+  }
+}
+testTrattoriaShrunk();
 
 console.log('save migrations tests');
 if (failures > 0) {

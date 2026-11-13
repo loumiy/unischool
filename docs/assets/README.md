@@ -46,12 +46,12 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **The Original Commons**: DINING-01 · 3x3
 - **Union Square Eatery**: DININGHALL-02 · 5x3
 - **Hilltop Cafeteria**: DININGHALL-03 · 5x4
-- **The Grand Table**: DININGHALL-04 · 7x5
+- **The Grand Table**: DININGHALL-04 · 3x3
 
 ![Pavilions: dining, the student center, the grocery, chapter houses](pavilion-2.jpg)
 
-- **Old Well Commons**: DININGHALL-05 · 7x6
-- **Waterside Commons**: DININGHALL-06 · 9x6
+- **Old Well Hall**: DININGHALL-05 · 7x6
+- **Waterside Market Hall**: DININGHALL-06 · 9x6
 - **Harborview Market**: DININGHALL-07 · 11x7
 - **Central Dining Pavilion**: DININGHALL-08 · 11x9
 - **Campus Grocery Store**: GROCERY-01 · 5x4

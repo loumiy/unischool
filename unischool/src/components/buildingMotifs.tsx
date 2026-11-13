@@ -8961,8 +8961,8 @@ function CafeAwning({ plan, d, H, stripes = [SIGNAL_RED, '#f2e8d4'] }: { plan: D
 }
 
 // --- The Grand Table, a trattoria -------------------------------------
-// The one dining hall drawn as a restaurant rather than a hall: warm
-// stucco and a terracotta roof in Italianate dress on any campus, a green,
+// The one dining hall drawn as a restaurant rather than a hall: a small
+// one-storey stucco house under a terracotta roof on any campus, a green,
 // white and red awning either side of the door under a signboard, and on
 // the terrace a pergola hung with vines and string lights over tables in
 // red and white cloths, with a clear way in at the door.
@@ -9076,6 +9076,86 @@ function TrattoriaTerrace({ plan, doorAt, free, frontSeen }: { plan: DiningPlan;
   );
 }
 
+// The trattoria itself: a one-storey stucco house on the back of its plot,
+// one row of openings at ground level (tall arched shopfront windows lit
+// warm, a glazed arched door on the front's middle), a stucco plinth and an
+// eaves band, a low terracotta hip and the wood-fired oven's chimney on its
+// ridge. Not a hall's mass: no ranks of windows.
+const SHOP_GLOW = '#efc47a';
+const SHOP_FRAME = '#4a3a2c';
+const TRATTORIA_RISE = up(1.7);
+
+// A round-headed opening on a wall: u0..u1 across, from v0 to the crown at v1.
+function archOpening(origin: Pt, along: Pt, H: number, span: number, u0: number, u1: number, v0: number, v1: number): Pt[] {
+  const halfU = (u1 - u0) / 2; const uc = (u0 + u1) / 2;
+  // Round in the world: the head's rise in v for its half-width in u.
+  const vr = Math.min(v1 - v0, (halfU * up(METRES_PER_TILE * span)) / Math.max(0.0001, H));
+  const spring = v1 - vr;
+  const pts: Pt[] = [facePoint(origin, along, H, u0, v0)];
+  for (let i = 0; i <= 10; i++) {
+    const a = Math.PI - (i / 10) * Math.PI;
+    pts.push(facePoint(origin, along, H, uc + Math.cos(a) * halfU, spring + Math.sin(a) * vr));
+  }
+  pts.push(facePoint(origin, along, H, u1, v0));
+  return pts;
+}
+
+function TrattoriaHouse({ plan, H, snow }: { plan: DiningPlan; H: number; snow: number }) {
+  const b = plan.hall;
+  const pal = snowOnRoofs(paletteFrom(TRATTORIA_MATERIAL), snow);
+  const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
+  const walls = (['posRow', 'negRow', 'posCol', 'negCol'] as const).map((dir) => ({ dir, ...wallOf(f, dir) })).filter((w) => w.visible);
+  const metre = (m: number, span: number) => across(m) / span;
+  const wallArt = ({ dir, origin, along, poly }: (typeof walls)[number]) => {
+    const span = wallSpan(b.w, b.h, dir);
+    const q = (u: number, v: number) => facePoint(origin, along, H, u, v);
+    const band = (v0: number, v1: number, fill: string, key: string) => <polygon key={key} points={polyPoints([q(0, v0), q(1, v0), q(1, v1), q(0, v1)])} fill={fill} />;
+    const front = dir === plan.front;
+    // Openings: a door on the front's middle and windows either side; two
+    // windows down each end.
+    const win = metre(3.4, span) / 2;
+    const openings: Array<{ uc: number; half: number; v0: number; door: boolean }> = front
+      ? [
+        { uc: 0.5, half: metre(2.4, span) / 2, v0: 0, door: true },
+        ...[0.2, 0.34, 0.66, 0.8].map((uc) => ({ uc, half: win, v0: 0.16, door: false })),
+      ]
+      : [0.3, 0.7].map((uc) => ({ uc, half: win, v0: 0.16, door: false }));
+    const tone = pal.wall[dir];
+    return (
+      <g key={dir}>
+        <polygon points={polyPoints(poly)} fill={tone} />
+        {band(0, 0.1, shade(tone, 0.82), 'plinth')}
+        {band(0.9, 1, shade(tone, 1.08), 'eaves')}
+        {openings.map((o, i) => {
+          const arch = archOpening(origin, along, H, span, o.uc - o.half, o.uc + o.half, o.v0, 0.8);
+          const frame = archOpening(origin, along, H, span, o.uc - o.half * 1.25, o.uc + o.half * 1.25, o.v0, 0.84);
+          const mid = q(o.uc, o.v0); const top = q(o.uc, 0.8);
+          return (
+            <g key={i}>
+              <polygon points={polyPoints(frame)} fill={shade(tone, 1.12)} />
+              <polygon points={polyPoints(arch)} fill={o.door ? shade(SHOP_GLOW, 0.92) : SHOP_GLOW} stroke={SHOP_FRAME} strokeWidth={0.6} />
+              {/* A glazing bar down the middle, and the door's own leaf line. */}
+              <line x1={mid.x} y1={mid.y} x2={top.x} y2={top.y} stroke={SHOP_FRAME} strokeWidth={o.door ? 0.8 : 0.5} />
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
+  const over = 0.06;
+  const ridgeAlongW = b.w >= b.h;
+  // The oven's chimney on the ridge, toward one end.
+  const cc = ridgeAlongW ? b.col + b.w * 0.76 : b.col + b.w / 2;
+  const cr = ridgeAlongW ? b.row + b.h / 2 : b.row + b.h * 0.76;
+  return (
+    <g className="trattoria-house">
+      {walls.map(wallArt)}
+      <HippedRoof col={b.col - over} row={b.row - over} w={b.w + over * 2} h={b.h + over * 2} base={H} rise={TRATTORIA_RISE} pal={pal} />
+      <Chimney cc={cc} cr={cr} base={H + TRATTORIA_RISE * 0.6} top={H + TRATTORIA_RISE + up(1.6)} pal={pal} stone={stoneFor('italianate')} />
+    </g>
+  );
+}
+
 // The signboard over the door, above the awning: dark green with a gilt
 // edge and the word in cream.
 function TrattoriaSign({ plan, H }: { plan: DiningPlan; H: number }) {
@@ -9083,9 +9163,11 @@ function TrattoriaSign({ plan, H }: { plan: DiningPlan; H: number }) {
   const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
   const wall = wallOf(f, plan.front);
   if (!wall.visible) return null;
-  const z0 = Math.min(up(3.3), H - EAVES_COURSE * 1.2) + up(0.3);
+  // Over the awning on a wall tall enough; on a one-storey house, standing
+  // on the eaves above it, as a shop's sign does.
+  const over = Math.min(up(3.3), H - EAVES_COURSE * 1.2) + up(0.3);
+  const z0 = over + up(1.3) < H - EAVES_COURSE ? over : H - EAVES_COURSE * 0.5;
   const z1 = z0 + up(1.3);
-  if (z1 >= H - EAVES_COURSE) return null;
   const q = (u: number, z: number) => facePoint(wall.origin, wall.along, H, u, z / H);
   const span = wallSpan(b.w, b.h, plan.front);
   const half = Math.min(0.17, 1.15 / span);
@@ -9646,7 +9728,7 @@ function diningHallArt(props: BuildingMassProps, snow: number): React.JSX.Elemen
         <TrattoriaPaving plan={plan} />
         {shadowCastersOf(t, p, props.developing, vernacular).map((c, i) => plotShadow(c, c.height, plan.terrace, `ts${i}`))}
         {!frontSeen && terrace}
-        {buildingMassArt({ ...props, p: { ...plan.hall, facing: p.facing }, bare: true, vernacular: 'italianate', material: TRATTORIA_MATERIAL }, snow)}
+        <TrattoriaHouse plan={plan} H={H} snow={snow} />
         <CafeAwning plan={plan} d={doorOf(t)} H={H} stripes={TRATTORIA_AWNING} />
         <TrattoriaSign plan={plan} H={H} />
         {frontSeen && terrace}
