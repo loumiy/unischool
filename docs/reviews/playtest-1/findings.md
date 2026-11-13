@@ -34,8 +34,9 @@ marked **0.1.x** and fixed in a patch.*
   make my own layout"; "I like seeing the seasons change". F1's player,
   on 0.2.0 past year 50: "Ty for the big update! I really like being
   able to be specialised in two things :D" (F15); F7's, from the
-  Epilogue: "I quite like the flowerbeds you added" (F14). *23 players · reddit (R1,
-  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8), live (T1), form (F1, F2, F3, F4, F6,
+  Epilogue: "I quite like the flowerbeds you added" (F14). GiantSweet, on
+  the page: "great game and I will be continuing to play" (I10). *24 players · reddit (R1,
+  R3, R4, R8, R9, R12, R14, R16), comment (I1, I2, I3, I4, I5, I8, I10), live (T1), form (F1, F2, F3, F4, F6,
   F7, F8, F10, F11), discord (D1), service (S1, S2, S5).*
   F8, after a finished run at rank 1: "If I didn't know this was a
   playtest, I wouldn't have figured it out and thought it was a completed
@@ -365,6 +366,14 @@ marked **0.1.x** and fixed in a patch.*
   Founders Hall went down and the people walked towards the road, S2
   wasn't sure it wasn't a bug, with no paths placed yet. *1 player ·
   service (S2).*
+  GiantSweet: "It is also a little odd seeing the people just walking to
+  and from campus from the road," and asks for "a sidewalk along the road
+  so people can still walk to and from the college without it looking
+  odd." Since 0.2.0 a new game starts with a paved walk the length of the
+  road (Plan 122J), but students still come and go at points along the
+  road (`walkRoutes.ts`'s `roadsides`) and cross the grass to them where
+  no path is laid. Their version isn't known; a college founded before
+  0.2.0 has no walk. *1 player · comment (I10).*
 - **With only Founders Hall built, the students pace a few steps out and
   back.** On 0.1.4: "My little student dudes seem to love walking a few
   steps away from the founders hall and nowhere else (tbf I have nothing
@@ -715,6 +724,36 @@ marked **0.1.x** and fixed in a patch.*
 - **Moving a building.** "Can we pick up and move structures?" Only in a
   sandbox today; in a normal run a building comes down and goes up again
   elsewhere (Founders Hall can't). *1 player · reddit (R15).*
+
+- **Parking as a mechanic.** "It's a big part of nearly all colleges;
+  student parking passes generate revenue and the amount of available
+  parking can impact student satisfaction." Nothing in the game today;
+  a lot beside the road is in `BACKLOG.md` as decoration only (the rest
+  of the decorative assets, item 4). *1 player · comment (I10).*
+  **Declined** (the owner, 13 November 2026): an early build, when the map
+  was a bare grid of blocks, had parking; it took up a lot of space,
+  wasn't fun to manage and wasn't nice to look at, so it was taken out.
+
+- **Cars, and local roads with crosswalks.** "Some simple car models
+  that drive past the college or directly into the college to park," and
+  "local roads with sidewalks and crosswalks as a special path that only
+  cars can take and pedestrians use the crosswalks." Nothing on the road
+  moves today. *1 player · comment (I10).* The owner (13 November 2026)
+  is open to cars, but they aren't high on the list.
+
+- **A name without "College" on the end.** "When naming our college, I
+  dont think it's necessary to have 'College' at the end regardless. What
+  if people want to be named [NAME] University or [NAME] Institute?"
+  Today every college opens as "[Name] College" and the board grants
+  "University" with the first research lab (the founding screen's caption
+  says so; `foundingData.ts`'s `UNIVERSITY_CAPTION`), so the suffix is
+  part of the climb. *1 player · comment (I10).* The owner (13 November
+  2026): the College-then-University naming can confuse players. One way
+  to clear it up: make the suffix a dropdown on the founding screen, with
+  University shown but locked until the college earns it. **Decided**,
+  with a third title: Institute, earned with the first research lab, and
+  University with the first graduate program; each is open at founding
+  once earned in any run. Planned: [Plan 127](../../plans/127-college-institute-university.md).
 
 ## 7 · Bugs
 
@@ -1824,3 +1863,20 @@ the owner has it. Her notes from the video's description, as written:*
   the owner's answer under I6 — "but the game won't let me press
   anything". Filed under *Bugs*; fixed for the next patch. Not yet
   answered.
+- **I10** · GiantSweet · comment, 13 November (the owner pasted it here;
+  [the post](https://itch.io/post/17891870)) — "Have you thought about
+  implementing parking lots and parking in general as a mechanic? It's a
+  big part of nearly all colleges; student parking passes generate
+  revenue and the amount of available parking can impact student
+  satisfaction. It is also a little odd seeing the people just walking to
+  and from campus from the road. You could add some simple car models
+  that drive past the college or directly into the college to park. Also
+  adding a sidewalk along the road so people can still walk to and from
+  the college without it looking odd. You could also add local roads with
+  sidewalks and crosswalks as a special path that only cars can take and
+  pedestrians use the crosswalks. One more minor suggestion, when naming
+  our college, I dont think it's necessary to have 'College' at the end
+  regardless. What if people want to be named [NAME] university or [NAME]
+  Institute? Anyway, great game and I will be continuing to play." Filed
+  under *Aesthetics* (praise; the road-walkers) and *Asked for in play*
+  (parking, cars and roads, the name). Not yet answered.
