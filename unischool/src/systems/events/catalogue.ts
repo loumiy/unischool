@@ -218,7 +218,7 @@ function closablePrograms(s: GameState): string[] {
 // boilers, lifts and foyers in it. Open ground (quads, lawns, courts, fields,
 // the pool deck, the stadium bowl) and the ornaments (statues, fountains,
 // gardens, landmarks) are never it; the chapel is the one amenity that is.
-const UNROOFED_FACILITIES: ReadonlySet<string> = new Set(['quad', 'amenity', 'landmark', 'tennisCourts', 'athleticsField', 'athleticsDiamond', 'pool', 'footballStadium']);
+const UNROOFED_FACILITIES: ReadonlySet<string> = new Set(['quad', 'amenity', 'landmark', 'tennisCourts', 'basketballCourts', 'athleticsField', 'athleticsDiamond', 'pool', 'footballStadium']);
 const ROOFED_AMENITIES: ReadonlySet<string> = new Set(['AMENITY-CHAPEL']);
 function roofed(t: Buildable): boolean {
   if (ROOFED_AMENITIES.has(t.id)) return true;

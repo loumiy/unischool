@@ -282,6 +282,30 @@ const ART_GALLERY_SERVES = 500;
 const ART_GALLERY_COST = 220_000;
 const ART_GALLERY_WEEKS = 10;
 
+// --- The town's pleasures (Plan 127): a pub, a bowling alley, a movie ---
+// --- theater, and outdoor basketball courts ---
+// One-off buildings, each opened by a milestone (ladderData.ts) as the
+// college grows into a town. The three venues feed `social`, priced a
+// little above the Student Center's $/seat (330) so they widen the choice
+// rather than undercut it; the courts feed `health` beside the fitness
+// chain, behind the gym, at about the tennis courts' $/seat.
+export const PUB_ID = 'PUB';
+const PUB_SERVES = 600;
+const PUB_COST = 300_000;
+const PUB_WEEKS = 12;
+export const BOWLING_ALLEY_ID = 'BOWLING-ALLEY';
+const BOWLING_ALLEY_SERVES = 1_000;
+const BOWLING_ALLEY_COST = 520_000;
+const BOWLING_ALLEY_WEEKS = 16;
+export const CINEMA_ID = 'CINEMA';
+const CINEMA_SERVES = 1_600;
+const CINEMA_COST = 820_000;
+const CINEMA_WEEKS = 22;
+export const BASKETBALL_COURTS_ID = 'BASKETBALL-COURTS';
+const BASKETBALL_COURTS_SERVES = 1_200;
+const BASKETBALL_COURTS_COST = 450_000;
+const BASKETBALL_COURTS_WEEKS = 10;
+
 // --- Varsity athletics venues: shared competition facilities, HIDDEN until demanded ---
 // Sport -> category mapping: studentLifeData.ts's SPORTS; reveal:
 // eventData.ts's 'varsity-petition'. Each is seeded 'locked' with
@@ -432,7 +456,11 @@ export const FACILITY_CATEGORY_OF: Partial<Record<FacilityType, FacilityCategory
   gym: 'health',
   tennisCourts: 'health',
   pool: 'health',
+  basketballCourts: 'health',
   artGallery: 'social',
+  pub: 'social',
+  bowlingAlley: 'social',
+  cinema: 'social',
   athleticsField: 'athletics',
   athleticsArena: 'athletics',
   athleticsDiamond: 'athletics',
@@ -547,6 +575,13 @@ export const AMENITIES: ReadonlyArray<{ id: string; name: string; description: s
   { id: 'AMENITY-GARDEN', name: 'The Japanese Garden', description: 'A koi pond under a red bridge, a torii over the path, a three-tiered pagoda, a stone lantern and cherry trees in blossom: the quietest acre on campus.', cost: 300_000, weeks: 16, upkeep: 1_500, beauty: 1.5 },
   { id: 'AMENITY-CHAPEL', name: 'The Chapel', description: 'A small stone chapel, used for concerts and quiet as often as for services.', cost: 1_500_000, weeks: 39, upkeep: 2_000, beauty: 1.5 },
   { id: 'AMENITY-BELLTOWER', name: 'The Bell Tower', description: 'A slim tower with a peal of bells that marks the hours across the campus.', cost: 1_800_000, weeks: 47, upkeep: 1_500, beauty: 2 },
+  // More grounds to lay out (Plan 127): four gardens on open ground, each
+  // opened by a milestone (ladderData.ts), priced by beauty about as the
+  // others are.
+  { id: 'AMENITY-PARTERRE', name: 'The Parterre', description: 'Low box hedges clipped into knots around gravel walks and a sundial, laid out to be looked down on from the windows.', cost: 200_000, weeks: 12, upkeep: 900, beauty: 0.9 },
+  { id: 'AMENITY-AMPHITHEATER', name: 'The Amphitheater', description: 'Grass terraces stepped down to a small stone stage, for plays in June and for lectures outdoors when the heating fails.', cost: 700_000, weeks: 20, upkeep: 900, beauty: 1.2 },
+  { id: 'AMENITY-SCULPTURE', name: 'The Sculpture Garden', description: 'Bronze and steel on plinths across a mown lawn, each piece the gift of a class that could agree on one.', cost: 450_000, weeks: 14, upkeep: 700, beauty: 1.1 },
+  { id: 'AMENITY-POND', name: 'The Pond', description: 'A big pond with reeds round its edge, lily pads, a wooden footbridge over the narrow end and a family of ducks who think it is theirs.', cost: 600_000, weeks: 18, upkeep: 1_000, beauty: 1.8 },
 ];
 
 export function initialFacilities(): Buildable[] {
@@ -731,6 +766,72 @@ export function initialFacilities(): Buildable[] {
         servesPopulation: ART_GALLERY_SERVES,
         satisfactionAttribute: 'social',
         upkeepPerWeek: priceUpkeep(ART_GALLERY_COST),
+      },
+    },
+
+    // The town's pleasures (Plan 127; see above PUB_ID).
+    {
+      id: PUB_ID,
+      kind: 'facility',
+      facilityType: 'pub',
+      name: 'The Pub',
+      description: 'A wood-paneled pub with a dartboard, a quiz night on Tuesdays and a beer garden out the back.',
+      cost: PUB_COST,
+      duration: PUB_WEEKS,
+      prereqs: [],
+      status: 'locked',
+      effects: {
+        servesPopulation: PUB_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: priceUpkeep(PUB_COST),
+      },
+    },
+    {
+      id: BOWLING_ALLEY_ID,
+      kind: 'facility',
+      facilityType: 'bowlingAlley',
+      name: 'Bowling Alley',
+      description: 'Sixteen lanes, rented shoes and a league whose standings are followed more closely than the football team\'s.',
+      cost: BOWLING_ALLEY_COST,
+      duration: BOWLING_ALLEY_WEEKS,
+      prereqs: [],
+      status: 'locked',
+      effects: {
+        servesPopulation: BOWLING_ALLEY_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: priceUpkeep(BOWLING_ALLEY_COST),
+      },
+    },
+    {
+      id: CINEMA_ID,
+      kind: 'facility',
+      facilityType: 'cinema',
+      name: 'Movie Theater',
+      description: 'Three screens under a lit marquee, with new films on the weekend and old ones for a dollar on Wednesdays.',
+      cost: CINEMA_COST,
+      duration: CINEMA_WEEKS,
+      prereqs: [],
+      status: 'locked',
+      effects: {
+        servesPopulation: CINEMA_SERVES,
+        satisfactionAttribute: 'social',
+        upkeepPerWeek: priceUpkeep(CINEMA_COST),
+      },
+    },
+    {
+      id: BASKETBALL_COURTS_ID,
+      kind: 'facility',
+      facilityType: 'basketballCourts',
+      name: 'Basketball Courts',
+      description: 'Outdoor courts with chain nets, where pickup games run until the floodlights go off.',
+      cost: BASKETBALL_COURTS_COST,
+      duration: BASKETBALL_COURTS_WEEKS,
+      prereqs: [GYM_ID],
+      status: 'locked',
+      effects: {
+        servesPopulation: BASKETBALL_COURTS_SERVES,
+        satisfactionAttribute: 'health',
+        upkeepPerWeek: priceUpkeep(BASKETBALL_COURTS_COST),
       },
     },
 

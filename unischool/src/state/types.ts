@@ -315,6 +315,9 @@ export type FacilityType =
   | 'grocery'
   // One-off: gym/pool/tennis feed `health`, arts venues feed `social`.
   | 'gym' | 'tennisCourts' | 'pool' | 'artGallery'
+  // Outdoor basketball courts feed `health`; the pub, the bowling alley and
+  // the movie theater feed `social` (Plan 127).
+  | 'basketballCourts' | 'pub' | 'bowlingAlley' | 'cinema'
   // Varsity competition venues, one per sport category, distinct from the
   // rec facilities. Hidden until a team needing one is granted varsity
   // status (Buildable.athleticsVenueReveal).

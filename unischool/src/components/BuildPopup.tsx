@@ -72,6 +72,10 @@ const FACILITY_LABELS: Record<FacilityType, string> = {
   tennisCourts: 'Tennis Courts',
   pool: 'Pool',
   artGallery: 'Art Gallery',
+  basketballCourts: 'Basketball Courts',
+  pub: 'Pub',
+  bowlingAlley: 'Bowling Alley',
+  cinema: 'Movie Theater',
   athleticsField: 'Multi-Sport Field',
   athleticsArena: 'Arena',
   athleticsDiamond: 'Diamond',
@@ -136,6 +140,10 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   { key: 'studentCenter', label: FACILITY_LABELS.studentCenter, repeatable: false, match: (t) => t.facilityType === 'studentCenter' },
   { key: 'recCenter', label: FACILITY_LABELS.recCenter, repeatable: false, match: (t) => t.facilityType === 'recCenter' && t.id !== REC_CENTER_TIER2_ID },
   { key: 'artGallery', label: FACILITY_LABELS.artGallery, repeatable: false, match: (t) => t.facilityType === 'artGallery' },
+  // The town's pleasures (Plan 127): three venues for the Social tab.
+  { key: 'pub', label: FACILITY_LABELS.pub, repeatable: false, match: (t) => t.facilityType === 'pub' },
+  { key: 'bowlingAlley', label: FACILITY_LABELS.bowlingAlley, repeatable: false, match: (t) => t.facilityType === 'bowlingAlley' },
+  { key: 'cinema', label: FACILITY_LABELS.cinema, repeatable: false, match: (t) => t.facilityType === 'cinema' },
   { key: 'dorm', label: 'Housing', repeatable: true, match: (t) => t.kind === 'dorm' },
   // Greek chapter houses share the Housing tab but are their own group:
   // each belongs to a specific chapter, so no "#N" and no collapse.
@@ -159,6 +167,8 @@ const TYPE_MATCHERS: Array<{ key: string; label: string; repeatable: boolean; se
   // Varsity venues stay locked (so invisible) until a team needing them is
   // granted (facilitiesData.ts's athleticsVenueReveal, eventData.ts's
   // 'varsity-petition').
+  // The basketball courts stand beside the fitness chain, not in it.
+  { key: 'basketballCourts', label: FACILITY_LABELS.basketballCourts, repeatable: false, match: (t) => t.facilityType === 'basketballCourts' },
   { key: 'athleticsField', label: FACILITY_LABELS.athleticsField, repeatable: false, match: (t) => t.facilityType === 'athleticsField' },
   { key: 'athleticsArena', label: FACILITY_LABELS.athleticsArena, repeatable: false, match: (t) => t.facilityType === 'athleticsArena' },
   { key: 'athleticsDiamond', label: FACILITY_LABELS.athleticsDiamond, repeatable: false, match: (t) => t.facilityType === 'athleticsDiamond' },
@@ -331,8 +341,12 @@ function iconForBuildable(t: Buildable): () => React.JSX.Element {
     case 'recCenter':
     case 'gym':
     case 'tennisCourts':
+    case 'basketballCourts':
     case 'pool': return FitnessIcon;
     case 'artGallery': return ArtsIcon;
+    case 'pub':
+    case 'bowlingAlley':
+    case 'cinema': return StudentLifeIcon;
     case 'athleticsField':
     case 'athleticsArena':
     case 'athleticsDiamond':
