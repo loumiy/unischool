@@ -1601,6 +1601,10 @@ function refreshAuthoredText(state: GameState): void {
     // The MBA's capital project was the Business School, beside the School
     // of Business: a saved one under the old name takes the new.
     if (t.id === 'PROJ-BUSINESS' && t.name === 'The Business School') t.name = authored.name;
+    // The third dining hall was the Commons Cafeteria, one "commons" among
+    // several on the dining ladder: a saved one under the old name takes the
+    // new.
+    if (t.id === 'DININGHALL-03' && t.name === 'Commons Cafeteria') t.name = authored.name;
     // A course's weeks are the catalog's until it starts (techData.ts's
     // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
     // was started with, so its progress still reads against them.

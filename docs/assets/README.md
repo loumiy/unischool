@@ -45,7 +45,7 @@ Every buildable asset in all nine vernaculars (the five founding sets, then the 
 - **Experimental Economics Lab**: LAB-ECON · 5x3
 - **The Original Commons**: DINING-01 · 3x3
 - **Union Square Eatery**: DININGHALL-02 · 5x3
-- **Commons Cafeteria**: DININGHALL-03 · 5x4
+- **Hilltop Cafeteria**: DININGHALL-03 · 5x4
 - **The Grand Table**: DININGHALL-04 · 7x5
 
 ![Pavilions: dining, the student center, the grocery, chapter houses](pavilion-2.jpg)
