@@ -41,6 +41,10 @@ const FACILITY_MOTIFS: Record<FacilityType, Motif> = {
   // The rec pool is an open-air deck; the natatorium is a roofed venue.
   pool: 'grounds',
   artGallery: 'portico',
+  basketballCourts: 'grounds',
+  pub: 'pavilion',
+  bowlingAlley: 'pavilion',
+  cinema: 'pavilion',
   athleticsField: 'grounds',
   athleticsArena: 'hangar',
   athleticsDiamond: 'grounds',
@@ -359,6 +363,10 @@ function facilityStoreys(facilityType: FacilityType | undefined, serves: number)
     case 'studentCenter':
       return serves >= STUDENT_CENTRE_EXPANDED_MIN_SERVES ? 3 : 2;
     case 'grocery': return 1;
+    // The bowling alley's lanes are one long shed, the pub a two-story
+    // house, the movie theater's lobby front 12 m (townVenues.tsx).
+    case 'bowlingAlley': return 2;
+    case 'cinema': return 3;
     case 'lab': return 2;
     default: return 2;
   }
@@ -582,7 +590,10 @@ export function doorFamilyOf(t: Buildable): DoorFamily | null {
     // Every lab-gated building takes a service door whatever its motif.
     case 'lab': return 'service';
     case 'library':
-    case 'grocery': return 'shopfront';
+    case 'grocery':
+    case 'cinema':
+    case 'bowlingAlley': return 'shopfront';
+    case 'pub': return 'residential';
     case 'healthCenter':
       return (t.effects?.servesPopulation ?? 0) >= HOSPITAL_MIN_SERVES ? 'canopy' : 'civic';
     default: return 'civic';
@@ -1696,6 +1707,14 @@ function baseMaterialOf(t: Buildable, v: Vernacular): Material {
     case 'recCenter':
     case 'athleticsArena':
     case 'fieldHouse':
+      return MATERIALS.render;
+    // The town's pleasures (Plan 127): the pub in dark brick, the movie
+    // theater in buff, the bowling alley's shed rendered.
+    case 'pub':
+      return MATERIALS.brickDark;
+    case 'cinema':
+      return MATERIALS.brickBuff;
+    case 'bowlingAlley':
       return MATERIALS.render;
     // Open ground and venues drawn as markings take a wall color only for their props.
     default:

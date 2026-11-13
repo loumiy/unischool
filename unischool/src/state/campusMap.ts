@@ -113,6 +113,12 @@ const FACILITY_FOOTPRINTS: Partial<Record<FacilityType, Footprint>> = {
   tennisCourts: { w: 12, h: 4 }, // six courts in a row, which is ~110m by 36m — open ground, no door to centre
   pool: { w: 7, h: 4 },          // a 50m pool and its deck
   artGallery: { w: 5, h: 3 },
+  // The town's pleasures (Plan 127). The courts are three side by side, a
+  // full court 28 m by 15 m each with its run-off: open ground.
+  basketballCourts: { w: 6, h: 4 },
+  pub: { w: 3, h: 3 },             // the house at the front, the beer garden behind
+  bowlingAlley: { w: 7, h: 4 },   // sixteen lanes about 25 m long, and the counter in front
+  cinema: { w: 5, h: 5 },
 
   // Varsity venues, sized from the real thing. The field holds a 400m track
   // (176m by 92m, see groundMarkings.tsx) with a 105m by 68m pitch inside and
@@ -138,6 +144,10 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'AMENITY-GARDEN': { w: 6, h: 6 },
   'AMENITY-CHAPEL': { w: 5, h: 3 },
   'AMENITY-BELLTOWER': { w: 3, h: 3 },
+  'AMENITY-PARTERRE': { w: 5, h: 5 },
+  'AMENITY-AMPHITHEATER': { w: 7, h: 6 },
+  'AMENITY-SCULPTURE': { w: 6, h: 5 },
+  'AMENITY-POND': { w: 10, h: 7 },
   // The capital projects (Plan 33): larger than anything else of their kind.
   'PROJ-ARTS': { w: 11, h: 9 },
   'PROJ-RESEARCH-PARK': { w: 13, h: 8 },

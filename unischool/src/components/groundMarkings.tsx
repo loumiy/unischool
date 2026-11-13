@@ -11,6 +11,7 @@ import { TreeAt, treeShadow, type Species } from './trees';
 import { QUAD_WALK, quadCentre } from './quadGeometry';
 import { FlowerMounds, bedMound, lampArt } from './dressing';
 import { roll } from '../data/treeData';
+import { AmphitheaterGround, BasketballGround, ParterreGround, PondGround, SculptureGround, amphitheaterProps, basketballProps, parterreProps, pondProps, sculptureProps } from './campusGardens';
 
 // Open ground: the Buildables you walk across rather than into (quad, pool
 // deck, courts, pitches, the stadium's field). They have no mass, so they are
@@ -1655,11 +1656,16 @@ function japaneseGardenProps(col: number, row: number, w: number, h: number): Gr
 // Every open-ground amenity names its own branch (Plan 99C): an id with
 // none draws nothing raised, rather than passing for the fountain, and
 // test/amenity-art.test.ts checks each one has one.
-export const OPEN_GROUND_AMENITIES: readonly string[] = ['AMENITY-STATUE', 'AMENITY-FOUNTAIN', 'AMENITY-GARDEN', 'AMENITY-GAZEBO'];
+export const OPEN_GROUND_AMENITIES: readonly string[] = ['AMENITY-STATUE', 'AMENITY-FOUNTAIN', 'AMENITY-GARDEN', 'AMENITY-GAZEBO', 'AMENITY-POND', 'AMENITY-PARTERRE', 'AMENITY-AMPHITHEATER', 'AMENITY-SCULPTURE'];
 function amenityProps(id: string | undefined, col: number, row: number, w: number, h: number, vernacular?: Vernacular): GroundProp[] {
   const cc = col + w / 2; const cr = row + h / 2;
   switch (id) {
     case 'AMENITY-GARDEN': return japaneseGardenProps(col, row, w, h);
+    // The gardens of Plan 127 (campusGardens.tsx).
+    case 'AMENITY-POND': return pondProps({ col, row, w, h });
+    case 'AMENITY-PARTERRE': return parterreProps({ col, row, w, h });
+    case 'AMENITY-AMPHITHEATER': return amphitheaterProps({ col, row, w, h });
+    case 'AMENITY-SCULPTURE': return sculptureProps({ col, row, w, h });
     case 'AMENITY-STATUE':
       return [{ key: 'statue', ...aroundPoint(cc, cr, Math.min(w, h) * 0.24), node: <FoundersStatue col={col} row={row} w={w} h={h} /> }];
     case 'AMENITY-FOUNTAIN':
@@ -2126,6 +2132,7 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
     case 'athleticsField': return <Pitch col={col} row={row} w={w} h={h} />;
     case 'athleticsDiamond': return <Diamond col={col} row={row} w={w} h={h} />;
     case 'tennisCourts': return <Courts col={col} row={row} w={w} h={h} />;
+    case 'basketballCourts': return <BasketballGround col={col} row={row} w={w} h={h} />;
     case 'pool': return <PoolDeck col={col} row={row} w={w} h={h} />;
     case 'quad': return <Quad col={col} row={row} w={w} h={h} tier={tier ?? 1} />;
     case 'amenity':
@@ -2134,6 +2141,10 @@ export default function GroundMarking({ facilityType, col, row, w, h, tier, deve
         case 'AMENITY-STATUE': return <StatueGround col={col} row={row} w={w} h={h} />;
         case 'AMENITY-FOUNTAIN': return <FountainGround col={col} row={row} w={w} h={h} />;
         case 'AMENITY-GAZEBO': return <GazeboGround col={col} row={row} w={w} h={h} />;
+        case 'AMENITY-POND': return <PondGround col={col} row={row} w={w} h={h} />;
+        case 'AMENITY-PARTERRE': return <ParterreGround col={col} row={row} w={w} h={h} />;
+        case 'AMENITY-AMPHITHEATER': return <AmphitheaterGround col={col} row={row} w={w} h={h} />;
+        case 'AMENITY-SCULPTURE': return <SculptureGround col={col} row={row} w={w} h={h} />;
         default: return <polygon className="ground-lawn" points={polyPoints(boxFaces(col, row, w, h, 0, 0).top)} />;
       }
     default:
@@ -2160,6 +2171,7 @@ export function groundProps(
     case 'athleticsField': return pitchProps(col, row, w, h, stage);
     case 'athleticsDiamond': return diamondProps(col, row, w, h, stage);
     case 'tennisCourts': return courtsProps(col, row, w, h);
+    case 'basketballCourts': return basketballProps({ col, row, w, h });
     case 'pool': return poolProps(col, row, w, h);
     case 'quad': return quadProps(col, row, w, h, tier ?? 1);
     default: return [];

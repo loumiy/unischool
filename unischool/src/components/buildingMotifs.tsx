@@ -10,6 +10,7 @@ import LibraryMass from './libraryMotif';
 import { ColorsContext } from './mapOccasions';
 import { Spectators, VenuePennants } from './spectators';
 import { StadiumFacade, type ArchHead, type FacadeWall } from './stadiumFacade';
+import { BowlingAlley, Cinema, Pub } from './townVenues';
 import {
   labFeatureOf, type LabFeature, type Motif,
   BASE_COURSE, BAY_METRES, BLOCK_SPLIT_MIN_TILES, CANOPY_DEPTH, CROSS_ARM_METRES,
@@ -10337,6 +10338,10 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
   if (motif === 'chapel' && !site) {
     return <Chapel t={t} p={p} vernacular={vernacular} pal={pal} stone={stone} wall={shade(material.wall, wallShadeOf(t))} />;
   }
+  // The town's pleasures draw themselves (Plan 127, townVenues.tsx).
+  if (!site && t.facilityType === 'pub') return <Pub p={p} pal={pal} stone={stone} />;
+  if (!site && t.facilityType === 'cinema') return <Cinema p={p} wall={shade(material.wall, wallShadeOf(t))} />;
+  if (!site && t.facilityType === 'bowlingAlley') return <BowlingAlley p={p} />;
 
   // The Research Park and the Graduate College lay out their own plots
   // (Plan 87B); a site is the plain frame below.

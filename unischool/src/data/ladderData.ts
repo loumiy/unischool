@@ -149,7 +149,7 @@ export const MILESTONES: readonly Milestone[] = [
     name: 'First commencement',
     condition: 'the first summer closes',
     reached: (s) => s.history.length >= 1,
-    buildables: ['AMENITY-FOUNTAIN'],
+    buildables: ['AMENITY-FOUNTAIN', 'PUB', 'AMENITY-PARTERRE'],
     // The Students tab opens here, with satisfaction (Plan 104M): in week
     // one every need reads low because nothing is built yet, which read as
     // failure (S1), so the walkthrough builds the needs instead of showing
@@ -161,8 +161,8 @@ export const MILESTONES: readonly Milestone[] = [
     tabs: ['students'],
     // Students' guidebook, clubs and funnel open with the tab itself.
     sections: ['history.record'],
-    letter: 'Your first year is over. The Students tab is open now. It shows how happy your students are, what they need, what the guidebooks say about you, and the clubs students have started. History keeps a record of each year.',
-    opens: ['History: the record of each year', 'Students: satisfaction and the five needs behind it, what the guidebooks say, clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit'],
+    letter: 'Your first year is over. The Students tab is open now. It shows how happy your students are, what they need, what the guidebooks say about you, and the clubs students have started. History keeps a record of each year. Your first graduates will want somewhere to celebrate, so you can build a pub.',
+    opens: ['History: the record of each year', 'Students: satisfaction and the five needs behind it, what the guidebooks say, clubs and chapters, and the admissions funnel', 'The Fountain: somewhere to sit', 'The Pub: a quiz night and a beer garden', 'The Parterre: a formal garden of clipped hedges'],
   },
   {
     id: 'curriculum',
@@ -195,10 +195,10 @@ export const MILESTONES: readonly Milestone[] = [
     name: "A town's worth",
     condition: `${count(HEALTH_CENTER_TIER1_POPULATION_GATE)} students`,
     ...students(HEALTH_CENTER_TIER1_POPULATION_GATE),
-    buildables: ['HLTH-T1', 'AMENITY-GAZEBO'],
+    buildables: ['HLTH-T1', 'AMENITY-GAZEBO', 'BOWLING-ALLEY', 'AMENITY-AMPHITHEATER'],
     tabs: [],
     letter: 'Your college is the size of a small town now, and people in towns get sick. From here on, students expect health care on campus, and it counts toward their satisfaction. A town also needs running. From here on, every time the college doubles in size, each student costs a little more to administer.',
-    opens: ['Health & Counseling Center: health care for students', 'The Gazebo: an open pavilion for summer evenings'],
+    opens: ['Health & Counseling Center: health care for students', 'The Gazebo: an open pavilion for summer evenings', 'Bowling Alley: lanes and a league', 'The Amphitheater: grass terraces and a stage'],
   },
   {
     id: 'regional',
@@ -206,10 +206,10 @@ export const MILESTONES: readonly Milestone[] = [
     name: 'A regional name',
     condition: `prestige ${REC_CENTER_TIER2_PRESTIGE_GATE}`,
     ...prestige(REC_CENTER_TIER2_PRESTIGE_GATE),
-    buildables: ['REC-T2', 'AMENITY-CHAPEL'],
+    buildables: ['REC-T2', 'AMENITY-CHAPEL', 'AMENITY-SCULPTURE'],
     tabs: [],
     letter: 'People outside the county know your name now. Once the tennis courts are built, you can top off the fitness buildings with a Sports & Recreation Complex. The college has earned a chapel, too.',
-    opens: ['Sports & Recreation Complex: the last of the fitness buildings, after the gym, the pool and the tennis courts', 'The Chapel: a small stone landmark'],
+    opens: ['Sports & Recreation Complex: the last of the fitness buildings, after the gym, the pool and the tennis courts', 'The Chapel: a small stone landmark', 'Sculpture Garden: bronze and steel on a lawn'],
   },
   {
     id: 'school',
@@ -273,10 +273,10 @@ export const MILESTONES: readonly Milestone[] = [
     // The Japanese Garden opens here since Plan 99B, a mark of a big campus
     // (it was A town's worth's). A save that opened it there keeps it: the
     // ladder gates a buildable only while it is locked.
-    buildables: ['HLTH-T2', 'AMENITY-GARDEN'],
+    buildables: ['HLTH-T2', 'AMENITY-GARDEN', 'CINEMA', 'AMENITY-POND'],
     tabs: [],
-    letter: 'A campus this size needs a proper clinic, and it has the room for a garden.',
-    opens: ['University Clinic: outpatient care for thousands more', 'The Japanese Garden: a koi pond, a torii and cherry trees'],
+    letter: 'A campus this size needs a proper clinic, and it has the room for a garden, a pond and a movie theater.',
+    opens: ['University Clinic: outpatient care for thousands more', 'The Japanese Garden: a koi pond, a torii and cherry trees', 'Movie Theater: three screens under a marquee', 'The Pond: reeds, lily pads, a footbridge and ducks'],
   },
   {
     id: 'research',

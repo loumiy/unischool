@@ -1731,6 +1731,18 @@ button.build-tile { font-family: inherit; }
 .jg-shrub-green { fill: #3f6b34; }
 .jg-shrub-green-top { fill: #58884a; }
 .ground-hedge-top { fill: var(--hedge-top, #55863f); }
+/* Plan 127's open ground (campusGardens.tsx): the basketball courts'
+   asphalt, painted court and keys, which stay; the Pond's walk and deep
+   water (under the ice in winter); gravel, paving and the amphitheater's
+   stone steps. */
+.ground-bball { fill: #74787b; }
+.ground-bball-play { fill: #b9673f; }
+.ground-bball-key { fill: #3f6f9a; }
+.ground-pond-walk { fill: #cfc2a0; }
+.ground-pond-deep { fill: rgba(30, 60, 90, 0.14); opacity: var(--under-ice-opacity, 1); }
+.ground-gravel { fill: #d6cbab; }
+.ground-paving { fill: #cfc5aa; }
+.ground-amphi-step { fill: #c9c0a6; }
 
 /* ---------- Labels ---------- */
 /* Labels are drawn after every building so they are never occluded. */
