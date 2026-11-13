@@ -461,13 +461,13 @@ testCafeteriaRenamed();
 // centred along it, its facing kept, in every facing.
 function testTrattoriaShrunk(): void {
   const fp = footprintOf({ id: 'DININGHALL-04' } as Buildable);
-  assert(fp.w === 5 && fp.h === 3, `the Grand Table is 5x3 (${fp.w}x${fp.h})`);
+  assert(fp.w === 3 && fp.h === 3, `the Grand Table is 3x3 (${fp.w}x${fp.h})`);
   // The old box at each facing, and the new one wanted: front edge kept.
   const cases: Array<{ facing: 0 | 1 | 2 | 3; old: Placement; want: Omit<Placement, 'facing'> }> = [
-    { facing: 0, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 32, col: 31, w: 5, h: 3 } },
-    { facing: 1, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 31, col: 30, w: 3, h: 5 } },
-    { facing: 2, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 30, col: 31, w: 5, h: 3 } },
-    { facing: 3, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 31, col: 32, w: 3, h: 5 } },
+    { facing: 0, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 32, col: 32, w: 3, h: 3 } },
+    { facing: 1, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 32, col: 30, w: 3, h: 3 } },
+    { facing: 2, old: { row: 30, col: 30, w: 7, h: 5 }, want: { row: 30, col: 32, w: 3, h: 3 } },
+    { facing: 3, old: { row: 30, col: 30, w: 5, h: 7 }, want: { row: 32, col: 32, w: 3, h: 3 } },
   ];
   for (const { facing, old, want } of cases) {
     const wrapper = JSON.parse(fixture('save-v97.json'));
