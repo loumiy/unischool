@@ -17,7 +17,7 @@ export function placeBuildable(s: GameState, action: Extract<Action, { type: 'PL
   // START_DEVELOPMENT). An 'available' node must pass canStartDevelopment
   // and canPlace; it is charged, started and sited in the same transaction,
   // so its tiles are reserved from week one. A 'done' node is Founders Hall
-  // in a guided founding (awaitsSite): free, it only records where it stands.
+  // in a guided or sandbox founding (awaitsSite): free, it only records where it stands.
   // The stored footprint is already oriented, and the facing kept with it.
   const node = s.tech.find((t) => t.id === action.buildableId);
   if (node) {

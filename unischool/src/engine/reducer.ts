@@ -227,7 +227,8 @@ function reduce(state: GameState, s: GameState, action: Action): GameState {
       // Does not save: createInitialState rolls dice, so under StrictMode's
       // double invocation a save from here could persist the discarded run.
       // useGame.ts takes the founding save from the committed state.
-      const next = createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed);
+      // A sandbox's player sites Founders Hall too, without the walkthrough.
+      const next = createInitialState(action.name, action.vernacular, action.colors, action.guided ?? false, action.seed, action.sandbox === true);
       // A guided founding's systems wait for their chapters (Plan 106 PR E).
       if (action.guided && !action.sandbox && next.guidance) next.guidance.gated = true;
       if (action.sandbox) {

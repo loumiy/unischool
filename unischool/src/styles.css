@@ -1361,8 +1361,7 @@ button.build-tile { font-family: inherit; }
 /* A sandbox's Move and Style on a building's panel (BuildingInfoPanel.tsx). */
 .building-info-sandbox { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .building-info-sandbox .building-info-jump svg { width: 14px; height: 14px; vertical-align: -2px; }
-.building-info-style { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); }
-.building-info-style select { font: inherit; padding: 2px 4px; }
+.building-info-style { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 700; color: var(--ink); }
 .campus-bed-edge { fill: #9b927f; }
 .campus-bed-edge.side { fill: #b4ab96; }
 .campus-bed-kerb { fill: #d3cab4; }
@@ -1822,8 +1821,12 @@ button.build-tile { font-family: inherit; }
   border: 2px solid var(--outline); border-radius: var(--radius-pill); background: var(--cream-hi);
   color: var(--ink); font-size: var(--text-sm); font-weight: 600; font-family: inherit; }
 .curriculum-search:focus-visible { outline: 3px solid var(--school-secondary); outline-offset: 1px; }
-.curriculum-select { height: 36px; padding: 0 10px; border: 2px solid var(--outline); border-radius: var(--radius-pill);
-  background: var(--cream-hi); color: var(--ink); font-size: var(--text-sm); font-weight: 700; font-family: inherit; }
+.curriculum-select, .pill-select { height: 36px; padding: 0 10px; border: 2px solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--cream-hi); color: var(--ink); font-size: var(--text-sm); font-weight: 700; font-family: inherit; cursor: pointer; }
+/* The same pill, a size down, where it sits in a line of small type (the
+   sandbox's style pickers). */
+.pill-select.small { height: 30px; padding: 0 8px; font-size: var(--text-xs); }
+.curriculum-select:focus-visible, .pill-select:focus-visible { outline: 3px solid var(--school-secondary); outline-offset: 1px; }
 .curriculum-chip { height: 36px; padding: 0 var(--space-12); font-size: var(--text-sm); }
 .curriculum-chip:hover:not(:disabled) { background: var(--cream-lo); color: var(--ink); }
 .curriculum-chip.on, .curriculum-chip.on:hover:not(:disabled) { background: var(--school-secondary); color: var(--school-on-secondary); }
@@ -4505,8 +4508,7 @@ body:has(.building-info-panel) .pennant { display: none; }
 .build-mini-art > svg { width: 26px; height: 26px; display: block; }
 .build-mini-name { font-family: var(--display); font-weight: 800; font-size: var(--text-2xs); line-height: 1.05; text-align: center; }
 /* A sandbox's style for the next building (BuildPopup.tsx's StylePicker). */
-.build-style-picker { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); margin-left: auto; }
-.build-style-picker select { font: inherit; font-size: var(--text-xs); padding: 2px 4px; }
+.build-style-picker { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 700; color: var(--ink); margin-left: auto; }
 
 /* ---------- Asking before a loss: the look is in the register's parts above ---------- */
 /* In a column of full-width buttons, the confirming one stretches too. */

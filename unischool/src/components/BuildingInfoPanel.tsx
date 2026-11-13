@@ -787,7 +787,7 @@ function SandboxLine({ t, s, act, onMove }: { t: Buildable; s: GameState; act?: 
       {act && (
         <label className="building-info-style">
           <span>Style</span>
-          <select value={style} onChange={(e) => act({ type: 'SET_BUILDING_STYLE', id: t.id, vernacular: e.target.value as Vernacular })}>
+          <select className="pill-select small" value={style} onChange={(e) => act({ type: 'SET_BUILDING_STYLE', id: t.id, vernacular: e.target.value as Vernacular })}>
             {choices.map((c) => <option key={c.id} value={c.id}>{c.label}{c.id === s.self.vernacular ? ' (college)' : ''}</option>)}
           </select>
         </label>
