@@ -8814,9 +8814,11 @@ function TrattoriaSign({ plan, H }: { plan: DiningPlan; H: number }) {
   const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
   const wall = wallOf(f, plan.front);
   if (!wall.visible) return null;
-  const z0 = Math.min(up(3.3), H - EAVES_COURSE * 1.2) + up(0.3);
+  // Over the awning on a wall tall enough; on a one-storey house, standing
+  // on the eaves above it, as a shop's sign does.
+  const over = Math.min(up(3.3), H - EAVES_COURSE * 1.2) + up(0.3);
+  const z0 = over + up(1.3) < H - EAVES_COURSE ? over : H - EAVES_COURSE * 0.5;
   const z1 = z0 + up(1.3);
-  if (z1 >= H - EAVES_COURSE) return null;
   const q = (u: number, z: number) => facePoint(wall.origin, wall.along, H, u, z / H);
   const span = wallSpan(b.w, b.h, plan.front);
   const half = Math.min(0.17, 1.15 / span);

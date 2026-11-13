@@ -390,6 +390,7 @@ const PROJECT_SPECS: Partial<Record<string, ProjectSpec>> = {
 
 // How many floors this building has. Zero means open ground, or a clear-span
 // volume whose height comes from CLEAR_SPAN_METRES instead.
+const TRATTORIA_HALL_ID = 'DININGHALL-04';
 export function storeysOf(t: Buildable): number {
   const motif = motifOf(t);
   if (motif === 'grounds' || motif === 'hangar' || motif === 'bowl' || motif === 'landmark' || motif === 'chapel') return 0;
@@ -402,6 +403,9 @@ export function storeysOf(t: Buildable): number {
   if (t.kind === 'dorm') return dormStoreys(t.effects?.capacityBonus ?? 0) + addedFloors(t);
   if (t.chapterHouse) return CHAPTER_HOUSE_STOREYS;
   if (t.facilityType === 'project') return (PROJECT_SPECS[t.id]?.storeys ?? facilityStoreys('project', 0)) + addedFloors(t);
+  // The Grand Table is a one-storey trattoria (campusMap.ts's
+  // TRATTORIA_FOOTPRINT), whatever its seats.
+  if (t.id === TRATTORIA_HALL_ID) return 1 + addedFloors(t);
   if (t.kind === 'facility') return facilityStoreysOf(t) + addedFloors(t);
   return 2;
 }

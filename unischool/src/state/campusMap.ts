@@ -149,7 +149,16 @@ const LANDMARK_FOOTPRINTS: Record<string, Footprint> = {
   'PROJ-ATHLETICS-COMPLEX': { w: 13, h: 9 },
 };
 
+// The Grand Table is a neighbourhood trattoria, not a hall: a small
+// two-storey house and its terrace, on far less land than the dining
+// ladder's 7x5 for its seats (its seats are the ladder's still). Odd across
+// the front, so its door sits on a tile. A save sited before it shrank is
+// shrunk in place on load (persistence.ts's shrinkTrattoria).
+export const TRATTORIA_ID = 'DININGHALL-04';
+export const TRATTORIA_FOOTPRINT: Footprint = { w: 5, h: 3 };
+
 export function footprintOf(t: Buildable): Footprint {
+  if (t.id === TRATTORIA_ID) return TRATTORIA_FOOTPRINT;
   if (t.facilityType === 'landmark' || t.facilityType === 'amenity' || t.facilityType === 'project') return LANDMARK_FOOTPRINTS[t.id] ?? DEFAULT_FACILITY_FOOTPRINT;
   if (t.kind === 'building') return SCHOOL_BUILDING_FOOTPRINT;
   if (t.chapterHouse) return CHAPTER_HOUSE_FOOTPRINT;

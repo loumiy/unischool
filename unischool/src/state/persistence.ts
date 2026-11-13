@@ -20,7 +20,7 @@ import { IDLE_CASH_AGAIN_LETTER, IDLE_CASH_LETTER, isSweepStep } from '../system
 import { SPECIALIZATION_NOTICE_ID } from '../data/specializationData';
 import { isCutLetter } from '../systems/athletics/cut';
 import {
-  ROAD_FIRST_ROW, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
+  ROAD_FIRST_ROW, TRATTORIA_FOOTPRINT, TRATTORIA_ID, firstFreeSpot, footprintFits, footprintIsClear, footprintOf, isLand, isPlaceableKind, parsePathTileKey,
   pathTileKey,
 } from './campusMap';
 import { CAMPUS_GRID_WIDTH, WEEKS_PER_YEAR, institutionName, isVernacular, standsOnCampus } from './types';
@@ -975,6 +975,32 @@ function facingFor(node: Buildable, fp: { w: number; h: number }, raw: unknown):
   return across ? 1 : 0;
 }
 
+// The Grand Table shrank to a trattoria's footprint (campusMap.ts's
+// TRATTORIA_FOOTPRINT). One sited larger keeps its front edge, centred
+// along it, and its facing; the land behind and beside it is freed. Not a
+// version bump: any placement bigger than the footprint is shrunk, so it
+// holds for saves from every version.
+function shrinkTrattoria(state: GameState): void {
+  const p = state.placements?.[TRATTORIA_ID] as Placement | undefined;
+  if (!p || typeof p !== 'object' || !Number.isInteger(p.w) || !Number.isInteger(p.h)) return;
+  const facing = p.facing === 1 || p.facing === 2 || p.facing === 3 ? p.facing : 0;
+  const odd = facing % 2 === 1;
+  // Across the front and front to back, as stored and as wanted.
+  const across = odd ? p.h : p.w; const deep = odd ? p.w : p.h;
+  const want = TRATTORIA_FOOTPRINT;
+  if (across <= want.w && deep <= want.h) return;
+  const nw = Math.min(across, want.w); const nd = Math.min(deep, want.h);
+  const inset = Math.floor((across - nw) / 2);
+  // The new box in the old one's own frame: `inset` along the front from
+  // its left, front edge kept (facing.ts's localToGrid).
+  let { row, col } = p;
+  if (facing === 0) { col += inset; row += p.h - nd; }
+  else if (facing === 1) { row += inset; }
+  else if (facing === 2) { col += p.w - inset - nw; }
+  else { col += p.w - nd; row += p.h - inset - nw; }
+  state.placements[TRATTORIA_ID] = { ...p, row, col, w: odd ? nd : nw, h: odd ? nw : nd };
+}
+
 function sanitizePlacements(state: GameState): void {
   if (typeof state.placements !== 'object' || state.placements === null) {
     state.placements = {};
@@ -1601,10 +1627,12 @@ function refreshAuthoredText(state: GameState): void {
     // The MBA's capital project was the Business School, beside the School
     // of Business: a saved one under the old name takes the new.
     if (t.id === 'PROJ-BUSINESS' && t.name === 'The Business School') t.name = authored.name;
-    // The third dining hall was the Commons Cafeteria, one "commons" among
-    // several on the dining ladder: a saved one under the old name takes the
+    // Three dining halls were "commons" (the Commons Cafeteria, Old Well
+    // Commons, Waterside Commons): a saved one under its old name takes the
     // new.
     if (t.id === 'DININGHALL-03' && t.name === 'Commons Cafeteria') t.name = authored.name;
+    if (t.id === 'DININGHALL-05' && t.name === 'Old Well Commons') t.name = authored.name;
+    if (t.id === 'DININGHALL-06' && t.name === 'Waterside Commons') t.name = authored.name;
     // A course's weeks are the catalog's until it starts (techData.ts's
     // courseWeeks, Plan 80E); one under way or taught keeps the weeks it
     // was started with, so its progress still reads against them.
@@ -1759,6 +1787,7 @@ export function adoptSave(state: GameState): boolean {
 
 function sanitize(state: GameState): void {
   sanitizeOpening(state);
+  shrinkTrattoria(state);
   sanitizePlacements(state);
   // Halls after placements (a hall's slots are real only while it stands),
   // offers after halls (an offer is real only while its program is unhoused).
