@@ -6,8 +6,8 @@
 (the Release workflow's run 4, from `main` at `4f5b83e`) and went up the
 same day. 0.1.3 went up on 21 October 2026 (`b1f2114`), then 0.1.4 and
 its hotfix 0.1.4.1, then 0.2.0 on 2 November 2026 and 0.2.1 on 12 November (uploaded as
-0.3.0, renumbered on 13 November). 0.2.2 is ready (13 November 2026);
-its description below goes up with it.
+0.3.0, renumbered on 13 November). The description for 0.2.2 went up on
+13 November 2026, ahead of the build.
 The owner rewrote the description on itch.io; the text below is the
 owner's, with the changes for 0.1.1, 0.1.2, 0.1.3, 0.1.4, 0.2.0, 0.2.1 and 0.2.2. The first draft
 (Plan 97I) was built from [`steam-page.md`](steam-page.md), cut to what
@@ -54,9 +54,21 @@ the fullscreen button and no automatic start.
 
 ## The description
 
-The text for 0.2.2, 13 November 2026. Two changes for 0.2.2: the first
-line says "now 0.2.2", and *Build a campus* names the pub, the movie
-theater and the gardens among what you can build.
+The text for 0.2.2, as the owner published it on 13 November 2026. Below
+the line is the page as it stands on itch.io. Changes for 0.2.2:
+- the first line says "now 0.2.2";
+- *Build a campus* names the pub, the movie theater, the gardens and the
+  pond among what you can build;
+- *Make the big decisions* says the first lab can make the college an
+  Institute and the first graduate program a University (Plan 127);
+- *What to expect*'s sandbox line says everything is open from the start.
+
+The owner's live text had already cut, before 0.2.2: the summer's clock
+waiting, the board convening with a panel per pillar and its question a
+year in the later decades, the four tabs' walks, the first summer walked
+through and *Show me*, and the feedback ask's "whether any sentence
+tripped you up". They stay cut. The opening line, the paths' line or
+rectangle and the Deans, which the live text also lacked, went back in.
 
 The text for 0.2.1 (uploaded as 0.3.0), 11 November 2026. One change for
 it: the first line said "now 0.3.0". Nothing else on the page names what 0.2.1 removed
@@ -120,15 +132,15 @@ Your decisions shape the answer.
 
 Start with a single hall. Over the decades, build laboratories, libraries,
 classrooms, residences, dining halls, student centers, health facilities,
-athletic venues, a pub, a movie theater, gardens and landmarks.
+athletic venues, a pub, a movie theater, gardens and a pond, and
+landmarks.
 
 Lay out the campus yourself on an isometric map. Choose its architecture
 and school colors. Lay paths in flagstone, cobbles or brick, a line or a
 whole rectangle at a time, plant trees by species, and set out lamps,
-benches and flower beds, all free. Watch
-familiar places emerge as the years pass: the
-quad, the science buildings, the residential quarter, the stadium, the
-places that eventually become part of the school's identity.
+benches and flower beds, all free. Watch familiar places emerge as the
+years pass: the quad, the science buildings, the residential quarter, the
+stadium, the places that eventually become part of the school's identity.
 
 **Grow the institution**
 
@@ -153,9 +165,8 @@ attracting attention, decide what to do with its growing reputation.
 Every summer brings another year of consequences.
 
 How much should you charge for tuition? How many students should you
-admit? When summer comes, the clock stops and waits until you open it.
-On admissions day the applicants rain in as a cloud, and you draw the
-line. Where should the next major investment go? Should you expand
+admit? On admissions day the applicants rain in as a cloud, and you draw
+the line. Where should the next major investment go? Should you expand
 into a new field or deepen the ones you already have?
 
 You won't always know exactly what those decisions will produce. The
@@ -166,14 +177,15 @@ Between the summers, the letters come: a donor with conditions, a boiler
 with a cough, a professor with an offer elsewhere. Each answer does what it
 says, and the college remembers how you answered.
 
-Eventually, the university's identity starts to take shape.
+Eventually, the university's identity starts to take shape. Your first
+research lab can make the college an Institute, and your first graduate
+program a University. Earn a title once and every college you found after
+can open with it.
 
-At a certain point, the board will convene and ask you to choose what the
-college will become known for. Each pillar gets a panel of its own,
-with what it would build. You get one specialization, and your rivals
-will make their own choices. From there, the university's path is
-increasingly its own. In the later decades, the board asks one question
-a year, and each answer trades one strength for another.
+At a certain point, the board will ask you to choose what the college will
+become known for. You get one specialization, and your rivals will make
+their own choices. From there, the university's path is increasingly its
+own.
 
 **Fifty years from now**
 
@@ -193,12 +205,8 @@ And after the report, you can keep playing.
 
 - Your first run opens with a short walkthrough that founds your first
   program with you (you can skip it). After it, the first five years run
-  as chapters, a few objectives at a time. Each objective has help a
-  click away, and *Show me* rings what to click. The Treasury, Students,
-  History and Faculty tabs each open with a short walk through what they
-  show, and your first summer is walked through with you, one control at
-  a time. Settings can turn the
-  chapters down to a line or off.
+  as chapters: a few objectives at a time, each with a briefing a click
+  away. Settings can turn them down to a line or off.
 - A full run is fifty years: roughly two to four hours, depending on the
   speed you play at, over as many sittings as you like. Growth is slow on
   purpose, and money paces the first decades.
@@ -208,8 +216,8 @@ And after the report, you can keep playing.
   without a visit, a private window when it closes), so keep a copy too:
   **Menu → Download save**, and **Load a save file** on the title screen to
   carry on. Every fifth summer the game offers a backup.
-- **Sandbox**, on the title screen: unlimited funds and instant building,
-  to lay out a campus without waiting.
+- **Sandbox**, on the title screen: unlimited funds, instant building and
+  everything open from the start, to lay out a campus without waiting.
 
 **Tell me what you think**
 
@@ -219,8 +227,7 @@ And after the report, you can keep playing.
 
 What I most want to know: where you stopped, and why; whether you reached
 the specialization; whether the walkthrough and the chapters made sense;
-whether any sentence tripped you up; and what you thought of the summers
-and the Final Report.
+and what you thought of the summers and the Final Report.
 
 **Play statistics**
 
