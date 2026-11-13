@@ -274,7 +274,8 @@ function weightedPick(
 // or in a guided run, whose chapters say what the letters said (Plan 112A:
 // the owner found the two redundant). Recorded read, its ask still
 // carries the next-step line (nextStep.ts's letterAsk). A run without
-// chapters (the Objectives setting Off, the sims) still has the letters.
+// chapters (the Objectives setting Off, the sims) still has the letters; a
+// sandbox run records them read unsent, as a guided run does.
 // Yields to everything earned and to the one-shot questions.
 export function fireOpeningLetter(s: GameState): boolean {
   if (s.events.opening.skipped) return false;
@@ -285,7 +286,7 @@ export function fireOpeningLetter(s: GameState): boolean {
     if (!due) continue;
     read.push(letter.id);
     if (letter.arrives && letter.done(s)) continue;
-    if (guidedRun(s)) continue;
+    if (guidedRun(s) || s.sandbox) continue;
     s.pendingInterrupt = { type: 'letter', payload: { id: letter.id } };
     return true;
   }

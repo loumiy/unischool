@@ -5,13 +5,15 @@ import type { TabId } from '../../components/TabNav';
 
 // Records each milestone the week its condition first holds, and queues its
 // letter. Runs first in the tick, so what a milestone opens is available to
-// the tech tick the same week. Reached is permanent.
+// the tech tick the same week. Reached is permanent. A sandbox run has no
+// milestones to see: they are still recorded, so what each opens opens, but
+// no letter is queued (systems/sandbox).
 export function tickLadder(s: GameState): void {
   for (const m of MILESTONES) {
     if (s.ladder.reached[m.id] !== undefined || !m.reached(s)) continue;
     s.ladder.reached[m.id] = s.clock.year;
     s.ladder.reachedWeek[m.id] = (s.clock.year - 1) * WEEKS_PER_YEAR + s.clock.week;
-    if (m.id !== CHARTER_ID && !m.quiet) s.ladder.unread.push(m.id);
+    if (m.id !== CHARTER_ID && !m.quiet && !s.sandbox) s.ladder.unread.push(m.id);
   }
 }
 

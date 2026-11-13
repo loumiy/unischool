@@ -5,8 +5,13 @@ import { finishEstateWorks } from '../estate/estate';
 // SANDBOX (from the title screen): a run with no money to find, no weeks
 // to wait and every building open. The reducer settles it after every action it accepts, so a
 // building placed or a course started is finished before the player sees
-// the next frame, and the funds never fall. Everything else runs as in a
-// normal run; a sandbox run is kept out of the hall of fame (state/hall.ts).
+// the next frame, and the funds never fall. It has no objectives, letters
+// or milestones to see: the chapters and NEXT's hints are hidden
+// (LogTicker.tsx), the inbox holds no letters (inbox.ts) and the opening
+// letters are never sent (eventSystem.ts), and milestones are recorded
+// without a letter, log line or celebration (ladderSystem.ts,
+// techSystem.ts's awardMilestone). Everything else runs as in a normal run;
+// a sandbox run is kept out of the hall of fame (state/hall.ts).
 
 // The funds a sandbox run is topped back up to. Far past any price in the
 // game, so every "can afford" gate passes; the header shows it as ∞.

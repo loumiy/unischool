@@ -710,12 +710,15 @@ export function hallOfCourse(s: GameState, courseId: string): string | undefined
 }
 
 // Awards a milestone once. s.milestones[key] is itself the curriculum-breadth
-// signal prestigeSystem.ts reads.
+// signal prestigeSystem.ts reads. In a sandbox run it is awarded silently:
+// its effects hold, but no log line, toast or celebration says so
+// (systems/sandbox).
 function awardMilestone(s: GameState, key: string, applicantBonus: number, message: string): void {
   if (s.milestones[key]) return;
   s.milestones[key] = true;
   (s.milestoneYears ??= {})[key] = s.clock.year;
   s.students.applicantLift += applicantBonus;
+  if (s.sandbox) return;
   s.log.unshift({ year: s.clock.year, week: s.clock.week, message, kind: 'good', topic: 'milestone', subject: key });
   // Celebrated milestones are queued, not raised as interrupts: the week may
   // already belong to another interrupt (see eventData.ts's

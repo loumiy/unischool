@@ -65,8 +65,10 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
 }) {
   const latest = s.log[0];
   const leaving = latest && onOpenMarket ? retirementNotice(s, latest) : undefined;
-  const step = s.pendingInterrupt ? null : (inboxOpen ? null : inboxPointer(s)) ?? nextStep(s);
-  const milestone = nextMilestone(s);
+  // A sandbox has no objectives or milestones (systems/sandbox): NEXT only
+  // points at a matter in the inbox that will not wait, and no milestone chip.
+  const step = s.pendingInterrupt ? null : (inboxOpen ? null : inboxPointer(s)) ?? (s.sandbox ? null : nextStep(s));
+  const milestone = s.sandbox ? null : nextMilestone(s);
   const progress = milestone?.progress?.(s);
   const chaptersOn = objectivesShown(s, useSettings().objectives);
   const chapter = chaptersOn ? currentChapter(s) : null;
@@ -161,7 +163,7 @@ export default function LogTicker({ s, open, onSetOpen, ladderOpen, onSetLadderO
           />
         </ToolbarPopup>
       )}
-      {ladderOpen && (
+      {ladderOpen && !s.sandbox && (
         <ToolbarPopup title="Milestones" onClose={() => onSetLadderOpen(false)} className="ladder-popup">
           <LadderPanel s={s} />
         </ToolbarPopup>
