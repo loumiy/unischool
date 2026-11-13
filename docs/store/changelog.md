@@ -5,13 +5,13 @@ point to the development records in `docs/plans/`.*
 
 ---
 
-## 0.3.1
+## 0.2.2
 
 *More to build: sixteen new buildings and two redrawn, the dining chain
 sized for a 40,000 campus, the hall doors, a new title screen, the
 trophy case, faster weeks late in a run, and a sandbox with everything
 open; and a college can open as an Institute or a University. Saves
-from 0.3.0 load and get every new building, locked until it
+from 0.2.1 load and get every new building, locked until it
 qualifies.*
 
 ### New
@@ -93,7 +93,12 @@ qualifies.*
 
 ---
 
-## 0.3.0
+## 0.2.1
+
+*Released on 12 November as 0.3.0 and renumbered 0.2.1 the next day;
+the build is the same. Its saves, bug reports and play statistics say
+0.3.0.*
+
 
 *An update mostly of subtraction: the owner's cut list (Plan 124), the
 written content (125), the interface review's first ten (126), the

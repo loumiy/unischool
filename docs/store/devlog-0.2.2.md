@@ -1,30 +1,35 @@
-# Devlog draft · UniSchool 0.3.1
+# Devlog draft · UniSchool 0.2.2
 
 *A draft for the itch.io devlog, for the owner to edit and post with the
-0.3.1 upload. It covers everything merged since the 0.3.0 build
+0.2.2 upload. It covers everything merged since the 0.2.1 build
 (`7deabcf`, PRs #454 to #461, 11 to 13 November): the performance work,
 the seasons, the trophy case, the new title screen and theme, the hall
 doors and redrawn buildings, sixteen new things to build, the sandbox
 changes, and Plan 127 (College, Institute, University, PR #462). The
-full list is in [`changelog.md`](changelog.md). The pictures are in [`devlog-0.3.1/`](devlog-0.3.1/), drawn
+full list is in [`changelog.md`](changelog.md). The pictures are in [`devlog-0.2.2/`](devlog-0.2.2/), drawn
 by the game's own art in the Georgian set (`npm run sheet`). Nothing here
 claims more than the build does.*
 
 ---
 
-## UniSchool 0.3.1: more to build
+## UniSchool 0.2.2: more to build
 
-![Sixteen new things to build](devlog-0.3.1/new-assets.png)
+![Sixteen new things to build](devlog-0.2.2/new-assets.png)
+
+**A note on the number:** the last update went up as 0.3.0, but I
+jumped the gun. It's now called 0.2.1, and this one is 0.2.2. Nothing
+else about it changed.
 
 ### Thank you
 
-0.3.0 was an update of taking things out. This one puts things in. After
-it went up, one of you asked for more to place on campus besides
+The last update was mostly about taking things out. This one puts
+things in. After it went up, one of you asked for more to place on campus besides
 decorations, and another asked why the college always has to be called
 College. Both are in this update.
 
-Your saves come with you: a 0.3.0 college opens in 0.3.1, and it gets
-every new building, locked until it qualifies, like a new run would.
+Your saves come with you: a college from the last update opens in this
+one, and it gets every new building, locked until it qualifies, like a
+new run would.
 
 ### Sixteen new things to build
 
@@ -46,8 +51,8 @@ choice without undercutting it.
 
 The four are on the build menu's Social tab.
 
-![Campus Radio](devlog-0.3.1/campus-radio.png)
-![The Movie Theater](devlog-0.3.1/cinema.png)
+![Campus Radio](devlog-0.2.2/campus-radio.png)
+![The Movie Theater](devlog-0.2.2/cinema.png)
 
 **Gardens.** They're placed like the other amenities and add beauty, and
 each opens at a milestone.
@@ -62,8 +67,8 @@ each opens at a milestone.
 - **The Pond**: the biggest of them, with reeds, lily pads, ducks,
   willows, and a jetty with a rowboat. It opens at *A small city*.
 
-![The Pond](devlog-0.3.1/amenity-pond.png)
-![The Parterre](devlog-0.3.1/amenity-parterre.png)
+![The Pond](devlog-0.2.2/amenity-pond.png)
+![The Parterre](devlog-0.2.2/amenity-parterre.png)
 
 **Two showpieces for distinguished sciences.** These are the first
 buildings that a program opens, not a milestone. Its "distinguished"
@@ -74,8 +79,8 @@ news names the building.
 - **The Observatory**: a white dome with its slit open over the door,
   for a distinguished Aerospace Engineering.
 
-![The Greenhouse](devlog-0.3.1/amenity-greenhouse.png)
-![The Observatory](devlog-0.3.1/amenity-observatory.png)
+![The Greenhouse](devlog-0.2.2/amenity-greenhouse.png)
+![The Observatory](devlog-0.2.2/amenity-observatory.png)
 
 **Two more places to eat.**
 
@@ -85,14 +90,14 @@ news names the building.
 - **The Food Truck Plaza**: four trucks round a paved square of picnic
   tables under string lights. It opens after the Hilltop Cafeteria.
 
-![The Coffee Kiosk](devlog-0.3.1/dining-kiosk.png)
-![The Food Truck Plaza](devlog-0.3.1/dining-trucks.png)
+![The Coffee Kiosk](devlog-0.2.2/dining-kiosk.png)
+![The Food Truck Plaza](devlog-0.2.2/dining-trucks.png)
 
 **Basketball Courts**: two outdoor courts with real line markings, hoops,
 a fence and floodlights. They raise health satisfaction and open after
 the gym, on the Health tab.
 
-![Basketball Courts](devlog-0.3.1/basketball-courts.png)
+![Basketball Courts](devlog-0.2.2/basketball-courts.png)
 
 ### The full list
 
@@ -150,8 +155,8 @@ the list.
   roof and an indoor sprint straight behind glass; and a performance
   wing in the college's colours with ATHLETICS across the front.
 
-![The Grand Table](devlog-0.3.1/dininghall-04.png)
-![The Athletic Performance Complex](devlog-0.3.1/proj-athletics-complex.png)
+![The Grand Table](devlog-0.2.2/dininghall-04.png)
+![The Athletic Performance Complex](devlog-0.2.2/proj-athletics-complex.png)
 
 ### Doors that look like doors
 
@@ -171,7 +176,7 @@ the list.
 
 ### A new title screen, and the theme all the way through
 
-![The title screen](devlog-0.3.1/title-screen.png)
+![The title screen](devlog-0.2.2/title-screen.png)
 
 The game is now **UniSchool: University Tycoon**. The title screen is a
 clear sky over a campus skyline: a battlemented hall, a domed library,
@@ -232,7 +237,7 @@ first title too, with empty spots on the shelf.
 
 ### College, Institute or University
 
-![Founding as an Institute](devlog-0.3.1/founding-title.png)
+![Founding as an Institute](devlog-0.2.2/founding-title.png)
 
 Until now every college opened as **X College** and could become **X
 University** with its first research lab. One of you asked why it has to
