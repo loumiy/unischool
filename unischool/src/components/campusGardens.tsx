@@ -182,9 +182,8 @@ export function basketballProps(p: Plot): GroundProp[] {
 
 // ---------------------------------------------------------------------
 // The Pond: a big pond in a lawn, its outline a lobed curve, reeds round
-// its edge, lily pads and ducks on it, a stream running out of it to the
-// plot's far end under a wooden footbridge, a jetty with a rowboat, and
-// willows on the bank.
+// its edge, lily pads and ducks on it, a jetty with a rowboat, and willows
+// on the bank. The water is contained in the plot: no stream runs off it.
 // ---------------------------------------------------------------------
 const POND_C = { a: 0.42, c: 0.5, ra: 0.36, rc: 0.4 };
 function pondR(t: number, grow = 0): number {
@@ -195,21 +194,11 @@ function pondAt(fr: ReturnType<typeof framer>, t: number, k: number, grow = 0, z
   return fr.at(POND_C.a + POND_C.ra * r * Math.cos(t), POND_C.c + POND_C.rc * r * Math.sin(t), z);
 }
 const POND_N = 48;
-// The stream: from the pond's right bank to the plot's end, as a band.
-const STREAM = { a0: 0.74, a1: 1, c: 0.56, half: 0.05 };
-const BRIDGE_A = 0.86;
 const JETTY = { a: 0.3, c0: 0.83, c1: 0.62, half: 0.025 };
 
 export function PondGround(p: Plot) {
   const fr = framer(p);
   const ring = (k: number, grow = 0) => P(Array.from({ length: POND_N }, (_, i) => pondAt(fr, (i / POND_N) * Math.PI * 2, k, grow)));
-  const wobble = (a: number) => STREAM.c + 0.03 * Math.sin(a * 18);
-  const stream = (half: number) => {
-    const n = 10;
-    const top = Array.from({ length: n + 1 }, (_, i) => { const a = STREAM.a0 + ((STREAM.a1 - STREAM.a0) * i) / n; return fr.at(a, wobble(a) - half); });
-    const bottom = Array.from({ length: n + 1 }, (_, i) => { const a = STREAM.a1 - ((STREAM.a1 - STREAM.a0) * i) / n; return fr.at(a, wobble(a) + half); });
-    return P([...top, ...bottom]);
-  };
   const lilies: Array<[number, number, number, boolean]> = [
     [0.3, 0.42, 0.022, true], [0.36, 0.33, 0.016, false], [0.52, 0.66, 0.02, true], [0.58, 0.6, 0.014, false],
     [0.24, 0.55, 0.015, false], [0.47, 0.3, 0.018, true], [0.62, 0.38, 0.013, false],
@@ -220,9 +209,7 @@ export function PondGround(p: Plot) {
       {/* A gravel walk round the pond, then the bank and the water. */}
       <polygon className="ground-pond-walk" points={ring(1, 0.17)} />
       <polygon className="ground-garden-grass" points={ring(1, 0.11)} />
-      <polygon className="ground-pond-edge" points={stream(STREAM.half + 0.02)} />
       <polygon className="ground-pond-edge" points={ring(1, 0.035)} />
-      <polygon className="ground-pond" points={stream(STREAM.half)} />
       <polygon className="ground-pond" points={ring(1)} />
       <polygon className="ground-pond-deep" points={ring(0.55)} />
       {lilies.map(([a, c, r, flower], i) => {
@@ -244,7 +231,7 @@ export function pondProps(p: Plot): GroundProp[] {
   const { g, at } = fr;
   const out: GroundProp[] = [];
   // Reeds in clumps round the edge, standing a metre and a half: thin
-  // strokes, green with brown heads, kept off the jetty and the stream.
+  // strokes, green with brown heads, kept off the jetty.
   const reedT = [0.35, 0.6, 1.2, 1.55, 2.0, 2.55, 3.05, 3.55, 4.05, 4.35, 5.25, 5.7];
   reedT.forEach((t, i) => {
     const base = pondAt(fr, t, 1, -0.01);
@@ -265,35 +252,6 @@ export function pondProps(p: Plot): GroundProp[] {
       ),
     });
   });
-  // The footbridge over the stream: a low wooden arch with a rail each side.
-  {
-    const n = 8; const half = 0.035; const rise = up(1.1);
-    const c0 = STREAM.c - STREAM.half - 0.05; const c1 = STREAM.c + STREAM.half + 0.05;
-    const edge = (da: number, z0: number) => Array.from({ length: n + 1 }, (_, i) => {
-      const t = i / n; return at(BRIDGE_A + da, c0 + (c1 - c0) * t, z0 + rise * Math.sin(Math.PI * t));
-    });
-    const near = edge(half, 0); const far = edge(-half, 0);
-    const railH = up(1);
-    const [bx, by] = g(BRIDGE_A - half, c0);
-    const [ex, ey] = g(BRIDGE_A + half, c1);
-    out.push({
-      key: 'bridge', col: Math.min(bx, ex), row: Math.min(by, ey), w: Math.abs(ex - bx) + 0.05, h: Math.abs(ey - by) + 0.05,
-      node: (
-        <g>
-          <polygon points={P([...near, ...far.slice().reverse()])} fill="#9a6a3c" stroke="#6b4423" strokeWidth={0.6} />
-          {[half, -half].map((da) => (
-            <g key={da}>
-              <polyline points={P(edge(da, railH))} fill="none" stroke="#6b4423" strokeWidth={1.2} />
-              {[0, 2, 4, 6, 8].map((i) => {
-                const lo = edge(da, 0)[i]!; const hi = edge(da, railH)[i]!;
-                return <line key={i} x1={lo.x} y1={lo.y} x2={hi.x} y2={hi.y} stroke="#6b4423" strokeWidth={0.9} />;
-              })}
-            </g>
-          ))}
-        </g>
-      ),
-    });
-  }
   // The jetty: planks on posts from the near bank into the water, and a
   // rowboat tied alongside.
   {

@@ -11,6 +11,8 @@
 import type React from 'react';
 import { boxFaces, cameraAxes, facePoint, lift, polyPoints, project, projectedCircle, wallOf, type BoxFaces, type FaceDir, type Pt } from './isoProjection';
 import { up } from './campusScale';
+import { sidesOf } from './facing';
+import type { Facing } from '../state/types';
 import { shade } from './tint';
 import type { GroundProp } from './groundMarkings';
 
@@ -102,66 +104,101 @@ export function KioskGround(p: Plot) {
   return <>{paving(p, Math.max(2, Math.round(p.w * 2)))}</>;
 }
 
-export function kioskProps(p: Plot): GroundProp[] {
-  const bw = Math.min(0.9, p.w * 0.45); const bh = Math.min(0.66, p.h * 0.33);
-  const bc = p.col + p.w / 2 - bw / 2; const br = p.row + p.h * 0.3 - bh / 2;
+export function kioskProps(p: Plot, facing?: Facing): GroundProp[] {
+  // The kiosk's own frame: u across its front (0 at its left, as one
+  // facing the counter sees it, to 1 at its right), v from its back (0) to
+  // its front (1), turned to the placement's facing so the counter, the
+  // awning, the tables and the cup sign go round with it.
+  const sides = sidesOf(facing);
+  const F = sides.front;
+  const g = (u: number, v: number): [number, number] => {
+    switch (F) {
+      case 'posRow': return [p.col + u * p.w, p.row + v * p.h];
+      case 'negRow': return [p.col + (1 - u) * p.w, p.row + (1 - v) * p.h];
+      case 'posCol': return [p.col + v * p.w, p.row + (1 - u) * p.h];
+      default: return [p.col + (1 - v) * p.w, p.row + u * p.h];
+    }
+  };
+  const at = (u: number, v: number, z: number) => { const [c, r] = g(u, v); return lift(project(c, r), z); };
+  const boxOf = (u0: number, u1: number, v0: number, v1: number) => {
+    const [ca, ra] = g(u0, v0); const [cb, rb] = g(u1, v1);
+    return { col: Math.min(ca, cb), row: Math.min(ra, rb), w: Math.abs(cb - ca), h: Math.abs(rb - ra) };
+  };
+  // The booth, in fractions of the plot: centred across, its back third.
+  const across = Math.min(p.w, p.h);
+  const bu = Math.min(0.9, across * 0.45) / across; const bv = Math.min(0.66, across * 0.33) / across;
+  const u0 = 0.5 - bu / 2; const u1 = 0.5 + bu / 2; const v0 = 0.3 - bv / 2; const v1 = 0.3 + bv / 2;
+  const b = boxOf(u0, u1, v0, v1);
   const H = up(3.2);
-  const f = boxFaces(bc, br, bw, bh, 0, H);
-  const roof = boxFaces(bc - 0.05, br - 0.05, bw + 0.1, bh + 0.1, H, up(0.35));
+  const f = boxFaces(b.col, b.row, b.w, b.h, 0, H);
+  const roof = boxFaces(b.col - 0.05, b.row - 0.05, b.w + 0.1, b.h + 0.1, H, up(0.35));
   // The awning: from the counter's head out over the paving, in stripes.
-  const out = 0.3; const n = 6;
+  const out = 0.3 / across; const n = 6;
+  const stripe = (i: number) => [u0 + (bu * i) / n, u0 + (bu * (i + 1)) / n];
   const stripes = Array.from({ length: n }, (_, i) => {
-    const c0 = bc + (bw * i) / n; const c1 = bc + (bw * (i + 1)) / n;
-    const pts = [
-      lift(project(c0, br + bh), up(2.7)), lift(project(c1, br + bh), up(2.7)),
-      lift(project(c1, br + bh + out), up(2.1)), lift(project(c0, br + bh + out), up(2.1)),
-    ];
+    const [a0, a1] = stripe(i);
+    const pts = [at(a0, v1, up(2.7)), at(a1, v1, up(2.7)), at(a1, v1 + out, up(2.1)), at(a0, v1 + out, up(2.1))];
     return <polygon key={i} points={P(pts)} fill={i % 2 === 0 ? AWNING_RED : AWNING_WHITE} stroke={shade(AWNING_RED, 0.75)} strokeWidth={0.3} />;
   });
   const valance = Array.from({ length: n }, (_, i) => {
-    const c0 = bc + (bw * i) / n; const c1 = bc + (bw * (i + 1)) / n;
-    const pts = [
-      lift(project(c0, br + bh + out), up(2.1)), lift(project(c1, br + bh + out), up(2.1)),
-      lift(project(c1, br + bh + out), up(1.75)), lift(project(c0, br + bh + out), up(1.75)),
-    ];
+    const [a0, a1] = stripe(i);
+    const pts = [at(a0, v1 + out, up(2.1)), at(a1, v1 + out, up(2.1)), at(a1, v1 + out, up(1.75)), at(a0, v1 + out, up(1.75))];
     return <polygon key={`v${i}`} points={P(pts)} fill={i % 2 === 0 ? AWNING_RED : AWNING_WHITE} />;
   });
   // Is the counter's side toward the camera? Then the awning stands in
   // front of the booth; otherwise behind it.
-  const counterSeen = wallOf(f, 'posRow').visible;
+  const counterSeen = wallOf(f, F).visible;
   const awning = <g key="awning">{stripes}{valance}</g>;
-  // The cup: a billboard on a pole over the roof's middle.
-  const mid = lift(project(bc + bw / 2, br + bh / 2), H + up(0.35));
-  const cupTop = lift(mid, up(3.6));
-  const cw = 8; const ch = 9;
+  // The cup: a cut-out sign on a pole over the roof's middle, standing in
+  // the plane of the counter, so it turns and foreshortens with the booth
+  // as the camera goes round (from behind, its handle is on the other side,
+  // as a real cut-out's would be).
+  const um = 0.5; const vm = (v0 + v1) / 2;
+  const base = H + up(0.35);
+  const poleTop = base + up(2.4);
+  const cupW = 0.34 / across; const cupH = up(2.2);
+  const sign = (du: number, z: number) => at(um + du, vm, poleTop + z);
+  const half = cupW / 2;
+  const body = [sign(-half, cupH), sign(half, cupH), sign(half * 0.8, 0), sign(-half * 0.8, 0)];
+  const band = [sign(-half * 0.95, cupH * 0.62), sign(half * 0.95, cupH * 0.62), sign(half * 0.9, cupH * 0.4), sign(-half * 0.9, cupH * 0.4)];
+  const handle = Array.from({ length: 9 }, (_, i) => {
+    const t = -Math.PI / 2 + (Math.PI * i) / 8;
+    return sign(half * 0.93 + Math.cos(t) * cupW * 0.28, cupH * 0.55 + Math.sin(t) * cupH * 0.22);
+  });
+  const steam = [-0.2, 0.2].map((k) => [0, 1, 2, 3].map((i) => sign(half * k + Math.sin(i * 1.6) * cupW * 0.08, cupH + up(0.15) + i * up(0.22))));
+  const foot = at(um, vm, base); const head = sign(0, 0);
   const cup = (
     <g key="cup">
-      <line x1={mid.x} y1={mid.y} x2={mid.x} y2={cupTop.y + ch} stroke="#4b4f54" strokeWidth={0.9} />
-      <path d={`M ${cupTop.x + cw / 2 - 0.4} ${cupTop.y + 2} a 2.6 2.6 0 1 1 0 4.4`} fill="none" stroke="#f7f3ea" strokeWidth={1.1} />
-      <polygon points={`${cupTop.x - cw / 2},${cupTop.y} ${cupTop.x + cw / 2},${cupTop.y} ${cupTop.x + cw / 2 - 0.9},${cupTop.y + ch} ${cupTop.x - cw / 2 + 0.9},${cupTop.y + ch}`} fill="#f7f3ea" stroke="#6b4a3a" strokeWidth={0.5} />
-      <rect x={cupTop.x - cw / 2 + 0.4} y={cupTop.y + 3} width={cw - 0.8} height={2.4} fill="#7a4b2c" />
-      <path d={`M ${cupTop.x - 1} ${cupTop.y - 1} q 1 -1.4 0 -2.8 M ${cupTop.x + 1} ${cupTop.y - 1} q 1 -1.4 0 -2.8`} fill="none" stroke="#ffffff" strokeWidth={0.6} opacity={0.8} />
+      <line x1={foot.x} y1={foot.y} x2={head.x} y2={head.y} stroke="#4b4f54" strokeWidth={0.9} />
+      <polyline points={P(handle)} fill="none" stroke="#f7f3ea" strokeWidth={1.1} />
+      <polygon points={P(body)} fill="#f7f3ea" stroke="#6b4a3a" strokeWidth={0.5} />
+      <polygon points={P(band)} fill="#7a4b2c" />
+      {steam.map((pts, i) => <polyline key={i} points={P(pts)} fill="none" stroke="#ffffff" strokeWidth={0.6} opacity={0.8} />)}
     </g>
   );
   const booth = (
     <g key="booth">
       {solid(f, KIOSK_WALL)}
-      {/* The counter's hatch, lit inside, and a menu board on the side. */}
-      {onWall(f, 'posRow', H, 0.12, 0.88, 0.32, 0.78, '#3a3027', 'hatch')}
-      {onWall(f, 'posRow', H, 0.12, 0.88, 0.3, 0.34, '#8a6a4a', 'sill')}
-      {onWall(f, 'posCol', H, 0.25, 0.75, 0.4, 0.75, DARK, 'menuE')}
-      {onWall(f, 'negCol', H, 0.25, 0.75, 0.4, 0.75, DARK, 'menuW')}
+      {/* The counter's hatch, lit inside, and a menu board on each side. */}
+      {onWall(f, F, H, 0.12, 0.88, 0.32, 0.78, '#3a3027', 'hatch')}
+      {onWall(f, F, H, 0.12, 0.88, 0.3, 0.34, '#8a6a4a', 'sill')}
+      {onWall(f, sides.left, H, 0.25, 0.75, 0.4, 0.75, DARK, 'menuL')}
+      {onWall(f, sides.right, H, 0.25, 0.75, 0.4, 0.75, DARK, 'menuR')}
       {solid(roof, KIOSK_ROOF)}
     </g>
   );
+  // The prop covers the booth and its awning, for the depth sort.
+  const pb = boxOf(u0, u1, v0, v1 + out);
+  const sh = b;
+  const t1 = g(0.28, 0.78); const t2 = g(0.72, 0.78);
   return [
     {
-      key: 'booth', col: bc, row: br, w: bw, h: bh + out,
+      key: 'booth', ...pb,
       node: <g>{counterSeen ? <>{booth}{awning}</> : <>{awning}{booth}</>}{cup}</g>,
-      shadows: [[project(bc + 0.15, br + 0.15), project(bc + bw + 0.4, br + 0.15), project(bc + bw + 0.4, br + bh + 0.4), project(bc + 0.15, br + bh + 0.4)]],
+      shadows: [[project(sh.col + 0.15, sh.row + 0.15), project(sh.col + sh.w + 0.4, sh.row + 0.15), project(sh.col + sh.w + 0.4, sh.row + sh.h + 0.4), project(sh.col + 0.15, sh.row + sh.h + 0.4)]],
     },
-    cafeTable(p.col + p.w * 0.28, p.row + p.h * 0.78, '#c8423a', 't1'),
-    cafeTable(p.col + p.w * 0.72, p.row + p.h * 0.78, '#2f6f4f', 't2'),
+    cafeTable(t1[0], t1[1], '#c8423a', 't1'),
+    cafeTable(t2[0], t2[1], '#2f6f4f', 't2'),
   ];
 }
 
