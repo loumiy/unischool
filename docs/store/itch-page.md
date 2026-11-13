@@ -5,10 +5,11 @@
 0.1.1 went live on 13 October 2026. 0.1.2 was built on 16 October 2026
 (the Release workflow's run 4, from `main` at `4f5b83e`) and went up the
 same day. 0.1.3 went up on 21 October 2026 (`b1f2114`), then 0.1.4 and
-its hotfix 0.1.4.1, then 0.2.0 on 2 November 2026. 0.3.0 is ready on
-`main` (11 November 2026); its description below goes up with it.
+its hotfix 0.1.4.1, then 0.2.0 on 2 November 2026 and 0.3.0 after
+11 November. 0.3.1 is ready (13 November 2026); its description below
+goes up with it.
 The owner rewrote the description on itch.io; the text below is the
-owner's, with the changes for 0.1.1, 0.1.2, 0.1.3, 0.1.4, 0.2.0 and 0.3.0. The first draft
+owner's, with the changes for 0.1.1, 0.1.2, 0.1.3, 0.1.4, 0.2.0, 0.3.0 and 0.3.1. The first draft
 (Plan 97I) was built from [`steam-page.md`](steam-page.md), cut to what
 an early playtest page needs. Every line says only what the game does on
 `main` today. "AI" never sits beside "school simulator" (the second
@@ -52,6 +53,10 @@ October: phones aren't supported), with
 the fullscreen button and no automatic start.
 
 ## The description
+
+The text for 0.3.1, 13 November 2026. Two changes for 0.3.1: the first
+line says "now 0.3.1", and *Build a campus* names the pub, the movie
+theater and the gardens among what you can build.
 
 The text for 0.3.0, 11 November 2026. One change for 0.3.0: the first
 line says "now 0.3.0". Nothing else on the page names what 0.3.0 removed
@@ -99,7 +104,7 @@ the line into the page's **Description**. The bold lines are its headings.
 
 ---
 
-**An early playtest build, now 0.3.0. Your feedback will help inform version 1.0.0!**
+**An early playtest build, now 0.3.1. Your feedback will help inform version 1.0.0!**
 
 UniSchool is a university management simulation about watching a small
 college become a robust institution.
@@ -115,7 +120,7 @@ Your decisions shape the answer.
 
 Start with a single hall. Over the decades, build laboratories, libraries,
 classrooms, residences, dining halls, student centers, health facilities,
-athletic venues and landmarks.
+athletic venues, a pub, a movie theater, gardens and landmarks.
 
 Lay out the campus yourself on an isometric map. Choose its architecture
 and school colors. Lay paths in flagstone, cobbles or brick, a line or a

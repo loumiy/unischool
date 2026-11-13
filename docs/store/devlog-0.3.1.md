@@ -6,8 +6,7 @@
 the seasons, the trophy case, the new title screen and theme, the hall
 doors and redrawn buildings, sixteen new things to build, the sandbox
 changes, and Plan 127, which is in progress and not in this build. The
-version number, the changelog and the itch.io page's first line aren't
-bumped yet. The pictures are in [`devlog-0.3.1/`](devlog-0.3.1/), drawn
+full list is in [`changelog.md`](changelog.md). The pictures are in [`devlog-0.3.1/`](devlog-0.3.1/), drawn
 by the game's own art in the Georgian set (`npm run sheet`). Nothing here
 claims more than the build does.*
 
