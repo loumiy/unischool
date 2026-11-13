@@ -16,7 +16,7 @@ export default function Credits({ onClose }: { onClose: () => void }) {
           <h2 className="hall-title">UniSchool</h2>
           <button type="button" className="close-btn" onClick={onClose} aria-label="Close"><CloseIcon /></button>
         </div>
-        <p className="credits-lede">Fifty years to build a university.</p>
+        <p className="credits-lede">University Tycoon</p>
         <dl className="credits-list">
           <dt>Design and direction</dt>
           <dd>Halifax Games<sup className="credits-mark" aria-hidden="true">*</sup></dd>

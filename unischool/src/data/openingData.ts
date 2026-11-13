@@ -102,7 +102,8 @@ export const OPENING_STEPS: Record<CoachStage, OpeningStep> = {
     // didn't play, twice. Each step introduces its own thing when it comes.
     // The college by its full name, "Halifax College" (Plan 122A, from
     // Ginger's playtest). How long a run is went in Plan 124B (X11): the
-    // title screen says "Fifty years to build a university".
+    // founding screen says "Fifty years to build a university" (the title
+    // screen's subtitle is the game's, "University Tycoon").
     body: (s) => `Welcome to ${institutionName(s.self)}. ${count(totalEnrolled(s.students))} students have enrolled, and the college is yours to build. You start with one building, Founders Hall. The first classes will meet there.`,
     next: 'Next',
   },

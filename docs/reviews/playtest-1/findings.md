@@ -846,7 +846,9 @@ marked **0.1.x** and fixed in a patch.*
   varsity team has a staff post open (`studentLifeData.ts`'s
   `openChairs`), and that team's card does say "Hire …", so the logic
   agrees with the tab; with twenty teams the one card is easy to miss.
-  Open: the screenshots would show which. *1 player · form (F15).*
+  **Declined** (the owner, 13 November 2026): the player hadn't noticed
+  that coaches and trainers had left, so posts stood empty; it works as
+  meant. *1 player · form (F15).*
 - **A club asks for money, is refused, and the money arrives the next
   tick.** "When a greek life or sports approaches for money. I don't have
   enough so I reject them and then in the next tick I instantly have

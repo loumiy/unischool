@@ -400,34 +400,53 @@ button, input, select, textarea { font-size: inherit; }
   gap: var(--space-24); padding: 40px var(--space-16); background: color-mix(in srgb, var(--cream) 97%, transparent); }
 .title-card { width: min(640px, 100%); background: var(--cream-hi); border: 3px solid var(--outline); border-radius: var(--radius-xl);
   box-shadow: var(--elevation-dialog); padding: var(--space-24); }
-/* The title art's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx):
-   the quad under a clear sky, and the mark and the name in white on it.
-   The menus over it are the game's own cards. */
+/* The title's register (TitleScreen.tsx, StartupScreen.tsx, Logo.tsx): a
+   clear sky over a campus skyline (assets/title-skyline.svg, the owner's
+   pick of five, 13 November), the mark and the name in white in the sky.
+   The menus over it are the game's own cards. The skyline is a band of its
+   own: each screen keeps its foot clear of it (the padding below), and it
+   rides at the foot of what scrolls ("local"), so a card never covers it. */
 .title-screen, .startup, .front-art > .front-screen {
-  background: #4f9be0 url('./assets/campus-quad.webp') center 62% / cover no-repeat fixed; }
+  --skyline-h: clamp(110px, 20vh, 200px);
+  background:
+    url('./assets/title-skyline.svg') center bottom / auto var(--skyline-h) repeat-x local,
+    linear-gradient(180deg, #3f8ad6 0%, #6fb0ea 55%, #b9dcf7 100%) fixed;
+  padding-bottom: calc(var(--skyline-h) + var(--space-16)); }
 /* A front screen opened from the title (App.tsx): its card over the art. */
 .front-art { display: contents; }
-.title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) 40px; }
+.title-screen { gap: var(--space-24); padding: clamp(28px, 7vh, 72px) var(--space-16) calc(var(--skyline-h) + var(--space-24)); }
 .title-head { text-align: center; color: #fff; text-shadow: 0 2px 14px rgba(10, 50, 110, 0.28); }
 .logo { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
-.logo-mark { width: clamp(88px, 13vw, 150px); height: auto; display: block; color: #fff;
+.logo-mark { width: clamp(72px, 9vw, 120px); height: auto; display: block; color: #fff;
   filter: drop-shadow(0 2px 10px rgba(10, 50, 110, 0.25)); }
 /* The game's own name: Archivo at its heaviest, in wide capitals. */
-.logo-name { margin: 0; font-family: var(--sans); font-weight: 800; font-size: clamp(40px, 8vw, 96px); line-height: 1;
+.logo-name { margin: 0; font-family: var(--sans); font-weight: 800; font-size: clamp(36px, 5.6vw, 72px); line-height: 1;
   letter-spacing: 0.04em; text-transform: uppercase; color: #fff; }
-.title-tagline { margin: var(--space-12) 0 0; font-family: var(--sans); font-weight: 600; font-size: var(--text-xl); color: #fff; }
+/* The subtitle, "University Tycoon": under the name and nearer its size. */
+.title-tagline { margin: var(--space-8) 0 0; font-family: var(--sans); font-weight: 700; font-size: clamp(20px, 2.6vw, 34px);
+  line-height: 1.1; letter-spacing: 0.02em; color: #fff; }
 /* The menu: the game's own front-screen card and buttons over the art,
    narrower so the quad shows round it. */
 .title-screen .title-card { width: min(460px, 100%); margin-top: auto; }
+/* A wide screen: the name at the left and the menu at the right, side by
+   side over the skyline, each centred in the sky (auto margins, so a tall
+   menu scrolls rather than slipping under the top). */
+@media (min-width: 1000px) {
+  .title-screen { flex-direction: row; justify-content: center; align-items: flex-start; gap: clamp(40px, 7vw, 120px); }
+  .title-screen .title-head { flex: 0 1 560px; margin-block: auto; }
+  .title-screen .title-card { flex: 0 0 auto; margin-block: auto; }
+}
 /* A short screen (Plan 115G, the founding card's rule below): the mark,
    the name and the card's padding close up, so the menu and the hall of
    fame fit in a 1280×720 laptop without the screen scrolling. */
 @media (max-height: 800px) {
-  .title-screen { gap: var(--space-12); padding-top: var(--space-16); padding-bottom: var(--space-16); }
+  /* The skyline lower, so the menus keep their room. */
+  .title-screen, .startup, .front-art > .front-screen { --skyline-h: clamp(84px, 14vh, 112px); }
+  .title-screen { gap: var(--space-12); padding-top: var(--space-16); padding-bottom: calc(var(--skyline-h) + var(--space-16)); }
   .title-screen .logo { gap: var(--space-6); }
-  .title-screen .logo-mark { width: clamp(56px, 9vh, 88px); }
-  .title-screen .logo-name { font-size: clamp(40px, 9vh, 72px); }
-  .title-screen .title-tagline { margin-top: var(--space-6); font-size: var(--text-lg); }
+  .title-screen .logo-mark { width: clamp(52px, 9vh, 80px); }
+  .title-screen .logo-name { font-size: clamp(34px, 8vh, 60px); }
+  .title-screen .title-tagline { margin-top: var(--space-6); font-size: clamp(18px, 3.6vh, 28px); }
   .title-screen .title-card { padding: var(--space-16) var(--space-24); }
 }
 /* MOCKUP (TitleScreen.tsx's ?title=): three titles without the painting. */
@@ -3676,9 +3695,9 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
 .demand-deadline.urgent { color: var(--danger-ink); }
 
 /* ---------- Startup screen ---------- */
-/* Over the title art (see the title screen's register above). */
+/* Over the title's sky (see the title screen's register above). */
 .startup { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: var(--space-16); padding: 24px var(--space-16); box-sizing: border-box; }
+  gap: var(--space-16); padding: 24px var(--space-16) calc(var(--skyline-h) + var(--space-16)); box-sizing: border-box; }
 .startup-brand { display: flex; align-items: center; gap: var(--space-12); color: #fff;
   font-family: var(--sans); font-weight: 800; font-size: var(--text-3xl); letter-spacing: 0.04em; text-transform: uppercase;
   text-shadow: 0 2px 12px rgba(10, 50, 110, 0.3); }
@@ -3754,7 +3773,7 @@ ul, ol { list-style: none; margin: 0; padding: 0; }
    440×214 viewBox, and the card's padding and margins close up, so Open the
    doors sits inside 720 px. Height only: a phone is taller than 800 px. */
 @media (max-height: 800px) {
-  .startup { gap: var(--space-8); padding-top: var(--space-12); padding-bottom: var(--space-12); }
+  .startup { gap: var(--space-8); padding-top: var(--space-12); padding-bottom: calc(var(--skyline-h) + var(--space-12)); }
   .startup-brand { font-size: var(--text-2xl); }
   .startup-brand-mark { width: 32px; }
   .startup-card { padding: var(--space-16) var(--space-24) var(--space-24); }

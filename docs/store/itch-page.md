@@ -22,7 +22,7 @@ Uploading the build and the embed settings are in
 
 | Field | Value |
 |---|---|
-| Title | UniSchool |
+| Title | UniSchool: University Tycoon (the owner's, 13 November 2026; "UniSchool" before) |
 | Project URL | `halifaxgames.itch.io/unischool` |
 | Short description or tagline | Found a college and run it for fifty years. An early playtest: your feedback decides what changes. |
 | Classification | Games |
