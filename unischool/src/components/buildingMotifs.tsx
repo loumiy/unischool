@@ -36,6 +36,7 @@ import {
   ARCADE_HEIGHT, ARCADE_DEPTH, ARCADE_PIER, ARCADE_BAY_METRES, ARCADE_MAX,
   CAMPANILE_PLAN, CAMPANILE_RISE, CAMPANILE_BELFRY_RISE, CAMPANILE_CAP_RISE,
   hasBalconies, hasTrim, hasGilt, CHAPELS, chapelPlan, NO_STONE, type ChapelBox,
+  PERFORMANCE_COMPLEX_ID, PERFORMANCE_FIELD_SHARE, PERFORMANCE_FORECOURT, PERFORMANCE_TEETH, PERFORMANCE_TOOTH_RISE, PERFORMANCE_WING_HEIGHT, performancePlan,
   diningBandOf, diningPlan, REFECTORIES, REFECTORY_BACK_EAVES, REFECTORY_KITCHEN_EAVES, type DiningPlan, type RefectoryLantern,
   storeysOf, wallHeightOf, wallShadeOf, windowRanksOf, materialsFor,
   windowWidthOf,
@@ -101,6 +102,10 @@ export function shadowCastersOf(t: Buildable, p: Plot, developing: boolean, v: V
   const full = wallHeightOf(t) - inFlight * STOREY;
   const ridge = ridgeOf(t, v);
   if (t.id === MUSEUM_ID && !developing) return [at(museumInner(p), height)];
+  if (t.id === PERFORMANCE_COMPLEX_ID && !developing) {
+    const plan = performancePlan(p);
+    return [at(plan.hall, full + PERFORMANCE_TOOTH_RISE * 0.5), at(plan.wing, Math.min(PERFORMANCE_WING_HEIGHT, full - up(1.5)))];
+  }
   if (t.facilityType === 'diningHall') {
     const plan = diningPlan(t, p, v);
     if (plan.band !== 'refectory') return [at(plan.hall, height)];
@@ -2763,10 +2768,6 @@ function AtriumFronts({ col, row, w, h, H, facing, floors }: {
 
 const SIGNAL_RED = '#c8392e';
 const GANTRY_YELLOW = '#d9a92f';
-// The Athletic Performance Complex's roof track (Plan 85G): the lanes'
-// rubber; the infield's turf follows the year (styles.css's
-// .ground-turf-roof, Plan 95B).
-const TRACK_RED = '#b0533c';
 const BANNER_COLORS = ['#9e2b2b', '#c29a2c', '#2b3f6b'];
 
 // A quad on a wall face, in its own u and in heights.
@@ -3175,40 +3176,6 @@ function RoofSignifier({ kind, col, row, w, h, base, ridge, f, stone, pal, facin
           <polygon points={polyPoints([cap.Bt, cap.Ct, apex])} fill={shade(lead, 0.8)} />
           <line x1={apex.x} y1={apex.y} x2={tip.x} y2={tip.y} stroke={gilt} strokeWidth={1.6} />
           <circle cx={tip.x} cy={tip.y} r={1.5} fill={gilt} />
-        </g>
-      );
-    }
-    case 'track': {
-      // A running track on the roof (the Athletic Performance Complex, Plan
-      // 85G): a rust-red oval of lanes round a green infield, a white line
-      // between the lanes, on the glazed block's flat deck. Laid out in tiles
-      // along the long axis: two straights joined by half circles.
-      const margin = Math.min(across(2.5), short * 0.08);
-      const z = base + up(0.35);
-      const oval = (r: number, n = 14): string => {
-        const straight = Math.max(0, long / 2 - margin - (short / 2 - margin));
-        const pts: Pt[] = [];
-        const pt = (a: number, c: number) => {
-          const [pc, pr] = at(a / long, c / short);
-          return lift(project(pc, pr), z);
-        };
-        for (let i = 0; i <= n; i += 1) {
-          const th = -Math.PI / 2 + (Math.PI * i) / n;
-          pts.push(pt(long / 2 + straight + r * Math.cos(th), short / 2 + r * Math.sin(th)));
-        }
-        for (let i = 0; i <= n; i += 1) {
-          const th = Math.PI / 2 + (Math.PI * i) / n;
-          pts.push(pt(long / 2 - straight + r * Math.cos(th), short / 2 + r * Math.sin(th)));
-        }
-        return polyPoints(pts);
-      };
-      const outer = short / 2 - margin;
-      const lanes = Math.min(across(9), outer * 0.42);
-      return (
-        <g className="sig-track">
-          <polygon points={oval(outer)} fill={TRACK_RED} />
-          <polygon points={oval(outer - lanes / 2)} fill="none" stroke="#f1ece4" strokeWidth={1.1} />
-          <polygon points={oval(outer - lanes)} className="ground-turf-roof" />
         </g>
       );
     }
@@ -5468,6 +5435,342 @@ function ArenaShed({ c }: { c: ShedCtx }) {
       {mainHall}
       {before.map((x) => x.node)}
     </>
+  );
+}
+
+// --- The Athletic Performance Complex (buildingSpec's performancePlan) ----
+// Redrawn from scratch (the owner: "a plain building with a track on the
+// roof, which doesn't make much sense"). After the college performance
+// centers built since the 2000s (Oregon's Hatfield-Dowlin, Clemson's,
+// Michigan's Schembechler Hall): a long clear-span training hall under a
+// sawtooth of north lights, a glazed two-floor wing across its front with
+// the strength hall behind the ground floor's glass, and the outdoor speed
+// field beside them, its sprint lanes on the ground where a track belongs.
+// One drawing in every set, as the other sports buildings are: athletics
+// architecture is engineering. The college's colours run in a fascia round
+// the hall and on the wing's parapet and canopy.
+const PERF_CLAD = '#4d555b';
+const PERF_WING_WALL = '#5b636a';
+const PERF_ROOF = '#c4c9cd';
+const PERF_NORTH_LIGHT = '#a3c6d8';
+const PERF_ROLLER = '#c8ccce';
+const PERF_LANES = '#b0533c';
+const PERF_SLAB = '#d6d3ca';
+const PERF_DECK = '#a7adb1';
+const PERF_RACK = '#1d2226';
+const PERF_PLATE = '#121518';
+
+// The snow on the roofs, for the parts that draw their roofs in their own
+// colours outside BuildingMass: read from the map's context, registered for
+// the canvas in canvasArt.ts as InCollegeColors is.
+export function InSnow({ draw }: { draw: (snow: number) => React.ReactNode }) {
+  return <>{draw(useContext(SnowContext))}</>;
+}
+
+function PerformanceComplex({ t, p, vernacular }: { t: Buildable; p: Plot; vernacular: Vernacular }) {
+  return <InSnow draw={(snow) => <InCollegeColors draw={(colors) => performanceArt(t, p, vernacular, snow, colors)} />} />;
+}
+
+function performanceArt(t: Buildable, p: Plot, vernacular: Vernacular, snow: number, colors: SchoolColors): React.JSX.Element {
+  const plan = performancePlan(p);
+  const { W, D, u0, wingD } = plan;
+  const H = wallHeightOf(t);
+  const Hw = Math.min(PERFORMANCE_WING_HEIGHT, H - up(1.5));
+  const R = PERFORMANCE_TOOTH_RISE;
+  const stone = stoneFor(vernacular);
+  const d = doorOf(t);
+  const sides = sidesOf(p.facing);
+  const seenWalls = visibleWalls();
+  const isSeen = (dir: FaceDir) => dir === seenWalls.left || dir === seenWalls.right;
+  const frontSeen = isSeen(sides.front);
+  // A point in the building's own frame, at a height.
+  const P = (u: number, dd: number, z = 0): Pt => { const g = localToGrid(p, u, dd); return lift(project(g.col, g.row), z); };
+  const quad = (a: number, b: number, c: number, e: number, z = 0) => polyPoints([P(a, c, z), P(b, c, z), P(b, e, z), P(a, e, z)]);
+  const seg = (a: Pt, b: Pt) => `M${a.x.toFixed(1)},${a.y.toFixed(1)}L${b.x.toFixed(1)},${b.y.toFixed(1)}`;
+  // A footprint side's middle on the ground, where walkRoutes puts its door.
+  const middle = (dir: FaceDir) => project(
+    dir === 'posCol' ? p.col + p.w : dir === 'negCol' ? p.col : p.col + p.w / 2,
+    dir === 'posRow' ? p.row + p.h : dir === 'negRow' ? p.row : p.row + p.h / 2,
+  );
+  const doorOnFace = (s: ShedFace, Hs: number) => {
+    if (!d) return null;
+    const uc = uAlong(s.o, s.a, middle(s.dir));
+    return uc > 0.05 && uc < 0.95 ? <DoorAt key={`d${s.dir}`} d={d} s={s} H={Hs} uc={uc} /> : null;
+  };
+  const pave = stone.trim !== 'none' ? shade(stone.trim, 0.96) : shade(stone.towerStone, 0.94);
+  const fieldW = W * PERFORMANCE_FIELD_SHARE;
+
+  // The speed field: turf in mown bands, four sprint lanes down its outer
+  // edge with a start and a finish line, ten-yard lines across the rest.
+  const laneU0 = 0.22; const laneW = 0.24; const lanes = 4;
+  const laneU1 = laneU0 + laneW * lanes;
+  const l0 = 0.4; const l1 = D - 0.4;
+  const mow: React.JSX.Element[] = [];
+  for (let k = 0, dd = 0.3; dd < D - 0.3; k++, dd += 0.75) {
+    if (k % 2 === 0) mow.push(<polygon key={`m${k}`} className="ground-mow" points={quad(laneU1 + 0.2, fieldW - 0.15, dd, Math.min(D - 0.3, dd + 0.75))} />);
+  }
+  const yardLines: string[] = [];
+  for (let dd = 1.2; dd < D - 0.9; dd += 1.0) yardLines.push(seg(P(laneU1 + 0.35, dd), P(fieldW - 0.3, dd)));
+  const laneLines: string[] = [];
+  for (let i = 1; i < lanes; i++) laneLines.push(seg(P(laneU0 + laneW * i, l0), P(laneU0 + laneW * i, l1)));
+  const ground = (
+    <g key="ground" className="perf-ground">
+      <polygon className="ground-turf" points={quad(0, fieldW, 0, D)} />
+      {mow}
+      <polygon points={quad(laneU0, laneU1, l0, l1)} fill={PERF_LANES} />
+      <path className="ground-line-fine" d={laneLines.join('')} />
+      <path className="ground-line" d={[seg(P(laneU0, l0 + 0.5), P(laneU1, l0 + 0.5)), seg(P(laneU0, l1 - 0.5), P(laneU1, l1 - 0.5))].join('')} />
+      <path className="ground-line-fine" d={yardLines.join('')} />
+      <polygon className="ground-line" points={quad(laneU1 + 0.3, fieldW - 0.2, 0.35, D - 0.35)} />
+      {/* The paving: between the field and the buildings, and before the wing. */}
+      <polygon className="perf-paving" points={quad(fieldW, u0, 0, D)} fill={pave} />
+      <polygon className="perf-paving" points={quad(u0, W, 0, PERFORMANCE_FORECOURT)} fill={pave} />
+      {plotShadow(plan.hall, H + R * 0.5, p, 'shh')}
+      {plotShadow(plan.wing, Hw, p, 'shw')}
+    </g>
+  );
+
+  // On the field: hurdles across the lanes, tackling dummies and a sled.
+  const k = heightScale();
+  const hurdles: string[] = [];
+  for (const dd of [2.1, 3.3, 4.5, 5.7].filter((x) => x < l1 - 1)) {
+    for (let i = 0; i < lanes; i++) {
+      const a = P(laneU0 + laneW * i + 0.04, dd); const b = P(laneU0 + laneW * (i + 1) - 0.04, dd);
+      hurdles.push(seg(a, lift(a, up(0.9))), seg(b, lift(b, up(0.9))), seg(lift(a, up(0.9)), lift(b, up(0.9))));
+    }
+  }
+  const dummyAt = (i: number) => P(laneU1 + 0.9 + i * 0.55, D * 0.62 + (i % 2) * 0.4);
+  const sledU = fieldW - 0.9; const sledD = D * 0.3;
+  const sledBox = localBox(p, sledU - 0.35, sledD - 0.2, sledU + 0.35, sledD + 0.2);
+  const sled = boxFaces(sledBox.col, sledBox.row, sledBox.w, sledBox.h, 0, up(1.3));
+  const fieldProps = (
+    <g key="props" className="perf-field-props">
+      <path d={hurdles.join('')} stroke="#f4f1e8" strokeWidth={0.9} fill="none" />
+      {sideFaces(sled, PERF_RACK, shade(PERF_RACK, 0.8))}
+      <polygon points={polyPoints(sled.top)} fill={colors.primary} />
+      {[0, 1, 2].map((i) => {
+        const at = dummyAt(i);
+        return (
+          <g key={`dm${i}`}>
+            <polygon points={polyPoints(discPts(at, 0.9 * k))} fill={PERF_RACK} />
+            <line x1={at.x} y1={at.y} x2={at.x} y2={at.y - up(1.7) * k} stroke={i === 1 ? colors.secondary : colors.primary} strokeWidth={2.2} strokeLinecap="round" />
+          </g>
+        );
+      })}
+    </g>
+  );
+
+  // The training hall: dark cladding with standing seams, the college's
+  // fascia under the eaves, glass along the sides and back with the indoor
+  // sprint straight showing through it, a roller door onto the field.
+  const hb = plan.hall;
+  const hf = boxFaces(hb.col, hb.row, hb.w, hb.h, 0, H);
+  const hFaces = shedFaces(hf);
+  const hallTone = WALLS(PERF_CLAD);
+  const glassTop = Math.min(up(6.5), H - up(3.2));
+  const hallFace = (s: ShedFace) => {
+    const side = ownFrame.sideOf(p.facing, s.dir);
+    const seams: string[] = [];
+    const n = Math.max(4, Math.round(s.span * 2));
+    for (let i = 1; i < n; i++) seams.push(seg(facePoint(s.o, s.a, H, i / n, BASE_COURSE / H), facePoint(s.o, s.a, H, i / n, (H - EAVES_COURSE) / H)));
+    let body: React.ReactNode = null;
+    if (side === 'left') {
+      // The roller door onto the field, glass either side.
+      const rz = Math.min(up(7.5), H - up(3.2));
+      const slats: string[] = [];
+      for (let z = up(0.5); z < rz; z += up(0.55)) slats.push(seg(facePoint(s.o, s.a, H, 0.34, z / H), facePoint(s.o, s.a, H, 0.66, z / H)));
+      body = (
+        <>
+          <SeeThrough s={s} H={H} u0={0.06} u1={0.3} z0={BASE_COURSE} z1={glassTop} pitch={across(3)} />
+          <SeeThrough s={s} H={H} u0={0.7} u1={0.94} z0={BASE_COURSE} z1={glassTop} pitch={across(3)} />
+          <polygon points={wq(s, H, 0.32, 0.68, 0, rz + up(0.4))} fill={shade(PERF_CLAD, 0.8)} />
+          <polygon points={wq(s, H, 0.34, 0.66, 0, rz)} fill={PERF_ROLLER} />
+          <path d={slats.join('')} stroke="rgba(60, 66, 72, 0.35)" strokeWidth={0.6} fill="none" />
+        </>
+      );
+    } else if (side === 'front') {
+      // Over the wing: a clerestory band between its roof and the fascia.
+      body = <SeeThrough s={s} H={H} u0={0.03} u1={0.97} z0={Math.min(Hw + up(0.8), H - up(3))} z1={H - up(2.4)} pitch={across(3)} />;
+    } else {
+      // The indoor sprint straight, seen through the glass: its lanes on
+      // the floor along the whole wall.
+      const z0 = BASE_COURSE; const zl = z0 + up(1.1);
+      const laneMarks = [0.33, 0.66].map((f) => seg(facePoint(s.o, s.a, H, 0.04, (z0 + (zl - z0) * f) / H), facePoint(s.o, s.a, H, 0.96, (z0 + (zl - z0) * f) / H)));
+      body = (
+        <SeeThrough s={s} H={H} u0={0.04} u1={0.96} z0={z0} z1={glassTop} pitch={across(3.5)} transoms={[glassTop * 0.66]}>
+          <polygon points={wq(s, H, 0.04, 0.96, z0, zl)} fill={PERF_LANES} />
+          <path d={laneMarks.join('')} stroke="rgba(244, 241, 232, 0.85)" strokeWidth={0.6} fill="none" />
+        </SeeThrough>
+      );
+    }
+    return (
+      <g key={`hf${s.dir}`}>
+        <path d={seams.join('')} stroke="rgba(20, 24, 28, 0.28)" strokeWidth={0.5} fill="none" />
+        {body}
+        {arenaFascia(s, H, colors)}
+        {(side === 'back' || side === 'right') && doorOnFace(s, H)}
+      </g>
+    );
+  };
+  // The sawtooth: teeth across the hall, each a glazed upright facing the
+  // front and a metal slope falling to the back, drawn far to near.
+  const n = PERFORMANCE_TEETH;
+  const tD = (D - wingD) / n;
+  const endU = isSeen(sides.left) ? u0 : isSeen(sides.right) ? W : null;
+  const endDir = isSeen(sides.left) ? sides.left : sides.right;
+  const teeth = Array.from({ length: n }, (_, i) => i);
+  if (frontSeen) teeth.reverse();
+  const slopeFill = snowOn(PERF_ROOF, snow, ROOF_SNOW.roof);
+  const roof = teeth.map((i) => {
+    const d0 = wingD + i * tD; const d1 = d0 + tD;
+    const ridges: string[] = [];
+    const m = Math.max(6, Math.round((W - u0) * 1.8));
+    for (let j = 1; j < m; j++) { const u = u0 + ((W - u0) * j) / m; ridges.push(seg(P(u, d0, H + R), P(u, d1, H))); }
+    const mullions: string[] = [];
+    const g = Math.max(6, Math.round((W - u0) * 1.6));
+    for (let j = 1; j < g; j++) { const u = u0 + ((W - u0) * j) / g; mullions.push(seg(P(u, d0, H), P(u, d0, H + R))); }
+    return (
+      <g key={`tooth${i}`}>
+        <polygon points={polyPoints([P(u0, d0, H + R), P(W, d0, H + R), P(W, d1, H), P(u0, d1, H)])} fill={slopeFill} />
+        <path d={ridges.join('')} stroke="rgba(40, 46, 52, 0.2)" strokeWidth={0.5} fill="none" />
+        {endU !== null && <polygon points={polyPoints([P(endU, d0, H), P(endU, d0, H + R), P(endU, d1, H)])} fill={hallTone[endDir]} />}
+        {frontSeen && (
+          <>
+            <polygon points={polyPoints([P(u0, d0, H), P(W, d0, H), P(W, d0, H + R), P(u0, d0, H + R)])} fill={snowOnGlass(PERF_NORTH_LIGHT, 0.97, snow)} />
+            <path className="iso-mullion" d={mullions.join('')} />
+          </>
+        )}
+        {/* The ridge's capping, in the hall's dark metal. */}
+        <path d={seg(P(u0, d0, H + R), P(W, d0, H + R))} stroke={shade(PERF_CLAD, 0.9)} strokeWidth={1.4} fill="none" />
+      </g>
+    );
+  });
+  const hallNode = (
+    <g key="hall" className="perf-hall">
+      <polygon points={polyPoints(hf.left)} fill={hallTone[hf.dir.CD]} />
+      <polygon points={polyPoints(hf.right)} fill={hallTone[hf.dir.BC]} />
+      {shedCourses(hf, H)}
+      {hFaces.map(hallFace)}
+      {roof}
+    </g>
+  );
+
+  // The performance wing: the strength hall behind the ground floor's
+  // glass (racks and plates), a floor band, sports science in a curtain
+  // wall over it, the parapet in the college's colours with the name on
+  // the front, a canopy and steps at the door.
+  const wb = plan.wing;
+  const wf = boxFaces(wb.col, wb.row, wb.w, wb.h, 0, Hw);
+  const wFaces = shedFaces(wf);
+  const wingTone = WALLS(PERF_WING_WALL);
+  const floor1 = STOREY;
+  const parapet = up(1.7);
+  const racks = (s: ShedFace) => {
+    const out: React.JSX.Element[] = [];
+    const count = Math.max(3, Math.round(s.span * 0.9));
+    const pw = 0.05 / Math.max(1, s.span / 4);
+    for (let i = 0; i < count; i++) {
+      const uc = 0.08 + (0.84 * (i + 0.5)) / count;
+      const half = 0.32 / count;
+      const top = BASE_COURSE + up(2.4); const bar = BASE_COURSE + up(1.5);
+      out.push(
+        <g key={`r${i}`}>
+          <polygon points={wq(s, Hw, uc - half, uc - half + pw * 0.3, BASE_COURSE, top)} fill={PERF_RACK} />
+          <polygon points={wq(s, Hw, uc + half - pw * 0.3, uc + half, BASE_COURSE, top)} fill={PERF_RACK} />
+          <polygon points={wq(s, Hw, uc - half - pw, uc + half + pw, bar, bar + up(0.12))} fill="#9aa0a4" />
+          <polygon points={wq(s, Hw, uc - half - pw * 1.1, uc - half - pw * 0.2, bar - up(0.45), bar + up(0.55))} fill={i % 2 ? colors.primary : PERF_PLATE} />
+          <polygon points={wq(s, Hw, uc + half + pw * 0.2, uc + half + pw * 1.1, bar - up(0.45), bar + up(0.55))} fill={i % 2 ? colors.primary : PERF_PLATE} />
+        </g>,
+      );
+    }
+    return out;
+  };
+  const title = 'ATHLETICS';
+  const wingFace = (s: ShedFace) => {
+    const front = s.dir === sides.front;
+    const z0 = Hw - parapet;
+    let name: React.ReactNode = null;
+    if (front) {
+      const mid = facePoint(s.o, s.a, Hw, 0.5, (z0 + parapet * 0.52) / Hw);
+      const len = Math.hypot(s.a.x - s.o.x, s.a.y - s.o.y);
+      const size = Math.min(parapet * 0.62 * heightScale(), (len * 0.5) / (title.length * 0.8));
+      if (size >= 2.5) {
+        name = (
+          <text className="stadium-inscription on-colour" fontSize={size} style={{ fill: colors.secondary }}
+            transform={`matrix(${((s.a.x - s.o.x) / len).toFixed(4)},${((s.a.y - s.o.y) / len).toFixed(4)},0,1,${mid.x.toFixed(1)},${mid.y.toFixed(1)})`}>
+            {title}
+          </text>
+        );
+      }
+    }
+    return (
+      <g key={`wf${s.dir}`}>
+        <SeeThrough s={s} H={Hw} u0={0.02} u1={0.98} z0={BASE_COURSE} z1={floor1 - up(0.35)} pitch={across(3.5)}>
+          {racks(s)}
+        </SeeThrough>
+        <polygon points={wq(s, Hw, 0, 1, floor1 - up(0.35), floor1 + up(0.35))} fill={PERF_SLAB} />
+        <CurtainWall origin={s.o} along={s.a} wallHeight={Hw} spanTiles={s.span} from={floor1 + up(0.35)} to={z0 - up(0.2)} floors={[]} id={`pw${s.dir}`} />
+        <polygon points={wq(s, Hw, 0, 1, z0, Hw)} fill={colors.primary} />
+        <polygon points={wq(s, Hw, 0, 1, z0, z0 + up(0.35))} fill={colors.secondary} />
+        {name}
+        {front && doorOnFace(s, Hw)}
+      </g>
+    );
+  };
+  // The canopy over the door, out over the forecourt, on the tile the
+  // walkers use.
+  const canopy = (() => {
+    if (!d || !frontSeen) return null;
+    const dir = sides.front;
+    const isRow = dir === 'posRow' || dir === 'negRow';
+    const along = walkersTileAlong(p, dir) - (isRow ? wb.col : wb.row);
+    const width = Math.min(2.4, (isRow ? wb.w : wb.h) - 0.2);
+    const b = againstWall(wb.col, wb.row, wb.w, wb.h, dir, along - width / 2, width, PERFORMANCE_FORECOURT * 0.8);
+    const z = Math.min(d.threshold + d.height + up(0.9), floor1 - up(0.2));
+    const f = boxFaces(b.col, b.row, b.w, b.h, z, up(0.45));
+    return (
+      <g key="canopy" className="perf-canopy">
+        {sideFaces(f, colors.primary, shade(colors.primary, 0.82))}
+        <polygon points={polyPoints(f.top)} fill={shade(colors.primary, 1.08)} />
+      </g>
+    );
+  })();
+  const steps = d && frontSeen ? (() => {
+    const dir = sides.front;
+    const span = wallSpan(wb.w, wb.h, dir);
+    const at = outsideWall(wb.col, wb.row, wb.w, wb.h, dir, span / 2, 0);
+    const out = outwardOf(dir);
+    return <EntranceSteps key="steps" stone={stone} d={d} centreCol={at.col} centreRow={at.row} outCol={out.col} outRow={out.row} span={span} />;
+  })() : null;
+  // Plant on the wing's roof: two air handlers.
+  const units = [0.25, 0.7].map((f, i) => {
+    const b = localBox(p, u0 + (W - u0) * f, PERFORMANCE_FORECOURT + (wingD - PERFORMANCE_FORECOURT) * 0.3, u0 + (W - u0) * f + 1.1, PERFORMANCE_FORECOURT + (wingD - PERFORMANCE_FORECOURT) * 0.3 + 0.8);
+    const uf = boxFaces(b.col, b.row, b.w, b.h, Hw, up(1.6));
+    return { ...b, node: <g key={`u${i}`}>{sideFaces(uf, '#b4b9bc', '#959a9d')}<polygon points={polyPoints(uf.top)} fill={snowOn('#c9cdcf', snow, ROOF_SNOW.deck)} /></g> };
+  });
+  const wingNode = (
+    <g key="wing" className="perf-wing">
+      {steps}
+      <polygon points={polyPoints(wf.left)} fill={wingTone[wf.dir.CD]} />
+      <polygon points={polyPoints(wf.right)} fill={wingTone[wf.dir.BC]} />
+      {shedCourses(wf, Hw)}
+      {wFaces.map(wingFace)}
+      <polygon points={polyPoints(wf.top)} fill={snowOn(PERF_DECK, snow, ROOF_SNOW.deck)} />
+      {depthOrder(units).map((x) => x.node)}
+      {canopy}
+    </g>
+  );
+
+  const parts = depthOrder([
+    { ...plan.field, node: fieldProps },
+    { ...plan.hall, node: hallNode },
+    { ...plan.wing, node: wingNode },
+  ]);
+  return (
+    <g className="perf-complex">
+      {ground}
+      {parts.map((x) => x.node)}
+    </g>
   );
 }
 
@@ -9601,6 +9904,8 @@ function BuildingMotifBody({ t, p, material, vernacular, developing, glyphs }: {
   // The grand landmarks draw themselves, stage by stage (landmarks.tsx).
   if (motifOf(t) === 'landmark') return <Landmark t={t} p={p} developing={developing} vernacular={vernacular} />;
   // The Museum stands back behind its forecourt (Plan 87G).
+  // The Athletic Performance Complex draws its own plan (performancePlan).
+  if (t.id === PERFORMANCE_COMPLEX_ID && !developing) return <PerformanceComplex t={t} p={p} vernacular={vernacular} />;
   if (t.id === MUSEUM_ID && !developing) return <MuseumCourt t={t} p={p} material={material} vernacular={vernacular} glyphs={glyphs} />;
   const extending = developing && floorsUnderConstruction(t) > 0 && motifOf(t) !== 'grounds';
   if (!extending) return <BuildingMass t={t} p={p} material={material} vernacular={vernacular} developing={developing} glyphs={glyphs} />;
@@ -11177,8 +11482,8 @@ export function buildingMassArt(props: BuildingMassProps, snow: number, part?: '
               </>
             );
           })()}
-          {/* Roof plant, but not where a roof track runs (Plan 85G). */}
-          {!site && signifier !== 'track' && flatRoofItems(motif, labFeatureOf(t), col, row, w, h, feature).map((item) => {
+          {/* Roof plant. */}
+          {!site && flatRoofItems(motif, labFeatureOf(t), col, row, w, h, feature).map((item) => {
             if (item.kind === 'school' && item.part) {
               return <SchoolRoofItem key={item.key} part={item.part} col={item.col} row={item.row} w={item.w} h={item.h} base={H} tint={plantTint} />;
             }

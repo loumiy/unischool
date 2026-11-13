@@ -83,8 +83,9 @@ const RESEARCH_FACILITY_MOTIFS: Partial<Record<string, Motif>> = {
   // The Faculty Training Institute (Plan 85E): an academic hall, for the
   // teaching it is about, in the civic stone and under a cupola.
   'PROJ-TRAINING': 'hall',
-  // The Athletic Performance Complex (Plan 85G): a big modern block, glazed
-  // from plinth to eaves, with a running track on its roof.
+  // The Athletic Performance Complex (Plan 85G): drawn by its own plan
+  // (performancePlan): a sawtooth training hall, a glazed performance wing
+  // and an outdoor speed field beside them.
   'PROJ-ATHLETICS-COMPLEX': 'block',
 };
 
@@ -129,7 +130,6 @@ export type Signifier =
   | 'mast'        // Computing: a mast and a dish
   | 'tanks'       // Neuroscience: the scanners' cryogen tanks
   | 'cupola'      // the Faculty Training Institute: a glazed cupola astride the ridge
-  | 'track'       // the Athletic Performance Complex: a running track on the roof
   | 'ticker';     // Experimental Economics: a ticker board along its front (Plan 87I)
 const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-MECH': 'gantry',
@@ -142,7 +142,6 @@ const SIGNIFIERS_BY_ID: Partial<Record<string, Signifier>> = {
   'LAB-COMP': 'mast',
   'LAB-NEUR': 'tanks',
   'PROJ-TRAINING': 'cupola',
-  'PROJ-ATHLETICS-COMPLEX': 'track',
   'LAB-ECON': 'ticker',
 };
 const SIGNIFIERS_BY_TYPE: Partial<Record<FacilityType, Signifier>> = {
@@ -1866,6 +1865,50 @@ function refectoryEavesMetres(t: Buildable): number {
 }
 export const REFECTORY_KITCHEN_EAVES = 0.72;
 export const REFECTORY_BACK_EAVES = 0.4;
+
+// The Athletic Performance Complex (Plan 85G; redrawn from scratch after
+// the owner's "a plain building with a track on the roof"): the parts a
+// college athletics performance center is made of, side by side on its
+// plot rather than stacked. In the building's own frame (four-way facing):
+//   - the speed field on its left, full depth: turf with sprint lanes down
+//     its outer edge, where the athletes train outdoors;
+//   - the training hall behind on the right: one clear span under a
+//     sawtooth of north lights, its glazed teeth facing the front, a roller
+//     door onto the field, an indoor sprint straight seen through its glass;
+//   - the performance wing across the front: two glazed floors (the strength
+//     hall on the ground, sports science over it) with the way in, behind a
+//     strip of paving that takes its canopy and steps.
+// The art (buildingMotifs.tsx's PerformanceComplex), the shadows and the
+// weathering all read this one plan.
+export const PERFORMANCE_COMPLEX_ID = 'PROJ-ATHLETICS-COMPLEX';
+export const PERFORMANCE_FIELD_SHARE = 0.36;  // of the front's width
+export const PERFORMANCE_FIELD_GAP = 0.35;    // tiles of paving between the field and the buildings
+export const PERFORMANCE_FORECOURT = 0.7;     // tiles of paving before the wing, for its canopy and steps
+export const PERFORMANCE_WING_SHARE = 0.33;   // of the depth behind the forecourt
+export const PERFORMANCE_TEETH = 3;
+export const PERFORMANCE_TOOTH_RISE = up(4.2);
+// The wing's two floors and its parapet, under the hall's eaves.
+export const PERFORMANCE_WING_HEIGHT = STOREY * 2 + up(1.4);
+export interface PerformancePlan {
+  W: number; D: number;     // the front's width and the depth, in tiles
+  u0: number;               // where the buildings start across the front
+  wingD: number;            // how deep the wing reaches from the front (the hall starts there)
+  field: { col: number; row: number; w: number; h: number };
+  hall: { col: number; row: number; w: number; h: number };
+  wing: { col: number; row: number; w: number; h: number };
+}
+export function performancePlan(p: Plot): PerformancePlan {
+  const W = frontWidth(p); const D = frontDepth(p);
+  const fieldW = W * PERFORMANCE_FIELD_SHARE;
+  const u0 = fieldW + PERFORMANCE_FIELD_GAP;
+  const wingD = PERFORMANCE_FORECOURT + (D - PERFORMANCE_FORECOURT) * PERFORMANCE_WING_SHARE;
+  return {
+    W, D, u0, wingD,
+    field: localBox(p, 0, 0, fieldW, D),
+    hall: localBox(p, u0, wingD, W, D),
+    wing: localBox(p, u0, PERFORMANCE_FORECOURT, W, wingD),
+  };
+}
 
 export interface DiningPlan {
   band: DiningBand;
