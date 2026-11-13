@@ -16,6 +16,10 @@ import { FOUNDING_VERNACULAR } from '../src/data/foundingData';
 import { FOUNDING_COLORS, schoolColorsOf } from '../src/data/schoolColors';
 import { WEEKS_PER_YEAR, type GameState } from '../src/state/types';
 import { inboxItems } from '../src/systems/inbox/inbox';
+import { MILESTONES } from '../src/data/ladderData';
+import { TAB_ORDER, tabAvailable } from '../src/components/TabNav';
+import { officeAllowance } from '../src/systems/administration/offices';
+import { MAX_OFFICES } from '../src/data/officeData';
 
 bindScriptStream(5150);
 
@@ -44,6 +48,13 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
   const placeable = s.tech.filter((t) => isPlaceableKind(t));
   const shut = placeable.filter((t) => t.status === 'locked');
   assert(shut.length === 0, `every building is open from the start (${shut.map((t) => t.id).join(', ')})`);
+  const unreached = MILESTONES.filter((m) => s.ladder.reached[m.id] === undefined);
+  assert(unreached.length === 0, `every milestone is reached from the start (${unreached.map((m) => m.id).join(', ')})`);
+  const tabsShut = TAB_ORDER.filter((id) => !tabAvailable(s, id));
+  assert(tabsShut.length === 0, `so every tab is open (${tabsShut.join(', ')})`);
+  assert(officeAllowance(s) === MAX_OFFICES, `and every office (${officeAllowance(s)} of ${MAX_OFFICES})`);
+  assert(s.ladder.unread.length === 0, 'without a milestone letter');
+  assert(!found(false).ladder.reached[MILESTONES[MILESTONES.length - 1]!.id], 'while a normal run reaches them over time');
   const n = found(false);
   assert(n.tech.some((t) => isPlaceableKind(t) && t.status === 'locked'), 'while a normal run opens them over time');
   assert(n.sandbox === undefined, 'a normal founding is not a sandbox');
@@ -143,10 +154,8 @@ const found = (sandbox: boolean) => reducer(createPreStartState(), {
   assert(sand.s.ladder.unread.length === 0, 'no milestone waits to be read');
   assert(!sand.s.log.some((l) => l.topic === 'milestone'), 'and no milestone reaches the log');
   assert(sand.s.events.pendingMilestones.length === 0 && !(sand.s.events.news ?? []).some((n) => n.type === 'milestone'), 'or is celebrated');
-  const reached = (g: GameState) => Object.keys(g.ladder.reached).length;
-  assert(reached(sand.s) > reached(start), `but milestones are still reached, so what they open opens (${reached(start)} → ${reached(sand.s)})`);
   assert(norm.letterTier > 0 && norm.stops.includes('letter'), `while a normal run is sent its letters (${norm.stops.join(', ')})`);
-  assert(norm.s.log.some((l) => l.topic === 'milestone') || norm.s.ladder.unread.length > 0 || reached(norm.s) > reached(start), 'and hears of its milestones');
+  assert(norm.s.log.some((l) => l.topic === 'milestone') || norm.s.ladder.unread.length > 0 || Object.keys(norm.s.ladder.reached).length > Object.keys(start.ladder.reached).length, 'and hears of its milestones');
 }
 
 if (failures === 0) {
