@@ -70,7 +70,7 @@ export default function TrophyCase({ s }: { s: GameState }) {
           <span className="trophy-tally-num">{titles.length}</span>
           <span className="trophy-tally-text">
             <b>National title{titles.length === 1 ? '' : 's'}</b>
-            <span>across {shelf.length} sport{shelf.length === 1 ? '' : 's'} · latest Year {latest}</span>
+            <span>across {shelf.length} team{shelf.length === 1 ? '' : 's'} · latest Year {latest}</span>
           </span>
         </div>
       )}
