@@ -1558,7 +1558,6 @@ button.build-tile { font-family: inherit; }
    rubber, dirt and stone that are kept clear. */
 .ground-turf { fill: var(--turf, #6d9150); }
 .ground-endzone { fill: var(--turf-deep, #5d7f43); }
-.ground-turf-roof { fill: var(--turf-roof, #5d8a4a); }
 .ground-deck { fill: #d8d2bd; }
 .ground-water { fill: var(--water, #6ba3bd); }
 .ground-track { fill: #b4714f; }

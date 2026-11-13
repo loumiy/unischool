@@ -1,7 +1,7 @@
 import type { Buildable, Facing, Vernacular } from '../state/types';
 import {
   BLOCK_SPLIT_MIN_TILES, SLAB_ROW_FRACTION, TOWER_PODIUM_STOREYS, WING_COL_FRACTION, WING_STOREY_FRACTION,
-  BUSINESS_SCHOOL_ID, REFECTORY_BACK_EAVES, REFECTORY_KITCHEN_EAVES, businessSchoolPlan, chapelPlan, diningPlan, isHospital, motifOf, ridgeOf, storeysOf, wallHeightOf,
+  BUSINESS_SCHOOL_ID, REFECTORY_BACK_EAVES, REFECTORY_KITCHEN_EAVES, businessSchoolPlan, chapelPlan, diningPlan, PERFORMANCE_COMPLEX_ID, PERFORMANCE_WING_HEIGHT, performancePlan, isHospital, motifOf, ridgeOf, storeysOf, wallHeightOf,
 } from './buildingSpec';
 import { STOREY, up } from './campusScale';
 import { VILLAGE_HOUSES, villageLotBox } from './buildingMotifs';
@@ -44,6 +44,15 @@ export function weatherVolumes(t: Buildable, p: Plot, v: Vernacular): WeatherVol
     if (kitchen) out.push(box(kitchen.col, kitchen.row, kitchen.w, kitchen.h, 0, H * REFECTORY_KITCHEN_EAVES));
     if (back && back.w > 0 && back.h > 0) out.push(box(back.col, back.row, back.w, back.h, 0, H * REFECTORY_BACK_EAVES));
     return out;
+  }
+  // The Athletic Performance Complex: its training hall and its wing; the
+  // field beside them has no walls.
+  if (t.id === PERFORMANCE_COMPLEX_ID) {
+    const { hall, wing } = performancePlan(p);
+    return [
+      box(hall.col, hall.row, hall.w, hall.h, 0, H, { tarp: true }),
+      box(wing.col, wing.row, wing.w, wing.h, 0, Math.min(PERFORMANCE_WING_HEIGHT, H - up(1.5))),
+    ];
   }
   switch (motif) {
     case 'grounds':

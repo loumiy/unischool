@@ -12,7 +12,7 @@ import { BannerContext, CollegeNameContext, ColorsContext, CrowdContext, Develop
 import { StadiumFacade, stadiumFacadeArt, type StadiumFacadeProps } from './stadiumFacade';
 import { Spectators, VenuePennants, spectatorsArt, venuePennantsArt, type PennantsProps, type SpectatorsProps } from './spectators';
 import { SnowContext } from './seasons';
-import BuildingMotif, { BuildingMass, BuildingMotifArt, Door, DoorSiteContext, EntranceSteps, InCollegeColors, RoofFlag, buildingMassArt, doorArt, entranceStepsArt, roofFlagArt, sameMotif, type BuildingMassProps, type DoorProps, type EntranceStepsProps } from './buildingMotifs';
+import BuildingMotif, { BuildingMass, BuildingMotifArt, Door, DoorSiteContext, EntranceSteps, InCollegeColors, InSnow, RoofFlag, buildingMassArt, doorArt, entranceStepsArt, roofFlagArt, sameMotif, type BuildingMassProps, type DoorProps, type EntranceStepsProps } from './buildingMotifs';
 import type { Plot } from './facing';
 import Landmark, { landmarkArt, type LandmarkProps } from './landmarks';
 import { Lamp, lampArt } from './dressing';
@@ -68,6 +68,7 @@ export function registerMapArt(defaults: Partial<Occasions> = {}): void {
   // The readers of occasions.
   registerArt(RoofFlag, (p: { at: Pt }, s) => roofFlagArt(p, occasion(s, 'colors')));
   registerArt(InCollegeColors, (p: { draw: (c: SchoolColors) => React.ReactNode }, s) => p.draw(occasion(s, 'colors')));
+  registerArt(InSnow, (p: { draw: (snow: number) => React.ReactNode }, s) => p.draw(occasion(s, 'snow')));
   registerArt(BuildingMass, (p: BuildingMassProps, s) => buildingMassArt(p, occasion(s, 'snow')));
   registerArt(Door, (p: DoorProps, s) => doorArt(p, occasion(s, 'doorSite')));
   registerArt(EntranceSteps, (p: EntranceStepsProps, s) => entranceStepsArt(p, occasion(s, 'doorSite')));

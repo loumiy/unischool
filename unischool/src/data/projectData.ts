@@ -120,7 +120,7 @@ export const PROJECTS: readonly ProjectDef[] = [
   // upkeep is the complex's running cost. Kept by the owner (2026-10-01).
   {
     id: 'PROJ-ATHLETICS-COMPLEX', name: 'The Athletic Performance Complex',
-    description: `A glass-walled training center beside the venues: a strength hall, a sports-science lab, recovery pools, film rooms and a running track on the roof, where every varsity athlete trains.`,
+    description: `A training center beside the venues: an indoor sprint straight under a sawtooth roof, a strength hall, a sports-science lab, recovery pools, film rooms and a speed field outside, where every varsity athlete trains.`,
     cost: 30_000_000, weeks: 104, upkeep: 35_000,
     project: { fromYear: 1, specialization: 'athletics', boosts: {} },
   },
